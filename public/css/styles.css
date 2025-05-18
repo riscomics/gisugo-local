@@ -1,0 +1,426 @@
+/* Variables */
+:root {
+  --primary-color: #363f4f;
+  --secondary-color: #e6d6ae;
+  --accent-color: #ff7bd5;
+  --background-color: #856f67;
+  --card-background: #D9D9D9;
+  --font-family: 'Arial', sans-serif;
+  --container-max-width: 1200px;
+}
+
+/* Reset & Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  line-height: 1.6;
+  padding-top: 0; /* Will be calculated in the header height */
+  overflow-x: hidden;
+}
+
+/* Header Styles */
+.header {
+  background-color: var(--secondary-color);
+  padding: 0.25rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header__logo {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.header__logo-text {
+  width: 40px;
+  height: 40px;
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.header__title-group {
+  flex-grow: 1;
+  padding-left: 1rem;
+}
+
+.header__title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  line-height: 1.2;
+}
+
+.header__subtitle {
+  font-size: 1rem;
+  color: var(--primary-color);
+}
+
+.header__menu {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--primary-color);
+}
+
+.header__menu:hover {
+  opacity: 0.8;
+}
+
+.header__menu svg {
+  display: block;
+}
+
+/* Add a wrapper for the header to contain the accent line */
+.header-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--secondary-color);
+}
+
+/* Move header styles to wrapper */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+
+/* Adjust header spacer for new structure */
+.header-spacer {
+  height: 76px; /* Logo height + padding + accent line */
+}
+
+/* Video Section */
+.video-container {
+  width: 100%;
+  background-color: var(--primary-color);
+  padding: 0;
+  position: relative;
+  padding-top: 56.25%; /* 16:9 Aspect Ratio (9 / 16 = 0.5625) */
+  margin: 0;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Remove the negative margin styles we added earlier */
+.video-container + .accent-line {
+  margin-top: 0;
+}
+
+/* Category Section */
+.category-header {
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  padding: .5rem;
+  text-align: center;
+  font-size: 1.50rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.service-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.3rem;
+  padding: .5rem;
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+}
+
+.service-card {
+  background-color: transparent;
+  border-radius: 8px;
+  text-align: center;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 110px;
+  margin: 0;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+}
+
+.service-card__image-container {
+  background-color: var(--card-background);
+  border-radius: 8px;
+  padding: 0.4rem;
+  width: 100%;
+  aspect-ratio: 4/3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.service-card__image-container:hover {
+  background-color: aliceblue;
+}
+
+.service-card__image {
+  width: 100%;
+  max-width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.service-card__title {
+  color: var(--secondary-color);
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+/* Remove underlines from any links inside service cards */
+.service-card a,
+.service-card a:hover,
+.service-card a:visited,
+.service-card a:active {
+  text-decoration: none;
+  color: var(--secondary-color);
+}
+
+/* Accent Line */
+.accent-line {
+  height: 8px;
+  background-color: var(--accent-color);
+  width: 100%;
+}
+
+/* First accent line in header */
+.header-wrapper .accent-line {
+  display: block;
+}
+
+/* Second accent line after video */
+.video-container + .accent-line {
+  margin: 0;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Menu Overlay */
+.menu-overlay {
+  position: fixed;
+  top: 68px; /* Align with the accent line (header height) */
+  right: 0;
+  width: 250px;
+  height: auto;
+  background-color: var(--primary-color);
+  display: none;
+  z-index: 99;
+  border: 2px solid var(--accent-color);
+  border-radius: 8px;
+  margin: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.menu-overlay.active {
+  display: block;
+  opacity: 1;
+  visibility: visible;
+}
+
+.menu-list {
+  list-style: none;
+  padding: 1rem;
+  margin: 0;
+}
+
+.menu-list li {
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.menu-list li:last-child {
+  margin-bottom: 0;
+}
+
+.menu-list a {
+  color: var(--secondary-color);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  display: block;
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.menu-list a:hover {
+  background-color: var(--accent-color);
+  color: var(--primary-color);
+  transform: translateX(5px);
+}
+
+/* Media Queries */
+@media (min-width: 768px) {
+  .header {
+    padding: 0.25rem 1rem;
+  }
+
+  .header__logo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .header__title {
+    font-size: 3rem;
+  }
+
+  .header__subtitle {
+    font-size: 1.25rem;
+  }
+
+  .header__menu {
+    width: 55px;
+  }
+
+  .category-header {
+    font-size: 1.5rem;
+  }
+
+  .service-card {
+    width: 150px;
+  }
+
+  .service-grid {
+    gap: 2rem;
+    padding: 1.5rem;
+  }
+
+  .header-spacer {
+    height: 96px; /* Adjusted for tablet size */
+  }
+
+  .video-container {
+    margin: 0;
+  }
+
+  .accent-line {
+    width: 100%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .header {
+    padding: 0.25rem 1.5rem;
+  }
+
+  .header__logo {
+    width: 128px;
+    height: 128px;
+  }
+
+  .header__title {
+    font-size: 3.5rem;
+  }
+
+  .header__subtitle {
+    font-size: 1.5rem;
+  }
+
+  .header__menu {
+    width: 70px;
+    padding: 0.75rem;
+  }
+
+  .header__menu svg {
+    width: 50px;
+    height: 50px;
+  }
+
+  .service-card {
+    width: 180px;
+  }
+
+  .service-grid {
+    gap: 2.5rem;
+    padding: 2rem;
+  }
+
+  .service-card__title {
+    font-size: 1.1rem;
+  }
+
+  .header-spacer {
+    height: 136px; /* Adjusted for desktop size */
+  }
+
+  .video-container {
+    width: 50%;
+    margin: 0 auto; /* Center horizontally */
+    padding-top: 28.125%; /* Maintain 16:9 ratio for 50% width (56.25% ÷ 2) */
+  }
+
+  /* Remove the negative margin styles we added earlier */
+  .video-container + .accent-line {
+    margin-top: 0;
+  }
+
+  .accent-line {
+    width: 100%;
+  }
+} 
