@@ -23,15 +23,9 @@
   display: none;
 }
 
-html, body {
+html {
+  width: 100%;
   overflow-x: hidden;
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-
-html::-webkit-scrollbar, 
-body::-webkit-scrollbar {
-  display: none;
 }
 
 body {
@@ -39,6 +33,32 @@ body {
   background-color: var(--background-color);
   line-height: 1.6;
   padding-top: 0; /* Will be calculated in the header height */
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ensure all sections don't overflow */
+section {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Ensure service grid doesn't overflow */
+.service-grid {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.5rem;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+
+/* Ensure video container doesn't overflow */
+.video-container {
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden;
 }
 
 /* Header Styles */
