@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="GISUGO - Limpyo Service Listings">
+    <meta name="keywords" content="limpyo, cleaning, local service, jobs, gisugo">
+    <title>Limpyo Service - GISUGO</title>
+    <link rel="stylesheet" href="/gisugo-local/public/css/styles.css?v=1.1">
+    <link rel="stylesheet" href="/gisugo-local/public/css/listing.css?v=1.0">
+    <link rel="icon" type="image/png" href="/gisugo-local/public/images/favicon.png">
+  </head>
+  <body>
+    <!-- Header -->
+    <div class="header-wrapper">
+      <header class="header">
+        <img src="/gisugo-local/public/images/Gisugo-emblem.png" alt="GISUGO Logo - Person with shopping bag" class="header__logo">
+        <div class="header__title-group">
+          <h1 class="header__title">GISUGO</h1>
+          <p class="header__subtitle">Local Service Marketplace</p>
+        </div>
+        <button class="header__menu" aria-label="Menu">
+          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav class="menu-overlay">
+          <ul class="menu-list">
+            <li><a href="/gisugo-local/new-post">NEW POST</a></li>
+            <li><a href="/gisugo-local/profile">USER PROFILE</a></li>
+            <li><a href="/gisugo-local/messages">MESSAGES</a></li>
+            <li><a href="/gisugo-local/favorites">FAVORITES</a></li>
+            <li><a href="/gisugo-local/jobs">JOBS POSTED</a></li>
+            <li><a href="/gisugo-local/forum">VISIT FORUM</a></li>
+            <li><a href="/gisugo-local/contact">CONTACT ADMIN</a></li>
+          </ul>
+        </nav>
+      </header>
+      <div class="accent-line"></div>
+    </div>
+    <div class="header-spacer"></div>
+    <main>
+      <div class="category-bar">
+        <span class="category-label">Limpyo Service</span>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-select" id="region-filter">
+          <option>PHILIPPINES</option>
+          <option selected>VISAYAS</option>
+          <option>LUZON</option>
+          <option>MINDANAO</option>
+        </select>
+        <select class="filter-select" id="city-filter">
+          <option>CEBU</option>
+          <option selected>CEBU CITY</option>
+          <option>MANDAUE</option>
+          <option>LAPU-LAPU</option>
+        </select>
+        <select class="filter-select" id="sort-filter">
+          <option selected>Sort By</option>
+          <option>Job Date</option>
+          <option>Hourly Rate</option>
+        </select>
+      </div>
+      <div id="job-listings"></div>
+    </main>
+    <footer class="footer">
+      <p><a href="https://gisugo.com">GISUGO.com</a> is &copy; Copyright Designed by Real Interface Studios LLC</p>
+    </footer>
+    <script src="/gisugo-local/public/js/menu.js"></script>
+    <script src="/gisugo-local/public/js/listing.js"></script>
+  </body>
+</html> 
