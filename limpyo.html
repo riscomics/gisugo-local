@@ -134,6 +134,11 @@
         box-shadow: 0 8px 24px rgba(0,0,0,0.18);
         z-index: 300;
         padding: 18px 0 12px 0;
+        /* Hide scrollbar for all browsers */
+        scrollbar-width: none; /* Firefox */
+      }
+      .jobcat-servicemenu-overlay::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
       }
       .jobcat-servicemenu-overlay.show {
         display: block;
