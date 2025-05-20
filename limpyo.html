@@ -175,7 +175,7 @@
         right: 0;
         width: 100vw;
         height: 100vh;
-        background: rgba(0,0,0,0.15);
+        background: transparent;
         z-index: 999;
         display: flex;
         flex-direction: column;
@@ -285,8 +285,10 @@
     <div class="jobcat-menu-overlay" id="jobcatMenuOverlay">
       <div class="jobcat-menu-items">
         <div class="jobcat-menu-item">
-          <img src="public/icons/Home.png" alt="Home">
-          <div>Home</div>
+          <a href="index.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+            <img src="public/icons/Home.png" alt="Home">
+            <div>Home</div>
+          </a>
         </div>
         <div class="jobcat-menu-item">
           <img src="public/icons/Messages.png" alt="Messages">
