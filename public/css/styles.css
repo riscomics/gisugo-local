@@ -781,10 +781,10 @@ section {
     min-height: 70px;
   }
   .listing-servicemenu {
-    width: 320px;
+    width: 380px;
   }
   .listing-servicename {
-    width: 280px;
+    width: 340px;
   }
   .listing-servicename > div:last-child {
     font-size: 18.4px;
