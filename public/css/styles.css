@@ -809,15 +809,7 @@ section {
   .listing-headerbutton {
     width: 35px;
     height: 35px;
-  }
-  .listing-headerbutton img:hover {
-    cursor: pointer;
-    width: 32px;
-    height: 28px;
-    max-width: 32px;
-    max-height: 28px;
-    transform: none;
-  }
+  } 
   .listing-header-spacer {
     height: 70px;
   }
