@@ -121,16 +121,70 @@
           height: 35px;
         } 
       }
+      .jobcat-servicemenu-overlay {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 65px;
+        width: 300px;
+        max-height: 420px;
+        overflow-y: auto;
+        background: #363f4f;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        z-index: 300;
+        padding: 18px 0 12px 0;
+      }
+      .jobcat-servicemenu-overlay.show {
+        display: block;
+      }
+      .jobcat-servicemenu-overlay ul {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 0 10px;
+      }
+      .jobcat-servicemenu-overlay li {
+        margin-bottom: 10px;
+      }
+      .jobcat-servicemenu-overlay a {
+        color: #e6d6ae;
+        font-size: 2rem;
+        font-weight: 700;
+        font-family: arial, sans-serif;
+        text-decoration: none;
+        display: block;
+        padding: 4px 0 4px 8px;
+        border-radius: 4px;
+        transition: background 0.15s;
+      }
+      .jobcat-servicemenu-overlay a.active,
+      .jobcat-servicemenu-overlay a:hover {
+        background: rgba(255,255,255,0.08);
+        text-decoration: underline;
+      }
     </style>
   </head>
   <body>
     <div class="jobcat-header">
       <div class="jobcat-listheader">
-        <div class="jobcat-servicemenu">
+        <div class="jobcat-servicemenu" id="jobcatServiceMenuBtn">
           <div class="jobcat-servicename">
             <div>Limpyo Service</div>
             <div>&#9660;</div>
           </div>
+        </div>
+        <div class="jobcat-servicemenu-overlay" id="jobcatServiceMenuOverlay">
+          <ul>
+            <li><a href="#" class="active">Limpyo Service</a></li>
+            <li><a href="#">Tindera Service</a></li>
+            <li><a href="#">Bantay Service</a></li>
+            <li><a href="#">Painter Work</a></li>
+            <li><a href="#">Carpenter Work</a></li>
+            <li><a href="#">Plumber Work</a></li>
+            <li><a href="#">Mechanic Work</a></li>
+            <li><a href="#">Tailor Work</a></li>
+            <li><a href="#">Driver Work</a></li>
+          </ul>
         </div>
         <div class="jobcat-headerbuttons">
           <div class="jobcat-headerbutton">
@@ -150,4 +204,22 @@
       <div class="jobcat-borderline"></div>
     </div>
   </body>
+  <script>
+    const btn = document.getElementById('jobcatServiceMenuBtn');
+    const overlay = document.getElementById('jobcatServiceMenuOverlay');
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      overlay.classList.toggle('show');
+    });
+    document.addEventListener('click', function(e) {
+      if (overlay.classList.contains('show') && !btn.contains(e.target)) {
+        overlay.classList.remove('show');
+      }
+    });
+    overlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A') {
+        overlay.classList.remove('show');
+      }
+    });
+  </script>
 </html> 
