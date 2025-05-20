@@ -753,7 +753,7 @@ section {
   user-select: none;
 }
 .listing-headerbutton img {
-  width: 200%;
+  width: 56px;
   height: 56px;
   max-width: 56px;
   max-height: 56px;
@@ -762,10 +762,7 @@ section {
   transition: transform 0.15s;
 }
 .listing-headerbutton img:hover {
-  cursor: pointer;
-  width: 110%;
-  height: 32px;
-  transform: scale(1.12);
+  transform: scale(1.08);
 }
 .listing-headerbutton .posttext {
   font-size: 11px;
@@ -807,9 +804,20 @@ section {
     margin-right: 4px;
   }
   .listing-headerbutton {
-    width: 35px;
-    height: 35px;
-  } 
+    width: 48px;
+    height: 48px;
+  }
+  .listing-headerbutton img {
+    width: 32px;
+    height: 28px;
+    max-width: 32px;
+    max-height: 28px;
+    margin-bottom: 2px;
+    transition: none;
+  }
+  .listing-headerbutton img:hover {
+    transform: none;
+  }
   .listing-header-spacer {
     height: 70px;
   }
