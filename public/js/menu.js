@@ -50,21 +50,20 @@ document.addEventListener('DOMContentLoaded', () => {
   if (serviceMenuBtn && serviceMenuOverlay) {
     serviceMenuBtn.addEventListener('click', function(e) {
       e.stopPropagation();
-      const isOpen = serviceMenuOverlay.style.display === 'block';
-      serviceMenuOverlay.style.display = isOpen ? 'none' : 'block';
+      serviceMenuOverlay.classList.toggle('show');
     });
 
     // Close overlay when clicking outside
     document.addEventListener('click', function(e) {
-      if (serviceMenuOverlay.style.display === 'block' && !serviceMenuBtn.contains(e.target)) {
-        serviceMenuOverlay.style.display = 'none';
+      if (serviceMenuOverlay.classList.contains('show') && !serviceMenuBtn.contains(e.target)) {
+        serviceMenuOverlay.classList.remove('show');
       }
     });
 
     // Close overlay when clicking a menu item
     serviceMenuOverlay.addEventListener('click', function(e) {
       if (e.target.tagName === 'A') {
-        serviceMenuOverlay.style.display = 'none';
+        serviceMenuOverlay.classList.remove('show');
       }
     });
   }
