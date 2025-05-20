@@ -1,85 +1,666 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="GISUGO - Limpyo Service Listings">
-    <meta name="keywords" content="limpyo, cleaning, local service, jobs, gisugo">
-    <title>Limpyo Service - GISUGO</title>
-    <link rel="stylesheet" href="/gisugo-local/public/css/styles.css?v=1.1">
-    <link rel="stylesheet" href="/gisugo-local/public/css/listing.css?v=1.0">
-    <link rel="icon" type="image/png" href="/gisugo-local/public/images/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="keywords" content="local, service, gig, Marketplace">
+    <meta name="description" content="A marketplace for searching and posting jobs in your local neighborhood.">
+    <title>Gisugo&copy; LIMPYO</title>
+    <style>
+      /* --- Desktop Styles --- */
+      @media (min-width: 870px) {
+        body {
+          background-color: #856f67;
+          margin-left: 0;
+          margin-right: 0;
+          margin-top: 0;
+        }
+        body::-webkit-scrollbar { display: none; }
+        #footer {
+          color: #e6d6ae;
+          background-color: #363f4f;
+          font: 17px;
+          width: auto;
+          height: 28px;
+          padding-top: 10px;
+        }
+        #footer a { text-decoration: none; color: inherit; }
+        .header { position: fixed; width: 100%; }
+        .listheader {
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          height: 128px;
+          align-items: center;
+          justify-content: space-between;
+          background-color: #363f4f;
+        }
+        .servicemenu {
+          width: 500px;
+          height: 88px;
+          border-style: solid;
+          border-width: 1px;
+          border-color: rgba(255, 255, 255, 0.3);
+          margin-left: -5px;
+          cursor: pointer;
+        }
+        .servicemenu:hover {
+          height: 500px;
+          margin-top: 412px;
+          background-color: #363f4f;
+        }
+        .servicename {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          width: 455px;
+          height: 88px;
+          color: #e6d6ae;
+          font-size: 49px;
+          font-weight: 700;
+          font-family: arial;
+          padding-left: 25px;
+          padding-right: 20px;
+        }
+        .headerbuttons {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 400px;
+          margin-right: 28px;
+        }
+        .headerbutton {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 128px;
+          height: 128px;
+          color: aliceblue;
+        }
+        .headerbutton img {
+          width: 100%;
+          height: 88px;
+        }
+        .headerbutton img:hover {
+          cursor: pointer;
+          width: 110%;
+          height: 95px;
+        }
+        .borderline {
+          width: 100%;
+          height: 8px;
+          background-color: #ff7bd5;
+        }
+        .sortmenus {
+          margin: auto;
+          height: 59px;
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          background-color: #856f67;
+        }
+        .menu1, .menu2, .menu3 {
+          color:aliceblue;
+          background-color: #363f4f;
+          border-style: solid;
+          border-width: 1px;
+          border-color: rgb(170, 175, 180);
+          border-radius: 5px;
+          padding-left: 10px;
+          padding-right: 10px;
+          padding-top: 6px;
+          padding-bottom: 4px;
+          margin-right: 15px;
+          width: 249px;
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          font-size: 28px;
+          font-weight: 550;
+        }
+        .menu3 { margin-right: 0; }
+        .listingpage { padding-top: 200px; }
+        .listing {
+          width: 100%;
+          height: 128px;
+          background-color: #363f4f;
+          display: flex;
+          justify-content: center;
+          margin-bottom: 10px;
+        }
+        .postbox {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .postphoto {
+          width: 172px;
+          height: 100px;
+          margin-right: 10px;
+        }
+        .postphoto img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .description {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          margin-right: 10px;
+          width: 212px;
+          height: 88px;
+          color: rgb(170, 175, 180);
+          font-size: 15px;
+        }
+        .servicelocation {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 183px;
+          padding-bottom: 5px;
+        }
+        .servicetitle { font-family: arial; color: rgb(215, 222, 228); }
+        .town { font-weight: 550; }
+        .postoffer {
+          display: flex;
+          flex-direction: column;
+          height: 95px;
+          justify-content: space-between;
+        }
+        .payinfo {
+          color: #363f4f;
+          background-color: rgb(170, 175, 180);
+          padding-left: 5px;
+          padding-right: 5px;
+          padding-top: 3px;
+          padding-bottom: 3px;
+          width: 78px;
+          text-align: center;
+          border-radius: 8px;
+        }
+        .price { font-size: 20px; font-weight: 550; }
+        .rate { font-size: 14px; font-weight: bold; }
+        .schedule {
+          color: #363f4f;
+          background-color: rgb(170, 175, 180);
+          padding-left: 5px;
+          padding-right: 5px;
+          padding-top: 5px;
+          padding-bottom: 5px;
+          width: 78px;
+          text-align: center;
+          border-radius: 8px;
+        }
+        .servicedate { font-size: 15px; font-weight: 550; }
+        .servicetime { font-size: 14px; font-weight: bold; }
+      }
+      /* --- Tablet Styles --- */
+      @media (max-width: 870px) {
+        body {
+          background-color: #856f67;
+          margin-left: 0;
+          margin-right: 0;
+          margin-top: 0;
+        }
+        body::-webkit-scrollbar { display: none; }
+        #footer {
+          color: #e6d6ae;
+          background-color: #363f4f;
+          font: 17px;
+          width: auto;
+          height: 28px;
+          padding-top: 10px;
+        }
+        #footer a { text-decoration: none; color: inherit; }
+        .header { position: fixed; width: 100%; }
+        .listheader {
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          height: 88px;
+          align-items: center;
+          justify-content: space-between;
+          background-color: #363f4f;
+        }
+        .servicemenu {
+          width: 288px;
+          height: 49px;
+          border-style: solid;
+          border-width: 1px;
+          border-color: rgba(255, 255, 255, 0.3);
+          margin-left: -5px;
+          cursor: pointer;
+        }
+        .servicemenu:hover {
+          height: 500px;
+          margin-top: 451px;
+          background-color: #363f4f;
+        }
+        .servicename {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          width: 255px;
+          height: 49px;
+          color: #e6d6ae;
+          font-size: 28px;
+          font-weight: 700;
+          font-family: arial;
+          padding-left: 15px;
+          padding-right: 5px;
+        }
+        .headerbuttons {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 228px;
+          margin-right: 15px;
+        }
+        .headerbutton {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 88px;
+          height: 88px;
+          color: aliceblue;
+        }
+        .headerbutton img {
+          width: 100%;
+          height: 49px;
+        }
+        .headerbutton img:hover {
+          cursor: pointer;
+          width: 110%;
+          height: 55px;
+        }
+        .borderline {
+          width: 100%;
+          height: 6px;
+          background-color: #ff7bd5;
+        }
+        .sortmenus {
+          margin: auto;
+          height: 50px;
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          background-color: #856f67;
+        }
+        .menu1, .menu2, .menu3 {
+          color:aliceblue;
+          background-color: #363f4f;
+          border-style: solid;
+          border-width: 1px;
+          border-color: rgb(170, 175, 180);
+          border-radius: 5px;
+          padding-left: 10px;
+          padding-right: 10px;
+          padding-top: 5px;
+          padding-bottom: 4px;
+          margin-right: 8px;
+          width: 188px;
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          font-size: 20px;
+          font-weight: 550;
+        }
+        .menu3 { margin-right: 0; }
+        .listingpage { padding-top: 149px; }
+        .listing {
+          width: 100%;
+          height: 128px;
+          background-color: #363f4f;
+          display: flex;
+          justify-content: center;
+          margin-bottom: 10px;
+        }
+        .postbox {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .postphoto {
+          width: 172px;
+          height: 100px;
+          margin-right: 10px;
+        }
+        .postphoto img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .description {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          margin-right: 10px;
+          width: 212px;
+          height: 88px;
+          color: rgb(170, 175, 180);
+          font-size: 15px;
+        }
+        .servicelocation {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 183px;
+          padding-bottom: 5px;
+        }
+        .servicetitle { font-family: arial; color: rgb(215, 222, 228); }
+        .town { font-weight: 550; }
+        .postoffer {
+          display: flex;
+          flex-direction: column;
+          height: 95px;
+          justify-content: space-between;
+        }
+        .payinfo {
+          color: #363f4f;
+          background-color: rgb(170, 175, 180);
+          padding-left: 5px;
+          padding-right: 5px;
+          padding-top: 3px;
+          padding-bottom: 3px;
+          width: 78px;
+          text-align: center;
+          border-radius: 8px;
+        }
+        .price { font-size: 20px; font-weight: 550; }
+        .rate { font-size: 14px; font-weight: bold; }
+        .schedule {
+          color: #363f4f;
+          background-color: rgb(170, 175, 180);
+          padding-left: 5px;
+          padding-right: 5px;
+          padding-top: 5px;
+          padding-bottom: 5px;
+          width: 78px;
+          text-align: center;
+          border-radius: 8px;
+        }
+        .servicedate { font-size: 15px; font-weight: 550; }
+        .servicetime { font-size: 14px; font-weight: bold; }
+      }
+      /* --- Mobile Styles --- */
+      @media (max-width: 533px) {
+        body {
+          background-color: #856f67;
+          margin-left: 0;
+          margin-right: 0;
+          margin-top: 0;
+        }
+        body::-webkit-scrollbar { display: none; }
+        #footer {
+          color: #e6d6ae;
+          background-color: #363f4f;
+          font: 17px;
+          width: auto;
+          height: 28px;
+          padding-top: 10px;
+        }
+        #footer a { text-decoration: none; color: inherit; }
+        .header { position: fixed; width: 100%; }
+        .listheader {
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          height: 55px;
+          align-items: center;
+          justify-content: space-between;
+          background-color: #363f4f;
+        }
+        .servicemenu {
+          width: 228px;
+          height: 28px;
+          border-style: solid;
+          border-width: 1px;
+          border-color: rgba(255, 255, 255, 0.3);
+          margin-left: -5px;
+          cursor: pointer;
+        }
+        .servicemenu:hover {
+          height: 300px;
+          margin-top: 272px;
+          background-color: #363f4f;
+        }
+        .servicename {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+          width: 200px;
+          height: 28px;
+          color: #e6d6ae;
+          font-size: 20px;
+          font-weight: 700;
+          font-family: arial;
+          padding-left: 17px;
+          padding-right: 10px;
+        }
+        .headerbuttons {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 149px;
+          margin-right: 15px;
+        }
+        .headerbutton {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 88px;
+          height: 88px;
+          color: rgb(188, 206, 212);
+          font-size: 10.5px;
+        }
+        .headerbutton img {
+          width: 100%;
+          height: 28px;
+        }
+        .headerbutton img:hover {
+          cursor: pointer;
+          width: 110%;
+          height: 32px;
+        }
+        .borderline {
+          width: 100%;
+          height: 4px;
+          background-color: #ff7bd5;
+        }
+        .sortmenus {
+          margin: auto;
+          height: 36px;
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+          background-color: #856f67;
+        }
+        .menu1, .menu2, .menu3 {
+          color:aliceblue;
+          background-color: #363f4f;
+          border-style: solid;
+          border-width: 1px;
+          border-color: rgb(170, 175, 180);
+          border-radius: 5px;
+          padding-left: 10px;
+          padding-right: 10px;
+          padding-top: 3px;
+          padding-bottom: 3px;
+          margin-right: 5px;
+          width: 111px;
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          font-size: 15px;
+          font-weight: 550;
+        }
+        .menu3 { margin-right: 0; }
+        .listingpage { padding-top: 100px; }
+        .listing {
+          width: 100%;
+          height: 128px;
+          background-color: #363f4f;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 10px;
+        }
+        .postbox {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          width: 480px;
+          justify-content: space-between;
+        }
+        .postphoto {
+          width: 172px;
+          height: 100px;
+          margin-right: 10px;
+        }
+        .postphoto img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .description {
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          margin-right: 6px;
+          width: 212px;
+          height: 88px;
+          color: rgb(170, 175, 180);
+          font-size: 15px;
+        }
+        .servicelocation {
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
+          width: 183px;
+          padding-bottom: 5px;
+        }
+        .servicetitle { font-family: arial; color: rgb(215, 222, 228); }
+        .town { font-weight: 550; }
+        .postoffer {
+          display: flex;
+          flex-direction: column;
+          height: 95px;
+          justify-content: space-between;
+        }
+        .payinfo {
+          color: #363f4f;
+          background-color: rgb(170, 175, 180);
+          padding-left: 5px;
+          padding-right: 5px;
+          padding-top: 3px;
+          padding-bottom: 3px;
+          width: 78px;
+          text-align: center;
+          border-radius: 8px;
+        }
+        .price { font-size: 20px; font-weight: 550; }
+        .rate { font-size: 14px; font-weight: bold; }
+        .schedule {
+          color: #363f4f;
+          background-color: rgb(170, 175, 180);
+          padding-left: 5px;
+          padding-right: 5px;
+          padding-top: 5px;
+          padding-bottom: 5px;
+          width: 78px;
+          text-align: center;
+          border-radius: 8px;
+        }
+        .servicedate { font-size: 15px; font-weight: 550; }
+        .servicetime { font-size: 14px; font-weight: bold; }
+      }
+    </style>
   </head>
   <body>
-    <div class="listing-header">
-      <div class="listing-listheader">
-        <div class="listing-servicemenu" id="listingServiceMenuBtn">
-          <div class="listing-servicename">
+    <div class="header">
+      <div class="listheader">
+        <div class="servicemenu">
+          <div class="servicename">
             <div>Limpyo Service</div>
-            <div>&#9660;</div>
-          </div>
-          <!-- Dropdown overlay -->
-          <div class="listing-servicemenu-overlay" id="listingServiceMenuOverlay">
-            <ul class="listing-servicemenu-list">
-              <li><a href="#" class="active">Limpyo Service</a></li>
-              <li><a href="#">Tindera Service</a></li>
-              <li><a href="#">Bantay Service</a></li>
-              <li><a href="#">Painter Work</a></li>
-              <li><a href="#">Carpenter Work</a></li>
-              <li><a href="#">Plumber Work</a></li>
-              <li><a href="#">Mechanic Work</a></li>
-              <li><a href="#">Tailor Work</a></li>
-              <li><a href="#">Driver Work</a></li>
-            </ul>
+            <div> &#9660; </div>
           </div>
         </div>
-        <div class="listing-headerbuttons">
-          <div class="listing-headerbutton" onclick="window.location.href='/gisugo-local/new-post'">
-            <div><img src="/gisugo-local/public/icons/Post.png" alt="Post"></div>
+        <div class="headerbuttons">
+          <div class="headerbutton">
+            <div><img src="Elements/Post2.png"></div>
             <div class="posttext">Post</div>
           </div>
-          <div class="listing-headerbutton" onclick="window.location.href='/gisugo-local/search'">
-            <div><img src="/gisugo-local/public/icons/search.png" alt="Search"></div>
+          <div class="headerbutton">
+            <div><img src="Elements/SEARCH.png"></div>
             <div>Search</div>
           </div>
-          <div class="listing-headerbutton" id="listingMenuBtn">
-            <div><img src="/gisugo-local/public/icons/menu.png" alt="Menu"></div>
+          <div class="headerbutton">
+            <div><img src="Elements/Menu.png"></div>
             <div>Menu</div>
           </div>
         </div>
       </div>
-      <div class="listing-borderline"></div>
+      <div class="borderline"></div>
+      <div class="sortmenus">
+        <div class="menu1">
+          <div>CEBU</div>
+          <div>&#9660;</div>
+        </div>
+        <div class="menu2">
+          <div>CEBU CITY</div>
+          <div>&#9660;</div>
+        </div>
+        <div class="menu3">
+          <div>BY DATE</div>
+          <div>&#9660;</div>
+        </div>
+      </div>
+      <div class="borderline"></div>
     </div>
-    <div class="listing-header-spacer"></div>
-    <main>
-      <div class="category-bar">
-        <span class="category-label">Limpyo Service</span>
+    <div class="listingpage">
+      <div class="listing">
+        <div class="postbox">
+          <div class="postphoto">
+            <img src="Post/busboy.png">
+          </div>
+          <div class="description">
+            <div class="servicetitle">
+              Clear plates and clean tables at Mall restaurant.
+            </div>
+            <div class="postinfo">
+              <div class="servicelocation">
+                <div class="location">Location:</div>
+                <div class="town">IT Park</div>
+              </div>
+              <div class="requirement">
+                Cleaning Supplies Provided
+              </div>
+            </div>
+          </div>
+          <div class="postoffer">
+            <div class="payinfo">
+              <div class="price">₱65</div>
+              <div class="rate">Per Hour</div>
+            </div>
+            <div class="schedule">
+              <div class="servicedate">Dec. 23</div>
+              <div class="servicetime">8AM - 5PM</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="filter-bar">
-        <select class="filter-select" id="region-filter">
-          <option>PHILIPPINES</option>
-          <option selected>VISAYAS</option>
-          <option>LUZON</option>
-          <option>MINDANAO</option>
-        </select>
-        <select class="filter-select" id="city-filter">
-          <option>CEBU</option>
-          <option selected>CEBU CITY</option>
-          <option>MANDAUE</option>
-          <option>LAPU-LAPU</option>
-        </select>
-        <select class="filter-select" id="sort-filter">
-          <option selected>Sort By</option>
-          <option>Job Date</option>
-          <option>Hourly Rate</option>
-        </select>
-      </div>
-      <div id="job-listings"></div>
-    </main>
-    <footer class="footer">
-      <p><a href="https://gisugo.com">GISUGO.com</a> is &copy; Copyright Designed by Real Interface Studios LLC</p>
-    </footer>
-    <script src="/gisugo-local/public/js/menu.js"></script>
-    <script src="/gisugo-local/public/js/listing.js"></script>
+      <!-- Repeat .listing as needed for more jobs -->
+    </div>
   </body>
 </html> 
