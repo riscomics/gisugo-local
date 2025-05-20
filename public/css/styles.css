@@ -782,8 +782,8 @@ section {
     flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
-    height: 50px;
-    min-height: 50px;
+    height: 65px;
+    min-height: 65px;
   }
   .listing-servicemenu {
     flex: 1 1 0;
@@ -792,11 +792,13 @@ section {
     width: auto;
   }
   .listing-servicename {
+    display: flex;
+    flex-direction: row;
     width: 359px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 18.4px;
+    font-size: 18px;
   }
   .listing-headerbuttons {
     width: 110px;
