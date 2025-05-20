@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Limpyo Service - GISUGO</title>
     <style>
-      .header {
+      .jobcat-header {
         position: fixed;
         width: 100%;
         top: 0;
@@ -13,7 +13,7 @@
         z-index: 100;
         background: #363f4f;
       }
-      .listheader {
+      .jobcat-listheader {
         display: flex;
         flex-direction: row;
         width: 100%;
@@ -22,7 +22,7 @@
         justify-content: space-between;
         background-color: #363f4f;
       }
-      .servicemenu {
+      .jobcat-servicemenu {
         width: 228px;
         height: 28px;
         border-style: solid;
@@ -35,7 +35,7 @@
         background: #363f4f;
         border-radius: 4px;
       }
-      .servicename {
+      .jobcat-servicename {
         display: flex;
         flex-direction: row;
         justify-content: space-between;
@@ -50,14 +50,14 @@
         padding-right: 10px;
         user-select: none;
       }
-      .headerbuttons {
+      .jobcat-headerbuttons {
         display: flex;
         flex-direction: row;
         justify-content: space-between;
         width: 149px;
         margin-right: 15px;
       }
-      .headerbutton {
+      .jobcat-headerbutton {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -69,76 +69,80 @@
         cursor: pointer;
         user-select: none;
       }
-      .headerbutton img {
+      .jobcat-headerbutton img {
         width: 100%;
         height: 28px;
         object-fit: contain;
         margin-bottom: 2px;
         transition: transform 0.15s;
       }
-      .headerbutton img:hover {
+      .jobcat-headerbutton img:hover {
         transform: scale(1.1);
       }
-      .borderline {
+      .jobcat-borderline {
         width: 100%;
         height: 4px;
         background-color: #ff7bd5;
       }
       @media (max-width: 600px) {
-        .listheader {
+        .jobcat-listheader {
           height: 48px;
         }
-        .servicemenu {
+        .jobcat-servicemenu {
           width: 140px;
           height: 24px;
         }
-        .servicename {
+        .jobcat-servicename {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
           width: 110px;
           height: 24px;
           font-size: 14px;
           padding-left: 7px;
           padding-right: 4px;
         }
-        .headerbuttons {
+        .jobcat-headerbuttons {
           width: 90px;
           margin-right: 4px;
         }
-        .headerbutton {
+        .jobcat-headerbutton {
           width: 28px;
           height: 28px;
           font-size: 8px;
         }
-        .headerbutton img {
+        .jobcat-headerbutton img {
           height: 16px;
         }
       }
     </style>
   </head>
   <body>
-    <div class="header">
-      <div class="listheader">
-        <div class="servicemenu">
-          <div class="servicename">
+    <div class="jobcat-header">
+      <div class="jobcat-listheader">
+        <div class="jobcat-servicemenu">
+          <div class="jobcat-servicename">
             <div>Limpyo Service</div>
             <div>&#9660;</div>
           </div>
         </div>
-        <div class="headerbuttons">
-          <div class="headerbutton">
-            <div><img src="Post.png" alt="Post"></div>
+        <div class="jobcat-headerbuttons">
+          <div class="jobcat-headerbutton">
+            <div><img src="public/icons/post.png" alt="Post"></div>
             <div class="posttext">Post</div>
           </div>
-          <div class="headerbutton">
-            <div><img src="search.png" alt="Search"></div>
+          <div class="jobcat-headerbutton">
+            <div><img src="public/icons/search.png" alt="Search"></div>
             <div>Search</div>
           </div>
-          <div class="headerbutton">
-            <div><img src="menu.png" alt="Menu"></div>
+          <div class="jobcat-headerbutton">
+            <div><img src="public/icons/menu.png" alt="Menu"></div>
             <div>Menu</div>
           </div>
         </div>
       </div>
-      <div class="borderline"></div>
+      <div class="jobcat-borderline"></div>
     </div>
   </body>
 </html> 
