@@ -675,10 +675,10 @@ section {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: 200px;
-  height: 28px;
+  width: 230px;
+  height: 32px;
   color: #e6d6ae;
-  font-size: 20px;
+  font-size: 23px;
   font-weight: 700;
   font-family: arial, sans-serif;
   padding-left: 17px;
@@ -688,7 +688,7 @@ section {
 .listing-servicename > div:last-child {
   margin-left: auto;
   margin-right: 4px;
-  font-size: 22px;
+  font-size: 23px;
   line-height: 1;
 }
 .listing-servicemenu-overlay {
@@ -784,13 +784,11 @@ section {
     width: 170px;
   }
   .listing-servicename {
-    width: 140px;
-    font-size: 16px;
-    padding-left: 8px;
-    padding-right: 4px;
+    width: 161px;
+    font-size: 18.4px;
   }
   .listing-servicename > div:last-child {
-    font-size: 14px;
+    font-size: 18.4px;
     margin-right: 2px;
   }
   .listing-servicemenu-overlay {
