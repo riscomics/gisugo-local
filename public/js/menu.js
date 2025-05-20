@@ -67,4 +67,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Dropdown for job listing header
+  const listingServiceMenuBtn = document.getElementById('listingServiceMenuBtn');
+  const listingServiceMenuOverlay = document.getElementById('listingServiceMenuOverlay');
+
+  if (listingServiceMenuBtn && listingServiceMenuOverlay) {
+    listingServiceMenuBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      listingServiceMenuOverlay.classList.toggle('show');
+    });
+
+    // Close overlay when clicking outside
+    document.addEventListener('click', function(e) {
+      if (listingServiceMenuOverlay.classList.contains('show') && !listingServiceMenuBtn.contains(e.target)) {
+        listingServiceMenuOverlay.classList.remove('show');
+      }
+    });
+
+    // Close overlay when clicking a menu item
+    listingServiceMenuOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A') {
+        listingServiceMenuOverlay.classList.remove('show');
+      }
+    });
+  }
 }); 
