@@ -42,4 +42,30 @@ document.addEventListener('DOMContentLoaded', () => {
       menuButton.innerHTML = hamburgerSVG;
     }
   });
+
+  // Dropdown for service menu in listing header
+  const serviceMenuBtn = document.getElementById('serviceMenuBtn');
+  const serviceMenuOverlay = document.getElementById('serviceMenuOverlay');
+
+  if (serviceMenuBtn && serviceMenuOverlay) {
+    serviceMenuBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = serviceMenuOverlay.style.display === 'block';
+      serviceMenuOverlay.style.display = isOpen ? 'none' : 'block';
+    });
+
+    // Close overlay when clicking outside
+    document.addEventListener('click', function(e) {
+      if (serviceMenuOverlay.style.display === 'block' && !serviceMenuBtn.contains(e.target)) {
+        serviceMenuOverlay.style.display = 'none';
+      }
+    });
+
+    // Close overlay when clicking a menu item
+    serviceMenuOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A') {
+        serviceMenuOverlay.style.display = 'none';
+      }
+    });
+  }
 }); 

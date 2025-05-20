@@ -11,34 +11,44 @@
     <link rel="icon" type="image/png" href="/gisugo-local/public/images/favicon.png">
   </head>
   <body>
-    <!-- Header -->
-    <div class="header-wrapper">
-      <header class="header">
-        <img src="/gisugo-local/public/images/Gisugo-emblem.png" alt="GISUGO Logo - Person with shopping bag" class="header__logo">
-        <div class="header__title-group">
-          <h1 class="header__title">GISUGO</h1>
-          <p class="header__subtitle">Local Service Marketplace</p>
+    <div class="header">
+      <div class="listheader">
+        <div class="servicemenu" id="serviceMenuBtn">
+          <div class="servicename">
+            <div>Limpyo Service</div>
+            <div>&#9660;</div>
+          </div>
+          <!-- Dropdown overlay -->
+          <div class="servicemenu-overlay" id="serviceMenuOverlay" style="display:none;">
+            <ul class="servicemenu-list">
+              <li><a href="#" class="active">Limpyo Service</a></li>
+              <li><a href="#">Tindera Service</a></li>
+              <li><a href="#">Bantay Service</a></li>
+              <li><a href="#">Painter Work</a></li>
+              <li><a href="#">Carpenter Work</a></li>
+              <li><a href="#">Plumber Work</a></li>
+              <li><a href="#">Mechanic Work</a></li>
+              <li><a href="#">Tailor Work</a></li>
+              <li><a href="#">Driver Work</a></li>
+            </ul>
+          </div>
         </div>
-        <button class="header__menu" aria-label="Menu">
-          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
-        <nav class="menu-overlay">
-          <ul class="menu-list">
-            <li><a href="/gisugo-local/new-post">NEW POST</a></li>
-            <li><a href="/gisugo-local/profile">USER PROFILE</a></li>
-            <li><a href="/gisugo-local/messages">MESSAGES</a></li>
-            <li><a href="/gisugo-local/favorites">FAVORITES</a></li>
-            <li><a href="/gisugo-local/jobs">JOBS POSTED</a></li>
-            <li><a href="/gisugo-local/forum">VISIT FORUM</a></li>
-            <li><a href="/gisugo-local/contact">CONTACT ADMIN</a></li>
-          </ul>
-        </nav>
-      </header>
-      <div class="accent-line"></div>
+        <div class="headerbuttons">
+          <div class="headerbutton" onclick="window.location.href='/gisugo-local/new-post'">
+            <div><img src="/gisugo-local/public/icons/post.png" alt="Post"></div>
+            <div class="posttext">Post</div>
+          </div>
+          <div class="headerbutton" onclick="window.location.href='/gisugo-local/search'">
+            <div><img src="/gisugo-local/public/icons/search.png" alt="Search"></div>
+            <div>Search</div>
+          </div>
+          <div class="headerbutton" id="menuBtn">
+            <div><img src="/gisugo-local/public/icons/menu.png" alt="Menu"></div>
+            <div>Menu</div>
+          </div>
+        </div>
+      </div>
+      <div class="borderline"></div>
     </div>
     <div class="header-spacer"></div>
     <main>
