@@ -779,22 +779,24 @@ section {
   .listing-listheader {
     display: flex;
     flex-direction: row;
-    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     height: 65px;
     min-height: 65px;
+    width: 100vw;
+    box-sizing: border-box;
   }
   .listing-servicemenu {
     flex: 1 1 0;
     min-width: 0;
-    max-width: 60vw;
+    max-width: 100vw;
     width: auto;
+    margin-right: 8px;
   }
   .listing-servicename {
     display: flex;
     flex-direction: row;
-    width: 359px;
+    width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -806,5 +808,8 @@ section {
     max-width: 110px;
     margin-right: 4px;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
   }
 } 
