@@ -777,45 +777,32 @@ section {
 }
 @media (max-width: 600px) {
   .listing-listheader {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
     height: 70px;
     min-height: 70px;
   }
   .listing-servicemenu {
-    width: 380px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 60vw;
+    width: auto;
   }
   .listing-servicename {
-    width: 340px;
-  }
-  .listing-servicename > div:last-child {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 18.4px;
-    margin-right: 2px;
-  }
-  .listing-servicemenu-overlay {
-    width: 220px;
-    font-size: 1.1rem;
-    left: 0;
-    top: 28px;
   }
   .listing-headerbuttons {
-    width: 160px;
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
     margin-right: 4px;
-  }
-  .listing-headerbutton {
-    width: 48px;
-    height: 48px;
-  }
-  .listing-headerbutton img {
-    width: 32px;
-    height: 28px;
-    max-width: 32px;
-    max-height: 28px;
-    margin-bottom: 2px;
-    transition: none;
-  }
-  .listing-headerbutton img:hover {
-    transform: none;
-  }
-  .listing-header-spacer {
-    height: 70px;
+    flex-shrink: 0;
   }
 } 
