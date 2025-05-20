@@ -68,7 +68,7 @@ section {
   top: 0;
   left: 0;
   z-index: 200;
-  background: #363f4f;
+  background-color: #fef6da;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   height: 110px;
   min-height: 110px;
