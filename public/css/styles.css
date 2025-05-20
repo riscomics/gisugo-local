@@ -643,12 +643,15 @@ section {
   left: 0;
   z-index: 210;
   background: #363f4f;
+  height: 110px;
+  min-height: 110px;
 }
 .listing-listheader {
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: 55px;
+  height: 110px;
+  min-height: 110px;
   align-items: center;
   justify-content: space-between;
   background-color: #363f4f;
@@ -733,16 +736,16 @@ section {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  width: 149px;
-  margin-right: 15px;
+  width: 298px;
+  margin-right: 30px;
 }
 .listing-headerbutton {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 88px;
-  height: 88px;
+  width: 176px;
+  height: 176px;
   color: rgb(188, 206, 212);
   font-size: 10.5px;
   cursor: pointer;
@@ -750,8 +753,10 @@ section {
   user-select: none;
 }
 .listing-headerbutton img {
-  width: 100%;
-  height: 28px;
+  width: 200%;
+  height: 56px;
+  max-width: 56px;
+  max-height: 56px;
   object-fit: contain;
   margin-bottom: 2px;
   transition: transform 0.15s;
@@ -771,11 +776,12 @@ section {
   background-color: #ff7bd5;
 }
 .listing-header-spacer {
-  height: 59px;
+  height: 110px;
 }
 @media (max-width: 600px) {
   .listing-listheader {
-    height: 48px;
+    height: 70px;
+    min-height: 70px;
   }
   .listing-servicemenu {
     width: 170px;
@@ -797,19 +803,22 @@ section {
     top: 28px;
   }
   .listing-headerbuttons {
-    width: 110px;
+    width: 160px;
     margin-right: 4px;
   }
   .listing-headerbutton {
-    width: 36px;
-    height: 36px;
-    font-size: 9px;
+    width: 48px;
+    height: 48px;
   }
-  .listing-headerbutton img {
-    width: 22px;
-    height: 18px;
+  .listing-headerbutton img:hover {
+    cursor: pointer;
+    width: 32px;
+    height: 28px;
+    max-width: 32px;
+    max-height: 28px;
+    transform: none;
   }
   .listing-header-spacer {
-    height: 50px;
+    height: 70px;
   }
 } 
