@@ -650,13 +650,22 @@
         }
       });
 
-      // Dynamic region and city selection
-      const regions = [
-        "BOHOL", "CEBU", "LEYTE", "MASBATE", "NEGROS", "PANAY", "SAMAR", "DAVAO", "MANILA"
-      ];
-      const cities = [
-        "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
-      ];
+      // Dynamic region, city, and pay type selection
+      const regions = ["CEBU", "BOHOL", "LEYTE", "MASBATE", "NEGROS", "PANAY", "SAMAR", "DAVAO", "MANILA"];
+      const citiesByRegion = {
+        "CEBU": [
+          "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
+        ],
+        "LEYTE": ["Tacloban City", "Ormoc", "Baybay", "Palo", "Abuyog", "Carigara", "Burauen", "Hilongos", "Palompon", "Alangalang"],
+        "BOHOL": ["Tagbilaran City", "Alburquerque", "Alicia", "Anda", "Antequera", "Baclayon", "Balilihan", "Batuan", "Bien Unido", "Bilar", "Buenavista", "Calape", "Candijay", "Carmen", "Catigbian", "Clarin", "Corella", "Cortes", "Dagohoy", "Danao", "Dauis", "Dimiao", "Duero", "Garcia Hernandez", "Guindulman", "Inabanga", "Jagna", "Jetafe", "Lila", "Loay", "Loboc", "Loon", "Mabini", "Maribojoc", "Panglao", "Pilar", "Pres. Carlos P. Garcia", "Sagbayan", "San Isidro", "San Miguel", "Sevilla", "Sierra Bullones", "Sikatuna", "Talibon", "Trinidad", "Tubigon", "Ubay", "Valencia"],
+        // Add more regions and their cities as needed
+        "MASBATE": ["Masbate City", "Aroroy", "Baleno", "Balud", "Batuan", "Cataingan", "Cawayan", "Claveria", "Dimasalang", "Esperanza", "Mandaon", "Milagros", "Mobo", "Monreal", "Palanas", "Pio V. Corpuz", "Placer", "San Fernando", "San Jacinto", "San Pascual", "Uson"],
+        "NEGROS": ["Bacolod City", "Bago City", "Binalbagan", "Cadiz City", "Calatrava", "Cauayan", "Enrique B. Magalona", "Escalante City", "Himamaylan City", "Hinigaran", "Hinoba-an", "Ilog", "Isabela", "Kabankalan City", "La Carlota City", "La Castellana", "Manapla", "Moises Padilla", "Murcia", "Pontevedra", "Pulupandan", "Sagay City", "Salvador Benedicto", "San Carlos City", "San Enrique", "Silay City", "Sipalay City", "Talisay City", "Toboso", "Valladolid", "Victorias City"],
+        "PANAY": ["Iloilo City", "Roxas City", "Kalibo", "Passi City", "San Jose", "Pototan", "Estancia", "Sara", "Dumangas", "Barotac Nuevo"],
+        "SAMAR": ["Catbalogan City", "Calbayog City", "Basey", "Gandara", "Tarangnan", "Paranas", "San Jorge", "Sta. Margarita", "Villareal", "Hinabangan", "Jiabong", "Motiong", "Pinabacdao", "San Sebastian", "Talalora", "Zumarraga"],
+        "DAVAO": ["Davao City", "Digos City", "Tagum City", "Panabo City", "Samal", "Bansalan", "Carmen", "Kapalong", "Magsaysay", "Malalag", "Malita", "Mati City", "Monkayo", "Nabunturan", "Padada", "Santa Cruz", "Sulop", "Tarragona", "Tibungco", "Tuban"],
+        "MANILA": ["Manila", "Quezon City", "Caloocan", "Las Piñas", "Makati", "Malabon", "Mandaluyong", "Marikina", "Muntinlupa", "Navotas", "Parañaque", "Pasay", "Pasig", "Pateros", "San Juan", "Taguig", "Valenzuela"]
+      };
       const payTypes = ["PAY TYPE", "PER HOUR", "PER JOB"];
       let activeRegion = "CEBU";
       let activeCity = "CEBU CITY";
@@ -685,6 +694,7 @@
       function renderCityMenu() {
         const list = document.getElementById('cityMenuList');
         list.innerHTML = '';
+        const cities = citiesByRegion[activeRegion] || [];
         // Top item with arrow
         const top = document.createElement('li');
         top.textContent = activeCity;
@@ -752,7 +762,12 @@
         if (e.target.tagName === 'LI') {
           activeRegion = e.target.textContent.replace(/▲/, '').trim();
           document.getElementById('regionMenuLabel').textContent = activeRegion;
+          // When region changes, reset city to first city in region
+          const cities = citiesByRegion[activeRegion] || [];
+          activeCity = cities[0] || '';
+          document.getElementById('cityMenuLabel').textContent = activeCity;
           renderRegionMenu();
+          renderCityMenu();
           regionMenuOverlay.classList.remove('show');
           regionMenuOpen = false;
         }
@@ -809,7 +824,7 @@
           renderPayMenu();
           payMenuOverlay.classList.remove('show');
           payMenuOpen = false;
-          // Here you would trigger the job listing filter logic based on activePay
+          // Here you would trigger the job listing filter logic based on activePay, activeRegion, and activeCity
         }
       });
     </script>
