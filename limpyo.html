@@ -84,7 +84,7 @@
       .jobcat-borderline {
         width: 100%;
         height: 4px;
-        background-color: #ff7bd5;
+        background-color: #2196f3; /* Blue */
       }
       body {        
         background-color: #866f67;
@@ -249,8 +249,9 @@
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        padding: 8px 0;
+        padding: 10px 0; /* slightly increased for height */
         gap: 8px;
+        height: 41.4px; /* 36px * 1.15 = 41.4px */
       }
 
       .sort-menu {
@@ -258,8 +259,9 @@
         background-color: #363f4f;
         border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 5px;
-        padding: 6px 12px;
-        width: 140px;
+        padding: 8px 14px; /* slightly increased for height and width */
+        width: 154px; /* 140px * 1.10 = 154px */
+        height: 37.1px; /* 35px * 1.06 = 37.1px, assuming original height was about 35px */
         display: flex;
         flex-direction: row;
         justify-content: space-between;
@@ -280,7 +282,7 @@
       .jobcat-sort-borderline {
         width: 100%;
         height: 4px;
-        background-color: #ff7bd5;
+        background-color: #2196f3; /* Blue */
       }
 
       @media (max-width: 600px) {
@@ -289,13 +291,15 @@
         }
 
         .sortmenus {
-          padding: 6px 4px;
+          padding: 7px 2px;
           gap: 4px;
+          height: 47.6px; /* 41.4px * 1.15 for mobile, or adjust as needed */
         }
 
         .sort-menu {
-          width: 105px;
-          padding: 4px 8px;
+          width: 115.5px; /* 105px * 1.10 */
+          height: 33.9px; /* 32px * 1.06 */
+          padding: 6px 10px;
           font-size: 13px;
         }
       }
