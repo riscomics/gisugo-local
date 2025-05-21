@@ -440,6 +440,62 @@
         font-size: 1.1em;
         color: #d3d7e0;
       }
+      .pay-menu-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+      .pay-menu-overlay {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        width: 136px;
+        background: #434a58;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        z-index: 2000;
+        padding: 0;
+        animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+        font-size: 16.25px;
+        font-family: Arial, sans-serif;
+        max-height: 227px;
+        overflow-y: auto;
+        scrollbar-width: none;
+      }
+      .pay-menu-overlay::-webkit-scrollbar {
+        display: none;
+      }
+      .pay-menu-overlay.show {
+        display: block;
+        animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+      }
+      .pay-menu-list {
+        list-style: none;
+        margin: 0;
+        padding: 7px 10px 7px 10px;
+      }
+      .pay-menu-list li {
+        color: #fff;
+        font-size: 16.25px;
+        font-family: Arial, sans-serif;
+        font-weight: 700;
+        padding: 6px 0 6px 0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: background 0.13s;
+      }
+      .pay-menu-list li:hover, .pay-menu-list li.active {
+        background: rgba(255,255,255,0.08);
+      }
+      .pay-menu-list li .arrow {
+        margin-left: auto;
+        font-size: 1.1em;
+        color: #d3d7e0;
+      }
     </style>
   </head>
   <body>
@@ -519,9 +575,16 @@
             </ul>
           </div>
         </div>
-        <div class="sort-menu pay-menu" id="sortDate">
-          <div>GET PAID</div>
-          <div>&#9660;</div>
+        <div class="pay-menu-wrapper">
+          <div class="sort-menu pay-menu" id="payMenu">
+            <div id="payMenuLabel">GET PAID</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="pay-menu-overlay" id="payMenuOverlay">
+            <ul class="pay-menu-list" id="payMenuList">
+              <!-- Pay type items will be rendered here by JS -->
+            </ul>
+          </div>
         </div>
       </div>
       <div class="jobcat-sort-borderline"></div>
@@ -594,8 +657,10 @@
       const cities = [
         "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
       ];
+      const payTypes = ["PER HOUR", "PER JOB"];
       let activeRegion = "CEBU";
       let activeCity = "CEBU CITY";
+      let activePay = "GET PAID";
 
       function renderRegionMenu() {
         const list = document.getElementById('regionMenuList');
@@ -637,12 +702,34 @@
           list.appendChild(li);
         });
       }
+      function renderPayMenu() {
+        const list = document.getElementById('payMenuList');
+        list.innerHTML = '';
+        // Top item with arrow
+        const top = document.createElement('li');
+        top.textContent = activePay;
+        top.className = 'active';
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.innerHTML = '&#9650;';
+        top.appendChild(arrow);
+        list.appendChild(top);
+        // Other pay types
+        payTypes.filter(p => p !== activePay).forEach(pay => {
+          const li = document.createElement('li');
+          li.textContent = pay;
+          if (pay === activePay) li.className = 'active';
+          list.appendChild(li);
+        });
+      }
       // Initial render
       renderRegionMenu();
       renderCityMenu();
+      renderPayMenu();
       // Update label
       document.getElementById('regionMenuLabel').textContent = activeRegion;
       document.getElementById('cityMenuLabel').textContent = activeCity;
+      document.getElementById('payMenuLabel').textContent = activePay;
 
       // Region menu overlay logic
       const regionMenuBtn = document.getElementById('locationRegion');
@@ -695,6 +782,33 @@
           renderCityMenu();
           cityMenuOverlay.classList.remove('show');
           cityMenuOpen = false;
+        }
+      });
+
+      // Pay menu overlay logic
+      const payMenuBtn = document.getElementById('payMenu');
+      const payMenuOverlay = document.getElementById('payMenuOverlay');
+      let payMenuOpen = false;
+      payMenuBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        payMenuOverlay.classList.toggle('show');
+        payMenuOpen = payMenuOverlay.classList.contains('show');
+      });
+      // Close overlay when clicking outside
+      document.addEventListener('click', function(e) {
+        if (payMenuOpen && !payMenuBtn.contains(e.target) && !payMenuOverlay.contains(e.target)) {
+          payMenuOverlay.classList.remove('show');
+          payMenuOpen = false;
+        }
+      });
+      // Select pay type
+      payMenuOverlay.addEventListener('click', function(e) {
+        if (e.target.tagName === 'LI') {
+          activePay = e.target.textContent.replace(/▲/, '').trim();
+          document.getElementById('payMenuLabel').textContent = activePay;
+          renderPayMenu();
+          payMenuOverlay.classList.remove('show');
+          payMenuOpen = false;
         }
       });
     </script>
