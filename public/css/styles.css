@@ -215,6 +215,7 @@ section {
   margin: 0;
   gap: 0.5rem;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
 }
 
 .service-card:hover {
@@ -341,6 +342,7 @@ section {
   padding: 0.5rem 1rem;
   transition: all 0.3s ease;
   border-radius: 4px;
+  -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
 }
 
 .menu-list a:hover {
