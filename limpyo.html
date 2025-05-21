@@ -322,6 +322,58 @@
           font-size: 15px;
         }
       }
+
+      .region-menu-overlay {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        width: 168px;
+        background: #434a58;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        z-index: 2000;
+        padding: 10px 0 10px 0;
+        animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+      }
+      .region-menu-overlay.show {
+        display: block;
+        animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+      }
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .region-menu-list {
+        list-style: none;
+        margin: 0;
+        padding: 0 10px 0 10px;
+      }
+      .region-menu-list li {
+        color: #fff;
+        font-size: 1.25em;
+        font-weight: 700;
+        padding: 6px 0 6px 0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: background 0.13s;
+      }
+      .region-menu-list li:hover, .region-menu-list li.active {
+        background: rgba(255,255,255,0.08);
+      }
+      .region-menu-list li .arrow {
+        margin-left: auto;
+        font-size: 1.1em;
+        color: #d3d7e0;
+      }
+      .region-menu-wrapper {
+        position: relative;
+        display: inline-block;
+      }
     </style>
   </head>
   <body>
@@ -379,9 +431,24 @@
     <!-- Sort Header -->
     <div class="jobcat-sort-header">
       <div class="sortmenus">
-        <div class="sort-menu region-menu" id="locationRegion">
-          <div>CEBU</div>
-          <div>&#9660;</div>
+        <div class="region-menu-wrapper">
+          <div class="sort-menu region-menu" id="locationRegion">
+            <div>CEBU</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="region-menu-overlay" id="regionMenuOverlay">
+            <ul class="region-menu-list">
+              <li class="active">CEBU <span class="arrow">&#9650;</span></li>
+              <li>BOHOL</li>
+              <li>LEYTE</li>
+              <li>MASBATE</li>
+              <li>NEGROS</li>
+              <li>PANAY</li>
+              <li>SAMAR</li>
+              <li>DAVAO</li>
+              <li>MANILA</li>
+            </ul>
+          </div>
         </div>
         <div class="sort-menu city-menu" id="locationCity">
           <div>CEBU CITY</div>
@@ -452,6 +519,30 @@
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
           menuOverlay.classList.remove('show');
+        }
+      });
+
+      // Region menu overlay logic
+      const regionMenuBtn = document.getElementById('locationRegion');
+      const regionMenuOverlay = document.getElementById('regionMenuOverlay');
+      let regionMenuOpen = false;
+      regionMenuBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        regionMenuOverlay.classList.toggle('show');
+        regionMenuOpen = regionMenuOverlay.classList.contains('show');
+      });
+      // Close overlay when clicking outside
+      document.addEventListener('click', function(e) {
+        if (regionMenuOpen && !regionMenuBtn.contains(e.target) && !regionMenuOverlay.contains(e.target)) {
+          regionMenuOverlay.classList.remove('show');
+          regionMenuOpen = false;
+        }
+      });
+      // Close overlay when clicking a region
+      regionMenuOverlay.addEventListener('click', function(e) {
+        if (e.target.tagName === 'LI') {
+          regionMenuOverlay.classList.remove('show');
+          regionMenuOpen = false;
         }
       });
     </script>
