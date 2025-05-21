@@ -2,7 +2,7 @@
 :root {
   --primary-color: #363f4f;
   --secondary-color: #e6d6ae;
-  --accent-color: #ff7bd5;
+  --accent-color: rgb(149, 149, 328);
   --background-color: #856f67;
   --card-background: #D9D9D9;
   --font-family: 'Arial', sans-serif;
