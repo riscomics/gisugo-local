@@ -711,6 +711,26 @@
           if (city === activeCity) li.className = 'active';
           list.appendChild(li);
         });
+        // Dynamically set overlay width to fit longest city name
+        setTimeout(() => {
+          const overlay = document.getElementById('cityMenuOverlay');
+          let maxWidth = 0;
+          list.querySelectorAll('li').forEach(li => {
+            // Create a temporary span to measure width
+            const span = document.createElement('span');
+            span.style.visibility = 'hidden';
+            span.style.position = 'absolute';
+            span.style.fontSize = window.getComputedStyle(li).fontSize;
+            span.style.fontFamily = window.getComputedStyle(li).fontFamily;
+            span.style.fontWeight = window.getComputedStyle(li).fontWeight;
+            span.textContent = li.textContent.replace('▲', '').trim();
+            document.body.appendChild(span);
+            maxWidth = Math.max(maxWidth, span.offsetWidth);
+            document.body.removeChild(span);
+          });
+          // Add padding (20px left+right)
+          overlay.style.width = (maxWidth + 28) + 'px';
+        }, 0);
       }
       function renderPayMenu() {
         const list = document.getElementById('payMenuList');
@@ -781,6 +801,7 @@
         e.stopPropagation();
         cityMenuOverlay.classList.toggle('show');
         cityMenuOpen = cityMenuOverlay.classList.contains('show');
+        if (cityMenuOpen) renderCityMenu();
       });
       // Close overlay when clicking outside
       document.addEventListener('click', function(e) {
