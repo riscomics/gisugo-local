@@ -760,6 +760,7 @@
       document.getElementById('regionMenuLabel').textContent = activeRegion;
       document.getElementById('cityMenuLabel').textContent = activeCity;
       document.getElementById('payMenuLabel').textContent = activePay;
+      updateCityMenuLabelFontSize();
 
       // Region menu overlay logic
       const regionMenuBtn = document.getElementById('locationRegion');
@@ -786,6 +787,7 @@
           const cities = citiesByRegion[activeRegion] || [];
           activeCity = cities[0] || '';
           document.getElementById('cityMenuLabel').textContent = activeCity;
+          updateCityMenuLabelFontSize();
           renderRegionMenu();
           renderCityMenu();
           regionMenuOverlay.classList.remove('show');
@@ -815,6 +817,7 @@
         if (e.target.tagName === 'LI') {
           activeCity = e.target.textContent.replace(/▲/, '').trim();
           document.getElementById('cityMenuLabel').textContent = activeCity;
+          updateCityMenuLabelFontSize();
           renderCityMenu();
           cityMenuOverlay.classList.remove('show');
           cityMenuOpen = false;
@@ -848,6 +851,20 @@
           // Here you would trigger the job listing filter logic based on activePay, activeRegion, and activeCity
         }
       });
+
+      function updateCityMenuLabelFontSize() {
+        const label = document.getElementById('cityMenuLabel');
+        const btn = document.getElementById('locationCity');
+        if (!label || !btn) return;
+        label.style.fontSize = '';
+        let fontSize = 18; // start with default
+        label.style.fontSize = fontSize + 'px';
+        // Reduce font size until it fits or hits minimum
+        while (label.scrollWidth > btn.clientWidth - 32 && fontSize > 12) {
+          fontSize -= 1;
+          label.style.fontSize = fontSize + 'px';
+        }
+      }
     </script>
   </body>
 </html> 
