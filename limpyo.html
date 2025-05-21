@@ -259,9 +259,28 @@
         background-color: #363f4f;
         border: 1px solid rgba(255, 255, 255, 0.5);
         border-radius: 5px;
-        padding: 5px 12px; /* slightly increased for height and width */
-        width: 168px; /* 140px * 1.10 = 154px */
-        height: 32px; /* 35px * 1.06 = 37.1px, assuming original height was about 35px */
+        padding: 5px 12px;
+        width: 168px;
+        height: 32px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .region-menu, .city-menu, .pay-menu {
+        color: #fff;
+        background-color: #363f4f;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 5px;
+        padding: 5px 12px;
+        width: 168px;
+        height: 32px;
         display: flex;
         flex-direction: row;
         justify-content: space-between;
@@ -296,7 +315,7 @@
           height: 38px; /* 41.4px * 1.15 for mobile, or adjust as needed */
         }
 
-        .sort-menu {
+        .region-menu, .city-menu, .pay-menu {
           width: 112px;
           height: 25px;
           padding: 3px 10px;
@@ -360,16 +379,16 @@
     <!-- Sort Header -->
     <div class="jobcat-sort-header">
       <div class="sortmenus">
-        <div class="sort-menu" id="locationRegion">
+        <div class="sort-menu region-menu" id="locationRegion">
           <div>CEBU</div>
           <div>&#9660;</div>
         </div>
-        <div class="sort-menu" id="locationCity">
+        <div class="sort-menu city-menu" id="locationCity">
           <div>CEBU CITY</div>
           <div>&#9660;</div>
         </div>
-        <div class="sort-menu" id="sortDate">
-          <div>BY HOUR</div>
+        <div class="sort-menu pay-menu" id="sortDate">
+          <div>PER HOUR</div>
           <div>&#9660;</div>
         </div>
       </div>
