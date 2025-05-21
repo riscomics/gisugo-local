@@ -499,83 +499,23 @@
       <div class="sortmenus">
         <div class="region-menu-wrapper">
           <div class="sort-menu region-menu" id="locationRegion">
-            <div>CEBU</div>
+            <div id="regionMenuLabel">CEBU</div>
             <div>&#9660;</div>
           </div>
           <div class="region-menu-overlay" id="regionMenuOverlay">
-            <ul class="region-menu-list">              
-              <li>BOHOL <span class="arrow">&#9650;</span></li>
-              <li class="active">CEBU</li>
-              <li>LEYTE</li>
-              <li>MASBATE</li>
-              <li>NEGROS</li>
-              <li>PANAY</li>
-              <li>SAMAR</li>
-              <li>DAVAO</li>
-              <li>MANILA</li>
+            <ul class="region-menu-list" id="regionMenuList">
+              <!-- Region items will be rendered here by JS -->
             </ul>
           </div>
         </div>
         <div class="city-menu-wrapper">
           <div class="sort-menu city-menu" id="locationCity">
-            <div>CEBU CITY</div>
+            <div id="cityMenuLabel">CEBU CITY</div>
             <div>&#9660;</div>
           </div>
           <div class="city-menu-overlay" id="cityMenuOverlay">
-            <ul class="city-menu-list">
-              <li>Alcantara <span class="arrow">&#9650;</span></li>
-              <li>Alcoy</li>
-              <li>Alegria</li>
-              <li>Aloguinsan</li>
-              <li>Argao</li>
-              <li>Asturias</li>
-              <li>Badian</li>
-              <li>Balamban</li>
-              <li>Bantayan</li>
-              <li>Barili</li>
-              <li>Bogo</li>
-              <li>Boljoon</li>
-              <li>Borbon</li>
-              <li>Carcar</li>
-              <li>Carmen</li>
-              <li>Catmon</li>
-              <li>CEBU CITY</li>
-              <li>Compostela</li>
-              <li>Consolacion</li>
-              <li>Cordova</li>
-              <li>Daanbantayan</li>
-              <li>Dalaguete</li>
-              <li>Danao</li>
-              <li>Dumanjug</li>
-              <li>Ginatilan</li>
-              <li>Lapu-Lapu</li>
-              <li>Liloan</li>
-              <li>Madridejos</li>
-              <li>Malabuyoc</li>
-              <li>Mandaue</li>
-              <li>Medellin</li>
-              <li>Minglanilla</li>
-              <li>Moalboal</li>
-              <li>Naga City</li>
-              <li>Oslob</li>
-              <li>Pilar</li>
-              <li>Pinamungajan</li>
-              <li>Poro</li>
-              <li>Ronda</li>
-              <li>Samboan</li>
-              <li>SanFernando</li>
-              <li>San Francisco</li>
-              <li>San Remigio</li>
-              <li>Santa Fe</li>
-              <li>Santander</li>
-              <li>Sibonga</li>
-              <li>Sogod</li>
-              <li>Tabogon</li>
-              <li>Tabuelan</li>
-              <li>Talisay</li>
-              <li>Toledo City</li>
-              <li>Tuburan</li>
-              <li>Tudela</li>
+            <ul class="city-menu-list" id="cityMenuList">
+              <!-- City items will be rendered here by JS -->
             </ul>
           </div>
         </div>
@@ -647,6 +587,63 @@
         }
       });
 
+      // Dynamic region and city selection
+      const regions = [
+        "BOHOL", "CEBU", "LEYTE", "MASBATE", "NEGROS", "PANAY", "SAMAR", "DAVAO", "MANILA"
+      ];
+      const cities = [
+        "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
+      ];
+      let activeRegion = "CEBU";
+      let activeCity = "CEBU CITY";
+
+      function renderRegionMenu() {
+        const list = document.getElementById('regionMenuList');
+        list.innerHTML = '';
+        // Top item with arrow
+        const top = document.createElement('li');
+        top.textContent = activeRegion;
+        top.className = 'active';
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.innerHTML = '&#9650;';
+        top.appendChild(arrow);
+        list.appendChild(top);
+        // Other regions
+        regions.filter(r => r !== activeRegion).forEach(region => {
+          const li = document.createElement('li');
+          li.textContent = region;
+          if (region === activeRegion) li.className = 'active';
+          list.appendChild(li);
+        });
+      }
+      function renderCityMenu() {
+        const list = document.getElementById('cityMenuList');
+        list.innerHTML = '';
+        // Top item with arrow
+        const top = document.createElement('li');
+        top.textContent = activeCity;
+        top.className = 'active';
+        const arrow = document.createElement('span');
+        arrow.className = 'arrow';
+        arrow.innerHTML = '&#9650;';
+        top.appendChild(arrow);
+        list.appendChild(top);
+        // Other cities
+        cities.filter(c => c !== activeCity).forEach(city => {
+          const li = document.createElement('li');
+          li.textContent = city;
+          if (city === activeCity) li.className = 'active';
+          list.appendChild(li);
+        });
+      }
+      // Initial render
+      renderRegionMenu();
+      renderCityMenu();
+      // Update label
+      document.getElementById('regionMenuLabel').textContent = activeRegion;
+      document.getElementById('cityMenuLabel').textContent = activeCity;
+
       // Region menu overlay logic
       const regionMenuBtn = document.getElementById('locationRegion');
       const regionMenuOverlay = document.getElementById('regionMenuOverlay');
@@ -663,9 +660,12 @@
           regionMenuOpen = false;
         }
       });
-      // Close overlay when clicking a region
+      // Select region
       regionMenuOverlay.addEventListener('click', function(e) {
         if (e.target.tagName === 'LI') {
+          activeRegion = e.target.textContent.replace(/▲/, '').trim();
+          document.getElementById('regionMenuLabel').textContent = activeRegion;
+          renderRegionMenu();
           regionMenuOverlay.classList.remove('show');
           regionMenuOpen = false;
         }
@@ -687,9 +687,12 @@
           cityMenuOpen = false;
         }
       });
-      // Close overlay when clicking a city
+      // Select city
       cityMenuOverlay.addEventListener('click', function(e) {
         if (e.target.tagName === 'LI') {
+          activeCity = e.target.textContent.replace(/▲/, '').trim();
+          document.getElementById('cityMenuLabel').textContent = activeCity;
+          renderCityMenu();
           cityMenuOverlay.classList.remove('show');
           cityMenuOpen = false;
         }
