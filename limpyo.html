@@ -339,12 +339,16 @@
         animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
         font-size: 16.25px; /* 17.1px * 0.95 = 16.245px */
         font-family: Arial, sans-serif;
-        max-height: 216px; /* 240px * 0.9 = 216px, adjust as needed */
+        max-height: 227px; /* 216px * 1.05 = 226.8px */
         overflow-y: auto;
+        scrollbar-width: none; /* Firefox */
       }
       .region-menu-overlay.show {
         display: block;
         animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+      }
+      .region-menu-overlay::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
       }
       @keyframes slideDown {
         from { opacity: 0; transform: translateY(-10px); }
