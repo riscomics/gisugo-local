@@ -384,6 +384,62 @@
         position: relative;
         display: inline-block;
       }
+      .city-menu-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+      .city-menu-overlay {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 100%;
+        width: 136px;
+        background: #434a58;
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+        z-index: 2000;
+        padding: 0;
+        animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+        font-size: 16.25px;
+        font-family: Arial, sans-serif;
+        max-height: 227px;
+        overflow-y: auto;
+        scrollbar-width: none;
+      }
+      .city-menu-overlay::-webkit-scrollbar {
+        display: none;
+      }
+      .city-menu-overlay.show {
+        display: block;
+        animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+      }
+      .city-menu-list {
+        list-style: none;
+        margin: 0;
+        padding: 7px 10px 7px 10px;
+      }
+      .city-menu-list li {
+        color: #fff;
+        font-size: 16.25px;
+        font-family: Arial, sans-serif;
+        font-weight: 700;
+        padding: 6px 0 6px 0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: background 0.13s;
+      }
+      .city-menu-list li:hover, .city-menu-list li.active {
+        background: rgba(255,255,255,0.08);
+      }
+      .city-menu-list li .arrow {
+        margin-left: auto;
+        font-size: 1.1em;
+        color: #d3d7e0;
+      }
     </style>
   </head>
   <body>
@@ -460,9 +516,68 @@
             </ul>
           </div>
         </div>
-        <div class="sort-menu city-menu" id="locationCity">
-          <div>CEBU CITY</div>
-          <div>&#9660;</div>
+        <div class="city-menu-wrapper">
+          <div class="sort-menu city-menu" id="locationCity">
+            <div>CEBU CITY</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="city-menu-overlay" id="cityMenuOverlay">
+            <ul class="city-menu-list">
+              <li>Alcantara <span class="arrow">&#9650;</span></li>
+              <li>Alcoy</li>
+              <li>Alegria</li>
+              <li>Aloguinsan</li>
+              <li>Argao</li>
+              <li>Asturias</li>
+              <li>Badian</li>
+              <li>Balamban</li>
+              <li>Bantayan</li>
+              <li>Barili</li>
+              <li>Bogo</li>
+              <li>Boljoon</li>
+              <li>Borbon</li>
+              <li>Carcar</li>
+              <li>Carmen</li>
+              <li>Catmon</li>
+              <li>CEBU CITY</li>
+              <li>Compostela</li>
+              <li>Consolacion</li>
+              <li>Cordova</li>
+              <li>Daanbantayan</li>
+              <li>Dalaguete</li>
+              <li>Danao</li>
+              <li>Dumanjug</li>
+              <li>Ginatilan</li>
+              <li>Lapu-Lapu</li>
+              <li>Liloan</li>
+              <li>Madridejos</li>
+              <li>Malabuyoc</li>
+              <li>Mandaue</li>
+              <li>Medellin</li>
+              <li>Minglanilla</li>
+              <li>Moalboal</li>
+              <li>Naga City</li>
+              <li>Oslob</li>
+              <li>Pilar</li>
+              <li>Pinamungajan</li>
+              <li>Poro</li>
+              <li>Ronda</li>
+              <li>Samboan</li>
+              <li>SanFernando</li>
+              <li>San Francisco</li>
+              <li>San Remigio</li>
+              <li>Santa Fe</li>
+              <li>Santander</li>
+              <li>Sibonga</li>
+              <li>Sogod</li>
+              <li>Tabogon</li>
+              <li>Tabuelan</li>
+              <li>Talisay</li>
+              <li>Toledo City</li>
+              <li>Tuburan</li>
+              <li>Tudela</li>
+            </ul>
+          </div>
         </div>
         <div class="sort-menu pay-menu" id="sortDate">
           <div>GET PAID</div>
@@ -553,6 +668,30 @@
         if (e.target.tagName === 'LI') {
           regionMenuOverlay.classList.remove('show');
           regionMenuOpen = false;
+        }
+      });
+
+      // City menu overlay logic
+      const cityMenuBtn = document.getElementById('locationCity');
+      const cityMenuOverlay = document.getElementById('cityMenuOverlay');
+      let cityMenuOpen = false;
+      cityMenuBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        cityMenuOverlay.classList.toggle('show');
+        cityMenuOpen = cityMenuOverlay.classList.contains('show');
+      });
+      // Close overlay when clicking outside
+      document.addEventListener('click', function(e) {
+        if (cityMenuOpen && !cityMenuBtn.contains(e.target) && !cityMenuOverlay.contains(e.target)) {
+          cityMenuOverlay.classList.remove('show');
+          cityMenuOpen = false;
+        }
+      });
+      // Close overlay when clicking a city
+      cityMenuOverlay.addEventListener('click', function(e) {
+        if (e.target.tagName === 'LI') {
+          cityMenuOverlay.classList.remove('show');
+          cityMenuOpen = false;
         }
       });
     </script>
