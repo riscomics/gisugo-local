@@ -328,7 +328,7 @@
         position: absolute;
         left: 0;
         top: 100%;
-        width: 168px;
+        width: 151px; /* 168px * 0.9 = 151.2px */
         background: #434a58;
         border: 2px solid rgba(255,255,255,0.3);
         border-radius: 10px;
@@ -336,6 +336,8 @@
         z-index: 2000;
         padding: 10px 0 10px 0;
         animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+        font-size: 18px;
+        font-family: Arial, sans-serif;
       }
       .region-menu-overlay.show {
         display: block;
@@ -352,7 +354,8 @@
       }
       .region-menu-list li {
         color: #fff;
-        font-size: 1.25em;
+        font-size: 18px;
+        font-family: Arial, sans-serif;
         font-weight: 700;
         padding: 6px 0 6px 0;
         border-radius: 4px;
