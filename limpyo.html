@@ -496,6 +496,12 @@
         font-size: 1.1em;
         color: #d3d7e0;
       }
+      .city-menu #cityMenuLabel {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+      }
     </style>
   </head>
   <body>
@@ -760,7 +766,7 @@
       document.getElementById('regionMenuLabel').textContent = activeRegion;
       document.getElementById('cityMenuLabel').textContent = activeCity;
       document.getElementById('payMenuLabel').textContent = activePay;
-      updateCityMenuLabelFontSize();
+      setTimeout(updateCityMenuLabelFontSize, 0);
 
       // Region menu overlay logic
       const regionMenuBtn = document.getElementById('locationRegion');
@@ -787,7 +793,7 @@
           const cities = citiesByRegion[activeRegion] || [];
           activeCity = cities[0] || '';
           document.getElementById('cityMenuLabel').textContent = activeCity;
-          updateCityMenuLabelFontSize();
+          setTimeout(updateCityMenuLabelFontSize, 0);
           renderRegionMenu();
           renderCityMenu();
           regionMenuOverlay.classList.remove('show');
@@ -817,7 +823,7 @@
         if (e.target.tagName === 'LI') {
           activeCity = e.target.textContent.replace(/▲/, '').trim();
           document.getElementById('cityMenuLabel').textContent = activeCity;
-          updateCityMenuLabelFontSize();
+          setTimeout(updateCityMenuLabelFontSize, 0);
           renderCityMenu();
           cityMenuOverlay.classList.remove('show');
           cityMenuOpen = false;
