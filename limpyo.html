@@ -233,6 +233,72 @@
           height: 32px;
         }
       }
+
+      /* Sort Menu Styles */
+      .jobcat-sort-header {
+        position: fixed;
+        top: 72px; /* Height of main header (68px) + borderline (4px) */
+        left: 0;
+        right: 0;
+        z-index: 99;
+        background: #866f67;
+      }
+
+      .sortmenus {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        padding: 8px 0;
+        gap: 8px;
+      }
+
+      .sort-menu {
+        color: #fff;
+        background-color: #363f4f;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 5px;
+        padding: 6px 12px;
+        width: 140px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .sort-menu > div:last-child {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
+      /* Second borderline */
+      .jobcat-sort-borderline {
+        width: 100%;
+        height: 4px;
+        background-color: #ff7bd5;
+      }
+
+      @media (max-width: 600px) {
+        .jobcat-sort-header {
+          top: 72px;
+        }
+
+        .sortmenus {
+          padding: 6px 4px;
+          gap: 4px;
+        }
+
+        .sort-menu {
+          width: 105px;
+          padding: 4px 8px;
+          font-size: 13px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -286,6 +352,26 @@
       </div>
       <div class="jobcat-borderline"></div>
     </div>
+
+    <!-- Sort Header -->
+    <div class="jobcat-sort-header">
+      <div class="sortmenus">
+        <div class="sort-menu" id="locationRegion">
+          <div>CEBU</div>
+          <div>&#9660;</div>
+        </div>
+        <div class="sort-menu" id="locationCity">
+          <div>CEBU CITY</div>
+          <div>&#9660;</div>
+        </div>
+        <div class="sort-menu" id="sortDate">
+          <div>BY DATE</div>
+          <div>&#9660;</div>
+        </div>
+      </div>
+      <div class="jobcat-sort-borderline"></div>
+    </div>
+
     <div class="jobcat-menu-overlay" id="jobcatMenuOverlay">
       <div class="jobcat-menu-items">
         <div class="jobcat-menu-item">
