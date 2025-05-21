@@ -273,7 +273,7 @@ section {
 /* Accent Line */
 .accent-line {
   height: 8px;
-  background-color: var(--accent-color);
+  background-color: rgb(149, 149, 328);
   width: 100%;
 }
 
