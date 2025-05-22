@@ -140,6 +140,10 @@
         z-index: 300;
         padding: 18px 0 18px 0;
         border: 1px solid #e6d6ae;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
         /* Hide scrollbar for all browsers */
         scrollbar-width: none; /* Firefox */
       }
@@ -148,6 +152,9 @@
       }
       .jobcat-servicemenu-overlay.show {
         display: block;
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
       }
       .jobcat-servicemenu-overlay ul {
         list-style: none;
@@ -618,7 +625,7 @@
         </div>
         <div class="jobcat-menu-item">
           <img src="public/icons/Post.png" alt="Post">
-          <div>New</div>
+          <div>Post</div>
         </div>
       </div>
     </div>
