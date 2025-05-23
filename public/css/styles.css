@@ -638,3 +638,35 @@ section {
     height: 28px;
   }
 }
+
+/* Header, Wrapper, and Spacer Heights */
+.header, .header-wrapper, .header-spacer {
+  height: 114px;
+  min-height: 114px;
+}
+
+.header-wrapper {
+  position: relative;
+}
+
+.header-wrapper .accent-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  background: #ff7bd5;
+  display: block;
+  width: 100%;
+  z-index: 101;
+}
+
+@media (max-width: 700px) {
+  .header, .header-wrapper, .header-spacer {
+    height: 70px;
+    min-height: 70px;
+  }
+  .header-wrapper .accent-line {
+    height: 4px;
+  }
+}
