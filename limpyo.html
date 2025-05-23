@@ -543,14 +543,14 @@
       .job-preview-img {
         width: 98px;
         min-width: 98px;
-        height: 72px;
+        height: 96px;
         background: #222;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
         border-radius: 4px;
-        margin: 0 12px 0 0;
+        margin-right: 10px;        
       }
       .job-preview-img img {
         width: 100%;
@@ -580,13 +580,15 @@
       }
       .job-preview-extras {
         display: flex;
-        flex-direction: column;
-        gap: 1px;
+        flex-direction: row;
+        justify-content: center;
+        gap: 49px;
         font-size: 0.97rem;
-        color: #e6d6ae;
+        color: #e6d6ae;        
+        margin-top: 10px;
+        margin-right: 5px;
       }
       .job-preview-extra1, .job-preview-extra2 {
-        /* Same base style as old .job-preview-extra */
         font-size: inherit;
         color: inherit;
         display: flex;
@@ -596,26 +598,26 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .job-preview-extra-label {
+      .job-preview-extra-label1, .job-preview-extra-label2 {
         font-weight: 600;
         color: #bfc6d0;
-        margin-right: 3px;
+        margin-right: 10px;
       }
       .job-preview-infoboxes {
         display: flex;
         flex-direction: column;
         gap: 8px;
-        align-items: flex-end;
+        align-items: center;
         min-width: 82px;
-        height: 72px;
-        justify-content: space-between;
+        height: 78px;
+        justify-content: center;
       }
-      .job-preview-infobox {
+      .job-preview-infobox1, .job-preview-infobox2 {
         background: #d9d9d9;
         color: #363f4f;
         border-radius: 8px;
-        padding: 5px 12px 4px 12px;
-        min-width: 68px;
+        padding: 2px 8px 2px 8px;
+        min-width: 88px;
         text-align: center;
         margin-bottom: 0;
         display: flex;
@@ -624,43 +626,50 @@
         justify-content: center;
         box-shadow: 0 1px 2px rgba(0,0,0,0.04);
       }
-      .job-preview-infobox-pay .job-preview-price {
+      .job-preview-infobox1 .job-preview-price {
         font-size: 1.08rem;
         font-weight: 700;
       }
-      .job-preview-infobox-pay .job-preview-rate {
-        font-size: 0.93rem;
+      .job-preview-infobox1 .job-preview-rate {
+        font-size: 0.88rem;
         font-weight: 600;
       }
-      .job-preview-infobox-date .job-preview-date {
+      .job-preview-infobox2 .job-preview-date {
         font-size: 0.99rem;
         font-weight: 700;
       }
-      .job-preview-infobox-date .job-preview-time {
-        font-size: 0.93rem;
+      .job-preview-infobox2 .job-preview-time {
+        font-size: 0.88rem;
         font-weight: 600;
       }
       @media (max-width: 700px) {
         .job-preview-card {
           flex-direction: row !important;
-          padding: 0;
-          margin: 0 0 14px 0;
+          width: 100%;
+          padding: 0px;
+          margin: 0px;
+          height: 120px;
         }
         .job-preview-img {
-          width: 100vw;
+          width: 28vw;
           min-width: 0;
-          height: 32vw;
-          max-height: 180px;
+          height: 28vw;
+          max-height: 100%;
           margin: 0;
           border-radius: 0;
         }
         .job-preview-content {
-          margin: 10px 10px 0 10px;
-          height: auto;
-          min-width: 0;
-          flex: 1;
-          padding-right: 8px;
+          margin-left: 5px;
+          flex: 1 1 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding-left: 5px;
+          padding-right: 5px;
+          min-width: 50;          
+          height: 128px;  
         }
+        
         .job-preview-title {
           font-size: 1.01rem;
           max-width: 100%;
@@ -668,16 +677,16 @@
           text-overflow: unset;
           overflow: visible;
           line-height: 1.3;
-          margin-bottom: 6px;
+          margin-bottom: 10px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
         }
         .job-preview-extras {
-          margin-top: 4px;
+          margin-top: 5px;
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 6px;
         }
         .job-preview-extra1, .job-preview-extra2 {
           font-size: 0.95rem;
@@ -685,19 +694,46 @@
           overflow: visible;
           text-overflow: unset;
         }
+        
         .job-preview-infoboxes {
-          flex-direction: row;
-          gap: 10px;
-          align-items: stretch;
-          justify-content: flex-end;
-          margin: 10px 10px 10px 10px;
-          height: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          align-items: center;
+          min-width: 78px;
+          margin-right: 8px;
+          height: 78px;
+          justify-content: center;          
         }
-        .job-preview-infobox {
-          min-width: 0;
-          width: 50%;
-          font-size: 0.98rem;
-          padding: 7px 0;
+        .job-preview-infobox1, .job-preview-infobox2 {
+          background: #d9d9d9;
+          color: #363f4f;
+          border-radius: 8px;
+          padding: 3px 8px 3px 8px;
+          min-width: 88px;
+          text-align: center;
+          margin-bottom: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .job-preview-infobox1 .job-preview-price {
+          font-size: 1.08rem;
+          font-weight: 700;
+        }
+        .job-preview-infobox1 .job-preview-rate {
+          font-size: 0.88rem;
+          font-weight: 600;
+        }
+        .job-preview-infobox2 .job-preview-date {
+          font-size: 0.99rem;
+          font-weight: 700;
+        }
+        .job-preview-infobox2 .job-preview-time {
+          font-size: 0.88rem;
+          font-weight: 600;
         }
       }
 
@@ -1094,18 +1130,18 @@
         <img src="public/mock/mock-limpyo-post1.jpg" alt="Job preview image">
       </div>
       <div class="job-preview-content">
-        <div class="job-preview-title">Hawan daghan kaayo samok gi puto kahoy diri.</div>
+        <div class="job-preview-title">Hawan daghan kaayo samok gi putol kahoy diri.</div>
         <div class="job-preview-extras">
-          <div class="job-preview-extra1"><span class="job-preview-extra-label">Location:</span> Guadalupe</div>
-          <div class="job-preview-extra2"><span class="job-preview-extra-label">Supplies:</span> Provided</div>
+          <div class="job-preview-extra1"><span class="job-preview-extra-label1">Location:</span> Guadalupe</div>
+          <div class="job-preview-extra2"><span class="job-preview-extra-label2">Supplies:</span> Provided</div>
         </div>
       </div>
       <div class="job-preview-infoboxes">
-        <div class="job-preview-infobox job-preview-infobox-pay">
+        <div class="job-preview-infobox1">
           <div class="job-preview-price">₱300</div>
           <div class="job-preview-rate">Per Job</div>
         </div>
-        <div class="job-preview-infobox job-preview-infobox-date">
+        <div class="job-preview-infobox2">
           <div class="job-preview-date">Dec. 23</div>
           <div class="job-preview-time">9AM - 11AM</div>
         </div>
