@@ -636,7 +636,7 @@ section {
     height: 48px;
   }
   .headerbutton img {
-    width: 32px;
+    width: 32px; 
     height: 28px;
   }
 }
