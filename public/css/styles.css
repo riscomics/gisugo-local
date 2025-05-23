@@ -166,7 +166,7 @@ section {
 
 /* Remove the negative margin styles we added earlier */
 .video-container + .accent-line {
-  margin-top: 0;
+  margin-top: 10;
 }
 
 /* Category Section */
@@ -621,5 +621,8 @@ section {
   .headerbutton img {
     width: 32px;
     height: 28px;
+  }
+  .accent-line {
+    width: 100%;
   }
 }
