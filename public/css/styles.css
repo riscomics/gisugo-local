@@ -595,56 +595,52 @@ section {
   font-size: 11px;
 }
 .borderline {
-  width: 100vw;
-  left: 0;
-  right: 0;
-  position: absolute;
-  min-width: 100vw;
-  margin-left: calc(-50vw + 50%);
+  width: 100%;
   height: 4px;
-  background-color: #ff7bd5;
+  background-color: rgb(149, 149, 328); /* Blue */
 }
 @media (max-width: 600px) {
   .header, .listheader, .header-spacer {
-    height: 70px;
-    min-height: 70px;
+    height: 68px;
   }
   .servicemenu {
-    width: 220px;
-    height: 32px;
-    border-width: 1px;
-    margin-left: -5px;
+    width: 238px;
+    height: 49px;
   }
   .servicename {
-    width: 180px;
-    height: 32px;
-    font-size: 18px;
-    padding-left: 8px;
-    padding-right: 4px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 238px;
+    height: 47px;
+    font-size: 22px;
+    padding-left: 12px;
+    padding-right: 8px; 
   }
   .servicename > div:last-child {
-    font-size: 16px;
-    margin-right: 4px;
+    font-size: 18px;
   }
   .servicemenu-overlay {
-    top: 38px;
-    width: 220px;
-    font-size: 1.1rem;
+    width: 240px;
   }
   .servicemenu-list a {
-    font-size: 1.1rem;
+    font-size: 1.62rem;
   }
   .headerbuttons {
-    width: 160px;
-    margin-right: 4px;
+    width: 149px;
+    margin-right: 5px; 
   }
   .headerbutton {
-    width: 48px;
-    height: 48px;
+    width: 45px;
+    height: 45px;
+    font-size: 12px; 
   }
   .headerbutton img {
-    width: 32px;
-    height: 28px;
+    height: 35px;
+  } 
+  .headerbutton img:hover {
+    transform: scale(1.1);
   }
 }
 
