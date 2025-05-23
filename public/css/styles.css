@@ -63,23 +63,17 @@ section {
   overflow-x: hidden;
 }
 
-/* Ensure video container doesn't overflow */
-.video-container {
-  width: 100%;
-  max-width: 100vw;
-  overflow: hidden;
-}
 
 /* Header Styles */
 .header {
-  position: fixed;
+  position: relative;
   width: 100%;
   top: 0;
   left: 0;
   z-index: 200;
   background-color: #fef6da;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  height: 110px;
+  height: 128px;
   min-height: 110px;
   display: flex;
   align-items: center;
@@ -117,7 +111,7 @@ section {
 }
 
 .header__title {
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: bold;
   color: var(--primary-color);
   line-height: 1.2;
@@ -131,14 +125,14 @@ section {
 .header__menu {
   background: none;
   border: none;
-  padding: 0.5rem;
+  padding: 0px;
   cursor: pointer;
-  color: var(--primary-color);
+  color: var(--primary-color); 
 }
 
 .header__menu:hover {
   opacity: 0.8;
-}
+} 
 
 .header__menu svg {
   display: block;
@@ -152,21 +146,24 @@ section {
   right: 0;
   z-index: 100;
   background-color: #fef6da;
+  height: 80px;
 }
 
 /* Adjust header spacer for new structure */
 .header-spacer {
-  height: 110px;
+  height: 110px;  
 }
 
 /* Video Section */
 .video-container {
   width: 100%;
+  max-width: 100vw;
   background-color: var(--primary-color);
   padding: 0;
   position: relative;
-  padding-top: 56.25%; /* 16:9 Aspect Ratio (9 / 16 = 0.5625) */
+  padding-top: 56.25%; /* 16:9 Aspect Ratio */
   margin: 0;
+  overflow: hidden;
 }
 
 .video-container iframe {
@@ -178,9 +175,16 @@ section {
   border: 0;
 }
 
-/* Remove the negative margin styles we added earlier */
-.video-container + .accent-line {
-  margin-top: 0;
+@media (min-width: 1024px) {
+  .video-container {
+    width: 50%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding-top: 28.125%;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 /* Category Section */
@@ -265,21 +269,18 @@ section {
 }
 
 /* Accent Line */
-.accent-line {
+.accent-line1 {
+  margin-top: 0px;
   height: 8px;
   background-color: rgb(149, 149, 328);
   width: 100%;
 }
 
 /* First accent line in header */
-.header-wrapper .accent-line {
+.header-wrapper .accent-line1 {
   display: block;
 }
-
-/* Second accent line after video */
-.video-container + .accent-line {
-  margin: 0;
-}
+ 
 
 /* Footer */
 .footer {
@@ -353,115 +354,6 @@ section {
   transform: translateX(5px);
 }
 
-/* Media Queries */
-@media (min-width: 768px) {
-  .header {
-    padding: 0.25rem 1rem;
-  }
-
-  .header__logo {
-    width: 88px;
-    height: 88px;
-  }
-
-  .header__title {
-    font-size: 3rem;
-  }
-
-  .header__subtitle {
-    font-size: 1.25rem;
-  }
-
-  .header__menu {
-    width: 55px;
-  }
-
-  .category-header {
-    font-size: 1.5rem;
-  }
-
-  .service-card {
-    width: 150px;
-  }
-
-  .service-grid {
-    gap: 2rem;
-    padding: 1.5rem;
-  }
-
-  .header-spacer {
-    height: 96px; /* Adjusted for tablet size */
-  }
-
-  .video-container {
-    margin: 0;
-  }
-
-  .accent-line {
-    width: 100%;
-  }
-}
-
-@media (min-width: 1024px) {
-  .header {
-    padding: 0.25rem 1.5rem;
-  }
-
-  .header__logo {
-    width: 128px;
-    height: 128px;
-  }
-
-  .header__title {
-    font-size: 3.5rem;
-  }
-
-  .header__subtitle {
-    font-size: 1.5rem;
-  }
-
-  .header__menu {
-    width: 70px;
-    padding: 0.75rem;
-  }
-
-  .header__menu svg {
-    width: 50px;
-    height: 50px;
-  }
-
-  .service-card {
-    width: 180px;
-  }
-
-  .service-grid {
-    gap: 2.5rem;
-    padding: 2rem;
-  }
-
-  .service-card__title {
-    font-size: 1.1rem;
-  }
-
-  .header-spacer {
-    height: 136px; /* Adjusted for desktop size */
-  }
-
-  .video-container {
-    width: 50%;
-    margin: 0 auto; /* Center horizontally */
-    padding-top: 28.125%; /* Maintain 16:9 ratio for 50% width (56.25% ÷ 2) */
-  }
-
-  /* Remove the negative margin styles we added earlier */
-  .video-container + .accent-line {
-    margin-top: 0;
-  }
-
-  .accent-line {
-    width: 100%;
-  }
-}
 
 /* --- Custom Listing Header Styles --- */
 .listheader {
@@ -591,10 +483,120 @@ section {
   height: 4px;
   background-color: #ff7bd5;
 }
+@media (min-width: 1024px) {
+  .header {
+    padding: 0.25rem 1.5rem;
+  }
+
+  .header__logo {
+    width: 128px;
+    height: 128px;
+  }
+
+  .header__title {
+    font-size: 3.5rem;
+  }
+
+  .header__subtitle {
+    font-size: 1.5rem;
+  }
+
+  .header__menu {
+    width: 70px;
+    padding: 0.75rem;
+  }
+
+  .header__menu svg {
+    width: 50px;
+    height: 50px;
+  }
+
+  .service-card {
+    width: 180px;
+  }
+
+  .service-grid {
+    gap: 2.5rem;
+    padding: 2rem;
+  }
+
+  .service-card__title {
+    font-size: 1.1rem;
+  }
+
+  .header-spacer {
+    height: 136px; /* Adjusted for desktop size */
+  }
+
+  .video-container {
+    width: 50%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding-top: 28.125%;
+  }
+
+  /* Remove the negative margin styles we added earlier */
+  .video-container + .accent-line2 {
+    margin-top: 0;
+  }
+
+  .accent-line1 {
+    width: 100%;
+  }
+}
+
+/* Media Queries */
+@media (min-width: 768px) { 
+  .header, .listheader, .header-spacer {
+    height: 128px;
+    min-height: 128px;
+  } 
+  .header__logo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .header__title {
+    font-size: 3rem;
+  }
+
+  .header__subtitle {
+    font-size: 1.25rem;
+  }
+
+  .header__menu {
+    width: 55px;
+  }
+
+  .category-header {
+    font-size: 1.5rem;
+  }
+
+  .service-card {
+    width: 150px;
+  }
+
+  .service-grid {
+    gap: 2rem;
+    padding: 1.5rem;
+  } 
+
+  .video-container {
+    margin: 0;
+  }
+
+  .accent-line1 {
+    width: 100%;
+  }
+}
 @media (max-width: 600px) {
   .header, .listheader, .header-spacer {
-    height: 70px;
+    height: 75px;
     min-height: 70px;
+  }
+  .header__title {
+    font-size: 2rem; 
+    line-height: 1.1;
   }
   .servicemenu {
     width: 220px;
@@ -633,4 +635,10 @@ section {
     width: 32px; 
     height: 28px;
   }
+}
+
+.accent-line2 {
+  height: 8px;
+  background-color: rgb(149, 149, 328);
+  width: 100%;
 }
