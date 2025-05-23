@@ -79,8 +79,14 @@ section {
   z-index: 200;
   background-color: #fef6da;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  height: 110px;
-  min-height: 110px;
+  height: 114px;  /* Increased from 110px */
+  min-height: 114px;  /* Increased from 110px */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem;
+  box-sizing: border-box;
+  flex-wrap: wrap;
 }
 
 .header__logo {
@@ -145,24 +151,22 @@ section {
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: var(#fef6da);
-}
-
-/* Move header styles to wrapper */
-.header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.5rem;
-  width: 100%;
-  box-sizing: border-box;
-  flex-wrap: wrap;
+  background-color: #fef6da;
+  height: 114px;  /* Match header height */
 }
 
 /* Adjust header spacer for new structure */
 .header-spacer {
-  height: 110px;
+  height: 114px;  /* Match header height */
+}
+
+/* First accent line in header */
+.header-wrapper .accent-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: block;
 }
 
 /* Video Section */
@@ -275,11 +279,6 @@ section {
   height: 8px;
   background-color: rgb(149, 149, 328);
   width: 100%;
-}
-
-/* First accent line in header */
-.header-wrapper .accent-line {
-  display: block;
 }
 
 /* Second accent line after video */
@@ -396,7 +395,7 @@ section {
   }
 
   .header-spacer {
-    height: 96px; /* Adjusted for tablet size */
+    height: 114px;  /* Match header height */
   }
 
   .video-container {
@@ -450,16 +449,15 @@ section {
   }
 
   .header-spacer {
-    height: 136px; /* Adjusted for desktop size */
+    height: 114px;  /* Match header height */
   }
 
   .video-container {
     width: 50%;
-    margin: 0 auto; /* Center horizontally */
-    padding-top: 28.125%; /* Maintain 16:9 ratio for 50% width (56.25% ÷ 2) */
+    margin: 0 auto;
+    padding-top: 28.125%;
   }
 
-  /* Remove the negative margin styles we added earlier */
   .video-container + .accent-line {
     margin-top: 0;
   }
