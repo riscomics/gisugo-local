@@ -81,6 +81,12 @@ section {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   height: 110px;
   min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem;
+  box-sizing: border-box;
+  flex-wrap: wrap;
 }
 
 .header__logo {
@@ -145,19 +151,7 @@ section {
   left: 0;
   right: 0;
   z-index: 100;
-  background-color: var(#fef6da);
-}
-
-/* Move header styles to wrapper */
-.header {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.25rem 0.5rem;
-  width: 100%;
-  box-sizing: border-box;
-  flex-wrap: wrap;
+  background-color: #fef6da;
 }
 
 /* Adjust header spacer for new structure */
