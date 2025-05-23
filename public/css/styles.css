@@ -55,14 +55,6 @@ section {
 }
 
 /* Ensure service grid doesn't overflow */
-.service-grid {
-  width: 100%;
-  max-width: 100%;
-  padding: 0.5rem;
-  margin: 0 auto;
-  overflow-x: hidden;
-}
-
 
 .header__logo {
   width: 68px;
