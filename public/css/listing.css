@@ -604,7 +604,7 @@
       .job-preview-extra-label1, .job-preview-extra-label2 {
         font-weight: 600;
         color: #bfc6d0;
-        margin-right: 10px;
+        margin-right: 5px;
       }
       .job-preview-infoboxes {
         display: flex;
@@ -805,6 +805,11 @@
         text-overflow: unset;
         gap: 10px;
       }      
+      .job-preview-extra-label1, .job-preview-extra-label2 {
+        font-weight: 600;
+        color: #bfc6d0;
+        margin-right: 5px;
+      }
       .job-preview-infoboxes {
         display: flex;
         flex-direction: column;
