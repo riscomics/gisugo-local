@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hakot Service - GISUGO</title>
+    <link rel="stylesheet" href="public/css/listing.css">
+  </head>
+  <body>
+    <div class="jobcat-header">
+      <div class="jobcat-listheader">
+        <div class="jobcat-servicemenu" id="jobcatServiceMenuBtn">
+          <div class="jobcat-servicename">
+            <div>Hakot Jobs</div>
+            <div>&#9660;</div>
+          </div>
+        </div>
+        <div class="jobcat-servicemenu-overlay" id="jobcatServiceMenuOverlay">
+          <ul>
+            <li><a href="hatod.html">Hatod Jobs</a></li>
+            <li><a href="hakot.html" class="active">Hakot Jobs</a></li>
+            <li><a href="kompra.html">Kompra Jobs</a></li>
+            <li><a href="luto.html">Luto Jobs</a></li>
+            <li><a href="hugas.html">Hugas Jobs</a></li>
+            <li><a href="laba.html">Laba Jobs</a></li>
+            <li><a href="limpyo.html">Limpyo Jobs</a></li>
+            <li><a href="tindera.html">Tindera Jobs</a></li>
+            <li><a href="bantay.html">Bantay Jobs</a></li>
+            <li><a href="painter.html">Painter Jobs</a></li>
+            <li><a href="carpenter.html">Carpenter Jobs</a></li>
+            <li><a href="plumber.html">Plumber Jobs</a></li>
+            <li><a href="security.html">Security Jobs</a></li>
+            <li><a href="driver.html">Driver Jobs</a></li>
+            <li><a href="tutor.html">Tutor Jobs</a></li>
+            <li><a href="nurse.html">Nurse Jobs</a></li>
+            <li><a href="doctor.html">Doctor Jobs</a></li>
+            <li><a href="lawyer.html">Lawyer Jobs</a></li>
+            <li><a href="mechanic.html">Mechanic Jobs</a></li>
+            <li><a href="electrician.html">Electrician Jobs</a></li>
+            <li><a href="tailor.html">Tailor Jobs</a></li>
+          </ul>
+        </div>
+        <div class="jobcat-headerbuttons">
+          <div class="jobcat-headerbutton">
+            <div><img src="public/icons/Post.png" alt="Post"></div>
+            <div class="posttext">Post</div>
+          </div>
+          <div class="jobcat-headerbutton">
+            <div><img src="public/icons/search.png" alt="Search"></div>
+            <div>Search</div>
+          </div>
+          <div class="jobcat-headerbutton jobcat-menu-btn">
+            <div><img src="public/icons/menu.png" alt="Menu"></div>
+            <div>Menu</div>
+          </div>
+        </div>
+      </div>
+      <div class="jobcat-borderline"></div>
+    </div>
+
+    <!-- Sort Header -->
+    <div class="jobcat-sort-header">
+      <div class="sortmenus">
+        <div class="region-menu-wrapper">
+          <div class="sort-menu region-menu" id="locationRegion">
+            <div id="regionMenuLabel">CEBU</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="region-menu-overlay" id="regionMenuOverlay">
+            <ul class="region-menu-list" id="regionMenuList">
+              <!-- Region items will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+        <div class="city-menu-wrapper">
+          <div class="sort-menu city-menu" id="locationCity">
+            <div id="cityMenuLabel">CEBU CITY</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="city-menu-overlay" id="cityMenuOverlay">
+            <ul class="city-menu-list" id="cityMenuList">
+              <!-- City items will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+        <div class="pay-menu-wrapper">
+          <div class="sort-menu pay-menu" id="payMenu">
+            <div id="payMenuLabel">PAY TYPE</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="pay-menu-overlay" id="payMenuOverlay">
+            <ul class="pay-menu-list" id="payMenuList">
+              <!-- Pay type items will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="jobcat-sort-borderline"></div>
+    </div>
+
+    <div class="jobcat-header-spacer"></div>
+
+    <div class="jobcat-menu-overlay" id="jobcatMenuOverlay">
+      <div class="jobcat-menu-items">
+        <div class="jobcat-menu-item">
+          <a href="index.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+            <img src="public/icons/Home.png" alt="Home">
+            <div>Home</div>
+          </a>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Messages.png" alt="Messages">
+          <div>Messages</div>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Profile.png" alt="Profile">
+          <div>Profile</div>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Jobs.png" alt="Jobs">
+          <div>Jobs</div>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Post.png" alt="Post">
+          <div>Post</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Job Preview Card Example -->
+    <a href="job/1" class="job-preview-card">
+      <div class="job-preview-img">
+        <img src="public/mock/mock-hakot-post1.jpg" alt="Job preview image">
+      </div>
+      <div class="job-preview-content">
+        <div class="job-preview-title">Hakot sa mga gamit gikan sa Colon padulong sa Mandaue</div>
+        <div class="job-preview-extras">
+          <div class="job-preview-extra1"><span class="job-preview-extra-label1">Location:</span> Colon to Mandaue</div>
+          <div class="job-preview-extra2"><span class="job-preview-extra-label2">Items:</span> Household Items</div>
+        </div>
+      </div>
+      <div class="job-preview-infoboxes">
+        <div class="job-preview-infobox1">
+          <div class="job-preview-price">₱500</div>
+          <div class="job-preview-rate">Per Job</div>
+        </div>
+        <div class="job-preview-infobox2">
+          <div class="job-preview-date">Dec. 25</div>
+          <div class="job-preview-time">9AM - 11AM</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- Add more job preview cards as needed -->
+
+    <script>
+      // Copy all JavaScript from limpyo.html
+      const btn = document.getElementById('jobcatServiceMenuBtn');
+      const overlay = document.getElementById('jobcatServiceMenuOverlay');
+      // ... Copy all other JavaScript from limpyo.html ...
+    </script>
+  </body>
+</html> 
