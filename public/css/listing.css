@@ -803,12 +803,12 @@
         white-space: normal;
         overflow: visible;
         text-overflow: unset;
-        gap: 10px;
+        gap: 5px;
       }      
       .job-preview-extra-label1, .job-preview-extra-label2 {
         font-weight: 600;
         color: #bfc6d0;
-        margin-right: 5px;
+        margin-right: 10px;
       }
       .job-preview-infoboxes {
         display: flex;
