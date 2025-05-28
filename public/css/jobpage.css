@@ -1,0 +1,54 @@
+body {
+  background: #363d4d;
+  min-height: 100vh;
+  margin: 0;
+}
+.job-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #363d4d;
+  padding: 0 16px;
+  height: 56px;
+  position: relative;
+  z-index: 10;
+}
+.job-header-title {
+  flex: 1;
+  text-align: center;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.job-header-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0;
+  height: 40px;
+  width: 40px;
+  justify-content: center;
+}
+.job-header-btn img {
+  width: 24px;
+  height: 24px;
+}
+.job-header .job-header-btn.back {
+  justify-content: flex-start;
+}
+.job-header .job-header-btn.menu {
+  justify-content: flex-end;
+}
+.job-header-borderline {
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(90deg, #e0baff 0%, #5b8fff 100%);
+} 
