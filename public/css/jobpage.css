@@ -325,8 +325,10 @@ body::-webkit-scrollbar {
   }
   
   .job-info-box {
-    padding: 10px 15px;
-    width: 75%;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-top: 10px;
+    width: 85%;
   }
   
   .job-info-value {
