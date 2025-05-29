@@ -777,7 +777,7 @@ html {
           margin-top: 10px; 
           margin-left: 0;
           margin-right: 0;
-          border-radius: 1;
+          border-radius: 8px;
         }
         
         .job-preview-card:hover, .job-preview-card:focus {
