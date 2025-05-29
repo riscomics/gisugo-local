@@ -306,7 +306,9 @@ body::-webkit-scrollbar {
   
   /* Job Info Mobile Styles */
   .job-info-section {
-    margin: 25px auto;
+    margin: auto;
+    margin-left: 10px;
+    margin-right: 10px;
     padding: 0 25px;
     font-family: Arial, Helvetica, sans-serif;
   }
