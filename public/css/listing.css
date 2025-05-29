@@ -1,4 +1,9 @@
-@media (min-width: 601px) {
+html {
+  overflow-y: auto;
+}
+
+/* Hide scrollbar on desktop only */
+@media (hover: hover) and (pointer: fine) {
   html {
     overflow-y: scroll;
     -ms-overflow-style: none;
