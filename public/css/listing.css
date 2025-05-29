@@ -1,11 +1,13 @@
-html {
-  overflow-y: scroll;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+@media (min-width: 601px) {
+  html {
+    overflow-y: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
-html::-webkit-scrollbar {
-  display: none;
+  html::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .jobcat-header {
@@ -546,7 +548,7 @@ html::-webkit-scrollbar {
         transition: box-shadow 0.18s, transform 0.18s;
         overflow: hidden;
         border: 1.5px solid rgba(255,255,255,0.08);
-        padding: 0 10px 0 0;
+        padding: 0 5px 0 0;
       }
       .job-preview-card:hover, .job-preview-card:focus {
         box-shadow: 0 4px 16px rgba(0,0,0,0.16);
@@ -826,7 +828,7 @@ html::-webkit-scrollbar {
         gap: 8px;
         align-items: center;
         min-width: 78px;
-        margin-right: 4px;
+        margin-right: 5px;
         height: 78px;
         justify-content: center;          
       }
