@@ -53,29 +53,32 @@
   <div class="job-photo-borderline"></div>
   
   <!-- Job Info Section -->
-  <div class="job-info-section">
-    <div class="job-info-row">
-      <div class="job-info-item">
+  <div class="job-info-section" data-job-category="limpyo">
+    <!-- Standard Fields Row - Same for all job categories -->
+    <div class="job-info-row" data-row-type="standard">
+      <div class="job-info-item" data-field="date">
         <div class="job-info-label">DATE:</div>
         <div class="job-info-box">
           <div class="job-info-value">December 23, 2025</div>
         </div>
       </div>
-      <div class="job-info-item">
+      <div class="job-info-item" data-field="time">
         <div class="job-info-label">TIME:</div>
         <div class="job-info-box">
           <div class="job-info-value">12PM to 3PM</div>
         </div>
       </div>
     </div>
-    <div class="job-info-row">
-      <div class="job-info-item">
+    
+    <!-- Extras Row - Specific to job category -->
+    <div class="job-info-row" data-row-type="extras" data-category="limpyo">
+      <div class="job-info-item" data-extra="location">
         <div class="job-info-label">LOCATION:</div>
         <div class="job-info-box">
           <div class="job-info-value">Santa Cruz</div>
         </div>
       </div>
-      <div class="job-info-item">
+      <div class="job-info-item" data-extra="supplies">
         <div class="job-info-label">SUPPLIES:</div>
         <div class="job-info-box">
           <div class="job-info-value">Provided</div>
