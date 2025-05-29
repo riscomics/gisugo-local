@@ -8,6 +8,14 @@ document.addEventListener('DOMContentLoaded', function() {
       e.stopPropagation();
       menuOverlay.classList.toggle('show');
     });
+    
+    // Close menu when clicking on the overlay background
+    menuOverlay.addEventListener('click', function(e) {
+      if (e.target === menuOverlay) {
+        menuOverlay.classList.remove('show');
+      }
+    });
+    
     document.addEventListener('click', function(e) {
       if (
         menuOverlay.classList.contains('show') &&
