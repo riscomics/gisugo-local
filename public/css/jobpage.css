@@ -351,7 +351,7 @@ body::-webkit-scrollbar {
   
   .job-details-text-container {
     max-height: 105px;
-    padding: 6px 15px 12px 15px;
+    padding: 4px 15px 12px 15px;
   }
   
   .job-details-text {
