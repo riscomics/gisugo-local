@@ -938,7 +938,7 @@ body::-webkit-scrollbar {
   gap: 6px;
   align-items: center;
   margin-left: 0px;
-  margin-right: 5px;
+  margin-right: 10px;
 }
 
 .customer-contact-btn {
