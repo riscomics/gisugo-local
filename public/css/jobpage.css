@@ -1296,4 +1296,10 @@ body::-webkit-scrollbar {
     padding: 10px 30px;
     font-size: 1.2rem;
   }
+  
+  /* Ensure overlay stays hidden on mobile when not active */
+  .application-sent-overlay:not(.show) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
 }
