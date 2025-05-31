@@ -1134,7 +1134,7 @@ body::-webkit-scrollbar {
   
   .apply-message-textarea {
     min-height: 70px;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
   
   .apply-payment-info {
