@@ -650,8 +650,7 @@ body::-webkit-scrollbar {
   z-index: 3000;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  padding-top: 10vh;
+  align-items: center;
   opacity: 0;  
   visibility: hidden;
   transition: opacity 0.3s, visibility 0.3s;
@@ -815,6 +814,7 @@ body::-webkit-scrollbar {
 .apply-counter-input-container {
   display: flex;
   align-items: center;
+  justify-content: center;
   background: #d9d9d9;
   border-radius: 6px;
   padding: 8px 12px;
@@ -1180,5 +1180,10 @@ body::-webkit-scrollbar {
   .apply-cancel-btn {
     padding: 6px 15px;
     font-size: 0.9rem;
+  }
+  
+  .apply-job-overlay {
+    align-items: flex-start;
+    padding-top: 10vh;
   }
 }
