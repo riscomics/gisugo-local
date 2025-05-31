@@ -20,6 +20,46 @@ function updateRatingCounts() {
   });
 }
 
+// Function to update star ratings based on data attributes
+function updateStarRatings() {
+  const ratingContainers = document.querySelectorAll('.customer-rating');
+  
+  ratingContainers.forEach(container => {
+    const rating = parseFloat(container.getAttribute('data-rating'));
+    const count = parseInt(container.getAttribute('data-count'));
+    const stars = container.querySelectorAll('.star');
+    
+    // If no reviews, all stars are white (empty)
+    if (count === 0 || isNaN(rating)) {
+      stars.forEach(star => {
+        star.className = 'star';
+      });
+      return;
+    }
+    
+    // Calculate filled stars
+    const fullStars = Math.floor(rating);
+    const remainder = rating - fullStars;
+    
+    stars.forEach((star, index) => {
+      star.className = 'star'; // Reset
+      
+      if (index < fullStars) {
+        // Full star
+        star.classList.add('filled');
+      } else if (index === fullStars && remainder >= 0.3) {
+        // Half star (show half if remainder is 0.3 or more)
+        if (remainder >= 0.7) {
+          star.classList.add('filled');
+        } else {
+          star.classList.add('half-filled');
+        }
+      }
+      // Else remains empty (white)
+    });
+  });
+}
+
 // Function to handle contact dropdown
 function initContactDropdown() {
   const contactBtn = document.getElementById('contactBtn');
@@ -65,6 +105,9 @@ function initContactDropdown() {
 document.addEventListener('DOMContentLoaded', function() {
   // Update rating counts on page load
   updateRatingCounts();
+  
+  // Update star ratings based on data attributes
+  updateStarRatings();
   
   // Initialize contact dropdown
   initContactDropdown();
