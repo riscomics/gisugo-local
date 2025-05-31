@@ -102,6 +102,170 @@ function initContactDropdown() {
   }
 }
 
+// Function to handle apply job modal
+function initApplyJobModal() {
+  const applyBtn = document.getElementById('jobApplyBtn');
+  const applyOverlay = document.getElementById('applyJobOverlay');
+  const submitBtn = document.getElementById('submitApplication');
+  const cancelBtn = document.getElementById('cancelApplication');
+  const messageTextarea = document.getElementById('applyMessage');
+  const counterOfferInput = document.getElementById('counterOfferAmount');
+  
+  if (applyBtn && applyOverlay) {
+    // Update modal with job payment info
+    updateModalPaymentInfo();
+    
+    // Show modal when apply button is clicked
+    applyBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      applyOverlay.classList.add('show');
+      // Focus on message textarea for better UX
+      if (messageTextarea) {
+        setTimeout(() => messageTextarea.focus(), 300);
+      }
+    });
+    
+    // Hide modal when cancel button is clicked
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        closeApplyModal();
+      });
+    }
+    
+    // Hide modal when clicking outside the modal content
+    applyOverlay.addEventListener('click', function(e) {
+      if (e.target === applyOverlay) {
+        closeApplyModal();
+      }
+    });
+    
+    // Handle form submission
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        handleJobApplication();
+      });
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && applyOverlay.classList.contains('show')) {
+        closeApplyModal();
+      }
+    });
+  }
+}
+
+// Function to update modal with current job payment info
+function updateModalPaymentInfo() {
+  const jobPaymentSection = document.querySelector('.job-payment-section');
+  const modalPaymentAmount = document.querySelector('.apply-payment-amount');
+  
+  if (jobPaymentSection && modalPaymentAmount) {
+    const paymentValue = jobPaymentSection.querySelector('.job-payment-value');
+    if (paymentValue) {
+      modalPaymentAmount.textContent = paymentValue.textContent;
+    }
+  }
+}
+
+// Function to close apply modal
+function closeApplyModal() {
+  const applyOverlay = document.getElementById('applyJobOverlay');
+  if (applyOverlay) {
+    applyOverlay.classList.remove('show');
+  }
+}
+
+// Function to handle job application submission
+function handleJobApplication() {
+  const messageTextarea = document.getElementById('applyMessage');
+  const counterOfferInput = document.getElementById('counterOfferAmount');
+  
+  // Get form values
+  const message = messageTextarea ? messageTextarea.value.trim() : '';
+  const counterOffer = counterOfferInput ? counterOfferInput.value.trim() : '';
+  
+  // Basic validation
+  if (!message) {
+    alert('Please enter a message to the customer.');
+    if (messageTextarea) messageTextarea.focus();
+    return;
+  }
+  
+  // Validate counter offer if provided
+  if (counterOffer && (isNaN(counterOffer) || parseFloat(counterOffer) <= 0)) {
+    alert('Please enter a valid counter offer amount.');
+    if (counterOfferInput) counterOfferInput.focus();
+    return;
+  }
+  
+  // Prepare application data
+  const applicationData = {
+    message: message,
+    counterOffer: counterOffer ? parseFloat(counterOffer) : null,
+    jobId: getJobIdFromUrl(), // You can implement this based on your URL structure
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log('Job application submitted:', applicationData);
+  
+  // Here you would typically send the data to your backend
+  // For now, we'll just show a success message
+  alert('Your application has been submitted successfully!');
+  
+  // Clear form and close modal
+  if (messageTextarea) messageTextarea.value = '';
+  if (counterOfferInput) counterOfferInput.value = '';
+  closeApplyModal();
+  
+  // Optionally redirect or update UI
+  // window.location.href = '/applications';
+}
+
+// Helper function to extract job ID from URL (implement based on your URL structure)
+function getJobIdFromUrl() {
+  const path = window.location.pathname;
+  const matches = path.match(/\/([^\/]+)\.html$/);
+  return matches ? matches[1] : 'unknown';
+}
+
+// Function to format counter offer input
+function initCounterOfferFormatting() {
+  const counterOfferInput = document.getElementById('counterOfferAmount');
+  
+  if (counterOfferInput) {
+    // Prevent negative values and non-numeric input
+    counterOfferInput.addEventListener('input', function(e) {
+      let value = e.target.value;
+      
+      // Remove any non-numeric characters except decimal point
+      value = value.replace(/[^0-9.]/g, '');
+      
+      // Ensure only one decimal point
+      const parts = value.split('.');
+      if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+      }
+      
+      // Limit to 2 decimal places
+      if (parts[1] && parts[1].length > 2) {
+        value = parts[0] + '.' + parts[1].substring(0, 2);
+      }
+      
+      e.target.value = value;
+    });
+    
+    // Prevent negative values on keydown
+    counterOfferInput.addEventListener('keydown', function(e) {
+      if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+      }
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Update rating counts on page load
   updateRatingCounts();
@@ -111,6 +275,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize contact dropdown
   initContactDropdown();
+  
+  // Initialize apply job modal
+  initApplyJobModal();
+  
+  // Initialize counter offer input formatting
+  initCounterOfferFormatting();
   
   const menuBtn = document.querySelector('.jobcat-menu-btn');
   const menuOverlay = document.getElementById('jobcatMenuOverlay');
