@@ -115,6 +115,35 @@ function initApplyJobModal() {
     // Update modal with job payment info
     updateModalPaymentInfo();
     
+    // Prevent any form submission behavior on the modal
+    const modal = applyOverlay.querySelector('.apply-job-modal');
+    if (modal) {
+      modal.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      });
+    }
+    
+    // Prevent Enter key from submitting in textarea/input
+    if (messageTextarea) {
+      messageTextarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          handleJobApplication();
+        }
+      });
+    }
+    
+    if (counterOfferInput) {
+      counterOfferInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleJobApplication();
+        }
+      });
+    }
+    
     // Show modal when apply button is clicked
     applyBtn.addEventListener('click', function(e) {
       e.preventDefault();
@@ -144,7 +173,10 @@ function initApplyJobModal() {
     if (submitBtn) {
       submitBtn.addEventListener('click', function(e) {
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
         handleJobApplication();
+        return false;
       });
     }
     

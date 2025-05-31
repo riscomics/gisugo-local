@@ -176,7 +176,7 @@
       
       <div class="apply-message-section">
         <div class="apply-message-container">
-          <textarea class="apply-message-textarea" placeholder="Enter your message..." id="applyMessage"></textarea>
+          <textarea class="apply-message-textarea" placeholder="Enter your message..." id="applyMessage" autocomplete="off" data-form="false"></textarea>
         </div>
       </div>
       
@@ -196,14 +196,14 @@
           </div>
           <div class="apply-counter-input-container">
             <span class="apply-counter-currency">₱</span>
-            <input type="number" class="apply-counter-input" placeholder="000" id="counterOfferAmount">
+            <input type="number" class="apply-counter-input" placeholder="000" id="counterOfferAmount" autocomplete="off" data-form="false">
           </div>
         </div>
       </div>
       
       <div class="apply-actions">
-        <button class="apply-submit-btn" id="submitApplication">APPLY</button>
-        <button class="apply-cancel-btn" id="cancelApplication">Cancel</button>
+        <button class="apply-submit-btn" id="submitApplication" type="button">APPLY</button>
+        <button class="apply-cancel-btn" id="cancelApplication" type="button">Cancel</button>
       </div>
     </div>
   </div>
