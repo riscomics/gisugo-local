@@ -371,6 +371,7 @@ body::-webkit-scrollbar {
   justify-content: center;
   align-items: center;
   margin: 30px auto;
+  margin-bottom: 10px;
   max-width: 800px;
   padding: 0 15px;
 }
@@ -637,6 +638,10 @@ body::-webkit-scrollbar {
 .contact-dropdown-item:hover {
   background: rgba(203, 213, 224, .2);
 }
+
+
+
+
 
 /* Mobile Styles */
 @media (max-width: 600px) {
