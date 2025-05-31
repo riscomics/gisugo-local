@@ -478,7 +478,7 @@ body::-webkit-scrollbar {
   flex-direction: column;
   gap: 6px;
   align-items: center;
-  margin-left: 5px;
+  margin-left: 0px;
 }
 
 .customer-contact-btn {
@@ -933,7 +933,7 @@ body::-webkit-scrollbar {
   flex-direction: column;
   gap: 6px;
   align-items: center;
-  margin-left: 5px;
+  margin-left: 0px;
 }
 
 .customer-contact-btn {
