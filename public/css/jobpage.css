@@ -662,12 +662,13 @@ body::-webkit-scrollbar {
 }
 
 .apply-job-modal {
+  border-style: solid;
   background: #363f4f;
   border-radius: 12px;
   border: 1px solid rgb(81, 85, 88);
   width: 90%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: 80vh;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
@@ -738,7 +739,7 @@ body::-webkit-scrollbar {
 /* Payment Info Section */
 .apply-payment-info {
   padding: 0 50px;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -845,7 +846,8 @@ body::-webkit-scrollbar {
   justify-content: center;
   align-items: center;
   gap: 15px;
-  padding: 20px;
+  padding: 12px;
+  margin-bottom: 15px;
   background: #363f4f;
   border-radius: 0 0 12px 12px;
 }
@@ -920,6 +922,83 @@ body::-webkit-scrollbar {
 .apply-info-icon:hover .apply-info-tooltip {
   opacity: 1;
   visibility: visible;
+}
+
+/* Application Confirmation Overlay */
+.application-sent-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 4000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.application-sent-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.application-sent-modal {
+  background: #363f4f;
+  border-radius: 12px;
+  border: 2px solid #4a9eff;
+  width: 90%;
+  max-width: 450px;
+  padding: 30px 25px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.application-sent-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f5f5f5;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.application-sent-subtitle {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 25px;
+}
+
+.application-sent-text {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 30px;
+}
+
+.application-sent-close-btn {
+  background: #d9d9d9;
+  border: 2px solid #9ca3af;
+  border-radius: 10px;
+  padding: 12px 40px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #363f4f;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: Arial, Helvetica, sans-serif;
+  min-width: 120px;
+}
+
+.application-sent-close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Mobile Styles *//* Mobile Styles *//* Mobile Styles *//* Mobile Styles */
@@ -1168,7 +1247,7 @@ body::-webkit-scrollbar {
   }
   
   .apply-actions {
-    padding: 15px;
+    padding: 10px;
     gap: 12px;
   }
   
@@ -1185,5 +1264,36 @@ body::-webkit-scrollbar {
   .apply-job-overlay {
     align-items: flex-start;
     padding-top: 10vh;
+  }
+  
+  .application-sent-overlay {
+    align-items: flex-start;
+    padding-top: 15vh;
+  }
+  
+  .application-sent-modal {
+    width: 95%;
+    margin: 10px;
+    padding: 25px 20px;
+  }
+  
+  .application-sent-title {
+    font-size: 1.6rem;
+    margin-bottom: 15px;
+  }
+  
+  .application-sent-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+  }
+  
+  .application-sent-text {
+    font-size: 1rem;
+    margin-bottom: 25px;
+  }
+  
+  .application-sent-close-btn {
+    padding: 10px 30px;
+    font-size: 1.2rem;
   }
 }

@@ -211,17 +211,57 @@ function handleJobApplication() {
   
   console.log('Job application submitted:', applicationData);
   
-  // Here you would typically send the data to your backend
-  // For now, we'll just show a success message
-  alert('Your application has been submitted successfully!');
-  
-  // Clear form and close modal
+  // Clear form and close apply modal
   if (messageTextarea) messageTextarea.value = '';
   if (counterOfferInput) counterOfferInput.value = '';
   closeApplyModal();
   
-  // Optionally redirect or update UI
-  // window.location.href = '/applications';
+  // Show confirmation overlay
+  showApplicationSentOverlay();
+}
+
+// Function to show application sent confirmation overlay
+function showApplicationSentOverlay() {
+  const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  if (applicationSentOverlay) {
+    applicationSentOverlay.classList.add('show');
+  }
+}
+
+// Function to close application sent overlay
+function closeApplicationSentOverlay() {
+  const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  if (applicationSentOverlay) {
+    applicationSentOverlay.classList.remove('show');
+  }
+}
+
+// Function to initialize application sent overlay
+function initApplicationSentOverlay() {
+  const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  const closeBtn = document.getElementById('applicationSentClose');
+  
+  if (applicationSentOverlay && closeBtn) {
+    // Close overlay when close button is clicked
+    closeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      closeApplicationSentOverlay();
+    });
+    
+    // Close overlay when clicking outside the modal content
+    applicationSentOverlay.addEventListener('click', function(e) {
+      if (e.target === applicationSentOverlay) {
+        closeApplicationSentOverlay();
+      }
+    });
+    
+    // Close overlay with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && applicationSentOverlay.classList.contains('show')) {
+        closeApplicationSentOverlay();
+      }
+    });
+  }
 }
 
 // Helper function to extract job ID from URL (implement based on your URL structure)
@@ -278,6 +318,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize apply job modal
   initApplyJobModal();
+  
+  // Initialize application sent overlay
+  initApplicationSentOverlay();
   
   // Initialize counter offer input formatting
   initCounterOfferFormatting();
