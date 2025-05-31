@@ -883,8 +883,8 @@ body::-webkit-scrollbar {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding-left: 10px;
-  padding-right: 5px;
+  padding-left: 15px;
+  padding-right: 15px;
   padding-top: 10px;
   padding-bottom: 10px;
   background: #2d3748;
@@ -938,7 +938,6 @@ body::-webkit-scrollbar {
   gap: 6px;
   align-items: center;
   margin-left: 0px;
-  margin-right: 10px;
 }
 
 .customer-contact-btn {
