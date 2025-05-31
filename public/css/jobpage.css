@@ -428,13 +428,9 @@ body::-webkit-scrollbar {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding-left: 15px;
-  padding-right: 15px;
-  padding-top: 10px;
-  padding-bottom: 10px;
+  padding: 20px;
   background: #2d3748;
   border-radius: 0 0 12px 12px;
-  width: 368px;
 }
 
 .customer-profile {
