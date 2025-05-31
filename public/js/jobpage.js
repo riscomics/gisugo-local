@@ -338,6 +338,132 @@ function initCounterOfferFormatting() {
   }
 }
 
+// Utility function to populate job page with dynamic data
+function populateJobData(jobData) {
+  const fieldsMap = {
+    'job-title': ['jobTitle', document.title],
+    'job-photo': 'jobPhoto',
+    'job-date': 'jobDate', 
+    'job-time': 'jobTime',
+    'job-location': 'jobLocation',
+    'job-supplies': 'jobSupplies',
+    'job-description': 'jobDescription',
+    'job-payment-amount': ['jobPaymentAmount', 'modalPaymentAmount'],
+    'job-payment-rate': 'jobPaymentRate',
+    'customer-name': 'customerName',
+    'customer-avatar': 'customerAvatar',
+    'customer-profile-link': 'customerProfileLink',
+    'customer-rating-count': 'customerRatingCount',
+    'currency-symbol': 'currencySymbol'
+  };
+  
+  Object.keys(jobData).forEach(field => {
+    const elementIds = fieldsMap[field];
+    const value = jobData[field];
+    
+    if (elementIds) {
+      const ids = Array.isArray(elementIds) ? elementIds : [elementIds];
+      
+      ids.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          if (element.tagName === 'IMG') {
+            element.src = value;
+            element.alt = value;
+          } else if (element.tagName === 'A') {
+            element.href = value;
+          } else {
+            element.textContent = value;
+          }
+        }
+      });
+    }
+    
+    // Update meta tags
+    const metaElement = document.querySelector(`meta[data-field="${field}"]`);
+    if (metaElement) {
+      metaElement.setAttribute('content', value);
+    }
+    
+    // Update body data attributes
+    if (field === 'job-id') {
+      document.body.setAttribute('data-job-id', value);
+    }
+    if (field === 'job-category') {
+      document.body.setAttribute('data-job-category', value);
+    }
+  });
+  
+  // Update payment amount in modal when main payment changes
+  updateModalPaymentInfo();
+  
+  // Update customer rating stars if rating data provided
+  if (jobData['customer-rating']) {
+    const ratingContainer = document.getElementById('customerRating');
+    if (ratingContainer) {
+      ratingContainer.setAttribute('data-rating', jobData['customer-rating']);
+      updateStarRatings();
+    }
+  }
+}
+
+// Function to extract job data from current page (useful for templates)
+function extractJobData() {
+  const jobData = {};
+  
+  // Extract from data-field attributes
+  document.querySelectorAll('[data-field]').forEach(element => {
+    const field = element.getAttribute('data-field');
+    let value = '';
+    
+    if (element.tagName === 'IMG') {
+      value = element.src;
+    } else if (element.tagName === 'A') {
+      value = element.href;
+    } else {
+      value = element.textContent.trim();
+    }
+    
+    jobData[field] = value;
+  });
+  
+  // Extract from meta tags
+  document.querySelectorAll('meta[data-field]').forEach(meta => {
+    const field = meta.getAttribute('data-field');
+    jobData[field] = meta.getAttribute('content');
+  });
+  
+  return jobData;
+}
+
+// Sample function to demonstrate data population
+function loadJobFromDatabase(jobId) {
+  // This would typically fetch from your backend/database
+  // For demo purposes, here's sample data structure:
+  const sampleJobData = {
+    'job-title': 'Sample Cleaning Job',
+    'job-photo': '../../mock/sample-job.jpg',
+    'job-date': 'January 15, 2025',
+    'job-time': '9AM to 12PM',
+    'job-location': 'Cebu City',
+    'job-supplies': 'Customer Provided',
+    'job-description': 'Need help cleaning the house before family arrives.',
+    'job-payment-amount': '₱500',
+    'job-payment-rate': 'Per Job',
+    'customer-name': 'Maria Santos',
+    'customer-avatar': '../../users/maria-santos.jpg',
+    'customer-profile-link': '../../profiles/maria-santos.html',
+    'customer-rating': '4.8',
+    'customer-rating-count': '250',
+    'currency-symbol': '₱'
+  };
+  
+  // Uncomment to populate with sample data:
+  // populateJobData(sampleJobData);
+  
+  return sampleJobData;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   // Update rating counts on page load
   updateRatingCounts();

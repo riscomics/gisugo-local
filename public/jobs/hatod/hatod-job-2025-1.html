@@ -3,23 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-field="job-title">Limpyo Job 1 - GISUGO</title>
+  <title data-field="job-title">Hatod Job 1 - GISUGO</title>
   <link rel="stylesheet" href="../../css/jobpage.css">
   
   <!-- Dynamic Job Data -->
-  <meta name="job-id" content="limpyo-job-2025-1" data-field="job-id">
-  <meta name="job-category" content="limpyo" data-field="job-category">
-  <meta name="job-payment" content="300" data-field="job-payment">
+  <meta name="job-id" content="hatod-job-2025-1" data-field="job-id">
+  <meta name="job-category" content="hatod" data-field="job-category">
+  <meta name="job-payment" content="150" data-field="job-payment">
   <meta name="job-currency" content="PHP" data-field="job-currency">
 </head>
-<body data-job-id="limpyo-job-2025-1" data-job-category="limpyo">
+<body data-job-id="hatod-job-2025-1" data-job-category="hatod">
   <div class="job-header">
     <div class="job-header-title-container">
       <button class="job-header-btn back" onclick="window.history.back()" aria-label="Back">
         <img src="../../icons/back.png" alt="Back">
         <span>Back</span>
       </button>
-      <div class="job-header-title" data-field="job-title" id="jobTitle">Hawanan daghan kaayo samok gi putol kahoy branches diri.</div>
+      <div class="job-header-title" data-field="job-title" id="jobTitle">Hatod duha sako bugas sa bodega to restaurant.</div>
       <button class="job-header-btn menu jobcat-menu-btn" id="jobMenuBtn" aria-label="Menu">
         <img src="../../icons/menu.png" alt="Menu">
         <div>Menu</div>
@@ -54,12 +54,12 @@
   
   <!-- Job Photo Section -->
   <div class="job-photo-container">
-    <img src="../../mock/mock-limpyo-post1.jpg" alt="Job Photo" class="job-photo" data-field="job-photo" id="jobPhoto">
+    <img src="../../mock/mock-hatod-post1.jpg" alt="Job Photo" class="job-photo" data-field="job-photo" id="jobPhoto">
   </div>
   <div class="job-photo-borderline"></div>
   
   <!-- Job Info Section -->
-  <div class="job-info-section" data-job-category="limpyo" id="jobInfoSection">
+  <div class="job-info-section" data-job-category="hatod" id="jobInfoSection">
     <!-- Standard Fields Row - Same for all job categories -->
     <div class="job-info-row" data-row-type="standard">
       <div class="job-info-item" data-field="date">
@@ -71,23 +71,23 @@
       <div class="job-info-item" data-field="time">
         <div class="job-info-label">TIME:</div>
         <div class="job-info-box">
-          <div class="job-info-value" data-field="job-time" id="jobTime">12PM to 3PM</div>
+          <div class="job-info-value" data-field="job-time" id="jobTime">9AM to 11AM</div>
         </div>
       </div>
     </div>
     
-    <!-- Extras Row - Specific to job category -->
-    <div class="job-info-row" data-row-type="extras" data-category="limpyo">
-      <div class="job-info-item" data-extra="location">
-        <div class="job-info-label">LOCATION:</div>
+    <!-- Extras Row - Specific to Hatod category -->
+    <div class="job-info-row" data-row-type="extras" data-category="hatod">
+      <div class="job-info-item" data-extra="pickup">
+        <div class="job-info-label">PICKUP AT:</div>
         <div class="job-info-box">
-          <div class="job-info-value" data-field="job-location" id="jobLocation">Santa Cruz</div>
+          <div class="job-info-value" data-field="job-pickup-location" id="jobPickupLocation">Guadalupe</div>
         </div>
       </div>
-      <div class="job-info-item" data-extra="supplies">
-        <div class="job-info-label">SUPPLIES:</div>
+      <div class="job-info-item" data-extra="delivery">
+        <div class="job-info-label">DELIVER TO:</div>
         <div class="job-info-box">
-          <div class="job-info-value" data-field="job-supplies" id="jobSupplies">Provided</div>
+          <div class="job-info-value" data-field="job-delivery-location" id="jobDeliveryLocation">Lahug</div>
         </div>
       </div>
     </div>
@@ -98,15 +98,14 @@
     <div class="job-details-header">DETAILS:</div>
     <div class="job-details-text-container">
       <div class="job-details-text" data-field="job-description" id="jobDescription">
-        Daghan gi pamutol sa kahoy diri na kalisod ug sulod sa apartment. 
-        Naa na gi palit nako mga garbage bags ug cutter para ma gamay gyud pa ang pieces. 
-        Imo ra balik balikan e hatod sa eskina. 
-        Basta ma hawan lang tanan by or before 3pm. 
+        Need someone to help deliver 2 sako of rice from our warehouse in Guadalupe to my restaurant in Lahug. 
+        The bags are around 25kg each so you'll need to be able to carry them. 
+        Warehouse opens at 9AM, please pick up the rice and deliver to my restaurant before 11AM opening time.
         
-        Daghan gi pamutol sa kahoy diri na kalisod ug sulod sa apartment. 
-        Naa na gi palit nako mga garbage bags ug cutter para ma gamay gyud pa ang pieces. 
-        Imo ra balik balikan e hatod sa eskina. 
-        Basta ma hawan lang tanan by or before 3pm. 
+        The warehouse address is at Guadalupe Industrial Area, you'll see the big "Grains & More" sign. 
+        Ask for Maria at the counter and tell her it's for Tita Rosa's Restaurant delivery. 
+        My restaurant is at Lahug IT Park, ground floor of the main building. 
+        Just bring it to the kitchen entrance at the back.
       </div>
     </div>
   </div>
@@ -116,7 +115,7 @@
     <div class="job-payment-row">
       <div class="job-payment-item" data-payment-type="offer">
         <div class="job-payment-box">
-          <div class="job-payment-value" data-field="job-payment-amount" id="jobPaymentAmount">₱300</div>
+          <div class="job-payment-value" data-field="job-payment-amount" id="jobPaymentAmount">₱150</div>
         </div>
       </div>
       <div class="job-payment-item" data-payment-type="rate">
@@ -189,7 +188,7 @@
       <div class="apply-payment-info">
         <div class="apply-payment-row">
           <span class="apply-payment-label">PAY AFTER<br>COMPLETED</span>
-          <span class="apply-payment-amount" data-field="modal-payment-amount" id="modalPaymentAmount">₱300</span>
+          <span class="apply-payment-amount" data-field="modal-payment-amount" id="modalPaymentAmount">₱150</span>
         </div>
         
         <div class="apply-payment-row apply-counter-offer">
