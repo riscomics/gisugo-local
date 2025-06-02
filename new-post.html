@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Post - GISUGO</title>
+  <link rel="stylesheet" href="public/css/new-post.css">
+  
+</head>
+<body>
+  <div class="new-post-header">
+    <div class="new-post-header-title-container">
+      <button class="new-post-header-btn back" onclick="window.history.back()" aria-label="Back">
+        <img src="public/icons/back.png" alt="Back">
+        <span>Back</span>
+      </button>
+      <div class="new-post-header-title" id="newPostTitle">NEW POST</div>
+      <button class="new-post-header-btn menu new-post-menu-btn" id="newPostMenuBtn" aria-label="Menu">
+        <img src="public/icons/menu.png" alt="Menu">
+        <div>Menu</div>
+      </button> 
+    </div>
+    <div class="new-post-header-borderline"></div>
+  </div>
+  <div class="new-post-menu-overlay" id="newPostMenuOverlay">
+    <div class="new-post-menu-items">
+      <div class="new-post-menu-item" onclick="window.location.href='index.html'">
+        <img src="public/icons/Home.png" alt="Home">
+        <div>Home</div>
+      </div>
+      <div class="new-post-menu-item">
+        <img src="public/icons/Messages.png" alt="Messages">
+        <div>Messages</div>
+      </div>
+      <div class="new-post-menu-item">
+        <img src="public/icons/Profile.png" alt="Profile">
+        <div>Profile</div>
+      </div>
+      <div class="new-post-menu-item">
+        <img src="public/icons/Jobs.png" alt="Jobs">
+        <div>Jobs</div>
+      </div>
+      <div class="new-post-menu-item">
+        <img src="public/icons/Post.png" alt="Post">
+        <div>Post</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Category Header - Exact structure from hatod.html -->
+  <div class="new-post-category-header">
+    <div class="new-post-listheader">
+      <div class="new-post-servicemenu" id="newPostServiceMenuBtn">
+        <div class="new-post-servicename">
+          <div id="selectedCategoryName">Select Job Type</div>
+          <div>&#9660;</div>
+        </div>
+      </div>
+      <div class="new-post-servicemenu-overlay" id="newPostServiceMenuOverlay">
+        <ul>
+          <li><a href="#" data-value="hatod">Hatod Jobs</a></li>
+          <li><a href="#" data-value="hakot">Hakot Jobs</a></li>
+          <li><a href="#" data-value="kompra">Kompra Jobs</a></li>
+          <li><a href="#" data-value="luto">Luto Jobs</a></li>
+          <li><a href="#" data-value="hugas">Hugas Jobs</a></li>
+          <li><a href="#" data-value="laba">Laba Jobs</a></li>
+          <li><a href="#" data-value="limpyo">Limpyo Jobs</a></li>
+          <li><a href="#" data-value="tindera">Tindera Jobs</a></li>
+          <li><a href="#" data-value="bantay">Bantay Jobs</a></li>
+          <li><a href="#" data-value="painter">Painter Jobs</a></li>
+          <li><a href="#" data-value="carpenter">Carpenter Jobs</a></li>
+          <li><a href="#" data-value="plumber">Plumber Jobs</a></li>
+          <li><a href="#" data-value="security">Security Jobs</a></li>
+          <li><a href="#" data-value="driver">Driver Jobs</a></li>
+          <li><a href="#" data-value="tutor">Tutor Jobs</a></li>
+          <li><a href="#" data-value="nurse">Nurse Jobs</a></li>
+          <li><a href="#" data-value="doctor">Doctor Jobs</a></li>
+          <li><a href="#" data-value="lawyer">Lawyer Jobs</a></li>
+          <li><a href="#" data-value="mechanic">Mechanic Jobs</a></li>
+          <li><a href="#" data-value="electrician">Electrician Jobs</a></li>
+          <li><a href="#" data-value="tailor">Tailor Jobs</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Location Selection Header -->
+  <div class="new-post-sort-header">
+    <div class="new-post-sortmenus">
+      <div class="new-post-region-menu-wrapper">
+        <div class="new-post-sort-menu new-post-region-menu" id="newPostLocationRegion">
+          <div id="newPostRegionMenuLabel">CEBU</div>
+          <div>&#9660;</div>
+        </div>
+        <div class="new-post-region-menu-overlay" id="newPostRegionMenuOverlay">
+          <ul class="new-post-region-menu-list" id="newPostRegionMenuList">
+            <!-- Region items will be rendered here by JS -->
+          </ul>
+        </div>
+      </div>
+      <div class="new-post-city-menu-wrapper">
+        <div class="new-post-sort-menu new-post-city-menu" id="newPostLocationCity">
+          <div id="newPostCityMenuLabel">CEBU CITY</div>
+          <div>&#9660;</div>
+        </div>
+        <div class="new-post-city-menu-overlay" id="newPostCityMenuOverlay">
+          <ul class="new-post-city-menu-list" id="newPostCityMenuList">
+            <!-- City items will be rendered here by JS -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Dynamic Extras Row - Changes based on selected job category -->
+  <div class="new-post-extras-header" id="newPostExtrasHeader" style="display: none;">
+    <div class="new-post-extras-container">
+      <div class="new-post-extras-item" id="newPostExtrasItem1">
+        <div class="new-post-extras-label" id="newPostExtrasLabel1">LOCATION:</div>
+        <div class="new-post-extras-menu-wrapper">
+          <div class="new-post-extras-menu" id="newPostExtrasMenu1">
+            <div id="newPostExtrasMenuLabel1">Select Option</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="new-post-extras-menu-overlay" id="newPostExtrasMenuOverlay1">
+            <ul class="new-post-extras-menu-list" id="newPostExtrasMenuList1">
+              <!-- Options will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="new-post-extras-item" id="newPostExtrasItem2">
+        <div class="new-post-extras-label" id="newPostExtrasLabel2">SUPPLIES:</div>
+        <div class="new-post-extras-menu-wrapper">
+          <div class="new-post-extras-menu" id="newPostExtrasMenu2">
+            <div id="newPostExtrasMenuLabel2">Select Option</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="new-post-extras-menu-overlay" id="newPostExtrasMenuOverlay2">
+            <ul class="new-post-extras-menu-list" id="newPostExtrasMenuList2">
+              <!-- Options will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="public/js/new-post.js"></script>
+</body>
+</html> 

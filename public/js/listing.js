@@ -46,9 +46,39 @@ const citiesByRegion = {
   "BOHOL": ["Tagbilaran City", "Alburquerque", "Alicia", "Anda", "Antequera", "Baclayon", "Balilihan", "Batuan", "Bien Unido", "Bilar", "Buenavista", "Calape", "Candijay", "Carmen", "Catigbian", "Clarin", "Corella", "Cortes", "Dagohoy", "Danao", "Dauis", "Dimiao", "Duero", "Garcia Hernandez", "Guindulman", "Inabanga", "Jagna", "Jetafe", "Lila", "Loay", "Loboc", "Loon", "Mabini", "Maribojoc", "Panglao", "Pilar", "Pres. Carlos P. Garcia", "Sagbayan", "San Isidro", "San Miguel", "Sevilla", "Sierra Bullones", "Sikatuna", "Talibon", "Trinidad", "Tubigon", "Ubay", "Valencia"],
   "MASBATE": ["Masbate City", "Aroroy", "Baleno", "Balud", "Batuan", "Cataingan", "Cawayan", "Claveria", "Dimasalang", "Esperanza", "Mandaon", "Milagros", "Mobo", "Monreal", "Palanas", "Pio V. Corpuz", "Placer", "San Fernando", "San Jacinto", "San Pascual", "Uson"],
   "NEGROS": ["Bacolod City", "Bago City", "Binalbagan", "Cadiz City", "Calatrava", "Cauayan", "Enrique B. Magalona", "Escalante City", "Himamaylan City", "Hinigaran", "Hinoba-an", "Ilog", "Isabela", "Kabankalan City", "La Carlota City", "La Castellana", "Manapla", "Moises Padilla", "Murcia", "Pontevedra", "Pulupandan", "Sagay City", "Salvador Benedicto", "San Carlos City", "San Enrique", "Silay City", "Sipalay City", "Talisay City", "Toboso", "Valladolid", "Victorias City"],
-  "PANAY": ["Iloilo City", "Roxas City", "Kalibo", "Passi City", "San Jose", "Pototan", "Estancia", "Sara", "Dumangas", "Barotac Nuevo"],
-  "SAMAR": ["Catbalogan City", "Calbayog City", "Basey", "Gandara", "Tarangnan", "Paranas", "San Jorge", "Sta. Margarita", "Villareal", "Hinabangan", "Jiabong", "Motiong", "Pinabacdao", "San Sebastian", "Talalora", "Zumarraga"],
-  "DAVAO": ["Davao City", "Digos City", "Tagum City", "Panabo City", "Samal", "Bansalan", "Carmen", "Kapalong", "Magsaysay", "Malalag", "Malita", "Mati City", "Monkayo", "Nabunturan", "Padada", "Santa Cruz", "Sulop", "Tarragona", "Tibungco", "Tuban"],
+  "PANAY": [
+    // AKLAN (17 municipalities)
+    "Altavas", "Balete", "Banga", "Batan", "Buruanga", "Ibajay", "Kalibo", "Lezo", "Libacao", "Madalag", "Makato", "Malay", "Malinao", "Nabas", "New Washington", "Numancia", "Tangalan",
+    // ANTIQUE (18 municipalities)
+    "Anini-y", "Barbaza", "Belison", "Bugasong", "Caluya", "Culasi", "Hamtic", "Laua-an", "Libertad", "Pandan", "Patnongon", "San Jose de Buenavista", "San Remigio", "Sebaste", "Sibalom", "Tibiao", "Tobias Fornier", "Valderrama",
+    // CAPIZ (16 municipalities + 1 city)
+    "Cuartero", "Dao", "Dumalag", "Dumarao", "Ivisan", "Jamindan", "Maayon", "Mambusao", "Panay", "Panitan", "Pilar", "Pontevedra", "President Roxas", "Roxas City", "Sapian", "Sigma", "Tapaz",
+    // ILOILO (42 municipalities + 2 cities)
+    "Ajuy", "Alimodian", "Anilao", "Badiangan", "Balasan", "Banate", "Barotac Nuevo", "Barotac Viejo", "Batad", "Bingawan", "Cabatuan", "Calinog", "Carles", "Concepcion", "Dingle", "Dueñas", "Dumangas", "Estancia", "Guimbal", "Igbaras", "Iloilo City", "Janiuay", "Lambunao", "Leganes", "Lemery", "Leon", "Maasin", "Miagao", "Mina", "New Lucena", "Oton", "Passi City", "Pavia", "Pototan", "San Dionisio", "San Enrique", "San Joaquin", "San Miguel", "San Rafael", "Santa Barbara", "Sara", "Tigbauan", "Tubungan", "Zarraga",
+    // GUIMARAS (5 municipalities)
+    "Buenavista", "Jordan", "Nueva Valencia", "San Lorenzo", "Sibunag"
+  ],
+  "SAMAR": [
+    // 2 Component Cities
+    "Catbalogan City", "Calbayog City",
+    // 24 Municipalities
+    "Almagro", "Basey", "Calbiga", "Daram", "Gandara", "Hinabangan", "Jiabong", "Marabut", "Matuguinao", "Motiong", "Pagsanghan", "Paranas", "Pinabacdao", "San Jorge", "San Jose de Buan", "San Sebastian", "Santa Margarita", "Santa Rita", "Santo Niño", "Tagapul-an", "Talalora", "Tarangnan", "Villareal", "Zumarraga"
+  ],
+  "DAVAO": [
+    // 6 Cities (1 HUC + 5 Component Cities)
+    "Davao City", "Digos City", "Mati City", "Panabo City", "Samal City", "Tagum City",
+    // 43 Municipalities from all 5 provinces
+    // Davao de Oro (11 municipalities)
+    "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "Nabunturan", "New Bataan", "Pantukan",
+    // Davao del Norte (8 municipalities)  
+    "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod",
+    // Davao del Sur (9 municipalities)
+    "Bansalan", "Don Marcelino", "Hagonoy", "Jose Abad Santos", "Kiblawan", "Magsaysay", "Malalag", "Malita", "Matanao",
+    // Davao Occidental (5 municipalities)
+    "Don Marcelino", "Jose Abad Santos", "Malita", "Santa Maria", "Sulop",
+    // Davao Oriental (10 municipalities)
+    "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"
+  ],
   "MANILA": ["Manila", "Quezon City", "Caloocan", "Las Piñas", "Makati", "Malabon", "Mandaluyong", "Marikina", "Muntinlupa", "Navotas", "Parañaque", "Pasay", "Pasig", "Pateros", "San Juan", "Taguig", "Valenzuela"]
 };
 const payTypes = ["PAY TYPE", "PER HOUR", "PER JOB"];
