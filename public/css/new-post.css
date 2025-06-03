@@ -305,7 +305,7 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding-top: 30px;
+  padding-top: 28px;
   gap: 30px; /* Increased from 25px by 20% */
   height: 68px;
   width: 450px; /* Add explicit width to accommodate larger gap and wider city menu */
@@ -751,6 +751,8 @@ body::-webkit-scrollbar {
     height: 38px;
     width: 300px;
     justify-content: flex-start;
+    margin: auto;
+    padding-right: 18px;
   }
 
   .new-post-region-menu, .new-post-city-menu {
@@ -788,7 +790,7 @@ body::-webkit-scrollbar {
   }
 
   .new-post-extras-container {
-    padding: 0px 15px 15px 15px;
+    padding: 0px 30px 15px 15px;
     gap: 20px;
     height: 55px;
     width: 300px;
