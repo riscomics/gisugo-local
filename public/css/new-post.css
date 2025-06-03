@@ -289,11 +289,15 @@ body::-webkit-scrollbar {
 /* EXACT COPY from listing.css - Location Dropdowns */
 .new-post-sort-header {
   position: fixed;
-  width: 100%;
+  width: calc(100% - 40px); /* Constrained width with margins */
+  max-width: 700px; /* Increased maximum width for larger screens */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Offset by half width to center */
   top: 210px; /* Position below category header (110px main + 100px category) */
-  left: 0;
   z-index: 98;
-  background: #363F4F;
+  background: #2a3441; /* Darker solid background for panel effect */
+  border-radius: 12px; /* Rounded corners */
+  padding: 0px 0; /* Added 5px top and bottom margin */
 }
 
 .new-post-sortmenus {
@@ -485,11 +489,15 @@ body::-webkit-scrollbar {
 
 .new-post-extras-header {
   position: fixed;
-  width: 100%;
+  width: calc(100% - 40px); /* Constrained width with margins */
+  max-width: 700px; /* Increased maximum width for larger screens */
+  left: 50%; /* Center horizontally */
+  transform: translateX(-50%); /* Offset by half width to center */
   top: 295px; /* Position below location header with 25% increased gap (210px main + 85px location) */
-  left: 0;
   z-index: 97;
-  background: #363F4F;
+  background: #2a3441; /* Same darker background to create unified panel */
+  border-radius: 12px; /* Rounded corners */
+  padding: 5px 0; /* Added 5px top and bottom margin */
 }
 
 .new-post-extras-container {
@@ -649,6 +657,12 @@ body::-webkit-scrollbar {
 .new-post-extras-input:focus {
   border-color: rgba(255, 255, 255, 0.8);
 }
+/* ========================== MOBILE STYLES ========================== */
+/* ========================== MOBILE STYLES ========================== */
+/* ========================== MOBILE STYLES ========================== */
+/* ========================== MOBILE STYLES ========================== */
+/* ========================== MOBILE STYLES ========================== */
+/* ========================== MOBILE STYLES ========================== */
 
 @media (max-width: 600px) {
   body {
@@ -727,7 +741,8 @@ body::-webkit-scrollbar {
   /* Location header mobile styles */
   .new-post-sort-header {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
-    margin-top: 15px;
+    margin-top: 25px;
+    padding: 16px 0; /* Added 5px top and bottom margin for mobile */
   }
 
   .new-post-sortmenus {
@@ -769,6 +784,7 @@ body::-webkit-scrollbar {
   /* Extras mobile styles */
   .new-post-extras-header {
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
+    padding: 10px 0; /* Added 5px top and bottom margin for mobile */
   }
 
   .new-post-extras-container {
@@ -777,7 +793,7 @@ body::-webkit-scrollbar {
     height: 55px;
     width: 300px;
     justify-content: flex-start;
-    margin-top: 15px;
+    margin-top: 35px;
   }
 
   .new-post-extras-item {
