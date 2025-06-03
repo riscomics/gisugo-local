@@ -727,7 +727,7 @@ body::-webkit-scrollbar {
   /* Location header mobile styles */
   .new-post-sort-header {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
-    margin-top: 25px;
+    margin-top: 15px;
   }
 
   .new-post-sortmenus {
@@ -777,7 +777,7 @@ body::-webkit-scrollbar {
     height: 55px;
     width: 300px;
     justify-content: flex-start;
-    margin-top: 25px;
+    margin-top: 15px;
   }
 
   .new-post-extras-item {
