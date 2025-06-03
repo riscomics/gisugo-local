@@ -305,7 +305,7 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding-top: 28px;
+  padding-top: 5px;
   gap: 30px; /* Increased from 25px by 20% */
   height: 68px;
   width: 450px; /* Add explicit width to accommodate larger gap and wider city menu */
@@ -337,7 +337,7 @@ body::-webkit-scrollbar {
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 5px;
   padding: 5px 12px;
-  width: 210px;
+  width: 240px;
   height: 32px;
   display: flex;
   flex-direction: row;
@@ -497,7 +497,8 @@ body::-webkit-scrollbar {
   z-index: 97;
   background: #2a3441; /* Same darker background to create unified panel */
   border-radius: 12px; /* Rounded corners */
-  padding: 5px 0; /* Added 5px top and bottom margin */
+  padding: 12px 0; /* Added 5px top and bottom margin */
+  margin-top: -30px;
 }
 
 .new-post-extras-container {
@@ -505,11 +506,11 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  padding: 35px 20px 20px 20px;
+  padding: 20px 20px 2px 20px;
   gap: 30px;
   height: 78px;
   width: 450px;
-  margin: 0 auto;
+  margin: auto;
 }
 
 .new-post-extras-item {
@@ -561,7 +562,7 @@ body::-webkit-scrollbar {
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 5px;
   padding: 5px 12px;
-  width: 210px;
+  width: 240px;
   height: 32px;
   display: flex;
   flex-direction: row;
@@ -743,28 +744,30 @@ body::-webkit-scrollbar {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
     margin-top: 25px;
     padding: 16px 0; /* Added 5px top and bottom margin for mobile */
+    left: 10px; /* Override centering to move left */
+    transform: none; /* Remove centering transform */
+    width: calc(100% - 20px); /* Adjust width to accommodate left positioning */
   }
 
   .new-post-sortmenus {
-    padding: 5px 2px;
+    padding: 5px 18px 5px 5px;
     gap: 20px;
     height: 38px;
     width: 300px;
-    justify-content: flex-start;
-    margin: auto;
-    padding-right: 18px;
+    justify-content: center;
+       
   }
 
   .new-post-region-menu, .new-post-city-menu {
     padding: 3px 10px;
-    width: 128px;
+    width: 158px;
     height: 25px;
     font-size: 15px;
     font-family: Arial, Helvetica, sans-serif;
   }
   
   .new-post-city-menu {
-    width: 128px;
+    width: 158px;
   }
 
   /* Mobile overlay adjustments */
@@ -787,14 +790,18 @@ body::-webkit-scrollbar {
   .new-post-extras-header {
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
     padding: 10px 0; /* Added 5px top and bottom margin for mobile */
+    margin-top: 0px;
+    left: 10px; /* Override centering to move left */
+    transform: none; /* Remove centering transform */
+    width: calc(100% - 20px); /* Adjust width to accommodate left positioning */
   }
 
   .new-post-extras-container {
-    padding: 0px 30px 15px 15px;
+    padding: 0px 15px 15px 5px;
     gap: 20px;
     height: 55px;
     width: 300px;
-    justify-content: flex-start;
+    justify-content: center;
     margin-top: 35px;
   }
 
@@ -809,14 +816,14 @@ body::-webkit-scrollbar {
 
   .new-post-extras-menu {
     padding: 3px 10px;
-    width: 128px;
+    width: 158px;
     height: 25px;
     font-size: 15px;
     font-family: Arial, Helvetica, sans-serif;
   }
 
   .new-post-extras-item:nth-child(2) .new-post-extras-menu {
-    width: 128px;
+    width: 158px;
   }
 
   .new-post-extras-menu-overlay {

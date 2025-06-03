@@ -66,7 +66,7 @@ function cityHasBarangayData(city) {
 
 // Function to create fallback input field for cities without barangay data
 function createBarangayInputFallback(fieldNumber) {
-  const menuWrapper = document.querySelector(`#newPostExtrasMenu${fieldNumber}`).parentElement;
+  const menuWrapper = document.querySelector(`#newPostExtrasItem${fieldNumber} .new-post-extras-menu-wrapper`);
   
   // Hide the dropdown menu
   document.getElementById(`newPostExtrasMenu${fieldNumber}`).style.display = 'none';
@@ -78,7 +78,8 @@ function createBarangayInputFallback(fieldNumber) {
     inputField.type = 'text';
     inputField.id = `newPostExtrasInput${fieldNumber}`;
     inputField.className = 'new-post-extras-menu'; // Use same class as dropdown menus
-    inputField.placeholder = 'Barangay';
+    inputField.placeholder = 'Barangay / Area';
+    inputField.maxLength = 15; // Add character limit of 15
     
     // Check for mobile view
     const isMobile = window.innerWidth < 600;
