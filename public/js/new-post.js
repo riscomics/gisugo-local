@@ -77,12 +77,78 @@ function createBarangayInputFallback(fieldNumber) {
     inputField = document.createElement('input');
     inputField.type = 'text';
     inputField.id = `newPostExtrasInput${fieldNumber}`;
-    inputField.className = 'new-post-extras-input';
+    inputField.className = 'new-post-extras-menu'; // Use same class as dropdown menus
     inputField.placeholder = 'Barangay';
+    
+    // Check for mobile view
+    const isMobile = window.innerWidth < 600;
+    
+    // Set dimensions and styling
+    inputField.style.display = 'flex';
+    inputField.style.alignItems = 'center';
+    inputField.style.justifyContent = 'space-between';
+    inputField.style.width = isMobile ? '128px' : '210px'; // Mobile/desktop width
+    inputField.style.height = isMobile ? '25px' : '32px'; // Mobile/desktop height
+    inputField.style.borderStyle = 'solid';
+    inputField.style.borderWidth = '1px';
+    inputField.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+    inputField.style.backgroundColor = '#363F4F';
+    inputField.style.borderRadius = '5px';
+    inputField.style.color = '#fff';
+    inputField.style.paddingLeft = isMobile ? '10px' : '12px'; // Mobile/desktop padding
+    inputField.style.paddingRight = isMobile ? '10px' : '12px';
+    inputField.style.fontSize = isMobile ? '15px' : '18px'; // Mobile/desktop font size
+    inputField.style.fontWeight = '600';
+    inputField.style.fontFamily = 'Arial, sans-serif';
+    inputField.style.cursor = 'pointer';
+    inputField.style.userSelect = 'none';
+    inputField.style.webkitTapHighlightColor = 'transparent';
+    
+    // Add arrow element
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow';
+    arrow.innerHTML = '&#9660;';
+    arrow.style.marginLeft = 'auto';
+    arrow.style.fontSize = isMobile ? '1em' : '1.1em'; // Mobile/desktop arrow size
+    arrow.style.color = '#d3d7e0';
+    inputField.appendChild(arrow);
+    
+    // Add focus styles
+    inputField.addEventListener('focus', function() {
+      this.style.borderColor = '#fff';
+      this.style.outline = 'none';
+    });
+    
+    inputField.addEventListener('blur', function() {
+      this.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+    });
+    
+    // Add placeholder styles
+    inputField.addEventListener('input', function() {
+      if (this.value === '') {
+        this.style.color = 'rgba(255, 255, 255, 0.6)';
+        this.style.fontWeight = '400';
+      } else {
+        this.style.color = '#fff';
+        this.style.fontWeight = '600';
+      }
+    });
+    
     menuWrapper.appendChild(inputField);
   }
+
+  inputField.style.display = 'flex';
   
-  inputField.style.display = 'block';
+  // Update styles on window resize
+  window.addEventListener('resize', function() {
+    const isMobile = window.innerWidth < 600;
+    inputField.style.width = isMobile ? '128px' : '210px';
+    inputField.style.height = isMobile ? '25px' : '32px';
+    inputField.style.paddingLeft = isMobile ? '10px' : '12px';
+    inputField.style.paddingRight = isMobile ? '10px' : '12px';
+    inputField.style.fontSize = isMobile ? '15px' : '18px';
+    arrow.style.fontSize = isMobile ? '1em' : '1.1em';
+  });
 }
 
 // Function to restore dropdown menu for cities with barangay data
@@ -434,7 +500,7 @@ const barangaysByCity = {
 };
 
 let activeRegion = "CEBU";
-let activeCity = "CEBU CITY";
+let activeCity = "City/Town";
 
 function renderRegionMenu() {
   const list = document.getElementById('newPostRegionMenuList');

@@ -497,7 +497,7 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  padding: 15px 20px 20px 20px;
+  padding: 35px 20px 20px 20px;
   gap: 30px;
   height: 78px;
   width: 450px;
@@ -507,8 +507,29 @@ body::-webkit-scrollbar {
 .new-post-extras-item {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 4px; /* Reduced gap between rows */
+}
+
+.new-post-extras-label {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+  text-align: left;
+  margin-bottom: 5px;
+  padding-left: 5px;
+}
+
+.new-post-extras-menu-wrapper {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+.new-post-extras-menu {
+  margin-left: auto; /* Push menu to the right */
 }
 
 .new-post-extras-label {
@@ -518,6 +539,7 @@ body::-webkit-scrollbar {
   font-family: Arial, sans-serif;
   text-align: center;
   white-space: nowrap;
+  padding-left: 5px;
 }
 
 .new-post-extras-menu-wrapper {
@@ -705,6 +727,7 @@ body::-webkit-scrollbar {
   /* Location header mobile styles */
   .new-post-sort-header {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
+    margin-top: 25px;
   }
 
   .new-post-sortmenus {
@@ -749,11 +772,12 @@ body::-webkit-scrollbar {
   }
 
   .new-post-extras-container {
-    padding: 10px 15px 15px 15px;
+    padding: 0px 15px 15px 15px;
     gap: 20px;
-    height: 60px;
+    height: 55px;
     width: 300px;
     justify-content: flex-start;
+    margin-top: 25px;
   }
 
   .new-post-extras-item {
