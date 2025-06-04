@@ -837,7 +837,7 @@ html {
         .job-preview-extra-label1, .job-preview-extra-label2 {
           font-weight: 500;
           color: #bfc6d0;
-          margin-right: 1px;          
+          margin-right: 2px;          
         }
         .job-preview-infoboxes {
           display: flex;
