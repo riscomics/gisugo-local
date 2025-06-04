@@ -583,11 +583,13 @@ function updateCityMenuLabelFontSize() {
   const btn = document.querySelector('.new-post-city-menu');
   if (!label || !btn) return;
   
-  // Get the computed/default font size
+  // RESET inline style first to get original CSS font size
+  label.style.fontSize = '';
+  
+  // Now get the actual CSS default font size
   const computed = window.getComputedStyle(label);
   let defaultFontSize = parseFloat(computed.fontSize);
   let fontSize = defaultFontSize;
-  label.style.fontSize = fontSize + 'px';
   
   // Reduce font size until it fits or hits minimum
   while (label.scrollWidth > btn.clientWidth - 32 && fontSize > 12) {
