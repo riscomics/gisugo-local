@@ -464,24 +464,96 @@ function loadJobFromDatabase(jobId) {
   return sampleJobData;
 }
 
+// Function to automatically adjust font size for barangay names in job info boxes
+function adjustBarangayFontSizes() {
+  // Target all job info values that contain barangay names across different job categories
+  const barangayElements = document.querySelectorAll([
+    '[data-field="job-pickup-location"]',    // Hatod: pickup
+    '[data-field="job-delivery-location"]', // Hatod: delivery
+    '[data-field="job-shop-location"]',     // Kompra: shop
+    '[data-field="job-deliver-location"]',  // Kompra: deliver
+    '[data-field="job-load-location"]',     // Hakot: load
+    '[data-field="job-unload-location"]',   // Hakot: unload
+    '[data-field="job-location"]'           // Limpyo: location
+  ].join(', '));
+  
+  barangayElements.forEach(element => {
+    // Reset any previous font size adjustments
+    element.style.fontSize = '';
+    element.style.lineHeight = '1.1';
+    element.style.whiteSpace = 'nowrap';
+    element.style.overflow = 'hidden';
+    
+    // Get the computed styles
+    const computedStyle = window.getComputedStyle(element);
+    let currentFontSize = parseFloat(computedStyle.fontSize);
+    const minFontSize = 11; // Minimum readable font size
+    const originalText = element.textContent.trim();
+    
+    // Function to check if text overflows
+    const isOverflowing = () => {
+      const container = element.closest('.job-info-box');
+      if (!container) return false;
+      
+      // Create a temporary element to measure text width
+      const tempElement = document.createElement('span');
+      tempElement.style.cssText = `
+        font-family: ${computedStyle.fontFamily};
+        font-size: ${currentFontSize}px;
+        font-weight: ${computedStyle.fontWeight};
+        visibility: hidden;
+        position: absolute;
+        white-space: nowrap;
+        top: -9999px;
+      `;
+      tempElement.textContent = originalText;
+      document.body.appendChild(tempElement);
+      
+      const textWidth = tempElement.offsetWidth;
+      const containerWidth = container.offsetWidth - 20; // Account for padding
+      
+      document.body.removeChild(tempElement);
+      
+      return textWidth > containerWidth;
+    };
+    
+    // Reduce font size until it fits or reaches minimum
+    while (isOverflowing() && currentFontSize > minFontSize) {
+      currentFontSize -= 0.5;
+      element.style.fontSize = currentFontSize + 'px';
+    }
+    
+    // If still overflowing at minimum font size, truncate text
+    if (isOverflowing()) {
+      let truncatedText = originalText;
+      while (isOverflowing() && truncatedText.length > 1) {
+        truncatedText = truncatedText.slice(0, -1);
+        element.textContent = truncatedText;
+      }
+    }
+  });
+}
+
+// Function to handle window resize and recheck font sizes
+function handleResize() {
+  adjustBarangayFontSizes();
+}
+
+// Call the font adjustment function when page loads and on resize
 document.addEventListener('DOMContentLoaded', function() {
-  // Update rating counts on page load
+  // Existing initialization
   updateRatingCounts();
-  
-  // Update star ratings based on data attributes
   updateStarRatings();
-  
-  // Initialize contact dropdown
   initContactDropdown();
-  
-  // Initialize apply job modal
   initApplyJobModal();
-  
-  // Initialize application sent overlay
   initApplicationSentOverlay();
-  
-  // Initialize counter offer input formatting
   initCounterOfferFormatting();
+  
+  // Add barangay font size adjustment
+  adjustBarangayFontSizes();
+  
+  // Also call after a short delay to ensure all content is loaded
+  setTimeout(adjustBarangayFontSizes, 100);
   
   const menuBtn = document.querySelector('.jobcat-menu-btn');
   const menuOverlay = document.getElementById('jobcatMenuOverlay');
@@ -513,4 +585,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+});
+
+// Add resize event listener
+window.addEventListener('resize', handleResize);
+
+// Also add orientation change listener for mobile devices
+window.addEventListener('orientationchange', function() {
+  setTimeout(adjustBarangayFontSizes, 300);
 }); 
