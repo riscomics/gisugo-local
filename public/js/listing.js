@@ -315,8 +315,8 @@ function truncateBarangayNames() {
       const cleanText = textAfterSpan.trim();
       
       if (cleanText.length > maxLength) {
-        // Truncate and add ellipsis
-        const truncatedText = cleanText.substring(0, maxLength) + '...';
+        // Truncate without ellipsis
+        const truncatedText = cleanText.substring(0, maxLength);
         
         // Remove all text nodes after the span
         node = span.nextSibling;
@@ -328,7 +328,7 @@ function truncateBarangayNames() {
           node = nextNode;
         }
         
-        // Add the truncated text
+        // Add the truncated text (no ellipsis)
         const textNode = document.createTextNode(' ' + truncatedText);
         span.parentNode.appendChild(textNode);
       }
