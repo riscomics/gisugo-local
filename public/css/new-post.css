@@ -744,7 +744,7 @@ body::-webkit-scrollbar {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
     margin-top: 25px;
     padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
-    left: 50px; /* Override centering to move left */
+    left: 30px; /* Override centering to move left */
     transform: none; /* Remove centering transform */
     width: 380px;
   }
@@ -771,12 +771,12 @@ body::-webkit-scrollbar {
 
   /* Mobile overlay adjustments */
   .new-post-region-menu-overlay {
-    width: 128px;
+    width: 145px;
     font-size: 14px;
   }
 
   .new-post-city-menu-overlay {
-    width: 128px;
+    width: 145px;
     font-size: 14px;
   }
 
@@ -790,7 +790,7 @@ body::-webkit-scrollbar {
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
     padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
     margin-top: 0px;
-    left: 50px; /* Override centering to move left */
+    left: 30px; /* Override centering to move left */
     transform: none; /* Remove centering transform */
     width: 380px; /* Match the region/city header width for perfect alignment */
   } 
