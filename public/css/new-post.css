@@ -719,7 +719,7 @@ body::-webkit-scrollbar {
 
   /* Category header mobile styles */
   .new-post-category-header {
-    top: 72px; /* Position below mobile main header (68px + 4px) */
+    top: 85px; /* Position below mobile main header (68px + 4px) */
   }
   
   .new-post-listheader {
@@ -744,7 +744,7 @@ body::-webkit-scrollbar {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
     margin-top: 25px;
     padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
-    left: 45%; /* Center horizontally */
+    left: 48%; /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px;
   }
@@ -790,7 +790,7 @@ body::-webkit-scrollbar {
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
     padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
     margin-top: 0px;
-    left: 45%; /* Center horizontally */
+    left: 48%; /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px; /* Match the region/city header width for perfect alignment */
   } 
@@ -800,7 +800,7 @@ body::-webkit-scrollbar {
     height: 55px;
     width: 300px;
     justify-content: center;
-    margin-top: 35px;
+    margin-top: 25px;
   }
 
   .new-post-extras-item {
