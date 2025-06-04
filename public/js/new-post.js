@@ -533,7 +533,7 @@ function renderCityMenu() {
   list.innerHTML = '';
   const cities = citiesByRegion[activeRegion] || [];
   
-  // Top item with arrow
+  // Top item with arrow (current selection)
   const top = document.createElement('li');
   top.textContent = activeCity;
   top.className = 'active';
@@ -543,8 +543,11 @@ function renderCityMenu() {
   top.appendChild(arrow);
   list.appendChild(top);
   
-  // Other cities
-  cities.filter(c => c !== activeCity).forEach(city => {
+  // If activeCity is "City/Town", show all cities as options
+  // If activeCity is an actual city, show other cities excluding the active one
+  const citiesToShow = activeCity === "City/Town" ? cities : cities.filter(c => c !== activeCity);
+  
+  citiesToShow.forEach(city => {
     const li = document.createElement('li');
     li.textContent = city;
     list.appendChild(li);
@@ -634,9 +637,8 @@ if (regionMenuBtn && regionMenuOverlay) {
       activeRegion = e.target.textContent.replace(/▲/, '').trim();
       document.getElementById('newPostRegionMenuLabel').textContent = activeRegion;
       
-      // When region changes, reset city to first city in region
-      const cities = citiesByRegion[activeRegion] || [];
-      activeCity = cities[0] || '';
+      // When region changes, reset city to "City/Town" to force user selection
+      activeCity = "City/Town";
       document.getElementById('newPostCityMenuLabel').textContent = activeCity;
       setTimeout(updateCityMenuLabelFontSize, 0);
       
