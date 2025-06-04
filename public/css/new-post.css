@@ -743,31 +743,30 @@ body::-webkit-scrollbar {
   .new-post-sort-header {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
     margin-top: 25px;
-    padding: 16px 0; /* Added 5px top and bottom margin for mobile */
-    left: 10px; /* Override centering to move left */
+    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
+    left: 50px; /* Override centering to move left */
     transform: none; /* Remove centering transform */
-    width: calc(100% - 20px); /* Adjust width to accommodate left positioning */
+    width: 380px;
   }
 
   .new-post-sortmenus {
-    padding: 5px 18px 5px 5px;
+    padding: 0px 0px 0px 0px;
     gap: 20px;
     height: 38px;
     width: 300px;
-    justify-content: center;
-       
+    justify-content: center;       
   }
 
   .new-post-region-menu, .new-post-city-menu {
     padding: 3px 10px;
-    width: 158px;
+    width: 128px;
     height: 25px;
     font-size: 15px;
     font-family: Arial, Helvetica, sans-serif;
   }
   
   .new-post-city-menu {
-    width: 158px;
+    width: 128px;
   }
 
   /* Mobile overlay adjustments */
@@ -789,13 +788,12 @@ body::-webkit-scrollbar {
   /* Extras mobile styles */
   .new-post-extras-header {
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
-    padding: 10px 0; /* Added 5px top and bottom margin for mobile */
+    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
     margin-top: 0px;
-    left: 10px; /* Override centering to move left */
+    left: 50px; /* Override centering to move left */
     transform: none; /* Remove centering transform */
-    width: calc(100% - 20px); /* Adjust width to accommodate left positioning */
-  }
-
+    width: 380px; /* Match the region/city header width for perfect alignment */
+  } 
   .new-post-extras-container {
     padding: 0px 15px 15px 5px;
     gap: 20px;
@@ -816,14 +814,14 @@ body::-webkit-scrollbar {
 
   .new-post-extras-menu {
     padding: 3px 10px;
-    width: 158px;
+    width: 128px;
     height: 25px;
     font-size: 15px;
     font-family: Arial, Helvetica, sans-serif;
   }
 
   .new-post-extras-item:nth-child(2) .new-post-extras-menu {
-    width: 158px;
+    width: 128px;
   }
 
   .new-post-extras-menu-overlay {
