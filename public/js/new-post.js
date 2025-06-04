@@ -293,10 +293,23 @@ function updateExtrasForCategory(category) {
   const extrasLabel2 = document.getElementById('newPostExtrasLabel2');
   const extrasMenuLabel1 = document.getElementById('newPostExtrasMenuLabel1');
   const extrasMenuLabel2 = document.getElementById('newPostExtrasMenuLabel2');
+  const borderline = document.getElementById('newPostMenusBorderline');
+  const isMobile = window.innerWidth <= 600;
   
   if (!extrasConfig[category]) {
     // Hide extras for categories that don't have configuration
     extrasHeader.style.display = 'none';
+    
+    // Position borderline below location header only
+    if (borderline) {
+      borderline.style.position = 'fixed';
+      if (isMobile) {
+        borderline.style.top = '263px'; // Below mobile location header (lowered by 15%)
+      } else {
+        borderline.style.top = '354px'; // Below desktop location header
+      }
+      borderline.style.zIndex = '96';
+    }
     return;
   }
   
@@ -304,6 +317,17 @@ function updateExtrasForCategory(category) {
   
   // Show extras header
   extrasHeader.style.display = 'block';
+  
+  // Position borderline below extras header
+  if (borderline) {
+    borderline.style.position = 'fixed';
+    if (isMobile) {
+      borderline.style.top = '354px'; // Below mobile location + extras headers (lowered by 15%)
+    } else {
+      borderline.style.top = '448px'; // Below desktop location + extras headers (lowered by 20%)
+    }
+    borderline.style.zIndex = '95';
+  }
   
   // Update labels
   extrasLabel1.textContent = config.field1.label;
@@ -692,10 +716,53 @@ if (cityMenuBtn && cityMenuOverlay) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
+  
+  // Initialize borderline position (default: below location header only)
+  const borderline = document.getElementById('newPostMenusBorderline');
+  if (borderline) {
+    borderline.style.position = 'fixed';
+    borderline.style.width = '100%';
+    borderline.style.left = '0';
+    
+    // Check if mobile
+    const isMobile = window.innerWidth <= 600;
+    if (isMobile) {
+      borderline.style.top = '263px'; // Below mobile location header (lowered by 15%)
+    } else {
+      borderline.style.top = '354px'; // Below desktop location header
+    }
+    borderline.style.zIndex = '96';
+  }
 });
 
 // Call updateCityMenuLabelFontSize on window resize
 window.addEventListener('resize', updateCityMenuLabelFontSize);
+
+// Handle window resize for borderline positioning
+window.addEventListener('resize', function() {
+  const borderline = document.getElementById('newPostMenusBorderline');
+  const extrasHeader = document.getElementById('newPostExtrasHeader');
+  if (!borderline) return;
+  
+  const isMobile = window.innerWidth <= 600;
+  const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
+  
+  if (extrasVisible) {
+    // Borderline below both headers
+    if (isMobile) {
+      borderline.style.top = '354px';
+    } else {
+      borderline.style.top = '448px';
+    }
+  } else {
+    // Borderline below location header only
+    if (isMobile) {
+      borderline.style.top = '263px';
+    } else {
+      borderline.style.top = '354px';
+    }
+  }
+});
 
 // Function to update location-based extras when city changes
 function updateLocationExtrasForCityChange() {

@@ -107,6 +107,9 @@ body::-webkit-scrollbar {
   height: 4px;
   width: 100%;
   background: rgb(149, 149, 328);
+  position: fixed;
+  left: 0;
+  z-index: 96;
 }
 
 /* Menu Overlay */
@@ -658,6 +661,18 @@ body::-webkit-scrollbar {
 .new-post-extras-input:focus {
   border-color: rgba(255, 255, 255, 0.8);
 }
+
+/* ========================== BORDERLINE BELOW MENUS ========================== */
+
+#newPostMenusBorderline {
+  height: 4px;
+  width: 100%;
+  background: rgb(149, 149, 328);
+  position: fixed;
+  left: 0;
+  z-index: 96;
+}
+
 /* ========================== MOBILE STYLES ========================== */
 /* ========================== MOBILE STYLES ========================== */
 /* ========================== MOBILE STYLES ========================== */
@@ -858,6 +873,11 @@ body::-webkit-scrollbar {
 
   .new-post-extras-item:nth-child(2) .new-post-extras-input {
     width: 128px;
+  }
+
+  /* Mobile-specific styling if needed */
+  .new-post-borderline {
+    height: 4px;
   }
 }
 
