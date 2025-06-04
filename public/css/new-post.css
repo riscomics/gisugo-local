@@ -785,6 +785,7 @@ body::-webkit-scrollbar {
 
   .new-post-region-menu-list li,
   .new-post-city-menu-list li {
+    width: ;
     font-size: 14px;
   }
 
@@ -835,12 +836,12 @@ body::-webkit-scrollbar {
   }
 
   .new-post-extras-menu-overlay {
-    width: 128px;
+    width: 145px;
     font-size: 14px;
   }
 
   .new-post-extras-item:nth-child(2) .new-post-extras-menu-overlay {
-    width: 128px;
+    width: 145px;
   }
 
   .new-post-extras-menu-list li {
