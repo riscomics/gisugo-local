@@ -692,7 +692,7 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 0 30px;
+  padding: 0 10px;
 }
 
 .new-post-job-detail-item {
@@ -883,6 +883,7 @@ body::-webkit-scrollbar {
     padding: 16px 0px; /* Added 5px top and bottom margin for mobile */      /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px;
+    max-width: 350px; /* Narrower background on mobile */
   }
 
   .new-post-sortmenus {
@@ -936,6 +937,7 @@ body::-webkit-scrollbar {
      
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px; /* Match the region/city header width for perfect alignment */
+    max-width: 350px; /* Narrower background on mobile */
   } 
   .new-post-extras-container {
     padding: 0px 5px 15px 5px;
@@ -1005,12 +1007,13 @@ body::-webkit-scrollbar {
     padding: 20px 0;
     left: 50%;
     transform: translateX(-50%);
+    max-width: 350px; /* Narrower background on mobile */
   }
 
   .new-post-job-details-container {
-    padding: 0 15px;
+    padding: 0 10px;
     gap: 18px;
-    max-width: 350px;
+    max-width: 320px;
     margin: 0 auto;
   }
 
@@ -1025,8 +1028,8 @@ body::-webkit-scrollbar {
 
   /* Job Title Mobile */
   .job-title-input {
-    width: 100%;
-    max-width: 100%;
+    width: 85%;
+    max-width: 85%;
   }
 
   /* Job Date Mobile */
