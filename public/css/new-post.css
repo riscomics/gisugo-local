@@ -673,6 +673,124 @@ body::-webkit-scrollbar {
   z-index: 96;
 }
 
+/* ========================== JOB DETAILS INPUT SECTION ========================== */
+
+.new-post-job-details-section {
+  position: fixed;
+  width: calc(100% - 40px);
+  max-width: 700px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 380px; /* Position below borderline */
+  z-index: 94;
+  background: #2a3441;
+  border-radius: 12px;
+  padding: 25px 0;
+}
+
+.new-post-job-details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 0 30px;
+}
+
+.new-post-job-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.new-post-job-detail-label {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: Arial, sans-serif;
+  margin-bottom: 5px;
+}
+
+.new-post-job-detail-input {
+  background: #4a5568;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: Arial, sans-serif;
+  padding: 12px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.new-post-job-detail-input:focus {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.new-post-job-detail-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+}
+
+/* Job Title Input */
+.job-title-input {
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Job Date Input */
+.job-date-input {
+  width: 200px;
+}
+
+/* Time Inputs */
+.new-post-time-row {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+.new-post-time-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.new-post-time-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.job-time-input {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.new-post-time-period {
+  background: #4a5568;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: Arial, sans-serif;
+  padding: 10px 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  width: 75px;
+  flex-shrink: 0;
+}
+
+.new-post-time-period:focus {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.new-post-time-period option {
+  background: #4a5568;
+  color: #fff;
+}
+
 /* ========================== MOBILE STYLES ========================== */
 /* ========================== MOBILE STYLES ========================== */
 /* ========================== MOBILE STYLES ========================== */
@@ -879,6 +997,74 @@ body::-webkit-scrollbar {
   .new-post-borderline {
     height: 4px;
   }
+
+  /* Job Details Section Mobile Styles */
+  .new-post-job-details-section {
+    top: 290px; /* Position below mobile borderline */
+    width: calc(100% - 20px);
+    padding: 20px 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .new-post-job-details-container {
+    padding: 0 15px;
+    gap: 18px;
+    max-width: 350px;
+    margin: 0 auto;
+  }
+
+  .new-post-job-detail-label {
+    font-size: 14px;
+  }
+
+  .new-post-job-detail-input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  /* Job Title Mobile */
+  .job-title-input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Job Date Mobile */
+  .job-date-input {
+    width: 160px;
+  }
+
+  /* Time Inputs Mobile */
+  .new-post-time-row {
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+  }
+
+  .new-post-time-group {
+    width: 100%;
+  }
+
+  .new-post-time-input-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .job-time-input {
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  .new-post-time-period {
+    font-size: 14px;
+    padding: 10px 12px;
+    width: 75px;
+    flex-shrink: 0;
+  }
+
+  /* Mobile-specific styling if needed */
 }
 
 .new-post-sort-menu > div:last-child {

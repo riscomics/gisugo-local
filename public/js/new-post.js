@@ -340,6 +340,9 @@ function updateExtrasForCategory(category) {
   // Populate dropdown options based on menu type
   populateExtrasDropdownByType(1, config.field1.menuType);
   populateExtrasDropdownByType(2, config.field2.menuType);
+  
+  // Update job details section position
+  updateJobDetailsSectionPosition();
 }
 
 // Function to populate extras dropdown based on menu type
@@ -727,12 +730,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if mobile
     const isMobile = window.innerWidth <= 600;
     if (isMobile) {
-      borderline.style.top = '263px'; // Below mobile location header (lowered by 15%)
+      borderline.style.top = '263px'; // Below mobile location header only (lowered by 15%)
     } else {
-      borderline.style.top = '354px'; // Below desktop location header
+      borderline.style.top = '354px'; // Below desktop location header only (lowered by 20%)
     }
     borderline.style.zIndex = '96';
   }
+  
+  // Initialize job details section position
+  updateJobDetailsSectionPosition();
 });
 
 // Call updateCityMenuLabelFontSize on window resize
@@ -762,6 +768,9 @@ window.addEventListener('resize', function() {
       borderline.style.top = '354px';
     }
   }
+  
+  // Update job details section position
+  updateJobDetailsSectionPosition();
 });
 
 // Function to update location-based extras when city changes
@@ -790,5 +799,31 @@ function updateLocationExtrasForCityChange() {
   if (config.field2.menuType === 'location') {
     document.getElementById('newPostExtrasMenuLabel2').textContent = 'Select Option';
     populateExtrasDropdownByType(2, 'location');
+  }
+}
+
+// Function to update job details section position based on borderline
+function updateJobDetailsSectionPosition() {
+  const jobDetailsSection = document.querySelector('.new-post-job-details-section');
+  const extrasHeader = document.getElementById('newPostExtrasHeader');
+  if (!jobDetailsSection) return;
+  
+  const isMobile = window.innerWidth <= 600;
+  const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
+  
+  if (extrasVisible) {
+    // Position below borderline when extras are visible
+    if (isMobile) {
+      jobDetailsSection.style.top = '380px'; // Below mobile borderline + extras
+    } else {
+      jobDetailsSection.style.top = '480px'; // Below desktop borderline + extras
+    }
+  } else {
+    // Position below borderline when only location is visible
+    if (isMobile) {
+      jobDetailsSection.style.top = '290px'; // Below mobile borderline + location only
+    } else {
+      jobDetailsSection.style.top = '380px'; // Below desktop borderline + location only
+    }
   }
 } 

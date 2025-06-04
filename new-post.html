@@ -149,6 +149,49 @@
   <!-- Borderline below menu rows -->
   <div class="new-post-borderline" id="newPostMenusBorderline"></div>
   
-  <script src="public/js/new-post.js?v=7"></script>
+  <!-- Job Details Input Section -->
+  <div class="new-post-job-details-section">
+    <div class="new-post-job-details-container">
+      <!-- Job Title -->
+      <div class="new-post-job-detail-item job-title-item">
+        <label class="new-post-job-detail-label">Job Title:</label>
+        <input type="text" class="new-post-job-detail-input job-title-input" id="jobTitleInput" placeholder="Enter job title">
+      </div>
+      
+      <!-- Job Date -->
+      <div class="new-post-job-detail-item job-date-item">
+        <label class="new-post-job-detail-label">Job Date:</label>
+        <input type="date" class="new-post-job-detail-input job-date-input" id="jobDateInput">
+      </div>
+      
+      <!-- Time Start and End -->
+      <div class="new-post-job-detail-item job-time-item">
+        <div class="new-post-time-row">
+          <div class="new-post-time-group">
+            <label class="new-post-job-detail-label">Time Start:</label>
+            <div class="new-post-time-input-wrapper">
+              <input type="time" class="new-post-job-detail-input job-time-input" id="jobTimeStartInput">
+              <select class="new-post-time-period" id="jobTimeStartPeriod">
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          </div>
+          <div class="new-post-time-group">
+            <label class="new-post-job-detail-label">Time End:</label>
+            <div class="new-post-time-input-wrapper">
+              <input type="time" class="new-post-job-detail-input job-time-input" id="jobTimeEndInput">
+              <select class="new-post-time-period" id="jobTimeEndPeriod">
+                <option value="AM">AM</option>
+                <option value="PM" selected>PM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="public/js/new-post.js?v=9"></script>
 </body>
 </html> 
