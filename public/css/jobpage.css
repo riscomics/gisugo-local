@@ -1293,6 +1293,8 @@ body::-webkit-scrollbar {
   .application-sent-text {
     font-size: 1.2rem;
     margin-bottom: 25px;
+    padding-left: 50px;
+    padding-right: 50px;
   }
   
   .application-sent-close-btn {
