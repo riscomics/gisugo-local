@@ -336,5 +336,11 @@ function truncateBarangayNames() {
   });
 }
 
-// Call the function when the page loads
+// Call the function when the page loads with multiple triggers for better compatibility
 document.addEventListener('DOMContentLoaded', truncateBarangayNames);
+
+// Backup execution after a delay to catch any late-loading content
+setTimeout(truncateBarangayNames, 100);
+
+// Also call on window load as a final backup
+window.addEventListener('load', truncateBarangayNames);
