@@ -787,7 +787,7 @@ html {
         }
         
         .job-preview-img {
-          width: 28vw;
+          width: 25vw;
           min-width: 0;
           height: 28vw;
           max-height: 100%;
@@ -835,9 +835,9 @@ html {
           gap: 2px;
         }      
         .job-preview-extra-label1, .job-preview-extra-label2 {
-          font-weight: 600;
+          font-weight: 500;
           color: #bfc6d0;
-          margin-right: 0px;          
+          margin-right: 1px;          
         }
         .job-preview-infoboxes {
           display: flex;
