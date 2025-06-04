@@ -790,13 +790,15 @@ body::-webkit-scrollbar {
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
     padding-top: 15px;
     padding-bottom: 15px;
+    padding-left: 0px;
+    padding-right: 0px;
     margin-top: 0px;
     left: 50%; /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px; /* Match the region/city header width for perfect alignment */
   } 
   .new-post-extras-container {
-    padding: 0px 15px 15px 5px;
+    padding: 0px 5px 15px 5px;
     gap: 20px;
     height: 55px;
     width: 300px;
