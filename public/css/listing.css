@@ -610,14 +610,10 @@ html {
         margin-right: 5px;
       }
       .job-preview-extra1, .job-preview-extra2 {
-        font-size: inherit;
-        color: inherit;
-        display: flex;
-        align-items: center;
-        min-width: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 0.95rem;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
       }
       .job-preview-extra-label1, .job-preview-extra-label2 {
         font-weight: 600;
@@ -832,8 +828,8 @@ html {
           white-space: normal;
           overflow: hidden;
           text-overflow: unset;
-          gap: 2px;
-        }      
+        }
+        
         .job-preview-extra-label1, .job-preview-extra-label2 {
           font-weight: 500;
           color: #bfc6d0;

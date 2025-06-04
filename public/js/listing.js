@@ -288,3 +288,53 @@ function updateCityMenuLabelFontSize() {
 
 // Call updateCityMenuLabelFontSize on window resize
 window.addEventListener('resize', updateCityMenuLabelFontSize);
+
+// Function to truncate barangay names in job preview cards to prevent layout issues on small screens
+function truncateBarangayNames() {
+  const maxLength = 10;
+  
+  // Find all job preview extra elements
+  const extraElements = document.querySelectorAll('.job-preview-extra1, .job-preview-extra2');
+  
+  extraElements.forEach(element => {
+    // Get the span (label) and the text content after it
+    const span = element.querySelector('span');
+    if (span) {
+      // Get all text content after the span
+      let textAfterSpan = '';
+      let node = span.nextSibling;
+      
+      while (node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          textAfterSpan += node.textContent;
+        }
+        node = node.nextSibling;
+      }
+      
+      // Remove leading/trailing whitespace and extract barangay name
+      const cleanText = textAfterSpan.trim();
+      
+      if (cleanText.length > maxLength) {
+        // Truncate and add ellipsis
+        const truncatedText = cleanText.substring(0, maxLength) + '...';
+        
+        // Remove all text nodes after the span
+        node = span.nextSibling;
+        while (node) {
+          const nextNode = node.nextSibling;
+          if (node.nodeType === Node.TEXT_NODE) {
+            node.parentNode.removeChild(node);
+          }
+          node = nextNode;
+        }
+        
+        // Add the truncated text
+        const textNode = document.createTextNode(' ' + truncatedText);
+        span.parentNode.appendChild(textNode);
+      }
+    }
+  });
+}
+
+// Call the function when the page loads
+document.addEventListener('DOMContentLoaded', truncateBarangayNames);
