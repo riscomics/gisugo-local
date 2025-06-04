@@ -741,10 +741,13 @@ body::-webkit-scrollbar {
 
   /* Location header mobile styles */
   .new-post-sort-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
     margin-top: 25px;
-    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
-    left: 52%; /* Center horizontally */
+    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */      /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px;
   }
@@ -787,13 +790,17 @@ body::-webkit-scrollbar {
 
   /* Extras mobile styles */
   .new-post-extras-header {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
     padding-top: 15px;
     padding-bottom: 15px;
     padding-left: 0px;
     padding-right: 0px;
     margin-top: 0px;
-    left: 52%; /* Center horizontally */
+     
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px; /* Match the region/city header width for perfect alignment */
   } 
