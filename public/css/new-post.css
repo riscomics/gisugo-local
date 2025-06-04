@@ -744,7 +744,7 @@ body::-webkit-scrollbar {
     top: 140px; /* Position below mobile category header (72px main + 68px category) */
     margin-top: 25px;
     padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
-    left: 50%; /* Center horizontally */
+    left: 52%; /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px;
   }
@@ -793,7 +793,7 @@ body::-webkit-scrollbar {
     padding-left: 0px;
     padding-right: 0px;
     margin-top: 0px;
-    left: 50%; /* Center horizontally */
+    left: 52%; /* Center horizontally */
     transform: translateX(-50%); /* Offset by half width to center */
     width: 380px; /* Match the region/city header width for perfect alignment */
   } 
