@@ -855,7 +855,7 @@ html {
           border-radius: 8px;
           padding: 2px 0px 5px 0px;
           min-width: 70px;
-          width: 78px;
+          width: 85px;
           text-align: center;
           margin: 0;
           display: flex;
@@ -867,7 +867,7 @@ html {
           font-family: Arial, Helvetica, sans-serif;
         }
         .job-preview-infobox1 .job-preview-price {
-          font-size: 1.50rem;
+          font-size: 1.25rem;
           font-weight: 700;        
         }
         .job-preview-infobox1 .job-preview-rate {
@@ -876,7 +876,7 @@ html {
         }
         .job-preview-infobox2 .job-preview-date {
           font-size: .99rem;
-          font-weight: 800;
+          font-weight: 700;
         }
         .job-preview-infobox2 .job-preview-time {
           font-size: 0.78rem;        
