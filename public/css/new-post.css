@@ -485,7 +485,7 @@ body::-webkit-scrollbar {
   margin: 15px auto 0 auto; /* Center the section with top margin for spacing */
   background: #2a3441; /* Same darker background to create unified panel */
   border-radius: 12px; /* Rounded corners */
-  padding: 12px 0; /* Added 5px top and bottom margin */
+  padding: 6px 0; /* Reduced top and bottom padding */
 }
 
 .new-post-extras-container {
@@ -493,7 +493,7 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  padding: 20px 20px 2px 20px;
+  padding: 12px 20px 8px 20px; /* Reduced top and bottom padding */
   gap: 30px;
   height: 78px;
   width: 450px;
@@ -648,13 +648,7 @@ body::-webkit-scrollbar {
 
 /* ========================== BORDERLINE BELOW MENUS ========================== */
 
-#newPostMenusBorderline {
-  height: 4px;
-  width: 100%;
-  background: rgb(149, 149, 328);
-  position: relative;
-  margin: 10px 0;
-}
+
 
 /* ========================== JOB DETAILS INPUT SECTION ========================== */
 
@@ -1121,20 +1115,20 @@ body::-webkit-scrollbar {
     align-items: center;
     position: relative;
     margin: 15px auto 0 auto; /* Center with margin for spacing */
-    padding-top: 15px;
-    padding-bottom: 15px;
+    padding-top: 8px; /* Reduced top padding */
+    padding-bottom: 8px; /* Reduced bottom padding */
     padding-left: 0px;
     padding-right: 0px;
     width: 380px; /* Match the region/city header width for perfect alignment */
     max-width: 350px; /* Narrower background on mobile */
   } 
   .new-post-extras-container {
-    padding: 0px 5px 15px 5px;
+    padding: 0px 5px 8px 5px; /* Reduced bottom padding */
     gap: 20px;
     height: 55px;
     width: 300px;
     justify-content: center;
-    margin-top: 25px;
+    margin-top: 15px; /* Reduced top margin */
   }
 
   .new-post-extras-item {
@@ -1185,14 +1179,6 @@ body::-webkit-scrollbar {
   }
 
   /* Mobile-specific styling if needed */
-  .new-post-borderline {
-    height: 4px;
-  }
-
-  #newPostMenusBorderline {
-    position: relative;
-    margin: 10px 0;
-  }
 
   /* Job Details Section Mobile Styles */
   .new-post-job-details-section {

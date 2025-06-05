@@ -293,8 +293,6 @@ function updateExtrasForCategory(category) {
   const extrasLabel2 = document.getElementById('newPostExtrasLabel2');
   const extrasMenuLabel1 = document.getElementById('newPostExtrasMenuLabel1');
   const extrasMenuLabel2 = document.getElementById('newPostExtrasMenuLabel2');
-  const borderline = document.getElementById('newPostMenusBorderline');
-  const isMobile = window.innerWidth <= 600;
   
   if (!extrasConfig[category]) {
     // Hide extras for categories that don't have configuration
