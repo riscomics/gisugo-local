@@ -757,8 +757,15 @@ body::-webkit-scrollbar {
 }
 
 .job-time-input {
-  width: 110px;
+  width: 75px;
   flex-shrink: 0;
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.job-time-input option {
+  text-align: center;
 }
 
 .new-post-time-period {
@@ -1129,8 +1136,15 @@ body::-webkit-scrollbar {
   }
 
   .job-time-input {
-    width: 110px;
+    width: 75px;
     flex-shrink: 0;
+    text-align: center;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .job-time-input option {
+    text-align: center;
   }
 
   .new-post-time-period {
