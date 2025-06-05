@@ -1216,6 +1216,10 @@ body::-webkit-scrollbar {
     height: 4px;
   }
 
+  #newPostMenusBorderline {
+    margin-top: -5px;
+  }
+
   /* Job Details Section Mobile Styles */
   .new-post-job-details-section {
     position: absolute; /* Ensure absolute positioning on mobile too */
