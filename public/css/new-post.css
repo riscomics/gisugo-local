@@ -665,6 +665,7 @@ body::-webkit-scrollbar {
   position: fixed;
   left: 0;
   z-index: 96;
+  margin-top: -15px;
 }
 
 /* ========================== JOB DETAILS INPUT SECTION ========================== */
@@ -949,7 +950,7 @@ body::-webkit-scrollbar {
   border: none;
   border-radius: 8px;
   clip-path: inset(0 0 0 0); /* Will be updated by JavaScript to hide content above borderline */
-  margin-top: 10px;
+  margin-top: -10px;
 }
 
 .new-post-details-header {
