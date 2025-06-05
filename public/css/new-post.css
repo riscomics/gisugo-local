@@ -13,7 +13,7 @@ html::-webkit-scrollbar {
 body {
   background: #363F4F;
   margin: 0;
-  padding: 0; /* Remove all padding - let spacer element control height */
+  padding: 110px 0 0 0; /* Add top padding for fixed header */
 }
 
 body::-webkit-scrollbar {
@@ -162,11 +162,8 @@ body::-webkit-scrollbar {
 
 /* EXACT COPY from listing.css jobcat styles */
 .new-post-category-header {
-  position: fixed;
+  position: relative;
   width: 100%;
-  top: 110px; /* Position below main header (106px + 4px) */
-  left: 0;
-  z-index: 99;
   background: #363f4f;
 }
 
@@ -285,13 +282,10 @@ body::-webkit-scrollbar {
 
 /* EXACT COPY from listing.css - Location Dropdowns */
 .new-post-sort-header {
-  position: fixed;
+  position: relative;
   width: calc(100% - 40px); /* Constrained width with margins */
   max-width: 700px; /* Increased maximum width for larger screens */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Offset by half width to center */
-  top: 210px; /* Position below category header (110px main + 100px category) */
-  z-index: 98;
+  margin: 0 auto; /* Center the section */
   background: #2a3441; /* Darker solid background for panel effect */
   border-radius: 12px; /* Rounded corners */
   padding: 0px 0; /* Added 5px top and bottom margin */
@@ -485,17 +479,13 @@ body::-webkit-scrollbar {
 /* ========================== DYNAMIC EXTRAS ROW ========================== */
 
 .new-post-extras-header {
-  position: fixed;
+  position: relative;
   width: calc(100% - 40px); /* Constrained width with margins */
   max-width: 700px; /* Increased maximum width for larger screens */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Offset by half width to center */
-  top: 295px; /* Position below location header with 25% increased gap (210px main + 85px location) */
-  z-index: 97;
+  margin: 15px auto 0 auto; /* Center the section with top margin for spacing */
   background: #2a3441; /* Same darker background to create unified panel */
   border-radius: 12px; /* Rounded corners */
   padding: 12px 0; /* Added 5px top and bottom margin */
-  margin-top: -30px;
 }
 
 .new-post-extras-container {
@@ -662,26 +652,20 @@ body::-webkit-scrollbar {
   height: 4px;
   width: 100%;
   background: rgb(149, 149, 328);
-  position: fixed;
-  left: 0;
-  z-index: 96;
-  margin-top: -15px;
+  position: relative;
+  margin: 10px 0;
 }
 
 /* ========================== JOB DETAILS INPUT SECTION ========================== */
 
 .new-post-job-details-section {
-  position: absolute;
+  position: relative;
   width: calc(100% - 40px);
   max-width: 700px;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 380px; /* Position below borderline */
-  z-index: 94;
+  margin: 15px auto; /* Center and add margin for spacing */
   background: #2a3441;
   border-radius: 12px;
   padding: 25px 0;
-  clip-path: inset(0 0 0 0); /* Will be updated by JavaScript to hide content above borderline */
 }
 
 .new-post-job-details-container {
@@ -939,18 +923,13 @@ body::-webkit-scrollbar {
 
 /* Details Description Section - styled like job-details-section */
 .new-post-details-section {
-  position: absolute;
+  position: relative;
   width: calc(100% - 40px);
   max-width: 700px;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 730px; /* Position below job details section with more space */
-  z-index: 93;
+  margin: 15px auto; /* Center and add margin for spacing */
   background: #2d3748;
   border: none;
   border-radius: 8px;
-  clip-path: inset(0 0 0 0); /* Will be updated by JavaScript to hide content above borderline */
-  margin-top: -10px;
 }
 
 .new-post-details-header {
@@ -999,12 +978,9 @@ body::-webkit-scrollbar {
   font-style: italic;
 }
 
-/* Spacer div to create scrollable height for fixed positioned elements */
+/* Spacer div no longer needed for scrollable layout */
 .new-post-spacer {
-  width: 100%;
-  height: 1500px; /* Large enough to ensure scrolling past Details section */
-  background: transparent;
-  pointer-events: none;
+  display: none;
 }
 
 /* ========================== MOBILE STYLES ========================== */
@@ -1016,7 +992,7 @@ body::-webkit-scrollbar {
 
 @media (max-width: 600px) {
   body {
-    padding: 0; /* Remove all padding - let spacer element control height */
+    padding: 72px 0 0 0; /* Add top padding for mobile fixed header */
   }
   
   body::-webkit-scrollbar {
@@ -1068,7 +1044,7 @@ body::-webkit-scrollbar {
 
   /* Category header mobile styles */
   .new-post-category-header {
-    top: 85px; /* Position below mobile main header (68px + 4px) */
+    position: relative;
   }
   
   .new-post-listheader {
@@ -1094,10 +1070,9 @@ body::-webkit-scrollbar {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    top: 140px; /* Position below mobile category header (72px main + 68px category) */
-    margin-top: 25px;
-    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */      /* Center horizontally */
-    transform: translateX(-50%); /* Offset by half width to center */
+    position: relative;
+    margin: 25px auto 0 auto; /* Center with margin for spacing */
+    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
     width: 380px;
     max-width: 350px; /* Narrower background on mobile */
   }
@@ -1144,14 +1119,12 @@ body::-webkit-scrollbar {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    top: 203px; /* Position below mobile location header (140px main + 63px location gap) - increased by 25px */
+    position: relative;
+    margin: 15px auto 0 auto; /* Center with margin for spacing */
     padding-top: 15px;
     padding-bottom: 15px;
     padding-left: 0px;
     padding-right: 0px;
-    margin-top: 0px;
-     
-    transform: translateX(-50%); /* Offset by half width to center */
     width: 380px; /* Match the region/city header width for perfect alignment */
     max-width: 350px; /* Narrower background on mobile */
   } 
@@ -1217,17 +1190,16 @@ body::-webkit-scrollbar {
   }
 
   #newPostMenusBorderline {
-    margin-top: -5px;
+    position: relative;
+    margin: 10px 0;
   }
 
   /* Job Details Section Mobile Styles */
   .new-post-job-details-section {
-    position: absolute; /* Ensure absolute positioning on mobile too */
-    top: 280px; /* Position below mobile borderline */
+    position: relative;
     width: calc(100% - 20px);
     padding: 20px 0;
-    left: 50%;
-    transform: translateX(-50%);
+    margin: 15px auto; /* Center with margin for spacing */
     max-width: 350px; /* Narrower background on mobile */
   }
 
@@ -1441,11 +1413,10 @@ body::-webkit-scrollbar {
 
   /* Details Section Mobile Styles */
   .new-post-details-section {
-    position: absolute; /* Ensure absolute positioning on mobile too */
-    top: 680px; /* Position below mobile job details section with more space */
+    position: relative;
     width: calc(100% - 20px);
     max-width: 350px; /* Match job details section mobile width */
-    margin: 20px auto 25px auto;
+    margin: 15px auto; /* Center with margin for spacing */
   }
 
   .new-post-details-header {
@@ -1464,9 +1435,9 @@ body::-webkit-scrollbar {
     min-height: 85px;
   }
 
-  /* Mobile spacer */
+  /* Mobile spacer no longer needed */
   .new-post-spacer {
-    height: 1300px; /* Large enough to ensure scrolling past Details section on mobile */
+    display: none;
   }
 
   /* Mobile-specific styling if needed */

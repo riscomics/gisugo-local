@@ -299,17 +299,6 @@ function updateExtrasForCategory(category) {
   if (!extrasConfig[category]) {
     // Hide extras for categories that don't have configuration
     extrasHeader.style.display = 'none';
-    
-    // Position borderline below location header only
-    if (borderline) {
-      borderline.style.position = 'fixed';
-      if (isMobile) {
-        borderline.style.top = '263px'; // Below mobile location header (lowered by 15%)
-      } else {
-        borderline.style.top = '354px'; // Below desktop location header
-      }
-      borderline.style.zIndex = '96';
-    }
     return;
   }
   
@@ -317,17 +306,6 @@ function updateExtrasForCategory(category) {
   
   // Show extras header
   extrasHeader.style.display = 'block';
-  
-  // Position borderline below extras header
-  if (borderline) {
-    borderline.style.position = 'fixed';
-    if (isMobile) {
-      borderline.style.top = '354px'; // Below mobile location + extras headers (lowered by 15%)
-    } else {
-      borderline.style.top = '448px'; // Below desktop location + extras headers (lowered by 20%)
-    }
-    borderline.style.zIndex = '95';
-  }
   
   // Update labels
   extrasLabel1.textContent = config.field1.label;
@@ -984,70 +962,12 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
   initializeTimeDropdowns(); // Add time dropdown initialization
   initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile
-  
-  // Initialize borderline position (default: below location header only)
-  const borderline = document.getElementById('newPostMenusBorderline');
-  if (borderline) {
-    borderline.style.position = 'fixed';
-    borderline.style.width = '100%';
-    borderline.style.left = '0';
-    
-    // Check if mobile
-    const isMobile = window.innerWidth <= 600;
-    if (isMobile) {
-      borderline.style.top = '263px'; // Below mobile location header only (lowered by 15%)
-    } else {
-      borderline.style.top = '354px'; // Below desktop location header only (lowered by 20%)
-    }
-    borderline.style.zIndex = '96';
-  }
-  
-  // Initialize job details section position
-  updateJobDetailsSectionPosition();
-  
-  // Force spacer height update after a brief delay to ensure DOM is ready
-  setTimeout(function() {
-    updateJobDetailsSectionPosition();
-  }, 100);
-  
-  // Add scroll listener to update clip-path for scrollable sections
-  window.addEventListener('scroll', updateScrollableClipping);
-  
-  // Initial clip-path update
-  updateScrollableClipping();
 });
 
 // Call updateCityMenuLabelFontSize on window resize
 window.addEventListener('resize', updateCityMenuLabelFontSize);
 
-// Handle window resize for borderline positioning
-window.addEventListener('resize', function() {
-  const borderline = document.getElementById('newPostMenusBorderline');
-  const extrasHeader = document.getElementById('newPostExtrasHeader');
-  if (!borderline) return;
-  
-  const isMobile = window.innerWidth <= 600;
-  const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
-  
-  if (extrasVisible) {
-    // Borderline below both headers
-    if (isMobile) {
-      borderline.style.top = '354px';
-    } else {
-      borderline.style.top = '448px';
-    }
-  } else {
-    // Borderline below location header only
-    if (isMobile) {
-      borderline.style.top = '263px';
-    } else {
-      borderline.style.top = '354px';
-    }
-  }
-  
-  // Update job details section position
-  updateJobDetailsSectionPosition();
-});
+// No longer need resize handling for positioning since everything is in document flow
 
 // Function to update location-based extras when city changes
 function updateLocationExtrasForCityChange() {
@@ -1078,84 +998,6 @@ function updateLocationExtrasForCityChange() {
   }
 }
 
-// Function to update job details section position based on borderline
-function updateJobDetailsSectionPosition() {
-  const jobDetailsSection = document.querySelector('.new-post-job-details-section');
-  const detailsSection = document.querySelector('.new-post-details-section');
-  const spacer = document.getElementById('newPostSpacer');
-  const extrasHeader = document.getElementById('newPostExtrasHeader');
-  if (!jobDetailsSection) return;
-  
-  const isMobile = window.innerWidth <= 600;
-  const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
-  
-  let detailsSectionTop = 0;
-  
-  if (extrasVisible) {
-    // Position below borderline when extras are visible
-    if (isMobile) {
-      jobDetailsSection.style.top = '370px'; // Below mobile borderline + extras
-      detailsSectionTop = 770; // Position Details section below job details (lowered 150px total)
-      if (detailsSection) detailsSection.style.top = '770px';
-    } else {
-      jobDetailsSection.style.top = '480px'; // Below desktop borderline + extras
-      detailsSectionTop = 840; // Position Details section below job details (raised 10px)
-      if (detailsSection) detailsSection.style.top = '840px';
-    }
-  } else {
-    // Position below borderline when only location is visible
-    if (isMobile) {
-      jobDetailsSection.style.top = '280px'; // Below mobile borderline + location only
-      detailsSectionTop = 675; // Position Details section below job details (lowered 135px total)
-      if (detailsSection) detailsSection.style.top = '675px';
-    } else {
-      jobDetailsSection.style.top = '380px'; // Below desktop borderline + location only
-      detailsSectionTop = 740; // Position Details section below job details (raised 10px)
-      if (detailsSection) detailsSection.style.top = '740px';
-    }
-  }
-  
-  // Update spacer height to create scrollable height
-  if (spacer) {
-    const spacerHeight = detailsSectionTop + 200; // Details section position + extra space for section height
-    spacer.style.height = spacerHeight + 'px';
-  }
-}
+// No longer need positioning function since everything is in normal document flow
 
-// Function to update clip-path for scrollable sections to hide them when they go under fixed headers
-function updateScrollableClipping() {
-  const jobDetailsSection = document.querySelector('.new-post-job-details-section');
-  const detailsSection = document.querySelector('.new-post-details-section');
-  const extrasHeader = document.getElementById('newPostExtrasHeader');
-  
-  if (!jobDetailsSection && !detailsSection) return;
-  
-  const isMobile = window.innerWidth <= 600;
-  const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
-  
-  // Determine borderline position
-  let borderlineTop = 0;
-  if (extrasVisible) {
-    borderlineTop = isMobile ? 354 : 448; // Below both headers when extras visible
-  } else {
-    borderlineTop = isMobile ? 263 : 354; // Below location header only
-  }
-  
-  // Get current scroll position
-  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-  
-  // Process each section individually
-  if (jobDetailsSection) {
-    const jobDetailsTop = parseFloat(jobDetailsSection.style.top) || 380;
-    const jobDetailsVisibleTop = jobDetailsTop - scrollTop;
-    const jobDetailsClipAmount = Math.max(0, borderlineTop - jobDetailsVisibleTop);
-    jobDetailsSection.style.clipPath = `inset(${jobDetailsClipAmount}px 0 0 0)`;
-  }
-  
-  if (detailsSection) {
-    const detailsTop = parseFloat(detailsSection.style.top) || 730;
-    const detailsVisibleTop = detailsTop - scrollTop;
-    const detailsClipAmount = Math.max(0, borderlineTop - detailsVisibleTop);
-    detailsSection.style.clipPath = `inset(${detailsClipAmount}px 0 0 0)`;
-  }
-} 
+// No longer need clipping function since no overlapping fixed elements 
