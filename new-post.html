@@ -167,54 +167,68 @@
       <!-- Time Start and End -->
       <div class="new-post-job-detail-item job-time-item">
         <div class="new-post-time-row">
-          <div class="new-post-time-group">
-            <label class="new-post-job-detail-label">Time Start:</label>
-            <div class="new-post-time-input-wrapper">
-              <select class="new-post-job-detail-input job-time-input" id="jobTimeStartInput" inputmode="none" autocomplete="off">
-                <option value="">Hour</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
-              <select class="new-post-time-period" id="jobTimeStartPeriod">
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
+                      <div class="new-post-time-group">
+              <label class="new-post-job-detail-label">Job Start:</label>
+              <div class="new-post-time-input-wrapper">
+                <div class="new-post-time-menu-wrapper">
+                  <div class="new-post-job-detail-input job-time-input" id="jobTimeStartInput">
+                    <div id="jobTimeStartLabel">Time</div>
+                    <div>&#9660;</div>
+                  </div>
+                  <div class="new-post-time-menu-overlay" id="jobTimeStartOverlay">
+                    <ul class="new-post-time-menu-list" id="jobTimeStartList">
+                      <li><a href="#" data-value="1">1</a></li>
+                      <li><a href="#" data-value="2">2</a></li>
+                      <li><a href="#" data-value="3">3</a></li>
+                      <li><a href="#" data-value="4">4</a></li>
+                      <li><a href="#" data-value="5">5</a></li>
+                      <li><a href="#" data-value="6">6</a></li>
+                      <li><a href="#" data-value="7">7</a></li>
+                      <li><a href="#" data-value="8">8</a></li>
+                      <li><a href="#" data-value="9">9</a></li>
+                      <li><a href="#" data-value="10">10</a></li>
+                      <li><a href="#" data-value="11">11</a></li>
+                      <li><a href="#" data-value="12">12</a></li>
+                    </ul>
+                  </div>
+                </div>
+                <select class="new-post-time-period" id="jobTimeStartPeriod">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
             </div>
-          </div>
-          <div class="new-post-time-group">
-            <label class="new-post-job-detail-label">Time End:</label>
-            <div class="new-post-time-input-wrapper">
-              <select class="new-post-job-detail-input job-time-input" id="jobTimeEndInput" inputmode="none" autocomplete="off">
-                <option value="">Hour</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-                <option value="11">11</option>
-                <option value="12">12</option>
-              </select>
-              <select class="new-post-time-period" id="jobTimeEndPeriod">
-                <option value="AM">AM</option>
-                <option value="PM" selected>PM</option>
-              </select>
+                      <div class="new-post-time-group">
+              <label class="new-post-job-detail-label">Job End:</label>
+              <div class="new-post-time-input-wrapper">
+                <div class="new-post-time-menu-wrapper">
+                  <div class="new-post-job-detail-input job-time-input" id="jobTimeEndInput">
+                    <div id="jobTimeEndLabel">Time</div>
+                    <div>&#9660;</div>
+                  </div>
+                  <div class="new-post-time-menu-overlay" id="jobTimeEndOverlay">
+                    <ul class="new-post-time-menu-list" id="jobTimeEndList">
+                      <li><a href="#" data-value="1">1</a></li>
+                      <li><a href="#" data-value="2">2</a></li>
+                      <li><a href="#" data-value="3">3</a></li>
+                      <li><a href="#" data-value="4">4</a></li>
+                      <li><a href="#" data-value="5">5</a></li>
+                      <li><a href="#" data-value="6">6</a></li>
+                      <li><a href="#" data-value="7">7</a></li>
+                      <li><a href="#" data-value="8">8</a></li>
+                      <li><a href="#" data-value="9">9</a></li>
+                      <li><a href="#" data-value="10">10</a></li>
+                      <li><a href="#" data-value="11">11</a></li>
+                      <li><a href="#" data-value="12">12</a></li>
+                    </ul>
+                  </div>
+                </div>
+                <select class="new-post-time-period" id="jobTimeEndPeriod">
+                  <option value="AM">AM</option>
+                  <option value="PM" selected>PM</option>
+                </select>
+              </div>
             </div>
-          </div>
         </div>
       </div>
     </div>

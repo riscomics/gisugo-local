@@ -688,12 +688,14 @@ body::-webkit-scrollbar {
   flex-direction: column;
   gap: 20px;
   padding: 0 10px;
+  overflow: visible;
 }
 
 .new-post-job-detail-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: visible;
 }
 
 .new-post-job-detail-label {
@@ -754,6 +756,7 @@ body::-webkit-scrollbar {
   display: flex;
   gap: 8px;
   align-items: center;
+  overflow: visible;
 }
 
 .job-time-input {
@@ -762,13 +765,66 @@ body::-webkit-scrollbar {
   text-align: center;
   padding-left: 8px;
   padding-right: 8px;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.job-time-input option {
+.new-post-time-menu-wrapper {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.new-post-time-menu-overlay {
+  position: fixed;
+  background: #4a5568;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  z-index: 9999;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.new-post-time-menu-overlay::-webkit-scrollbar {
+  display: none;
+}
+
+.new-post-time-menu-overlay.show {
+  display: block;
+}
+
+.new-post-time-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.new-post-time-menu-list li {
+  margin: 0;
+  padding: 0;
   text-align: center;
+}
+
+.new-post-time-menu-list li a {
+  display: block;
+  padding: 8px 16px;
+  color: #fff;
+  text-decoration: none;
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+
+.new-post-time-menu-list li:hover a,
+.new-post-time-menu-list li a.active {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .new-post-time-period {
@@ -1090,6 +1146,7 @@ body::-webkit-scrollbar {
     gap: 18px;
     max-width: 320px;
     margin: 0 auto;
+    overflow: visible;
   }
 
   .new-post-job-detail-label {
@@ -1136,6 +1193,7 @@ body::-webkit-scrollbar {
     gap: 10px;
     align-items: center;
     width: 100%;
+    overflow: visible;
   }
 
   .job-time-input {
@@ -1144,13 +1202,21 @@ body::-webkit-scrollbar {
     text-align: center;
     padding-left: 8px;
     padding-right: 8px;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
-  .job-time-input option {
-    text-align: center;
+  .new-post-time-menu-overlay {
+    width: 75px;
+    font-size: 14px;
+    z-index: 9999;
+  }
+
+  .new-post-time-menu-list li a {
+    padding: 6px 12px;
+    font-size: 14px;
   }
 
   .new-post-time-period {

@@ -716,9 +716,142 @@ if (cityMenuBtn && cityMenuOverlay) {
   });
 }
 
+// ========================== TIME DROPDOWN FUNCTIONALITY ==========================
+
+// Initialize time dropdown functionality
+function initializeTimeDropdowns() {
+  // Start time dropdown
+  const startTimeBtn = document.getElementById('jobTimeStartInput');
+  const startTimeOverlay = document.getElementById('jobTimeStartOverlay');
+  const startTimeLabel = document.getElementById('jobTimeStartLabel');
+  
+  // End time dropdown
+  const endTimeBtn = document.getElementById('jobTimeEndInput');
+  const endTimeOverlay = document.getElementById('jobTimeEndOverlay');
+  const endTimeLabel = document.getElementById('jobTimeEndLabel');
+  
+  let startTimeOpen = false;
+  let endTimeOpen = false;
+  
+  // Move overlays to body to avoid clipping issues
+  if (startTimeOverlay) {
+    document.body.appendChild(startTimeOverlay);
+  }
+  if (endTimeOverlay) {
+    document.body.appendChild(endTimeOverlay);
+  }
+  
+  // Function to position overlay relative to button
+  function positionOverlay(button, overlay) {
+    const rect = button.getBoundingClientRect();
+    overlay.style.position = 'fixed';
+    overlay.style.top = (rect.bottom + 2) + 'px';
+    overlay.style.left = rect.left + 'px';
+    overlay.style.width = rect.width + 'px';
+  }
+  
+  // Start time dropdown events
+  if (startTimeBtn && startTimeOverlay) {
+    startTimeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Close end time if open
+      if (endTimeOpen) {
+        endTimeOverlay.classList.remove('show');
+        endTimeOpen = false;
+      }
+      
+      // Position and show overlay
+      positionOverlay(startTimeBtn, startTimeOverlay);
+      startTimeOverlay.classList.toggle('show');
+      startTimeOpen = !startTimeOpen;
+    });
+    
+    // Handle start time selection
+    startTimeOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A') {
+        e.preventDefault();
+        const selectedValue = e.target.getAttribute('data-value');
+        const selectedText = e.target.textContent;
+        startTimeLabel.textContent = selectedText;
+        startTimeOverlay.classList.remove('show');
+        startTimeOpen = false;
+        
+        // Remove active class from all options
+        startTimeOverlay.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        // Add active class to selected option
+        e.target.classList.add('active');
+      }
+    });
+  }
+  
+  // End time dropdown events
+  if (endTimeBtn && endTimeOverlay) {
+    endTimeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Close start time if open
+      if (startTimeOpen) {
+        startTimeOverlay.classList.remove('show');
+        startTimeOpen = false;
+      }
+      
+      // Position and show overlay
+      positionOverlay(endTimeBtn, endTimeOverlay);
+      endTimeOverlay.classList.toggle('show');
+      endTimeOpen = !endTimeOpen;
+    });
+    
+    // Handle end time selection
+    endTimeOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'A') {
+        e.preventDefault();
+        const selectedValue = e.target.getAttribute('data-value');
+        const selectedText = e.target.textContent;
+        endTimeLabel.textContent = selectedText;
+        endTimeOverlay.classList.remove('show');
+        endTimeOpen = false;
+        
+        // Remove active class from all options
+        endTimeOverlay.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        // Add active class to selected option
+        e.target.classList.add('active');
+      }
+    });
+  }
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (startTimeOpen && startTimeBtn && startTimeOverlay && 
+        !startTimeBtn.contains(e.target) && !startTimeOverlay.contains(e.target)) {
+      startTimeOverlay.classList.remove('show');
+      startTimeOpen = false;
+    }
+    
+    if (endTimeOpen && endTimeBtn && endTimeOverlay && 
+        !endTimeBtn.contains(e.target) && !endTimeOverlay.contains(e.target)) {
+      endTimeOverlay.classList.remove('show');
+      endTimeOpen = false;
+    }
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (startTimeOpen) {
+        startTimeOverlay.classList.remove('show');
+        startTimeOpen = false;
+      }
+      if (endTimeOpen) {
+        endTimeOverlay.classList.remove('show');
+        endTimeOpen = false;
+      }
+    }
+  });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
+  initializeTimeDropdowns(); // Add time dropdown initialization
   
   // Initialize borderline position (default: below location header only)
   const borderline = document.getElementById('newPostMenusBorderline');
