@@ -1321,7 +1321,7 @@ body::-webkit-scrollbar {
     top: 690px; /* Position below mobile job details section with more space */
     width: calc(100% - 20px);
     max-width: 350px; /* Match job details section mobile width */
-    margin: 0 auto 25px auto;
+    margin: 10px auto 25px auto;
   }
 
   .new-post-details-header {
