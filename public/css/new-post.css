@@ -1223,7 +1223,7 @@ body::-webkit-scrollbar {
   /* Job Details Section Mobile Styles */
   .new-post-job-details-section {
     position: absolute; /* Ensure absolute positioning on mobile too */
-    top: 290px; /* Position below mobile borderline */
+    top: 280px; /* Position below mobile borderline */
     width: calc(100% - 20px);
     padding: 20px 0;
     left: 50%;
@@ -1442,7 +1442,7 @@ body::-webkit-scrollbar {
   /* Details Section Mobile Styles */
   .new-post-details-section {
     position: absolute; /* Ensure absolute positioning on mobile too */
-    top: 690px; /* Position below mobile job details section with more space */
+    top: 680px; /* Position below mobile job details section with more space */
     width: calc(100% - 20px);
     max-width: 350px; /* Match job details section mobile width */
     margin: 20px auto 25px auto;

@@ -1094,9 +1094,9 @@ function updateJobDetailsSectionPosition() {
   if (extrasVisible) {
     // Position below borderline when extras are visible
     if (isMobile) {
-      jobDetailsSection.style.top = '380px'; // Below mobile borderline + extras
-      detailsSectionTop = 780; // Position Details section below job details (lowered 150px total)
-      if (detailsSection) detailsSection.style.top = '780px';
+      jobDetailsSection.style.top = '370px'; // Below mobile borderline + extras
+      detailsSectionTop = 770; // Position Details section below job details (lowered 150px total)
+      if (detailsSection) detailsSection.style.top = '770px';
     } else {
       jobDetailsSection.style.top = '480px'; // Below desktop borderline + extras
       detailsSectionTop = 840; // Position Details section below job details (raised 10px)
@@ -1105,9 +1105,9 @@ function updateJobDetailsSectionPosition() {
   } else {
     // Position below borderline when only location is visible
     if (isMobile) {
-      jobDetailsSection.style.top = '290px'; // Below mobile borderline + location only
-      detailsSectionTop = 685; // Position Details section below job details (lowered 135px total)
-      if (detailsSection) detailsSection.style.top = '685px';
+      jobDetailsSection.style.top = '280px'; // Below mobile borderline + location only
+      detailsSectionTop = 675; // Position Details section below job details (lowered 135px total)
+      if (detailsSection) detailsSection.style.top = '675px';
     } else {
       jobDetailsSection.style.top = '380px'; // Below desktop borderline + location only
       detailsSectionTop = 740; // Position Details section below job details (raised 10px)
