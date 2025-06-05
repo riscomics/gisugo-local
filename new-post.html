@@ -192,10 +192,18 @@
                     </ul>
                   </div>
                 </div>
-                <select class="new-post-time-period" id="jobTimeStartPeriod">
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
+                <div class="new-post-time-period-wrapper">
+                  <div class="new-post-time-period" id="jobTimeStartPeriod">
+                    <div id="jobTimeStartPeriodLabel">AM</div>
+                    <div>&#9660;</div>
+                  </div>
+                  <div class="new-post-time-period-overlay" id="jobTimeStartPeriodOverlay">
+                    <ul class="new-post-time-period-list" id="jobTimeStartPeriodList">
+                      <li data-value="AM">AM</li>
+                      <li data-value="PM">PM</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
                       <div class="new-post-time-group">
@@ -223,10 +231,18 @@
                     </ul>
                   </div>
                 </div>
-                <select class="new-post-time-period" id="jobTimeEndPeriod">
-                  <option value="AM">AM</option>
-                  <option value="PM" selected>PM</option>
-                </select>
+                <div class="new-post-time-period-wrapper">
+                  <div class="new-post-time-period" id="jobTimeEndPeriod">
+                    <div id="jobTimeEndPeriodLabel">PM</div>
+                    <div>&#9660;</div>
+                  </div>
+                  <div class="new-post-time-period-overlay" id="jobTimeEndPeriodOverlay">
+                    <ul class="new-post-time-period-list" id="jobTimeEndPeriodList">
+                      <li data-value="AM">AM</li>
+                      <li data-value="PM">PM</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
         </div>

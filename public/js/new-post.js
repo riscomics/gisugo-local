@@ -848,10 +848,142 @@ function initializeTimeDropdowns() {
   });
 }
 
+// Initialize AM/PM dropdown functionality
+function initializeTimePeriodDropdowns() {
+  
+  // Start time period dropdown
+  const startPeriodBtn = document.getElementById('jobTimeStartPeriod');
+  const startPeriodOverlay = document.getElementById('jobTimeStartPeriodOverlay');
+  const startPeriodLabel = document.getElementById('jobTimeStartPeriodLabel');
+  
+  // End time period dropdown
+  const endPeriodBtn = document.getElementById('jobTimeEndPeriod');
+  const endPeriodOverlay = document.getElementById('jobTimeEndPeriodOverlay');
+  const endPeriodLabel = document.getElementById('jobTimeEndPeriodLabel');
+  
+  let startPeriodOpen = false;
+  let endPeriodOpen = false;
+  
+  // Move overlays to body to avoid clipping issues
+  if (startPeriodOverlay) {
+    document.body.appendChild(startPeriodOverlay);
+  }
+  if (endPeriodOverlay) {
+    document.body.appendChild(endPeriodOverlay);
+  }
+  
+  // Function to position overlay relative to button
+  function positionOverlay(button, overlay) {
+    const rect = button.getBoundingClientRect();
+    overlay.style.position = 'fixed';
+    overlay.style.top = (rect.bottom + 2) + 'px';
+    overlay.style.left = rect.left + 'px';
+    overlay.style.width = rect.width + 'px';
+  }
+  
+  // Start period dropdown events
+  if (startPeriodBtn && startPeriodOverlay) {
+    startPeriodBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Close end period if open
+      if (endPeriodOpen) {
+        endPeriodOverlay.classList.remove('show');
+        endPeriodOpen = false;
+      }
+      
+      // Position and show overlay
+      positionOverlay(startPeriodBtn, startPeriodOverlay);
+      startPeriodOverlay.classList.toggle('show');
+      startPeriodOpen = !startPeriodOpen;
+    });
+    
+    // Handle start period selection
+    startPeriodOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'LI') {
+        e.preventDefault();
+        const selectedValue = e.target.getAttribute('data-value');
+        const selectedText = e.target.textContent;
+        startPeriodLabel.textContent = selectedText;
+        startPeriodOverlay.classList.remove('show');
+        startPeriodOpen = false;
+        
+        // Remove active class from all options
+        startPeriodOverlay.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+        // Add active class to selected option
+        e.target.classList.add('active');
+      }
+    });
+  }
+  
+  // End period dropdown events
+  if (endPeriodBtn && endPeriodOverlay) {
+    endPeriodBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Close start period if open
+      if (startPeriodOpen) {
+        startPeriodOverlay.classList.remove('show');
+        startPeriodOpen = false;
+      }
+      
+      // Position and show overlay
+      positionOverlay(endPeriodBtn, endPeriodOverlay);
+      endPeriodOverlay.classList.toggle('show');
+      endPeriodOpen = !endPeriodOpen;
+    });
+    
+    // Handle end period selection
+    endPeriodOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'LI') {
+        e.preventDefault();
+        const selectedValue = e.target.getAttribute('data-value');
+        const selectedText = e.target.textContent;
+        endPeriodLabel.textContent = selectedText;
+        endPeriodOverlay.classList.remove('show');
+        endPeriodOpen = false;
+        
+        // Remove active class from all options
+        endPeriodOverlay.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+        // Add active class to selected option
+        e.target.classList.add('active');
+      }
+    });
+  }
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (startPeriodOpen && startPeriodBtn && startPeriodOverlay && 
+        !startPeriodBtn.contains(e.target) && !startPeriodOverlay.contains(e.target)) {
+      startPeriodOverlay.classList.remove('show');
+      startPeriodOpen = false;
+    }
+    
+    if (endPeriodOpen && endPeriodBtn && endPeriodOverlay && 
+        !endPeriodBtn.contains(e.target) && !endPeriodOverlay.contains(e.target)) {
+      endPeriodOverlay.classList.remove('show');
+      endPeriodOpen = false;
+    }
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (startPeriodOpen) {
+        startPeriodOverlay.classList.remove('show');
+        startPeriodOpen = false;
+      }
+      if (endPeriodOpen) {
+        endPeriodOverlay.classList.remove('show');
+        endPeriodOpen = false;
+      }
+    }
+  });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
   initializeTimeDropdowns(); // Add time dropdown initialization
+  initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile
   
   // Initialize borderline position (default: below location header only)
   const borderline = document.getElementById('newPostMenusBorderline');
