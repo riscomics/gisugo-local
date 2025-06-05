@@ -768,7 +768,7 @@ function initializeTimeDropdowns() {
     
     // Handle start time selection
     startTimeOverlay.addEventListener('click', function(e) {
-      if (e.target.tagName === 'A') {
+      if (e.target.tagName === 'LI') {
         e.preventDefault();
         const selectedValue = e.target.getAttribute('data-value');
         const selectedText = e.target.textContent;
@@ -777,7 +777,7 @@ function initializeTimeDropdowns() {
         startTimeOpen = false;
         
         // Remove active class from all options
-        startTimeOverlay.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        startTimeOverlay.querySelectorAll('li').forEach(li => li.classList.remove('active'));
         // Add active class to selected option
         e.target.classList.add('active');
       }
@@ -802,7 +802,7 @@ function initializeTimeDropdowns() {
     
     // Handle end time selection
     endTimeOverlay.addEventListener('click', function(e) {
-      if (e.target.tagName === 'A') {
+      if (e.target.tagName === 'LI') {
         e.preventDefault();
         const selectedValue = e.target.getAttribute('data-value');
         const selectedText = e.target.textContent;
@@ -811,7 +811,7 @@ function initializeTimeDropdowns() {
         endTimeOpen = false;
         
         // Remove active class from all options
-        endTimeOverlay.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        endTimeOverlay.querySelectorAll('li').forEach(li => li.classList.remove('active'));
         // Add active class to selected option
         e.target.classList.add('active');
       }
