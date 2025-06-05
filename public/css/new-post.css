@@ -768,7 +768,13 @@ body::-webkit-scrollbar {
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
+}
+
+.job-time-input > div:last-child {
+  position: absolute;
+  right: 8px;
 }
 
 .new-post-time-menu-wrapper {
@@ -1208,7 +1214,13 @@ body::-webkit-scrollbar {
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    position: relative;
+  }
+
+  .job-time-input > div:last-child {
+    position: absolute;
+    right: 8px;
   }
 
   .new-post-time-menu-overlay {
