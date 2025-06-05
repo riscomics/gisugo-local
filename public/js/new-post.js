@@ -739,6 +739,17 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize job details section position
   updateJobDetailsSectionPosition();
+  
+  // Force spacer height update after a brief delay to ensure DOM is ready
+  setTimeout(function() {
+    updateJobDetailsSectionPosition();
+  }, 100);
+  
+  // Add scroll listener to update clip-path for scrollable sections
+  window.addEventListener('scroll', updateScrollableClipping);
+  
+  // Initial clip-path update
+  updateScrollableClipping();
 });
 
 // Call updateCityMenuLabelFontSize on window resize
@@ -805,25 +816,81 @@ function updateLocationExtrasForCityChange() {
 // Function to update job details section position based on borderline
 function updateJobDetailsSectionPosition() {
   const jobDetailsSection = document.querySelector('.new-post-job-details-section');
+  const detailsSection = document.querySelector('.new-post-details-section');
+  const spacer = document.getElementById('newPostSpacer');
   const extrasHeader = document.getElementById('newPostExtrasHeader');
   if (!jobDetailsSection) return;
   
   const isMobile = window.innerWidth <= 600;
   const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
   
+  let detailsSectionTop = 0;
+  
   if (extrasVisible) {
     // Position below borderline when extras are visible
     if (isMobile) {
       jobDetailsSection.style.top = '380px'; // Below mobile borderline + extras
+      detailsSectionTop = 780; // Position Details section below job details (lowered 150px total)
+      if (detailsSection) detailsSection.style.top = '780px';
     } else {
       jobDetailsSection.style.top = '480px'; // Below desktop borderline + extras
+      detailsSectionTop = 840; // Position Details section below job details (raised 10px)
+      if (detailsSection) detailsSection.style.top = '840px';
     }
   } else {
     // Position below borderline when only location is visible
     if (isMobile) {
       jobDetailsSection.style.top = '290px'; // Below mobile borderline + location only
+      detailsSectionTop = 685; // Position Details section below job details (lowered 135px total)
+      if (detailsSection) detailsSection.style.top = '685px';
     } else {
       jobDetailsSection.style.top = '380px'; // Below desktop borderline + location only
+      detailsSectionTop = 740; // Position Details section below job details (raised 10px)
+      if (detailsSection) detailsSection.style.top = '740px';
     }
+  }
+  
+  // Update spacer height to create scrollable height
+  if (spacer) {
+    const spacerHeight = detailsSectionTop + 200; // Details section position + extra space for section height
+    spacer.style.height = spacerHeight + 'px';
+  }
+}
+
+// Function to update clip-path for scrollable sections to hide them when they go under fixed headers
+function updateScrollableClipping() {
+  const jobDetailsSection = document.querySelector('.new-post-job-details-section');
+  const detailsSection = document.querySelector('.new-post-details-section');
+  const extrasHeader = document.getElementById('newPostExtrasHeader');
+  
+  if (!jobDetailsSection && !detailsSection) return;
+  
+  const isMobile = window.innerWidth <= 600;
+  const extrasVisible = extrasHeader && extrasHeader.style.display !== 'none';
+  
+  // Determine borderline position
+  let borderlineTop = 0;
+  if (extrasVisible) {
+    borderlineTop = isMobile ? 354 : 448; // Below both headers when extras visible
+  } else {
+    borderlineTop = isMobile ? 263 : 354; // Below location header only
+  }
+  
+  // Get current scroll position
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  
+  // Process each section individually
+  if (jobDetailsSection) {
+    const jobDetailsTop = parseFloat(jobDetailsSection.style.top) || 380;
+    const jobDetailsVisibleTop = jobDetailsTop - scrollTop;
+    const jobDetailsClipAmount = Math.max(0, borderlineTop - jobDetailsVisibleTop);
+    jobDetailsSection.style.clipPath = `inset(${jobDetailsClipAmount}px 0 0 0)`;
+  }
+  
+  if (detailsSection) {
+    const detailsTop = parseFloat(detailsSection.style.top) || 730;
+    const detailsVisibleTop = detailsTop - scrollTop;
+    const detailsClipAmount = Math.max(0, borderlineTop - detailsVisibleTop);
+    detailsSection.style.clipPath = `inset(${detailsClipAmount}px 0 0 0)`;
   }
 } 
