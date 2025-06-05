@@ -791,6 +791,66 @@ body::-webkit-scrollbar {
   color: #fff;
 }
 
+/* Details Description Section - styled like job-details-section */
+.new-post-details-section {
+  position: fixed;
+  width: calc(100% - 40px);
+  max-width: 700px;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 730px; /* Position below job details section with more space */
+  z-index: 93;
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.new-post-details-header {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f5f5f5;
+  background: #3d4a5c;
+  padding: 12px 20px;
+  margin: 0;
+  border-radius: 8px 8px 0 0;
+  text-transform: uppercase;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.new-post-details-text-container {
+  max-height: 126px;
+  overflow-y: auto;
+  padding: 8px 20px 15px 20px;
+  background: #2d3748;
+  border-radius: 0 0 8px 8px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.new-post-details-text-container::-webkit-scrollbar {
+  display: none;
+}
+
+.new-post-details-textarea {
+  width: 100%;
+  min-height: 100px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.new-post-details-textarea::placeholder {
+  color: rgba(226, 232, 240, 0.6);
+  font-style: italic;
+}
+
 /* ========================== MOBILE STYLES ========================== */
 /* ========================== MOBILE STYLES ========================== */
 /* ========================== MOBILE STYLES ========================== */
@@ -1065,6 +1125,30 @@ body::-webkit-scrollbar {
     padding: 10px 12px;
     width: 75px;
     flex-shrink: 0;
+  }
+
+  /* Details Section Mobile Styles */
+  .new-post-details-section {
+    top: 690px; /* Position below mobile job details section with more space */
+    width: calc(100% - 20px);
+    max-width: 350px; /* Match job details section mobile width */
+    margin: 0 auto 25px auto;
+  }
+
+  .new-post-details-header {
+    font-size: 1rem;
+    padding: 10px 15px;
+  }
+
+  .new-post-details-text-container {
+    max-height: 105px;
+    padding: 4px 15px 12px 15px;
+  }
+
+  .new-post-details-textarea {
+    font-size: 1rem;
+    line-height: 1.4;
+    min-height: 85px;
   }
 
   /* Mobile-specific styling if needed */
