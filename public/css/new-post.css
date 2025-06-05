@@ -1,19 +1,13 @@
 html {
   overflow-y: auto;
   height: auto;
+  /* Hide scrollbar for all browsers and devices */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
 }
 
-/* Hide scrollbar on desktop only */
-@media (hover: hover) and (pointer: fine) {
-  html {
-    overflow-y: scroll;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  html::-webkit-scrollbar {
-    display: none;
-  }
+html::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }
 
 body {
