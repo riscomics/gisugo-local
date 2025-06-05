@@ -890,6 +890,7 @@ body::-webkit-scrollbar {
   border: none;
   border-radius: 8px;
   clip-path: inset(0 0 0 0); /* Will be updated by JavaScript to hide content above borderline */
+  margin-top: 10px;
 }
 
 .new-post-details-header {
@@ -1321,7 +1322,7 @@ body::-webkit-scrollbar {
     top: 690px; /* Position below mobile job details section with more space */
     width: calc(100% - 20px);
     max-width: 350px; /* Match job details section mobile width */
-    margin: 10px auto 25px auto;
+    margin: 20px auto 25px auto;
   }
 
   .new-post-details-header {
