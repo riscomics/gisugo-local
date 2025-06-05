@@ -762,6 +762,9 @@ body::-webkit-scrollbar {
   text-align: center;
   padding-left: 8px;
   padding-right: 8px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .job-time-input option {
@@ -1141,6 +1144,9 @@ body::-webkit-scrollbar {
     text-align: center;
     padding-left: 8px;
     padding-right: 8px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
   }
 
   .job-time-input option {
