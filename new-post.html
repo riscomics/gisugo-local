@@ -152,7 +152,10 @@
       <!-- Job Title -->
       <div class="new-post-job-detail-item job-title-item">
         <label class="new-post-job-detail-label">Job Title:</label>
-        <input type="text" class="new-post-job-detail-input job-title-input" id="jobTitleInput" placeholder="Enter job title">
+        <div class="new-post-job-title-wrapper">
+          <input type="text" class="new-post-job-detail-input job-title-input" id="jobTitleInput" placeholder="Enter job title" maxlength="45">
+          <div class="new-post-character-counter" id="jobTitleCounter">45</div>
+        </div>
       </div>
       
       <!-- Job Date -->
@@ -313,6 +316,6 @@
   <!-- Spacer div to create scrollable height for fixed positioned elements -->
   <div class="new-post-spacer" id="newPostSpacer"></div>
   
-  <script src="public/js/new-post.js?v=15"></script>
+  <script src="public/js/new-post.js?v=16"></script>
 </body>
 </html> 

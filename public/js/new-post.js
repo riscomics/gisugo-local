@@ -1202,6 +1202,40 @@ function initializePaymentValidation() {
   });
 }
 
+// ========================== JOB TITLE CHARACTER COUNTER ==========================
+
+function initializeJobTitleCharacterCounter() {
+  const jobTitleInput = document.getElementById('jobTitleInput');
+  const characterCounter = document.getElementById('jobTitleCounter');
+  
+  if (!jobTitleInput || !characterCounter) {
+    return;
+  }
+  
+  function updateCharacterCounter() {
+    const currentLength = jobTitleInput.value.length;
+    const remainingChars = 45 - currentLength;
+    
+    characterCounter.textContent = remainingChars;
+    
+    // Remove all classes first
+    characterCounter.classList.remove('warning', 'danger');
+    
+    // Add appropriate class based on remaining characters
+    if (remainingChars <= 5) {
+      characterCounter.classList.add('danger');
+    } else if (remainingChars <= 10) {
+      characterCounter.classList.add('warning');
+    }
+  }
+  
+  // Update counter on input
+  jobTitleInput.addEventListener('input', updateCharacterCounter);
+  
+  // Initial update
+  updateCharacterCounter();
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
@@ -1211,6 +1245,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializePhotoUpload(); // Add photo upload initialization
   initializePostJobButton(); // Add post job button initialization
   initializePaymentValidation(); // Add payment amount validation
+  initializeJobTitleCharacterCounter(); // Add job title character counter
 });
 
 // Call updateCityMenuLabelFontSize on window resize

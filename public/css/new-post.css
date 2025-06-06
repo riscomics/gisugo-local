@@ -713,6 +713,34 @@ body::-webkit-scrollbar {
   max-width: 570px;
 }
 
+.new-post-job-title-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+}
+
+.new-post-character-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.new-post-character-counter.warning {
+  color: #f59e0b;
+}
+
+.new-post-character-counter.danger {
+  color: #ef4444;
+}
+
 /* Job Date Input */
 .job-date-input {
   width: 200px;
@@ -1491,6 +1519,12 @@ body::-webkit-scrollbar {
   .job-title-input {
     width: 85%;
     max-width: 85%;
+  }
+
+  .new-post-character-counter {
+    bottom: 11px;
+    right: 5px;
+    font-size: 11px;
   }
 
   /* Job Date Mobile */
