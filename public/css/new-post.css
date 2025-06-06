@@ -721,6 +721,13 @@ body::-webkit-scrollbar {
 /* Time Inputs */
 .new-post-time-row {
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.new-post-time-controls {
+  display: flex;
   gap: 30px;
   align-items: flex-start;
 }
@@ -913,6 +920,85 @@ body::-webkit-scrollbar {
 .new-post-time-period option {
   background: #4a5568;
   color: #fff;
+}
+
+/* Photo Upload Section Styles */
+.new-post-photo-upload-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: auto;
+  transform: translateX(-50px);
+}
+
+.new-post-photo-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.new-post-photo-upload-area:hover {
+  opacity: 0.8;
+}
+
+.new-post-upload-icon {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+
+.new-post-upload-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.new-post-photo-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.new-post-photo-preview {
+  width: 80px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid #cbd5e0;
+  background: #e2e8f0;
+}
+
+.new-post-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.new-post-photo-change-btn {
+  background: transparent;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.new-post-photo-change-btn:hover {
+  background: rgba(203, 213, 224, 0.1);
+  border-color: #fff;
 }
 
 /* Payment Offer Section Styles */
@@ -1415,7 +1501,9 @@ body::-webkit-scrollbar {
 
   /* Time Inputs Mobile */
   .new-post-time-row {
-    flex-direction: column;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     gap: 15px;
     width: 100%;
   }
@@ -1583,6 +1671,43 @@ body::-webkit-scrollbar {
 
   .new-post-time-period-list li:hover {
     background: rgba(255,255,255,0.08);
+  }
+
+  /* Photo Upload Mobile Styles */
+  .new-post-time-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .new-post-photo-upload-section {
+    margin: 50px 0 0 -35px !important;
+    align-self: flex-start;
+    transform: translateX(-20px);
+  }
+
+  .new-post-photo-upload-area {
+    width: 90px;
+    height: 90px;
+  }
+
+  .new-post-upload-icon {
+    width: 66px;
+    height: 66px;
+  }
+
+  .new-post-upload-text {
+    font-size: 11px;
+  }
+
+  .new-post-photo-preview {
+    width: 70px;
+    height: 50px;
+  }
+
+  .new-post-photo-change-btn {
+    font-size: 9px;
+    padding: 3px 6px;
   }
 
   /* Payment Section Mobile Styles */

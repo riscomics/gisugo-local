@@ -161,10 +161,11 @@
         <input type="date" class="new-post-job-detail-input job-date-input" id="jobDateInput">
       </div>
       
-      <!-- Time Start and End -->  
+      <!-- Time Start and End with Photo Upload -->  
       <div class="new-post-job-detail-item job-time-item"> 
         <div class="new-post-time-row">
-                      <div class="new-post-time-group">
+          <div class="new-post-time-controls">
+            <div class="new-post-time-group">
               <label class="new-post-job-detail-label">Job Start:</label>
               <div class="new-post-time-input-wrapper">
                 <div class="new-post-time-menu-wrapper">
@@ -203,7 +204,7 @@
                 </div>
               </div>
             </div>
-                      <div class="new-post-time-group">
+            <div class="new-post-time-group">
               <label class="new-post-job-detail-label">Job End:</label>
               <div class="new-post-time-input-wrapper">
                 <div class="new-post-time-menu-wrapper">
@@ -242,6 +243,26 @@
                 </div>
               </div>
             </div>
+          </div>
+          
+          <!-- Photo Upload Section -->
+          <div class="new-post-photo-upload-section">
+            <input type="file" id="jobPhotoInput" accept="image/*" style="display: none;">
+            
+            <!-- Upload State -->
+            <div class="new-post-photo-upload-area" id="photoUploadArea">
+              <img src="public/icons/upload.png" alt="Upload" class="new-post-upload-icon">
+              <div class="new-post-upload-text">UPLOAD</div>
+            </div>
+            
+            <!-- Preview State (Initially Hidden) -->
+            <div class="new-post-photo-preview-area" id="photoPreviewArea" style="display: none;">
+              <div class="new-post-photo-preview">
+                <img id="photoPreviewImage" src="" alt="Preview" class="new-post-preview-image">
+              </div>
+              <button class="new-post-photo-change-btn" id="photoChangeBtn">CHANGE</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -292,6 +313,6 @@
   <!-- Spacer div to create scrollable height for fixed positioned elements -->
   <div class="new-post-spacer" id="newPostSpacer"></div>
   
-  <script src="public/js/new-post.js?v=12"></script>
+  <script src="public/js/new-post.js?v=13"></script>
 </body>
 </html> 

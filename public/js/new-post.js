@@ -1001,6 +1001,49 @@ function initializePaymentDropdown() {
   });
 }
 
+// ========================== PHOTO UPLOAD FUNCTIONALITY ==========================
+
+function initializePhotoUpload() {
+  const photoInput = document.getElementById('jobPhotoInput');
+  const uploadArea = document.getElementById('photoUploadArea');
+  const previewArea = document.getElementById('photoPreviewArea');
+  const previewImage = document.getElementById('photoPreviewImage');
+  const changeBtn = document.getElementById('photoChangeBtn');
+
+  if (!photoInput || !uploadArea || !previewArea || !previewImage || !changeBtn) {
+    return;
+  }
+
+  // Handle upload area click
+  uploadArea.addEventListener('click', function() {
+    photoInput.click();
+  });
+
+  // Handle change button click
+  changeBtn.addEventListener('click', function() {
+    photoInput.click();
+  });
+
+  // Handle file selection
+  photoInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      
+      reader.onload = function(event) {
+        previewImage.src = event.target.result;
+        
+        // Switch from upload to preview state
+        uploadArea.style.display = 'none';
+        previewArea.style.display = 'flex';
+      };
+      
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
 // ========================== POST JOB BUTTON FUNCTIONALITY ==========================
 
 function initializePostJobButton() {
@@ -1033,6 +1076,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeTimeDropdowns(); // Add time dropdown initialization
   initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile
   initializePaymentDropdown(); // Add payment dropdown initialization
+  initializePhotoUpload(); // Add photo upload initialization
   initializePostJobButton(); // Add post job button initialization
 });
 
