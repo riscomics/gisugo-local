@@ -1003,6 +1003,64 @@ function initializePaymentDropdown() {
 
 // ========================== PHOTO UPLOAD FUNCTIONALITY ==========================
 
+// Global variable to store processed image data
+let processedJobPhoto = null;
+
+function processImageTo500x281(file, callback) {
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  img.onload = function() {
+    // Target dimensions: 500px width, 16:9 ratio (281px height)
+    const targetWidth = 500;
+    const targetHeight = 281;
+    
+    // Calculate scaling to maintain aspect ratio while fitting in target dimensions
+    const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+    const scaledWidth = img.width * scale;
+    const scaledHeight = img.height * scale;
+    
+    // Calculate crop offsets to center the image
+    const offsetX = (scaledWidth - targetWidth) / 2;
+    const offsetY = (scaledHeight - targetHeight) / 2;
+    
+    // Set canvas dimensions
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    
+    // Draw the scaled and cropped image
+    ctx.drawImage(
+      img, 
+      -offsetX, -offsetY, 
+      scaledWidth, scaledHeight
+    );
+    
+    // Convert canvas to blob/data URL
+    canvas.toBlob(function(blob) {
+      const processedDataURL = canvas.toDataURL('image/jpeg', 0.9);
+      
+      // Store processed image data globally for future use
+      processedJobPhoto = {
+        blob: blob,
+        dataURL: processedDataURL,
+        width: targetWidth,
+        height: targetHeight,
+        originalFile: file
+      };
+      
+      callback(processedDataURL);
+    }, 'image/jpeg', 0.9);
+  };
+  
+  // Load the image
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function initializePhotoUpload() {
   const photoInput = document.getElementById('jobPhotoInput');
   const uploadArea = document.getElementById('photoUploadArea');
@@ -1029,17 +1087,26 @@ function initializePhotoUpload() {
     const file = e.target.files[0];
     
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
+      // Show loading state (optional enhancement)
+      uploadArea.style.opacity = '0.5';
       
-      reader.onload = function(event) {
-        previewImage.src = event.target.result;
+      // Process image to 500x281 dimensions
+      processImageTo500x281(file, function(processedDataURL) {
+        // Update preview with processed image
+        previewImage.src = processedDataURL;
+        
+        // Add data attributes for future job preview page integration
+        previewImage.setAttribute('data-job-photo-processed', 'true');
+        previewImage.setAttribute('data-job-photo-width', '500');
+        previewImage.setAttribute('data-job-photo-height', '281');
         
         // Switch from upload to preview state
+        uploadArea.style.opacity = '1';
         uploadArea.style.display = 'none';
         previewArea.style.display = 'flex';
-      };
-      
-      reader.readAsDataURL(file);
+        
+        console.log('Image processed successfully:', processedJobPhoto);
+      });
     }
   });
 }
