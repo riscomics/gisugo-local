@@ -1061,6 +1061,46 @@ body::-webkit-scrollbar {
   font-weight: 400;
 }
 
+/* Post Job Button Section Styles */
+.new-post-submit-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px auto;
+  max-width: 800px;
+  padding: 0 15px;
+}
+
+.new-post-submit-btn {
+  background: #f0d0aa;
+  border: 2px solid aliceblue;
+  border-radius: 12px;
+  padding: 10px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: Arial, Helvetica, sans-serif;
+  min-width: 180px;
+}
+
+.new-post-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.new-post-submit-btn:active {
+  transform: translateY(0);
+}
+
+.new-post-submit-btn span {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  letter-spacing: 0.2px;
+}
+
 /* Details Description Section - styled like job-details-section */
 .new-post-details-section {
   position: relative;
@@ -1592,6 +1632,21 @@ body::-webkit-scrollbar {
     height: 35px;
     font-size: 14px;
     padding: 0 10px;
+  }
+
+  /* Post Job Button Mobile Styles */
+  .new-post-submit-section {
+    margin: 15px auto;
+    padding: 0 10px;
+  }
+
+  .new-post-submit-btn {
+    min-width: 160px;
+    padding: 8px 30px;
+  }
+
+  .new-post-submit-btn span {
+    font-size: 1.3rem;
   }
 
   /* Details Section Mobile Styles */

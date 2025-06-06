@@ -1001,12 +1001,39 @@ function initializePaymentDropdown() {
   });
 }
 
+// ========================== POST JOB BUTTON FUNCTIONALITY ==========================
+
+function initializePostJobButton() {
+  const postJobBtn = document.getElementById('postJobBtn');
+  
+  if (!postJobBtn) {
+    return;
+  }
+  
+  postJobBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Add visual feedback
+    this.style.transform = 'translateY(2px)';
+    setTimeout(() => {
+      this.style.transform = '';
+    }, 150);
+    
+    // Here you can add validation and form submission logic
+    console.log('Post Job button clicked');
+    
+    // Example: Basic form validation could go here
+    // validateAndSubmitJob();
+  });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
   initializeTimeDropdowns(); // Add time dropdown initialization
   initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile
   initializePaymentDropdown(); // Add payment dropdown initialization
+  initializePostJobButton(); // Add post job button initialization
 });
 
 // Call updateCityMenuLabelFontSize on window resize
