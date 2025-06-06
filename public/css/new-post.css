@@ -1219,7 +1219,6 @@ body::-webkit-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-
 .new-post-details-text-container::-webkit-scrollbar {
   display: none;
 }
