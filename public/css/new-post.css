@@ -1225,7 +1225,7 @@ body::-webkit-scrollbar {
   /* Category header mobile styles */
   .new-post-category-header {
     position: relative;
-    margin-bottom: -10px;
+    margin-bottom: -15px;
   }
   
   .new-post-listheader {
