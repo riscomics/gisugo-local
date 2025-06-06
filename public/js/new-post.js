@@ -955,11 +955,58 @@ function initializeTimePeriodDropdowns() {
   });
 }
 
+// ========================== PAYMENT OFFER FUNCTIONALITY ==========================
+
+// Payment type dropdown functionality
+let selectedPaymentType = "PER HOUR";
+
+function initializePaymentDropdown() {
+  const paymentTypeMenu = document.getElementById('paymentTypeMenu');
+  const paymentTypeOverlay = document.getElementById('paymentTypeOverlay');
+  const paymentTypeLabel = document.getElementById('paymentTypeLabel');
+  const paymentTypeList = document.getElementById('paymentTypeList');
+
+  if (!paymentTypeMenu || !paymentTypeOverlay || !paymentTypeLabel || !paymentTypeList) {
+    return;
+  }
+
+  // Toggle dropdown on menu click
+  paymentTypeMenu.addEventListener('click', function(e) {
+    e.stopPropagation();
+    paymentTypeOverlay.classList.toggle('show');
+  });
+
+  // Handle option selection
+  paymentTypeList.addEventListener('click', function(e) {
+    if (e.target.tagName === 'LI') {
+      const value = e.target.getAttribute('data-value');
+      selectedPaymentType = value;
+      paymentTypeLabel.textContent = value;
+      paymentTypeOverlay.classList.remove('show');
+    }
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!paymentTypeMenu.contains(e.target)) {
+      paymentTypeOverlay.classList.remove('show');
+    }
+  });
+
+  // Close dropdown on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      paymentTypeOverlay.classList.remove('show');
+    }
+  });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
   initializeTimeDropdowns(); // Add time dropdown initialization
   initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile
+  initializePaymentDropdown(); // Add payment dropdown initialization
 });
 
 // Call updateCityMenuLabelFontSize on window resize

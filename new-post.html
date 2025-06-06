@@ -257,9 +257,34 @@
     </div>
   </div>
   
+  <!-- Payment Offer Section -->
+  <div class="new-post-payment-section">
+    <div class="new-post-payment-container">
+      <div class="new-post-payment-header">PAYMENT OFFER:</div>
+      <div class="new-post-payment-controls">
+        <div class="new-post-payment-type-wrapper">
+          <div class="new-post-payment-type-menu" id="paymentTypeMenu">
+            <div id="paymentTypeLabel">PER HOUR</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="new-post-payment-type-overlay" id="paymentTypeOverlay">
+            <ul class="new-post-payment-type-list" id="paymentTypeList">
+              <li data-value="PER HOUR">PER HOUR</li>
+              <li data-value="PER JOB">PER JOB</li>
+            </ul>
+          </div>
+        </div>
+        <div class="new-post-payment-amount-wrapper">
+          <div class="new-post-payment-peso">₱</div>
+          <input type="number" class="new-post-payment-amount-input" id="paymentAmountInput" placeholder="0.00" min="0" step="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Spacer div to create scrollable height for fixed positioned elements -->
   <div class="new-post-spacer" id="newPostSpacer"></div>
   
-  <script src="public/js/new-post.js?v=10"></script>
+  <script src="public/js/new-post.js?v=11"></script>
 </body>
 </html> 
