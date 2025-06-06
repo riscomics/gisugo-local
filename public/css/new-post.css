@@ -1473,7 +1473,7 @@ body::-webkit-scrollbar {
     animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
     font-size: 16.25px;
     font-family: Arial, sans-serif;
-    max-height: 207px;
+    max-height: 187px;
     overflow-y: auto;
     scrollbar-width: none;
   }
