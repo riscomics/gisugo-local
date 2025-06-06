@@ -1137,6 +1137,71 @@ function initializePostJobButton() {
   });
 }
 
+// ========================== PAYMENT AMOUNT VALIDATION ==========================
+
+function initializePaymentValidation() {
+  const paymentInput = document.getElementById('paymentAmountInput');
+  
+  if (!paymentInput) {
+    return;
+  }
+  
+  // Handle input changes (remove decimals, enforce max)
+  paymentInput.addEventListener('input', function(e) {
+    let value = e.target.value;
+    
+    // Remove any decimal points and everything after
+    value = value.split('.')[0];
+    
+    // Convert to number and check max limit
+    let numValue = parseInt(value) || 0;
+    if (numValue > 9999) {
+      numValue = 9999;
+    }
+    
+    // Update the input value
+    e.target.value = numValue === 0 ? '' : numValue;
+  });
+  
+  // Prevent decimal point and other invalid characters from being typed
+  paymentInput.addEventListener('keypress', function(e) {
+    // Allow: backspace, delete, tab, escape, enter
+    if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+        // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        (e.keyCode === 65 && e.ctrlKey === true) ||
+        (e.keyCode === 67 && e.ctrlKey === true) ||
+        (e.keyCode === 86 && e.ctrlKey === true) ||
+        (e.keyCode === 88 && e.ctrlKey === true)) {
+      return;
+    }
+    
+    // Ensure that it's a number and stop the keypress if it's not
+    if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+      e.preventDefault();
+    }
+    
+    // Check if adding this digit would exceed 9999
+    const currentValue = e.target.value;
+    const futureValue = currentValue + String.fromCharCode(e.keyCode);
+    if (parseInt(futureValue) > 9999) {
+      e.preventDefault();
+    }
+  });
+  
+  // Handle paste events
+  paymentInput.addEventListener('paste', function(e) {
+    setTimeout(() => {
+      let value = e.target.value;
+      value = value.split('.')[0]; // Remove decimals
+      let numValue = parseInt(value) || 0;
+      if (numValue > 9999) {
+        numValue = 9999;
+      }
+      e.target.value = numValue === 0 ? '' : numValue;
+    }, 1);
+  });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
@@ -1145,6 +1210,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializePaymentDropdown(); // Add payment dropdown initialization
   initializePhotoUpload(); // Add photo upload initialization
   initializePostJobButton(); // Add post job button initialization
+  initializePaymentValidation(); // Add payment amount validation
 });
 
 // Call updateCityMenuLabelFontSize on window resize
