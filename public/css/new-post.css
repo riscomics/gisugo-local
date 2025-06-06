@@ -1206,14 +1206,14 @@ body::-webkit-scrollbar {
 
 .new-post-submit-btn:active {
   transform: translateY(0);
-}
+} 
 
 .new-post-submit-btn span {
   font-size: 1.5rem;
   font-weight: 700;
   color: #2d3748;
   letter-spacing: 0.2px;
-}
+} 
 
 /* Details Description Section - styled like job-details-section */
 .new-post-details-section {
