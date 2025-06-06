@@ -1522,9 +1522,9 @@ body::-webkit-scrollbar {
   }
 
   .new-post-character-counter {
-    bottom: 11px;
-    right: 5px;
-    font-size: 11px;
+    bottom: 13px;
+    right: 1px;
+    font-size: 13px;
   }
 
   /* Job Date Mobile */
