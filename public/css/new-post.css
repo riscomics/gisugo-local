@@ -1225,6 +1225,7 @@ body::-webkit-scrollbar {
   /* Category header mobile styles */
   .new-post-category-header {
     position: relative;
+    margin-top: 10px;
     margin-bottom: -15px;
   }
   
