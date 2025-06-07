@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-field="job-title">Hatod Job 1 - GISUGO</title>
+  <title data-field="job-title">Hatod rice bags from warehouse to restaurant - GISUGO</title>
   <link rel="stylesheet" href="../../css/jobpage.css">
   
   <!-- Dynamic Job Data -->
@@ -19,7 +19,7 @@
         <img src="../../icons/back.png" alt="Back">
         <span>Back</span>
       </button>
-      <div class="job-header-title" data-field="job-title" id="jobTitle">Hatod duha sako bugas sa bodega to restaurant.</div>
+      <div class="job-header-title" data-field="job-title" id="jobTitle">Hatod rice bags from warehouse to restaurant</div>
       <button class="job-header-btn menu jobcat-menu-btn" id="jobMenuBtn" aria-label="Menu">
         <img src="../../icons/menu.png" alt="Menu">
         <div>Menu</div>
@@ -67,7 +67,7 @@
       <div class="job-info-item" data-field="date">
         <div class="job-info-label">DATE:</div>
         <div class="job-info-box">
-          <div class="job-info-value" data-field="job-date" id="jobDate">December 23, 2025</div>
+          <div class="job-info-value" data-field="job-date" id="jobDate">August 15, 2025</div>
         </div>
       </div>
       <div class="job-info-item" data-field="time">
@@ -100,14 +100,9 @@
     <div class="job-details-header">DETAILS:</div>
     <div class="job-details-text-container">
       <div class="job-details-text" data-field="job-description" id="jobDescription">
-        Need someone to help deliver 2 sako of rice from our warehouse in Guadalupe to my restaurant in Lahug. 
-        The bags are around 25kg each so you'll need to be able to carry them. 
-        Warehouse opens at 9AM, please pick up the rice and deliver to my restaurant before 11AM opening time.
-        
-        The warehouse address is at Guadalupe Industrial Area, you'll see the big "Grains & More" sign. 
-        Ask for Maria at the counter and tell her it's for Tita Rosa's Restaurant delivery. 
-        My restaurant is at Lahug IT Park, ground floor of the main building. 
-        Just bring it to the kitchen entrance at the back.
+        Need someone to help deliver 2 sako of rice from our warehouse in Guadalupe to my restaurant in Lahug. The bags are around 25kg each so you'll need to be able to carry them. Warehouse opens at 9AM, please pick up the rice and deliver to my restaurant before 11AM opening time.
+
+        The warehouse address is at Guadalupe Industrial Area, you'll see the big "Grains & More" sign. Ask for Maria at the counter and tell her it's for Tita Rosa's Restaurant delivery. My restaurant is at Lahug IT Park, ground floor of the main building. Just bring it to the kitchen entrance at the back.
       </div>
     </div>
   </div>
@@ -141,14 +136,14 @@
       <div class="customer-header">
         CUSTOMER:
         <div class="customer-name-container">
-          <div class="customer-name" data-field="customer-name" id="customerName">Peter J. Ang</div>
+          <div class="customer-name" data-field="customer-name" id="customerName">Rosa Martinez</div>
         </div>
       </div>
       <div class="customer-content">
         <div class="customer-profile">
-          <a href="../../profiles/peter-j-ang.html" class="customer-photo-link" data-field="customer-profile-link" id="customerProfileLink">
+          <a href="../../profiles/rosa-martinez.html" class="customer-photo-link" data-field="customer-profile-link" id="customerProfileLink">
             <div class="customer-photo">
-              <img src="../../users/Peter-J-Ang-User-01.jpg" alt="Peter J. Ang" class="customer-avatar" data-field="customer-avatar" id="customerAvatar">
+              <img src="../../users/Peter-J-Ang-User-01.jpg" alt="Rosa Martinez" class="customer-avatar" data-field="customer-avatar" id="customerAvatar">
             </div>
           </a>
         </div>
@@ -161,8 +156,8 @@
               <div class="contact-dropdown-item" data-action="report">Report Job</div>
             </div>
           </button>
-          <div class="customer-rating" data-rating="4.3" data-count="1080" data-field="customer-rating" id="customerRating">
-            <span class="rating-count" data-field="customer-rating-count" id="customerRatingCount">1080</span>
+          <div class="customer-rating" data-rating="4.5" data-count="89" data-field="customer-rating" id="customerRating">
+            <span class="rating-count" data-field="customer-rating-count" id="customerRatingCount">89</span>
             <div class="rating-stars" data-field="customer-rating-stars" id="customerRatingStars">
               <span class="star"></span>
               <span class="star"></span>
@@ -198,37 +193,25 @@
             <span class="apply-payment-label">Make Optional<br>Counter Offer:</span>
             <div class="apply-info-icon">
               i
-              <div class="apply-info-tooltip">Enter a different PRICE<br>to negotiate with the customer</div>
+              <div class="apply-info-tooltip">
+                You can offer a different amount if you think the job deserves higher pay.
+              </div>
             </div>
           </div>
-          <div class="apply-counter-input-container">
-            <span class="apply-counter-currency" data-field="currency-symbol" id="currencySymbol">₱</span>
-            <input type="number" class="apply-counter-input" placeholder="000" id="counterOfferAmount" autocomplete="off" data-form="false">
+          <div class="apply-counter-amount">
+            <span class="apply-peso-sign">₱</span>
+            <input type="number" class="apply-counter-input" placeholder="0" min="1" max="9999" id="counterOfferAmount">
           </div>
         </div>
       </div>
       
       <div class="apply-actions">
-        <button class="apply-submit-btn" id="submitApplication" type="button">APPLY</button>
-        <button class="apply-cancel-btn" id="cancelApplication" type="button">Cancel</button>
+        <button class="apply-cancel-btn" id="applyCancelBtn">CANCEL</button>
+        <button class="apply-send-btn" id="applySendBtn">SEND APPLICATION</button>
       </div>
     </div>
   </div>
   
-  <!-- Application Confirmation Overlay -->
-  <div class="application-sent-overlay" id="applicationSentOverlay">
-    <div class="application-sent-modal">
-      <div class="application-sent-title">APPLICATION SENT!</div>
-      <div class="application-sent-subtitle">What now?</div>
-      <div class="application-sent-text">
-        You will receive a Phone Call from the Customer if they want you for the Job!<br><br>
-        You can also check your MESSAGES later.
-      </div>
-      <button class="application-sent-close-btn" id="applicationSentClose">CLOSE</button>
-    </div>
-  </div>
-  
-  <script src="../../js/jobpage.js?v=3"></script>
-  <script src="../../js/menu.js"></script>
+  <script src="../../js/jobpage.js"></script>
 </body>
 </html> 
