@@ -2278,6 +2278,11 @@ body::-webkit-scrollbar {
     width: 75%;
   }
 
+  /* Increase width of Per Job/Per Hour box on mobile */
+  .new-post-preview-job-payment-item:last-child .new-post-preview-job-payment-box {
+    width: 85%;
+  }
+
   .new-post-preview-job-payment-value {
     font-size: 1.1rem;
   }
