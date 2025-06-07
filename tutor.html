@@ -1,27 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TUTOR - GISUGO</title>
-  <link rel="stylesheet" href="public/css/listing.css">
-</head>
-<body data-job-category="tutor">
-  
-  <div class="jobcat-header">
-    <div class="jobcat-header-container">
-      <button class="jobcat-header-btn back" onclick="window.location.href='index.html'" aria-label="Back">
-        <img src="public/icons/back.png" alt="Back">
-        <span>Back</span>
-      </button>
-      <div class="jobcat-header-title" id="jobcatHeaderTitle">TUTOR</div>
-      <button class="jobcat-header-btn menu jobcat-menu-btn" id="jobcatMenuBtn" aria-label="Menu">
-        <img src="public/icons/menu.png" alt="Menu">
-        <div>Menu</div>
-      </button> 
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tutor Service - GISUGO</title>
+    <link rel="stylesheet" href="public/css/listing.css">
+  </head>
+  <body>
+    <div class="jobcat-header">
+      <div class="jobcat-listheader">
+        <div class="jobcat-servicemenu" id="jobcatServiceMenuBtn">
+          <div class="jobcat-servicename">
+            <div>Tutor Jobs</div>
+            <div>&#9660;</div>
+          </div>
+        </div>
+        <div class="jobcat-servicemenu-overlay" id="jobcatServiceMenuOverlay">
+          <ul>
+            <li><a href="hatod.html">Hatod Jobs</a></li>
+            <li><a href="hakot.html">Hakot Jobs</a></li>
+            <li><a href="kompra.html">Kompra Jobs</a></li>
+            <li><a href="luto.html">Luto Jobs</a></li>
+            <li><a href="hugas.html">Hugas Jobs</a></li>
+            <li><a href="laba.html">Laba Jobs</a></li>
+            <li><a href="limpyo.html">Limpyo Jobs</a></li>
+            <li><a href="tindera.html">Tindera Jobs</a></li>
+            <li><a href="bantay.html">Bantay Jobs</a></li>
+            <li><a href="painter.html">Painter Jobs</a></li>
+            <li><a href="carpenter.html">Carpenter Jobs</a></li>
+            <li><a href="plumber.html">Plumber Jobs</a></li>
+            <li><a href="security.html">Security Jobs</a></li>
+            <li><a href="driver.html">Driver Jobs</a></li>
+            <li><a href="tutor.html" class="active">Tutor Jobs</a></li>
+            <li><a href="clerical.html">Clerical Jobs</a></li>
+            <li><a href="builder.html">Builder Jobs</a></li>
+            <li><a href="reception.html">Reception Jobs</a></li>
+            <li><a href="nurse.html">Nurse Jobs</a></li>
+            <li><a href="doctor.html">Doctor Jobs</a></li>
+            <li><a href="lawyer.html">Lawyer Jobs</a></li>
+            <li><a href="mechanic.html">Mechanic Jobs</a></li>
+            <li><a href="electrician.html">Electrician Jobs</a></li>
+            <li><a href="tailor.html">Tailor Jobs</a></li>
+          </ul>
+        </div>
+        <div class="jobcat-headerbuttons">
+          <div class="jobcat-headerbutton">
+            <a href="new-post.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+              <div><img src="public/icons/Post.png" alt="Post"></div>
+              <div class="posttext">Post</div>
+            </a>
+          </div>
+          <div class="jobcat-headerbutton">
+            <div><img src="public/icons/search.png" alt="Search"></div>
+            <div>Search</div>
+          </div>
+          <div class="jobcat-headerbutton jobcat-menu-btn">
+            <div><img src="public/icons/menu.png" alt="Menu"></div>
+            <div>Menu</div>
+          </div>
+        </div>
+      </div>
+      <div class="jobcat-borderline"></div>
     </div>
-    <div class="jobcat-header-borderline"></div>
-  </div>
+
+    <!-- Sort Header -->
+    <div class="jobcat-sort-header">
+      <div class="sortmenus">
+        <div class="region-menu-wrapper">
+          <div class="sort-menu region-menu" id="locationRegion">
+            <div id="regionMenuLabel">CEBU</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="region-menu-overlay" id="regionMenuOverlay">
+            <ul class="region-menu-list" id="regionMenuList">
+              <!-- Region items will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+        <div class="city-menu-wrapper">
+          <div class="sort-menu city-menu" id="locationCity">
+            <div id="cityMenuLabel">CEBU CITY</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="city-menu-overlay" id="cityMenuOverlay">
+            <ul class="city-menu-list" id="cityMenuList">
+              <!-- City items will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+        <div class="pay-menu-wrapper">
+          <div class="sort-menu pay-menu" id="payMenu">
+            <div id="payMenuLabel">PAY TYPE</div>
+            <div>&#9660;</div>
+          </div>
+          <div class="pay-menu-overlay" id="payMenuOverlay">
+            <ul class="pay-menu-list" id="payMenuList">
+              <!-- Pay type items will be rendered here by JS -->
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="jobcat-sort-borderline"></div>
+    </div>
 
     <div class="jobcat-header-spacer"></div>
 
