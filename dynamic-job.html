@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageTitle">Job Details - GISUGO</title>
+  <link rel="stylesheet" href="public/css/jobpage.css">
+</head>
+<body>
+  <div class="job-header">
+    <div class="job-header-title-container">
+      <button class="job-header-btn back" onclick="window.history.back()" aria-label="Back">
+        <img src="public/icons/back.png" alt="Back">
+        <span>Back</span>
+      </button>
+      <div class="job-header-title" id="jobTitle">Loading...</div>
+      <button class="job-header-btn menu jobcat-menu-btn" id="jobMenuBtn" aria-label="Menu">
+        <img src="public/icons/menu.png" alt="Menu">
+        <div>Menu</div>
+      </button> 
+    </div>
+    <div class="job-header-borderline"></div>
+  </div>
+  
+  <div class="jobcat-menu-overlay" id="jobcatMenuOverlay">
+    <div class="jobcat-menu-items">
+      <div class="jobcat-menu-item" onclick="window.location.href='index.html'">
+        <img src="public/icons/Home.png" alt="Home">
+        <div>Home</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <img src="public/icons/Messages.png" alt="Messages">
+        <div>Messages</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <img src="public/icons/Profile.png" alt="Profile">
+        <div>Profile</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <img src="public/icons/Jobs.png" alt="Jobs">
+        <div>Jobs</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <a href="new-post.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+          <img src="public/icons/Post.png" alt="Post">
+          <div>Post</div>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Photo Section -->
+  <div class="job-photo-container" id="jobPhotoContainer" style="display: none;">
+    <img src="" alt="Job Photo" class="job-photo" id="jobPhoto">
+  </div>
+  <div class="job-photo-borderline" id="jobPhotoBorderline" style="display: none;"></div>
+  
+  <!-- Job Info Section -->
+  <div class="job-info-section" id="jobInfoSection">
+    <!-- Standard Fields Row -->
+    <div class="job-info-row" data-row-type="standard">
+      <div class="job-info-item" data-field="date">
+        <div class="job-info-label">DATE:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" id="jobDate">Loading...</div>
+        </div>
+      </div>
+      <div class="job-info-item" data-field="time">
+        <div class="job-info-label">TIME:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" id="jobTime">Loading...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Extras Row - Will be populated dynamically based on category -->
+    <div class="job-info-row" data-row-type="extras" id="jobExtrasRow" style="display: none;">
+      <div class="job-info-item" id="jobExtra1">
+        <div class="job-info-label" id="jobExtra1Label">FIELD 1:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" id="jobExtra1Value">Loading...</div>
+        </div>
+      </div>
+      <div class="job-info-item" id="jobExtra2">
+        <div class="job-info-label" id="jobExtra2Label">FIELD 2:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" id="jobExtra2Value">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Details Section -->
+  <div class="job-details-section" id="jobDetailsSection">
+    <div class="job-details-header">DETAILS:</div>
+    <div class="job-details-text-container">
+      <div class="job-details-text" id="jobDescription">Loading...</div>
+    </div>
+  </div>
+  
+  <!-- Job Payment Section -->
+  <div class="job-payment-section" id="jobPaymentSection">
+    <div class="job-payment-row">
+      <div class="job-payment-item" data-payment-type="offer">
+        <div class="job-payment-box">
+          <div class="job-payment-value" id="jobPaymentAmount">₱0</div>
+        </div>
+      </div>
+      <div class="job-payment-item" data-payment-type="rate">
+        <div class="job-payment-box">
+          <div class="job-payment-value" id="jobPaymentRate">Per Hour</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Apply Section -->
+  <div class="job-apply-section">
+    <button class="job-apply-btn" id="jobApplyBtn" aria-label="Apply for this job">
+      <span>APPLY TO JOB</span>
+    </button>
+  </div>
+  
+  <!-- Customer Section -->
+  <div class="customer-section" id="customerSection">
+    <div class="customer-container">
+      <div class="customer-header">
+        CUSTOMER:
+        <div class="customer-name-container">
+          <div class="customer-name" id="customerName">Demo User</div>
+        </div>
+      </div>
+      <div class="customer-content">
+        <div class="customer-profile">
+          <div class="customer-photo">
+            <img src="public/users/default-user.png" alt="User" class="customer-avatar" id="customerAvatar">
+          </div>
+        </div>
+        <div class="customer-actions">
+          <button class="customer-contact-btn" id="contactBtn">
+            <span>CONTACT</span>
+            <div class="contact-dropdown-arrow">▼</div>
+            <div class="contact-dropdown-overlay" id="contactDropdown">
+              <div class="contact-dropdown-item" data-action="contact">Contact</div>
+              <div class="contact-dropdown-item" data-action="report">Report Job</div>
+            </div>
+          </button>
+          <div class="customer-rating" data-rating="4.5" data-count="0">
+            <span class="rating-count">0</span>
+            <div class="rating-stars">
+              <span class="star"></span>
+              <span class="star"></span>
+              <span class="star"></span>
+              <span class="star"></span>
+              <span class="star"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Apply Job Modal Overlay -->
+  <div class="apply-job-overlay" id="applyJobOverlay">
+    <div class="apply-job-modal">
+      <div class="apply-job-header">WRITE MESSAGE TO CUSTOMER:</div>
+      
+      <div class="apply-message-section">
+        <div class="apply-message-container">
+          <textarea class="apply-message-textarea" placeholder="Enter your message..." id="applyMessage" autocomplete="off" data-form="false"></textarea>
+        </div>
+      </div>
+      
+      <div class="apply-payment-info">
+        <div class="apply-payment-row">
+          <span class="apply-payment-label">PAY AFTER<br>COMPLETED</span>
+          <span class="apply-payment-amount" id="modalPaymentAmount">₱0</span>
+        </div>
+      </div>
+      
+      <div class="apply-actions">
+        <button class="apply-cancel-btn" id="applyCancelBtn">CANCEL</button>
+        <button class="apply-send-btn" id="applySendBtn">SEND APPLICATION</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="public/js/dynamic-job.js"></script>
+</body>
+</html> 

@@ -344,3 +344,91 @@ setTimeout(truncateBarangayNames, 100);
 
 // Also call on window load as a final backup
 window.addEventListener('load', truncateBarangayNames);
+
+// ========================== JOB PREVIEW CARDS LOADING ==========================
+
+function getCurrentCategory() {
+  // Get category from page title or URL
+  const title = document.title;
+  const categoryMatch = title.match(/(\w+) Service/);
+  if (categoryMatch) {
+    return categoryMatch[1].toLowerCase();
+  }
+  
+  // Fallback: get from URL
+  const url = window.location.pathname;
+  const filename = url.substring(url.lastIndexOf('/') + 1);
+  return filename.replace('.html', '');
+}
+
+function loadJobPreviewCards() {
+  const currentCategory = getCurrentCategory();
+  
+  // Get job preview cards from localStorage
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  const categoryCards = previewCards[currentCategory] || [];
+  
+  if (categoryCards.length === 0) {
+    return; // No jobs to display
+  }
+  
+  // Find the insertion point (after the header spacer)
+  const headerSpacer = document.querySelector('.jobcat-header-spacer');
+  if (!headerSpacer) {
+    console.error('Header spacer not found');
+    return;
+  }
+  
+  // Create and insert job preview cards
+  categoryCards.forEach(cardData => {
+    const jobCard = createJobPreviewCard(cardData);
+    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+  });
+}
+
+function createJobPreviewCard(cardData) {
+  const cardElement = document.createElement('a');
+  cardElement.href = cardData.templateUrl;
+  cardElement.className = 'job-preview-card';
+  
+  // Parse extras to get labels and values
+  const extra1Parts = cardData.extra1 ? cardData.extra1.split(':') : ['', ''];
+  const extra2Parts = cardData.extra2 ? cardData.extra2.split(':') : ['', ''];
+  
+  const extra1Label = extra1Parts[0] ? extra1Parts[0].trim() + ':' : '';
+  const extra1Value = extra1Parts[1] ? extra1Parts[1].trim() : '';
+  const extra2Label = extra2Parts[0] ? extra2Parts[0].trim() + ':' : '';
+  const extra2Value = extra2Parts[1] ? extra2Parts[1].trim() : '';
+  
+  cardElement.innerHTML = `
+    <div class="job-preview-img">
+      <img src="${cardData.photo}" alt="Job preview image">
+    </div>
+    <div class="job-preview-content">
+      <div class="job-preview-title">${cardData.title}</div>
+      <div class="job-preview-extras">
+        ${extra1Label ? `<div class="job-preview-extra1"><span class="job-preview-extra-label1">${extra1Label}</span> ${extra1Value}</div>` : ''}
+        ${extra2Label ? `<div class="job-preview-extra2"><span class="job-preview-extra-label2">${extra2Label}</span> ${extra2Value}</div>` : ''}
+      </div>
+    </div>
+    <div class="job-preview-infoboxes">
+      <div class="job-preview-infobox1">
+        <div class="job-preview-price">${cardData.price}</div>
+        <div class="job-preview-rate">${cardData.rate}</div>
+      </div>
+      <div class="job-preview-infobox2">
+        <div class="job-preview-date">${cardData.date}</div>
+        <div class="job-preview-time">${cardData.time}</div>
+      </div>
+    </div>
+  `;
+  
+  return cardElement;
+}
+
+// Load job preview cards when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadJobPreviewCards();
+  // Apply truncation after cards are loaded
+  setTimeout(truncateBarangayNames, 50);
+});

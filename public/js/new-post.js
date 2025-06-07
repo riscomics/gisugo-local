@@ -1342,8 +1342,7 @@ function getFormData() {
   const data = {};
   
   // Get selected category
-  data.category = window.selectedJobCategory ? 
-    document.getElementById('selectedCategoryName').textContent : null;
+  data.category = window.selectedJobCategory || null;
   
   // Get selected region and city
   data.region = document.getElementById('newPostRegionMenuLabel').textContent;
@@ -1430,13 +1429,11 @@ function initializePreviewOverlayEvents() {
   // Post job button
   if (postBtn) {
     postBtn.addEventListener('click', function() {
-      // Here you would implement the actual job posting logic
-      console.log('Job posted successfully!');
-      alert('Job posted successfully!');
-      previewOverlay.style.display = 'none';
+      // Get form data
+      const formData = getFormData();
       
-      // Optionally redirect to job listing or home page
-      // window.location.href = 'index.html';
+      // Create the job post
+      createJobPost(formData);
     });
   }
   
@@ -1453,6 +1450,162 @@ function initializePreviewOverlayEvents() {
       previewOverlay.style.display = 'none';
     }
   });
+}
+
+// ========================== JOB CREATION FUNCTIONALITY ==========================
+
+async function createJobPost(formData) {
+  try {
+    // Show loading state
+    const previewOverlay = document.getElementById('previewOverlay');
+    const postBtn = document.getElementById('previewPostBtn');
+    const originalText = postBtn.textContent;
+    postBtn.textContent = 'POSTING...';
+    postBtn.disabled = true;
+    
+    // Get the next available job number for this category
+    const jobNumber = getNextJobNumber(formData.category);
+    
+    // Create the job template file
+    await createJobTemplate(formData, jobNumber);
+    
+    // Add job preview card to listing page
+    await addJobPreviewCard(formData, jobNumber);
+    
+    // Store job data in localStorage
+    storeJobData(formData, jobNumber);
+    
+    // Close preview overlay
+    previewOverlay.style.display = 'none';
+    
+    // Show success message
+    alert('Job posted successfully!');
+    
+    // Redirect to the appropriate listing page
+    window.location.href = `${formData.category}.html`;
+    
+  } catch (error) {
+    console.error('Error creating job post:', error);
+    alert('Error posting job. Please try again.');
+    
+    // Reset button state
+    const postBtn = document.getElementById('previewPostBtn');
+    postBtn.textContent = 'POST JOB';
+    postBtn.disabled = false;
+  }
+}
+
+function getNextJobNumber(category) {
+  // Get existing job numbers from localStorage
+  const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  const categoryJobs = jobData[category] || [];
+  
+  // Find the highest job number and add 1
+  let maxJobNumber = 0;
+  categoryJobs.forEach(job => {
+    const jobNumber = parseInt(job.jobNumber) || 0;
+    if (jobNumber > maxJobNumber) {
+      maxJobNumber = jobNumber;
+    }
+  });
+  
+  return maxJobNumber + 1;
+}
+
+function storeJobData(formData, jobNumber) {
+  // Get existing data
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  
+  // Initialize category array if it doesn't exist
+  if (!allJobs[formData.category]) {
+    allJobs[formData.category] = [];
+  }
+  
+  // Create job object
+  const jobObject = {
+    jobNumber: jobNumber,
+    ...formData,
+    createdAt: new Date().toISOString()
+  };
+  
+  // Add to category array
+  allJobs[formData.category].push(jobObject);
+  
+  // Save back to localStorage
+  localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+}
+
+async function createJobTemplate(formData, jobNumber) {
+  // Since we can't actually write files from JavaScript, we'll simulate this
+  // In a real implementation, this would send data to a server
+  
+  // For now, we'll create a URL that points to the template
+  const templateUrl = `public/jobs/${formData.category}/${formData.category}-job-2025-${jobNumber}.html`;
+  
+  // Store the template data in localStorage to simulate file creation
+  const templateData = {
+    category: formData.category,
+    jobNumber: jobNumber,
+    title: formData.jobTitle,
+    description: formData.description,
+    date: formData.jobDate,
+    startTime: formData.startTime,
+    endTime: formData.endTime,
+    region: formData.region,
+    city: formData.city,
+    paymentAmount: formData.paymentAmount,
+    paymentType: formData.paymentType,
+    photo: formData.photo,
+    extras: formData.extras,
+    templateUrl: templateUrl
+  };
+  
+  localStorage.setItem(`jobTemplate_${formData.category}_${jobNumber}`, JSON.stringify(templateData));
+  
+  return templateUrl;
+}
+
+async function addJobPreviewCard(formData, jobNumber) {
+  // Get existing preview cards from localStorage
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  
+  // Initialize category array if it doesn't exist
+  if (!previewCards[formData.category]) {
+    previewCards[formData.category] = [];
+  }
+  
+  // Format date for display
+  const date = new Date(formData.jobDate);
+  const options = { month: 'short', day: 'numeric' };
+  const formattedDate = date.toLocaleDateString('en-US', options);
+  
+  // Format time for display
+  const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
+  
+  // Get first two extras for preview
+  const extra1 = formData.extras && formData.extras[0] ? formData.extras[0] : '';
+  const extra2 = formData.extras && formData.extras[1] ? formData.extras[1] : '';
+  
+  // Create preview card object
+  const previewCard = {
+    jobNumber: jobNumber,
+    title: formData.jobTitle,
+    extra1: extra1,
+    extra2: extra2,
+    price: `₱${formData.paymentAmount}`,
+    rate: formData.paymentType,
+    date: formattedDate,
+    time: timeDisplay,
+    photo: formData.photo || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    templateUrl: `dynamic-job.html?category=${formData.category}&jobNumber=${jobNumber}`,
+    createdAt: new Date().toISOString()
+  };
+  
+  // Add to category array (insert at beginning for newest first)
+  previewCards[formData.category].unshift(previewCard);
+  
+  // Save back to localStorage
+  localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
 }
 
 // ========================== PAYMENT AMOUNT VALIDATION ==========================
