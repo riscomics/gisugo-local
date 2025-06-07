@@ -2269,7 +2269,7 @@ body::-webkit-scrollbar {
   }
 
   .new-post-preview-job-payment-row {
-    gap: 12px;
+    gap: 10px;
     width: 65%;
   }
 
