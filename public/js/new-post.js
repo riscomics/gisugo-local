@@ -1129,11 +1129,242 @@ function initializePostJobButton() {
       this.style.transform = '';
     }, 150);
     
-    // Here you can add validation and form submission logic
-    console.log('Post Job button clicked');
+    // Show preview overlay
+    showPreviewOverlay();
+  });
+}
+
+// ========================== PREVIEW OVERLAY FUNCTIONALITY ==========================
+
+function showPreviewOverlay() {
+  const previewOverlay = document.getElementById('previewOverlay');
+  if (!previewOverlay) return;
+  
+  // Populate preview data
+  populatePreviewData();
+  
+  // Show overlay
+  previewOverlay.style.display = 'flex';
+  
+  // Add event listeners for preview overlay
+  initializePreviewOverlayEvents();
+}
+
+function populatePreviewData() {
+  // Get form data
+  const formData = getFormData();
+  
+  // Populate category
+  const categoryElement = document.getElementById('previewCategory');
+  categoryElement.textContent = formData.category || 'Job Type Not Selected';
+  
+  // Populate location
+  const locationElement = document.getElementById('previewLocation');
+  locationElement.textContent = `${formData.region}, ${formData.city}` || 'Location Not Selected';
+  
+  // Populate job title
+  const titleElement = document.getElementById('previewJobTitle');
+  titleElement.textContent = formData.jobTitle || 'Job Title Not Provided';
+  
+  // Populate photo
+  const photoSection = document.getElementById('previewPhotoSection');
+  const photoElement = document.getElementById('previewPhoto');
+  if (formData.photo) {
+    photoElement.src = formData.photo;
+    photoSection.style.display = 'block';
+  } else {
+    photoSection.style.display = 'none';
+  }
+  
+  // Populate date
+  const dateElement = document.getElementById('previewDate');
+  if (formData.jobDate) {
+    const date = new Date(formData.jobDate);
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    dateElement.textContent = date.toLocaleDateString('en-US', options);
+  } else {
+    dateElement.textContent = 'Date Not Selected';
+  }
+  
+  // Populate time
+  const timeElement = document.getElementById('previewTime');
+  if (formData.startTime && formData.endTime) {
+    timeElement.textContent = `${formData.startTime} to ${formData.endTime}`;
+  } else {
+    timeElement.textContent = 'Time Not Selected';
+  }
+  
+  // Populate extras
+  const extrasRow = document.getElementById('previewExtrasRow');
+  if (formData.extras && formData.extras.length > 0) {
+    // Populate field 1
+    if (formData.extras[0]) {
+      const parts1 = formData.extras[0].split(':');
+      if (parts1.length >= 2) {
+        document.getElementById('previewExtrasLabel1').textContent = parts1[0].trim() + ':';
+        document.getElementById('previewExtrasValue1').textContent = parts1[1].trim() || 'Not Specified';
+      } else {
+        document.getElementById('previewExtrasLabel1').textContent = 'FIELD 1:';
+        document.getElementById('previewExtrasValue1').textContent = formData.extras[0];
+      }
+    }
     
-    // Example: Basic form validation could go here
-    // validateAndSubmitJob();
+    // Populate field 2
+    if (formData.extras[1]) {
+      const parts2 = formData.extras[1].split(':');
+      if (parts2.length >= 2) {
+        document.getElementById('previewExtrasLabel2').textContent = parts2[0].trim() + ':';
+        document.getElementById('previewExtrasValue2').textContent = parts2[1].trim() || 'Not Specified';
+      } else {
+        document.getElementById('previewExtrasLabel2').textContent = 'FIELD 2:';
+        document.getElementById('previewExtrasValue2').textContent = formData.extras[1];
+      }
+    }
+    
+    extrasRow.style.display = 'flex';
+  } else {
+    extrasRow.style.display = 'none';
+  }
+  
+  // Populate description
+  const descriptionElement = document.getElementById('previewDescription');
+  descriptionElement.textContent = formData.description || 'No description provided';
+  
+  // Populate payment
+  const paymentAmountElement = document.getElementById('previewPaymentAmount');
+  const paymentRateElement = document.getElementById('previewPaymentRate');
+  
+  if (formData.paymentAmount) {
+    paymentAmountElement.textContent = `₱${formData.paymentAmount}`;
+  } else {
+    paymentAmountElement.textContent = '₱0';
+  }
+  
+  if (formData.paymentType) {
+    paymentRateElement.textContent = formData.paymentType;
+  } else {
+    paymentRateElement.textContent = 'Per Hour';
+  }
+}
+
+function getFormData() {
+  const data = {};
+  
+  // Get selected category
+  data.category = window.selectedJobCategory ? 
+    document.getElementById('selectedCategoryName').textContent : null;
+  
+  // Get selected region and city
+  data.region = document.getElementById('newPostRegionMenuLabel').textContent;
+  data.city = document.getElementById('newPostCityMenuLabel').textContent;
+  
+  // Get job details
+  data.jobTitle = document.getElementById('jobTitleInput').value.trim();
+  data.jobDate = document.getElementById('jobDateInput').value;
+  
+  // Get time
+  const startHour = document.getElementById('jobTimeStartLabel').textContent;
+  const startPeriod = document.getElementById('jobTimeStartPeriodLabel').textContent;
+  const endHour = document.getElementById('jobTimeEndLabel').textContent;
+  const endPeriod = document.getElementById('jobTimeEndPeriodLabel').textContent;
+  
+  if (startHour !== 'Hour' && endHour !== 'Hour') {
+    data.startTime = `${startHour} ${startPeriod}`;
+    data.endTime = `${endHour} ${endPeriod}`;
+  }
+  
+  // Get photo
+  const photoPreview = document.getElementById('photoPreviewImage');
+  if (photoPreview && photoPreview.src && !photoPreview.src.includes('data:,')) {
+    data.photo = photoPreview.src;
+  }
+  
+  // Get extras
+  data.extras = [];
+  const extrasHeader = document.getElementById('newPostExtrasHeader');
+  if (extrasHeader && extrasHeader.style.display !== 'none') {
+    // Get field 1
+    const label1 = document.getElementById('newPostExtrasLabel1').textContent;
+    const value1 = document.getElementById('newPostExtrasMenuLabel1').textContent;
+    const input1 = document.getElementById('newPostExtrasInput1');
+    
+    if (value1 && value1 !== 'Select Option') {
+      data.extras.push(`${label1} ${value1}`);
+    } else if (input1 && input1.value.trim()) {
+      data.extras.push(`${label1} ${input1.value.trim()}`);
+    }
+    
+    // Get field 2
+    const label2 = document.getElementById('newPostExtrasLabel2').textContent;
+    const value2 = document.getElementById('newPostExtrasMenuLabel2').textContent;
+    const input2 = document.getElementById('newPostExtrasInput2');
+    
+    if (value2 && value2 !== 'Select Option') {
+      data.extras.push(`${label2} ${value2}`);
+    } else if (input2 && input2.value.trim()) {
+      data.extras.push(`${label2} ${input2.value.trim()}`);
+    }
+  }
+  
+  // Get description
+  data.description = document.getElementById('jobDetailsTextarea').value.trim();
+  
+  // Get payment
+  data.paymentType = document.getElementById('paymentTypeLabel').textContent;
+  data.paymentAmount = document.getElementById('paymentAmountInput').value;
+  
+  return data;
+}
+
+function initializePreviewOverlayEvents() {
+  const previewOverlay = document.getElementById('previewOverlay');
+  const closeBtn = document.getElementById('previewCloseBtn');
+  const editBtn = document.getElementById('previewEditBtn');
+  const postBtn = document.getElementById('previewPostBtn');
+  
+  // Close button
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      previewOverlay.style.display = 'none';
+    });
+  }
+  
+  // Edit button
+  if (editBtn) {
+    editBtn.addEventListener('click', function() {
+      previewOverlay.style.display = 'none';
+    });
+  }
+  
+  // Post job button
+  if (postBtn) {
+    postBtn.addEventListener('click', function() {
+      // Here you would implement the actual job posting logic
+      console.log('Job posted successfully!');
+      alert('Job posted successfully!');
+      previewOverlay.style.display = 'none';
+      
+      // Optionally redirect to job listing or home page
+      // window.location.href = 'index.html';
+    });
+  }
+  
+  // Close on background click
+  previewOverlay.addEventListener('click', function(e) {
+    if (e.target === previewOverlay) {
+      previewOverlay.style.display = 'none';
+    }
+  });
+  
+  // Close on escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && previewOverlay.style.display === 'flex') {
+      previewOverlay.style.display = 'none';
+    }
   });
 }
 

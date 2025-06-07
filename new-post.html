@@ -316,6 +316,97 @@
   <!-- Spacer div to create scrollable height for fixed positioned elements -->
   <div class="new-post-spacer" id="newPostSpacer"></div>
   
+  <!-- Preview Overlay -->
+  <div class="new-post-preview-overlay" id="previewOverlay" style="display: none;">
+    <div class="new-post-preview-container">
+      <div class="new-post-preview-header">
+        <div class="new-post-preview-title">Job Preview</div>
+        <button class="new-post-preview-close" id="previewCloseBtn">×</button>
+      </div>
+      
+      <div class="new-post-preview-content">
+        <!-- Job Category and Location Header -->
+        <div class="new-post-preview-header-info">
+          <div class="new-post-preview-category" id="previewCategory">Job Type</div>
+          <div class="new-post-preview-location" id="previewLocation">Location</div>
+          <div class="new-post-preview-job-title" id="previewJobTitle">Job Title</div>
+        </div>
+        
+        <!-- Job Photo Section -->
+        <div class="new-post-preview-photo-section" id="previewPhotoSection" style="display: none;">
+          <div class="new-post-preview-photo-container">
+            <img id="previewPhoto" src="" alt="Job Photo" class="new-post-preview-photo">
+          </div>
+          <div class="new-post-preview-photo-borderline"></div>
+        </div>
+        
+        <!-- Job Info Section - Matching exact job page structure -->
+        <div class="new-post-preview-job-info-section" id="previewJobInfoSection">
+          <!-- Standard Fields Row - Date and Time -->
+          <div class="new-post-preview-job-info-row" data-row-type="standard">
+            <div class="new-post-preview-job-info-item" data-field="date">
+              <div class="new-post-preview-job-info-label">DATE:</div>
+              <div class="new-post-preview-job-info-box">
+                <div class="new-post-preview-job-info-value" id="previewDate">Date Not Selected</div>
+              </div>
+            </div>
+            <div class="new-post-preview-job-info-item" data-field="time">
+              <div class="new-post-preview-job-info-label">TIME:</div>
+              <div class="new-post-preview-job-info-box">
+                <div class="new-post-preview-job-info-value" id="previewTime">Time Not Selected</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Extras Row - Category-specific fields -->
+          <div class="new-post-preview-job-info-row" data-row-type="extras" id="previewExtrasRow" style="display: none;">
+            <div class="new-post-preview-job-info-item" data-extra="field1">
+              <div class="new-post-preview-job-info-label" id="previewExtrasLabel1">FIELD 1:</div>
+              <div class="new-post-preview-job-info-box">
+                <div class="new-post-preview-job-info-value" id="previewExtrasValue1">Value 1</div>
+              </div>
+            </div>
+            <div class="new-post-preview-job-info-item" data-extra="field2">
+              <div class="new-post-preview-job-info-label" id="previewExtrasLabel2">FIELD 2:</div>
+              <div class="new-post-preview-job-info-box">
+                <div class="new-post-preview-job-info-value" id="previewExtrasValue2">Value 2</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Job Details Section -->
+        <div class="new-post-preview-job-details-section" id="previewJobDetailsSection">
+          <div class="new-post-preview-job-details-header">DETAILS:</div>
+          <div class="new-post-preview-job-details-text-container">
+            <div class="new-post-preview-job-details-text" id="previewDescription">No description provided</div>
+          </div>
+        </div>
+        
+        <!-- Job Payment Section -->
+        <div class="new-post-preview-job-payment-section" id="previewJobPaymentSection">
+          <div class="new-post-preview-job-payment-row">
+            <div class="new-post-preview-job-payment-item" data-payment-type="offer">
+              <div class="new-post-preview-job-payment-box">
+                <div class="new-post-preview-job-payment-value" id="previewPaymentAmount">₱0</div>
+              </div>
+            </div>
+            <div class="new-post-preview-job-payment-item" data-payment-type="rate">
+              <div class="new-post-preview-job-payment-box">
+                <div class="new-post-preview-job-payment-value" id="previewPaymentRate">Per Hour</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="new-post-preview-actions">
+        <button class="new-post-preview-btn edit" id="previewEditBtn">EDIT</button>
+        <button class="new-post-preview-btn post" id="previewPostBtn">POST JOB</button>
+      </div>
+    </div>
+  </div>
+  
   <script src="public/js/new-post.js?v=16"></script>
 </body>
 </html> 
