@@ -1478,7 +1478,19 @@ function initializeMobileKeyboardClose() {
     jobTitleInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
+        e.stopPropagation();
         this.blur(); // Close mobile keyboard
+        return false;
+      }
+    });
+    
+    // Also prevent on keypress for extra safety
+    jobTitleInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.blur(); // Close mobile keyboard
+        return false;
       }
     });
   }
