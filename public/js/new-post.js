@@ -1475,24 +1475,40 @@ function initializeMobileKeyboardClose() {
   
   // Close keyboard on Enter key for Job Title input
   if (jobTitleInput) {
+    // Use capture phase to catch event before it bubbles
     jobTitleInput.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
-        e.stopPropagation();
-        this.blur(); // Close mobile keyboard
+        e.stopImmediatePropagation();
+        
+        // Force blur after a small delay to ensure keyboard closes
+        setTimeout(() => {
+          this.blur();
+          // Focus on a non-input element to prevent jumping
+          document.activeElement.blur();
+        }, 10);
+        
         return false;
       }
-    });
+    }, true); // Use capture phase
     
-    // Also prevent on keypress for extra safety
+    // Also prevent on keypress with capture
     jobTitleInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter' || e.keyCode === 13) {
         e.preventDefault();
-        e.stopPropagation();
-        this.blur(); // Close mobile keyboard
+        e.stopImmediatePropagation();
         return false;
       }
-    });
+    }, true);
+    
+    // Additional safety - prevent on keyup
+    jobTitleInput.addEventListener('keyup', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+      }
+    }, true);
   }
   
   // Close keyboard on Enter key for Payment Amount input
