@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DRIVER - GISUGO</title>
+  <link rel="stylesheet" href="public/css/listing.css">
+</head>
+<body data-job-category="driver">
+  
+  <div class="jobcat-header">
+    <div class="jobcat-header-container">
+      <button class="jobcat-header-btn back" onclick="window.location.href='index.html'" aria-label="Back">
+        <img src="public/icons/back.png" alt="Back">
+        <span>Back</span>
+      </button>
+      <div class="jobcat-header-title" id="jobcatHeaderTitle">DRIVER</div>
+      <button class="jobcat-header-btn menu jobcat-menu-btn" id="jobcatMenuBtn" aria-label="Menu">
+        <img src="public/icons/menu.png" alt="Menu">
+        <div>Menu</div>
+      </button> 
+    </div>
+    <div class="jobcat-header-borderline"></div>
+  </div>
+
+    <div class="jobcat-header-spacer"></div>
+
+    <div class="jobcat-menu-overlay" id="jobcatMenuOverlay">
+      <div class="jobcat-menu-items">
+        <div class="jobcat-menu-item">
+          <a href="index.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+            <img src="public/icons/Home.png" alt="Home">
+            <div>Home</div>
+          </a>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Messages.png" alt="Messages">
+          <div>Messages</div>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Profile.png" alt="Profile">
+          <div>Profile</div>
+        </div>
+        <div class="jobcat-menu-item">
+          <img src="public/icons/Jobs.png" alt="Jobs">
+          <div>Jobs</div>
+        </div>
+        <div class="jobcat-menu-item">
+          <a href="new-post.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+            <img src="public/icons/Post.png" alt="Post">
+            <div>Post</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- New job postings will appear here dynamically -->
+
+    <script src="public/js/listing.js?v=2"></script>
+  </body>
+</html> 

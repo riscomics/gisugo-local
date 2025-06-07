@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-field="job-title">LUTO Job 10 - GISUGO</title>
+  <link rel="stylesheet" href="../../css/jobpage.css">
+  
+  <!-- Dynamic Job Data -->
+  <meta name="job-id" content="luto-job-2025-10" data-field="job-id">
+  <meta name="job-category" content="luto" data-field="job-category">
+  <meta name="job-payment" content="" data-field="job-payment">
+  <meta name="job-currency" content="PHP" data-field="job-currency">
+</head>
+<body data-job-id="luto-job-2025-10" data-job-category="luto">
+  <div class="job-header">
+    <div class="job-header-title-container">
+      <button class="job-header-btn back" onclick="window.history.back()" aria-label="Back">
+        <img src="../../icons/back.png" alt="Back">
+        <span>Back</span>
+      </button>
+      <div class="job-header-title" data-field="job-title" id="jobTitle"></div>
+      <button class="job-header-btn menu jobcat-menu-btn" id="jobMenuBtn" aria-label="Menu">
+        <img src="../../icons/menu.png" alt="Menu">
+        <div>Menu</div>
+      </button> 
+    </div>
+    <div class="job-header-borderline"></div>
+  </div>
+  <div class="jobcat-menu-overlay" id="jobcatMenuOverlay">
+    <div class="jobcat-menu-items">
+      <div class="jobcat-menu-item" onclick="window.location.href='../../../index.html'">
+        <img src="../../icons/Home.png" alt="Home">
+        <div>Home</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <img src="../../icons/Messages.png" alt="Messages">
+        <div>Messages</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <img src="../../icons/Profile.png" alt="Profile">
+        <div>Profile</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <img src="../../icons/Jobs.png" alt="Jobs">
+        <div>Jobs</div>
+      </div>
+      <div class="jobcat-menu-item">
+        <a href="../../../new-post.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+          <img src="../../icons/Post.png" alt="Post">
+          <div>Post</div>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Photo Section -->
+  <div class="job-photo-container">
+    <img src="" alt="Job Photo" class="job-photo" data-field="job-photo" id="jobPhoto">
+  </div>
+  <div class="job-photo-borderline"></div>
+  
+  <!-- Job Info Section -->
+  <div class="job-info-section" data-job-category="luto" id="jobInfoSection">
+    <!-- Standard Fields Row - Same for all job categories -->
+    <div class="job-info-row" data-row-type="standard">
+      <div class="job-info-item" data-field="date">
+        <div class="job-info-label">DATE:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" data-field="job-date" id="jobDate"></div>
+        </div>
+      </div>
+      <div class="job-info-item" data-field="time">
+        <div class="job-info-label">TIME:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" data-field="job-time" id="jobTime"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Extras Row - Specific to LUTO category -->
+    <div class="job-info-row" data-row-type="extras" data-category="luto">
+      <div class="job-info-item" data-extra="location">
+        <div class="job-info-label">LOCATION:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" data-field="job-location" id="Joblocation"</div>
+        </div>
+      </div>
+      <div class="job-info-item" data-extra="cuisine">
+        <div class="job-info-label">CUISINE:</div>
+        <div class="job-info-box">
+          <div class="job-info-value" data-field="job-cuisine" id="Jobcuisine"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Details Section -->
+  <div class="job-details-section" id="jobDetailsSection">
+    <div class="job-details-header">DETAILS:</div>
+    <div class="job-details-text-container">
+      <div class="job-details-text" data-field="job-description" id="jobDescription"></div>
+    </div>
+  </div>
+  
+  <!-- Job Payment Section -->
+  <div class="job-payment-section" id="jobPaymentSection">
+    <div class="job-payment-row">
+      <div class="job-payment-item" data-payment-type="offer">
+        <div class="job-payment-box">
+          <div class="job-payment-value" data-field="job-payment-amount" id="jobPaymentAmount"></div>
+        </div>
+      </div>
+      <div class="job-payment-item" data-payment-type="rate">
+        <div class="job-payment-box">
+          <div class="job-payment-value" data-field="job-payment-rate" id="jobPaymentRate"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Job Apply Section -->
+  <div class="job-apply-section">
+    <button class="job-apply-btn" id="jobApplyBtn" aria-label="Apply for this job">
+      <span>APPLY TO JOB</span>
+    </button>
+  </div>
+  
+  <!-- Customer Section -->
+  <div class="customer-section" id="customerSection">
+    <div class="customer-container">
+      <div class="customer-header">
+        CUSTOMER:
+        <div class="customer-name-container">
+          <div class="customer-name" data-field="customer-name" id="customerName"></div>
+        </div>
+      </div>
+      <div class="customer-content">
+        <div class="customer-profile">
+          <a href="#" class="customer-photo-link" data-field="customer-profile-link" id="customerProfileLink">
+            <div class="customer-photo">
+              <img src="" alt="Customer" class="customer-avatar" data-field="customer-avatar" id="customerAvatar">
+            </div>
+          </a>
+        </div>
+        <div class="customer-actions">
+          <button class="customer-contact-btn" id="contactBtn">
+            <span>CONTACT</span>
+            <div class="contact-dropdown-arrow">▼</div>
+            <div class="contact-dropdown-overlay" id="contactDropdown">
+              <div class="contact-dropdown-item" data-action="contact">Contact</div>
+              <div class="contact-dropdown-item" data-action="report">Report Job</div>
+            </div>
+          </button>
+          <div class="customer-rating" data-rating="" data-count="" data-field="customer-rating" id="customerRating">
+            <span class="rating-count" data-field="customer-rating-count" id="customerRatingCount"></span>
+            <div class="rating-stars" data-field="customer-rating-stars" id="customerRatingStars">
+              <span class="star"></span>
+              <span class="star"></span>
+              <span class="star"></span>
+              <span class="star"></span>
+              <span class="star"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Apply Job Modal Overlay -->
+  <div class="apply-job-overlay" id="applyJobOverlay">
+    <div class="apply-job-modal">
+      <div class="apply-job-header">WRITE MESSAGE TO CUSTOMER:</div>
+      
+      <div class="apply-message-section">
+        <div class="apply-message-container">
+          <textarea class="apply-message-textarea" placeholder="Enter your message..." id="applyMessage" autocomplete="off" data-form="false"></textarea>
+        </div>
+      </div>
+      
+      <div class="apply-payment-info">
+        <div class="apply-payment-row">
+          <span class="apply-payment-label">PAY AFTER<br>COMPLETED</span>
+          <span class="apply-payment-amount" data-field="modal-payment-amount" id="modalPaymentAmount"></span>
+        </div>
+        
+        <div class="apply-payment-row apply-counter-offer">
+          <div class="apply-counter-label">
+            <span class="apply-payment-label">Make Optional<br>Counter Offer:</span>
+            <div class="apply-info-icon">
+              i
+              <div class="apply-info-tooltip">Enter a different PRICE<br>to negotiate with the customer</div>
+            </div>
+          </div>
+          <div class="apply-counter-input-container">
+            <span class="apply-counter-currency" data-field="currency-symbol" id="currencySymbol">₱</span>
+            <input type="number" class="apply-counter-input" placeholder="000" id="counterOfferAmount" autocomplete="off" data-form="false">
+          </div>
+        </div>
+      </div>
+      
+      <div class="apply-actions">
+        <button class="apply-submit-btn" id="submitApplication" type="button">APPLY</button>
+        <button class="apply-cancel-btn" id="cancelApplication" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Application Confirmation Overlay -->
+  <div class="application-sent-overlay" id="applicationSentOverlay">
+    <div class="application-sent-modal">
+      <div class="application-sent-title">APPLICATION SENT!</div>
+      <div class="application-sent-subtitle">What now?</div>
+      <div class="application-sent-text">
+        You will receive a Phone Call from the Customer if they want you for the Job!<br><br>
+        You can also check your MESSAGES later.
+      </div>
+      <button class="application-sent-close-btn" id="applicationSentClose">CLOSE</button>
+    </div>
+  </div>
+  
+  <script src="../../js/jobpage.js?v=3"></script>
+  <script src="../../js/menu.js"></script>
+</body>
+</html> 
