@@ -2099,9 +2099,9 @@ body::-webkit-scrollbar {
 
 .new-post-preview-job-payment-row {
   display: flex;
-  gap: 5px;
+  gap: 0px;
   margin-bottom: 25px;
-  width: 50%;
+  width: 45%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -2269,8 +2269,8 @@ body::-webkit-scrollbar {
   }
 
   .new-post-preview-job-payment-row {
-    gap: 3px;
-    width: 60%;
+    gap: 12px;
+    width: 65%;
   }
 
   .new-post-preview-job-payment-box {
