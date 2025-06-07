@@ -782,8 +782,6 @@ function createJobPreviewCard(cardData) {
 
 // Load job preview cards when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  // Temporarily clear any stored job preview cards to show only static jobs
-  localStorage.removeItem('jobPreviewCards');
   
   loadJobPreviewCards();
   // Apply truncation after cards are loaded
