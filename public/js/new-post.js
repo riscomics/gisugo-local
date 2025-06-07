@@ -1467,6 +1467,33 @@ function initializeJobTitleCharacterCounter() {
   updateCharacterCounter();
 }
 
+// ========================== MOBILE KEYBOARD CLOSE FUNCTIONALITY ==========================
+
+function initializeMobileKeyboardClose() {
+  const jobTitleInput = document.getElementById('jobTitleInput');
+  const paymentAmountInput = document.getElementById('paymentAmountInput');
+  
+  // Close keyboard on Enter key for Job Title input
+  if (jobTitleInput) {
+    jobTitleInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        this.blur(); // Close mobile keyboard
+      }
+    });
+  }
+  
+  // Close keyboard on Enter key for Payment Amount input
+  if (paymentAmountInput) {
+    paymentAmountInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        this.blur(); // Close mobile keyboard
+      }
+    });
+  }
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
@@ -1477,6 +1504,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializePostJobButton(); // Add post job button initialization
   initializePaymentValidation(); // Add payment amount validation
   initializeJobTitleCharacterCounter(); // Add job title character counter
+  initializeMobileKeyboardClose(); // Add mobile keyboard close functionality
 });
 
 // Call updateCityMenuLabelFontSize on window resize
