@@ -1973,6 +1973,12 @@ body::-webkit-scrollbar {
   display: block;
 }
 
+.new-post-preview-photo-borderline-top {
+  height: 4px;
+  width: 100%;
+  background: rgb(149, 149, 328);
+}
+
 .new-post-preview-photo-borderline {
   height: 4px;
   width: 100%;
