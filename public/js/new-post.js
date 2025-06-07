@@ -1137,6 +1137,13 @@ function initializePostJobButton() {
 // ========================== PREVIEW OVERLAY FUNCTIONALITY ==========================
 
 function showPreviewOverlay() {
+  // Validate required fields first
+  const validationResult = validateRequiredFields();
+  if (!validationResult.isValid) {
+    alert(validationResult.message);
+    return;
+  }
+  
   const previewOverlay = document.getElementById('previewOverlay');
   if (!previewOverlay) return;
   
@@ -1148,6 +1155,86 @@ function showPreviewOverlay() {
   
   // Add event listeners for preview overlay
   initializePreviewOverlayEvents();
+}
+
+// ========================== FORM VALIDATION ==========================
+
+function validateRequiredFields() {
+  const errors = [];
+  
+  // Check job category selection
+  if (!window.selectedJobCategory) {
+    errors.push("• Please select a job type");
+  }
+  
+  // Check location selection
+  const region = document.getElementById('newPostRegionMenuLabel').textContent;
+  const city = document.getElementById('newPostCityMenuLabel').textContent;
+  if (region === 'CEBU' && city === 'City/Town') {
+    errors.push("• Please select a city/town");
+  }
+  
+  // Check job title
+  const jobTitle = document.getElementById('jobTitleInput').value.trim();
+  if (!jobTitle) {
+    errors.push("• Please enter a job title");
+  }
+  
+  // Check job date
+  const jobDate = document.getElementById('jobDateInput').value;
+  if (!jobDate) {
+    errors.push("• Please select a job date");
+  }
+  
+  // Check job time
+  const startHour = document.getElementById('jobTimeStartLabel').textContent;
+  const endHour = document.getElementById('jobTimeEndLabel').textContent;
+  if (startHour === 'Hour' || endHour === 'Hour') {
+    errors.push("• Please select start and end times");
+  }
+  
+  // Check job description
+  const description = document.getElementById('jobDetailsTextarea').value.trim();
+  if (!description) {
+    errors.push("• Please enter a job description");
+  }
+  
+  // Check payment amount
+  const paymentAmount = document.getElementById('paymentAmountInput').value;
+  if (!paymentAmount || paymentAmount === '0') {
+    errors.push("• Please enter a payment amount");
+  }
+  
+  // Check category-specific extras if visible
+  const extrasHeader = document.getElementById('newPostExtrasHeader');
+  if (extrasHeader && extrasHeader.style.display !== 'none') {
+    const value1 = document.getElementById('newPostExtrasMenuLabel1').textContent;
+    const value2 = document.getElementById('newPostExtrasMenuLabel2').textContent;
+    const input1 = document.getElementById('newPostExtrasInput1');
+    const input2 = document.getElementById('newPostExtrasInput2');
+    
+    // Check field 1
+    if (value1 === 'Select Option' && (!input1 || !input1.value.trim())) {
+      const label1 = document.getElementById('newPostExtrasLabel1').textContent;
+      errors.push(`• Please specify ${label1.toLowerCase()}`);
+    }
+    
+    // Check field 2
+    if (value2 === 'Select Option' && (!input2 || !input2.value.trim())) {
+      const label2 = document.getElementById('newPostExtrasLabel2').textContent;
+      errors.push(`• Please specify ${label2.toLowerCase()}`);
+    }
+  }
+  
+  // Return validation result
+  if (errors.length > 0) {
+    return {
+      isValid: false,
+      message: "Please complete the following required fields:\n\n" + errors.join("\n")
+    };
+  }
+  
+  return { isValid: true };
 }
 
 function populatePreviewData() {
