@@ -1448,7 +1448,8 @@ body::-webkit-scrollbar {
   /* Job Posted Overlay Mobile Styles */
   .job-posted-overlay {
     align-items: flex-start;
-    padding-top: 15vh;
+    padding: 5vh 0 10vh 0;
+    overflow-y: auto;
   }
   
   .job-posted-modal {
@@ -1456,6 +1457,26 @@ body::-webkit-scrollbar {
     margin: 10px;
     padding: 25px 20px;
     max-width: none;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  
+  .job-posted-modal::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .job-posted-modal::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  
+  .job-posted-modal::-webkit-scrollbar-thumb {
+    background: #10b981;
+    border-radius: 3px;
+  }
+  
+  .job-posted-modal::-webkit-scrollbar-thumb:hover {
+    background: #059669;
   }
   
   .job-posted-title {
