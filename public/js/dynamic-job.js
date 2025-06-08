@@ -249,41 +249,211 @@ function initializeMenu() {
 function initializeApplyJob() {
   const applyBtn = document.getElementById('jobApplyBtn');
   const applyOverlay = document.getElementById('applyJobOverlay');
-  const cancelBtn = document.getElementById('applyCancelBtn');
-  const sendBtn = document.getElementById('applySendBtn');
+  const submitBtn = document.getElementById('submitApplication');
+  const cancelBtn = document.getElementById('cancelApplication');
+  const messageTextarea = document.getElementById('applyMessage');
+  const counterOfferInput = document.getElementById('counterOfferAmount');
   
   if (applyBtn && applyOverlay) {
-    applyBtn.addEventListener('click', function() {
-      applyOverlay.style.display = 'flex';
-    });
-  }
-  
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', function() {
-      applyOverlay.style.display = 'none';
-      document.getElementById('applyMessage').value = '';
-    });
-  }
-  
-  if (sendBtn) {
-    sendBtn.addEventListener('click', function() {
-      const message = document.getElementById('applyMessage').value.trim();
-      if (!message) {
-        alert('Please enter a message before applying.');
-        return;
+    // Prevent any form submission behavior on the modal
+    const modal = applyOverlay.querySelector('.apply-job-modal');
+    if (modal) {
+      modal.addEventListener('submit', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      });
+    }
+    
+    // Prevent Enter key from submitting in textarea/input
+    if (messageTextarea) {
+      messageTextarea.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          handleJobApplication();
+        }
+      });
+    }
+    
+    if (counterOfferInput) {
+      counterOfferInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleJobApplication();
+        }
+      });
+    }
+    
+    // Show modal when apply button is clicked
+    applyBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      applyOverlay.classList.add('show');
+      // Focus on message textarea for better UX
+      if (messageTextarea) {
+        setTimeout(() => messageTextarea.focus(), 300);
       }
-      
-      alert('Application sent successfully!');
-      applyOverlay.style.display = 'none';
-      document.getElementById('applyMessage').value = '';
     });
-  }
-  
-  // Close overlay when clicking outside
-  if (applyOverlay) {
+    
+    // Hide modal when cancel button is clicked
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        closeApplyModal();
+      });
+    }
+    
+    // Hide modal when clicking outside the modal content
     applyOverlay.addEventListener('click', function(e) {
       if (e.target === applyOverlay) {
-        applyOverlay.style.display = 'none';
+        closeApplyModal();
+      }
+    });
+    
+    // Handle form submission
+    if (submitBtn) {
+      submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        handleJobApplication();
+        return false;
+      });
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && applyOverlay.classList.contains('show')) {
+        closeApplyModal();
+      }
+    });
+  }
+}
+
+// Function to close apply modal
+function closeApplyModal() {
+  const applyOverlay = document.getElementById('applyJobOverlay');
+  if (applyOverlay) {
+    applyOverlay.classList.remove('show');
+  }
+}
+
+// Function to handle job application submission
+function handleJobApplication() {
+  const messageTextarea = document.getElementById('applyMessage');
+  const counterOfferInput = document.getElementById('counterOfferAmount');
+  
+  // Get form values
+  const message = messageTextarea ? messageTextarea.value.trim() : '';
+  const counterOffer = counterOfferInput ? counterOfferInput.value.trim() : '';
+  
+  // Basic validation
+  if (!message) {
+    alert('Please enter a message to the customer.');
+    if (messageTextarea) messageTextarea.focus();
+    return;
+  }
+  
+  // Validate counter offer if provided
+  if (counterOffer && (isNaN(counterOffer) || parseFloat(counterOffer) <= 0)) {
+    alert('Please enter a valid counter offer amount.');
+    if (counterOfferInput) counterOfferInput.focus();
+    return;
+  }
+  
+  // Prepare application data
+  const { category, jobNumber } = getUrlParameters();
+  const applicationData = {
+    message: message,
+    counterOffer: counterOffer ? parseFloat(counterOffer) : null,
+    jobId: `${category}-job-2025-${jobNumber}`,
+    timestamp: new Date().toISOString()
+  };
+  
+  console.log('Job application submitted:', applicationData);
+  
+  // Clear form and close apply modal
+  if (messageTextarea) messageTextarea.value = '';
+  if (counterOfferInput) counterOfferInput.value = '';
+  closeApplyModal();
+  
+  // Show confirmation overlay
+  showApplicationSentOverlay();
+}
+
+// Function to show application sent confirmation overlay
+function showApplicationSentOverlay() {
+  const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  if (applicationSentOverlay) {
+    applicationSentOverlay.classList.add('show');
+  }
+}
+
+// Function to close application sent overlay
+function closeApplicationSentOverlay() {
+  const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  if (applicationSentOverlay) {
+    applicationSentOverlay.classList.remove('show');
+  }
+}
+
+// Function to initialize application sent overlay
+function initializeApplicationSentOverlay() {
+  const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  const closeBtn = document.getElementById('applicationSentClose');
+  
+  if (applicationSentOverlay && closeBtn) {
+    // Close overlay when close button is clicked
+    closeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      closeApplicationSentOverlay();
+    });
+    
+    // Close overlay when clicking outside the modal content
+    applicationSentOverlay.addEventListener('click', function(e) {
+      if (e.target === applicationSentOverlay) {
+        closeApplicationSentOverlay();
+      }
+    });
+    
+    // Close overlay with Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && applicationSentOverlay.classList.contains('show')) {
+        closeApplicationSentOverlay();
+      }
+    });
+  }
+}
+
+// Function to format counter offer input
+function initCounterOfferFormatting() {
+  const counterOfferInput = document.getElementById('counterOfferAmount');
+  
+  if (counterOfferInput) {
+    // Prevent negative values and non-numeric input
+    counterOfferInput.addEventListener('input', function(e) {
+      let value = e.target.value;
+      
+      // Remove any non-numeric characters except decimal point
+      value = value.replace(/[^0-9.]/g, '');
+      
+      // Ensure only one decimal point
+      const parts = value.split('.');
+      if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+      }
+      
+      // Limit to 2 decimal places
+      if (parts[1] && parts[1].length > 2) {
+        value = parts[0] + '.' + parts[1].substring(0, 2);
+      }
+      
+      e.target.value = value;
+    });
+    
+    // Prevent negative values on keydown
+    counterOfferInput.addEventListener('keydown', function(e) {
+      if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
       }
     });
   }
@@ -324,5 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadJobData();
   initializeMenu();
   initializeApplyJob();
+  initializeApplicationSentOverlay();
+  initCounterOfferFormatting();
   initializeContactDropdown();
 }); 

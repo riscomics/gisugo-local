@@ -176,12 +176,39 @@
           <span class="apply-payment-label">PAY AFTER<br>COMPLETED</span>
           <span class="apply-payment-amount" id="modalPaymentAmount">₱0</span>
         </div>
+        
+        <div class="apply-payment-row apply-counter-offer">
+          <div class="apply-counter-label">
+            <span class="apply-payment-label">Make Optional<br>Counter Offer:</span>
+            <div class="apply-info-icon">
+              i
+              <div class="apply-info-tooltip">Enter a different PRICE<br>to negotiate with the customer</div>
+            </div>
+          </div>
+          <div class="apply-counter-input-container">
+            <span class="apply-counter-currency">₱</span>
+            <input type="number" class="apply-counter-input" placeholder="000" id="counterOfferAmount" autocomplete="off" data-form="false">
+          </div>
+        </div>
       </div>
       
       <div class="apply-actions">
-        <button class="apply-cancel-btn" id="applyCancelBtn">CANCEL</button>
-        <button class="apply-send-btn" id="applySendBtn">SEND APPLICATION</button>
+        <button class="apply-submit-btn" id="submitApplication" type="button">APPLY</button>
+        <button class="apply-cancel-btn" id="cancelApplication" type="button">Cancel</button>
       </div>
+    </div>
+  </div>
+  
+  <!-- Application Confirmation Overlay -->
+  <div class="application-sent-overlay" id="applicationSentOverlay">
+    <div class="application-sent-modal">
+      <div class="application-sent-title">APPLICATION SENT!</div>
+      <div class="application-sent-subtitle">What now?</div>
+      <div class="application-sent-text">
+        You will receive a Phone Call from the Customer if they want you for the Job!<br><br>
+        You can also check your MESSAGES later.
+      </div>
+      <button class="application-sent-close-btn" id="applicationSentClose">CLOSE</button>
     </div>
   </div>
   

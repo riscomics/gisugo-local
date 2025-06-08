@@ -80,6 +80,8 @@ function createBarangayInputFallback(fieldNumber) {
     inputField.className = 'new-post-extras-menu'; // Use same class as dropdown menus
     inputField.placeholder = 'Barangay / Area';
     inputField.maxLength = 15; // Add character limit of 15
+    inputField.autocomplete = 'off'; // Disable autofill
+    inputField.spellcheck = false; // Disable spellcheck
     
     // Check for mobile view
     const isMobile = window.innerWidth < 600;
@@ -1266,7 +1268,9 @@ function populatePreviewData() {
   // Populate date
   const dateElement = document.getElementById('previewDate');
   if (formData.jobDate) {
-    const date = new Date(formData.jobDate);
+    // Parse date components to avoid timezone issues
+    const [year, month, day] = formData.jobDate.split('-');
+    const date = new Date(year, month - 1, day); // month is 0-indexed
     const options = { 
       year: 'numeric', 
       month: 'long', 
@@ -1412,23 +1416,29 @@ function initializePreviewOverlayEvents() {
   const editBtn = document.getElementById('previewEditBtn');
   const postBtn = document.getElementById('previewPostBtn');
   
-  // Close button
-  if (closeBtn) {
+  // Remove existing event listeners by cloning and replacing elements
+  if (closeBtn && !closeBtn.dataset.listenerAdded) {
     closeBtn.addEventListener('click', function() {
       previewOverlay.style.display = 'none';
     });
+    closeBtn.dataset.listenerAdded = 'true';
   }
   
-  // Edit button
-  if (editBtn) {
+  if (editBtn && !editBtn.dataset.listenerAdded) {
     editBtn.addEventListener('click', function() {
       previewOverlay.style.display = 'none';
     });
+    editBtn.dataset.listenerAdded = 'true';
   }
   
-  // Post job button
+  // Post job button - remove and re-add to prevent duplicates
   if (postBtn) {
-    postBtn.addEventListener('click', function() {
+    // Clone the button to remove all existing event listeners
+    const newPostBtn = postBtn.cloneNode(true);
+    postBtn.parentNode.replaceChild(newPostBtn, postBtn);
+    
+    // Add fresh event listener to the new button
+    newPostBtn.addEventListener('click', function() {
       // Get form data
       const formData = getFormData();
       
@@ -1437,19 +1447,24 @@ function initializePreviewOverlayEvents() {
     });
   }
   
-  // Close on background click
-  previewOverlay.addEventListener('click', function(e) {
-    if (e.target === previewOverlay) {
-      previewOverlay.style.display = 'none';
-    }
-  });
+  // Background and escape listeners - only add once
+  if (!previewOverlay.dataset.backgroundListenerAdded) {
+    previewOverlay.addEventListener('click', function(e) {
+      if (e.target === previewOverlay) {
+        previewOverlay.style.display = 'none';
+      }
+    });
+    previewOverlay.dataset.backgroundListenerAdded = 'true';
+  }
   
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && previewOverlay.style.display === 'flex') {
-      previewOverlay.style.display = 'none';
-    }
-  });
+  if (!document.dataset.escapeListenerAdded) {
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && previewOverlay.style.display === 'flex') {
+        previewOverlay.style.display = 'none';
+      }
+    });
+    document.dataset.escapeListenerAdded = 'true';
+  }
 }
 
 // ========================== JOB CREATION FUNCTIONALITY ==========================
