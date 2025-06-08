@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Post - GISUGO</title>
   <link rel="stylesheet" href="public/css/new-post.css">
+  <link rel="stylesheet" href="public/css/jobpage.css">
   
 </head>
 <body>
@@ -411,6 +412,52 @@
     </div>
   </div>
   
-  <script src="public/js/new-post.js?v=16"></script>
+  <!-- Job Posted Successfully Overlay -->
+  <div class="job-posted-overlay" id="jobPostedOverlay" style="display: none;">
+    <div class="job-posted-modal">
+      <div class="job-posted-title">✅ Job Posted Successfully!</div>
+      <div class="job-posted-subtitle" id="jobPostedLocation">Your job is now live and visible to workers in Cebu City.</div>
+      
+      <div class="job-posted-content">
+        <div class="job-posted-section">
+          <div class="job-posted-section-title">
+            🔄 What happens next:
+          </div>
+          <div class="job-posted-section-text">
+            Workers submit applications with their phone numbers.<br><br>
+            You review applications privately in "Messages".<br><br>
+            You choose which worker to hire through the platform.<br><br>
+            Your phone number is only shared with the worker you hire.
+          </div>
+        </div>
+        
+        <div class="job-posted-section">
+          <div class="job-posted-section-title">
+            🔒 Privacy Protection:
+          </div>
+          <div class="job-posted-section-text">
+            Workers cannot contact you until you hire them.
+          </div>
+        </div>
+        
+        <div class="job-posted-section">
+          <div class="job-posted-section-title">
+            💡 Tip:
+          </div>
+          <div class="job-posted-section-text">
+            Most quality applications arrive within 24-48 hours.
+          </div>
+        </div>
+      </div>
+      
+      <div class="job-posted-actions">
+        <button class="job-posted-btn primary" id="goToMessagesBtn">Go to Messages</button>
+        <button class="job-posted-btn" id="viewJobPostBtn">View My Job Post</button>
+        <button class="job-posted-btn" id="jobPostedGotItBtn">Got It</button>
+      </div>
+    </div>
+  </div>
+  
+  <script src="public/js/new-post.js?v=17"></script>
 </body>
 </html> 

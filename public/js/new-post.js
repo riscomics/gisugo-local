@@ -1154,7 +1154,8 @@ function showPreviewOverlay() {
   // Validate required fields first
   const validationResult = validateRequiredFields();
   if (!validationResult.isValid) {
-    alert(validationResult.message);
+    // Show validation errors as a more visible overlay instead of alert
+    showValidationOverlay(validationResult.message);
     return;
   }
   
@@ -1164,11 +1165,94 @@ function showPreviewOverlay() {
   // Populate preview data
   populatePreviewData();
   
+  // Reset button state
+  const postBtn = document.getElementById('previewPostBtn');
+  if (postBtn) {
+    postBtn.textContent = 'POST JOB';
+    postBtn.disabled = false;
+  }
+  
   // Show overlay
   previewOverlay.style.display = 'flex';
   
   // Add event listeners for preview overlay
   initializePreviewOverlayEvents();
+}
+
+// ========================== VALIDATION OVERLAY ==========================
+
+function showValidationOverlay(message) {
+  // Create a temporary validation overlay
+  let validationOverlay = document.getElementById('validationOverlay');
+  if (!validationOverlay) {
+    validationOverlay = document.createElement('div');
+    validationOverlay.id = 'validationOverlay';
+    validationOverlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      padding: 20px;
+      box-sizing: border-box;
+    `;
+    
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    `;
+    
+    modal.innerHTML = `
+      <div style="font-size: 18px; font-weight: 600; color: #d32f2f; margin-bottom: 16px;">
+        ⚠️ Required Fields Missing
+      </div>
+      <div style="font-size: 14px; line-height: 1.6; color: #333; white-space: pre-line; margin-bottom: 20px;">
+        ${message}
+      </div>
+      <button id="validationOkBtn" style="
+        background: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 12px 24px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+      ">Got It</button>
+    `;
+    
+    validationOverlay.appendChild(modal);
+    document.body.appendChild(validationOverlay);
+    
+    // Add click event to close button
+    document.getElementById('validationOkBtn').addEventListener('click', function() {
+      document.body.removeChild(validationOverlay);
+    });
+    
+    // Close on background click
+    validationOverlay.addEventListener('click', function(e) {
+      if (e.target === validationOverlay) {
+        document.body.removeChild(validationOverlay);
+      }
+    });
+  } else {
+    // Update existing overlay
+    validationOverlay.querySelector('div:last-child').textContent = message;
+    validationOverlay.style.display = 'flex';
+  }
 }
 
 // ========================== FORM VALIDATION ==========================
@@ -1428,7 +1512,7 @@ function initializePreviewOverlayEvents() {
   const editBtn = document.getElementById('previewEditBtn');
   const postBtn = document.getElementById('previewPostBtn');
   
-  // Remove existing event listeners by cloning and replacing elements
+  // Only add listeners if not already added
   if (closeBtn && !closeBtn.dataset.listenerAdded) {
     closeBtn.addEventListener('click', function() {
       previewOverlay.style.display = 'none';
@@ -1443,20 +1527,19 @@ function initializePreviewOverlayEvents() {
     editBtn.dataset.listenerAdded = 'true';
   }
   
-  // Post job button - remove and re-add to prevent duplicates
-  if (postBtn) {
-    // Clone the button to remove all existing event listeners
-    const newPostBtn = postBtn.cloneNode(true);
-    postBtn.parentNode.replaceChild(newPostBtn, postBtn);
-    
-    // Add fresh event listener to the new button
-    newPostBtn.addEventListener('click', function() {
+  // Post job button - only add listener if not already added
+  if (postBtn && !postBtn.dataset.listenerAdded) {
+    postBtn.addEventListener('click', function() {
+      // Prevent multiple clicks
+      if (this.disabled) return;
+      
       // Get form data
       const formData = getFormData();
       
       // Create the job post
       createJobPost(formData);
     });
+    postBtn.dataset.listenerAdded = 'true';
   }
   
   // Background and escape listeners - only add once
@@ -1482,13 +1565,15 @@ function initializePreviewOverlayEvents() {
 // ========================== JOB CREATION FUNCTIONALITY ==========================
 
 async function createJobPost(formData) {
+  const postBtn = document.getElementById('previewPostBtn');
+  const previewOverlay = document.getElementById('previewOverlay');
+  
   try {
     // Show loading state
-    const previewOverlay = document.getElementById('previewOverlay');
-    const postBtn = document.getElementById('previewPostBtn');
-    const originalText = postBtn.textContent;
-    postBtn.textContent = 'POSTING...';
-    postBtn.disabled = true;
+    if (postBtn) {
+      postBtn.textContent = 'POSTING...';
+      postBtn.disabled = true;
+    }
     
     // Get the next available job number for this category
     const jobNumber = getNextJobNumber(formData.category);
@@ -1503,22 +1588,30 @@ async function createJobPost(formData) {
     storeJobData(formData, jobNumber);
     
     // Close preview overlay
-    previewOverlay.style.display = 'none';
+    if (previewOverlay) {
+      previewOverlay.style.display = 'none';
+    }
     
-    // Show success message
-    alert('Job posted successfully!');
+    // Reset button state before showing success overlay
+    if (postBtn) {
+      postBtn.textContent = 'POST JOB';
+      postBtn.disabled = false;
+    }
     
-    // Redirect to the appropriate listing page
-    window.location.href = `${formData.category}.html`;
+    // Show job posted overlay
+    showJobPostedOverlay(formData);
     
   } catch (error) {
     console.error('Error creating job post:', error);
-    alert('Error posting job. Please try again.');
     
     // Reset button state
-    const postBtn = document.getElementById('previewPostBtn');
-    postBtn.textContent = 'POST JOB';
-    postBtn.disabled = false;
+    if (postBtn) {
+      postBtn.textContent = 'POST JOB';
+      postBtn.disabled = false;
+    }
+    
+    // Show error overlay instead of alert
+    showValidationOverlay('Error posting job. Please try again.\n\nIf the problem persists, please refresh the page and try again.');
   }
 }
 
@@ -1839,3 +1932,74 @@ function updateLocationExtrasForCityChange() {
 // No longer need positioning function since everything is in normal document flow
 
 // No longer need clipping function since no overlapping fixed elements 
+
+// ========================== JOB POSTED OVERLAY ==========================
+
+function showJobPostedOverlay(formData) {
+  const overlay = document.getElementById('jobPostedOverlay');
+  const locationText = document.getElementById('jobPostedLocation');
+  
+  // Update location text
+  locationText.textContent = `Your job is now live and visible to workers in ${formData.city}.`;
+  
+  // Show overlay
+  overlay.style.display = 'flex';
+  setTimeout(() => {
+    overlay.classList.add('show');
+  }, 10);
+  
+  // Initialize overlay events
+  initializeJobPostedOverlayEvents(formData);
+}
+
+function initializeJobPostedOverlayEvents(formData) {
+  const goToMessagesBtn = document.getElementById('goToMessagesBtn');
+  const viewJobPostBtn = document.getElementById('viewJobPostBtn');
+  const gotItBtn = document.getElementById('jobPostedGotItBtn');
+  
+  // Go to Messages button (placeholder for future Messages page)
+  goToMessagesBtn.addEventListener('click', function() {
+    closeJobPostedOverlay();
+    // TODO: Redirect to Messages page when created
+    alert('Messages page coming soon! For now, redirecting to job listing.');
+    window.location.href = `${formData.category}.html`;
+  });
+  
+  // View Job Post button
+  viewJobPostBtn.addEventListener('click', function() {
+    closeJobPostedOverlay();
+    // Get the job number from localStorage to construct URL
+    const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    const categoryJobs = jobData[formData.category] || [];
+    const latestJob = categoryJobs[categoryJobs.length - 1]; // Get the latest job posted
+    
+    if (latestJob) {
+      window.location.href = `dynamic-job.html?category=${formData.category}&jobNumber=${latestJob.jobNumber}`;
+    } else {
+      window.location.href = `${formData.category}.html`;
+    }
+  });
+  
+  // Got It button
+  gotItBtn.addEventListener('click', function() {
+    closeJobPostedOverlay();
+    window.location.href = `${formData.category}.html`;
+  });
+  
+  // Close overlay when clicking outside
+  const overlay = document.getElementById('jobPostedOverlay');
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      closeJobPostedOverlay();
+      window.location.href = `${formData.category}.html`;
+    }
+  });
+}
+
+function closeJobPostedOverlay() {
+  const overlay = document.getElementById('jobPostedOverlay');
+  overlay.classList.remove('show');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+  }, 300);
+}

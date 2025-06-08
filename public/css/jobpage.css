@@ -1013,6 +1013,123 @@ body::-webkit-scrollbar {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* Job Posted Overlay */
+.job-posted-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 4000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.job-posted-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.job-posted-modal {
+  background: #363f4f;
+  border-radius: 12px;
+  border: 2px solid #10b981;
+  width: 90%;
+  max-width: 500px;
+  padding: 30px 25px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.job-posted-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f5f5f5;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+}
+
+.job-posted-subtitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #10b981;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 25px;
+}
+
+.job-posted-content {
+  text-align: left;
+  margin-bottom: 25px;
+}
+
+.job-posted-section {
+  margin-bottom: 20px;
+}
+
+.job-posted-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f5f5f5;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-posted-section-text {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-left: 24px;
+}
+
+.job-posted-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.job-posted-btn {
+  background: #d9d9d9;
+  border: 2px solid #9ca3af;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #363f4f;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: Arial, Helvetica, sans-serif;
+  min-width: 120px;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.job-posted-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.job-posted-btn.primary {
+  background: #10b981;
+  border-color: #059669;
+  color: #ffffff;
+}
+
+.job-posted-btn.primary:hover {
+  background: #059669;
+}
+
 /* Mobile Styles *//* Mobile Styles *//* Mobile Styles *//* Mobile Styles */
 /* Mobile Styles *//* Mobile Styles *//* Mobile Styles *//* Mobile Styles */
 /* Mobile Styles *//* Mobile Styles *//* Mobile Styles *//* Mobile Styles */
@@ -1324,6 +1441,55 @@ body::-webkit-scrollbar {
   
   /* Ensure overlay stays hidden on mobile when not active */
   .application-sent-overlay:not(.show) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+  
+  /* Job Posted Overlay Mobile Styles */
+  .job-posted-overlay {
+    align-items: flex-start;
+    padding-top: 15vh;
+  }
+  
+  .job-posted-modal {
+    width: 95%;
+    margin: 10px;
+    padding: 25px 20px;
+    max-width: none;
+  }
+  
+  .job-posted-title {
+    font-size: 1.6rem;
+    margin-bottom: 15px;
+  }
+  
+  .job-posted-subtitle {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+  }
+  
+  .job-posted-section-title {
+    font-size: 1rem;
+  }
+  
+  .job-posted-section-text {
+    font-size: 0.95rem;
+    margin-left: 20px;
+  }
+  
+  .job-posted-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .job-posted-btn {
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .job-posted-overlay:not(.show) {
     opacity: 0 !important;
     visibility: hidden !important;
   }
