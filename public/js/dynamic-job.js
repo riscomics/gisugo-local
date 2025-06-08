@@ -64,15 +64,15 @@ const extrasConfig = {
   },
   clerical: {
     field1: { label: "LOCATION:" },
-    field2: { label: "SOFTWARE:" }
+    field2: { label: "POSITION:" }
   },
   builder: {
     field1: { label: "LOCATION:" },
-    field2: { label: "MATERIALS:" }
+    field2: { label: "SUPPLIES:" }
   },
   reception: {
     field1: { label: "LOCATION:" },
-    field2: { label: "SHIFT:" }
+    field2: { label: "SUPPLIES:" }
   },
   nurse: {
     field1: { label: "LOCATION:" },

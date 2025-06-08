@@ -227,6 +227,18 @@ const extrasConfig = {
     field1: { label: "LOCATION:", menuType: "location" },
     field2: { label: "SUBJECT:", menuType: "subject" }
   },
+  clerical: {
+    field1: { label: "LOCATION:", menuType: "location" },
+    field2: { label: "POSITION:", menuType: "position" }
+  },
+  builder: {
+    field1: { label: "LOCATION:", menuType: "location" },
+    field2: { label: "SUPPLIES:", menuType: "supplies" }
+  },
+  reception: {
+    field1: { label: "LOCATION:", menuType: "location" },
+    field2: { label: "SUPPLIES:", menuType: "supplies" }
+  },
   nurse: {
     field1: { label: "LOCATION:", menuType: "location" },
     field2: { label: "POSITION:", menuType: "position" }
