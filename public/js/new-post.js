@@ -1295,8 +1295,8 @@ function populatePreviewData() {
   
   // Populate time
   const timeElement = document.getElementById('previewTime');
-  if (formData.startTime && formData.endTime) {
-    timeElement.textContent = `${formData.startTime} to ${formData.endTime}`;
+      if (formData.startTime && formData.endTime) {
+      timeElement.textContent = `${formData.startTime} to ${formData.endTime}`;
   } else {
     timeElement.textContent = 'Time Not Selected';
   }
@@ -1375,8 +1375,8 @@ function getFormData() {
   const endPeriod = document.getElementById('jobTimeEndPeriodLabel').textContent;
   
   if (startHour !== 'Hour' && endHour !== 'Hour') {
-    data.startTime = `${startHour} ${startPeriod}`;
-    data.endTime = `${endHour} ${endPeriod}`;
+    data.startTime = `${startHour}${startPeriod}`;
+    data.endTime = `${endHour}${endPeriod}`;
   }
   
   // Get photo
@@ -1607,7 +1607,7 @@ async function addJobPreviewCard(formData, jobNumber) {
   const formattedDate = date.toLocaleDateString('en-US', options);
   
   // Format time for display
-  const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
+      const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
   
   // Get first two extras for preview
   const extra1 = formData.extras && formData.extras[0] ? formData.extras[0] : '';

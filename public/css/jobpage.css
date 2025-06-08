@@ -274,7 +274,7 @@ body::-webkit-scrollbar {
 }
 
 .job-payment-value {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #363f4f;
   text-align: center;
@@ -1134,7 +1134,7 @@ body::-webkit-scrollbar {
   }
   
   .job-payment-value {
-    font-size: 1.375rem;
+    font-size: 1.175rem;
   }
   
   /* Job Details Mobile Styles */

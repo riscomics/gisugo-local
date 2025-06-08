@@ -634,7 +634,7 @@ html {
         color: #363f4f;
         border-radius: 8px;
         padding: 2px 8px 2px 8px;
-        min-width: 88px;
+        min-width: 93px;
         text-align: center;
         margin-bottom: 0;
         display: flex;
@@ -733,7 +733,7 @@ html {
           color: #363f4f;
           border-radius: 8px;
           padding: 3px 8px 3px 8px;
-          min-width: 88px;
+          min-width: 93px;
           text-align: center;
           margin-bottom: 0;
           display: flex;
@@ -850,8 +850,8 @@ html {
           color: #363f4f;
           border-radius: 8px;
           padding: 2px 0px 5px 0px;
-          min-width: 70px;
-          width: 91px;
+          min-width: 75px;
+          width: 96px;
           text-align: center;
           margin: 0;
           display: flex;
