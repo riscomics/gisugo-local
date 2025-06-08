@@ -1712,7 +1712,7 @@ function initializeJobTitleCharacterCounter() {
   
   function updateCharacterCounter() {
     const currentLength = jobTitleInput.value.length;
-    const remainingChars = 45 - currentLength;
+    const remainingChars = 55 - currentLength;
     
     characterCounter.textContent = remainingChars;
     
