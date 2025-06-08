@@ -972,7 +972,7 @@ function initializeTimePeriodDropdowns() {
 // ========================== PAYMENT OFFER FUNCTIONALITY ==========================
 
 // Payment type dropdown functionality
-let selectedPaymentType = "PER HOUR";
+let selectedPaymentType = "Per Hour";
 
 function initializePaymentDropdown() {
   const paymentTypeMenu = document.getElementById('paymentTypeMenu');
