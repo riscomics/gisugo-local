@@ -280,6 +280,15 @@ body::-webkit-scrollbar {
   text-align: center;
 }
 
+/* Increase font size for payment amount specifically while maintaining box size */
+[data-payment-type="offer"] .job-payment-value {
+  font-size: 1.1rem;
+}
+
+[data-payment-type="offer"] .job-payment-box {
+  padding: 14px 20px;
+}
+
 /* Job Details Section */
 .job-details-section {
   background: #2d3748;
@@ -1135,6 +1144,15 @@ body::-webkit-scrollbar {
   
   .job-payment-value {
     font-size: 1.05rem;
+  }
+  
+  /* Mobile: Increase font size for payment amount specifically while maintaining box size */
+  [data-payment-type="offer"] .job-payment-value {
+    font-size: 1.175rem;
+  }
+  
+  [data-payment-type="offer"] .job-payment-box {
+    padding: 7px 8px;
   }
   
   /* Job Details Mobile Styles */
