@@ -55,8 +55,8 @@ const extrasConfig = {
     field2: { label: "SHIFT:" }
   },
   driver: {
-    field1: { label: "PICKUP AT:" },
-    field2: { label: "DELIVER TO:" }
+    field1: { label: "LOCATION:" },
+    field2: { label: "LOCATION:" }
   },
   tutor: {
     field1: { label: "LOCATION:" },

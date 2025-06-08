@@ -221,7 +221,7 @@ const extrasConfig = {
   },
   driver: {
     field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field2: { label: "LOCATION:", menuType: "location" }
   },
   tutor: {
     field1: { label: "LOCATION:", menuType: "location" },
