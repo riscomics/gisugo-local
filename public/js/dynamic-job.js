@@ -3,100 +3,100 @@
 // Category configuration for extras
 const extrasConfig = {
   hatod: {
-    field1: { label: "PICKUP AT:" },
-    field2: { label: "DELIVER TO:" }
+    field1: { label: "Pickup at:" },
+    field2: { label: "Deliver to:" }
   },
   hakot: {
-    field1: { label: "LOAD AT:" },
-    field2: { label: "UNLOAD AT:" }
+    field1: { label: "Load at:" },
+    field2: { label: "Unload at:" }
   },
   kompra: {
-    field1: { label: "SHOP AT:" },
-    field2: { label: "DELIVER TO:" }
+    field1: { label: "Shop at:" },
+    field2: { label: "Deliver to:" }
   },
   luto: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   hugas: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   laba: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   limpyo: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   tindera: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "PRODUCT:" }
+    field1: { label: "Location:" },
+    field2: { label: "Product:" }
   },
   bantay: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SHIFT:" }
+    field1: { label: "Location:" },
+    field2: { label: "Shift:" }
   },
   painter: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   carpenter: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "MATERIALS:" }
+    field1: { label: "Location:" },
+    field2: { label: "Materials:" }
   },
   plumber: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "MATERIALS:" }
+    field1: { label: "Location:" },
+    field2: { label: "Materials:" }
   },
   security: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SHIFT:" }
+    field1: { label: "Location:" },
+    field2: { label: "Shift:" }
   },
   driver: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "LOCATION:" }
+    field1: { label: "Location:" },
+    field2: { label: "Location:" }
   },
   tutor: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUBJECT:" }
+    field1: { label: "Location:" },
+    field2: { label: "Subject:" }
   },
   clerical: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "POSITION:" }
+    field1: { label: "Location:" },
+    field2: { label: "Position:" }
   },
   builder: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   reception: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SUPPLIES:" }
+    field1: { label: "Location:" },
+    field2: { label: "Supplies:" }
   },
   nurse: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SPECIALTY:" }
+    field1: { label: "Location:" },
+    field2: { label: "Specialty:" }
   },
   doctor: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "SPECIALTY:" }
+    field1: { label: "Location:" },
+    field2: { label: "Specialty:" }
   },
   lawyer: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "PRACTICE:" }
+    field1: { label: "Location:" },
+    field2: { label: "Practice:" }
   },
   mechanic: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "VEHICLE:" }
+    field1: { label: "Location:" },
+    field2: { label: "Vehicle:" }
   },
   electrician: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "MATERIALS:" }
+    field1: { label: "Location:" },
+    field2: { label: "Materials:" }
   },
   tailor: {
-    field1: { label: "LOCATION:" },
-    field2: { label: "GARMENT:" }
+    field1: { label: "Location:" },
+    field2: { label: "Garment:" }
   }
 };
 

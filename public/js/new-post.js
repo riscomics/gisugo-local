@@ -168,100 +168,100 @@ function restoreBarangayDropdown(fieldNumber) {
 
 const extrasConfig = {
   hatod: {
-    field1: { label: "PICKUP AT:", menuType: "location" },
-    field2: { label: "DELIVER TO:", menuType: "location" }
+    field1: { label: "Pickup at:", menuType: "location" },
+    field2: { label: "Deliver to:", menuType: "location" }
   },
   hakot: {
-    field1: { label: "LOAD AT:", menuType: "location" },
-    field2: { label: "UNLOAD AT:", menuType: "location" }
+    field1: { label: "Load at:", menuType: "location" },
+    field2: { label: "Unload at:", menuType: "location" }
   },
   kompra: {
-    field1: { label: "SHOP AT:", menuType: "location" },
-    field2: { label: "DELIVER TO:", menuType: "location" }
+    field1: { label: "Shop at:", menuType: "location" },
+    field2: { label: "Deliver to:", menuType: "location" }
   },
   luto: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   hugas: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   laba: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   limpyo: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   tindera: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   bantay: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   painter: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   carpenter: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   plumber: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   security: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   driver: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "LOCATION:", menuType: "location" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Location:", menuType: "location" }
   },
   tutor: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUBJECT:", menuType: "subject" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Subject:", menuType: "subject" }
   },
   clerical: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "POSITION:", menuType: "position" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
   },
   builder: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   reception: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   nurse: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "POSITION:", menuType: "position" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
   },
   doctor: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "POSITION:", menuType: "position" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
   },
   lawyer: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "POSITION:", menuType: "position" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
   },
   mechanic: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   electrician: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   },
   tailor: {
-    field1: { label: "LOCATION:", menuType: "location" },
-    field2: { label: "SUPPLIES:", menuType: "supplies" }
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
   }
 };
 

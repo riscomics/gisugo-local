@@ -616,6 +616,7 @@ html {
         text-overflow: unset;
       }
       .job-preview-extra-label1, .job-preview-extra-label2 {
+        font-size: 0.83rem;
         font-weight: 600;
         color: #bfc6d0;
         margin-right: 5px;
@@ -831,6 +832,7 @@ html {
         }
         
         .job-preview-extra-label1, .job-preview-extra-label2 {
+          font-size: 0.83rem;
           font-weight: 500;
           color: #bfc6d0;
           margin-right: 2px;          
