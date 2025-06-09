@@ -309,7 +309,7 @@ section {
   border: 2px solid var(--accent-color);
   border-radius: 8px;
   margin: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease, visibility 0.3s ease;
@@ -319,6 +319,19 @@ section {
   display: block;
   opacity: 1;
   visibility: visible;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+}
+
+/* Add the same slideDown animation as listing pages */
+@keyframes slideDown {
+  from { 
+    opacity: 0; 
+    transform: translateY(-10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
 .menu-list {
