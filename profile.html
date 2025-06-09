@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - GISUGO</title>
+  <link rel="stylesheet" href="public/css/profile.css">
+  <link rel="stylesheet" href="public/css/jobpage.css">
+  
+</head>
+<body>
+  <div class="profile-header">
+    <div class="profile-header-title-container">
+      <button class="profile-header-btn back" onclick="window.history.back()" aria-label="Back">
+        <img src="public/icons/back.png" alt="Back">
+        <span>Back</span>
+      </button>
+      <div class="profile-header-title" id="profileTitle">PROFILE</div>
+      <button class="profile-header-btn menu profile-menu-btn" id="profileMenuBtn" aria-label="Menu">
+        <img src="public/icons/menu.png" alt="Menu">
+        <div>Menu</div>
+      </button> 
+    </div>
+    <div class="profile-header-borderline"></div>
+  </div>
+  <div class="profile-menu-overlay" id="profileMenuOverlay">
+    <div class="profile-menu-items">
+      <div class="profile-menu-item" onclick="window.location.href='index.html'">
+        <img src="public/icons/Home.png" alt="Home">
+        <div>Home</div>
+      </div>
+      <div class="profile-menu-item">
+        <img src="public/icons/Messages.png" alt="Messages">
+        <div>Messages</div>
+      </div>
+      <div class="profile-menu-item">
+        <img src="public/icons/Profile.png" alt="Profile">
+        <div>Profile</div>
+      </div>
+      <div class="profile-menu-item">
+        <img src="public/icons/Jobs.png" alt="Jobs">
+        <div>Jobs</div>
+      </div>
+      <div class="profile-menu-item" onclick="window.location.href='new-post.html'">
+        <img src="public/icons/Post.png" alt="Post">
+        <div>Post</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="public/js/profile.js"></script>
+</body>
+</html> 
