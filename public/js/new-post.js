@@ -1718,6 +1718,8 @@ async function addJobPreviewCard(formData, jobNumber) {
     time: timeDisplay,
     photo: formData.photo || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
     templateUrl: `dynamic-job.html?category=${formData.category}&jobNumber=${jobNumber}`,
+    region: formData.region,
+    city: formData.city,
     createdAt: new Date().toISOString()
   };
   

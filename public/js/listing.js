@@ -210,6 +210,8 @@ regionMenuOverlay.addEventListener('click', function(e) {
     renderCityMenu();
     regionMenuOverlay.classList.remove('show');
     regionMenuOpen = false;
+    // Trigger job filtering and sorting based on selected region
+    filterAndSortJobs();
   }
 });
 
@@ -387,10 +389,19 @@ function filterAndSortJobs() {
   
 
   
-  // Filter jobs based on selected pay type
+  // Filter jobs based on selected region and pay type
   let filteredJobs = categoryCards;
+  
+  // Filter by region
+  filteredJobs = filteredJobs.filter(job => {
+    // If no region data in job, include it (for backwards compatibility)
+    if (!job.region) return true;
+    return job.region === activeRegion;
+  });
+  
+  // Filter by pay type
   if (activePay !== 'PAY TYPE') {
-    filteredJobs = categoryCards.filter(job => {
+    filteredJobs = filteredJobs.filter(job => {
       const jobRate = (job.rate || '').toUpperCase();
       const filterRate = activePay.toUpperCase();
       return jobRate === filterRate;
