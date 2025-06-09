@@ -1,79 +1,45 @@
 // ========================== SHARED MENU SYSTEM ==========================
 // Single source of truth for all 5-icon menu overlays
+// Uses the exact same simple paths that worked in the original hardcoded version
 
 const MENU_ITEMS = [
-  { icon: 'Home.png', text: 'Home', link: 'index.html' },
-  { icon: 'Messages.png', text: 'Messages', link: null }, // Future implementation
-  { icon: 'Profile.png', text: 'Profile', link: 'profile.html' },
-  { icon: 'Jobs.png', text: 'Jobs', link: null }, // Future implementation
-  { icon: 'Post.png', text: 'Post', link: 'new-post.html' }
+  {
+    icon: 'public/icons/Home.png',
+    text: 'Home',
+    link: 'index.html'
+  },
+  {
+    icon: 'public/icons/Messages.png',
+    text: 'Messages',
+    link: null // Future implementation
+  },
+  {
+    icon: 'public/icons/Profile.png',
+    text: 'Profile',
+    link: 'profile.html'
+  },
+  {
+    icon: 'public/icons/Jobs.png',
+    text: 'Jobs',
+    link: null // Future implementation
+  },
+  {
+    icon: 'public/icons/Post.png',
+    text: 'Post',
+    link: 'new-post.html'
+  }
 ];
 
-// Robust path detection that works across different server environments
-function detectPathPrefix() {
-  const currentPath = window.location.pathname;
-  console.log('🔍 Full current path:', currentPath);
-  
-  // Remove the filename to get the directory path
-  const pathParts = currentPath.split('/');
-  const fileName = pathParts[pathParts.length - 1];
-  const directoryPath = pathParts.slice(0, -1).join('/');
-  
-  console.log('📁 Directory path:', directoryPath);
-  console.log('📄 File name:', fileName);
-  
-  // Count how many levels deep we are from root
-  const levels = directoryPath.split('/').filter(part => part && part.trim() !== '');
-  const depth = levels.length;
-  
-  console.log('📊 Directory levels:', levels);
-  console.log('📏 Calculated depth:', depth);
-  
-  // Generate prefix based on depth
-  const prefix = depth > 0 ? '../'.repeat(depth) : '';
-  console.log('🎯 Generated prefix:', `"${prefix}"`);
-  
-  return prefix;
-}
-
-// Auto-detects page depth and adjusts paths accordingly
-function getCorrectPath(basePath) {
-  if (!basePath) return '#'; // Handle null links (future features)
-  
-  const prefix = detectPathPrefix();
-  const fullPath = prefix + basePath;
-  
-  console.log('🔗 Link path for', basePath, '→', fullPath);
-  
-  return fullPath;
-}
-
-// Auto-detects icon path based on page depth with robust online/local handling
-function getIconPath(iconName) {
-  const prefix = detectPathPrefix();
-  const iconPath = prefix + 'public/icons/' + iconName;
-  
-  console.log('🖼️ Icon path for', iconName, '→', iconPath);
-  
-  return iconPath;
-}
-
-// Dynamically generates menu HTML based on current page type
+// Dynamically generates menu HTML - using exact same paths as original hardcoded version
 function generateMenuHTML() {
-  console.log('🚀 Generating menu HTML...');
-  
   return MENU_ITEMS.map(item => {
-    const link = getCorrectPath(item.link);
-    const iconPath = getIconPath(item.icon);
-    const clickHandler = link !== '#' ? `onclick="window.location.href='${link}'"` : '';
-    const cursorStyle = link === '#' ? 'style="cursor: default; opacity: 0.5;"' : '';
-    
-    // Add error handling for missing icons
-    const imgElement = `<img src="${iconPath}" alt="${item.text}" onerror="console.error('❌ Failed to load icon:', this.src); this.style.backgroundColor='#ff6b6b'; this.style.color='white'; this.innerHTML='${item.text[0]}'; this.style.textAlign='center'; this.style.lineHeight='48px';">`;
+    const link = item.link || '#';
+    const clickHandler = item.link ? `onclick="window.location.href='${item.link}'"` : '';
+    const cursorStyle = !item.link ? 'style="cursor: default; opacity: 0.5;"' : '';
     
     return `
       <div class="menu-item-wrapper ${item.text.toLowerCase()}-menu-item" ${clickHandler} ${cursorStyle}>
-        ${imgElement}
+        <img src="${item.icon}" alt="${item.text}">
         <div>${item.text}</div>
       </div>
     `;
