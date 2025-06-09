@@ -266,7 +266,8 @@ payMenuOverlay.addEventListener('click', function(e) {
     renderPayMenu();
     payMenuOverlay.classList.remove('show');
     payMenuOpen = false;
-    // Here you would trigger the job listing filter logic based on activePay, activeRegion, and activeCity
+    // Trigger job filtering and sorting based on selected pay type
+    filterAndSortJobs();
   }
 });
 
@@ -288,6 +289,154 @@ function updateCityMenuLabelFontSize() {
 
 // Call updateCityMenuLabelFontSize on window resize
 window.addEventListener('resize', updateCityMenuLabelFontSize);
+
+// Helper function to parse job date and time into comparable timestamp
+function parseJobDateTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+  
+  try {
+    // Parse date like "Jun 11" or "Jun 14" 
+    const currentYear = new Date().getFullYear();
+    const fullDateStr = `${dateStr} ${currentYear}`;
+    const dateObj = new Date(fullDateStr);
+    
+    // Check if date parsing failed
+    if (isNaN(dateObj.getTime())) {
+      console.warn('Date parsing failed for:', dateStr);
+      return null;
+    }
+    
+    // Parse start time from strings like "10AM - 12PM" or "8 AM - 10 AM"
+    const timeMatch = timeStr.match(/(\d+)\s*(AM|PM)/i);
+    if (!timeMatch) {
+      return dateObj.getTime();
+    }
+    
+    const hour = parseInt(timeMatch[1]);
+    const isPM = timeMatch[2].toUpperCase() === 'PM';
+    
+    // Convert to 24-hour format
+    let hour24 = hour;
+    if (isPM && hour !== 12) hour24 += 12;
+    if (!isPM && hour === 12) hour24 = 0;
+    
+    dateObj.setHours(hour24, 0, 0, 0);
+    return dateObj.getTime();
+  } catch (e) {
+    console.warn('Error parsing date/time:', dateStr, timeStr, e);
+    return null;
+  }
+}
+
+// Helper function to parse job end time from time string
+function parseJobEndTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+  
+  try {
+    // Parse date like "Jun 11" or "Jun 14" 
+    const currentYear = new Date().getFullYear();
+    const fullDateStr = `${dateStr} ${currentYear}`;
+    const dateObj = new Date(fullDateStr);
+    
+    // Check if date parsing failed
+    if (isNaN(dateObj.getTime())) {
+      console.warn('Date parsing failed for end time:', dateStr);
+      return null;
+    }
+    
+    // Parse end time from strings like "10AM - 12PM" or "8 AM - 10 AM"
+    // Look for the time after the dash
+    const endTimeMatch = timeStr.match(/-\s*(\d+)\s*(AM|PM)/i);
+    if (!endTimeMatch) {
+      return null;
+    }
+    
+    const hour = parseInt(endTimeMatch[1]);
+    const isPM = endTimeMatch[2].toUpperCase() === 'PM';
+    
+    // Convert to 24-hour format
+    let hour24 = hour;
+    if (isPM && hour !== 12) hour24 += 12;
+    if (!isPM && hour === 12) hour24 = 0;
+    
+    dateObj.setHours(hour24, 0, 0, 0);
+    return dateObj.getTime();
+  } catch (e) {
+    console.warn('Error parsing end date/time:', dateStr, timeStr, e);
+    return null;
+  }
+}
+
+// Filter and sort jobs based on selected criteria
+function filterAndSortJobs() {
+  const currentCategory = getCurrentCategory();
+  const headerSpacer = document.querySelector('.jobcat-header-spacer');
+  
+  if (!headerSpacer) {
+    console.error('Header spacer not found');
+    return;
+  }
+  
+  // Clear existing job cards
+  const existingCards = document.querySelectorAll('.job-preview-card');
+  existingCards.forEach(card => card.remove());
+  
+  // Get dynamic job preview cards from localStorage only
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  const categoryCards = previewCards[currentCategory] || [];
+  
+
+  
+  // Filter jobs based on selected pay type
+  let filteredJobs = categoryCards;
+  if (activePay !== 'PAY TYPE') {
+    filteredJobs = categoryCards.filter(job => {
+      const jobRate = (job.rate || '').toUpperCase();
+      const filterRate = activePay.toUpperCase();
+      return jobRate === filterRate;
+    });
+  }
+  
+  // Sort jobs by earliest job schedule date/time, then by earliest end time
+  filteredJobs.sort((a, b) => {
+    // Convert job date and time to comparable format
+    const dateTimeA = parseJobDateTime(a.date, a.time);
+    const dateTimeB = parseJobDateTime(b.date, b.time);
+    
+    // Sort by earliest job date/time first
+    if (dateTimeA && dateTimeB) {
+      const timeDiff = dateTimeA - dateTimeB;
+      
+      // If start times are the same, sort by end time (earliest end time first)
+      if (timeDiff === 0) {
+        const endTimeA = parseJobEndTime(a.date, a.time);
+        const endTimeB = parseJobEndTime(b.date, b.time);
+        
+        if (endTimeA && endTimeB) {
+          return endTimeA - endTimeB; // Earliest end time first
+        }
+      }
+      
+      return timeDiff; // Earliest start time first
+    }
+    
+    // Fallback: if date parsing fails, sort by creation time
+    const createdA = new Date(a.createdAt || 0).getTime();
+    const createdB = new Date(b.createdAt || 0).getTime();
+    return createdB - createdA; // Newest created first
+  });
+  
+
+  
+  // Create and insert filtered job cards in reverse order to get correct display order
+  filteredJobs.reverse().forEach(cardData => {
+    const jobCard = createJobPreviewCard(cardData);
+    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+  });
+  
+  // Apply truncation after cards are loaded
+  setTimeout(truncateBarangayNames, 50);
+}
 
 // Function to truncate barangay names in job preview cards to prevent layout issues on small screens
 function truncateBarangayNames() {
@@ -375,370 +524,45 @@ function loadJobPreviewCards() {
     return;
   }
   
-  // Create and insert dynamic job preview cards first (newest on top)
-  categoryCards.forEach(cardData => {
+  // Sort by earliest job schedule date/time, then by earliest end time
+  const sortedCards = categoryCards.sort((a, b) => {
+    // Convert job date and time to comparable format
+    const dateTimeA = parseJobDateTime(a.date, a.time);
+    const dateTimeB = parseJobDateTime(b.date, b.time);
+    
+    // Sort by earliest job date/time first
+    if (dateTimeA && dateTimeB) {
+      const timeDiff = dateTimeA - dateTimeB;
+      
+      // If start times are the same, sort by end time (earliest end time first)
+      if (timeDiff === 0) {
+        const endTimeA = parseJobEndTime(a.date, a.time);
+        const endTimeB = parseJobEndTime(b.date, b.time);
+        
+        if (endTimeA && endTimeB) {
+          return endTimeA - endTimeB; // Earliest end time first
+        }
+      }
+      
+      return timeDiff; // Earliest start time first
+    }
+    
+    // Fallback: if date parsing fails, sort by creation time
+    const createdA = new Date(a.createdAt || 0).getTime();
+    const createdB = new Date(b.createdAt || 0).getTime();
+    return createdB - createdA; // Newest created first
+  });
+  
+  // Create and insert dynamic job preview cards in reverse order to get correct display order
+  sortedCards.reverse().forEach(cardData => {
     const jobCard = createJobPreviewCard(cardData);
     headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
   });
-  
-  // Load static template jobs (these appear below dynamic jobs)
-  loadStaticTemplateCards(currentCategory, headerSpacer);
 }
 
-function loadStaticTemplateCards(category, headerSpacer) {
-  const staticJobsData = getStaticJobsData();
-  
-  // Get static jobs for this category
-  const categoryJobs = staticJobsData[category] || [];
-  
-  // Insert static job cards after any dynamic jobs
-  categoryJobs.forEach(jobData => {
-    const jobCard = createJobPreviewCard(jobData);
-    headerSpacer.parentNode.appendChild(jobCard);
-  });
-}
 
-function getStaticJobsData() {
-  const staticJobs = {
-    hatod: [
-      {
-        title: "Hatod rice bags from warehouse to restaurant",
-        price: "₱150",
-        rate: "Per Job",
-        date: "Aug 15",
-        time: "9AM-11AM",
-        photo: "public/mock/mock-hatod-post1.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-1.html",
-        extra1: "LOAD AT: Guadalupe",
-        extra2: "DELIVERY AT: Lahug"
-      },
-      {
-        title: "Hatod medicine from pharmacy to senior citizen",
-        price: "₱80",
-        rate: "Per Job",
-        date: "Aug 16",
-        time: "2PM-4PM",
-        photo: "public/mock/mock-hatod-post2.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-2.html",
-        extra1: "LOAD AT: Colon Street",
-        extra2: "DELIVERY AT: Talamban"
-      },
-      {
-        title: "Hatod flowers for anniversary surprise",
-        price: "₱120",
-        rate: "Per Job",
-        date: "Aug 17",
-        time: "11AM-1PM",
-        photo: "public/mock/mock-hatod-post3.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-3.html",
-        extra1: "LOAD AT: Ayala Center",
-        extra2: "DELIVERY AT: Capitol Site"
-      },
-      {
-        title: "Hatod legal documents to law office",
-        price: "₱100",
-        rate: "Per Job",
-        date: "Aug 18",
-        time: "8AM-10AM",
-        photo: "public/mock/mock-hatod-post4.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-4.html",
-        extra1: "LOAD AT: Banilad",
-        extra2: "DELIVERY AT: Fuente Circle"
-      },
-      {
-        title: "Hatod birthday cake for surprise party",
-        price: "₱200",
-        rate: "Per Job",
-        date: "Aug 19",
-        time: "4PM-6PM",
-        photo: "public/mock/mock-hatod-post5.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-5.html",
-        extra1: "LOAD AT: IT Park",
-        extra2: "DELIVERY AT: Mabolo"
-      },
-      {
-        title: "Hatod laptop from repair shop to customer",
-        price: "₱180",
-        rate: "Per Job",
-        date: "Aug 20",
-        time: "10AM-12PM",
-        photo: "public/mock/mock-hatod-post6.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-6.html",
-        extra1: "LOAD AT: JY Square",
-        extra2: "DELIVERY AT: Kasambagan"
-      },
-      {
-        title: "Hatod groceries to elderly neighbor",
-        price: "₱90",
-        rate: "Per Job",
-        date: "Aug 21",
-        time: "1PM-3PM",
-        photo: "public/mock/mock-hatod-post7.jpg",
-        templateUrl: "public/jobs/hatod/hatod-job-2025-7.html",
-        extra1: "LOAD AT: SM City Cebu",
-        extra2: "DELIVERY AT: Balamban"
-      }
-    ],
-    hakot: [
-      {
-        title: "Hakot old furniture and appliances from apartment",
-        price: "₱300",
-        rate: "Per Job",
-        date: "Aug 22",
-        time: "8AM-10AM",
-        photo: "public/mock/mock-hakot-post1.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-1.html",
-        extra1: "LOAD AT: Lahug",
-        extra2: "UNLOAD AT: Mandaue"
-      },
-      {
-        title: "Hakot construction debris from renovation site",
-        price: "₱500",
-        rate: "Per Job",
-        date: "Aug 23",
-        time: "1PM-4PM",
-        photo: "public/mock/mock-hakot-post2.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-2.html",
-        extra1: "LOAD AT: Capitol Site",
-        extra2: "UNLOAD AT: Talisay"
-      },
-      {
-        title: "Hakot garden waste and fallen branches",
-        price: "₱250",
-        rate: "Per Job",
-        date: "Aug 24",
-        time: "9AM-11AM",
-        photo: "public/mock/mock-hakot-post3.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-3.html",
-        extra1: "LOAD AT: Banilad",
-        extra2: "UNLOAD AT: Banilad"
-      },
-      {
-        title: "Hakot office equipment and old documents",
-        price: "₱400",
-        rate: "Per Job",
-        date: "Aug 25",
-        time: "10AM-12PM",
-        photo: "public/mock/mock-hakot-post4.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-4.html",
-        extra1: "LOAD AT: IT Park",
-        extra2: "UNLOAD AT: IT Park"
-      },
-      {
-        title: "Hakot household junk after spring cleaning",
-        price: "₱350",
-        rate: "Per Job",
-        date: "Aug 26",
-        time: "2PM-5PM",
-        photo: "public/mock/mock-hakot-post5.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-5.html",
-        extra1: "LOAD AT: Mabolo",
-        extra2: "UNLOAD AT: Mabolo"
-      },
-      {
-        title: "Hakot damaged goods from flooded warehouse",
-        price: "₱600",
-        rate: "Per Job",
-        date: "Aug 27",
-        time: "7AM-11AM",
-        photo: "public/mock/mock-hakot-post6.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-6.html",
-        extra1: "LOAD AT: Mandaue",
-        extra2: "UNLOAD AT: Lapu-Lapu"
-      },
-      {
-        title: "Hakot broken concrete and tiles from driveway",
-        price: "₱450",
-        rate: "Per Job",
-        date: "Aug 28",
-        time: "6AM-9AM",
-        photo: "public/mock/mock-hakot-post7.jpg",
-        templateUrl: "public/jobs/hakot/hakot-job-2025-7.html",
-        extra1: "LOAD AT: Talamban",
-        extra2: "UNLOAD AT: Talamban"
-      }
-    ],
-    kompra: [
-      {
-        title: "Kompra weekly groceries for elderly couple",
-        price: "₱200",
-        rate: "Per Job",
-        date: "Aug 22",
-        time: "10AM-12PM",
-        photo: "public/mock/mock-kompra-post1.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-1.html",
-        extra1: "SHOP AT: SM City Cebu",
-        extra2: "DELIVERY AT: Guadalupe"
-      },
-      {
-        title: "Kompra ingredients for restaurant opening",
-        price: "₱500",
-        rate: "Per Job",
-        date: "Aug 23",
-        time: "6AM-8AM",
-        photo: "public/mock/mock-kompra-post2.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-2.html",
-        extra1: "SHOP AT: Carbon Market",
-        extra2: "DELIVERY AT: Colon Street"
-      },
-      {
-        title: "Kompra baby supplies for new parent",
-        price: "₱150",
-        rate: "Per Job",
-        date: "Aug 24",
-        time: "3PM-5PM",
-        photo: "public/mock/mock-kompra-post3.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-3.html",
-        extra1: "SHOP AT: Robinsons Galleria",
-        extra2: "DELIVERY AT: Lahug"
-      },
-      {
-        title: "Kompra party supplies for birthday celebration",
-        price: "₱250",
-        rate: "Per Job",
-        date: "Aug 25",
-        time: "11AM-1PM",
-        photo: "public/mock/mock-kompra-post4.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-4.html",
-        extra1: "SHOP AT: Ayala Center Cebu",
-        extra2: "DELIVERY AT: Capitol Site"
-      },
-      {
-        title: "Kompra office supplies for startup company",
-        price: "₱300",
-        rate: "Per Job",
-        date: "Aug 26",
-        time: "9AM-11AM",
-        photo: "public/mock/mock-kompra-post5.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-5.html",
-        extra1: "SHOP AT: National Book Store",
-        extra2: "DELIVERY AT: IT Park"
-      },
-      {
-        title: "Kompra medicine and health supplements",
-        price: "₱100",
-        rate: "Per Job",
-        date: "Aug 27",
-        time: "4PM-6PM",
-        photo: "public/mock/mock-kompra-post6.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-6.html",
-        extra1: "SHOP AT: Mercury Drug",
-        extra2: "DELIVERY AT: Banilad"
-      },
-      {
-        title: "Kompra specialty ingredients for cooking class",
-        price: "₱350",
-        rate: "Per Job",
-        date: "Aug 28",
-        time: "7AM-9AM",
-        photo: "public/mock/mock-kompra-post7.jpg",
-        templateUrl: "public/jobs/kompra/kompra-job-2025-7.html",
-        extra1: "SHOP AT: Landers Superstore",
-        extra2: "DELIVERY AT: Mabolo"
-      }
-    ],
-    limpyo: [
-      {
-        title: "Limpyo house after family reunion party",
-        price: "₱400",
-        rate: "Per Job",
-        date: "Aug 22",
-        time: "8AM-12PM",
-        photo: "public/mock/mock-limpyo-post1.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-1.html",
-        extra1: "LOCATION: Lahug",
-        extra2: "SUPPLIES: Provided"
-      },
-      {
-        title: "Limpyo office space before new tenants",
-        price: "₱600",
-        rate: "Per Job",
-        date: "Aug 23",
-        time: "6AM-10AM",
-        photo: "public/mock/mock-limpyo-post2.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-2.html",
-        extra1: "LOCATION: IT Park",
-        extra2: "SUPPLIES: Required"
-      },
-      {
-        title: "Limpyo apartment after renovation work",
-        price: "₱500",
-        rate: "Per Job",
-        date: "Aug 24",
-        time: "1PM-5PM",
-        photo: "public/mock/mock-limpyo-post3.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-3.html",
-        extra1: "LOCATION: Capitol Site",
-        extra2: "SUPPLIES: Provided"
-      },
-      {
-        title: "Limpyo restaurant kitchen deep cleaning",
-        price: "₱800",
-        rate: "Per Job",
-        date: "Aug 25",
-        time: "10PM-2AM",
-        photo: "public/mock/mock-limpyo-post4.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-4.html",
-        extra1: "LOCATION: Ayala Center",
-        extra2: "SUPPLIES: Required"
-      },
-      {
-        title: "Limpyo elderly home weekly maintenance",
-        price: "₱300",
-        rate: "Per Job",
-        date: "Aug 26",
-        time: "9AM-1PM",
-        photo: "public/mock/mock-limpyo-post5.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-5.html",
-        extra1: "LOCATION: Guadalupe",
-        extra2: "SUPPLIES: Provided"
-      },
-      {
-        title: "Limpyo warehouse after inventory clear-out",
-        price: "₱1000",
-        rate: "Per Job",
-        date: "Aug 27",
-        time: "5AM-9AM",
-        photo: "public/mock/mock-limpyo-post6.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-6.html",
-        extra1: "LOCATION: Mandaue",
-        extra2: "SUPPLIES: Required"
-      },
-      {
-        title: "Limpyo condo unit for new tenant move-in",
-        price: "₱350",
-        rate: "Per Job",
-        date: "Aug 28",
-        time: "2PM-6PM",
-        photo: "public/mock/mock-limpyo-post7.jpg",
-        templateUrl: "public/jobs/limpyo/limpyo-job-2025-7.html",
-        extra1: "LOCATION: Banilad",
-        extra2: "SUPPLIES: Provided"
-      }
-    ],
-    carpintero: [],
-    driver: [],
-    electrician: [],
-    gardener: [],
-    kuryente: [],
-    laundrywoman: [],
-    luthier: [],
-    mason: [],
-    painter: [],
-    plomero: [],
-    security: [],
-    sewing: [],
-    sisidlan: [],
-    taga_bantay: [],
-    taga_linis: [],
-    taga_plantsa: [],
-    trabahador: [],
-    tutor: [],
-    welder: []
-  };
-  
-  return staticJobs;
-}
+
+
 
 function createJobPreviewCard(cardData) {
   const cardElement = document.createElement('a');
@@ -784,6 +608,9 @@ function createJobPreviewCard(cardData) {
 document.addEventListener('DOMContentLoaded', function() {
   
   loadJobPreviewCards();
-  // Apply truncation after cards are loaded
-  setTimeout(truncateBarangayNames, 50);
+  // Apply initial sorting after cards are loaded
+  setTimeout(() => {
+    filterAndSortJobs();
+    truncateBarangayNames();
+  }, 100);
 });
