@@ -15,27 +15,64 @@ function getCorrectPath(basePath) {
   
   // Get current page depth by counting path segments
   const currentPath = window.location.pathname;
-  const pathSegments = currentPath.split('/').filter(segment => segment && segment !== 'index.html');
+  const pathSegments = currentPath.split('/').filter(segment => 
+    segment && 
+    segment !== 'index.html' && 
+    !segment.endsWith('.html')
+  );
   
   // Calculate how many levels deep we are from the root
   // Root pages (like profile.html): depth = 0
-  // public/jobs/category/job.html: depth = 3
-  const depth = pathSegments.length - 1;
+  // public/jobs/category/job.html: depth = number of directories deep
+  let depth = 0;
+  
+  if (pathSegments.length > 0) {
+    depth = pathSegments.length;
+  }
   
   // Generate the correct relative path prefix
   const prefix = depth > 0 ? '../'.repeat(depth) : '';
   
+  console.log('Link path for', basePath, ':', prefix + basePath);
+  
   return prefix + basePath;
 }
 
-// Auto-detects icon path based on page depth
+// Auto-detects icon path based on page depth with robust online/local handling
 function getIconPath(iconName) {
   const currentPath = window.location.pathname;
-  const pathSegments = currentPath.split('/').filter(segment => segment && segment !== 'index.html');
-  const depth = pathSegments.length - 1;
   
+  // Debug logging to see what's happening
+  console.log('Current path:', currentPath);
+  
+  // More robust path detection
+  const pathSegments = currentPath.split('/').filter(segment => 
+    segment && 
+    segment !== 'index.html' && 
+    !segment.endsWith('.html')
+  );
+  
+  console.log('Path segments:', pathSegments);
+  
+  // Calculate depth: if we're at root level (profile.html), depth = 0
+  // If we're in subdirectories, depth = number of directories deep
+  let depth = 0;
+  
+  // Check if we're in a subdirectory by looking at the current file location
+  if (pathSegments.length > 0) {
+    // We're in a subdirectory, calculate how deep
+    depth = pathSegments.length;
+  }
+  
+  console.log('Calculated depth:', depth);
+  
+  // Generate path prefix
   const prefix = depth > 0 ? '../'.repeat(depth) : '';
-  return prefix + 'public/icons/' + iconName;
+  const iconPath = prefix + 'public/icons/' + iconName;
+  
+  console.log('Generated icon path:', iconPath);
+  
+  return iconPath;
 }
 
 // Dynamically generates menu HTML based on current page type
