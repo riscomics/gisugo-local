@@ -319,7 +319,7 @@ section {
   display: block;
   opacity: 1;
   visibility: visible;
-  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+  animation: slideDown 0.6s cubic-bezier(.77,0,.18,1);
 }
 
 /* Add the same slideDown animation as listing pages */
