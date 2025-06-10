@@ -651,7 +651,7 @@ section {
   /* Profile subheader mobile styles */
   .profile-subheader {
     padding: 0.5rem;
-    gap: 1rem;
+    gap: 0.875rem; /* Reduced by 10px from 1.5rem */
     position: fixed !important;
     top: 72px !important; /* Right below header + borderline */
     left: 0 !important;
@@ -660,11 +660,11 @@ section {
     z-index: 50 !important;
   }
   .profile-photo img {
-    width: 200px !important;
-    height: 158px !important;
+    width: 160px !important;
+    height: 126px !important;
   }
   .full-name {
-    font-size: 1.965rem !important; /* 1.34rem + 10px equivalent */
+    font-size: 1.277rem !important; /* 35% reduction from 1.965rem */
   }
   .reviews-number {
     font-size: 1.2rem;
