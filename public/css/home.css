@@ -673,10 +673,11 @@ section {
     width: 20px;
     height: 20px;
   }
-  .social-icon img {
+    .social-icon img {
     width: 32px;
     height: 32px;
   }
+  /* Profile subheader borderline mobile - no special positioning needed */
 }
 
 .accent-line2 {
@@ -693,13 +694,17 @@ body:has(.profile-header) {
 /* Profile Subheader - Simple Flexbox */
 .profile-subheader {
   background-color: var(--primary-color);
+  padding: 0;
+  margin-top: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-content {
   padding: 0.8rem;
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  margin-top: 0;
-  position: relative;
-  z-index: 1;
 }
 
 .profile-photo {
@@ -776,4 +781,10 @@ body:has(.profile-header) {
   height: 40px;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.profile-subheader-borderline {
+  height: 4px;
+  width: 100%;
+  background: rgb(149, 149, 328);
 }
