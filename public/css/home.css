@@ -664,7 +664,7 @@ section {
     height: 126px !important;
   }
   .full-name {
-    font-size: 1.277rem !important; /* 35% reduction from 1.965rem */
+    font-size: 1.402rem !important; /* 1.277rem + 2px equivalent */
   }
   .reviews-number {
     font-size: 1.2rem;
