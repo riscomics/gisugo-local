@@ -648,10 +648,132 @@ section {
     width: 32px; 
     height: 28px;
   }
+  /* Profile subheader mobile styles */
+  .profile-subheader {
+    padding: 0.5rem;
+    gap: 1rem;
+    position: fixed !important;
+    top: 72px !important; /* Right below header + borderline */
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 50 !important;
+  }
+  .profile-photo img {
+    width: 200px !important;
+    height: 158px !important;
+  }
+  .full-name {
+    font-size: 1.965rem !important; /* 1.34rem + 10px equivalent */
+  }
+  .reviews-number {
+    font-size: 1.2rem;
+  }
+  .star {
+    width: 20px;
+    height: 20px;
+  }
+  .social-icon img {
+    width: 32px;
+    height: 32px;
+  }
 }
 
 .accent-line2 {
   height: 8px;
   background-color: rgb(149, 149, 328);
   width: 100%;
+}
+
+/* Profile Page Body Fix - Override jobpage.css */
+body:has(.profile-header) {
+  padding-top: 110px !important; /* Desktop: 106px header + 4px borderline */
+}
+
+/* Profile Subheader - Simple Flexbox */
+.profile-subheader {
+  background-color: var(--primary-color);
+  padding: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.profile-photo {
+  display: flex;
+}
+
+.profile-photo img {
+  width: 220px;
+  height: 173px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 3px solid var(--secondary-color);
+}
+
+.profile-right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-name-row {
+  display: flex;
+}
+
+.full-name {
+  color: var(--secondary-color);
+  font-size: 2.5rem;
+  font-weight: bold;
+  line-height: 1.1;
+  font-family: Arial, sans-serif;
+}
+
+.profile-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+.stars-container {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.reviews-number {
+  color: var(--secondary-color);
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+
+
+.star {
+  width: 24px;
+  height: 24px;
+  color: #ffd700;
+  fill: currentColor;
+}
+
+.social-icons-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.social-icon {
+  display: flex;
+}
+
+.social-icon img {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
 }
