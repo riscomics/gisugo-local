@@ -723,7 +723,7 @@ body:has(.profile-header) {
   
   .reviews-container {
     padding-right: 0;
-    max-height: 400px;
+    max-height: 500px;
   }
   
   .review-job-info {
