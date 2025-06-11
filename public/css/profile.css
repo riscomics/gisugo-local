@@ -265,6 +265,7 @@ body:has(.profile-header) {
 
 .star.half-filled::before {
   color: #666;
+  left: -1px;
 }
 
 .star.half-filled::after {
@@ -498,6 +499,10 @@ body:has(.profile-header) {
   .star::before,
   .star::after {
     line-height: 1;
+  }
+  
+  .star.half-filled::before {
+    left: -1px;
   }
   
   .social-icon img {
