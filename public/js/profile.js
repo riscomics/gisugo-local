@@ -97,9 +97,77 @@ function handleProfileOptionChange(value, text) {
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Profile page loaded');
   
+  // Initialize star rating system
+  initializeStarRating();
+  
   // Set default active option
   const defaultOption = profileDropdownOverlay?.querySelector('a[data-option="user-info"]');
   if (defaultOption) {
     defaultOption.classList.add('active');
   }
-}); 
+});
+
+// Star Rating System
+function renderStars(container, rating) {
+  if (!container) return;
+  
+  const stars = container.querySelectorAll('.star');
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0;
+  
+  stars.forEach((star, index) => {
+    // Clear existing classes
+    star.classList.remove('filled', 'half-filled');
+    
+    if (index < fullStars) {
+      // Full stars
+      star.classList.add('filled');
+    } else if (index === fullStars && hasHalfStar) {
+      // Half star
+      star.classList.add('half-filled');
+    }
+    // Else: empty star (default state)
+  });
+}
+
+function initializeStarRating() {
+  const starsContainer = document.getElementById('profileStars');
+  const reviewsCountElement = document.getElementById('reviewsCount');
+  
+  if (starsContainer) {
+    const rating = parseFloat(starsContainer.getAttribute('data-rating')) || 0;
+    const count = parseInt(starsContainer.getAttribute('data-count')) || 0;
+    
+    // Render the stars based on rating
+    renderStars(starsContainer, rating);
+    
+    // Update the reviews count display
+    if (reviewsCountElement) {
+      reviewsCountElement.textContent = count;
+    }
+    
+    console.log(`Profile rating initialized: ${rating} stars with ${count} reviews`);
+  }
+}
+
+// Update star rating (for future Firebase integration)
+function updateProfileRating(newRating, newCount) {
+  const starsContainer = document.getElementById('profileStars');
+  const reviewsCountElement = document.getElementById('reviewsCount');
+  
+  if (starsContainer) {
+    // Update data attributes
+    starsContainer.setAttribute('data-rating', newRating);
+    starsContainer.setAttribute('data-count', newCount);
+    
+    // Re-render stars
+    renderStars(starsContainer, newRating);
+    
+    // Update count display
+    if (reviewsCountElement) {
+      reviewsCountElement.textContent = newCount;
+    }
+    
+    console.log(`Profile rating updated: ${newRating} stars with ${newCount} reviews`);
+  }
+} 
