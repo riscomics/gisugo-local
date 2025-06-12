@@ -109,6 +109,10 @@ const sampleUserProfile = {
   photo: "public/users/Peter-J-Ang-User-01.jpg",
   rating: 4.7,
   reviewCount: 28,
+  registeredSince: "April 2025",
+  age: 21,
+  educationLevel: "College",
+  summary: "Hello! I'm Peter, a reliable and hardworking individual with over 3 years of experience in various service jobs. I take great pride in delivering quality work and building lasting relationships with my clients. Whether it's cleaning, maintenance, or assistance tasks, you can count on me to get the job done right and on time. I'm punctual, detail-oriented, and always ready to go the extra mile to ensure customer satisfaction.",
   socialMedia: {
     facebook: "public/icons/FB.png",
     instagram: "public/icons/IG.png", 
@@ -157,7 +161,39 @@ function loadUserProfile(userProfile = sampleUserProfile) {
     }
   }
   
+  // Update user information section
+  populateUserInformation(userProfile);
+  
   console.log(`Profile loaded for: ${userProfile.name}`);
+}
+
+// Populate user information section (backend ready)
+function populateUserInformation(userProfile) {
+  // Update registered since
+  const registeredSinceElement = document.getElementById('registeredSince');
+  if (registeredSinceElement && userProfile.registeredSince) {
+    registeredSinceElement.textContent = userProfile.registeredSince;
+  }
+  
+  // Update age
+  const userAgeElement = document.getElementById('userAge');
+  if (userAgeElement && userProfile.age) {
+    userAgeElement.textContent = `${userProfile.age} years old`;
+  }
+  
+  // Update education level
+  const educationLevelElement = document.getElementById('educationLevel');
+  if (educationLevelElement && userProfile.educationLevel) {
+    educationLevelElement.textContent = userProfile.educationLevel;
+  }
+  
+  // Update user summary
+  const userSummaryElement = document.getElementById('userSummary');
+  if (userSummaryElement && userProfile.summary) {
+    userSummaryElement.textContent = userProfile.summary;
+  }
+  
+  console.log('User information populated');
 }
 
 // Initialize when page loads
