@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account - GISUGO</title>
+  <link rel="stylesheet" href="public/css/sign-up.css">
+</head>
+<body>
+  <div class="signup-header">
+    <div class="signup-header-title-container">
+      <button class="signup-header-btn back" onclick="window.history.back()" aria-label="Back">
+        <img src="public/icons/back.png" alt="Back">
+        <span>Back</span>
+      </button>
+      <div class="signup-header-title">CREATE ACCOUNT</div>
+      <div class="signup-header-spacer"></div>
+    </div>
+    <div class="signup-header-borderline"></div>
+  </div>
+
+  <div class="signup-container">
+    <form class="signup-form" id="signupForm">
+      <!-- Profile Photo Section -->
+      <div class="form-section">
+        <div class="form-section-header">Profile Photo</div>
+        <div class="photo-upload-container">
+          <div class="photo-preview" id="photoPreview">
+            <img src="public/users/default-user.jpg" alt="Profile Preview" id="photoPreviewImg">
+            <div class="photo-upload-overlay">
+              <span>Upload Photo</span>
+            </div>
+          </div>
+          <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" style="display: none;">
+        </div>
+      </div>
+
+      <!-- Basic Information Section -->
+      <div class="form-section">
+        <div class="form-section-header">Basic Information</div>
+        
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="fullName" class="form-label">Full Name *</label>
+          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" required>
+          <div class="form-error" id="fullNameError"></div>
+        </div>
+
+        <!-- Date of Birth -->
+        <div class="form-group">
+          <label for="dateOfBirth" class="form-label">Date of Birth *</label>
+          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
+          <div class="form-error" id="dateOfBirthError"></div>
+        </div>
+
+        <!-- Education Level -->
+        <div class="form-group">
+          <label for="educationLevel" class="form-label">Education Level *</label>
+          <select id="educationLevel" name="educationLevel" class="form-select" required>
+            <option value="">Select your education level</option>
+            <option value="No-High-School">No High School</option>
+            <option value="High School">High School</option>
+            <option value="College">College</option>
+            <option value="Masters">Masters</option>
+            <option value="Doctorate">Doctorate</option>
+          </select>
+          <div class="form-error" id="educationLevelError"></div>
+        </div>
+      </div>
+
+      <!-- About Me Section -->
+      <div class="form-section">
+        <div class="form-section-header">About Me</div>
+        
+        <!-- User Summary -->
+        <div class="form-group">
+          <label for="userSummary" class="form-label">Introduction & Summary *</label>
+          <div class="form-hint">Tell potential customers about yourself, your experience, and why they can trust you.</div>
+          <textarea id="userSummary" name="userSummary" class="form-textarea" placeholder="Hello! I'm... (minimum 50 characters)" rows="5" required></textarea>
+          <div class="character-counter">
+            <span id="summaryCounter">0</span>/500 characters
+          </div>
+          <div class="form-error" id="userSummaryError"></div>
+        </div>
+      </div>
+
+      <!-- Social Media Section -->
+      <div class="form-section">
+        <div class="form-section-header">Social Media (Optional)</div>
+        <div class="form-hint">Link your social media to build trust with customers</div>
+        
+        <!-- Facebook -->
+        <div class="form-group">
+          <label for="facebook" class="form-label">
+            <img src="public/icons/FB.png" alt="Facebook" class="social-icon-small">
+            Facebook Profile URL
+          </label>
+          <input type="url" id="facebook" name="facebook" class="form-input" placeholder="https://facebook.com/yourprofile">
+        </div>
+
+        <!-- Instagram -->
+        <div class="form-group">
+          <label for="instagram" class="form-label">
+            <img src="public/icons/IG.png" alt="Instagram" class="social-icon-small">
+            Instagram Profile URL
+          </label>
+          <input type="url" id="instagram" name="instagram" class="form-input" placeholder="https://instagram.com/yourprofile">
+        </div>
+
+        <!-- LinkedIn -->
+        <div class="form-group">
+          <label for="linkedin" class="form-label">
+            <img src="public/icons/IN.png" alt="LinkedIn" class="social-icon-small">
+            LinkedIn Profile URL
+          </label>
+          <input type="url" id="linkedin" name="linkedin" class="form-input" placeholder="https://linkedin.com/in/yourprofile">
+        </div>
+      </div>
+
+      <!-- Terms and Submit -->
+      <div class="form-section">
+        <div class="form-group">
+          <label class="checkbox-container">
+            <input type="checkbox" id="termsAccepted" name="termsAccepted" required>
+            <span class="checkmark"></span>
+            I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
+          </label>
+          <div class="form-error" id="termsError"></div>
+        </div>
+
+        <button type="submit" class="signup-submit-btn" id="submitBtn">
+          <span>CREATE ACCOUNT</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Creating your account...</div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-modal">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Account Created!</div>
+      <div class="success-message">Welcome to GISUGO! You can now start browsing and applying for jobs.</div>
+      <button class="success-btn" onclick="window.location.href='index.html'">GO TO HOME</button>
+    </div>
+  </div>
+
+  <script src="public/js/sign-up.js"></script>
+</body>
+</html> 

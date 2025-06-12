@@ -104,15 +104,22 @@ function handleProfileOptionChange(value, text) {
 }
 
 // Sample user profile data (in the future this will come from Firebase)
+// These field names match the create account form structure for backend integration
 const sampleUserProfile = {
-  name: "Peter J. Ang",
-  photo: "public/users/Peter-J-Ang-User-01.jpg",
+  // Basic Profile Information (from create account form)
+  fullName: "Peter J. Ang",
+  profilePhoto: "public/users/Peter-J-Ang-User-01.jpg",
+  dateOfBirth: "1988-04-15", // Will calculate age from this
+  educationLevel: "College", // Options: "No-High-School", "High School", "College", "Masters", "Doctorate"
+  userSummary: "Hello! I'm Peter, a reliable and hardworking individual with over 3 years of experience in various service jobs. I take great pride in delivering quality work and building lasting relationships with my clients. Whether it's cleaning, maintenance, or assistance tasks, you can count on me to get the job done right and on time. I'm punctual, detail-oriented, and always ready to go the extra mile to ensure customer satisfaction.",
+  
+  // System Generated Fields (from Firebase)
+  userId: "peter-j-ang-001",
+  accountCreated: "2025-04-12T10:30:00Z", // ISO format for Firebase
   rating: 4.7,
   reviewCount: 28,
-  registeredSince: "April 2025",
-  age: 21,
-  educationLevel: "College",
-  summary: "Hello! I'm Peter, a reliable and hardworking individual with over 3 years of experience in various service jobs. I take great pride in delivering quality work and building lasting relationships with my clients. Whether it's cleaning, maintenance, or assistance tasks, you can count on me to get the job done right and on time. I'm punctual, detail-oriented, and always ready to go the extra mile to ensure customer satisfaction.",
+  
+  // Social Media (optional from create account form)
   socialMedia: {
     facebook: "public/icons/FB.png",
     instagram: "public/icons/IG.png", 
@@ -120,19 +127,40 @@ const sampleUserProfile = {
   }
 };
 
-// Load user profile data (backend ready)
-function loadUserProfile(userProfile = sampleUserProfile) {
-  // Update user name
-  const nameElement = document.querySelector('.full-name');
-  if (nameElement && userProfile.name) {
-    nameElement.textContent = userProfile.name;
+// Helper function to calculate age from date of birth
+function calculateAge(dateOfBirth) {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
   }
   
-  // Update user photo
+  return age;
+}
+
+// Helper function to format account creation date for display
+function formatRegistrationDate(accountCreated) {
+  const date = new Date(accountCreated);
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return date.toLocaleDateString('en-US', options);
+}
+
+// Load user profile data (backend ready)
+function loadUserProfile(userProfile = sampleUserProfile) {
+  // Update user name (updated field name)
+  const nameElement = document.querySelector('.full-name');
+  if (nameElement && userProfile.fullName) {
+    nameElement.textContent = userProfile.fullName;
+  }
+  
+  // Update user photo (updated field name)
   const photoElement = document.querySelector('.profile-photo img');
-  if (photoElement && userProfile.photo) {
-    photoElement.src = userProfile.photo;
-    photoElement.alt = userProfile.name || 'User Profile';
+  if (photoElement && userProfile.profilePhoto) {
+    photoElement.src = userProfile.profilePhoto;
+    photoElement.alt = userProfile.fullName || 'User Profile';
   }
   
   // Update star rating and review count
@@ -164,33 +192,34 @@ function loadUserProfile(userProfile = sampleUserProfile) {
   // Update user information section
   populateUserInformation(userProfile);
   
-  console.log(`Profile loaded for: ${userProfile.name}`);
+  console.log(`Profile loaded for: ${userProfile.fullName}`);
 }
 
 // Populate user information section (backend ready)
 function populateUserInformation(userProfile) {
-  // Update registered since
+  // Update registered since (from accountCreated timestamp)
   const registeredSinceElement = document.getElementById('registeredSince');
-  if (registeredSinceElement && userProfile.registeredSince) {
-    registeredSinceElement.textContent = userProfile.registeredSince;
+  if (registeredSinceElement && userProfile.accountCreated) {
+    registeredSinceElement.textContent = formatRegistrationDate(userProfile.accountCreated);
   }
   
-  // Update age
+  // Update age (calculated from dateOfBirth)
   const userAgeElement = document.getElementById('userAge');
-  if (userAgeElement && userProfile.age) {
-    userAgeElement.textContent = `${userProfile.age} years old`;
+  if (userAgeElement && userProfile.dateOfBirth) {
+    const age = calculateAge(userProfile.dateOfBirth);
+    userAgeElement.textContent = `${age} years old`;
   }
   
-  // Update education level
+  // Update education level (same field name)
   const educationLevelElement = document.getElementById('educationLevel');
   if (educationLevelElement && userProfile.educationLevel) {
     educationLevelElement.textContent = userProfile.educationLevel;
   }
   
-  // Update user summary
+  // Update user summary (updated field name)
   const userSummaryElement = document.getElementById('userSummary');
-  if (userSummaryElement && userProfile.summary) {
-    userSummaryElement.textContent = userProfile.summary;
+  if (userSummaryElement && userProfile.userSummary) {
+    userSummaryElement.textContent = userProfile.userSummary;
   }
   
   console.log('User information populated');
