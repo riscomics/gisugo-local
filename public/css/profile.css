@@ -619,66 +619,33 @@ body:has(.profile-header) {
   overflow: hidden;
   border: 1.5px solid rgba(255,255,255,0.08);
   padding: 12px;
-}
-
-.review-job-info {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.review-job-img {
-  width: 80px;
-  min-width: 80px;
-  height: 60px;
-  background: #222;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 4px;
-  margin-right: 12px;
-}
-
-.review-job-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.review-job-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .review-job-title {
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #f3f3f3;
-  margin-bottom: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
   line-height: 1.3;
+  width: 100%;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
 .review-feedback-section {
-  border-top: 1px solid rgba(255,255,255,0.1);
-  padding-top: 12px;
-}
-
-.review-feedback-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.review-feedback-label {
-  font-weight: bold;
-  color: #e6d6ae;
-  font-size: 0.95rem;
+.review-feedback-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
 }
 
 .review-feedback-date {
@@ -690,7 +657,36 @@ body:has(.profile-header) {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  margin-bottom: 8px;
+}
+
+.review-rating .star.filled::before {
+  left: -1px;
+}
+
+.review-rating .star:not(.filled):not(.half-filled)::before {
+  left: -1px;
+}
+
+
+
+.review-feedback-label {
+  font-weight: bold;
+  color: #e6d6ae;
+  font-size: 0.95rem;
+}
+
+.review-user-thumbnail {
+  width: 115px;
+  height: 86px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.review-user-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .review-feedback-text {
@@ -726,33 +722,28 @@ body:has(.profile-header) {
     max-height: 500px;
   }
   
-  .review-job-info {
+  .review-job-title {
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+  }
+  
+  .review-feedback-section {
+    gap: 10px;
     margin-bottom: 10px;
   }
   
-  .review-job-img {
-    width: 60px;
-    min-width: 60px;
-    height: 45px;
-    margin-right: 10px;
+  .review-feedback-left {
+    gap: 6px;
   }
   
-  .review-job-title {
-    font-size: 0.9rem;
+  .review-user-thumbnail {
+    width: 86px;
+    height: 65px;
   }
   
   .review-feedback-text {
     font-size: 0.85rem;
     padding: 6px;
-  }
-  
-  .review-feedback-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  
-  .review-rating {
-    margin-bottom: 6px;
   }
 }

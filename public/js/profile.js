@@ -103,9 +103,69 @@ function handleProfileOptionChange(value, text) {
   }
 }
 
+// Sample user profile data (in the future this will come from Firebase)
+const sampleUserProfile = {
+  name: "Peter J. Ang",
+  photo: "public/users/Peter-J-Ang-User-01.jpg",
+  rating: 4.7,
+  reviewCount: 28,
+  socialMedia: {
+    facebook: "public/icons/FB.png",
+    instagram: "public/icons/IG.png", 
+    linkedin: "public/icons/IN.png"
+  }
+};
+
+// Load user profile data (backend ready)
+function loadUserProfile(userProfile = sampleUserProfile) {
+  // Update user name
+  const nameElement = document.querySelector('.full-name');
+  if (nameElement && userProfile.name) {
+    nameElement.textContent = userProfile.name;
+  }
+  
+  // Update user photo
+  const photoElement = document.querySelector('.profile-photo img');
+  if (photoElement && userProfile.photo) {
+    photoElement.src = userProfile.photo;
+    photoElement.alt = userProfile.name || 'User Profile';
+  }
+  
+  // Update star rating and review count
+  const starsContainer = document.getElementById('profileStars');
+  const reviewsCountElement = document.getElementById('reviewsCount');
+  
+  if (starsContainer && userProfile.rating !== undefined) {
+    starsContainer.setAttribute('data-rating', userProfile.rating);
+    renderStars(starsContainer, userProfile.rating);
+  }
+  
+  if (reviewsCountElement && userProfile.reviewCount !== undefined) {
+    reviewsCountElement.textContent = userProfile.reviewCount;
+    if (starsContainer) {
+      starsContainer.setAttribute('data-count', userProfile.reviewCount);
+    }
+  }
+  
+  // Update social media icons (if provided)
+  if (userProfile.socialMedia) {
+    const socialIcons = document.querySelectorAll('.social-icon img');
+    if (socialIcons.length >= 3) {
+      if (userProfile.socialMedia.facebook) socialIcons[0].src = userProfile.socialMedia.facebook;
+      if (userProfile.socialMedia.instagram) socialIcons[1].src = userProfile.socialMedia.instagram;
+      if (userProfile.socialMedia.linkedin) socialIcons[2].src = userProfile.socialMedia.linkedin;
+    }
+  }
+  
+  console.log(`Profile loaded for: ${userProfile.name}`);
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Profile page loaded');
+  
+  // Load user profile data
+  loadUserProfile();
   
   // Initialize star rating system
   initializeStarRating();
@@ -182,78 +242,144 @@ function updateProfileRating(newRating, newCount) {
   }
 }
 
+// Available user thumbnails (excluding Peter's own photo)
+const availableUserThumbnails = [
+  "public/users/User-02.jpg",
+  "public/users/User-03.jpg", 
+  "public/users/User-04.jpg",
+  "public/users/User-05.jpg",
+  "public/users/User-06.jpg",
+  "public/users/User-07.jpg",
+  "public/users/User-08.jpg",
+  "public/users/User-09.jpg",
+  "public/users/User-10.jpg",
+  "public/users/User-11.jpg"
+];
+
+// Function to get random user thumbnail
+function getRandomUserThumbnail() {
+  const randomIndex = Math.floor(Math.random() * availableUserThumbnails.length);
+  return availableUserThumbnails[randomIndex];
+}
+
 // Sample review data (in the future this will come from Firebase)
 const sampleCustomerReviews = [
   {
     id: 1,
-    jobTitle: "Clear drinks and clean tables at our new coffee shop. Easy relaxing job!",
-    jobImage: "public/mock/mock-food-service-post1.jpg",
-    feedbackDate: "Dec. 21, 2025",
-    rating: 5.0,
-    feedbackText: "Thank you so much sir for the opportunity! Please keep me in your favorite for next time."
-  },
-  {
-    id: 2,
-    jobTitle: "Help with moving furniture to new apartment",
-    jobImage: "public/mock/mock-labor-post2.jpg",
-    feedbackDate: "Dec. 18, 2025",
-    rating: 4.5,
-    feedbackText: "Great worker! Very punctual and careful with our furniture. Would definitely hire again."
-  },
-  {
-    id: 3,
-    jobTitle: "Dog walking service for weekend",
-    jobImage: "public/mock/mock-pet-care-post1.jpg",
-    feedbackDate: "Dec. 15, 2025",
-    rating: 4.0,
-    feedbackText: "Good service overall. My dog enjoyed the walks. Could have been a bit longer walks though."
-  }
-];
-
-const sampleWorkerReviews = [
-  {
-    id: 1,
     jobTitle: "Home cleaning service - 3 bedroom house",
-    jobImage: "public/mock/mock-cleaning-post1.jpg",
     feedbackDate: "Dec. 20, 2025",
-    rating: 5.0,
-    feedbackText: "Excellent customer! Very understanding and provided all necessary cleaning supplies. House was spotless after!"
+    rating: 5,
+    feedbackText: "Excellent customer! Very understanding and provided all necessary cleaning supplies. Payment was prompt.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=cleaning&jobNumber=123"
   },
   {
     id: 2,
     jobTitle: "Garden maintenance and lawn mowing",
-    jobImage: "public/mock/mock-gardening-post1.jpg",
     feedbackDate: "Dec. 17, 2025",
-    rating: 4.5,
-    feedbackText: "Customer was very clear about expectations. Payment was prompt. Nice working environment."
+    rating: 4,
+    feedbackText: "Customer was very clear about expectations. Nice working environment and fair pay.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=gardening&jobNumber=124"
+  },
+  {
+    id: 3,
+    jobTitle: "Pet grooming for two small dogs",
+    feedbackDate: "Dec. 14, 2025",
+    rating: 5,
+    feedbackText: "Great customer who really cares about his pets. Provided detailed instructions and was very appreciative.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=pet-care&jobNumber=125"
+  },
+  {
+    id: 4,
+    jobTitle: "Event setup for birthday party",
+    feedbackDate: "Dec. 12, 2025",
+    rating: 4,
+    feedbackText: "Well-organized customer with clear timeline. Good communication throughout the setup process.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=events&jobNumber=126"
+  },
+  {
+    id: 5,
+    jobTitle: "Computer repair and software installation",
+    feedbackDate: "Dec. 10, 2025",
+    rating: 5,
+    feedbackText: "Very patient customer who listened to all explanations. Fair payment and respectful interaction.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=tech&jobNumber=127"
+  },
+  {
+    id: 6,
+    jobTitle: "Furniture assembly for new bedroom set",
+    feedbackDate: "Dec. 8, 2025",
+    rating: 4,
+    feedbackText: "Customer provided all tools needed and was flexible with timing. Pleasant working atmosphere.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=labor&jobNumber=128"
+  },
+  {
+    id: 7,
+    jobTitle: "Car detailing and interior cleaning",
+    feedbackDate: "Dec. 5, 2025",
+    rating: 5,
+    feedbackText: "Professional customer who trusts your expertise. Quick payment and would work for him again.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=automotive&jobNumber=129"
+  },
+  {
+    id: 8,
+    jobTitle: "Photography for family portrait session",
+    feedbackDate: "Dec. 3, 2025",
+    rating: 4,
+    feedbackText: "Creative customer with good vision. Collaborative approach and respectful of artistic input.",
+    userThumbnail: getRandomUserThumbnail(),
+    jobPostUrl: "dynamic-job.html?category=creative&jobNumber=130"
   }
 ];
+
+const sampleWorkerReviews = [];
 
 // Create a review card element
 function createReviewCard(reviewData) {
   const reviewCard = document.createElement('div');
   reviewCard.className = 'review-card';
   
+  // Add click functionality if jobPostUrl exists
+  if (reviewData.jobPostUrl) {
+    reviewCard.style.cursor = 'pointer';
+    reviewCard.addEventListener('click', function() {
+      window.location.href = reviewData.jobPostUrl;
+    });
+    
+    // Add hover effect
+    reviewCard.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-2px)';
+      this.style.boxShadow = '0 4px 16px rgba(0,0,0,0.16)';
+    });
+    
+    reviewCard.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
+    });
+  }
+  
   reviewCard.innerHTML = `
-    <div class="review-job-info">
-      <div class="review-job-img">
-        <img src="${reviewData.jobImage}" alt="Job image">
+    <div class="review-job-title">${reviewData.jobTitle}</div>
+    <div class="review-feedback-section">
+      <div class="review-feedback-left">
+        <div class="review-feedback-date">${reviewData.feedbackDate}</div>
+        <div class="review-rating">
+          ${generateStarsHTML(reviewData.rating)}
+        </div>
+        <div class="review-feedback-label">FEEDBACK:</div>
       </div>
-      <div class="review-job-details">
-        <div class="review-job-title">${reviewData.jobTitle}</div>
+      <div class="review-user-thumbnail">
+        <img src="${reviewData.userThumbnail}" alt="User thumbnail">
       </div>
     </div>
-    <div class="review-feedback-section">
-      <div class="review-feedback-header">
-        <span class="review-feedback-label">FEEDBACK:</span>
-        <span class="review-feedback-date">${reviewData.feedbackDate}</span>
-      </div>
-      <div class="review-rating">
-        ${generateStarsHTML(reviewData.rating)}
-      </div>
-      <div class="review-feedback-text">
-        ${reviewData.feedbackText}
-      </div>
+    <div class="review-feedback-text">
+      ${reviewData.feedbackText}
     </div>
   `;
   
@@ -279,39 +405,54 @@ function generateStarsHTML(rating) {
   return starsHTML;
 }
 
-// Populate customer reviews
-function populateCustomerReviews() {
+// Populate customer reviews (backend ready)
+function populateCustomerReviews(customerReviews = sampleCustomerReviews, userName = null) {
   const container = document.getElementById('reviewsCustomerContainer');
   if (!container) return;
+  
+  // Get user name from profile or default
+  const profileName = userName || document.querySelector('.full-name')?.textContent || 'this user';
   
   // Clear existing content
   container.innerHTML = '';
   
-  if (sampleCustomerReviews.length === 0) {
-    container.innerHTML = '<p style="text-align: center; color: #bfc6d0; font-style: italic;">No customer reviews yet.</p>';
+  if (customerReviews.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">No reviews of ${profileName} as a customer yet.</p>
+      </div>
+    `;
     return;
   }
   
-  sampleCustomerReviews.forEach(review => {
+  customerReviews.forEach(review => {
     const reviewCard = createReviewCard(review);
     container.appendChild(reviewCard);
   });
 }
 
-// Populate worker reviews  
-function populateWorkerReviews() {
+// Populate worker reviews (backend ready)
+function populateWorkerReviews(workerReviews = sampleWorkerReviews, userName = null) {
   const container = document.getElementById('reviewsWorkerContainer');
   if (!container) return;
+  
+  // Get user name from profile or default
+  const profileName = userName || document.querySelector('.full-name')?.textContent || 'this user';
   
   // Clear existing content
   container.innerHTML = '';
   
-  if (sampleWorkerReviews.length === 0) {
-    container.innerHTML = '<p style="text-align: center; color: #bfc6d0; font-style: italic;">No worker reviews yet.</p>';
+  if (workerReviews.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
+        <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Jobs Completed Yet.</h3>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} completing jobs will be displayed here.</p>
+      </div>
+    `;
     return;
   }
   
-  sampleWorkerReviews.forEach(review => {
+  workerReviews.forEach(review => {
     const reviewCard = createReviewCard(review);
     container.appendChild(reviewCard);
   });
