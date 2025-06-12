@@ -50,33 +50,53 @@ function initializePhotoUpload() {
   }
 }
 
-// Handle photo upload and preview
+// Auto crop and resize image to 500px width, maintaining aspect ratio
+function processImageTo500Width(file, callback) {
+  const img = new Image();
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  img.onload = function() {
+    const targetWidth = 500;
+    const scale = targetWidth / img.width;
+    const targetHeight = Math.round(img.height * scale);
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+    canvas.toBlob(function(blob) {
+      const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+      callback(blob, dataURL);
+    }, 'image/jpeg', 0.92);
+  };
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function handlePhotoUpload(event) {
   const file = event.target.files[0];
-  
   if (file) {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       showError('profilePhoto', 'Photo size must be less than 5MB');
       return;
     }
-    
     // Validate file type
     if (!file.type.startsWith('image/')) {
       showError('profilePhoto', 'Please select a valid image file');
       return;
     }
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    // Crop and resize, then preview and store blob for backend
+    processImageTo500Width(file, function(blob, dataURL) {
       const previewImg = document.getElementById('photoPreviewImg');
       if (previewImg) {
-        previewImg.src = e.target.result;
-        selectedPhoto = file;
+        previewImg.src = dataURL;
       }
-    };
-    reader.readAsDataURL(file);
+      // Store the processed blob for backend upload
+      selectedPhoto = blob;
+    });
   }
 }
 
