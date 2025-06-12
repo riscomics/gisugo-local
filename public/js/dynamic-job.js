@@ -515,13 +515,19 @@ function initializeContactDropdown() {
   }
 }
 
-// Initialize page when DOM is loaded
+// Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   loadJobData();
   initializeMenu();
   initializeApplyJob();
   initializeApplicationSentOverlay();
-  initCounterOfferFormatting();
-  initializeContactDropdown();
   initializeCustomerProfileLink();
+  initializeContactDropdown();
+  initCounterOfferFormatting();
+  
+  // Add barangay font size adjustment
+  adjustBarangayFontSizes();
+  
+  // Also call after a short delay to ensure all content is loaded
+  setTimeout(adjustBarangayFontSizes, 100);
 }); 
