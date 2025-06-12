@@ -459,6 +459,32 @@ function initCounterOfferFormatting() {
   }
 }
 
+// Initialize customer profile link
+function initializeCustomerProfileLink() {
+  const customerProfileLink = document.getElementById('customerProfileLink');
+  
+  if (customerProfileLink) {
+    customerProfileLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Get customer data to construct profile URL
+      const customerName = document.getElementById('customerName')?.textContent;
+      
+      if (customerName) {
+        // Convert customer name to URL-friendly format (similar to userId)
+        const userId = customerName.toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '');
+        
+        // Navigate to profile page with userId parameter
+        window.location.href = `profile.html?userId=${userId}`;
+      } else {
+        console.log('Customer name not found for profile link');
+      }
+    });
+  }
+}
+
 // Initialize contact dropdown
 function initializeContactDropdown() {
   const contactBtn = document.getElementById('contactBtn');
@@ -497,4 +523,5 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeApplicationSentOverlay();
   initCounterOfferFormatting();
   initializeContactDropdown();
+  initializeCustomerProfileLink();
 }); 
