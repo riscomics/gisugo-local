@@ -328,7 +328,7 @@ body:has(.profile-header) {
   align-items: center;
   background: #363f4f;
   border-radius: 4px 4px 0 0;
-  user-select: none;
+  user-select: none; 
 }
 
 .profile-dropdown-text {
