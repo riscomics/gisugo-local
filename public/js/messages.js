@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMenu();
     initializeTabs();
     initializeJobListings();
+    initializeApplicationActions();
 });
 
 function initializeMenu() {
@@ -100,4 +101,118 @@ function initializeJobListings() {
             }
         });
     });
+}
+
+// Application Action Overlay Management
+function initializeApplicationActions() {
+    const applicationCards = document.querySelectorAll('.application-card');
+    const actionOverlay = document.getElementById('applicationActionOverlay');
+    const actionProfileImage = document.getElementById('actionProfileImage');
+    const actionProfileRating = document.getElementById('actionProfileRating');
+    const hireJobBtn = document.getElementById('hireJobBtn');
+    
+    applicationCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Prevent event bubbling
+            e.stopPropagation();
+            
+            // Get applicant data from the card
+            const userName = this.querySelector('[data-user-name]').getAttribute('data-user-name');
+            const userPhoto = this.querySelector('[data-user-photo]').getAttribute('data-user-photo');
+            const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
+            const applicationId = this.getAttribute('data-application-id');
+            
+            console.log(`Opening overlay for ${userName} with ${userRating} star rating`);
+            
+            // Update overlay content
+            actionProfileImage.src = `public/users/${userPhoto}`;
+            actionProfileImage.alt = userName;
+            
+            // Update star rating
+            updateActionStars(userRating);
+            
+            // Store application data for hire button
+            hireJobBtn.setAttribute('data-application-id', applicationId);
+            hireJobBtn.setAttribute('data-user-name', userName);
+            
+            // Show overlay
+            actionOverlay.classList.add('show');
+            
+            // Double-check stars are updated after overlay is shown
+            setTimeout(() => {
+                updateActionStars(userRating);
+            }, 50);
+        });
+    });
+    
+    // Close overlay when clicking outside
+    actionOverlay.addEventListener('click', function(e) {
+        if (e.target === actionOverlay) {
+            closeActionOverlay();
+        }
+    });
+    
+    // Handle profile view click
+    const profileCaption = document.querySelector('.action-profile-caption');
+    if (profileCaption) {
+        profileCaption.addEventListener('click', function() {
+            const userName = actionProfileImage.alt;
+            if (userName) {
+                // Convert user name to URL-friendly format
+                const userId = userName.toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9-]/g, '');
+                
+                // Navigate to profile page
+                window.location.href = `profile.html?userId=${userId}`;
+            }
+        });
+    }
+    
+    // Handle hire button click
+    if (hireJobBtn) {
+        hireJobBtn.addEventListener('click', function() {
+            const applicationId = this.getAttribute('data-application-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            // Here you would implement the hire functionality
+            alert(`Hiring ${userName} for the job! (Application ID: ${applicationId})`);
+            
+            closeActionOverlay();
+        });
+    }
+    
+    // Close with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && actionOverlay.classList.contains('show')) {
+            closeActionOverlay();
+        }
+    });
+}
+
+function updateActionStars(rating) {
+    const stars = document.querySelectorAll('.action-star');
+    console.log(`Found ${stars.length} stars, updating to ${rating} rating`);
+    
+    // First, remove all filled classes to reset
+    stars.forEach(star => {
+        star.classList.remove('filled');
+    });
+    
+    // Then add filled class to the appropriate number of stars
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('filled');
+            console.log(`Filled star ${index + 1}`);
+        }
+    });
+    
+    console.log(`Updated overlay stars to ${rating} rating`);
+}
+
+function closeActionOverlay() {
+    const actionOverlay = document.getElementById('applicationActionOverlay');
+    if (actionOverlay) {
+        actionOverlay.classList.remove('show');
+    }
 } 
