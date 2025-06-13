@@ -579,16 +579,23 @@ function initializeNotifications() {
     // Handle notification item clicks (mark as read, etc.)
     const notificationItems = document.querySelectorAll('.notification-item');
     notificationItems.forEach(item => {
-        // Temporarily disable swipe-to-remove for debugging
-        // initializeSwipeToRemove(item);
+        // Initialize long press selection for each notification
+        initializeLongPressSelection(item);
         
         item.addEventListener('click', function() {
-            // Mark notification as read (visual feedback)
-            this.style.opacity = '0.7';
-            
-            // Here you would send read status to backend
-            const notificationTitle = this.querySelector('.notification-title').textContent;
-            console.log('Notification marked as read:', notificationTitle);
+            // Check if we're in selection mode
+            if (document.querySelector('.notification-item.selected')) {
+                // Toggle selection if in selection mode
+                this.classList.toggle('selected');
+                updateSelectionControls();
+            } else {
+                // Mark notification as read (visual feedback)
+                this.style.opacity = '0.7';
+                
+                // Here you would send read status to backend
+                const notificationTitle = this.querySelector('.notification-title').textContent;
+                console.log('Notification marked as read:', notificationTitle);
+            }
         });
     });
 }
@@ -670,121 +677,164 @@ function updateNotificationCount(count) {
     }
 }
 
-// Swipe to remove functionality
-function initializeSwipeToRemove(notificationItem) {
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
-    let isDragging = false;
-    let threshold = 100; // Minimum swipe distance to trigger removal
+// Long press selection functionality
+function initializeLongPressSelection(notificationItem) {
+    let longPressTimer;
+    let isLongPress = false;
     
     // Touch events for mobile
     notificationItem.addEventListener('touchstart', handleTouchStart, { passive: true });
-    notificationItem.addEventListener('touchmove', handleTouchMove, { passive: false });
     notificationItem.addEventListener('touchend', handleTouchEnd, { passive: true });
+    notificationItem.addEventListener('touchmove', handleTouchMove, { passive: true });
     
-    // Mouse events for desktop testing (optional)
+    // Mouse events for desktop
     notificationItem.addEventListener('mousedown', handleMouseStart);
-    notificationItem.addEventListener('mousemove', handleMouseMove);
     notificationItem.addEventListener('mouseup', handleMouseEnd);
     notificationItem.addEventListener('mouseleave', handleMouseEnd);
     
     function handleTouchStart(e) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isDragging = true;
-        notificationItem.classList.add('swiping');
+        isLongPress = false;
+        longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            startSelectionMode(notificationItem);
+        }, 500); // 500ms long press
     }
     
     function handleTouchMove(e) {
-        if (!isDragging) return;
-        
-        currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY; 
-        const deltaX = currentX - startX;
-        const deltaY = currentY - startY;
-        
-        // Only prevent default if it's a VERY clear horizontal swipe
-        // Must be at least 2x more horizontal than vertical AND significant movement
-        if (Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 40) {
-            e.preventDefault(); // Prevent scrolling only for very clear horizontal swipes
-        }
-        
-        // Only allow rightward swipes and only if it's significantly more horizontal than vertical
-        if (deltaX > 0 && Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 30) {
-            notificationItem.style.transform = `translateX(${deltaX}px)`;
-            notificationItem.style.opacity = Math.max(0.3, 1 - (deltaX / 200));
-        }
+        // Cancel long press if user moves finger
+        clearTimeout(longPressTimer);
     }
     
     function handleTouchEnd() {
-        if (!isDragging) return;
-        
-        const deltaX = currentX - startX;
-        isDragging = false;
-        notificationItem.classList.remove('swiping');
-        
-        if (deltaX > threshold) {
-            // Remove notification
-            removeNotification(notificationItem);
-        } else {
-            // Snap back to original position
-            notificationItem.style.transform = '';
-            notificationItem.style.opacity = '';
-        }
+        clearTimeout(longPressTimer);
     }
     
-    // Mouse event handlers (for desktop testing)
     function handleMouseStart(e) {
-        // Only activate on right-click drag or if touch is not available
         if (e.button !== 0) return; // Only left mouse button
-        
-        startX = e.clientX;
-        isDragging = true;
-        notificationItem.classList.add('swiping');
-        e.preventDefault();
-    }
-    
-    function handleMouseMove(e) {
-        if (!isDragging) return;
-        
-        currentX = e.clientX;
-        const deltaX = currentX - startX;
-        
-        if (deltaX > 0) {
-            notificationItem.style.transform = `translateX(${deltaX}px)`;
-            notificationItem.style.opacity = Math.max(0.3, 1 - (deltaX / 200));
-        }
+        isLongPress = false;
+        longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            startSelectionMode(notificationItem);
+        }, 500);
     }
     
     function handleMouseEnd() {
-        if (!isDragging) return;
+        clearTimeout(longPressTimer);
+    }
+}
+
+function startSelectionMode(notificationItem) {
+    // Add vibration feedback on mobile
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+    
+    // Add selection class to the notification
+    notificationItem.classList.add('selected');
+    
+    // Show selection controls
+    showSelectionControls();
+    
+    console.log('Selection mode activated');
+}
+
+function showSelectionControls() {
+    let selectionBar = document.getElementById('selectionControls');
+    
+    if (!selectionBar) {
+        // Create selection controls bar
+        selectionBar = document.createElement('div');
+        selectionBar.id = 'selectionControls';
+        selectionBar.className = 'selection-controls';
+        selectionBar.innerHTML = `
+            <div class="selection-info">
+                <span id="selectionCount">1</span> selected
+            </div>
+            <div class="selection-actions">
+                <button class="selection-btn cancel-btn" onclick="cancelSelection()">Cancel</button>
+                <button class="selection-btn delete-btn" onclick="deleteSelectedNotifications()">Delete</button>
+            </div>
+        `;
         
-        const deltaX = currentX - startX;
-        isDragging = false;
-        notificationItem.classList.remove('swiping');
-        
-        if (deltaX > threshold) {
-            removeNotification(notificationItem);
-        } else {
-            notificationItem.style.transform = '';
-            notificationItem.style.opacity = '';
+        // Insert after the tabs
+        const messagesContent = document.querySelector('.messages-content');
+        messagesContent.parentNode.insertBefore(selectionBar, messagesContent);
+    }
+    
+    selectionBar.style.display = 'flex';
+    
+    // Add class to adjust content margin
+    const messagesContent = document.querySelector('.messages-content');
+    messagesContent.classList.add('selection-active');
+    
+    updateSelectionControls();
+}
+
+function updateSelectionControls() {
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    const selectionCount = document.getElementById('selectionCount');
+    const selectionBar = document.getElementById('selectionControls');
+    
+    if (selectedItems.length === 0) {
+        // Hide selection controls if no items selected
+        if (selectionBar) {
+            selectionBar.style.display = 'none';
+        }
+    } else {
+        if (selectionCount) {
+            selectionCount.textContent = selectedItems.length;
         }
     }
 }
 
-function removeNotification(notificationItem) {
-    // Add removing class for animation
-    notificationItem.classList.add('removing');
+function cancelSelection() {
+    // Remove selection from all items
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    selectedItems.forEach(item => {
+        item.classList.remove('selected');
+    });
     
-    // Remove from DOM after animation completes
+    // Hide selection controls
+    const selectionBar = document.getElementById('selectionControls');
+    if (selectionBar) {
+        selectionBar.style.display = 'none';
+    }
+    
+    // Remove selection class from content
+    const messagesContent = document.querySelector('.messages-content');
+    messagesContent.classList.remove('selection-active');
+}
+
+function deleteSelectedNotifications() {
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    
+    if (selectedItems.length === 0) return;
+    
+    // Add removing animation to selected items
+    selectedItems.forEach(item => {
+        item.classList.add('removing');
+    });
+    
+    // Remove from DOM after animation
     setTimeout(() => {
-        notificationItem.remove();
+        selectedItems.forEach(item => {
+            item.remove();
+        });
         
         // Update notification count
         const remainingNotifications = document.querySelectorAll('.notification-item').length;
         updateNotificationCount(remainingNotifications);
         
-        console.log('Notification removed via swipe');
+        // Hide selection controls
+        const selectionBar = document.getElementById('selectionControls');
+        if (selectionBar) {
+            selectionBar.style.display = 'none';
+        }
+        
+        // Remove selection class from content
+        const messagesContent = document.querySelector('.messages-content');
+        messagesContent.classList.remove('selection-active');
+        
+        console.log(`${selectedItems.length} notifications deleted`);
     }, 300);
 } 

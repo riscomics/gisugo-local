@@ -806,15 +806,80 @@ body:has(.messages-header) {
   touch-action: manipulation; /* Allow both vertical and horizontal scrolling/manipulation */
 }
 
-/* Swipe animation states */
-.notification-item.swiping {
-  transition: none; /* Disable transition during active swipe */
+/* Selection and removal animation states */
+.notification-item.selected {
+  background: rgba(240, 208, 170, 0.15);
+  border-left: 4px solid #f0d0aa;
+  transform: scale(0.98);
 }
 
 .notification-item.removing {
   transform: translateX(100%);
   opacity: 0;
   transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Selection Controls Bar */
+.selection-controls {
+  display: none;
+  position: fixed;
+  top: 149px; /* Below tabs */
+  left: 0;
+  width: 100%;
+  background: #2d3748;
+  border-bottom: 2px solid #f0d0aa;
+  padding: 12px 20px;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 998;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.selection-info {
+  color: #f0d0aa;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.selection-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cancel-btn {
+  background: transparent;
+  border-color: #a0aec0;
+  color: #a0aec0;
+}
+
+.cancel-btn:hover {
+  background: #a0aec0;
+  color: #2d3748;
+  transform: translateY(-1px);
+}
+
+.delete-btn {
+  background: #e53e3e;
+  border-color: #e53e3e;
+  color: #ffffff;
+}
+
+.delete-btn:hover {
+  background: #c53030;
+  border-color: #c53030;
+  transform: translateY(-1px);
 }
 
 .notification-item:hover {
@@ -968,6 +1033,11 @@ body:has(.messages-header) {
 
 .notification-item.system {
   border-left: 4px solid #a0aec0;
+}
+
+/* Adjust content margin when selection controls are visible */
+.messages-content.selection-active {
+  margin-top: 114px; /* Original margin + selection bar height */
 }
 
 /* Mobile Styles */
@@ -1211,5 +1281,24 @@ body:has(.messages-header) {
   .notification-action-btn {
     padding: 5px 10px;
     font-size: 0.75rem;
+  }
+
+  /* Mobile Selection Controls */
+  .selection-controls {
+    top: 112px; /* Adjusted for mobile tab position */
+    padding: 10px 15px;
+  }
+
+  .selection-info {
+    font-size: 0.9rem;
+  }
+
+  .selection-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .messages-content.selection-active {
+    margin-top: 77px; /* Mobile margin + selection bar */
   }
 } 
