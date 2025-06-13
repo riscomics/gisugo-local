@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApplicationActions();
     initializeConfirmationOverlay();
     initializeNotifications();
+    initializeMessages();
     checkApplicationsContent();
 });
 
@@ -856,4 +857,103 @@ function deleteSelectedNotifications() {
         
         console.log(`${selectedItems.length} notifications deleted`);
     }, 300);
+}
+
+// Messages Management
+function initializeMessages() {
+    const messageThreadHeaders = document.querySelectorAll('.message-thread-header');
+    
+    messageThreadHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const threadId = this.getAttribute('data-thread-id');
+            const messageThread = this.closest('.message-thread');
+            const threadContent = document.getElementById('thread-' + threadId);
+            const expandIcon = this.querySelector('.expand-icon');
+            
+            if (threadContent && expandIcon) {
+                const isExpanded = messageThread.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    // Collapse current thread
+                    messageThread.classList.remove('expanded');
+                    threadContent.style.display = 'none';
+                    expandIcon.textContent = '▼';
+                } else {
+                    // First, close all other expanded threads
+                    closeAllMessageThreads();
+                    
+                    // Then expand the current thread
+                    messageThread.classList.add('expanded');
+                    threadContent.style.display = 'block';
+                    expandIcon.textContent = '▲';
+                    
+                    // Scroll to top when opening thread (under tabs)
+                    scrollToThreadTop();
+                    
+                    // Remove "new" tag when opening thread
+                    const newTag = this.querySelector('.thread-new-tag');
+                    if (newTag) {
+                        newTag.remove();
+                        // Update message count
+                        updateMessageCount();
+                    }
+                    
+                    // Scroll message container to bottom to show latest messages
+                    setTimeout(() => {
+                        const scrollContainer = threadContent.querySelector('.message-scroll-container');
+                        if (scrollContainer) {
+                            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                        }
+                    }, 100);
+                }
+            }
+        });
+    });
+}
+
+function closeAllMessageThreads() {
+    const allMessageThreads = document.querySelectorAll('.message-thread');
+    
+    allMessageThreads.forEach(thread => {
+        const header = thread.querySelector('.message-thread-header');
+        const threadId = header.getAttribute('data-thread-id');
+        const threadContent = document.getElementById('thread-' + threadId);
+        const expandIcon = header.querySelector('.expand-icon');
+        
+        if (thread.classList.contains('expanded')) {
+            thread.classList.remove('expanded');
+            if (threadContent) {
+                threadContent.style.display = 'none';
+            }
+            if (expandIcon) {
+                expandIcon.textContent = '▼';
+            }
+        }
+    });
+}
+
+function scrollToThreadTop() {
+    // Scroll page to top under tabs to give room for message scroll container
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+function updateMessageCount() {
+    // Count remaining "new" tags
+    const newTags = document.querySelectorAll('.thread-new-tag');
+    const messageCountElement = document.querySelector('#messagesTab .notification-count');
+    
+    if (messageCountElement) {
+        const remainingCount = newTags.length;
+        messageCountElement.textContent = remainingCount;
+        
+        // Hide badge if count is 0
+        if (remainingCount === 0) {
+            messageCountElement.style.display = 'none';
+        } else {
+            messageCountElement.style.display = 'inline-block';
+        }
+    }
 } 

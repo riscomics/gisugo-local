@@ -1339,4 +1339,342 @@ body:has(.messages-header) {
     font-size: 0.65rem;
     padding: 2px 6px;
   }
+}
+
+/* Messages Tab Styles */
+.messages-container {
+  padding: 0;
+}
+
+/* Message Thread Styles */
+.message-thread {
+  margin: 0 auto 15px auto;
+  background: #2d3748;
+  border-radius: 8px;
+  max-width: 625px;
+  width: 90%;
+}
+
+.message-thread-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  cursor: pointer;
+  background: #2d3748;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.message-thread-header:hover {
+  background: #3d4856;
+}
+
+.thread-info {
+  flex: 1;
+}
+
+.thread-job-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e6d6ae;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.thread-participant {
+  font-size: 0.9rem;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+.thread-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.thread-new-tag {
+  background: #e53e3e;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.message-thread-content {
+  background: transparent;
+  padding: 0;
+  margin-top: 0;
+}
+
+.message-scroll-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 15px;
+  background: #354048;
+  border-radius: 0 0 8px 8px;
+  -webkit-overflow-scrolling: touch;
+  /* Hide scrollbar */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.message-scroll-container::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Message Card Styles */
+.message-card {
+  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.message-card:last-child {
+  margin-bottom: 0;
+}
+
+.message-card.incoming {
+  align-items: flex-end; /* Push everything to RIGHT side */
+}
+
+.message-card.outgoing {
+  align-items: flex-start; /* Push everything to LEFT side */
+}
+
+.message-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 10px;
+  max-width: 70%;
+}
+
+.message-card.incoming .message-header {
+  flex-direction: row; /* Avatar left, info right for incoming on RIGHT side */
+}
+
+.message-card.outgoing .message-header {
+  flex-direction: row; /* Avatar left, info right for outgoing on LEFT side */
+}
+
+.message-info {
+  flex: 1;
+}
+
+.message-card.incoming .message-info {
+  text-align: right; /* Right align for messages on RIGHT side */
+}
+
+.message-card.outgoing .message-info {
+  text-align: left; /* Left align for messages on LEFT side */
+}
+
+.message-sender {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e6d6ae;
+  margin-bottom: 2px;
+}
+
+.message-timestamp {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.message-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #4a5568;
+}
+
+.message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Message Bubble Styles */
+.message-bubble {
+  padding: 12px 16px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  max-width: 80%;
+  word-wrap: break-word;
+  position: relative;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.message-bubble.incoming {
+  background: #4299e1;
+  color: #ffffff;
+  align-self: flex-end; /* RIGHT side bubbles */
+  border-bottom-right-radius: 4px;
+  max-width: 85%;
+}
+
+.message-bubble.incoming::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -6px;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-left-color: #4299e1;
+  border-right: 0;
+}
+
+.message-bubble.outgoing {
+  background: #48bb78;
+  color: #ffffff;
+  align-self: flex-start; /* LEFT side bubbles */
+  border-bottom-left-radius: 4px;
+  max-width: 85%;
+}
+
+.message-bubble.outgoing::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -6px;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+  border-right-color: #48bb78;
+  border-left: 0;
+}
+
+/* Mobile Message Styles */
+@media (max-width: 600px) {
+  .message-thread {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .message-thread-header {
+    padding: 15px;
+  }
+
+  .thread-job-title {
+    font-size: 1rem;
+  }
+
+  .thread-participant {
+    font-size: 0.8rem;
+  }
+
+  .thread-new-tag {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+
+  .message-scroll-container {
+    max-height: 300px;
+    padding: 12px;
+  }
+
+  .message-card {
+    margin-bottom: 12px;
+  }
+
+  .message-avatar {
+    width: 35px;
+    height: 35px;
+  }
+
+  .message-sender {
+    font-size: 0.8rem;
+  }
+
+  .message-timestamp {
+    font-size: 0.7rem;
+  }
+
+  .message-bubble {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    max-width: 85%;
+  }
+}
+
+/* Message Input Styles */
+.message-input-container {
+  display: flex;
+  gap: 10px;
+  padding: 15px;
+  background: #2d3748;
+  border-top: 1px solid #4a5568;
+  align-items: center;
+}
+
+.message-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #4a5568;
+  border-radius: 24px;
+  background: #354048;
+  color: #f0e6d2;
+  font-size: 0.9rem;
+  font-family: Arial, Helvetica, sans-serif;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.message-input:focus {
+  border-color: #f0d0aa;
+}
+
+.message-input::placeholder {
+  color: #a0aec0;
+}
+
+.message-send-btn {
+  padding: 12px 20px;
+  background: #48bb78;
+  border: none;
+  border-radius: 24px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: Arial, Helvetica, sans-serif;
+  white-space: nowrap;
+}
+
+.message-send-btn:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+}
+
+.message-send-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile Message Input */
+@media (max-width: 600px) {
+  .message-input-container {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .message-input {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+
+  .message-send-btn {
+    padding: 10px 16px;
+    font-size: 0.8rem;
+  }
 } 

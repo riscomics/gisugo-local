@@ -29,7 +29,7 @@
                 Notifications
                 <span class="notification-count">7</span>
             </button>
-        <button class="tab-btn" data-tab="messages" id="messagesTab">Messages</button>
+                            <button class="tab-btn" data-tab="messages" id="messagesTab">Messages<span class="notification-count">6</span></button>
         <button class="tab-btn active" data-tab="applications" id="applicationsTab">Applications</button>
     </div>
 
@@ -184,8 +184,153 @@
 
         <!-- Messages Tab Content -->
         <div class="tab-content" id="messages-content" style="display: none;">
-            <div class="content-placeholder">
-                <p>Messages content coming soon...</p>
+            <div class="messages-container" id="messagesContainer">
+                
+                <!-- Message Thread 1: From Job Page (Worker to Customer) -->
+                <div class="message-thread">
+                    <div class="message-thread-header" data-thread-id="1">
+                        <div class="thread-info">
+                            <div class="thread-job-title">Plumbing repair - kitchen sink leak</div>
+                            <div class="thread-participant">Conversation with Miguel Torres</div>
+                        </div>
+                        <div class="thread-status">
+                            <span class="thread-new-tag">new</span>
+                            <div class="expand-icon">▼</div>
+                        </div>
+                    </div>
+                    <div class="message-thread-content" id="thread-1" style="display: none;">
+                        <div class="message-scroll-container">
+                            
+                            <!-- Message 1: From Worker (Miguel) -->
+                            <div class="message-card incoming">
+                                <div class="message-header">
+                                    <div class="message-info">
+                                        <div class="message-sender">Miguel Torres</div>
+                                        <div class="message-timestamp">Dec. 22, 2025 - 9:15 AM</div>
+                                    </div>
+                                    <div class="message-avatar">
+                                        <img src="public/users/User-06.jpg" alt="Miguel Torres">
+                                    </div>
+                                </div>
+                                <div class="message-bubble incoming">
+                                    Good morning po! I saw your plumbing job posting. I have 8 years experience with kitchen sink repairs. When would be a good time to check your sink?
+                                </div>
+                            </div>
+
+                            <!-- Message 2: From User (You) -->
+                            <div class="message-card outgoing">
+                                <div class="message-header">
+                                    <div class="message-avatar">
+                                        <img src="public/users/Peter-J-Ang-User-01.jpg" alt="You">
+                                    </div>
+                                    <div class="message-info">
+                                        <div class="message-sender">You</div>
+                                        <div class="message-timestamp">Dec. 22, 2025 - 10:30 AM</div>
+                                    </div>
+                                </div>
+                                <div class="message-bubble outgoing">
+                                    Hi Miguel! Thanks for reaching out. I'm available this afternoon after 2 PM or tomorrow morning. What's your rate for sink repair?
+                                </div>
+                            </div>
+
+                            <!-- Message 3: From Worker (Miguel) -->
+                            <div class="message-card incoming">
+                                <div class="message-header">
+                                    <div class="message-info">
+                                        <div class="message-sender">Miguel Torres</div>
+                                        <div class="message-timestamp">Dec. 22, 2025 - 11:45 AM</div>
+                                    </div>
+                                    <div class="message-avatar">
+                                        <img src="public/users/User-06.jpg" alt="Miguel Torres">
+                                    </div>
+                                </div>
+                                <div class="message-bubble incoming">
+                                    Perfect! I can come this afternoon at 3 PM. My rate is ₱800 for standard sink leak repair, including parts. Is that okay with you?
+                                </div>
+                            </div>
+
+                        </div>
+                        
+                        <!-- Message Input Area -->
+                        <div class="message-input-container">
+                            <input type="text" class="message-input" placeholder="Type a message..." maxlength="200">
+                            <button class="message-send-btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Thread 2: From Application Overlay (Customer to Worker) -->
+                <div class="message-thread">
+                    <div class="message-thread-header" data-thread-id="2">
+                        <div class="thread-info">
+                            <div class="thread-job-title">Home cleaning service - 3 bedroom house deep clean</div>
+                            <div class="thread-participant">Conversation with Ana Rodriguez</div>
+                        </div>
+                        <div class="thread-status">
+                            <div class="expand-icon">▼</div>
+                        </div>
+                    </div>
+                    <div class="message-thread-content" id="thread-2" style="display: none;">
+                        <div class="message-scroll-container">
+                            
+                            <!-- Message 1: From User (You) -->
+                            <div class="message-card outgoing">
+                                <div class="message-header">
+                                    <div class="message-avatar">
+                                        <img src="public/users/Peter-J-Ang-User-01.jpg" alt="You">
+                                    </div>
+                                    <div class="message-info">
+                                        <div class="message-sender">You</div>
+                                        <div class="message-timestamp">Dec. 20, 2025 - 2:15 PM</div>
+                                    </div>
+                                </div>
+                                <div class="message-bubble outgoing">
+                                    Hi Ana! I reviewed your application for the house cleaning job. Your profile looks great! I wanted to ask about your availability this weekend.
+                                </div>
+                            </div>
+
+                            <!-- Message 2: From Worker (Ana) -->
+                            <div class="message-card incoming">
+                                <div class="message-header">
+                                    <div class="message-info">
+                                        <div class="message-sender">Ana Rodriguez</div>
+                                        <div class="message-timestamp">Dec. 20, 2025 - 3:45 PM</div>
+                                    </div>
+                                    <div class="message-avatar">
+                                        <img src="public/users/User-03.jpg" alt="Ana Rodriguez">
+                                    </div>
+                                </div>
+                                <div class="message-bubble incoming">
+                                    Hello po! Thank you for considering my application. I'm available both Saturday and Sunday. What time would work best for you?
+                                </div>
+                            </div>
+
+                            <!-- Message 3: From User (You) -->
+                            <div class="message-card outgoing">
+                                <div class="message-header">
+                                    <div class="message-avatar">
+                                        <img src="public/users/Peter-J-Ang-User-01.jpg" alt="You">
+                                    </div>
+                                    <div class="message-info">
+                                        <div class="message-sender">You</div>
+                                        <div class="message-timestamp">Dec. 20, 2025 - 4:20 PM</div>
+                                    </div>
+                                </div>
+                                <div class="message-bubble outgoing">
+                                    Saturday morning around 9 AM would be perfect. How long do you think it will take for a deep clean of a 3-bedroom house?
+                                </div>
+                            </div>
+
+                        </div>
+                        
+                        <!-- Message Input Area -->
+                        <div class="message-input-container">
+                            <input type="text" class="message-input" placeholder="Type a message..." maxlength="200">
+                            <button class="message-send-btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
