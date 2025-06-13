@@ -202,13 +202,87 @@ function initializeApplicationActions() {
             const applicationId = this.getAttribute('data-application-id');
             const userName = this.getAttribute('data-user-name');
             
-            // Here you would send hire data to backend
+            // Get the application card to extract additional data
+            const hireApplicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+            let jobData = {};
+            
+            if (hireApplicationCard) {
+                // Extract job and application details
+                const jobTitle = hireApplicationCard.getAttribute('data-job-title');
+                const originalPrice = hireApplicationCard.getAttribute('data-original-price');
+                const isCounterOffer = hireApplicationCard.getAttribute('data-is-counter-offer') === 'true';
+                
+                // Get price offer details
+                const priceElement = hireApplicationCard.querySelector('[data-price-amount]');
+                const priceAmount = priceElement ? priceElement.getAttribute('data-price-amount') : null;
+                const priceType = priceElement ? priceElement.getAttribute('data-price-type') : null;
+                const offerType = priceElement ? priceElement.getAttribute('data-offer-type') : null;
+                
+                // Get applicant details
+                const userPhoto = hireApplicationCard.querySelector('[data-user-photo]');
+                const userPhotoSrc = userPhoto ? userPhoto.getAttribute('data-user-photo') : null;
+                const userRating = hireApplicationCard.querySelector('[data-user-rating]');
+                const rating = userRating ? parseInt(userRating.getAttribute('data-user-rating')) : null;
+                
+                // Get application details
+                const applicationDate = hireApplicationCard.querySelector('[data-application-date]');
+                const applicationTime = hireApplicationCard.querySelector('[data-application-time]');
+                const applicationMessage = hireApplicationCard.querySelector('[data-application-message]');
+                
+                jobData = {
+                    jobTitle: jobTitle,
+                    originalPrice: originalPrice,
+                    agreedPrice: priceAmount,
+                    priceType: priceType,
+                    isCounterOffer: isCounterOffer,
+                    offerType: offerType,
+                    applicantDetails: {
+                        name: userName,
+                        photo: userPhotoSrc,
+                        rating: rating
+                    },
+                    applicationDetails: {
+                        date: applicationDate ? applicationDate.getAttribute('data-application-date') : null,
+                        time: applicationTime ? applicationTime.getAttribute('data-application-time') : null,
+                        message: applicationMessage ? applicationMessage.getAttribute('data-application-message') : null
+                    }
+                };
+            }
+            
+            // Here you would send comprehensive hire data to backend
             console.log('Backend data to send:', {
                 action: 'hire',
                 applicationId: applicationId,
-                userName: userName,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                jobData: jobData,
+                // Additional fields that would be useful for backend
+                status: 'hired',
+                contractDetails: {
+                    jobTitle: jobData.jobTitle,
+                    agreedPrice: jobData.agreedPrice,
+                    priceType: jobData.priceType,
+                    contractor: jobData.applicantDetails.name,
+                    contractDate: new Date().toISOString()
+                }
             });
+            
+            // Remove the entire job listing since someone was hired
+            if (hireApplicationCard) {
+                const jobListing = hireApplicationCard.closest('.job-listing');
+                if (jobListing) {
+                    // Add fade out animation to the entire job listing
+                    jobListing.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    jobListing.style.opacity = '0';
+                    jobListing.style.transform = 'translateY(-10px)';
+                    
+                    // Remove the job listing after animation
+                    setTimeout(() => {
+                        jobListing.remove();
+                        // Check if there are any job listings left overall
+                        updateApplicationsDisplay();
+                    }, 300);
+                }
+            }
             
             closeActionOverlay();
             
