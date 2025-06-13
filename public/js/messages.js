@@ -590,11 +590,22 @@ function initializeNotifications() {
                 updateSelectionControls();
             } else {
                 // Mark notification as read (visual feedback)
-                this.style.opacity = '0.7';
-                
-                // Here you would send read status to backend
-                const notificationTitle = this.querySelector('.notification-title').textContent;
-                console.log('Notification marked as read:', notificationTitle);
+                if (!this.classList.contains('read')) {
+                    this.classList.add('read');
+                    
+                    // Add a read indicator
+                    let readIndicator = this.querySelector('.read-indicator');
+                    if (!readIndicator) {
+                        readIndicator = document.createElement('div');
+                        readIndicator.className = 'read-indicator';
+                        readIndicator.innerHTML = '✓ Read';
+                        this.appendChild(readIndicator);
+                    }
+                    
+                    // Here you would send read status to backend
+                    const notificationTitle = this.querySelector('.notification-title').textContent;
+                    console.log('Notification marked as read:', notificationTitle);
+                }
             }
         });
     });

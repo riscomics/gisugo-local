@@ -813,6 +813,26 @@ body:has(.messages-header) {
   transform: scale(0.98);
 }
 
+/* Read state */
+.notification-item.read {
+  opacity: 0.75;
+  background: rgba(160, 174, 192, 0.08);
+}
+
+.read-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #48bb78;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  z-index: 1;
+}
+
 .notification-item.removing {
   transform: translateX(100%);
   opacity: 0;
@@ -823,7 +843,7 @@ body:has(.messages-header) {
 .selection-controls {
   display: none;
   position: fixed;
-  top: 149px; /* Below tabs */
+  top: 162px; /* Below tabs with proper clearance */
   left: 0;
   width: 100%;
   background: #2d3748;
@@ -1037,7 +1057,7 @@ body:has(.messages-header) {
 
 /* Adjust content margin when selection controls are visible */
 .messages-content.selection-active {
-  margin-top: 114px; /* Original margin + selection bar height */
+  margin-top: 124px; /* Original margin + selection bar height + extra clearance */
 }
 
 /* Mobile Styles */
@@ -1285,7 +1305,7 @@ body:has(.messages-header) {
 
   /* Mobile Selection Controls */
   .selection-controls {
-    top: 112px; /* Adjusted for mobile tab position */
+    top: 122px; /* Adjusted for mobile tab position with proper clearance */
     padding: 10px 15px;
   }
 
@@ -1299,6 +1319,14 @@ body:has(.messages-header) {
   }
 
   .messages-content.selection-active {
-    margin-top: 77px; /* Mobile margin + selection bar */
+    margin-top: 87px; /* Mobile margin + selection bar + extra clearance */
+  }
+
+  /* Mobile read indicator */
+  .read-indicator {
+    top: 8px;
+    right: 8px;
+    font-size: 0.65rem;
+    padding: 2px 6px;
   }
 } 
