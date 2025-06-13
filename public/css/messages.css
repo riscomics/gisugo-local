@@ -675,6 +675,187 @@ body:has(.messages-header) {
   transform: translateY(0);
 }
 
+/* Notification Count Badge */
+.notification-count {
+  background: #e53e3e;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Notifications Container */
+.notifications-container {
+  padding: 0;
+}
+
+/* Notification Item Styles */
+.notification-item {
+  display: flex;
+  padding: 1rem;
+  border-bottom: 1px solid #4a5568;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: rgba(240, 208, 170, 0.05);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+/* Notification Icons */
+.notification-icon {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-top: 0.25rem;
+}
+
+.critical-icon {
+  background: rgba(229, 62, 62, 0.2);
+  border: 2px solid #e53e3e;
+}
+
+.app-icon {
+  background: rgba(72, 187, 120, 0.2);
+  border: 2px solid #48bb78;
+}
+
+.msg-icon {
+  background: rgba(66, 153, 225, 0.2);
+  border: 2px solid #4299e1;
+}
+
+.status-icon {
+  background: rgba(237, 137, 54, 0.2);
+  border: 2px solid #ed8936;
+}
+
+.system-icon {
+  background: rgba(160, 174, 192, 0.2);
+  border: 2px solid #a0aec0;
+}
+
+/* Notification Content */
+.notification-content {
+  flex: 1;
+}
+
+.notification-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e6d6ae;
+  margin-bottom: 0.5rem;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.notification-message {
+  font-size: 0.9rem;
+  color: #a0aec0;
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.notification-message strong {
+  color: #e6d6ae;
+  font-weight: 600;
+}
+
+.notification-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.notification-time {
+  font-size: 0.8rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.notification-date {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Notification Actions */
+.notification-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.notification-action-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.notification-action-btn.primary {
+  background: #e53e3e;
+  border-color: #e53e3e;
+  color: #ffffff;
+}
+
+.notification-action-btn.primary:hover {
+  background: #c53030;
+  border-color: #c53030;
+  transform: translateY(-1px);
+}
+
+.notification-action-btn.secondary {
+  background: transparent;
+  border-color: #f0d0aa;
+  color: #f0d0aa;
+}
+
+.notification-action-btn.secondary:hover {
+  background: #f0d0aa;
+  color: #2d3748;
+  transform: translateY(-1px);
+}
+
+/* Notification Type Specific Styles */
+.notification-item.critical {
+  border-left: 4px solid #e53e3e;
+  background: rgba(229, 62, 62, 0.05);
+}
+
+.notification-item.new-application {
+  border-left: 4px solid #48bb78;
+}
+
+.notification-item.message {
+  border-left: 4px solid #4299e1;
+}
+
+.notification-item.job-status {
+  border-left: 4px solid #ed8936;
+}
+
+.notification-item.system {
+  border-left: 4px solid #a0aec0;
+}
+
 /* Mobile Styles */
 @media (max-width: 600px) {
   body {
@@ -846,5 +1027,49 @@ body:has(.messages-header) {
   .confirmation-btn {
     padding: 10px 24px;
     font-size: 0.9rem;
+  }
+
+  /* Notification Mobile Styles */
+  .notification-count {
+    font-size: 0.7rem;
+    padding: 1px 4px;
+    margin-left: 6px;
+    min-width: 16px;
+  }
+
+  .notification-item {
+    padding: 0.75rem;
+  }
+
+  .notification-icon {
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    margin-right: 0.75rem;
+  }
+
+  .notification-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .notification-message {
+    font-size: 0.8rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .notification-meta {
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .notification-time,
+  .notification-date {
+    font-size: 0.75rem;
+  }
+
+  .notification-action-btn {
+    padding: 5px 10px;
+    font-size: 0.75rem;
   }
 } 

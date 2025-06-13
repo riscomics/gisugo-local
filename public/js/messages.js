@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeJobListings();
     initializeApplicationActions();
     initializeConfirmationOverlay();
+    initializeNotifications();
     checkApplicationsContent();
 });
 
@@ -313,6 +314,18 @@ function initializeApplicationActions() {
             // Remove the application card from UI (mock functionality)
             const applicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
             if (applicationCard) {
+                // Check if this will be the last application BEFORE removing it
+                const jobListing = applicationCard.closest('.job-listing');
+                console.log('Job listing found:', jobListing);
+                
+                let willBeEmpty = false;
+                if (jobListing) {
+                    const currentApplications = jobListing.querySelectorAll('.application-card');
+                    console.log('Current applications before removal:', currentApplications.length);
+                    willBeEmpty = currentApplications.length === 1; // This card is the last one
+                    console.log('Will be empty after removal:', willBeEmpty);
+                }
+                
                 // Add fade out animation
                 applicationCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                 applicationCard.style.opacity = '0';
@@ -322,27 +335,36 @@ function initializeApplicationActions() {
                 setTimeout(() => {
                     applicationCard.remove();
                     
-                                         // Check if this was the last application in the job listing
-                     const jobListing = applicationCard.closest('.job-listing');
-                     if (jobListing) {
-                         const remainingApplications = jobListing.querySelectorAll('.application-card');
-                         if (remainingApplications.length === 0) {
-                             // Remove the entire job listing since there are no applications left
-                             jobListing.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                             jobListing.style.opacity = '0';
-                             jobListing.style.transform = 'translateY(-10px)';
+                    if (jobListing) {
+                        if (willBeEmpty) {
+                             // Update the application count to 0 and collapse the listing
+                             const countElement = jobListing.querySelector('.application-count');
+                             console.log('Count element found:', countElement);
+                             console.log('Current count text:', countElement ? countElement.textContent : 'null');
                              
-                             setTimeout(() => {
-                                 jobListing.remove();
-                                 // Check if there are any job listings left overall
-                                 updateApplicationsDisplay();
-                             }, 300);
+                             if (countElement) {
+                                 countElement.textContent = '0';
+                                 console.log('Updated count to: 0');
+                             }
+                             
+                             // Collapse the job listing since there are no applications
+                             const jobHeader = jobListing.querySelector('.job-header');
+                             const applicationsList = jobListing.querySelector('.applications-list');
+                             const expandIcon = jobListing.querySelector('.expand-icon');
+                             
+                             if (jobHeader && applicationsList && expandIcon) {
+                                 jobListing.classList.remove('expanded');
+                                 applicationsList.style.display = 'none';
+                                 expandIcon.textContent = '▼';
+                             }
                          } else {
                              // Update the application count
-                             const countElement = jobListing.querySelector('.applications-count');
+                             const remainingApplications = jobListing.querySelectorAll('.application-card');
+                             const countElement = jobListing.querySelector('.application-count');
                              if (countElement) {
                                  const newCount = remainingApplications.length;
-                                 countElement.textContent = `${newCount} Application${newCount !== 1 ? 's' : ''}`;
+                                 countElement.textContent = newCount.toString();
+                                 console.log('Updated count to:', newCount);
                              }
                          }
                      }
@@ -482,4 +504,124 @@ function initializeConfirmationOverlay() {
             closeConfirmationOverlay();
         }
     });
+}
+
+// Notifications Management
+function initializeNotifications() {
+    const notificationActionBtns = document.querySelectorAll('.notification-action-btn');
+    
+    notificationActionBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent notification item click
+            
+            const btnText = this.textContent.trim();
+            const notificationItem = this.closest('.notification-item');
+            const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
+            
+            // Handle different action types
+            switch(btnText) {
+                case 'Review Applications':
+                    handleReviewApplications(notificationItem);
+                    break;
+                case 'View Application':
+                    handleViewApplication(notificationItem);
+                    break;
+                case 'Reply':
+                    handleReplyMessage(notificationItem);
+                    break;
+                default:
+                    console.log(`Action: ${btnText} for notification: ${notificationTitle}`);
+            }
+        });
+    });
+    
+    // Handle notification item clicks (mark as read, etc.)
+    const notificationItems = document.querySelectorAll('.notification-item');
+    notificationItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Mark notification as read (visual feedback)
+            this.style.opacity = '0.7';
+            
+            // Here you would send read status to backend
+            const notificationTitle = this.querySelector('.notification-title').textContent;
+            console.log('Notification marked as read:', notificationTitle);
+        });
+    });
+}
+
+function handleReviewApplications(notificationItem) {
+    // Extract job info from notification
+    const message = notificationItem.querySelector('.notification-message').textContent;
+    
+    // Switch to applications tab
+    const applicationsTab = document.getElementById('applicationsTab');
+    if (applicationsTab) {
+        applicationsTab.click();
+    }
+    
+    // Show confirmation that we're navigating
+    showConfirmationOverlay(
+        'success',
+        'Navigating to Applications',
+        'Taking you to review your job applications.'
+    );
+    
+    console.log('Backend action: Navigate to applications for job review');
+}
+
+function handleViewApplication(notificationItem) {
+    const message = notificationItem.querySelector('.notification-message').textContent;
+    const applicantMatch = message.match(/\*\*(.*?)\*\*/);
+    const applicantName = applicantMatch ? applicantMatch[1] : 'Unknown';
+    
+    // Switch to applications tab
+    const applicationsTab = document.getElementById('applicationsTab');
+    if (applicationsTab) {
+        applicationsTab.click();
+    }
+    
+    // Show confirmation
+    showConfirmationOverlay(
+        'success',
+        'Viewing Application',
+        `Opening ${applicantName}'s application for review.`
+    );
+    
+    console.log('Backend action: Open specific application for:', applicantName);
+}
+
+function handleReplyMessage(notificationItem) {
+    const message = notificationItem.querySelector('.notification-message').textContent;
+    const senderMatch = message.match(/\*\*(.*?)\*\*/);
+    const senderName = senderMatch ? senderMatch[1] : 'Unknown';
+    
+    // Switch to messages tab
+    const messagesTab = document.getElementById('messagesTab');
+    if (messagesTab) {
+        messagesTab.click();
+    }
+    
+    // Show confirmation
+    showConfirmationOverlay(
+        'success',
+        'Opening Messages',
+        `Opening conversation with ${senderName}.`
+    );
+    
+    console.log('Backend action: Open message thread with:', senderName);
+}
+
+// Update notification count (would be called when new notifications arrive)
+function updateNotificationCount(count) {
+    const notificationCountElement = document.querySelector('.notification-count');
+    if (notificationCountElement) {
+        notificationCountElement.textContent = count;
+        
+        // Hide badge if count is 0
+        if (count === 0) {
+            notificationCountElement.style.display = 'none';
+        } else {
+            notificationCountElement.style.display = 'inline-block';
+        }
+    }
 } 

@@ -25,7 +25,10 @@
 
     <!-- Tab Navigation -->
     <div class="messages-tabs">
-        <button class="tab-btn" data-tab="notifications" id="notificationsTab">Notifications</button>
+                    <button class="tab-btn" data-tab="notifications" id="notificationsTab">
+                Notifications
+                <span class="notification-count">7</span>
+            </button>
         <button class="tab-btn active" data-tab="applications" id="applicationsTab">Applications</button>
         <button class="tab-btn" data-tab="messages" id="messagesTab">Messages</button>
     </div>
@@ -34,8 +37,148 @@
     <div class="messages-content">
         <!-- Notifications Tab Content -->
         <div class="tab-content" id="notifications-content" style="display: none;">
-            <div class="content-placeholder">
-                <p>Notifications content coming soon...</p>
+            <div class="notifications-container">
+                
+                <!-- Critical Notification - Job Unlisted -->
+                <div class="notification-item critical">
+                    <div class="notification-icon critical-icon">⚠️</div>
+                    <div class="notification-content">
+                        <div class="notification-title">Job Unlisted: Maximum Applicants Reached</div>
+                        <div class="notification-message">
+                            Job "House cleaning service needed - weekly basis" has been unlisted: Maximum number of applicants received (20/20). You must review and reject applicants for job to be listed again.
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">2 hours ago</span>
+                            <span class="notification-date">Dec. 22, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn primary">Review Applications</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Application Notifications -->
+                <div class="notification-item new-application">
+                    <div class="notification-icon app-icon">👤</div>
+                    <div class="notification-content">
+                        <div class="notification-title">New Job Application Received</div>
+                        <div class="notification-message">
+                            <strong>Miguel Torres</strong> applied for "Plumbing repair - kitchen sink leak" with a ₱800 offer.
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">3 hours ago</span>
+                            <span class="notification-date">Dec. 22, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn secondary">View Application</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="notification-item new-application">
+                    <div class="notification-icon app-icon">👤</div>
+                    <div class="notification-content">
+                        <div class="notification-title">New Job Application Received</div>
+                        <div class="notification-message">
+                            <strong>Ana Rodriguez</strong> applied for "House cleaning service needed - weekly basis" with a ₱1,200 counter-offer.
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">5 hours ago</span>
+                            <span class="notification-date">Dec. 22, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn secondary">View Application</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Notifications -->
+                <div class="notification-item message">
+                    <div class="notification-icon msg-icon">💬</div>
+                    <div class="notification-content">
+                        <div class="notification-title">New Message Received</div>
+                        <div class="notification-message">
+                            <strong>Juan dela Cruz</strong> sent you a message: "Hello po! When can we start the carpentry work? I'm available this weekend."
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">1 day ago</span>
+                            <span class="notification-date">Dec. 21, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn secondary">Reply</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Status Notifications -->
+                <div class="notification-item job-status">
+                    <div class="notification-icon status-icon">📋</div>
+                    <div class="notification-content">
+                        <div class="notification-title">Job Application Limit Warning</div>
+                        <div class="notification-message">
+                            Job "Carpenter needed for kitchen cabinet repair and refinish" has received 15/20 applications. Consider reviewing applications soon to avoid unlisting.
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">1 day ago</span>
+                            <span class="notification-date">Dec. 21, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn secondary">Review Applications</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- More Application Notifications -->
+                <div class="notification-item new-application">
+                    <div class="notification-icon app-icon">👤</div>
+                    <div class="notification-content">
+                        <div class="notification-title">New Job Application Received</div>
+                        <div class="notification-message">
+                            <strong>Roberto Garcia</strong> applied for "Carpenter needed for kitchen cabinet repair and refinish" with a ₱2,800 counter-offer.
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">2 days ago</span>
+                            <span class="notification-date">Dec. 20, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn secondary">View Application</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Notification -->
+                <div class="notification-item system">
+                    <div class="notification-icon system-icon">⚙️</div>
+                    <div class="notification-content">
+                        <div class="notification-title">Job Successfully Posted</div>
+                        <div class="notification-message">
+                            Your job "Plumbing repair - kitchen sink leak" has been successfully posted and is now visible to service providers.
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">3 days ago</span>
+                            <span class="notification-date">Dec. 19, 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Another Message -->
+                <div class="notification-item message">
+                    <div class="notification-icon msg-icon">💬</div>
+                    <div class="notification-content">
+                        <div class="notification-title">New Message Received</div>
+                        <div class="notification-message">
+                            <strong>Pedro Santos</strong> sent you a message: "Good morning! I can start the work tomorrow if you're available. Please let me know."
+                        </div>
+                        <div class="notification-meta">
+                            <span class="notification-time">3 days ago</span>
+                            <span class="notification-date">Dec. 19, 2025</span>
+                        </div>
+                        <div class="notification-actions">
+                            <button class="notification-action-btn secondary">Reply</button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
