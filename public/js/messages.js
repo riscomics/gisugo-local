@@ -281,6 +281,12 @@ function initializeApplicationActions() {
                         jobListing.remove();
                         // Check if there are any job listings left overall
                         updateApplicationsDisplay();
+                        
+                        // Scroll to top to show other job listings that may be hidden behind header
+                        window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth'
+                        });
                     }, 300);
                 }
             }
