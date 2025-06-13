@@ -29,8 +29,8 @@
                 Notifications
                 <span class="notification-count">7</span>
             </button>
-        <button class="tab-btn active" data-tab="applications" id="applicationsTab">Applications</button>
         <button class="tab-btn" data-tab="messages" id="messagesTab">Messages</button>
+        <button class="tab-btn active" data-tab="applications" id="applicationsTab">Applications</button>
     </div>
 
     <!-- Main Content Area -->
@@ -182,6 +182,13 @@
             </div>
         </div>
 
+        <!-- Messages Tab Content -->
+        <div class="tab-content" id="messages-content" style="display: none;">
+            <div class="content-placeholder">
+                <p>Messages content coming soon...</p>
+            </div>
+        </div>
+
         <!-- Applications Tab Content -->
         <div class="tab-content active" id="applications-content">
             <!-- Placeholder for when no applications exist -->
@@ -201,23 +208,26 @@
                         <!-- Application Card 1 -->
                         <div class="application-card" data-application-id="1" data-job-title="Home cleaning service - 3 bedroom house deep clean" data-original-price="600" data-is-counter-offer="true">
                             <div class="application-job-title">
-                                <span class="applicant-name" data-user-name="Maria Santos">Maria Santos</span>
+                                <span class="applicant-name" data-user-name="Mario Santos">Mario Santos</span>
                                 <span class="price-offer" data-price-amount="550" data-price-type="Per Job" data-offer-type="counter">₱550 Per Job</span>
                             </div>
                             <div class="application-header">
                                 <div class="application-left">
                                     <div class="application-date" data-application-date="2025-12-20">Dec. 20, 2025</div>
                                     <div class="application-time" data-application-time="14:45">2:45 PM</div>
-                                    <div class="application-rating" data-user-rating="5">
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
+                                    <div class="application-rating" data-user-rating="5" data-review-count="50">
+                                        <div class="stars">
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                        </div>
+                                        <span class="review-count">(50)</span>
                                     </div>
                                 </div>
                                                         <div class="applicant-photo">
-                            <img src="public/users/User-02.jpg" alt="Maria Santos" data-user-photo="User-02.jpg">
+                            <img src="public/users/User-02.jpg" alt="Mario Santos" data-user-photo="User-02.jpg">
                                 </div>
                             </div>
                             <div class="application-message" data-application-message="Hi Sir! Please hire me for this job, I have 10 years experience in professional cleaning of offices and hotels. I won't let you down! I can do the job on time and will complete it very well.">
@@ -236,12 +246,15 @@
                                 <div class="application-left">
                                     <div class="application-date" data-application-date="2025-12-17">Dec. 17, 2025</div>
                                     <div class="application-time" data-application-time="10:30">10:30 AM</div>
-                                    <div class="application-rating" data-user-rating="4">
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star">★</span>
+                                    <div class="application-rating" data-user-rating="4" data-review-count="28">
+                                        <div class="stars">
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star">★</span>
+                                        </div>
+                                        <span class="review-count">(28)</span>
                                     </div>
                                 </div>
                                                         <div class="applicant-photo">
@@ -267,23 +280,26 @@
                         <!-- Application Card 1 -->
                         <div class="application-card" data-application-id="3" data-job-title="Carpenter needed for kitchen cabinet repair and refinish" data-original-price="2000" data-is-counter-offer="true">
                             <div class="application-job-title">
-                                <span class="applicant-name" data-user-name="Juan dela Cruz">Juan dela Cruz</span>
+                                <span class="applicant-name" data-user-name="Jane dela Cruz">Jane dela Cruz</span>
                                 <span class="price-offer" data-price-amount="2500" data-price-type="Per Job" data-offer-type="counter">₱2,500 Per Job</span>
                             </div>
                             <div class="application-header">
                                 <div class="application-left">
                                     <div class="application-date" data-application-date="2025-12-19">Dec. 19, 2025</div>
                                     <div class="application-time" data-application-time="16:15">4:15 PM</div>
-                                    <div class="application-rating" data-user-rating="5">
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
+                                    <div class="application-rating" data-user-rating="5" data-review-count="67">
+                                        <div class="stars">
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                        </div>
+                                        <span class="review-count">(67)</span>
                                     </div>
                                 </div>
                                                         <div class="applicant-photo">
-                            <img src="public/users/User-04.jpg" alt="Juan dela Cruz" data-user-photo="User-04.jpg">
+                            <img src="public/users/User-04.jpg" alt="Jane dela Cruz" data-user-photo="User-04.jpg">
                                 </div>
                             </div>
                             <div class="application-message" data-application-message="Good day! I have 15 years experience in carpentry work. I can repair your kitchen cabinets and make them look like new. I have all the tools needed for the job.">
@@ -295,23 +311,26 @@
                         <!-- Application Card 2 -->
                         <div class="application-card" data-application-id="4" data-job-title="Carpenter needed for kitchen cabinet repair and refinish" data-original-price="2000" data-is-counter-offer="false">
                             <div class="application-job-title">
-                                <span class="applicant-name" data-user-name="Pedro Santos">Pedro Santos</span>
+                                <span class="applicant-name" data-user-name="Petra Santos">Petra Santos</span>
                                 <span class="price-offer" data-price-amount="2000" data-price-type="Per Job" data-offer-type="original">₱2,000 Per Job</span>
                             </div>
                             <div class="application-header">
                                 <div class="application-left">
                                     <div class="application-date" data-application-date="2025-12-18">Dec. 18, 2025</div>
                                     <div class="application-time" data-application-time="11:20">11:20 AM</div>
-                                    <div class="application-rating" data-user-rating="4">
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star">★</span>
+                                    <div class="application-rating" data-user-rating="4" data-review-count="15">
+                                        <div class="stars">
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star">★</span>
+                                        </div>
+                                        <span class="review-count">(15)</span>
                                     </div>
                                 </div>
                                                         <div class="applicant-photo">
-                            <img src="public/users/User-05.jpg" alt="Pedro Santos" data-user-photo="User-05.jpg">
+                            <img src="public/users/User-05.jpg" alt="Petra Santos" data-user-photo="User-05.jpg">
                                 </div>
                             </div>
                             <div class="application-message" data-application-message="Hello sir! I can fix your kitchen cabinets. I am experienced carpenter and I work fast and clean. Very affordable price for quality work.">
@@ -330,12 +349,15 @@
                                 <div class="application-left">
                                     <div class="application-date" data-application-date="2025-12-16">Dec. 16, 2025</div>
                                     <div class="application-time" data-application-time="15:50">3:50 PM</div>
-                                    <div class="application-rating" data-user-rating="5">
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
+                                    <div class="application-rating" data-user-rating="5" data-review-count="82">
+                                        <div class="stars">
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                        </div>
+                                        <span class="review-count">(82)</span>
                                     </div>
                                 </div>
                                                         <div class="applicant-photo">
@@ -368,12 +390,15 @@
                                 <div class="application-left">
                                     <div class="application-date" data-application-date="2025-12-21">Dec. 21, 2025</div>
                                     <div class="application-time" data-application-time="09:15">9:15 AM</div>
-                                    <div class="application-rating" data-user-rating="5">
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
-                                        <span class="star filled">★</span>
+                                    <div class="application-rating" data-user-rating="5" data-review-count="36">
+                                        <div class="stars">
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                            <span class="star filled">★</span>
+                                        </div>
+                                        <span class="review-count">(36)</span>
                                     </div>
                                 </div>
                                                         <div class="applicant-photo">
@@ -390,12 +415,6 @@
             </div>
         </div>
 
-        <!-- Messages Tab Content -->
-        <div class="tab-content" id="messages-content" style="display: none;">
-            <div class="content-placeholder">
-                <p>Messages content coming soon...</p>
-            </div>
-        </div>
     </div>
 
     <!-- Menu Overlay -->
@@ -409,6 +428,9 @@
     <div class="application-action-overlay" id="applicationActionOverlay">
         <div class="application-action-modal">
             <div class="application-action-profile">
+                <div class="action-profile-name" id="actionProfileName">
+                    User Name
+                </div>
                 <div class="action-profile-photo">
                     <img src="" alt="" id="actionProfileImage">
                 </div>
@@ -420,8 +442,16 @@
                         <span class="action-star">★</span>
                         <span class="action-star">★</span>
                     </div>
+                    <div class="action-review-count" id="actionReviewCount">(0)</div>
                 </div>
-                <div class="action-profile-caption">View Profile</div>
+            </div>
+            <div class="profile-contact-buttons">
+                <button class="profile-btn" id="profileBtn">
+                    <span>PROFILE</span>
+                </button>
+                <button class="contact-btn" id="contactBtn">
+                    <span>CONTACT</span>
+                </button>
             </div>
             <div class="action-divider">OR</div>
             <div class="application-action-buttons">

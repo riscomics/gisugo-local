@@ -135,8 +135,10 @@ function closeAllJobListings() {
 function initializeApplicationActions() {
     const applicationCards = document.querySelectorAll('.application-card');
     const actionOverlay = document.getElementById('applicationActionOverlay');
+    const actionProfileName = document.getElementById('actionProfileName');
     const actionProfileImage = document.getElementById('actionProfileImage');
     const actionProfileRating = document.getElementById('actionProfileRating');
+    const actionReviewCount = document.getElementById('actionReviewCount');
     const hireJobBtn = document.getElementById('hireJobBtn');
     
     applicationCards.forEach(card => {
@@ -148,16 +150,19 @@ function initializeApplicationActions() {
             const userName = this.querySelector('[data-user-name]').getAttribute('data-user-name');
             const userPhoto = this.querySelector('[data-user-photo]').getAttribute('data-user-photo');
             const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
+            const reviewCount = parseInt(this.querySelector('[data-review-count]').getAttribute('data-review-count'));
             const applicationId = this.getAttribute('data-application-id');
             
-            console.log(`Opening overlay for ${userName} with ${userRating} star rating`);
+            console.log(`Opening overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
             
             // Update overlay content
+            actionProfileName.textContent = userName;
             actionProfileImage.src = `public/users/${userPhoto}`;
             actionProfileImage.alt = userName;
             
-            // Update star rating
+            // Update star rating and review count
             updateActionStars(userRating);
+            actionReviewCount.textContent = `(${reviewCount})`;
             
             // Store application data for hire button
             hireJobBtn.setAttribute('data-application-id', applicationId);
@@ -180,10 +185,10 @@ function initializeApplicationActions() {
         }
     });
     
-    // Handle profile view click
-    const profileCaption = document.querySelector('.action-profile-caption');
-    if (profileCaption) {
-        profileCaption.addEventListener('click', function() {
+    // Handle profile button click
+    const profileBtn = document.getElementById('profileBtn');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', function() {
             const userName = actionProfileImage.alt;
             if (userName) {
                 // Convert user name to URL-friendly format
@@ -193,6 +198,32 @@ function initializeApplicationActions() {
                 
                 // Navigate to profile page
                 window.location.href = `profile.html?userId=${userId}`;
+            }
+        });
+    }
+
+    // Handle contact button click
+    const contactBtn = document.getElementById('contactBtn');
+    if (contactBtn) {
+        contactBtn.addEventListener('click', function() {
+            const userName = actionProfileImage.alt;
+            if (userName) {
+                console.log(`Opening contact options for ${userName}`);
+                
+                // Close the current overlay
+                closeActionOverlay();
+                
+                // Show confirmation overlay for contact action
+                showConfirmationOverlay(
+                    'success',
+                    'Contact Options',
+                    `Contact options for ${userName} will be available soon.`
+                );
+                
+                // Here you could implement actual contact functionality:
+                // - Open messaging interface
+                // - Show phone/email options
+                // - Navigate to chat page
             }
         });
     }
@@ -224,6 +255,7 @@ function initializeApplicationActions() {
                 const userPhotoSrc = userPhoto ? userPhoto.getAttribute('data-user-photo') : null;
                 const userRating = hireApplicationCard.querySelector('[data-user-rating]');
                 const rating = userRating ? parseInt(userRating.getAttribute('data-user-rating')) : null;
+                const reviewCount = userRating ? parseInt(userRating.getAttribute('data-review-count')) : null;
                 
                 // Get application details
                 const applicationDate = hireApplicationCard.querySelector('[data-application-date]');
@@ -240,7 +272,8 @@ function initializeApplicationActions() {
                     applicantDetails: {
                         name: userName,
                         photo: userPhotoSrc,
-                        rating: rating
+                        rating: rating,
+                        reviewCount: reviewCount
                     },
                     applicationDetails: {
                         date: applicationDate ? applicationDate.getAttribute('data-application-date') : null,
@@ -263,6 +296,8 @@ function initializeApplicationActions() {
                     agreedPrice: jobData.agreedPrice,
                     priceType: jobData.priceType,
                     contractor: jobData.applicantDetails.name,
+                    contractorRating: jobData.applicantDetails.rating,
+                    contractorReviewCount: jobData.applicantDetails.reviewCount,
                     contractDate: new Date().toISOString()
                 }
             });
