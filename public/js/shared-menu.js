@@ -11,7 +11,7 @@ const MENU_ITEMS = [
   {
     icon: 'public/icons/Messages.png',
     text: 'Messages',
-    link: null // Future implementation
+    link: 'messages.html'
   },
   {
     icon: 'public/icons/Profile.png',
@@ -50,7 +50,7 @@ function generateMenuHTML() {
 function initializeSharedMenu() {
   // Find the menu container (works across different page types)
   const menuContainer = document.querySelector(
-    '.profile-menu-items, .jobcat-menu-items, .new-post-menu-items'
+    '.profile-menu-items, .jobcat-menu-items, .new-post-menu-items, .messages-menu-items'
   );
   
   if (!menuContainer) {
@@ -71,6 +71,8 @@ function initializeSharedMenu() {
       item.className = item.className.replace('menu-item-wrapper', 'jobcat-menu-item');
     } else if (menuContainer.classList.contains('new-post-menu-items')) {
       item.className = item.className.replace('menu-item-wrapper', 'new-post-menu-item');
+    } else if (menuContainer.classList.contains('messages-menu-items')) {
+      item.className = item.className.replace('menu-item-wrapper', 'messages-menu-item');
     }
   });
   
