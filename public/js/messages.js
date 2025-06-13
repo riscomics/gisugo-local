@@ -579,8 +579,8 @@ function initializeNotifications() {
     // Handle notification item clicks (mark as read, etc.)
     const notificationItems = document.querySelectorAll('.notification-item');
     notificationItems.forEach(item => {
-        // Initialize swipe-to-remove for each notification
-        initializeSwipeToRemove(item);
+        // Temporarily disable swipe-to-remove for debugging
+        // initializeSwipeToRemove(item);
         
         item.addEventListener('click', function() {
             // Mark notification as read (visual feedback)
@@ -679,9 +679,9 @@ function initializeSwipeToRemove(notificationItem) {
     let threshold = 100; // Minimum swipe distance to trigger removal
     
     // Touch events for mobile
-    notificationItem.addEventListener('touchstart', handleTouchStart, { passive: false });
+    notificationItem.addEventListener('touchstart', handleTouchStart, { passive: true });
     notificationItem.addEventListener('touchmove', handleTouchMove, { passive: false });
-    notificationItem.addEventListener('touchend', handleTouchEnd, { passive: false });
+    notificationItem.addEventListener('touchend', handleTouchEnd, { passive: true });
     
     // Mouse events for desktop testing (optional)
     notificationItem.addEventListener('mousedown', handleMouseStart);
@@ -704,13 +704,14 @@ function initializeSwipeToRemove(notificationItem) {
         const deltaX = currentX - startX;
         const deltaY = currentY - startY;
         
-        // Only prevent default if it's a clear horizontal swipe (more horizontal than vertical movement)
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
-            e.preventDefault(); // Prevent scrolling only for clear horizontal swipes
+        // Only prevent default if it's a VERY clear horizontal swipe
+        // Must be at least 2x more horizontal than vertical AND significant movement
+        if (Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 40) {
+            e.preventDefault(); // Prevent scrolling only for very clear horizontal swipes
         }
         
-        // Only allow rightward swipes and only if it's more horizontal than vertical
-        if (deltaX > 0 && Math.abs(deltaX) > Math.abs(deltaY)) {
+        // Only allow rightward swipes and only if it's significantly more horizontal than vertical
+        if (deltaX > 0 && Math.abs(deltaX) > Math.abs(deltaY) * 2 && Math.abs(deltaX) > 30) {
             notificationItem.style.transform = `translateX(${deltaX}px)`;
             notificationItem.style.opacity = Math.max(0.3, 1 - (deltaX / 200));
         }

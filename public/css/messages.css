@@ -773,12 +773,16 @@ body:has(.messages-header) {
 /* Notifications Container */
 .notifications-container {
   padding: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Remove any gaps in notifications tab */
 #notifications-content {
   padding: 0;
   margin: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Remove top margin from first notification item */
