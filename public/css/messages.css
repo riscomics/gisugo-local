@@ -210,7 +210,7 @@ body:has(.messages-header) {
 /* Main Content Area */
 .messages-content {
   background: #363f4f;
-  margin-top: 70px; /* Header (110px) + Tabs - 70px total reduction */
+  margin-top: 52px; /* Header (110px) + Tabs (15px*2 padding + text + border) */
   min-height: calc(100vh - 70px);
   padding: 0;
 }
@@ -775,6 +775,22 @@ body:has(.messages-header) {
   padding: 0;
 }
 
+/* Remove any gaps in notifications tab */
+#notifications-content {
+  padding: 0;
+  margin: 0;
+}
+
+/* Remove top margin from first notification item */
+#notifications-content .notification-item:first-child {
+  margin-top: 0;
+}
+
+/* Remove padding from any placeholder elements in notifications */
+#notifications-content .content-placeholder {
+  padding: 0;
+}
+
 /* Notification Item Styles */
 .notification-item {
   display: flex;
@@ -999,7 +1015,7 @@ body:has(.messages-header) {
   }
 
   .messages-content {
-    margin-top: 35px; /* Header (75px) + Tabs - 70px total reduction */
+    margin-top: 10px; /* Fine-tuned for mobile - minimal gap */
     min-height: calc(100vh - 35px);
   }
 
