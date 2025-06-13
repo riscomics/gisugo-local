@@ -88,18 +88,43 @@ function initializeJobListings() {
                 const isExpanded = jobListing.classList.contains('expanded');
                 
                 if (isExpanded) {
-                    // Collapse
+                    // Collapse current listing
                     jobListing.classList.remove('expanded');
                     applicationsList.style.display = 'none';
                     expandIcon.textContent = '▼';
                 } else {
-                    // Expand
+                    // First, close all other expanded listings
+                    closeAllJobListings();
+                    
+                    // Then expand the current listing
                     jobListing.classList.add('expanded');
                     applicationsList.style.display = 'block';
                     expandIcon.textContent = '▲';
                 }
             }
         });
+    });
+}
+
+// Helper function to close all expanded job listings
+function closeAllJobListings() {
+    const allJobListings = document.querySelectorAll('.job-listing');
+    
+    allJobListings.forEach(listing => {
+        const jobHeader = listing.querySelector('.job-header');
+        const jobId = jobHeader.getAttribute('data-job-id');
+        const applicationsList = document.getElementById('applications-' + jobId);
+        const expandIcon = jobHeader.querySelector('.expand-icon');
+        
+        if (listing.classList.contains('expanded')) {
+            listing.classList.remove('expanded');
+            if (applicationsList) {
+                applicationsList.style.display = 'none';
+            }
+            if (expandIcon) {
+                expandIcon.textContent = '▼';
+            }
+        }
     });
 }
 
