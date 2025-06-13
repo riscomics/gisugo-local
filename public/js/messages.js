@@ -673,6 +673,7 @@ function updateNotificationCount(count) {
 // Swipe to remove functionality
 function initializeSwipeToRemove(notificationItem) {
     let startX = 0;
+    let startY = 0;
     let currentX = 0;
     let isDragging = false;
     let threshold = 100; // Minimum swipe distance to trigger removal
@@ -690,6 +691,7 @@ function initializeSwipeToRemove(notificationItem) {
     
     function handleTouchStart(e) {
         startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
         isDragging = true;
         notificationItem.classList.add('swiping');
     }
@@ -697,12 +699,18 @@ function initializeSwipeToRemove(notificationItem) {
     function handleTouchMove(e) {
         if (!isDragging) return;
         
-        e.preventDefault(); // Prevent scrolling while swiping
         currentX = e.touches[0].clientX;
+        const currentY = e.touches[0].clientY; 
         const deltaX = currentX - startX;
+        const deltaY = currentY - startY;
         
-        // Only allow rightward swipes
-        if (deltaX > 0) {
+        // Only prevent default if it's a clear horizontal swipe (more horizontal than vertical movement)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
+            e.preventDefault(); // Prevent scrolling only for clear horizontal swipes
+        }
+        
+        // Only allow rightward swipes and only if it's more horizontal than vertical
+        if (deltaX > 0 && Math.abs(deltaX) > Math.abs(deltaY)) {
             notificationItem.style.transform = `translateX(${deltaX}px)`;
             notificationItem.style.opacity = Math.max(0.3, 1 - (deltaX / 200));
         }
