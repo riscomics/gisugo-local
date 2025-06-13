@@ -579,6 +579,9 @@ function initializeNotifications() {
     // Handle notification item clicks (mark as read, etc.)
     const notificationItems = document.querySelectorAll('.notification-item');
     notificationItems.forEach(item => {
+        // Initialize swipe-to-remove for each notification
+        initializeSwipeToRemove(item);
+        
         item.addEventListener('click', function() {
             // Mark notification as read (visual feedback)
             this.style.opacity = '0.7';
@@ -665,4 +668,114 @@ function updateNotificationCount(count) {
             notificationCountElement.style.display = 'inline-block';
         }
     }
+}
+
+// Swipe to remove functionality
+function initializeSwipeToRemove(notificationItem) {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+    let threshold = 100; // Minimum swipe distance to trigger removal
+    
+    // Touch events for mobile
+    notificationItem.addEventListener('touchstart', handleTouchStart, { passive: false });
+    notificationItem.addEventListener('touchmove', handleTouchMove, { passive: false });
+    notificationItem.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    // Mouse events for desktop testing (optional)
+    notificationItem.addEventListener('mousedown', handleMouseStart);
+    notificationItem.addEventListener('mousemove', handleMouseMove);
+    notificationItem.addEventListener('mouseup', handleMouseEnd);
+    notificationItem.addEventListener('mouseleave', handleMouseEnd);
+    
+    function handleTouchStart(e) {
+        startX = e.touches[0].clientX;
+        isDragging = true;
+        notificationItem.classList.add('swiping');
+    }
+    
+    function handleTouchMove(e) {
+        if (!isDragging) return;
+        
+        e.preventDefault(); // Prevent scrolling while swiping
+        currentX = e.touches[0].clientX;
+        const deltaX = currentX - startX;
+        
+        // Only allow rightward swipes
+        if (deltaX > 0) {
+            notificationItem.style.transform = `translateX(${deltaX}px)`;
+            notificationItem.style.opacity = Math.max(0.3, 1 - (deltaX / 200));
+        }
+    }
+    
+    function handleTouchEnd() {
+        if (!isDragging) return;
+        
+        const deltaX = currentX - startX;
+        isDragging = false;
+        notificationItem.classList.remove('swiping');
+        
+        if (deltaX > threshold) {
+            // Remove notification
+            removeNotification(notificationItem);
+        } else {
+            // Snap back to original position
+            notificationItem.style.transform = '';
+            notificationItem.style.opacity = '';
+        }
+    }
+    
+    // Mouse event handlers (for desktop testing)
+    function handleMouseStart(e) {
+        // Only activate on right-click drag or if touch is not available
+        if (e.button !== 0) return; // Only left mouse button
+        
+        startX = e.clientX;
+        isDragging = true;
+        notificationItem.classList.add('swiping');
+        e.preventDefault();
+    }
+    
+    function handleMouseMove(e) {
+        if (!isDragging) return;
+        
+        currentX = e.clientX;
+        const deltaX = currentX - startX;
+        
+        if (deltaX > 0) {
+            notificationItem.style.transform = `translateX(${deltaX}px)`;
+            notificationItem.style.opacity = Math.max(0.3, 1 - (deltaX / 200));
+        }
+    }
+    
+    function handleMouseEnd() {
+        if (!isDragging) return;
+        
+        const deltaX = currentX - startX;
+        isDragging = false;
+        notificationItem.classList.remove('swiping');
+        
+        if (deltaX > threshold) {
+            removeNotification(notificationItem);
+        } else {
+            notificationItem.style.transform = '';
+            notificationItem.style.opacity = '';
+        }
+    }
+}
+
+function removeNotification(notificationItem) {
+    // Add removing class for animation
+    notificationItem.classList.add('removing');
+    
+    // Remove from DOM after animation completes
+    setTimeout(() => {
+        notificationItem.remove();
+        
+        // Update notification count
+        const remainingNotifications = document.querySelectorAll('.notification-item').length;
+        updateNotificationCount(remainingNotifications);
+        
+        console.log('Notification removed via swipe');
+    }, 300);
 } 

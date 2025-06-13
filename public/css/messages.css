@@ -210,7 +210,7 @@ body:has(.messages-header) {
 /* Main Content Area */
 .messages-content {
   background: #363f4f;
-  margin-top: 52px; /* Header (110px) + Tabs (15px*2 padding + text + border) */
+  margin-top: 62px; /* Header (110px) + Tabs (15px*2 padding + text + border) + 10px extra clearance */
   min-height: calc(100vh - 70px);
   padding: 0;
 }
@@ -796,8 +796,21 @@ body:has(.messages-header) {
   display: flex;
   padding: 1rem;
   border-bottom: 1px solid #4a5568;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.3s ease;
   cursor: pointer;
+  position: relative;
+  touch-action: pan-y; /* Allow vertical scrolling but capture horizontal swipes */
+}
+
+/* Swipe animation states */
+.notification-item.swiping {
+  transition: none; /* Disable transition during active swipe */
+}
+
+.notification-item.removing {
+  transform: translateX(100%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .notification-item:hover {
@@ -1015,7 +1028,7 @@ body:has(.messages-header) {
   }
 
   .messages-content {
-    margin-top: 10px; /* Fine-tuned for mobile - minimal gap */
+    margin-top: 25px; /* Mobile - proper clearance so titles aren't hidden under tabs + 10px extra */
     min-height: calc(100vh - 35px);
   }
 
