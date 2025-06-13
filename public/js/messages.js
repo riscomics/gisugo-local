@@ -559,6 +559,9 @@ function initializeNotifications() {
             const notificationItem = this.closest('.notification-item');
             const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
             
+            // Mark notification as read when any action button is clicked
+            markNotificationAsRead(notificationItem);
+            
             // Handle different action types
             switch(btnText) {
                 case 'Review Applications':
@@ -566,7 +569,7 @@ function initializeNotifications() {
                     break;
                 case 'View Application':
                     handleViewApplication(notificationItem);
-                    break;
+                    break;  
                 case 'Reply':
                     handleReplyMessage(notificationItem);
                     break;
@@ -590,22 +593,7 @@ function initializeNotifications() {
                 updateSelectionControls();
             } else {
                 // Mark notification as read (visual feedback)
-                if (!this.classList.contains('read')) {
-                    this.classList.add('read');
-                    
-                    // Add a read indicator
-                    let readIndicator = this.querySelector('.read-indicator');
-                    if (!readIndicator) {
-                        readIndicator = document.createElement('div');
-                        readIndicator.className = 'read-indicator';
-                        readIndicator.innerHTML = '✓ Read';
-                        this.appendChild(readIndicator);
-                    }
-                    
-                    // Here you would send read status to backend
-                    const notificationTitle = this.querySelector('.notification-title').textContent;
-                    console.log('Notification marked as read:', notificationTitle);
-                }
+                markNotificationAsRead(this);
             }
         });
     });
@@ -685,6 +673,26 @@ function updateNotificationCount(count) {
         } else {
             notificationCountElement.style.display = 'inline-block';
         }
+    }
+}
+
+// Mark notification as read functionality
+function markNotificationAsRead(notificationItem) {
+    if (!notificationItem.classList.contains('read')) {
+        notificationItem.classList.add('read');
+        
+        // Add a read indicator
+        let readIndicator = notificationItem.querySelector('.read-indicator');
+        if (!readIndicator) {
+            readIndicator = document.createElement('div');
+            readIndicator.className = 'read-indicator';
+            readIndicator.innerHTML = '✓ Read';
+            notificationItem.appendChild(readIndicator);
+        }
+        
+        // Here you would send read status to backend
+        const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
+        console.log('Notification marked as read:', notificationTitle);
     }
 }
 
