@@ -41,7 +41,12 @@
 
         <!-- Applications Tab Content -->
         <div class="tab-content active" id="applications-content">
-            <div class="applications-container">
+            <!-- Placeholder for when no applications exist -->
+            <div class="content-placeholder" id="applicationsPlaceholder" style="display: none;">
+                <p>Job Applications will appear here...</p>
+            </div>
+            
+            <div class="applications-container" id="applicationsContainer">
                 <!-- Job Listing 1 -->
                 <div class="job-listing">
                     <div class="job-header" data-job-id="1">
@@ -276,11 +281,24 @@
                 <div class="action-profile-caption">View Profile</div>
             </div>
             <div class="action-divider">OR</div>
-            <div class="application-action-button">
+            <div class="application-action-buttons">
                 <button class="hire-job-btn" id="hireJobBtn">
                     <span>HIRE FOR JOB</span>
                 </button>
+                <button class="reject-job-btn" id="rejectJobBtn">
+                    <span>REJECT</span>
+                </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Overlay -->
+    <div class="confirmation-overlay" id="confirmationOverlay">
+        <div class="confirmation-modal">
+            <div class="confirmation-icon" id="confirmationIcon">✓</div>
+            <div class="confirmation-title" id="confirmationTitle">Action Completed</div>
+            <div class="confirmation-message" id="confirmationMessage">The action has been completed successfully.</div>
+            <button class="confirmation-btn" id="confirmationBtn">OK</button>
         </div>
     </div>
 

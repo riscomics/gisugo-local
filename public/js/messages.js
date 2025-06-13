@@ -8,6 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTabs();
     initializeJobListings();
     initializeApplicationActions();
+    initializeConfirmationOverlay();
+    checkApplicationsContent();
 });
 
 function initializeMenu() {
@@ -200,10 +202,90 @@ function initializeApplicationActions() {
             const applicationId = this.getAttribute('data-application-id');
             const userName = this.getAttribute('data-user-name');
             
-            // Here you would implement the hire functionality
-            alert(`Hiring ${userName} for the job! (Application ID: ${applicationId})`);
+            // Here you would send hire data to backend
+            console.log('Backend data to send:', {
+                action: 'hire',
+                applicationId: applicationId,
+                userName: userName,
+                timestamp: new Date().toISOString()
+            });
             
             closeActionOverlay();
+            
+            // Show confirmation overlay
+            showConfirmationOverlay(
+                'success',
+                'Application Accepted!',
+                `${userName} has been hired for the job. You can now coordinate the work details.`
+            );
+        });
+    }
+    
+    // Handle reject button click
+    const rejectJobBtn = document.getElementById('rejectJobBtn');
+    if (rejectJobBtn) {
+        rejectJobBtn.addEventListener('click', function() {
+            const applicationId = hireJobBtn.getAttribute('data-application-id');
+            const userName = hireJobBtn.getAttribute('data-user-name');
+            
+            // Here you would send rejection data to backend
+            console.log('Backend data to send:', {
+                action: 'reject',
+                applicationId: applicationId,
+                userName: userName,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Remove the application card from UI (mock functionality)
+            const applicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+            if (applicationCard) {
+                // Add fade out animation
+                applicationCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                applicationCard.style.opacity = '0';
+                applicationCard.style.transform = 'translateX(-20px)';
+                
+                // Remove the card after animation
+                setTimeout(() => {
+                    applicationCard.remove();
+                    
+                                         // Check if this was the last application in the job listing
+                     const jobListing = applicationCard.closest('.job-listing');
+                     if (jobListing) {
+                         const remainingApplications = jobListing.querySelectorAll('.application-card');
+                         if (remainingApplications.length === 0) {
+                             // Remove the entire job listing since there are no applications left
+                             jobListing.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                             jobListing.style.opacity = '0';
+                             jobListing.style.transform = 'translateY(-10px)';
+                             
+                             setTimeout(() => {
+                                 jobListing.remove();
+                                 // Check if there are any job listings left overall
+                                 updateApplicationsDisplay();
+                             }, 300);
+                         } else {
+                             // Update the application count
+                             const countElement = jobListing.querySelector('.applications-count');
+                             if (countElement) {
+                                 const newCount = remainingApplications.length;
+                                 countElement.textContent = `${newCount} Application${newCount !== 1 ? 's' : ''}`;
+                             }
+                         }
+                     }
+                    
+                    // Check if there are any applications left overall
+                    updateApplicationsDisplay();
+                }, 300);
+            }
+            
+            closeActionOverlay();
+            
+            // Show confirmation overlay
+            showConfirmationOverlay(
+                'reject',
+                'Application Rejected',
+                `${userName}'s application has been rejected and removed from your listings.`
+            );
         });
     }
     
@@ -240,4 +322,90 @@ function closeActionOverlay() {
     if (actionOverlay) {
         actionOverlay.classList.remove('show');
     }
+}
+
+// Check if there are any applications and show/hide placeholder accordingly
+function checkApplicationsContent() {
+    const applicationsContainer = document.getElementById('applicationsContainer');
+    const applicationsPlaceholder = document.getElementById('applicationsPlaceholder');
+    
+    if (applicationsContainer && applicationsPlaceholder) {
+        const jobListings = applicationsContainer.querySelectorAll('.job-listing');
+        const hasApplications = jobListings.length > 0;
+        
+        if (hasApplications) {
+            // Show job listings, hide placeholder
+            applicationsContainer.style.display = 'block';
+            applicationsPlaceholder.style.display = 'none';
+        } else {
+            // Show placeholder, hide job listings
+            applicationsContainer.style.display = 'none';
+            applicationsPlaceholder.style.display = 'block';
+        }
+    }
+}
+
+// Function to be called when applications are added/removed dynamically
+function updateApplicationsDisplay() {
+    checkApplicationsContent();
+}
+
+// Confirmation Overlay Functions
+function showConfirmationOverlay(type, title, message) {
+    const overlay = document.getElementById('confirmationOverlay');
+    const icon = document.getElementById('confirmationIcon');
+    const titleElement = document.getElementById('confirmationTitle');
+    const messageElement = document.getElementById('confirmationMessage');
+    
+    if (overlay && icon && titleElement && messageElement) {
+        // Set content
+        titleElement.textContent = title;
+        messageElement.textContent = message;
+        
+        // Set icon and styling based on type
+        if (type === 'success') {
+            icon.textContent = '✓';
+            icon.className = 'confirmation-icon success';
+        } else if (type === 'reject') {
+            icon.textContent = '✗';
+            icon.className = 'confirmation-icon reject';
+        }
+        
+        // Show overlay
+        overlay.classList.add('show');
+    }
+}
+
+function closeConfirmationOverlay() {
+    const overlay = document.getElementById('confirmationOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
+// Initialize confirmation overlay
+function initializeConfirmationOverlay() {
+    const overlay = document.getElementById('confirmationOverlay');
+    const confirmBtn = document.getElementById('confirmationBtn');
+    
+    // Close overlay when clicking OK button
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', closeConfirmationOverlay);
+    }
+    
+    // Close overlay when clicking outside
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeConfirmationOverlay();
+            }
+        });
+    }
+    
+    // Close with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay && overlay.classList.contains('show')) {
+            closeConfirmationOverlay();
+        }
+    });
 } 
