@@ -185,7 +185,7 @@ body:has(.messages-header) {
   background: transparent;
   border: none;
   color: #a0aec0;
-  padding: 15px 10px;
+  padding: 12px 10px;
   font-size: 1rem;
   font-weight: 600;
   font-family: Arial, Helvetica, sans-serif;
@@ -194,6 +194,10 @@ body:has(.messages-header) {
   border-bottom: 3px solid transparent;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
 .tab-btn:hover {
@@ -756,18 +760,26 @@ body:has(.messages-header) {
   transform: translateY(0);
 }
 
-/* Notification Count Badge */
+/* Tab label styling */
+.tab-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Notification Count Badge - now positioned below tab labels */
 .notification-count {
   background: #e53e3e;
   color: #ffffff;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 10px;
-  margin-left: 8px;
   min-width: 18px;
   text-align: center;
   line-height: 1.2;
+  margin: 0; /* Remove margin since it's now in flex layout */
 }
 
 /* Notifications Container */
@@ -1120,8 +1132,13 @@ body:has(.messages-header) {
   }
 
   .tab-btn {
-    padding: 12px 8px;
-    font-size: 0.9rem;
+    padding: 10px 8px;
+    font-size: 0.85rem;
+    gap: 3px;
+  }
+  
+  .tab-label {
+    font-size: 0.8rem;
   }
 
   .messages-content {
@@ -1264,10 +1281,10 @@ body:has(.messages-header) {
 
   /* Notification Mobile Styles */
   .notification-count {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     padding: 1px 4px;
-    margin-left: 6px;
     min-width: 16px;
+    margin: 0; /* Remove margin since it's now in flex layout */
   }
 
   .notification-item {
@@ -1616,15 +1633,15 @@ body:has(.messages-header) {
   background: #4299e1;
   color: #ffffff;
   align-self: flex-end; /* RIGHT side bubbles */
-  border-bottom-right-radius: 4px;
+  border-top-right-radius: 4px;
   max-width: 85%;
 }
 
 .message-bubble.incoming::before {
   content: '';
   position: absolute;
-  bottom: 0;
-  right: -6px;
+  top: 8px;
+  right: -5px;
   width: 0;
   height: 0;
   border: 6px solid transparent;
@@ -1636,15 +1653,15 @@ body:has(.messages-header) {
   background: #48bb78;
   color: #ffffff;
   align-self: flex-start; /* LEFT side bubbles */
-  border-bottom-left-radius: 4px;
+  border-top-left-radius: 4px;
   max-width: 85%;
 }
 
 .message-bubble.outgoing::before {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: -6px;
+  top: 8px;
+  left: -5px;
   width: 0;
   height: 0;
   border: 6px solid transparent;
@@ -1677,7 +1694,7 @@ body:has(.messages-header) {
   }
 
   .message-scroll-container {
-    max-height: 418px; /* Increased by 10% from 380px for more thread visibility */
+    max-height: 460px; /* Increased further from 418px for even more thread visibility */
     padding: 12px;
   }
 

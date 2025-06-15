@@ -14,7 +14,7 @@
                 <img src="public/icons/back.png" alt="Back">
                 <span>Back</span>
             </button>
-            <div class="messages-header-title" id="messagesTitle">MESSAGES</div>
+            <div class="messages-header-title" id="messagesTitle">NOTIFICATIONS</div>
             <button class="messages-header-btn menu messages-menu-btn" id="messagesMenuBtn" aria-label="Menu">
                 <img src="public/icons/menu.png" alt="Menu">
                 <div>Menu</div>
@@ -25,18 +25,24 @@
 
     <!-- Tab Navigation -->
     <div class="messages-tabs">
-                    <button class="tab-btn" data-tab="notifications" id="notificationsTab">
-                Notifications
-                <span class="notification-count">7</span>
-            </button>
-                            <button class="tab-btn" data-tab="messages" id="messagesTab">Messages<span class="notification-count">6</span></button>
-        <button class="tab-btn active" data-tab="applications" id="applicationsTab">Applications</button>
+        <button class="tab-btn active" data-tab="notifications" id="notificationsTab">
+            <span class="tab-label">NOTIFICATIONS</span>
+            <span class="notification-count">8</span>
+        </button>
+        <button class="tab-btn" data-tab="messages" id="messagesTab">
+            <span class="tab-label">MESSAGES</span>
+            <span class="notification-count">2</span>
+        </button>
+        <button class="tab-btn" data-tab="applications" id="applicationsTab">
+            <span class="tab-label">APPLICATIONS</span>
+            <span class="notification-count">6</span>
+        </button>
     </div>
 
     <!-- Main Content Area -->
     <div class="messages-content">
         <!-- Notifications Tab Content -->
-        <div class="tab-content" id="notifications-content" style="display: none;">
+        <div class="tab-content active" id="notifications-content" style="display: block;">
             <div class="notifications-container">
                 
                 <!-- Critical Notification - Job Unlisted -->
@@ -744,7 +750,7 @@
         </div>
 
         <!-- Applications Tab Content -->
-        <div class="tab-content active" id="applications-content">
+        <div class="tab-content" id="applications-content" style="display: none;">
             <!-- Placeholder for when no applications exist -->
             <div class="content-placeholder" id="applicationsPlaceholder" style="display: none;">
                 <p>Job Applications will appear here...</p>

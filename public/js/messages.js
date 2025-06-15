@@ -318,6 +318,9 @@ function initializeApplicationActions() {
                         // Check if there are any job listings left overall
                         updateApplicationsDisplay();
                         
+                        // Update the Applications tab count
+                        updateApplicationsCount();
+                        
                         // Scroll to top to show other job listings that may be hidden behind header
                         window.scrollTo({
                             top: 0,
@@ -413,6 +416,9 @@ function initializeApplicationActions() {
                     
                     // Check if there are any applications left overall
                     updateApplicationsDisplay();
+                    
+                    // Update the Applications tab count
+                    updateApplicationsCount();
                 }, 300);
             }
             
@@ -691,6 +697,9 @@ function markNotificationAsRead(notificationItem) {
             notificationItem.appendChild(readIndicator);
         }
         
+        // Update the notifications count
+        updateNotificationsCount();
+        
         // Here you would send read status to backend
         const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
         console.log('Notification marked as read:', notificationTitle);
@@ -841,9 +850,8 @@ function deleteSelectedNotifications() {
             item.remove();
         });
         
-        // Update notification count
-        const remainingNotifications = document.querySelectorAll('.notification-item').length;
-        updateNotificationCount(remainingNotifications);
+        // Update notifications count
+        updateNotificationsCount();
         
         // Hide selection controls
         const selectionBar = document.getElementById('selectionControls');
@@ -971,6 +979,42 @@ function updateMessageCount() {
             messageCountElement.style.display = 'none';
         } else {
             messageCountElement.style.display = 'inline-block';
+        }
+    }
+}
+
+function updateApplicationsCount() {
+    // Count all remaining application cards
+    const applicationCards = document.querySelectorAll('.application-card');
+    const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
+    
+    if (applicationsCountElement) {
+        const remainingCount = applicationCards.length;
+        applicationsCountElement.textContent = remainingCount;
+        
+        // Hide badge if count is 0
+        if (remainingCount === 0) {
+            applicationsCountElement.style.display = 'none';
+        } else {
+            applicationsCountElement.style.display = 'inline-block';
+        }
+    }
+}
+
+function updateNotificationsCount() {
+    // Count unread notifications (those without the 'read' class)
+    const unreadNotifications = document.querySelectorAll('.notification-item:not(.read)');
+    const notificationsCountElement = document.querySelector('#notificationsTab .notification-count');
+    
+    if (notificationsCountElement) {
+        const unreadCount = unreadNotifications.length;
+        notificationsCountElement.textContent = unreadCount;
+        
+        // Hide badge if count is 0
+        if (unreadCount === 0) {
+            notificationsCountElement.style.display = 'none';
+        } else {
+            notificationsCountElement.style.display = 'inline-block';
         }
     }
 }
