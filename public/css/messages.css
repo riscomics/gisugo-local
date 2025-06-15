@@ -1381,7 +1381,7 @@ body:has(.messages-header) {
 /* Move entire expanded thread to top */
 .message-thread.expanded {
   position: fixed;
-  top: 175px; /* Position under tabs with spacing: 109px header + 46px tabs + 20px spacing */
+  top: 185px; /* Position under tabs with more spacing: 109px header + 46px tabs + 30px spacing */
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -1542,7 +1542,7 @@ body:has(.messages-header) {
 }
 
 .message-scroll-container {
-  max-height: 506px;
+  max-height: 481px; /* Reduced by 5% from 506px to ensure input field visibility */
   overflow-y: auto;
   padding: 15px;
   background: #354048;
@@ -1715,7 +1715,7 @@ body:has(.messages-header) {
 
   /* Mobile positioning adjustment */
   .message-thread.expanded {
-    top: 128px; /* Mobile: 70px header + 38px tabs + 20px spacing */
+    top: 138px; /* Mobile: 70px header + 38px tabs + 30px spacing */
     width: 95%;
   }
   
