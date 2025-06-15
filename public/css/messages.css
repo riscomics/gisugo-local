@@ -1381,7 +1381,7 @@ body:has(.messages-header) {
 /* Move entire expanded thread to top */
 .message-thread.expanded {
   position: fixed;
-  top: 155px; /* Position under tabs: 109px header + 46px tabs */
+  top: 175px; /* Position under tabs with spacing: 109px header + 46px tabs + 20px spacing */
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -1715,7 +1715,7 @@ body:has(.messages-header) {
 
   /* Mobile positioning adjustment */
   .message-thread.expanded {
-    top: 108px; /* Mobile: 70px header + 38px tabs */
+    top: 128px; /* Mobile: 70px header + 38px tabs + 20px spacing */
     width: 95%;
   }
   
