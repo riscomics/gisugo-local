@@ -169,6 +169,16 @@ function initializeApplicationActions() {
             hireJobBtn.setAttribute('data-application-id', applicationId);
             hireJobBtn.setAttribute('data-user-name', userName);
             
+            // Store application data for contact button
+            const contactBtn = document.getElementById('contactBtn');
+            if (contactBtn) {
+                // Generate a user ID from the user name (in a real app, this would come from the database)
+                const userId = userName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                contactBtn.setAttribute('data-user-id', userId);
+                contactBtn.setAttribute('data-user-name', userName);
+                contactBtn.setAttribute('data-application-id', applicationId);
+            }
+            
             // Show overlay
             actionOverlay.classList.add('show');
             
@@ -207,24 +217,23 @@ function initializeApplicationActions() {
     const contactBtn = document.getElementById('contactBtn');
     if (contactBtn) {
         contactBtn.addEventListener('click', function() {
-            const userName = actionProfileImage.alt;
-            if (userName) {
-                console.log(`Opening contact options for ${userName}`);
+            console.log('Contact button clicked');
+            const userName = this.getAttribute('data-user-name');
+            const userId = this.getAttribute('data-user-id');
+            const applicationId = this.getAttribute('data-application-id');
+            
+            console.log('Contact button data:', { userName, userId, applicationId });
+            
+            if (userName && userId) {
+                console.log(`Opening contact message for ${userName}`);
                 
                 // Close the current overlay
                 closeActionOverlay();
                 
-                // Show confirmation overlay for contact action
-                showConfirmationOverlay(
-                    'success',
-                    'Contact Options',
-                    `Contact options for ${userName} will be available soon.`
-                );
-                
-                // Here you could implement actual contact functionality:
-                // - Open messaging interface
-                // - Show phone/email options
-                // - Navigate to chat page
+                // Show contact message overlay
+                showContactMessageOverlay(userId, userName, applicationId);
+            } else {
+                console.error('Missing contact button data attributes:', { userName, userId });
             }
         });
     }
@@ -1019,8 +1028,138 @@ function updateNotificationsCount() {
     }
 }
 
+// Contact Message Overlay Functions
+function showContactMessageOverlay(userId, userName, applicationId = null) {
+    const overlay = document.getElementById('contactMessageOverlay');
+    const userNameElement = document.getElementById('contactUserName');
+    const messageInput = document.getElementById('contactMessageInput');
+    
+    if (overlay && userNameElement && messageInput) {
+        // Set user information
+        userNameElement.textContent = userName;
+        
+        // Set data attributes
+        overlay.setAttribute('data-user-id', userId);
+        overlay.setAttribute('data-user-name', userName);
+        if (applicationId) {
+            overlay.setAttribute('data-application-id', applicationId);
+        }
+        
+        messageInput.setAttribute('data-user-id', userId);
+        messageInput.setAttribute('data-user-name', userName);
+        if (applicationId) {
+            messageInput.setAttribute('data-application-id', applicationId);
+        }
+        
+        // Clear previous message
+        messageInput.value = '';
+        
+        // Show overlay
+        overlay.classList.add('show');
+        
+        // Focus on input
+        setTimeout(() => {
+            messageInput.focus();
+        }, 300);
+    }
+}
+
+function closeContactMessageOverlay() {
+    const overlay = document.getElementById('contactMessageOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
+function initializeContactMessageOverlay() {
+    const overlay = document.getElementById('contactMessageOverlay');
+    const closeBtn = document.getElementById('contactCloseBtn');
+    const cancelBtn = document.getElementById('contactCancelBtn');
+    const sendBtn = document.getElementById('contactSendBtn');
+    const messageInput = document.getElementById('contactMessageInput');
+    
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeContactMessageOverlay);
+    }
+    
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeContactMessageOverlay);
+    }
+    
+    // Send button
+    if (sendBtn && messageInput) {
+        sendBtn.addEventListener('click', function() {
+            const message = messageInput.value.trim();
+            const userId = messageInput.getAttribute('data-user-id');
+            const userName = messageInput.getAttribute('data-user-name');
+            const applicationId = messageInput.getAttribute('data-application-id');
+            
+            if (message && userId && userName) {
+                // Here you would send the message to backend
+                console.log('Backend data to send:', {
+                    action: 'send_contact_message',
+                    recipientId: userId,
+                    recipientName: userName,
+                    applicationId: applicationId,
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    messageType: 'contact_inquiry'
+                });
+                
+                // Close contact overlay
+                closeContactMessageOverlay();
+                
+                // Show confirmation
+                showConfirmationOverlay(
+                    'success',
+                    'Message Sent!',
+                    `Your message has been sent to ${userName}. They will be notified and can respond through the messages tab.`
+                );
+                
+                // Clear the input
+                messageInput.value = '';
+            } else {
+                // Show error if message is empty
+                messageInput.style.borderColor = '#e53e3e';
+                setTimeout(() => {
+                    messageInput.style.borderColor = '#4a5568';
+                }, 2000);
+            }
+        });
+    }
+    
+    // Click outside to close
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeContactMessageOverlay();
+            }
+        });
+    }
+    
+    // Enable/disable send button based on input
+    if (messageInput && sendBtn) {
+        messageInput.addEventListener('input', function() {
+            const message = this.value.trim();
+            if (message.length > 0) {
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.disabled = true;
+            }
+        });
+        
+        // Initially disable send button
+        sendBtn.disabled = true;
+    }
+}
+
 // Add overlay click to close functionality
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize contact message overlay
+    initializeContactMessageOverlay();
+    
     // Add click listener to document for overlay clicks
     document.addEventListener('click', function(e) {
         const messagesContainer = document.querySelector('.messages-container');
