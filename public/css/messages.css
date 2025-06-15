@@ -1423,39 +1423,7 @@ body:has(.messages-header) {
   border-color: rgba(240, 208, 170, 0.5);
 }
 
-/* Close hint styling - positioned near the X */
-.close-hint {
-  position: absolute;
-  top: -35px;
-  right: 10px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #f0d0aa;
-  padding: 6px 12px;
-  border-radius: 15px;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 1000;
-}
 
-.close-hint.show {
-  opacity: 1;
-}
-
-/* Add a small arrow pointing to the X */
-.close-hint::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  right: 20px;
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 6px solid rgba(0, 0, 0, 0.8);
-}
 
 /* Enhanced styling for expanded thread header */
 .message-thread.expanded .message-thread-header {
@@ -1636,7 +1604,7 @@ body:has(.messages-header) {
 .message-bubble {
   padding: 12px 16px;
   border-radius: 18px;
-  font-size: 0.9rem;
+  font-size: 1.025rem; /* Increased by 2px equivalent from 0.9rem */
   line-height: 1.4;
   max-width: 80%;
   word-wrap: break-word;
@@ -1709,7 +1677,7 @@ body:has(.messages-header) {
   }
 
   .message-scroll-container {
-    max-height: 380px;
+    max-height: 418px; /* Increased by 10% from 380px for more thread visibility */
     padding: 12px;
   }
 
@@ -1740,7 +1708,7 @@ body:has(.messages-header) {
 
   .message-bubble {
     padding: 10px 14px;
-    font-size: 0.85rem;
+    font-size: 0.975rem; /* Increased by 2px equivalent from 0.85rem */
     max-width: 85%;
   }
 }

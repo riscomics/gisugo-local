@@ -898,11 +898,6 @@ function initializeMessages() {
                     setTimeout(() => {
                         messageThread.classList.add('show');
                         messagesContainer.classList.add('show-overlay');
-                        
-                        // Show close hint after a delay
-                        setTimeout(() => {
-                            showCloseHint();
-                        }, 2500);
                     }, 50);
                     
                     // Scroll to top when opening thread (under tabs)
@@ -999,36 +994,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function showCloseHint() {
-    // Only show hint if there's an expanded thread and no hint is already showing
-    const messagesContainer = document.querySelector('.messages-container');
-    if (!messagesContainer.classList.contains('thread-active') || document.querySelector('.close-hint')) {
-        return;
-    }
-    
-    const hint = document.createElement('div');
-    hint.className = 'close-hint';
-    hint.textContent = 'Click outside to close';
-    
-    // Position hint at bottom of expanded thread
-    const expandedThread = document.querySelector('.message-thread.expanded');
-    if (expandedThread) {
-        expandedThread.appendChild(hint);
-        
-        // Fade in
-        setTimeout(() => {
-            hint.classList.add('show');
-        }, 50);
-        
-        // Auto-hide after 3 seconds
-        setTimeout(() => {
-            hint.classList.remove('show');
-            setTimeout(() => {
-                if (hint.parentNode) {
-                    hint.remove();
-                }
-            }, 300);
-        }, 3000);
-    }
-}
+
 
