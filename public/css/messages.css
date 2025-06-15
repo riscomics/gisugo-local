@@ -1412,7 +1412,7 @@ body:has(.messages-header) {
 }
 
 .message-scroll-container {
-  max-height: 400px;
+  max-height: 506px;
   overflow-y: auto;
   padding: 15px;
   background: #354048;
@@ -1579,7 +1579,7 @@ body:has(.messages-header) {
   }
 
   .message-scroll-container {
-    max-height: 300px;
+    max-height: 380px;
     padding: 12px;
   }
 
