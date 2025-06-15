@@ -872,20 +872,38 @@ function initializeMessages() {
             
             if (threadContent && expandIcon) {
                 const isExpanded = messageThread.classList.contains('expanded');
+                const messagesContainer = document.querySelector('.messages-container');
                 
                 if (isExpanded) {
                     // Collapse current thread
-                    messageThread.classList.remove('expanded');
+                    messageThread.classList.remove('expanded', 'show');
                     threadContent.style.display = 'none';
                     expandIcon.textContent = '▼';
+                    
+                    // Remove thread-active class and overlay from container
+                    messagesContainer.classList.remove('thread-active', 'show-overlay');
                 } else {
                     // First, close all other expanded threads
                     closeAllMessageThreads();
                     
-                    // Then expand the current thread
+                    // Then expand the current thread with fade animation
                     messageThread.classList.add('expanded');
                     threadContent.style.display = 'block';
-                    expandIcon.textContent = '▲';
+                    expandIcon.textContent = '✕';
+                    
+                    // Add thread-active class to container for styling inactive threads
+                    messagesContainer.classList.add('thread-active');
+                    
+                    // Trigger fade-in animation after positioning
+                    setTimeout(() => {
+                        messageThread.classList.add('show');
+                        messagesContainer.classList.add('show-overlay');
+                        
+                        // Show close hint after a delay
+                        setTimeout(() => {
+                            showCloseHint();
+                        }, 2500);
+                    }, 50);
                     
                     // Scroll to top when opening thread (under tabs)
                     scrollToThreadTop();
@@ -904,7 +922,7 @@ function initializeMessages() {
                         if (scrollContainer) {
                             scrollContainer.scrollTop = scrollContainer.scrollHeight;
                         }
-                    }, 100);
+                    }, 150);
                 }
             }
         });
@@ -913,6 +931,7 @@ function initializeMessages() {
 
 function closeAllMessageThreads() {
     const allMessageThreads = document.querySelectorAll('.message-thread');
+    const messagesContainer = document.querySelector('.messages-container');
     
     allMessageThreads.forEach(thread => {
         const header = thread.querySelector('.message-thread-header');
@@ -921,7 +940,7 @@ function closeAllMessageThreads() {
         const expandIcon = header.querySelector('.expand-icon');
         
         if (thread.classList.contains('expanded')) {
-            thread.classList.remove('expanded');
+            thread.classList.remove('expanded', 'show');
             if (threadContent) {
                 threadContent.style.display = 'none';
             }
@@ -930,6 +949,9 @@ function closeAllMessageThreads() {
             }
         }
     });
+    
+    // Remove thread-active class and overlay when all threads are closed
+    messagesContainer.classList.remove('thread-active', 'show-overlay');
 }
 
 function scrollToThreadTop() {
@@ -956,4 +978,57 @@ function updateMessageCount() {
             messageCountElement.style.display = 'inline-block';
         }
     }
-} 
+}
+
+// Add overlay click to close functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click listener to document for overlay clicks
+    document.addEventListener('click', function(e) {
+        const messagesContainer = document.querySelector('.messages-container');
+        const expandedThread = document.querySelector('.message-thread.expanded');
+        
+        // Only proceed if there's an active thread
+        if (!messagesContainer.classList.contains('thread-active') || !expandedThread) {
+            return;
+        }
+        
+        // Check if click is outside the expanded thread
+        if (!expandedThread.contains(e.target)) {
+            closeAllMessageThreads();
+        }
+    });
+});
+
+function showCloseHint() {
+    // Only show hint if there's an expanded thread and no hint is already showing
+    const messagesContainer = document.querySelector('.messages-container');
+    if (!messagesContainer.classList.contains('thread-active') || document.querySelector('.close-hint')) {
+        return;
+    }
+    
+    const hint = document.createElement('div');
+    hint.className = 'close-hint';
+    hint.textContent = 'Click outside to close';
+    
+    // Position hint at bottom of expanded thread
+    const expandedThread = document.querySelector('.message-thread.expanded');
+    if (expandedThread) {
+        expandedThread.appendChild(hint);
+        
+        // Fade in
+        setTimeout(() => {
+            hint.classList.add('show');
+        }, 50);
+        
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            hint.classList.remove('show');
+            setTimeout(() => {
+                if (hint.parentNode) {
+                    hint.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+}
+
