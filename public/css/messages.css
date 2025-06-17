@@ -1640,7 +1640,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     border: none;
     box-shadow: none;
   }
-
+ 
   .selection-info {
     font-size: 0.85rem;
     flex-shrink: 1;
