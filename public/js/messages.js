@@ -217,10 +217,9 @@ function initializeTabs() {
         button.addEventListener('click', function() {
             const targetTab = this.getAttribute('data-tab');
             
-            // CLEANUP: Close all message threads when switching away from messages tab
-            if (targetTab !== 'messages') {
-                closeAllMessageThreads();
-            }
+            // CLEANUP: Close all message threads when switching tabs
+            // This prevents the bug where clicking Messages tab while thread is open causes empty content
+            closeAllMessageThreads();
             
             // CLEANUP: Cancel any active selections when switching tabs
             cancelSelection();
@@ -2222,6 +2221,10 @@ function generateMessagesContent() {
 function loadMessagesTab() {
     const container = document.querySelector('#messages-content .messages-container');
     if (container) {
+        // SAFETY CLEANUP: Ensure we start with a clean state
+        // This prevents the bug where expanded threads cause empty content
+        closeAllMessageThreads();
+        
         container.innerHTML = generateMessagesContent();
         
         // Initialize event handlers for the dynamically loaded content
