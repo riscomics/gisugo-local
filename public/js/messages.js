@@ -136,6 +136,9 @@ This modular tab system is optimized for Firebase (Firestore + Authentication):
 */
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize mobile viewport handling for dynamic browser UI
+    initializeMobileViewportHandling();
+    
     // Initialize only the core functionality
     initializeTabs();
     initializeMenu(); 
@@ -167,6 +170,68 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Modular tab system initialized - only notifications loaded on startup');
 });
+
+// Mobile Viewport Handling for Dynamic Browser UI (Chrome mobile, Samsung browsers, etc.)
+function initializeMobileViewportHandling() {
+    // Detect if we're on a mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (!isMobile) {
+        return; // Skip for desktop
+    }
+    
+    console.log('Initializing mobile viewport handling');
+    
+    // Function to update CSS custom property for viewport height
+    function updateViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+        
+        // Also update mobile bottom safe area based on device characteristics
+        const isLargeScreen = window.innerHeight > 800;
+        const bottomSafe = isLargeScreen ? 100 : 60;
+        document.documentElement.style.setProperty('--mobile-bottom-safe', `${bottomSafe}px`);
+        
+        console.log(`Updated viewport: vh=${vh}px, bottomSafe=${bottomSafe}px, innerHeight=${window.innerHeight}`);
+    }
+    
+    // Initial calculation
+    updateViewportHeight();
+    
+    // Listen for resize events (address bar show/hide, orientation change)
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateViewportHeight, 150);
+    });
+    
+    // Listen for orientation change (Samsung devices especially)
+    window.addEventListener('orientationchange', function() {
+        setTimeout(updateViewportHeight, 300);
+    });
+    
+    // Special handling for Samsung Internet browser
+    if (navigator.userAgent.includes('SamsungBrowser')) {
+        console.log('Samsung Browser detected - applying specific fixes');
+        
+        // Samsung Browser specific viewport handling
+        window.addEventListener('scroll', function() {
+            if (Math.abs(window.scrollY) < 50) { // Near top
+                updateViewportHeight();
+            }
+        });
+    }
+    
+    // Visual viewport API support (newer browsers)
+    if (window.visualViewport) {
+        console.log('Visual Viewport API available');
+        
+        window.visualViewport.addEventListener('resize', function() {
+            const vh = window.visualViewport.height * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        });
+    }
+}
 
 // MODULAR APPROACH: Initialize only the specified tab's content
 function initializeActiveTab(tabType) {
