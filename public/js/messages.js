@@ -3040,26 +3040,14 @@ function initializeInputFocusElegance(messageThread) {
             messageThread.classList.remove('input-focused');
         });
         
-        // Enhanced typing feedback - expand to 2 rows when typing
+        // Input field expands on focus via CSS :focus, but also needs to expand when typing
         inputField.addEventListener('input', function() {
             if (this.value.length > 0) {
-                // Add expanded styling when user starts typing
+                // Add expanded class when user starts typing (in addition to focus expansion)
                 this.classList.add('expanded');
-                if (document.activeElement === this) {
-                    inputContainer.classList.add('input-focused');
-                    messageThread.classList.add('input-focused');
-                }
             } else {
-                // Remove expanded styling when empty
+                // Remove expanded class when empty (fall back to focus-only expansion)
                 this.classList.remove('expanded');
-                // Keep focus styling if still focused
-                if (document.activeElement === this) {
-                    inputContainer.classList.add('input-focused');
-                    messageThread.classList.add('input-focused');
-                } else {
-                    inputContainer.classList.remove('input-focused');
-                    messageThread.classList.remove('input-focused');
-                }
             }
         });
         
