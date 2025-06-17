@@ -41,6 +41,11 @@ function initializeTabs() {
         button.addEventListener('click', function() {
             const targetTab = this.getAttribute('data-tab');
             
+            // CLEANUP: Close all message threads when switching away from messages tab
+            if (targetTab !== 'messages') {
+                closeAllMessageThreads();
+            }
+            
             // Remove active class from all tabs and content
             tabButtons.forEach(btn => btn.classList.remove('active'));
             tabContents.forEach(content => {
@@ -1001,7 +1006,7 @@ function initializeMessages() {
                     // Remove thread-active class and overlay from container
                     messagesContainer.classList.remove('thread-active', 'show-overlay');
                     
-                    // Clean up keyboard detection for message threads
+                    // Clean up keyboard detection for message threads - ALWAYS clean up
                     cleanupMessageThreadKeyboardDetection();
                 } else {
                     // First, close all other expanded threads
@@ -1072,7 +1077,7 @@ function closeAllMessageThreads() {
     // Remove thread-active class and overlay when all threads are closed
     messagesContainer.classList.remove('thread-active', 'show-overlay');
     
-    // Clean up keyboard detection for message threads
+    // Clean up keyboard detection for message threads - ALWAYS clean up
     cleanupMessageThreadKeyboardDetection();
 }
 
@@ -1399,14 +1404,33 @@ function cleanupMessageThreadKeyboardDetection() {
     // Reset state
     isKeyboardActive = false;
     
-    // Reset any transforms on message threads
-    const expandedThread = document.querySelector('.message-thread.expanded');
-    if (expandedThread) {
-        expandedThread.style.transform = '';
-        expandedThread.style.transition = '';
+    // COMPREHENSIVE CLEANUP: Reset transforms on ALL message threads
+    const allMessageThreads = document.querySelectorAll('.message-thread');
+    allMessageThreads.forEach(thread => {
+        // Reset any transforms that might have been applied
+        thread.style.transform = '';
+        thread.style.transition = '';
+        thread.style.webkitTransform = ''; // For Safari
+        thread.style.msTransform = ''; // For IE
+        
+        // Also reset any position or translation attributes
+        thread.style.position = '';
+        thread.style.top = '';
+        thread.style.left = '';
+        thread.style.right = '';
+        thread.style.bottom = '';
+    });
+    
+    // Also reset the messages container itself
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+        messagesContainer.style.transform = '';
+        messagesContainer.style.transition = '';
+        messagesContainer.style.webkitTransform = '';
+        messagesContainer.style.msTransform = '';
     }
     
-    console.log('Cleaned up message thread keyboard detection');
+    console.log('Cleaned up message thread keyboard detection - COMPREHENSIVE RESET');
 }
 
 function initializeContactMessageOverlay() {
@@ -1501,6 +1525,9 @@ function initializeContactMessageOverlay() {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize contact message overlay
     initializeContactMessageOverlay();
+    
+    // SAFETY CLEANUP: Ensure no lingering transforms on page load
+    cleanupMessageThreadKeyboardDetection();
     
     // Add click listener to document for overlay clicks
     document.addEventListener('click', function(e) {
