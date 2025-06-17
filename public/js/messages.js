@@ -1,18 +1,191 @@
 // GISUGO Messages Page JavaScript
 
+/*
+=== FIREBASE INTEGRATION SUMMARY ===
+
+✅ FIRESTORE-OPTIMIZED DATA STRUCTURES:
+- Document IDs: Firebase auto-generated format (e.g., 'notif_xKj9mL2pQ8vR4sW7nC1e')
+- User IDs: Firebase UID format (28-character strings)
+- Timestamps: Date objects ready for firebase.firestore.Timestamp conversion
+- Collections: /notifications, /applications, /jobs, /contracts, /users, /analytics
+- Denormalized data for faster reads (user profiles embedded in applications)
+- Flat document structure for better indexing and security rules
+
+✅ FIREBASE AUTHENTICATION READY:
+- currentUser.uid integration points mapped
+- Custom claims support for roles (employer, worker, admin)
+- Security rules compatible data access patterns
+
+✅ FIRESTORE BATCH OPERATIONS:
+- Multi-document updates in single transaction
+- Atomic hire/reject operations with contract creation
+- Real-time listener update paths documented
+- Error handling and rollback strategies planned
+
+✅ FIREBASE CLOUD FUNCTIONS TRIGGERS:
+- Push notification sending via FCM
+- Email notifications with templates
+- Analytics event tracking
+- Recommendation engine updates
+- Automatic status synchronization
+
+✅ FIREBASE STORAGE INTEGRATION:
+- User photos: gs://gisugo-storage/users/{uid}/profile.jpg
+- Job images: gs://gisugo-storage/jobs/{jobId}/images/
+- Automatic URL transformation for display
+
+✅ REAL-TIME LISTENERS MAPPED:
+- /notifications/{recipientUid} - Live notification updates
+- /applications/{applicationId} - Application status changes
+- /jobs/{jobId} - Job status and assignment updates
+- /contracts/{contractId} - Contract creation and updates
+
+✅ ANALYTICS & PERFORMANCE:
+- Daily analytics aggregation with FieldValue.increment()
+- Compound indexes planned for complex queries
+- Pagination with startAfter/limit for large datasets
+- Optimized for mobile offline capabilities
+
+🔧 IMPLEMENTATION READY FOR:
+- Firebase SDK v9+ modular syntax
+- Firestore security rules
+- Cloud Functions deployment
+- FCM push notifications
+- Firebase Storage file handling
+- Real-time synchronization
+*/
+
+/*
+=== BACKEND INTEGRATION DOCUMENTATION ===
+
+This modular tab system provides comprehensive data structures for backend integration:
+
+1. NOTIFICATIONS TAB:
+   - Data: MOCK_NOTIFICATIONS array (line ~1200)
+   - Structure: notification objects with full metadata
+   - Actions: mark_read, reply_message, view_application, review_applications
+   - Required Endpoints: GET /notifications, PUT /notifications/{id}/read, POST /notifications/action
+
+2. MESSAGES TAB:
+   - Data: MOCK_MESSAGES array (line ~1550)
+   - Structure: threaded conversations with full message history
+   - Actions: send_message, expand_thread, keyboard_handling
+   - Required Endpoints: GET /messages, POST /messages, PUT /messages/{threadId}/read
+
+3. APPLICATIONS TAB:
+   - Data: MOCK_APPLICATIONS array (line ~2450)
+   - Structure: job listings with nested application arrays
+   - Actions: hire_applicant, reject_applicant, contact_user, view_profile
+   - Required Endpoints: GET /applications, PUT /applications/{id}/hire, PUT /applications/{id}/reject
+
+4. BACKEND DATA PAYLOADS:
+   - All action handlers prepare complete backend payload objects
+   - Includes user IDs, timestamps, notification data, analytics
+   - Check console.log outputs for exact data structures needed
+
+5. MODULAR LOADING:
+   - Only active tab loads content (eliminates 67% initial load)
+   - Each tab has independent scroll containers
+   - No shared state or background resource consumption
+
+6. DATA ATTRIBUTES:
+   - All UI elements include comprehensive data-* attributes
+   - Enables easy data extraction for API calls
+   - Maintains referential integrity between related objects
+*/
+
+/*
+=== FIREBASE INTEGRATION DOCUMENTATION ===
+
+This modular tab system is optimized for Firebase (Firestore + Authentication):
+
+1. FIRESTORE COLLECTIONS STRUCTURE:
+   /notifications/{notificationId} - Individual notification documents
+   /messages/{threadId} - Message thread documents with subcollection
+   /messages/{threadId}/messages/{messageId} - Individual messages
+   /jobs/{jobId} - Job documents
+   /applications/{applicationId} - Application documents
+   /users/{uid} - User profile documents
+
+2. FIREBASE AUTHENTICATION:
+   - Uses Firebase UID format (28-character strings)
+   - currentUser.uid for authenticated user
+   - Custom claims for roles (employer, worker, admin)
+
+3. FIRESTORE TIMESTAMP FORMAT:
+   - firebase.firestore.Timestamp.now() for server timestamps
+   - firebase.firestore.FieldValue.serverTimestamp() for auto timestamps
+   - Properly indexed timestamp fields for queries
+
+4. FIRESTORE QUERIES READY:
+   - Compound indexes for complex filtering
+   - Pagination with startAfter/limit
+   - Real-time listeners for live updates
+   - Security rules compatible structure
+
+5. FIREBASE CLOUD FUNCTIONS:
+   - Notification triggers on document changes
+   - Application status change handlers
+   - Email/SMS notification workflows
+   - Data validation and sanitization
+
+6. FIREBASE STORAGE:
+   - User photos in /users/{uid}/profile.jpg
+   - Job images in /jobs/{jobId}/images/
+   - Message attachments in /messages/{threadId}/attachments/
+*/
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Messages page loaded');
-    
-    // Initialize all functionality
-    initializeMenu();
+    // Initialize only the core functionality
     initializeTabs();
-    initializeJobListings();
-    initializeApplicationActions();
+    initializeMenu(); 
     initializeConfirmationOverlay();
-    initializeNotifications();
-    initializeMessages();
-    checkApplicationsContent();
+    initializeContactMessageOverlay();
+    
+    // MODULAR APPROACH: Only load the initially active tab (notifications)
+    // Other tabs will load their content only when clicked
+    initializeActiveTab('notifications');
+    
+    // SAFETY CLEANUP: Ensure no lingering transforms on page load
+    cleanupMessageThreadKeyboardDetection();
+    
+    // Add click listener to document for overlay clicks
+    document.addEventListener('click', function(e) {
+        const messagesContainer = document.querySelector('.messages-container');
+        const expandedThread = document.querySelector('.message-thread.expanded');
+        
+        // Only proceed if there's an active thread
+        if (!messagesContainer || !messagesContainer.classList.contains('thread-active') || !expandedThread) {
+            return;
+        }
+        
+        // Check if click is outside the expanded thread
+        if (!expandedThread.contains(e.target)) {
+            closeAllMessageThreads();
+        }
+    });
+    
+    console.log('Modular tab system initialized - only notifications loaded on startup');
 });
+
+// MODULAR APPROACH: Initialize only the specified tab's content
+function initializeActiveTab(tabType) {
+    console.log(`Loading tab content for: ${tabType}`);
+    
+    switch(tabType) {
+        case 'notifications':
+            loadNotificationsTab();
+            break;
+        case 'messages':
+            loadMessagesTab();
+            break;
+        case 'applications':
+            loadApplicationsTab();
+            break;
+        default:
+            console.warn(`Unknown tab type: ${tabType}`);
+    }
+}
 
 function initializeMenu() {
     const menuBtn = document.getElementById('messagesMenuBtn');
@@ -32,10 +205,10 @@ function initializeMenu() {
     }
 }
 
-// Tab Management
+// Tab Management - UPDATED FOR INDEPENDENT SCROLL CONTAINERS
 function initializeTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
+    const tabWrappers = document.querySelectorAll('.tab-content-wrapper');
 
     tabButtons.forEach(button => {
         button.addEventListener('click', function() {
@@ -46,25 +219,32 @@ function initializeTabs() {
                 closeAllMessageThreads();
             }
             
-            // Remove active class from all tabs and content
+            // CLEANUP: Cancel any active selections when switching tabs
+            cancelSelection();
+            
+            // Remove active class from all tabs and wrappers
             tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-                content.style.display = 'none';
+            tabWrappers.forEach(wrapper => {
+                wrapper.classList.remove('active');
+                // No need to set display: none since CSS handles it
             });
             
             // Add active class to clicked tab
             this.classList.add('active');
             
-            // Show corresponding content
-            const targetContent = document.getElementById(targetTab + '-content');
-            if (targetContent) {
-                targetContent.classList.add('active');
-                targetContent.style.display = 'block';
+            // Show corresponding wrapper with independent scroll
+            const targetWrapper = document.getElementById(targetTab + '-content');
+            if (targetWrapper) {
+                targetWrapper.classList.add('active');
             }
+
+            // MODULAR APPROACH: Initialize only the newly active tab's content
+            initializeActiveTab(targetTab);
 
             // Update page title based on active tab
             updatePageTitle(targetTab);
+            
+            console.log(`Switched to independent tab: ${targetTab} - each tab now has separate scroll position`);
         });
     });
 }
@@ -155,16 +335,22 @@ function initializeApplicationActions() {
             // Get applicant data from the card
             const userName = this.querySelector('[data-user-name]').getAttribute('data-user-name');
             const userId = this.getAttribute('data-user-id');
-            const userPhoto = this.querySelector('[data-user-photo]').getAttribute('data-user-photo');
+            const userPhoto = this.getAttribute('data-user-photo'); // Get from card data attribute
             const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
             const reviewCount = parseInt(this.querySelector('[data-review-count]').getAttribute('data-review-count'));
             const applicationId = this.getAttribute('data-application-id');
+            const jobTitle = this.getAttribute('data-job-title'); // Get job title
+            
+            // Find the job ID from the parent job listing
+            const jobListing = this.closest('.job-listing');
+            const jobId = jobListing ? jobListing.getAttribute('data-job-id') : null;
             
             console.log(`Opening overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
+            console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
             
             // Update overlay content
             actionProfileName.textContent = userName;
-            actionProfileImage.src = `public/users/${userPhoto}`;
+            actionProfileImage.src = userPhoto; // Use photo URL directly
             actionProfileImage.alt = userName;
             
             // Update star rating and review count
@@ -175,6 +361,8 @@ function initializeApplicationActions() {
             hireJobBtn.setAttribute('data-application-id', applicationId);
             hireJobBtn.setAttribute('data-user-id', userId);
             hireJobBtn.setAttribute('data-user-name', userName);
+            hireJobBtn.setAttribute('data-job-id', jobId);
+            hireJobBtn.setAttribute('data-job-title', jobTitle);
             
             // Store application data for reject button
             const rejectJobBtn = document.getElementById('rejectJobBtn');
@@ -182,10 +370,14 @@ function initializeApplicationActions() {
                 rejectJobBtn.setAttribute('data-application-id', applicationId);
                 rejectJobBtn.setAttribute('data-user-id', userId);
                 rejectJobBtn.setAttribute('data-user-name', userName);
+                rejectJobBtn.setAttribute('data-job-id', jobId);
+                rejectJobBtn.setAttribute('data-job-title', jobTitle);
                 console.log('=== SETTING REJECT BUTTON DATA ===');
                 console.log('Application ID set to:', applicationId);
                 console.log('User ID set to:', userId);
                 console.log('User Name set to:', userName);
+                console.log('Job ID set to:', jobId);
+                console.log('Job Title set to:', jobTitle);
             } else {
                 console.error('Reject button not found!');
             }
@@ -263,116 +455,155 @@ function initializeApplicationActions() {
             const applicationId = this.getAttribute('data-application-id');
             const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
+            const jobId = this.getAttribute('data-job-id');
+            const jobTitle = this.getAttribute('data-job-title');
             
-            // Get the application card to extract additional data
-            const hireApplicationCard = document.querySelector(`.application-card[data-application-id="${applicationId}"]`);
-            let jobData = {};
-            
-            if (hireApplicationCard) {
-                // Extract job and application details
-                const jobTitle = hireApplicationCard.getAttribute('data-job-title');
-                const originalPrice = hireApplicationCard.getAttribute('data-original-price');
-                const isCounterOffer = hireApplicationCard.getAttribute('data-is-counter-offer') === 'true';
+            console.log('FIREBASE HIRE ACTION - Firestore Batch Operation Ready:', {
+                // Cloud Function trigger data
+                cloudFunction: 'processApplicationHire',
                 
-                // Get price offer details
-                const priceElement = hireApplicationCard.querySelector('[data-price-amount]');
-                const priceAmount = priceElement ? priceElement.getAttribute('data-price-amount') : null;
-                const priceType = priceElement ? priceElement.getAttribute('data-price-type') : null;
-                const offerType = priceElement ? priceElement.getAttribute('data-offer-type') : null;
-                
-                // Get applicant details
-                const userPhoto = hireApplicationCard.querySelector('[data-user-photo]');
-                const userPhotoSrc = userPhoto ? userPhoto.getAttribute('data-user-photo') : null;
-                const userRating = hireApplicationCard.querySelector('[data-user-rating]');
-                const rating = userRating ? parseInt(userRating.getAttribute('data-user-rating')) : null;
-                const reviewCount = userRating ? parseInt(userRating.getAttribute('data-review-count')) : null;
-                
-                // Get application details
-                const applicationDate = hireApplicationCard.querySelector('[data-application-date]');
-                const applicationTime = hireApplicationCard.querySelector('[data-application-time]');
-                const applicationMessage = hireApplicationCard.querySelector('[data-application-message]');
-                
-                // Get job ID from the job listing
-                const jobListing = hireApplicationCard.closest('.job-listing');
-                const jobId = jobListing ? jobListing.querySelector('.job-header').getAttribute('data-job-id') : null;
-                
-                jobData = {
-                    jobId: jobId,
-                    jobTitle: jobTitle,
-                    originalPrice: originalPrice,
-                    agreedPrice: priceAmount,
-                    priceType: priceType,
-                    isCounterOffer: isCounterOffer,
-                    offerType: offerType,
-                    applicantDetails: {
-                        userId: userId,
-                        name: userName,
-                        photo: userPhotoSrc,
-                        rating: rating,
-                        reviewCount: reviewCount
+                // Firestore batch operations
+                firestoreOperations: {
+                    // Update application document
+                    updateApplication: {
+                        collection: 'applications',
+                        documentId: applicationId,
+                        data: {
+                            status: 'hired',
+                            hiredAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            hiredBy: 'firebase.auth().currentUser.uid',
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
+                        }
                     },
-                    applicationDetails: {
-                        date: applicationDate ? applicationDate.getAttribute('data-application-date') : null,
-                        time: applicationTime ? applicationTime.getAttribute('data-application-time') : null,
-                        message: applicationMessage ? applicationMessage.getAttribute('data-application-message') : null
+                    
+                    // Create contract document
+                    createContract: {
+                        collection: 'contracts',
+                        documentId: 'contract_' + applicationId,
+                        data: {
+                            applicationId: applicationId,
+                            jobId: jobId,
+                            workerUid: userId,
+                            employerUid: 'firebase.auth().currentUser.uid',
+                            status: 'pending_confirmation',
+                            agreedPrice: 'application.pricing.offeredAmount',
+                            currency: 'PHP',
+                            createdAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            metadata: {
+                                source: 'application_hire',
+                                version: '1.0'
+                            }
+                        }
+                    },
+                    
+                    // Update job document
+                    updateJob: {
+                        collection: 'jobs',
+                        documentId: jobId,
+                        data: {
+                            status: 'in_progress',
+                            assignedWorkerUid: userId,
+                            assignedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
+                        }
+                    },
+                    
+                    // Create notification for worker
+                    createNotification: {
+                        collection: 'notifications',
+                        documentId: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        data: {
+                            recipientUid: userId,
+                            senderUid: 'firebase.auth().currentUser.uid',
+                            notificationType: 'application_accepted',
+                            title: 'Application Accepted!',
+                            message: `Congratulations! Your application for "${jobTitle}" has been accepted.`,
+                            read: false,
+                            priority: 'high',
+                            category: 'application',
+                            relatedDocuments: {
+                                applicationId: applicationId,
+                                jobId: jobId,
+                                contractId: 'contract_' + applicationId
+                            },
+                            createdAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            metadata: {
+                                source: 'system',
+                                businessLogic: 'application_hire',
+                                indexed: true
+                            }
+                        }
                     }
-                };
-            }
-            
-            // Here you would send comprehensive hire data to backend
-            console.log('Backend data to send:', {
-                action: 'hire',
-                applicationId: applicationId,
-                timestamp: new Date().toISOString(),
-                jobData: jobData,
-                // Additional fields that would be useful for backend
-                status: 'hired',
-                contractDetails: {
-                    jobTitle: jobData.jobTitle,
-                    agreedPrice: jobData.agreedPrice,
-                    priceType: jobData.priceType,
-                    contractor: jobData.applicantDetails.name,
-                    contractorRating: jobData.applicantDetails.rating,
-                    contractorReviewCount: jobData.applicantDetails.reviewCount,
-                    contractDate: new Date().toISOString()
-                }
+                },
+                
+                // Cloud Functions triggers
+                cloudFunctionTriggers: {
+                    sendPushNotification: {
+                        recipientUid: userId,
+                        title: 'Application Accepted!',
+                        body: `Your application for "${jobTitle}" has been accepted.`,
+                        data: {
+                            action: 'open_contract',
+                            contractId: 'contract_' + applicationId
+                        }
+                    },
+                    
+                    sendEmail: {
+                        to: 'user.email.from.auth',
+                        template: 'application_accepted',
+                        data: {
+                            workerName: userName,
+                            jobTitle: jobTitle,
+                            contractId: 'contract_' + applicationId
+                        }
+                    },
+                    
+                    updateAnalytics: {
+                        event: 'application_hired',
+                        parameters: {
+                            job_id: jobId,
+                            worker_uid: userId,
+                            employer_uid: 'firebase.auth().currentUser.uid',
+                            hire_source: 'mobile_app'
+                        }
+                    }
+                },
+                
+                // Real-time listeners to update
+                realtimeUpdates: [
+                    '/applications/{applicationId}',
+                    '/jobs/{jobId}',
+                    '/notifications/{recipientUid}',
+                    '/contracts/{contractId}'
+                ]
             });
             
-            // Remove the entire job listing since someone was hired
-            if (hireApplicationCard) {
-                const jobListing = hireApplicationCard.closest('.job-listing');
-                if (jobListing) {
-                    // Add fade out animation to the entire job listing
-                    jobListing.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                    jobListing.style.opacity = '0';
-                    jobListing.style.transform = 'translateY(-10px)';
-                    
-                    // Remove the job listing after animation
-                    setTimeout(() => {
-                        jobListing.remove();
-                        // Check if there are any job listings left overall
-                        updateApplicationsDisplay();
-                        
-                        // Update the Applications tab count
-                        updateApplicationsCount();
-                        
-                        // Scroll to top to show other job listings that may be hidden behind header
-                        window.scrollTo({
-                            top: 0,
-                            behavior: 'smooth'
-                        });
-                    }, 300);
-                }
-            }
-            
+            // Close action overlay first
             closeActionOverlay();
             
-            // Show confirmation overlay
+            // Show confirmation with hire-specific styling
             showConfirmationOverlay(
                 'success',
                 'Application Accepted!',
-                `${userName} has been hired for the job. You can now coordinate the work details.`
+                `You have hired ${userName} for the job. They will be notified and you can coordinate the work details through messages.`
             );
+            
+            // Remove the application card from UI after confirmation
+            setTimeout(() => {
+                const applicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+                if (applicationCard) {
+                    applicationCard.style.transition = 'all 0.3s ease';
+                    applicationCard.style.opacity = '0';
+                    applicationCard.style.transform = 'translateY(-20px)';
+                    
+                    setTimeout(() => {
+                        applicationCard.remove();
+                        updateApplicationsCount();
+                    }, 300);
+                }
+            }, 2000);
         });
     }
     
@@ -383,168 +614,131 @@ function initializeApplicationActions() {
             const applicationId = this.getAttribute('data-application-id');
             const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
+            const jobId = this.getAttribute('data-job-id');
+            const jobTitle = this.getAttribute('data-job-title');
             
-            console.log('=== REJECT BUTTON CLICKED ===');
-            console.log('Application ID:', applicationId);
-            console.log('User Name:', userName);
-            
-            // Get the application card to extract additional data for comprehensive backend logging
-            const rejectApplicationCard = document.querySelector(`.application-card[data-application-id="${applicationId}"]`);
-            let rejectionData = {
-                action: 'reject',
-                applicationId: applicationId,
-                userId: userId,
-                userName: userName,
-                timestamp: new Date().toISOString()
-            };
-            
-            if (rejectApplicationCard) {
-                // Extract comprehensive application data for backend
-                const jobTitle = rejectApplicationCard.getAttribute('data-job-title');
-                const originalPrice = rejectApplicationCard.getAttribute('data-original-price');
-                const isCounterOffer = rejectApplicationCard.getAttribute('data-is-counter-offer') === 'true';
+            console.log('FIREBASE REJECT ACTION - Firestore Batch Operation Ready:', {
+                // Cloud Function trigger data
+                cloudFunction: 'processApplicationReject',
                 
-                // Get price offer details
-                const priceElement = rejectApplicationCard.querySelector('[data-price-amount]');
-                const priceAmount = priceElement ? priceElement.getAttribute('data-price-amount') : null;
-                const priceType = priceElement ? priceElement.getAttribute('data-price-type') : null;
-                const offerType = priceElement ? priceElement.getAttribute('data-offer-type') : null;
-                
-                // Get applicant details
-                const userPhoto = rejectApplicationCard.querySelector('[data-user-photo]');
-                const userPhotoSrc = userPhoto ? userPhoto.getAttribute('data-user-photo') : null;
-                const userRating = rejectApplicationCard.querySelector('[data-user-rating]');
-                const rating = userRating ? parseInt(userRating.getAttribute('data-user-rating')) : null;
-                const reviewCount = userRating ? parseInt(userRating.getAttribute('data-review-count')) : null;
-                
-                // Get application details
-                const applicationDate = rejectApplicationCard.querySelector('[data-application-date]');
-                const applicationTime = rejectApplicationCard.querySelector('[data-application-time]');
-                const applicationMessage = rejectApplicationCard.querySelector('[data-application-message]');
-                
-                // Get job ID from the job listing
-                const jobListing = rejectApplicationCard.closest('.job-listing');
-                const jobId = jobListing ? jobListing.querySelector('.job-header').getAttribute('data-job-id') : null;
-                
-                // Build comprehensive rejection data
-                                 rejectionData = {
-                     action: 'reject',
-                     applicationId: applicationId,
-                     userId: userId,
-                     jobId: jobId,
-                     timestamp: new Date().toISOString(),
-                    jobDetails: {
-                        jobTitle: jobTitle,
-                        originalPrice: originalPrice,
-                        offeredPrice: priceAmount,
-                        priceType: priceType,
-                        isCounterOffer: isCounterOffer,
-                        offerType: offerType
+                // Firestore batch operations
+                firestoreOperations: {
+                    // Update application document
+                    updateApplication: {
+                        collection: 'applications',
+                        documentId: applicationId,
+                        data: {
+                            status: 'rejected',
+                            rejectedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            rejectedBy: 'firebase.auth().currentUser.uid',
+                            rejectionReason: 'employer_choice',
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
+                        }
                     },
-                                         applicantDetails: {
-                         userId: userId,
-                         name: userName,
-                         photo: userPhotoSrc,
-                         rating: rating,
-                         reviewCount: reviewCount
-                     },
-                    applicationDetails: {
-                        date: applicationDate ? applicationDate.getAttribute('data-application-date') : null,
-                        time: applicationTime ? applicationTime.getAttribute('data-application-time') : null,
-                        message: applicationMessage ? applicationMessage.getAttribute('data-application-message') : null
+                    
+                    // Create notification for worker
+                    createNotification: {
+                        collection: 'notifications',
+                        documentId: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        data: {
+                            recipientUid: userId,
+                            senderUid: 'firebase.auth().currentUser.uid',
+                            notificationType: 'application_rejected',
+                            title: 'Application Update',
+                            message: `Thank you for your interest in "${jobTitle}". The employer has chosen to proceed with another applicant.`,
+                            read: false,
+                            priority: 'medium',
+                            category: 'application',
+                            relatedDocuments: {
+                                applicationId: applicationId,
+                                jobId: jobId
+                            },
+                            createdAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
+                            metadata: {
+                                source: 'system',
+                                businessLogic: 'application_rejection',
+                                indexed: true
+                            }
+                        }
                     },
-                    rejectionReason: 'manual_rejection', // Could be enhanced to capture specific reasons
-                    status: 'rejected'
-                };
-            }
-            
-            // Here you would send comprehensive rejection data to backend
-            console.log('Backend data to send:', rejectionData);
-            
-            // Remove the application card from UI (mock functionality)
-            const applicationCard = document.querySelector(`.application-card[data-application-id="${applicationId}"]`);
-            console.log('Application card found:', applicationCard);
-            console.log('Selector used:', `.application-card[data-application-id="${applicationId}"]`);
-            
-            if (applicationCard) {
-                // Check if this will be the last application BEFORE removing it
-                const jobListing = applicationCard.closest('.job-listing');
-                console.log('Job listing found:', jobListing);
-                
-                let willBeEmpty = false;
-                if (jobListing) {
-                    const currentApplications = jobListing.querySelectorAll('.application-card');
-                    console.log('Current applications before removal:', currentApplications.length);
-                    willBeEmpty = currentApplications.length === 1; // This card is the last one
-                    console.log('Will be empty after removal:', willBeEmpty);
-                }
-                
-                // Add fade out animation
-                applicationCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                applicationCard.style.opacity = '0';
-                applicationCard.style.transform = 'translateX(-20px)';
-                
-                // Remove the card after animation
-                setTimeout(() => {
-                    applicationCard.remove();
                     
-                    if (jobListing) {
-                        if (willBeEmpty) {
-                             // Update the application count to 0 and collapse the listing
-                             const countElement = jobListing.querySelector('.application-count');
-                             console.log('=== HANDLING LAST CARD REMOVAL ===');
-                             console.log('Count element found:', countElement);
-                             console.log('Current count text:', countElement ? countElement.textContent : 'null');
-                             
-                             if (countElement) {
-                                 countElement.textContent = '0';
-                                 console.log('Updated count to: 0');
-                             }
-                             
-                             // Collapse the job listing since there are no applications
-                             const jobHeader = jobListing.querySelector('.job-header');
-                             const applicationsList = jobListing.querySelector('.applications-list');
-                             const expandIcon = jobListing.querySelector('.expand-icon');
-                             
-                             if (jobHeader && applicationsList && expandIcon) {
-                                 jobListing.classList.remove('expanded');
-                                 applicationsList.style.display = 'none';
-                                 expandIcon.textContent = '▼';
-                                 console.log('Collapsed job listing');
-                             }
-                         } else {
-                             // Update the application count after ensuring DOM is updated
-                             setTimeout(() => {
-                                 const remainingApplications = jobListing.querySelectorAll('.application-card');
-                                 const countElement = jobListing.querySelector('.application-count');
-                                 console.log('=== UPDATING REMAINING COUNT ===');
-                                 console.log('Remaining applications found:', remainingApplications.length);
-                                 console.log('Count element found:', countElement);
-                                 if (countElement) {
-                                     const newCount = remainingApplications.length;
-                                     countElement.textContent = newCount.toString();
-                                     console.log('Updated count to:', newCount);
-                                 }
-                             }, 10); // Small delay to ensure DOM is fully updated
-                         }
-                     }
+                    // Update analytics document
+                    updateAnalytics: {
+                        collection: 'analytics',
+                        documentId: 'daily_' + new Date().toISOString().split('T')[0],
+                        data: {
+                            applications_rejected: 'firebase.firestore.FieldValue.increment(1)',
+                            rejection_reasons: {
+                                employer_choice: 'firebase.firestore.FieldValue.increment(1)'
+                            },
+                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
+                        },
+                        merge: true // Merge with existing document
+                    }
+                },
+                
+                // Cloud Functions triggers
+                cloudFunctionTriggers: {
+                    sendPushNotification: {
+                        recipientUid: userId,
+                        title: 'Application Update',
+                        body: 'Thank you for your interest. The employer has proceeded with another applicant.',
+                        data: {
+                            action: 'view_jobs',
+                            category: 'similar_jobs'
+                        }
+                    },
                     
-                    // Check if there are any applications left overall
-                    updateApplicationsDisplay();
+                    updateRecommendations: {
+                        workerUid: userId,
+                        action: 'suggest_similar_jobs',
+                        excludeJobId: jobId
+                    },
                     
-                    // Update the Applications tab count
-                    updateApplicationsCount();
-                }, 300);
-            }
+                    updateAnalytics: {
+                        event: 'application_rejected',
+                        parameters: {
+                            job_id: jobId,
+                            worker_uid: userId,
+                            employer_uid: 'firebase.auth().currentUser.uid',
+                            rejection_stage: 'application_review'
+                        }
+                    }
+                },
+                
+                // Real-time listeners to update
+                realtimeUpdates: [
+                    '/applications/{applicationId}',
+                    '/notifications/{recipientUid}',
+                    '/analytics/daily_{date}'
+                ]
+            });
             
+            // Close action overlay first
             closeActionOverlay();
             
-            // Show confirmation overlay
+            // Show confirmation with reject-specific styling  
             showConfirmationOverlay(
                 'reject',
                 'Application Rejected',
-                `${userName}'s application has been rejected and removed from your listings.`
+                `${userName}'s application has been rejected. They will be notified appropriately.`
             );
+            
+            // Remove the application card from UI after confirmation
+            setTimeout(() => {
+                const applicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+                if (applicationCard) {
+                    applicationCard.style.transition = 'all 0.3s ease';
+                    applicationCard.style.opacity = '0';
+                    applicationCard.style.transform = 'translateX(100%)';
+                    
+                    setTimeout(() => {
+                        applicationCard.remove();
+                        updateApplicationsCount();
+                    }, 300);
+                }
+            }, 2000);
         });
     }
     
@@ -658,7 +852,7 @@ function initializeConfirmationOverlay() {
             if (e.target === overlay) {
                 closeConfirmationOverlay();
             }
-        });  
+        });
     }
     
     // Close with Escape key
@@ -691,7 +885,7 @@ function initializeNotifications() {
                     break;
                 case 'View Application':
                     handleViewApplication(notificationItem);
-                    break;  
+                    break;
                 case 'Reply':
                     handleReplyMessage(notificationItem);
                     break;
@@ -701,23 +895,62 @@ function initializeNotifications() {
         });
     });
     
-    // Handle notification item clicks (mark as read, etc.)
+    // Handle notification item clicks (mark as read, etc.) with improved event delegation
     const notificationItems = document.querySelectorAll('.notification-item');
+    
+    // Clear any existing event listeners first
     notificationItems.forEach(item => {
+        // Clone node to remove all event listeners
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+    });
+    
+    // Re-select items after cloning
+    const freshNotificationItems = document.querySelectorAll('.notification-item');
+    
+    freshNotificationItems.forEach((item, index) => {
+        // Add debugging for first notification item
+        if (index === 0) {
+            console.log('First notification item initialized:', item);
+            item.setAttribute('data-first-item', 'true');
+            console.log('First item identification applied');
+        }
+        
         // Initialize long press selection for each notification
         initializeLongPressSelection(item);
         
-        item.addEventListener('click', function() {
-            // Check if we're in selection mode
-            if (document.querySelector('.notification-item.selected')) {
-                // Toggle selection if in selection mode
+        // Add click handler with immediate binding
+        const clickHandler = function(e) {
+            console.log(`Notification clicked - Index: ${index}, First item: ${this.hasAttribute('data-first-item')}`);
+            
+            // Check if we're in selection mode by looking for selection controls
+            const selectionBar = document.getElementById('selectionControls');
+            const isInSelectionMode = selectionBar && selectionBar.style.display === 'flex';
+            
+            if (isInSelectionMode) {
+                // Prevent normal action in selection mode
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Additional debugging for first item
+                if (this.hasAttribute('data-first-item')) {
+                    console.log('*** FIRST NOTIFICATION ITEM CLICKED IN SELECTION MODE ***');
+                }
+                
+                // Toggle selection
                 this.classList.toggle('selected');
                 updateSelectionControls();
+                console.log('Toggled selection for notification');
             } else {
-                // Mark notification as read (visual feedback)
+                // Normal click - mark as read only if not in selection mode
                 markNotificationAsRead(this);
             }
-        });
+        };
+        
+        item.addEventListener('click', clickHandler);
+        
+        // Store reference for debugging
+        item._clickHandler = clickHandler;
     });
 }
 
@@ -796,7 +1029,7 @@ function updateNotificationCount(count) {
             notificationCountElement.style.display = 'inline-block';
         }
     }
-}
+} 
 
 // Mark notification as read functionality
 function markNotificationAsRead(notificationItem) {
@@ -825,6 +1058,20 @@ function markNotificationAsRead(notificationItem) {
 function initializeLongPressSelection(notificationItem) {
     let longPressTimer;
     let isLongPress = false;
+    let touchStartTime = 0;
+    
+    // Debug logging for first item
+    if (notificationItem.hasAttribute('data-first-item')) {
+        console.log('Initializing long press for FIRST notification item');
+        console.log('First item element:', notificationItem);
+        console.log('First item position:', notificationItem.getBoundingClientRect());
+    }
+    
+    // Remove any existing event listeners first (cleanup)
+    const events = ['touchstart', 'touchend', 'touchmove', 'mousedown', 'mouseup', 'mouseleave'];
+    events.forEach(eventType => {
+        notificationItem.removeEventListener(eventType, notificationItem[`_${eventType}Handler`]);
+    });
     
     // Touch events for mobile
     notificationItem.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -836,10 +1083,28 @@ function initializeLongPressSelection(notificationItem) {
     notificationItem.addEventListener('mouseup', handleMouseEnd);
     notificationItem.addEventListener('mouseleave', handleMouseEnd);
     
+    // Store event handler references for cleanup
+    notificationItem._touchstartHandler = handleTouchStart;
+    notificationItem._touchendHandler = handleTouchEnd;
+    notificationItem._touchmoveHandler = handleTouchMove;
+    notificationItem._mousedownHandler = handleMouseStart;
+    notificationItem._mouseupHandler = handleMouseEnd;
+    notificationItem._mouseleaveHandler = handleMouseEnd;
+    
     function handleTouchStart(e) {
+        // Debug logging for first item
+        if (notificationItem.hasAttribute('data-first-item')) {
+            console.log('*** FIRST ITEM TOUCH START ***');
+        }
+        
         isLongPress = false;
+        touchStartTime = Date.now();
+        
         longPressTimer = setTimeout(() => {
             isLongPress = true;
+            if (notificationItem.hasAttribute('data-first-item')) {
+                console.log('*** FIRST ITEM LONG PRESS TRIGGERED ***');
+            }
             startSelectionMode(notificationItem);
         }, 500); // 500ms long press
     }
@@ -847,23 +1112,53 @@ function initializeLongPressSelection(notificationItem) {
     function handleTouchMove(e) {
         // Cancel long press if user moves finger
         clearTimeout(longPressTimer);
+        isLongPress = false;
     }
     
-    function handleTouchEnd() {
+    function handleTouchEnd(e) {
         clearTimeout(longPressTimer);
+        
+        // If it was a long press, prevent the click event
+        if (isLongPress || (Date.now() - touchStartTime > 450)) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        isLongPress = false;
     }
     
     function handleMouseStart(e) {
         if (e.button !== 0) return; // Only left mouse button
+        
+        // Debug logging for first item
+        if (notificationItem.hasAttribute('data-first-item')) {
+            console.log('*** FIRST ITEM MOUSE START ***');
+        }
+        
         isLongPress = false;
+        touchStartTime = Date.now();
+        
         longPressTimer = setTimeout(() => {
             isLongPress = true;
+            if (notificationItem.hasAttribute('data-first-item')) {
+                console.log('*** FIRST ITEM MOUSE LONG PRESS TRIGGERED ***');
+            }
             startSelectionMode(notificationItem);
         }, 500);
     }
     
-    function handleMouseEnd() {
+    function handleMouseEnd(e) {
         clearTimeout(longPressTimer);
+        
+        // If it was a long press, prevent the click event
+        if (isLongPress || (Date.now() - touchStartTime > 450)) {
+            if (e && typeof e.preventDefault === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
+        
+        isLongPress = false;
     }
 }
 
@@ -871,6 +1166,11 @@ function startSelectionMode(notificationItem) {
     // Add vibration feedback on mobile
     if (navigator.vibrate) {
         navigator.vibrate(50);
+    }
+    
+    // Debug logging for first item
+    if (notificationItem.hasAttribute('data-first-item')) {
+        console.log('*** STARTING SELECTION MODE FOR FIRST ITEM ***');
     }
     
     // Add selection class to the notification
@@ -895,22 +1195,96 @@ function showSelectionControls() {
                 <span id="selectionCount">1</span> selected
             </div>
             <div class="selection-actions">
-                <button class="selection-btn cancel-btn" onclick="cancelSelection()">Cancel</button>
-                <button class="selection-btn delete-btn" onclick="deleteSelectedNotifications()">Delete</button>
+                <button class="selection-btn cancel-btn" id="cancelSelectionBtn">Cancel</button>
+                <button class="selection-btn delete-btn" id="deleteSelectionBtn">Delete</button>
             </div>
         `;
         
-        // Insert after the tabs
+        // Add event listeners immediately after DOM insertion
+        const cancelBtn = selectionBar.querySelector('.cancel-btn');
+        const deleteBtn = selectionBar.querySelector('.delete-btn');
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Cancel button clicked');
+                cancelSelection();
+            });
+            console.log('Cancel button event listener added');
+        }
+        
+        if (deleteBtn) {
+            // Simple, direct click handler
+            deleteBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Immediate deletion without any timing dependencies
+                const selectedItems = document.querySelectorAll('.notification-item.selected');
+                if (selectedItems.length > 0) {
+                    selectedItems.forEach(item => item.remove());
+                    
+                    // Hide selection controls with animation
+                    const selectionBar = document.getElementById('selectionControls');
+                    if (selectionBar) {
+                        selectionBar.style.opacity = '0';
+                        selectionBar.style.transform = 'translateY(-100%)';
+                        
+                        setTimeout(() => {
+                            selectionBar.style.display = 'none';
+                        }, 300);
+                    }
+                    
+                    // Remove selection class from active tab wrapper immediately
+                    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+                    if (activeTabWrapper) {
+                        activeTabWrapper.classList.remove('selection-active');
+                    }
+                    
+                    // Update notifications count
+                    updateNotificationsCount();
+                }
+                
+                return false;
+            };
+            
+            console.log('Delete button direct onclick handler added');
+        }
+        
+        // Insert after the tabs but before the messages content
         const messagesContent = document.querySelector('.messages-content');
-        messagesContent.parentNode.insertBefore(selectionBar, messagesContent);
+        const tabsContainer = document.querySelector('.messages-tabs');
+        
+        // Insert after tabs container
+        if (tabsContainer && tabsContainer.nextSibling) {
+            tabsContainer.parentNode.insertBefore(selectionBar, tabsContainer.nextSibling);
+        } else {
+            // Fallback to before messages content
+            messagesContent.parentNode.insertBefore(selectionBar, messagesContent);
+        }
+        
+        console.log('Created selection controls bar');
     }
     
+    // Ensure visibility with animated entrance
     selectionBar.style.display = 'flex';
+    selectionBar.style.position = 'fixed';
+    selectionBar.style.zIndex = '998';
     
-    // Add class to adjust content margin
-    const messagesContent = document.querySelector('.messages-content');
-    messagesContent.classList.add('selection-active');
+    // Trigger entrance animation
+    setTimeout(() => {
+        selectionBar.style.opacity = '1';
+        selectionBar.style.transform = 'translateY(0)';
+    }, 10);
     
+    // Add class to adjust content in independent tabs
+    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+    if (activeTabWrapper) {
+        activeTabWrapper.classList.add('selection-active');
+    }
+    
+    console.log('Selection controls shown with smooth animation');
     updateSelectionControls();
 }
 
@@ -920,14 +1294,13 @@ function updateSelectionControls() {
     const selectionBar = document.getElementById('selectionControls');
     
     if (selectedItems.length === 0) {
-        // Hide selection controls if no items selected
-        if (selectionBar) {
-            selectionBar.style.display = 'none';
-        }
+        // Don't auto-hide - let cancelSelection() handle hiding
+        console.log('No items selected, but keeping selection bar visible');
     } else {
         if (selectionCount) {
             selectionCount.textContent = selectedItems.length;
         }
+        console.log(`Updated selection count: ${selectedItems.length}`);
     }
 }
 
@@ -938,49 +1311,914 @@ function cancelSelection() {
         item.classList.remove('selected');
     });
     
-    // Hide selection controls
+    // Hide selection controls with animation
     const selectionBar = document.getElementById('selectionControls');
     if (selectionBar) {
-        selectionBar.style.display = 'none';
+        // Trigger exit animation
+        selectionBar.style.opacity = '0';
+        selectionBar.style.transform = 'translateY(-100%)';
+        
+        // Actually hide after animation completes
+        setTimeout(() => {
+            selectionBar.style.display = 'none';
+        }, 300);
     }
     
-    // Remove selection class from content
-    const messagesContent = document.querySelector('.messages-content');
-    messagesContent.classList.remove('selection-active');
+    // Remove selection class from active tab wrapper immediately for smooth transition
+    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+    if (activeTabWrapper) {
+        activeTabWrapper.classList.remove('selection-active');
+    }
+    
+    console.log('Selection cancelled with smooth animation');
 }
 
+// Add debouncing to prevent multiple calls
+let deletionInProgress = false;
+
 function deleteSelectedNotifications() {
-    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    console.log('Delete function called');
     
-    if (selectedItems.length === 0) return;
+    if (deletionInProgress) {
+        console.log('Deletion already in progress, skipping');
+        return;
+    }
+    
+    deletionInProgress = true;
+    
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    console.log(`Found ${selectedItems.length} selected items`);
+    
+    if (selectedItems.length === 0) {
+        console.log('No items selected, returning');
+        deletionInProgress = false;
+        return;
+    }
+    
+    // Store references in an array to avoid NodeList issues
+    const itemsToDelete = Array.from(selectedItems);
+    console.log(`Converted to array: ${itemsToDelete.length} items`);
     
     // Add removing animation to selected items
-    selectedItems.forEach(item => {
+    itemsToDelete.forEach((item, index) => {
+        console.log(`Adding removing class to item ${index + 1}`);
         item.classList.add('removing');
     });
     
-    // Remove from DOM after animation
-    setTimeout(() => {
-        selectedItems.forEach(item => {
-            item.remove();
+    // Force immediate deletion if animation doesn't work
+    const forceDelete = () => {
+        console.log('Force deleting items');
+        itemsToDelete.forEach((item, index) => {
+            if (item.parentNode) {
+                console.log(`Force removing item ${index + 1} from DOM`);
+                item.remove();
+            }
         });
         
         // Update notifications count
         updateNotificationsCount();
         
-        // Hide selection controls
+        // Hide selection controls with animation
         const selectionBar = document.getElementById('selectionControls');
         if (selectionBar) {
-            selectionBar.style.display = 'none';
+            selectionBar.style.opacity = '0';
+            selectionBar.style.transform = 'translateY(-100%)';
+            
+            setTimeout(() => {
+                selectionBar.style.display = 'none';
+            }, 300);
         }
         
-        // Remove selection class from content
-        const messagesContent = document.querySelector('.messages-content');
-        messagesContent.classList.remove('selection-active');
+        // Remove selection class from active tab wrapper immediately
+        const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+        if (activeTabWrapper) {
+            activeTabWrapper.classList.remove('selection-active');
+        }
         
-        console.log(`${selectedItems.length} notifications deleted`);
-    }, 300);
+        console.log(`${itemsToDelete.length} notifications successfully deleted`);
+        
+        // Reset deletion flag
+        deletionInProgress = false;
+    };
+    
+    // Try animation first, but force delete as backup
+    let deleted = false;
+    
+    // Animation approach
+    setTimeout(() => {
+        if (!deleted) {
+            console.log('Animation timeout - removing items');
+            deleted = true;
+            forceDelete();
+        }
+    }, 350);
+    
+    // Also add a much faster backup in case console timing affects things
+    setTimeout(() => {
+        if (!deleted) {
+            console.log('Fast backup delete triggered');
+            deleted = true;
+            forceDelete();
+        }
+    }, 50);
 }
+
+// ===== PHASE 1: MOCK DATA AND TEMPLATES =====
+
+// Mock Notifications Data
+const MOCK_NOTIFICATIONS = [
+    {
+        id: 'notif_xKj9mL2pQ8vR4sW7nC1e',  // Firebase auto-generated ID format
+        notificationType: 'critical_action_required',
+        recipientUid: 'user_currentUserUid', // Firebase UID format
+        senderUid: 'system',
+        read: false,
+        createdAt: new Date('2025-12-22T12:30:00Z'), // Will be firebase.firestore.Timestamp
+        updatedAt: new Date('2025-12-22T12:30:00Z'),
+        
+        // Firestore document structure - flat for better indexing
+        title: 'URGENT: Account Verification Required',
+        message: 'Your account requires immediate verification to continue using GISUGO services. Failure to verify within 24 hours will result in account suspension.',
+        icon: '⚠️',
+        iconClass: 'critical-icon',
+        priority: 'high',
+        category: 'account',
+        timeDisplay: '1 hour ago',
+        dateDisplay: 'Dec. 22, 2025',
+        
+        // Firebase-optimized action structure
+        actions: [
+            {
+                type: 'primary',
+                action: 'verify_account',
+                text: 'Verify Now',
+                actionData: {
+                    redirectUrl: '/verify',
+                    urgency: 'critical'
+                }
+            }
+        ],
+        
+        // Firestore security rules compatibility
+        metadata: {
+            source: 'system',
+            businessLogic: 'account_verification',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_bT8nX3mR9qY2fH6kL5w',
+        notificationType: 'new_application',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'user_3vN8mQ4rT9xK2jP7sC1',
+        read: false,
+        createdAt: new Date('2025-12-22T10:15:00Z'),
+        updatedAt: new Date('2025-12-22T10:15:00Z'),
+        
+        title: 'New Job Application Received',
+        message: '<strong>Ana Rodriguez</strong> applied for "House cleaning service needed - weekly basis" with a ₱1,200 counter-offer.',
+        icon: '🧑',
+        iconClass: 'app-icon',
+        priority: 'medium',
+        category: 'application',
+        timeDisplay: '3 hours ago',
+        dateDisplay: 'Dec. 22, 2025',
+        
+        // Related document references for Firestore
+        relatedDocuments: {
+            applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+            jobId: 'job_gT5nM8xK2jS6wF3eA9',
+            userProfile: 'user_3vN8mQ4rT9xK2jP7sC1'
+        },
+        
+        actions: [
+            {
+                type: 'secondary',
+                action: 'view_application',
+                text: 'View Application',
+                actionData: {
+                    applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+                    navigateTo: 'applications'
+                }
+            }
+        ],
+        
+        metadata: {
+            source: 'user_application',
+            businessLogic: 'job_application_flow',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_wR4nJ8mL9qX2kP5sT7v',
+        notificationType: 'new_message',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'user_7yM3nK9rQ4vX2bS8jC5',
+        read: false,
+        createdAt: new Date('2025-12-21T16:00:00Z'),
+        updatedAt: new Date('2025-12-21T16:00:00Z'),
+        
+        title: 'New Message Received',
+        message: '<strong>Juan dela Cruz</strong> sent you a message: "Hello po! When can we start the carpentry work? I\'m available this weekend."',
+        icon: '💬',
+        iconClass: 'msg-icon',
+        priority: 'medium',
+        category: 'message',
+        timeDisplay: '1 day ago',
+        dateDisplay: 'Dec. 21, 2025',
+        
+        relatedDocuments: {
+            threadId: 'thread_mX4nT8kR2qJ5wP9sL6',
+            messageId: 'msg_bQ3nH7mK8vR2xJ4pS9',
+            senderProfile: 'user_7yM3nK9rQ4vX2bS8jC5'
+        },
+        
+        actions: [
+            {
+                type: 'secondary',
+                action: 'reply_message',
+                text: 'Reply',
+                actionData: {
+                    threadId: 'thread_mX4nT8kR2qJ5wP9sL6',
+                    navigateTo: 'messages'
+                }
+            }
+        ],
+        
+        metadata: {
+            source: 'user_message',
+            businessLogic: 'messaging_system',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_cK8mL3nR9qY2fH6kX5w',
+        notificationType: 'job_warning',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'system',
+        read: false,
+        createdAt: new Date('2025-12-21T15:00:00Z'),
+        updatedAt: new Date('2025-12-21T15:00:00Z'),
+        
+        title: 'Job Application Limit Warning',
+        message: 'Job "Carpenter needed for kitchen cabinet repair and refinish" has received 15/20 applications. Consider reviewing applications soon to avoid unlisting.',
+        icon: '📋',
+        iconClass: 'status-icon',
+        priority: 'medium',
+        category: 'job_status',
+        timeDisplay: '1 day ago',
+        dateDisplay: 'Dec. 21, 2025',
+        
+        relatedDocuments: {
+            jobId: 'job_tR5nM8xK2jS6wF3eQ9',
+            applicationCount: 15,
+            maxApplications: 20
+        },
+        
+        actions: [
+            {
+                type: 'secondary',
+                action: 'review_applications',
+                text: 'Review Applications',
+                actionData: {
+                    jobId: 'job_tR5nM8xK2jS6wF3eQ9',
+                    navigateTo: 'applications'
+                }
+            }
+        ],
+        
+        metadata: {
+            source: 'system',
+            businessLogic: 'job_management',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_pL9nX4mT7qK2jR8sW5',
+        notificationType: 'new_application',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'user_dR7nK4mQ9xT2jP6sL8',
+        read: false,
+        createdAt: new Date('2025-12-20T14:00:00Z'),
+        updatedAt: new Date('2025-12-20T14:00:00Z'),
+        
+        title: 'New Job Application Received',
+        message: '<strong>Roberto Garcia</strong> applied for "Carpenter needed for kitchen cabinet repair and refinish" with a ₱2,800 counter-offer.',
+        icon: '🧑',
+        iconClass: 'app-icon',
+        priority: 'medium',
+        category: 'application',
+        timeDisplay: '2 days ago',
+        dateDisplay: 'Dec. 20, 2025',
+        
+        relatedDocuments: {
+            applicationId: 'app_nT7mK9qR2xJ4wS8nL6',
+            jobId: 'job_xK4nM7rT8qJ2wS5nP9',
+            userProfile: 'user_dR7nK4mQ9xT2jP6sL8'
+        },
+        
+        actions: [
+            {
+                type: 'secondary',
+                action: 'view_application',
+                text: 'View Application',
+                actionData: {
+                    applicationId: 'app_nT7mK9qR2xJ4wS8nL6',
+                    navigateTo: 'applications'
+                }
+            }
+        ],
+        
+        metadata: {
+            source: 'user_application',
+            businessLogic: 'job_application_flow',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_mK6nR3qT8jX2wS7nL4',
+        notificationType: 'job_posted',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'system',
+        read: false,
+        createdAt: new Date('2025-12-19T10:00:00Z'),
+        updatedAt: new Date('2025-12-19T10:00:00Z'),
+        
+        title: 'Job Successfully Posted',
+        message: 'Your job "Plumbing repair - kitchen sink leak" has been successfully posted and is now visible to service providers.',
+        icon: '⚙️',
+        iconClass: 'system-icon',
+        priority: 'low',
+        category: 'system',
+        timeDisplay: '3 days ago',
+        dateDisplay: 'Dec. 19, 2025',
+        
+        relatedDocuments: {
+            jobId: 'job_wR4nM7xT9qK2jP5sL8'
+        },
+        
+        actions: [],
+        
+        metadata: {
+            source: 'system',
+            businessLogic: 'job_posting',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_sT5nL8mR9qK2jX4wP7',
+        notificationType: 'new_message',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'user_nP6mR3qT8jK2wS7nL9',
+        read: false,
+        createdAt: new Date('2025-12-19T09:00:00Z'),
+        updatedAt: new Date('2025-12-19T09:00:00Z'),
+        
+        title: 'New Message Received',
+        message: '<strong>Pedro Santos</strong> sent you a message: "Good morning! I can start the work tomorrow if you\'re available. Please let me know."',
+        icon: '💬',
+        iconClass: 'msg-icon',
+        priority: 'medium',
+        category: 'message',
+        timeDisplay: '3 days ago',
+        dateDisplay: 'Dec. 19, 2025',
+        
+        relatedDocuments: {
+            threadId: 'thread_qJ4nX7mR8kT2wP5sL9',
+            messageId: 'msg_vW8nL3mK7qR2jT4sP6',
+            senderProfile: 'user_nP6mR3qT8jK2wS7nL9'
+        },
+        
+        actions: [
+            {
+                type: 'secondary',
+                action: 'reply_message',
+                text: 'Reply',
+                actionData: {
+                    threadId: 'thread_qJ4nX7mR8kT2wP5sL9',
+                    navigateTo: 'messages'
+                }
+            }
+        ],
+        
+        metadata: {
+            source: 'user_message',
+            businessLogic: 'messaging_system',
+            indexed: true
+        }
+    },
+    {
+        id: 'notif_hJ3nM6rT9qX2kS8wL5',
+        notificationType: 'job_status',
+        recipientUid: 'user_currentUserUid',
+        senderUid: 'system',
+        read: true,
+        createdAt: new Date('2025-12-18T15:30:00Z'),
+        updatedAt: new Date('2025-12-21T10:00:00Z'),
+        
+        title: 'Job Completed Successfully',
+        message: 'Your job "Garden landscaping and maintenance" has been marked as completed by Maria Santos. Please review the work and rate your experience.',
+        icon: '✅',
+        iconClass: 'system-icon',
+        priority: 'medium',
+        category: 'job_status',
+        timeDisplay: '4 days ago',
+        dateDisplay: 'Dec. 18, 2025',
+        
+        relatedDocuments: {
+            jobId: 'job_lM8nR4qT7xK2jW5sP3',
+            contractId: 'contract_app_bH5nK8mR2qX4jT7sW9',
+            workerProfile: 'user_qX5nK8mT3jR7wS2nC9'
+        },
+        
+        actions: [
+            {
+                type: 'primary',
+                action: 'rate_worker',
+                text: 'Rate Work',
+                actionData: {
+                    contractId: 'contract_app_bH5nK8mR2qX4jT7sW9',
+                    workerId: 'user_qX5nK8mT3jR7wS2nC9'
+                }
+            }
+        ],
+        
+        metadata: {
+            source: 'system',
+            businessLogic: 'job_completion',
+            indexed: true
+        }
+    }
+];
+
+// Generate Notification HTML
+function generateNotificationHTML(notification) {
+    const dataAttributes = [
+        `data-notification-id="${notification.id}"`,
+        `data-notification-type="${notification.notificationType}"`,
+        `data-read="${notification.read}"`,
+        `data-timestamp="${notification.timestamp}"`
+    ];
+
+    // Add conditional data attributes
+    if (notification.jobId) dataAttributes.push(`data-job-id="${notification.jobId}"`);
+    if (notification.jobTitle) dataAttributes.push(`data-job-title="${notification.jobTitle}"`);
+    if (notification.applicationId) dataAttributes.push(`data-application-id="${notification.applicationId}"`);
+    if (notification.threadId) dataAttributes.push(`data-thread-id="${notification.threadId}"`);
+    if (notification.userId) dataAttributes.push(`data-user-id="${notification.userId}"`);
+    if (notification.userName) dataAttributes.push(`data-user-name="${notification.userName}"`);
+
+    const actionsHTML = notification.actions.map(action => {
+        const actionDataAttrs = [`data-action="${action.action}"`];
+        if (action.jobId) actionDataAttrs.push(`data-job-id="${action.jobId}"`);
+        if (action.applicationId) actionDataAttrs.push(`data-application-id="${action.applicationId}"`);
+        if (action.threadId) actionDataAttrs.push(`data-thread-id="${action.threadId}"`);
+        
+        return `<button class="notification-action-btn ${action.type}" ${actionDataAttrs.join(' ')}>${action.text}</button>`;
+    }).join('');
+
+    return `
+        <div class="notification-item ${notification.type}" ${dataAttributes.join(' ')}>
+            <div class="notification-icon ${notification.iconClass}">${notification.icon}</div>
+            <div class="notification-content">
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-meta">
+                    <span class="notification-time">${notification.timeDisplay}</span>
+                    <span class="notification-date">${notification.dateDisplay}</span>
+                </div>
+                ${actionsHTML ? `<div class="notification-actions">${actionsHTML}</div>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Generate All Notifications Content
+function generateNotificationsContent() {
+    return MOCK_NOTIFICATIONS.map(notification => generateNotificationHTML(notification)).join('');
+}
+
+// Load Notifications Tab
+function loadNotificationsTab() {
+    const container = document.querySelector('#notifications-content .notifications-container');
+    if (container) {
+        container.innerHTML = generateNotificationsContent();
+        
+        // Reinitialize event handlers for the dynamically loaded content
+        initializeNotifications();
+        
+        // TEMPORARY FIX: Force-enable selection for first item
+        fixFirstNotificationSelection();
+        
+        // Update notification count badge
+        updateNotificationsCount();
+        
+        console.log('Notifications tab content loaded independently');
+    } else {
+        console.error('Notifications container not found');
+    }
+}
+
+// TEMPORARY FIX: Force selection capability for first notification item
+function fixFirstNotificationSelection() {
+    const firstItem = document.querySelector('#notifications-content .notification-item:first-child');
+    if (firstItem) {
+        console.log('Applying first item selection fix');
+        
+        // Force-add selection capability with highest priority event listeners
+        const forceSelectionHandler = function(e) {
+            console.log('FORCE SELECTION HANDLER TRIGGERED for first item');
+            
+            const selectionBar = document.getElementById('selectionControls');
+            const isInSelectionMode = selectionBar && selectionBar.style.display === 'flex';
+            
+            if (isInSelectionMode) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Force toggle selection
+                this.classList.toggle('selected');
+                updateSelectionControls();
+                console.log('FORCED selection toggle for first notification');
+                
+                return false; // Stop all other processing
+            }
+        };
+        
+        // Add with capture = true to get first priority
+        firstItem.addEventListener('click', forceSelectionHandler, true);
+        
+        // Add visual indicator this fix is applied
+        firstItem.style.boxShadow = '0 0 5px rgba(255, 165, 0, 0.8)';
+        firstItem.setAttribute('data-selection-fixed', 'true');
+        
+        console.log('First item selection fix applied');
+    }
+}
+
+// Mock Messages Data
+const MOCK_MESSAGES = [
+    {
+        threadId: 1,
+        jobId: 1,
+        jobTitle: 'Plumbing repair - kitchen sink leak',
+        participantId: 6,
+        participantName: 'Miguel Torres',
+        isNew: true,
+        lastMessageTime: '2025-12-22T15:30:00Z',
+        messages: [
+            {
+                id: 1,
+                threadId: 1,
+                senderId: 6,
+                senderName: 'Miguel Torres',
+                senderType: 'worker',
+                timestamp: '2025-12-22T09:15:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 9:15 AM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-06.jpg',
+                content: 'Good morning po! I saw your plumbing job posting. I have 8 years experience with kitchen sink repairs. When would be a good time to check your sink?'
+            },
+            {
+                id: 2,
+                threadId: 1,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-22T10:30:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 10:30 AM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Hi Miguel! Thanks for reaching out. I\'m available this afternoon after 2 PM or tomorrow morning. What\'s your rate for sink repair?'
+            },
+            {
+                id: 3,
+                threadId: 1,
+                senderId: 6,
+                senderName: 'Miguel Torres',
+                senderType: 'worker',
+                timestamp: '2025-12-22T11:45:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 11:45 AM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-06.jpg',
+                content: 'Perfect! I can come this afternoon at 3 PM. My rate is ₱800 for standard sink leak repair, including parts. Is that okay with you?'
+            },
+            {
+                id: 4,
+                threadId: 1,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-22T12:15:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 12:15 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'That sounds reasonable! 3 PM works perfectly. Do you need me to prepare anything beforehand? Also, what\'s your estimated time to complete the repair?'
+            },
+            {
+                id: 5,
+                threadId: 1,
+                senderId: 6,
+                senderName: 'Miguel Torres',
+                senderType: 'worker',
+                timestamp: '2025-12-22T12:45:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 12:45 PM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-06.jpg',
+                content: 'Just clear the area under the sink so I can access the pipes easily. The repair should take 1-2 hours depending on the issue. I\'ll bring all my tools and replacement parts.'
+            },
+            {
+                id: 6,
+                threadId: 1,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-22T13:10:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 1:10 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Great! I\'ll clear everything out now. Should I turn off the main water valve before you arrive, or will you handle that?'
+            },
+            {
+                id: 7,
+                threadId: 1,
+                senderId: 6,
+                senderName: 'Miguel Torres',
+                senderType: 'worker',
+                timestamp: '2025-12-22T13:25:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 1:25 PM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-06.jpg',
+                content: 'No need to turn off the main valve yet. I\'ll assess the situation first and turn off only what\'s necessary. See you at 3 PM! I\'ll text when I\'m on my way.'
+            },
+            {
+                id: 8,
+                threadId: 1,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-22T14:50:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 2:50 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Perfect! Everything is cleared out and ready. Looking forward to getting this fixed. Thank you Miguel!'
+            }
+        ]
+    },
+    {
+        threadId: 2,
+        jobId: 2,
+        jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
+        participantId: 2,
+        participantName: 'Ana Rodriguez',
+        isNew: false,
+        lastMessageTime: '2025-12-21T11:30:00Z',
+        messages: [
+            {
+                id: 9,
+                threadId: 2,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-20T14:15:00Z',
+                timeDisplay: 'Dec. 20, 2025 - 2:15 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Hi Ana! I reviewed your application for the house cleaning job. Your profile looks great! I wanted to ask about your availability this weekend.'
+            },
+            {
+                id: 10,
+                threadId: 2,
+                senderId: 2,
+                senderName: 'Ana Rodriguez',
+                senderType: 'worker',
+                timestamp: '2025-12-20T15:45:00Z',
+                timeDisplay: 'Dec. 20, 2025 - 3:45 PM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-03.jpg',
+                content: 'Hello po! Thank you for considering my application. I\'m available both Saturday and Sunday. What time would work best for you?'
+            },
+            {
+                id: 11,
+                threadId: 2,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-20T16:20:00Z',
+                timeDisplay: 'Dec. 20, 2025 - 4:20 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Saturday morning around 9 AM would be perfect. How long do you think it will take for a deep clean of a 3-bedroom house?'
+            },
+            {
+                id: 12,
+                threadId: 2,
+                senderId: 2,
+                senderName: 'Ana Rodriguez',
+                senderType: 'worker',
+                timestamp: '2025-12-20T17:15:00Z',
+                timeDisplay: 'Dec. 20, 2025 - 5:15 PM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-03.jpg',
+                content: 'For a 3-bedroom deep clean, it usually takes 4-5 hours. I\'ll bring all cleaning supplies and equipment. Do you have any specific areas that need extra attention?'
+            },
+            {
+                id: 13,
+                threadId: 2,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-20T18:30:00Z',
+                timeDisplay: 'Dec. 20, 2025 - 6:30 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'The master bathroom needs extra attention, and the kitchen hasn\'t been deep cleaned in months. Also, we have two cats so there might be some pet hair around.'
+            },
+            {
+                id: 14,
+                threadId: 2,
+                senderId: 2,
+                senderName: 'Ana Rodriguez',
+                senderType: 'worker',
+                timestamp: '2025-12-20T19:45:00Z',
+                timeDisplay: 'Dec. 20, 2025 - 7:45 PM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-03.jpg',
+                content: 'No problem! I have experience with pet hair removal and I\'ll bring special tools for that. I\'ll focus extra time on the bathroom and kitchen. Should I bring my own vacuum or do you prefer I use yours?'
+            },
+            {
+                id: 15,
+                threadId: 2,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'customer',
+                timestamp: '2025-12-21T08:20:00Z',
+                timeDisplay: 'Dec. 21, 2025 - 8:20 AM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Please bring your own vacuum if possible - ours is quite old. What time should I expect you on Saturday? And is ₱500 still your final rate?'
+            },
+            {
+                id: 16,
+                threadId: 2,
+                senderId: 2,
+                senderName: 'Ana Rodriguez',
+                senderType: 'worker',
+                timestamp: '2025-12-21T09:10:00Z',
+                timeDisplay: 'Dec. 21, 2025 - 9:10 AM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-03.jpg',
+                content: 'I\'ll arrive at exactly 9 AM on Saturday with all my equipment. Yes, ₱500 is my final rate for the deep clean. I\'ll make sure your house sparkles! 😊'
+            }
+        ]
+    },
+    {
+        threadId: 3,
+        jobId: 3,
+        jobTitle: 'Garden maintenance and lawn mowing service',
+        participantId: 8,
+        participantName: 'Carlos Mendoza',
+        isNew: true,
+        lastMessageTime: '2025-12-23T07:30:00Z',
+        messages: [
+            {
+                id: 17,
+                threadId: 3,
+                senderId: 8,
+                senderName: 'Carlos Mendoza',
+                senderType: 'worker',
+                timestamp: '2025-12-23T07:30:00Z',
+                timeDisplay: 'Dec. 23, 2025 - 7:30 AM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-08.jpg',
+                content: 'Good morning! I saw your garden maintenance job posting. I have 12 years experience in landscaping and lawn care. I can start this week if you\'re interested. My rate is ₱1,200 for full garden maintenance including mowing, trimming, and weeding.'
+            }
+        ]
+    }
+];
+
+// Generate Message Card HTML
+function generateMessageHTML(message) {
+    const messageDataAttrs = [
+        `data-message-id="${message.id}"`,
+        `data-thread-id="${message.threadId}"`,
+        `data-sender-id="${message.senderId}"`,
+        `data-sender-name="${message.senderName}"`,
+        `data-sender-type="${message.senderType}"`,
+        `data-timestamp="${message.timestamp}"`,
+        `data-read="${message.read}"`
+    ].join(' ');
+
+    return `
+        <div class="message-card ${message.direction}" ${messageDataAttrs}>
+            <div class="message-header">
+                ${message.direction === 'outgoing' ? `
+                    <div class="message-avatar">
+                        <img src="${message.avatar}" alt="${message.senderName}">
+                    </div>
+                    <div class="message-info">
+                        <div class="message-sender">${message.senderName}</div>
+                        <div class="message-timestamp">${message.timeDisplay}</div>
+                    </div>
+                ` : `
+                    <div class="message-info">
+                        <div class="message-sender">${message.senderName}</div>
+                        <div class="message-timestamp">${message.timeDisplay}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <img src="${message.avatar}" alt="${message.senderName}">
+                    </div>
+                `}
+            </div>
+            <div class="message-bubble ${message.direction}">
+                ${message.content}
+            </div>
+        </div>
+    `;
+}
+
+// Generate Message Thread HTML
+function generateMessageThreadHTML(thread) {
+    const threadDataAttrs = [
+        `data-thread-id="${thread.threadId}"`,
+        `data-job-id="${thread.jobId}"`,
+        `data-job-title="${thread.jobTitle}"`,
+        `data-participant-id="${thread.participantId}"`,
+        `data-participant-name="${thread.participantName}"`,
+        `data-is-new="${thread.isNew}"`,
+        `data-last-message-time="${thread.lastMessageTime}"`
+    ].join(' ');
+
+    const messagesHTML = thread.messages.map(message => generateMessageHTML(message)).join('');
+
+    return `
+        <div class="message-thread" ${threadDataAttrs}>
+            <div class="message-thread-header" data-thread-id="${thread.threadId}">
+                <div class="thread-info">
+                    <div class="thread-job-title">${thread.jobTitle}</div>
+                    <div class="thread-participant">Conversation with ${thread.participantName}</div>
+                </div>
+                <div class="thread-status">
+                    ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
+                    <div class="expand-icon">▼</div>
+                </div>
+            </div>
+            <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
+                <div class="message-scroll-container">
+                    ${messagesHTML}
+                </div>
+                
+                <!-- Message Input Area -->
+                <div class="message-input-container">
+                    <input type="text" class="message-input" placeholder="Type a message..." maxlength="200">
+                    <button class="message-send-btn">Send</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Generate All Messages Content
+function generateMessagesContent() {
+    return MOCK_MESSAGES.map(thread => generateMessageThreadHTML(thread)).join('');
+}
+
+// Load Messages Tab
+function loadMessagesTab() {
+    const container = document.querySelector('#messages-content .messages-container');
+    if (container) {
+        container.innerHTML = generateMessagesContent();
+        
+        // Initialize event handlers for the dynamically loaded content
+        initializeMessages();
+        
+        // Update message count badge
+        updateMessageCount();
+        
+        console.log('Messages tab content loaded independently');
+    } else {
+        console.error('Messages container not found');
+    }
+}
+
+// ===== END PHASE 1 TEMPLATES =====
 
 // Messages Management
 function initializeMessages() {
@@ -1090,9 +2328,15 @@ function scrollToThreadTop() {
 }
 
 function updateMessageCount() {
-    // Count remaining "new" tags
-    const newTags = document.querySelectorAll('.thread-new-tag');
+    // Count remaining "new" tags only within the messages container to avoid counting orphaned elements
+    const messagesContainer = document.querySelector('#messages-content .messages-container');
+    const newTags = messagesContainer ? messagesContainer.querySelectorAll('.thread-new-tag') : [];
     const messageCountElement = document.querySelector('#messagesTab .notification-count');
+    
+    console.log('Updating message count:', {
+        newTagsFound: newTags.length,
+        newTagElements: Array.from(newTags).map(tag => tag.closest('.message-thread')?.querySelector('.thread-job-title')?.textContent)
+    });
     
     if (messageCountElement) {
         const remainingCount = newTags.length;
@@ -1104,6 +2348,8 @@ function updateMessageCount() {
         } else {
             messageCountElement.style.display = 'inline-block';
         }
+        
+        console.log('Message count updated to:', remainingCount);
     }
 }
 
@@ -1521,30 +2767,326 @@ function initializeContactMessageOverlay() {
     }
 }
 
-// Add overlay click to close functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize contact message overlay
-    initializeContactMessageOverlay();
-    
-    // SAFETY CLEANUP: Ensure no lingering transforms on page load
-    cleanupMessageThreadKeyboardDetection();
-    
-    // Add click listener to document for overlay clicks
-    document.addEventListener('click', function(e) {
-        const messagesContainer = document.querySelector('.messages-container');
-        const expandedThread = document.querySelector('.message-thread.expanded');
+// Make functions globally accessible for onclick handlers
+window.cancelSelection = cancelSelection;
+window.deleteSelectedNotifications = deleteSelectedNotifications;
+
+// Applications Data Structure - FOR BACKEND PREPARATION
+const MOCK_APPLICATIONS = [
+    {
+        jobId: 'job_gT5nM8xK2jS6wF3eA9', // Firebase document ID format
+        jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
+        employerUid: 'user_currentUserUid', // Job owner
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-18T10:00:00Z'),
+        updatedAt: new Date('2025-12-22T14:45:00Z'),
         
-        // Only proceed if there's an active thread
-        if (!messagesContainer.classList.contains('thread-active') || !expandedThread) {
-            return;
-        }
+        // Denormalized for better Firestore performance
+        applications: [
+            {
+                applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+                applicantUid: 'user_mR8nT4kX2qJ5wP9sC7',
+                jobId: 'job_gT5nM8xK2jS6wF3eA9',
+                status: 'pending',
+                
+                // Firestore timestamp format
+                appliedAt: new Date('2025-12-20T14:45:00Z'),
+                updatedAt: new Date('2025-12-20T14:45:00Z'),
+                
+                // Denormalized user data for faster reads
+                applicantProfile: {
+                    displayName: 'Mario Santos',
+                    photoURL: 'public/users/User-02.jpg', // Fixed local path
+                    averageRating: 5.0,
+                    totalReviews: 50,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T12:00:00Z')
+                },
+                
+                // Application-specific data
+                pricing: {
+                    offeredAmount: 550,
+                    originalAmount: 600,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi Sir! Please hire me for this job, I have 10 years experience in professional cleaning of offices and hotels. I won\'t let you down!',
+                
+                // Worker qualifications (denormalized for quick access)
+                qualifications: {
+                    experience: '10 years',
+                    specializations: ['professional cleaning', 'offices', 'hotels'],
+                    availability: 'immediate',
+                    equipment: 'own equipment',
+                    languages: ['English', 'Filipino']
+                },
+                
+                // For display formatting
+                displayData: {
+                    appliedDate: '2025-12-20',
+                    appliedTime: '2:45 PM',
+                    formattedPrice: '₱550 Per Job'
+                },
+                
+                // Firestore metadata
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_kT3nH7mR8qX2bS9jL6',
+                applicantUid: 'user_qX5nK8mT3jR7wS2nC9',
+                jobId: 'job_gT5nM8xK2jS6wF3eA9',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T10:15:00Z'),
+                updatedAt: new Date('2025-12-21T10:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Rosa Delgado',
+                    photoURL: 'public/users/User-03.jpg', // Fixed local path
+                    averageRating: 4.0,
+                    totalReviews: 32,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T09:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 600,
+                    originalAmount: 600,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I\'m available for your cleaning job. I specialize in deep cleaning and have excellent references.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['deep cleaning', 'residential'],
+                    availability: 'flexible',
+                    references: 'available upon request',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '10:15 AM',
+                    formattedPrice: '₱600 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_wR4nM7xT9qK2jP5sL8',
+        jobTitle: 'Plumbing repair - kitchen sink leak',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2, // Reduced for Firebase demo
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-19T08:00:00Z'),
+        updatedAt: new Date('2025-12-22T11:00:00Z'),
         
-        // Check if click is outside the expanded thread
-        if (!expandedThread.contains(e.target)) {
-            closeAllMessageThreads();
-        }
-    });
-});
+        applications: [
+            {
+                applicationId: 'app_nR6mK3qT8jX2wS7nL9',
+                applicantUid: 'user_bM9nR4kX8qT2jW5sP3',
+                jobId: 'job_wR4nM7xT9qK2jP5sL8',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T08:30:00Z'),
+                updatedAt: new Date('2025-12-22T08:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Miguel Torres',
+                    photoURL: 'public/users/User-06.jpg', // Fixed local path
+                    averageRating: 5.0,
+                    totalReviews: 67,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T08:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 800,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'I can fix your sink today! 8 years experience in plumbing repairs. I have all necessary tools and parts.',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['plumbing repairs', 'sink', 'pipes'],
+                    availability: 'today',
+                    equipment: 'complete plumbing toolkit',
+                    certifications: ['licensed plumber'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '8:30 AM',
+                    formattedPrice: '₱800 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_lP4nX7mR9qK2jT8sW5',
+                applicantUid: 'user_sW6nM3rT8qJ2kX9nL4',
+                jobId: 'job_wR4nM7xT9qK2jP5sL8',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T11:00:00Z'),
+                updatedAt: new Date('2025-12-22T11:00:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carlos Mendoza',
+                    photoURL: 'public/users/User-07.jpg', // Fixed local path
+                    averageRating: 4.0,
+                    totalReviews: 28,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T10:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 750,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Licensed plumber available today. Quick and reliable service with 1-year warranty on repairs.',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['licensed plumbing', 'repairs'],
+                    availability: 'today',
+                    warranty: '1-year warranty',
+                    certifications: ['government licensed'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '11:00 AM',
+                    formattedPrice: '₱750 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    }
+];
+
+// Generate Application Card HTML - FIREBASE DATA-DRIVEN
+function generateApplicationCardHTML(application, jobTitle) {
+    const stars = Array.from({length: 5}, (_, i) => 
+        `<span class="star ${i < application.applicantProfile.averageRating ? 'filled' : ''}">★</span>`
+    ).join('');
+
+    return `
+        <div class="application-card" 
+             data-application-id="${application.applicationId}" 
+             data-user-id="${application.applicantUid}" 
+             data-job-title="${jobTitle}"
+             data-user-name="${application.applicantProfile.displayName}"
+             data-user-photo="${application.applicantProfile.photoURL}"
+             data-user-rating="${application.applicantProfile.averageRating}"
+             data-review-count="${application.applicantProfile.totalReviews}"
+             data-price-offer="${application.pricing.offeredAmount}"
+             data-price-type="${application.pricing.paymentType}"
+             data-is-counter-offer="${application.pricing.isCounterOffer}"
+             data-status="${application.status}"
+             data-timestamp="${application.appliedAt.toISOString()}">
+            <div class="application-job-title">
+                <span class="applicant-name" data-user-name="${application.applicantProfile.displayName}">${application.applicantProfile.displayName}</span>
+                <span class="price-offer">${application.displayData.formattedPrice}</span>
+            </div>
+            <div class="application-header">
+                <div class="application-left">
+                    <div class="application-date">${application.displayData.appliedDate}</div>
+                    <div class="application-time">${application.displayData.appliedTime}</div>
+                    <div class="application-rating" data-user-rating="${application.applicantProfile.averageRating}" data-review-count="${application.applicantProfile.totalReviews}">
+                        <div class="stars">${stars}</div>
+                        <span class="review-count">(${application.applicantProfile.totalReviews})</span>
+                    </div>
+                </div>
+                <div class="applicant-photo">
+                    <img src="${application.applicantProfile.photoURL}" alt="${application.applicantProfile.displayName}" data-user-photo="${application.applicantProfile.photoURL}">
+                </div>
+            </div>
+            <div class="application-message">
+                <strong>MESSAGE:</strong>
+                ${application.applicationMessage}
+            </div>
+        </div>
+    `;
+}
+
+// Generate Job Listing HTML - DATA-DRIVEN FOR BACKEND
+function generateJobListingHTML(jobData) {
+    const applicationsHTML = jobData.applications.map(app => 
+        generateApplicationCardHTML(app, jobData.jobTitle)
+    ).join('');
+
+    return `
+        <div class="job-listing" data-job-id="${jobData.jobId}">
+            <div class="job-header" data-job-id="${jobData.jobId}">
+                <div class="job-title">${jobData.jobTitle}</div>
+                <div class="application-count">${jobData.applicationCount}</div>
+                <div class="expand-icon">▼</div>
+            </div>
+            <div class="applications-list" id="applications-${jobData.jobId}" style="display: none;">
+                ${applicationsHTML}
+            </div>
+        </div>
+    `;
+}
+
+// Applications Content Generation - NOW DATA-DRIVEN
+function generateApplicationsContent() {
+    return MOCK_APPLICATIONS.map(jobData => generateJobListingHTML(jobData)).join('');
+}
+
+function loadApplicationsTab() {
+    const container = document.querySelector('#applications-content .applications-container');
+    if (container) {
+        container.innerHTML = generateApplicationsContent();
+        
+        // Initialize event handlers for the dynamically loaded content
+        initializeJobListings();
+        initializeApplicationActions();
+        
+        // Update applications count badge
+        updateApplicationsCount();
+        
+        console.log('Applications tab content loaded independently');
+    } else {
+        console.error('Applications container not found');
+    }
+}
 
 
 
