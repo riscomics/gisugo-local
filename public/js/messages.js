@@ -1158,6 +1158,9 @@ function showContactMessageOverlay(userId, userName, applicationId = null) {
         // Show overlay
         overlay.classList.add('show');
         
+        // Initialize keyboard detection for mobile
+        initializeKeyboardDetection(overlay);
+        
         // Focus on input
         setTimeout(() => {
             messageInput.focus();
@@ -1169,6 +1172,75 @@ function closeContactMessageOverlay() {
     const overlay = document.getElementById('contactMessageOverlay');
     if (overlay) {
         overlay.classList.remove('show');
+        // Clean up keyboard detection
+        cleanupKeyboardDetection();
+    }
+}
+
+// Keyboard detection for mobile devices
+function initializeKeyboardDetection(overlay) {
+    // Only run on mobile devices
+    if (window.innerWidth > 600) return;
+    
+    const modal = overlay.querySelector('.contact-message-modal');
+    const messageInput = overlay.querySelector('#contactMessageInput');
+    let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    
+    function handleKeyboardShow() {
+        const currentViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const keyboardHeight = initialViewportHeight - currentViewportHeight;
+        
+        if (keyboardHeight > 150) { // Keyboard is likely open
+            // Position modal above keyboard with some padding
+            const translateY = -(keyboardHeight / 2 + 20);
+            modal.style.transform = `translateY(${translateY}px)`;
+            console.log('Keyboard detected, adjusting modal position:', translateY);
+        }
+    }
+    
+    function handleKeyboardHide() {
+        // Reset position when keyboard is hidden
+        modal.style.transform = 'translateY(0)';
+        console.log('Keyboard hidden, resetting modal position');
+    }
+    
+    // Listen for viewport changes (best method for keyboard detection)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            const currentHeight = window.visualViewport.height;
+            if (currentHeight < initialViewportHeight - 150) {
+                handleKeyboardShow();
+            } else {
+                handleKeyboardHide();
+            }
+        });
+    } else {
+        // Fallback for older browsers
+        window.addEventListener('resize', () => {
+            const currentHeight = window.innerHeight;
+            if (currentHeight < initialViewportHeight - 150) {
+                handleKeyboardShow();
+            } else {
+                handleKeyboardHide();
+            }
+        });
+    }
+    
+    // Also listen for input focus/blur as additional detection
+    messageInput.addEventListener('focus', () => {
+        setTimeout(handleKeyboardShow, 300); // Delay to allow keyboard to appear
+    });
+    
+    messageInput.addEventListener('blur', () => {
+        setTimeout(handleKeyboardHide, 300); // Delay to allow keyboard to disappear
+    });
+}
+
+function cleanupKeyboardDetection() {
+    // Reset any transforms when overlay is closed
+    const modal = document.querySelector('.contact-message-modal');
+    if (modal) {
+        modal.style.transform = '';
     }
 }
 
