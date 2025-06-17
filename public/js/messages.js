@@ -2200,7 +2200,7 @@ function generateMessageThreadHTML(thread) {
             <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
                 <!-- MESSAGE INPUT AT TOP - Never covered by keyboard -->
                 <div class="message-input-container">
-                    <textarea class="message-input" placeholder="Type a message..." maxlength="200" rows="1"></textarea>
+                    <textarea class="message-input" placeholder="Type a message..." maxlength="200"></textarea>
                     <button class="message-send-btn">Send</button>
                 </div>
                 

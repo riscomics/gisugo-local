@@ -2124,18 +2124,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   height: 20px; /* True single row height */
 }
 
-/* DYNAMIC STYLING: Enhanced appearance when focused OR typing - MUST COME AFTER BASE RULE */
+/* FOCUS AND TYPING EXPANSION - SIMPLE APPROACH */
 .message-input:focus,
 .message-input.expanded {
-  height: 44px !important; /* Expand to 2-row height when focused or typing */
-  min-height: 44px !important; /* Ensure minimum height */
-  padding: 12px 16px !important; /* More padding when expanded */
-  border-radius: 16px !important; /* Slightly less rounded when expanded */
-  overflow-y: hidden !important; /* No scrollbar on desktop */
-  background-color: #1a202c !important; /* Darker background when focused/typing */
-  line-height: 1.3 !important; /* Better line spacing */
-  box-sizing: border-box !important; /* Ensure proper box model */
-  border-color: #f0d0aa !important; /* Keep the focus border color */
+  height: 44px !important;
+  padding: 12px 16px !important;
+  border-radius: 16px !important;
+  background-color: #1a202c !important;
+  border-color: #f0d0aa !important;
 }
 
 /* Focus styling moved to expanded rule above */
@@ -2180,18 +2176,14 @@ body:has(.selection-controls[style*="display: flex"]) {
     height: 18px; /* True single row height for mobile */
   }
   
-  /* Mobile focus styling - expand when focused OR typing - MUST COME AFTER BASE RULE */
+  /* Mobile focus styling - SIMPLE APPROACH */
   .message-input:focus,
   .message-input.expanded {
-    height: 40px !important; /* Expand to 2-row height when focused/typing on mobile */
-    min-height: 40px !important; /* Ensure minimum height */
-    padding: 10px 14px !important; /* More padding when expanded */
+    height: 40px !important;
+    padding: 10px 14px !important;
     border-radius: 14px !important;
-    overflow-y: hidden !important; /* No scrollbar on mobile */
-    background-color: #1a202c !important; /* Darker background when focused/typing */
-    line-height: 1.25 !important; /* Better line spacing for mobile */
-    box-sizing: border-box !important; /* Ensure proper box model */
-    border-color: #f0d0aa !important; /* Keep the focus border color */
+    background-color: #1a202c !important;
+    border-color: #f0d0aa !important;
   }
 
   .message-send-btn {
