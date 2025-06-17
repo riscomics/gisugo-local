@@ -2606,144 +2606,44 @@ function initializeMobileInputVisibility(messageThread) {
     
     console.log('🔧 Applying input visibility fix for problematic browser');
     
-    // VIEWPORT MONITORING: Watch for keyboard changes
-    let keyboardHeight = 0;
+        // FLOATING INPUT SOLUTION: Float input above keyboard on problematic browsers
+    const inputContainer = messageInput.closest('.message-input-container');
+    const messageThreadElement = messageInput.closest('.message-thread');
     
-    if (window.visualViewport) {
-        const handleViewportChange = () => {
-            const newHeight = window.visualViewport.height;
-            const screenHeight = window.screen.height;
-            keyboardHeight = screenHeight - newHeight;
-            
-            if (keyboardHeight > 150 && document.activeElement === messageInput) {
-                // Keyboard is open and input is focused
-                setTimeout(() => {
-                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    console.log('🔧 Viewport change detected - scrolling input');
-                }, 100);
-            }
-        };
-        
-        window.visualViewport.addEventListener('resize', handleViewportChange);
-        mobileInputListeners.push({
-            target: window.visualViewport,
-            event: 'resize',
-            listener: handleViewportChange
-        });
-    }
-    
-    // AGGRESSIVE SOLUTION: Try multiple scroll methods for stubborn browsers
     const handleInputFocus = () => {
-        // Try multiple approaches with different delays
-        const timeoutId1 = setTimeout(() => {
-            // Method 1: Standard scrollIntoView
-            messageInput.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-                inline: 'nearest'
-            });
-            console.log('📱 Method 1: scrollIntoView attempted');
-        }, 300);
+        console.log('🚀 Activating floating input for problematic browser');
         
-        const timeoutId2 = setTimeout(() => {
-            // Method 2: Manual scroll calculation for message container
-            const messageThread = messageInput.closest('.message-thread');
-            const scrollContainer = messageThread ? messageThread.querySelector('.message-scroll-container') : null;
-            
-            if (scrollContainer) {
-                const inputRect = messageInput.getBoundingClientRect();
-                const containerRect = scrollContainer.getBoundingClientRect();
-                const scrollTop = scrollContainer.scrollTop;
-                
-                // Calculate scroll position to center input in container
-                const targetScroll = scrollTop + (inputRect.top - containerRect.top) - (containerRect.height / 2);
-                
-                scrollContainer.scrollTo({
-                    top: Math.max(0, targetScroll),
-                    behavior: 'smooth'
-                });
-                console.log('📱 Method 2: Manual container scroll attempted');
+        // Add floating class to input container
+        if (inputContainer) {
+            inputContainer.classList.add('keyboard-floating');
+        }
+        
+        // Add class to message thread to dim original input
+        if (messageThreadElement) {
+            messageThreadElement.classList.add('has-floating-input');
+        }
+        
+        // Ensure input maintains focus after floating
+        setTimeout(() => {
+            if (messageInput && document.activeElement !== messageInput) {
+                messageInput.focus();
             }
-        }, 600);
-        
-                 const timeoutId3 = setTimeout(() => {
-             // Method 3: Force page scroll as last resort
-             const inputRect = messageInput.getBoundingClientRect();
-             const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-             
-             // If input is in bottom half of viewport, scroll page up
-             if (inputRect.top > viewportHeight / 2) {
-                 const scrollAmount = inputRect.top - (viewportHeight / 3);
-                 window.scrollBy({
-                     top: scrollAmount,
-                     behavior: 'smooth'
-                 });
-                 console.log('📱 Method 3: Page scroll attempted');
-             }
-         }, 900);
-         
-         // FACEBOOK BROWSER NUCLEAR OPTION: Most aggressive approach
-         if (isFacebookBrowser()) {
-             const timeoutId4 = setTimeout(() => {
-                 console.log('💀 FACEBOOK NUCLEAR: Applying extreme measures');
-                 
-                 // Method 4A: Add bottom padding to push input up
-                 const messageThread = messageInput.closest('.message-thread');
-                 if (messageThread) {
-                     messageThread.style.paddingBottom = '300px';
-                     messageThread.style.transition = 'padding-bottom 0.3s ease';
-                 }
-                 
-                 // Method 4B: Force multiple scroll attempts
-                 for (let i = 0; i < 5; i++) {
-                     setTimeout(() => {
-                         messageInput.scrollIntoView({ behavior: 'auto', block: 'center' });
-                         window.scrollBy({ top: -100, behavior: 'auto' });
-                         console.log(`💀 FB scroll attempt ${i + 1}`);
-                     }, i * 200);
-                 }
-             }, 1200);
-             
-             const timeoutId5 = setTimeout(() => {
-                 // Method 4C: Manual CSS transform as last resort
-                 const inputContainer = messageInput.closest('.message-input-container');
-                 if (inputContainer) {
-                     inputContainer.style.transform = 'translateY(-200px)';
-                     inputContainer.style.transition = 'transform 0.3s ease';
-                     console.log('💀 FB transform applied');
-                 }
-             }, 1500);
-             
-             scrollTimeouts.push(timeoutId4, timeoutId5);
-         }
-        
-        scrollTimeouts.push(timeoutId1, timeoutId2, timeoutId3);
+        }, 100);
     };
     
     const handleInputBlur = () => {
-        // Clean up any pending scrolls when focus is lost
-        scrollTimeouts.forEach(id => clearTimeout(id));
-        scrollTimeouts = [];
+        console.log('🚀 Deactivating floating input');
         
-        // FACEBOOK CLEANUP: Remove any extreme measures applied
-        if (isFacebookBrowser()) {
-            setTimeout(() => {
-                const messageThread = messageInput.closest('.message-thread');
-                const inputContainer = messageInput.closest('.message-input-container');
-                
-                if (messageThread) {
-                    messageThread.style.paddingBottom = '';
-                    messageThread.style.transition = '';
-                }
-                
-                if (inputContainer) {
-                    inputContainer.style.transform = '';
-                    inputContainer.style.transition = '';
-                }
-                
-                console.log('💀 FB cleanup completed');
-            }, 500); // Delay cleanup to let keyboard close
-        }
+        // Remove floating class with slight delay to prevent flicker
+        setTimeout(() => {
+            if (inputContainer) {
+                inputContainer.classList.remove('keyboard-floating');
+            }
+            
+            if (messageThreadElement) {
+                messageThreadElement.classList.remove('has-floating-input');
+            }
+        }, 200); // Delay to let keyboard close animation start
     };
     
     // ATTACH LISTENERS
