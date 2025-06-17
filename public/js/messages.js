@@ -2931,6 +2931,318 @@ const MOCK_APPLICATIONS = [
                 }
             }
         ]
+    },
+    {
+        jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+        jobTitle: 'Grocery shopping and delivery - weekly service',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-19T08:30:00Z'),
+        updatedAt: new Date('2025-12-22T16:20:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_nK7jM3xQ9rT6wL4sB8',
+                applicantUid: 'user_wL9kR5mT8qX3jN6sP2',
+                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T09:20:00Z'),
+                updatedAt: new Date('2025-12-21T09:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Miguel Cruz',
+                    photoURL: 'public/users/User-04.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 23,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T15:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 150,
+                    originalAmount: 180,
+                    currency: 'PHP',
+                    paymentType: 'per_trip',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I can do your weekly grocery shopping. I have my own vehicle and know all the best markets for fresh produce.',
+                
+                qualifications: {
+                    experience: '3 years',
+                    specializations: ['grocery shopping', 'delivery'],
+                    availability: 'weekends',
+                    transportation: 'own vehicle',
+                    languages: ['English', 'Filipino', 'Cebuano']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '9:20 AM',
+                    formattedPrice: '₱150 Per Trip'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rT8kN4xM7qW9jL3sC6',
+                applicantUid: 'user_jL3kN7mR9qT5wX8sB4',
+                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T11:45:00Z'),
+                updatedAt: new Date('2025-12-21T11:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Ana Reyes',
+                    photoURL: 'public/users/User-05.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 41,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T14:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 180,
+                    originalAmount: 180,
+                    currency: 'PHP',
+                    paymentType: 'per_trip',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I\'m very experienced with grocery shopping and always choose the freshest items. I can start immediately.',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['grocery shopping', 'fresh produce selection'],
+                    availability: 'flexible schedule',
+                    references: 'excellent customer feedback',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '11:45 AM',
+                    formattedPrice: '₱180 Per Trip'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_xW5kL8mQ2rT7jN9sK3',
+                applicantUid: 'user_qT6kW9mL3rX7jN4sC8',
+                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T07:15:00Z'),
+                updatedAt: new Date('2025-12-22T07:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Roberto Silva',
+                    photoURL: 'public/users/User-06.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 18,
+                    verified: false,
+                    lastActive: new Date('2025-12-22T16:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 120,
+                    originalAmount: 180,
+                    currency: 'PHP',
+                    paymentType: 'per_trip',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'I can help with your grocery needs. I\'m new to the platform but very reliable and hardworking.',
+                
+                qualifications: {
+                    experience: '1 year',
+                    specializations: ['delivery', 'shopping assistance'],
+                    availability: 'morning hours',
+                    transportation: 'motorcycle',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '7:15 AM',
+                    formattedPrice: '₱120 Per Trip'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_sH2kM6xT4qR9wN7jL3',
+        jobTitle: 'Garden maintenance - lawn mowing and plant care',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-20T13:15:00Z'),
+        updatedAt: new Date('2025-12-22T17:30:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_mQ4kT7xN2rW8jL5sH9',
+                applicantUid: 'user_rW8kQ4mT7xN2jL5sH9',
+                jobId: 'job_sH2kM6xT4qR9wN7jL3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T14:30:00Z'),
+                updatedAt: new Date('2025-12-21T14:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Juan Flores',
+                    photoURL: 'public/users/User-07.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 37,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T13:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 400,
+                    originalAmount: 450,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'I have 8 years experience in landscaping and garden maintenance. I bring my own tools and equipment.',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['landscaping', 'lawn care', 'plant maintenance'],
+                    availability: 'weekdays',
+                    equipment: 'professional tools included',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '2:30 PM',
+                    formattedPrice: '₱400 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_tL9kX3mR6qW2jN8sK4',
+                applicantUid: 'user_xN8kL9mR6qW2jT3sK4',
+                jobId: 'job_sH2kM6xT4qR9wN7jL3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T16:10:00Z'),
+                updatedAt: new Date('2025-12-21T16:10:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Elena Morales',
+                    photoURL: 'public/users/User-08.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 29,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T11:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 450,
+                    originalAmount: 450,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'I specialize in organic gardening and plant care. Your garden will be in excellent hands with me!',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['organic gardening', 'plant care', 'lawn maintenance'],
+                    availability: 'flexible',
+                    certifications: 'organic gardening certified',
+                    languages: ['English', 'Filipino', 'Spanish']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '4:10 PM',
+                    formattedPrice: '₱450 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_wK6kR9mT3xQ7jL2sN5',
+                applicantUid: 'user_mT3kW6rQ9xL7jN2sK5',
+                jobId: 'job_sH2kM6xT4qR9wN7jL3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T08:45:00Z'),
+                updatedAt: new Date('2025-12-22T08:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carlos Mendoza',
+                    photoURL: 'public/users/User-09.jpg',
+                    averageRating: 3.5,
+                    totalReviews: 14,
+                    verified: false,
+                    lastActive: new Date('2025-12-22T17:15:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 350,
+                    originalAmount: 450,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'I can take care of your garden at a good price. I\'m starting out but very motivated to do excellent work.',
+                
+                qualifications: {
+                    experience: '2 years',
+                    specializations: ['basic lawn care', 'weeding'],
+                    availability: 'weekends',
+                    transportation: 'bicycle',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '8:45 AM',
+                    formattedPrice: '₱350 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
     }
 ];
 
@@ -3326,19 +3638,40 @@ function extractParticipantId(threadId) {
 }
 
 /**
- * Get participant avatar from thread data
+ * Get participant avatar from thread data - CONSISTENT per participant
  * @param {string} threadId - Thread identifier
  * @returns {string} Avatar URL
  */
 function getParticipantAvatar(threadId) {
-    // Mock implementation - could extract from existing thread data
+    // CONSISTENT AVATAR: First try to get existing avatar from thread DOM
+    const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
+    if (threadElement) {
+        // Look for existing incoming message avatar in this thread
+        const existingAvatar = threadElement.querySelector('.message-card.incoming .message-avatar img');
+        if (existingAvatar && existingAvatar.src) {
+            return existingAvatar.src.replace(window.location.origin + '/', '');
+        }
+    }
+    
+    // If no existing avatar found, assign one consistently based on threadId
     const avatars = [
         'public/users/User-03.jpg',
-        'public/users/User-06.jpg',
+        'public/users/User-06.jpg', 
         'public/users/User-08.jpg',
         'public/users/User-10.jpg'
     ];
-    return avatars[Math.floor(Math.random() * avatars.length)];
+    
+    // Use threadId to create consistent hash for avatar selection
+    let hash = 0;
+    for (let i = 0; i < threadId.length; i++) {
+        const char = threadId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Use absolute value and modulo to get consistent index
+    const avatarIndex = Math.abs(hash) % avatars.length;
+    return avatars[avatarIndex];
 }
 
 /**
