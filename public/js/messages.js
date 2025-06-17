@@ -149,6 +149,7 @@ function initializeApplicationActions() {
             
             // Get applicant data from the card
             const userName = this.querySelector('[data-user-name]').getAttribute('data-user-name');
+            const userId = this.getAttribute('data-user-id');
             const userPhoto = this.querySelector('[data-user-photo]').getAttribute('data-user-photo');
             const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
             const reviewCount = parseInt(this.querySelector('[data-review-count]').getAttribute('data-review-count'));
@@ -167,13 +168,26 @@ function initializeApplicationActions() {
             
             // Store application data for hire button
             hireJobBtn.setAttribute('data-application-id', applicationId);
+            hireJobBtn.setAttribute('data-user-id', userId);
             hireJobBtn.setAttribute('data-user-name', userName);
+            
+            // Store application data for reject button
+            const rejectJobBtn = document.getElementById('rejectJobBtn');
+            if (rejectJobBtn) {
+                rejectJobBtn.setAttribute('data-application-id', applicationId);
+                rejectJobBtn.setAttribute('data-user-id', userId);
+                rejectJobBtn.setAttribute('data-user-name', userName);
+                console.log('=== SETTING REJECT BUTTON DATA ===');
+                console.log('Application ID set to:', applicationId);
+                console.log('User ID set to:', userId);
+                console.log('User Name set to:', userName);
+            } else {
+                console.error('Reject button not found!');
+            }
             
             // Store application data for contact button
             const contactBtn = document.getElementById('contactBtn');
             if (contactBtn) {
-                // Generate a user ID from the user name (in a real app, this would come from the database)
-                const userId = userName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
                 contactBtn.setAttribute('data-user-id', userId);
                 contactBtn.setAttribute('data-user-name', userName);
                 contactBtn.setAttribute('data-application-id', applicationId);
@@ -242,10 +256,11 @@ function initializeApplicationActions() {
     if (hireJobBtn) {
         hireJobBtn.addEventListener('click', function() {
             const applicationId = this.getAttribute('data-application-id');
+            const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
             
             // Get the application card to extract additional data
-            const hireApplicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+            const hireApplicationCard = document.querySelector(`.application-card[data-application-id="${applicationId}"]`);
             let jobData = {};
             
             if (hireApplicationCard) {
@@ -272,7 +287,12 @@ function initializeApplicationActions() {
                 const applicationTime = hireApplicationCard.querySelector('[data-application-time]');
                 const applicationMessage = hireApplicationCard.querySelector('[data-application-message]');
                 
+                // Get job ID from the job listing
+                const jobListing = hireApplicationCard.closest('.job-listing');
+                const jobId = jobListing ? jobListing.querySelector('.job-header').getAttribute('data-job-id') : null;
+                
                 jobData = {
+                    jobId: jobId,
                     jobTitle: jobTitle,
                     originalPrice: originalPrice,
                     agreedPrice: priceAmount,
@@ -280,6 +300,7 @@ function initializeApplicationActions() {
                     isCounterOffer: isCounterOffer,
                     offerType: offerType,
                     applicantDetails: {
+                        userId: userId,
                         name: userName,
                         photo: userPhotoSrc,
                         rating: rating,
@@ -354,19 +375,92 @@ function initializeApplicationActions() {
     const rejectJobBtn = document.getElementById('rejectJobBtn');
     if (rejectJobBtn) {
         rejectJobBtn.addEventListener('click', function() {
-            const applicationId = hireJobBtn.getAttribute('data-application-id');
-            const userName = hireJobBtn.getAttribute('data-user-name');
+            const applicationId = this.getAttribute('data-application-id');
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
             
-            // Here you would send rejection data to backend
-            console.log('Backend data to send:', {
+            console.log('=== REJECT BUTTON CLICKED ===');
+            console.log('Application ID:', applicationId);
+            console.log('User Name:', userName);
+            
+            // Get the application card to extract additional data for comprehensive backend logging
+            const rejectApplicationCard = document.querySelector(`.application-card[data-application-id="${applicationId}"]`);
+            let rejectionData = {
                 action: 'reject',
                 applicationId: applicationId,
+                userId: userId,
                 userName: userName,
                 timestamp: new Date().toISOString()
-            });
+            };
+            
+            if (rejectApplicationCard) {
+                // Extract comprehensive application data for backend
+                const jobTitle = rejectApplicationCard.getAttribute('data-job-title');
+                const originalPrice = rejectApplicationCard.getAttribute('data-original-price');
+                const isCounterOffer = rejectApplicationCard.getAttribute('data-is-counter-offer') === 'true';
+                
+                // Get price offer details
+                const priceElement = rejectApplicationCard.querySelector('[data-price-amount]');
+                const priceAmount = priceElement ? priceElement.getAttribute('data-price-amount') : null;
+                const priceType = priceElement ? priceElement.getAttribute('data-price-type') : null;
+                const offerType = priceElement ? priceElement.getAttribute('data-offer-type') : null;
+                
+                // Get applicant details
+                const userPhoto = rejectApplicationCard.querySelector('[data-user-photo]');
+                const userPhotoSrc = userPhoto ? userPhoto.getAttribute('data-user-photo') : null;
+                const userRating = rejectApplicationCard.querySelector('[data-user-rating]');
+                const rating = userRating ? parseInt(userRating.getAttribute('data-user-rating')) : null;
+                const reviewCount = userRating ? parseInt(userRating.getAttribute('data-review-count')) : null;
+                
+                // Get application details
+                const applicationDate = rejectApplicationCard.querySelector('[data-application-date]');
+                const applicationTime = rejectApplicationCard.querySelector('[data-application-time]');
+                const applicationMessage = rejectApplicationCard.querySelector('[data-application-message]');
+                
+                // Get job ID from the job listing
+                const jobListing = rejectApplicationCard.closest('.job-listing');
+                const jobId = jobListing ? jobListing.querySelector('.job-header').getAttribute('data-job-id') : null;
+                
+                // Build comprehensive rejection data
+                                 rejectionData = {
+                     action: 'reject',
+                     applicationId: applicationId,
+                     userId: userId,
+                     jobId: jobId,
+                     timestamp: new Date().toISOString(),
+                    jobDetails: {
+                        jobTitle: jobTitle,
+                        originalPrice: originalPrice,
+                        offeredPrice: priceAmount,
+                        priceType: priceType,
+                        isCounterOffer: isCounterOffer,
+                        offerType: offerType
+                    },
+                                         applicantDetails: {
+                         userId: userId,
+                         name: userName,
+                         photo: userPhotoSrc,
+                         rating: rating,
+                         reviewCount: reviewCount
+                     },
+                    applicationDetails: {
+                        date: applicationDate ? applicationDate.getAttribute('data-application-date') : null,
+                        time: applicationTime ? applicationTime.getAttribute('data-application-time') : null,
+                        message: applicationMessage ? applicationMessage.getAttribute('data-application-message') : null
+                    },
+                    rejectionReason: 'manual_rejection', // Could be enhanced to capture specific reasons
+                    status: 'rejected'
+                };
+            }
+            
+            // Here you would send comprehensive rejection data to backend
+            console.log('Backend data to send:', rejectionData);
             
             // Remove the application card from UI (mock functionality)
-            const applicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+            const applicationCard = document.querySelector(`.application-card[data-application-id="${applicationId}"]`);
+            console.log('Application card found:', applicationCard);
+            console.log('Selector used:', `.application-card[data-application-id="${applicationId}"]`);
+            
             if (applicationCard) {
                 // Check if this will be the last application BEFORE removing it
                 const jobListing = applicationCard.closest('.job-listing');
@@ -393,6 +487,7 @@ function initializeApplicationActions() {
                         if (willBeEmpty) {
                              // Update the application count to 0 and collapse the listing
                              const countElement = jobListing.querySelector('.application-count');
+                             console.log('=== HANDLING LAST CARD REMOVAL ===');
                              console.log('Count element found:', countElement);
                              console.log('Current count text:', countElement ? countElement.textContent : 'null');
                              
@@ -410,16 +505,22 @@ function initializeApplicationActions() {
                                  jobListing.classList.remove('expanded');
                                  applicationsList.style.display = 'none';
                                  expandIcon.textContent = '▼';
+                                 console.log('Collapsed job listing');
                              }
                          } else {
-                             // Update the application count
-                             const remainingApplications = jobListing.querySelectorAll('.application-card');
-                             const countElement = jobListing.querySelector('.application-count');
-                             if (countElement) {
-                                 const newCount = remainingApplications.length;
-                                 countElement.textContent = newCount.toString();
-                                 console.log('Updated count to:', newCount);
-                             }
+                             // Update the application count after ensuring DOM is updated
+                             setTimeout(() => {
+                                 const remainingApplications = jobListing.querySelectorAll('.application-card');
+                                 const countElement = jobListing.querySelector('.application-count');
+                                 console.log('=== UPDATING REMAINING COUNT ===');
+                                 console.log('Remaining applications found:', remainingApplications.length);
+                                 console.log('Count element found:', countElement);
+                                 if (countElement) {
+                                     const newCount = remainingApplications.length;
+                                     countElement.textContent = newCount.toString();
+                                     console.log('Updated count to:', newCount);
+                                 }
+                             }, 10); // Small delay to ensure DOM is fully updated
                          }
                      }
                     
@@ -1100,12 +1201,16 @@ function initializeContactMessageOverlay() {
                 // Here you would send the message to backend
                 console.log('Backend data to send:', {
                     action: 'send_contact_message',
+                    senderId: 'current_user_id', // In real app, get from authentication
+                    senderName: 'Current User', // In real app, get from authentication
                     recipientId: userId,
                     recipientName: userName,
                     applicationId: applicationId,
                     message: message,
                     timestamp: new Date().toISOString(),
-                    messageType: 'contact_inquiry'
+                    messageType: 'contact_inquiry',
+                    messageLength: message.length,
+                    channelType: 'application_inquiry'
                 });
                 
                 // Close contact overlay

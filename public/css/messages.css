@@ -603,6 +603,7 @@ body:has(.messages-header) {
   .contact-message-modal {
     max-width: 95%;
     margin: 20px;
+    transform: translateY(-25px); /* Move 25px higher on mobile */
   }
   
   .contact-message-header {
