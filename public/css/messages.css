@@ -1429,17 +1429,17 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Mobile Independent Tab Wrappers - FIXED POSITIONING */
   .tab-content-wrapper {
-    top: 110px; /* Mobile: 68px header + 4px border + 38px tabs = 110px */
-    height: calc(100vh - 110px);
+    top: 120px; /* Mobile: 68px header + 4px border + 38px tabs + 10px gap = 120px */
+    height: calc(100vh - 120px);
   }
 
   /* Mobile Notification Containers */
   .notifications-container {
-    padding: 0 0 20px 0;
+    padding: 0 0 60px 0; /* More bottom padding for mobile scrolling */
   }
 
   #notifications-content {
-    padding: 0 0 20px 0;
+    padding: 0 0 60px 0; /* More bottom padding for mobile scrolling */
   }
 
   .messages-content {
@@ -1626,7 +1626,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Mobile Selection Controls */
   .selection-controls {
-    top: 120px; /* Mobile: 110px content top + 10px padding = 120px */
+    top: 130px; /* Mobile: 120px content top + 10px padding = 130px */
     padding: 10px 12px;
     max-width: 100vw;
     overflow: hidden;
