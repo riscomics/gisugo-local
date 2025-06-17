@@ -1260,6 +1260,12 @@ let isKeyboardActive = false;
 let keyboardDetectionTimeout = null;
 
 function initializeMessageThreadKeyboardDetection(messageThread) {
+    // DISABLED: This feature is causing UI issues where message threads move off-screen
+    // The keyboard detection is too unpredictable across different browsers and causing
+    // more problems than it solves. Users can scroll manually if needed.
+    console.log('Message thread keyboard detection disabled to prevent UI conflicts');
+    return;
+    
     // Only run on mobile devices
     if (window.innerWidth > 600) return;
     
