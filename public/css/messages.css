@@ -1848,10 +1848,44 @@ body:has(.selection-controls[style*="display: flex"]) {
   -webkit-overflow-scrolling: touch;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
 .message-scroll-container::-webkit-scrollbar {
   display: none;
+}
+
+/* DIMMING EFFECT: When input is focused, dim the messages for elegance */
+.message-thread.input-focused .message-scroll-container {
+  opacity: 0.4;
+  pointer-events: none; /* Prevent interaction with dimmed content */
+}
+
+/* Also dim the thread header slightly when input is focused */
+.message-thread.input-focused .message-thread-header {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+/* Enhanced elegance: Add subtle background overlay when input is focused */
+.message-thread.input-focused::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.3s ease;
+}
+
+/* Ensure input container stays above the overlay */
+.message-thread.input-focused .message-input-container {
+  position: relative;
+  z-index: 20;
 }
 
 /* Message Card Styles */
@@ -2051,11 +2085,40 @@ body:has(.selection-controls[style*="display: flex"]) {
   position: sticky;
   top: 0;
   z-index: 10;
+  transition: all 0.3s ease;
+}
+
+/* INPUT FOCUS ELEGANCE: Enhanced styling when input is focused */
+.message-input-container.input-focused {
+  background: #354048;
+  border-bottom-color: #f0d0aa;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 15;
+}
+
+.message-input-container.input-focused .message-input {
+  border-color: #f0d0aa;
+  box-shadow: 0 0 0 2px rgba(240, 208, 170, 0.2);
+}
+
+/* DYNAMIC STYLING: Enhanced appearance when focused/typing */
+.message-input.expanded {
+  height: 40px !important; /* Expand to 2-row height when typing */
+  padding: 12px 16px !important; /* More padding when expanded */
+  border-radius: 16px !important; /* Slightly less rounded when expanded */
+  overflow-y: auto; /* Allow scroll if needed */
+  background-color: #2d3748 !important; /* Debug color to see if rule applies */
+}
+
+.message-input-container.input-focused .message-send-btn {
+  background: #f0d0aa;
+  color: #2d3748;
+  transform: scale(1.05);
 }
 
 .message-input {
   flex: 1;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border: 2px solid #4a5568;
   border-radius: 24px;
   background: #354048;
@@ -2063,7 +2126,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   font-size: 0.9rem;
   font-family: Arial, Helvetica, sans-serif;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, border-radius 0.3s ease, height 0.3s ease, padding 0.3s ease;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
+  height: 20px; /* True single row height */
 }
 
 .message-input:focus {
@@ -2105,8 +2172,17 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .message-input {
-    padding: 10px 14px;
+    padding: 6px 14px;
     font-size: 0.85rem;
+    height: 18px; /* True single row height for mobile */
+  }
+  
+  /* Mobile dynamic styling adjustment */
+  .message-input.expanded {
+    height: 36px; /* Expand to 2-row height on mobile */
+    padding: 10px 14px; /* More padding when expanded */
+    border-radius: 14px;
+    overflow-y: auto; /* Allow scroll if needed */
   }
 
   .message-send-btn {

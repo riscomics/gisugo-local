@@ -2200,7 +2200,7 @@ function generateMessageThreadHTML(thread) {
             <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
                 <!-- MESSAGE INPUT AT TOP - Never covered by keyboard -->
                 <div class="message-input-container">
-                    <input type="text" class="message-input" placeholder="Type a message..." maxlength="200">
+                    <textarea class="message-input" placeholder="Type a message..." maxlength="200" rows="1"></textarea>
                     <button class="message-send-btn">Send</button>
                 </div>
                 
@@ -2303,6 +2303,9 @@ function initializeMessages() {
                     
                     // Initialize mobile keyboard handling for input visibility
                     initializeMobileInputVisibility(messageThread);
+                    
+                    // Initialize input focus elegance for dimming effect
+                    initializeInputFocusElegance(messageThread);
                 }
             }
         });
@@ -3010,6 +3013,80 @@ function loadApplicationsTab() {
         console.log('Applications tab content loaded independently');
     } else {
         console.error('Applications container not found');
+    }
+}
+
+// INPUT FOCUS ELEGANCE: Dim surrounding content when input is focused
+function initializeInputFocusElegance(messageThread) {
+    const inputField = messageThread.querySelector('.message-input');
+    const inputContainer = messageThread.querySelector('.message-input-container');
+    
+    if (inputField && inputContainer) {
+        console.log('Initializing input focus elegance for thread');
+        
+        // Focus event - add dimming classes with slight delay for smooth effect
+        inputField.addEventListener('focus', function() {
+            console.log('Input focused - applying elegance effect');
+            setTimeout(() => {
+                inputContainer.classList.add('input-focused');
+                messageThread.classList.add('input-focused');
+            }, 100);
+        });
+        
+        // Blur event - remove dimming classes
+        inputField.addEventListener('blur', function() {
+            console.log('Input blurred - removing elegance effect');
+            inputContainer.classList.remove('input-focused');
+            messageThread.classList.remove('input-focused');
+        });
+        
+        // Enhanced typing feedback - expand to 2 rows when typing
+        inputField.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                // Add expanded styling when user starts typing
+                this.classList.add('expanded');
+                if (document.activeElement === this) {
+                    inputContainer.classList.add('input-focused');
+                    messageThread.classList.add('input-focused');
+                }
+            } else {
+                // Remove expanded styling when empty
+                this.classList.remove('expanded');
+                // Keep focus styling if still focused
+                if (document.activeElement === this) {
+                    inputContainer.classList.add('input-focused');
+                    messageThread.classList.add('input-focused');
+                } else {
+                    inputContainer.classList.remove('input-focused');
+                    messageThread.classList.remove('input-focused');
+                }
+            }
+        });
+        
+        // Mobile-specific: Handle keyboard show/hide with Visual Viewport API
+        if ('visualViewport' in window) {
+            const handleViewportChange = () => {
+                if (document.activeElement === inputField) {
+                    // Input is focused and viewport changed (likely keyboard)
+                    console.log('Mobile keyboard detected - applying focus elegance');
+                    inputContainer.classList.add('input-focused');
+                    messageThread.classList.add('input-focused');
+                }
+            };
+            
+            window.visualViewport.addEventListener('resize', handleViewportChange);
+            
+            // Store cleanup function for potential future use
+            messageThread._cleanupFocusElegance = () => {
+                if (window.visualViewport) {
+                    window.visualViewport.removeEventListener('resize', handleViewportChange);
+                }
+            };
+        }
+        
+        console.log('Input focus elegance initialized successfully');
+    } else {
+        console.warn('Input field or container not found for focus elegance');
     }
 }
 
