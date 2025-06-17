@@ -2098,6 +2098,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   .message-input-container {
     padding: 12px;
     gap: 8px;
+    /* KEYBOARD VISIBILITY FIX: Ensure input stays above keyboard */
+    position: relative;
+    z-index: 1000;
   }
 
   .message-input {
@@ -2108,6 +2111,23 @@ body:has(.selection-controls[style*="display: flex"]) {
   .message-send-btn {
     padding: 10px 16px;
     font-size: 0.8rem;
+  }
+  
+  /* ADDITIONAL FIX: Force scroll behavior on message threads when input is focused */
+  .message-thread.expanded .message-scroll-container {
+    /* Allow smooth scrolling to show input */
+    scroll-behavior: smooth;
+    /* Ensure container can scroll to show input */
+    overflow-y: auto !important;
+  }
+  
+  /* iOS SPECIFIC: Handle viewport changes */
+  @supports (-webkit-touch-callout: none) {
+    .message-input-container {
+      /* Prevent input from being hidden behind iOS keyboard */
+      margin-bottom: env(keyboard-inset-height, 0px);
+      transition: margin-bottom 0.3s ease;
+    }
   }
 }
 

@@ -2600,19 +2600,83 @@ function initializeMobileInputVisibility(messageThread) {
     
     console.log('🔧 Applying input visibility fix for problematic browser');
     
-    // SIMPLE SOLUTION: Scroll input into view when keyboard appears
+    // VIEWPORT MONITORING: Watch for keyboard changes
+    let keyboardHeight = 0;
+    
+    if (window.visualViewport) {
+        const handleViewportChange = () => {
+            const newHeight = window.visualViewport.height;
+            const screenHeight = window.screen.height;
+            keyboardHeight = screenHeight - newHeight;
+            
+            if (keyboardHeight > 150 && document.activeElement === messageInput) {
+                // Keyboard is open and input is focused
+                setTimeout(() => {
+                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    console.log('🔧 Viewport change detected - scrolling input');
+                }, 100);
+            }
+        };
+        
+        window.visualViewport.addEventListener('resize', handleViewportChange);
+        mobileInputListeners.push({
+            target: window.visualViewport,
+            event: 'resize',
+            listener: handleViewportChange
+        });
+    }
+    
+    // AGGRESSIVE SOLUTION: Try multiple scroll methods for stubborn browsers
     const handleInputFocus = () => {
-        // Delay for keyboard animation to start
-        const timeoutId = setTimeout(() => {
+        // Try multiple approaches with different delays
+        const timeoutId1 = setTimeout(() => {
+            // Method 1: Standard scrollIntoView
             messageInput.scrollIntoView({
                 behavior: 'smooth',
-                block: 'center',    // Center the input in viewport
+                block: 'center',
                 inline: 'nearest'
             });
-            console.log('📱 Scrolled input into view for keyboard visibility');
-        }, 400); // Slightly longer delay for reliability
+            console.log('📱 Method 1: scrollIntoView attempted');
+        }, 300);
         
-        scrollTimeouts.push(timeoutId);
+        const timeoutId2 = setTimeout(() => {
+            // Method 2: Manual scroll calculation for message container
+            const messageThread = messageInput.closest('.message-thread');
+            const scrollContainer = messageThread ? messageThread.querySelector('.message-scroll-container') : null;
+            
+            if (scrollContainer) {
+                const inputRect = messageInput.getBoundingClientRect();
+                const containerRect = scrollContainer.getBoundingClientRect();
+                const scrollTop = scrollContainer.scrollTop;
+                
+                // Calculate scroll position to center input in container
+                const targetScroll = scrollTop + (inputRect.top - containerRect.top) - (containerRect.height / 2);
+                
+                scrollContainer.scrollTo({
+                    top: Math.max(0, targetScroll),
+                    behavior: 'smooth'
+                });
+                console.log('📱 Method 2: Manual container scroll attempted');
+            }
+        }, 600);
+        
+        const timeoutId3 = setTimeout(() => {
+            // Method 3: Force page scroll as last resort
+            const inputRect = messageInput.getBoundingClientRect();
+            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            
+            // If input is in bottom half of viewport, scroll page up
+            if (inputRect.top > viewportHeight / 2) {
+                const scrollAmount = inputRect.top - (viewportHeight / 3);
+                window.scrollBy({
+                    top: scrollAmount,
+                    behavior: 'smooth'
+                });
+                console.log('📱 Method 3: Page scroll attempted');
+            }
+        }, 900);
+        
+        scrollTimeouts.push(timeoutId1, timeoutId2, timeoutId3);
     };
     
     const handleInputBlur = () => {
