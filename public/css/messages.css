@@ -992,7 +992,7 @@ body:has(.messages-header) {
 
 /* Tab label styling */
 .tab-label {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1014,14 +1014,14 @@ body:has(.messages-header) {
 
 /* Notifications Container */
 .notifications-container {
-  padding: 0 0 20px 0; /* Minimal bottom padding for desktop */
+  padding: 0 0 20px 0; /* Minimal bottom padding for mobile */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 /* Remove any gaps in notifications tab */
 #notifications-content {
-  padding: 0 0 20px 0; /* Minimal bottom padding for desktop */
+  padding: 0 0 20px 0; /* Minimal bottom padding for mobile */
   margin: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1414,11 +1414,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .messages-tabs {
-    top: 72px;
+    top: 72px; /* Mobile: 68px header + 4px border = 72px */
   }
 
   .tab-btn {
-    padding: 10px 8px;
+    padding: 10px 8px; /* Compact mobile tabs */
     font-size: 0.85rem;
     gap: 3px;
   }
@@ -1427,23 +1427,23 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 0.8rem;
   }
 
-  /* Mobile Independent Tab Wrappers */
+  /* Mobile Independent Tab Wrappers - FIXED POSITIONING */
   .tab-content-wrapper {
-    top: 132px; /* Below mobile header and tabs */
-    height: calc(100vh - 132px);
+    top: 110px; /* Mobile: 68px header + 4px border + 38px tabs = 110px */
+    height: calc(100vh - 110px);
   }
 
-  /* Mobile Notification Containers - Extra bottom padding for mobile scrolling issues */
+  /* Mobile Notification Containers */
   .notifications-container {
-    padding: 0 0 40px 0; /* Reduced bottom padding for mobile to ensure last item is fully visible */
+    padding: 0 0 20px 0;
   }
 
   #notifications-content {
-    padding: 0 0 40px 0; /* Reduced bottom padding for mobile to ensure last item is fully visible */
+    padding: 0 0 20px 0;
   }
 
   .messages-content {
-    margin-top: 25px; /* Mobile - proper clearance so titles aren't hidden under tabs + 10px extra */
+    margin-top: 25px;
     min-height: calc(100vh - 35px);
   }
 
@@ -1585,7 +1585,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 0.65rem;
     padding: 1px 4px;
     min-width: 16px;
-    margin: 0; /* Remove margin since it's now in flex layout */
+    margin: 0;
   }
 
   .notification-item {
@@ -1626,14 +1626,13 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Mobile Selection Controls */
   .selection-controls {
-    top: 142px; /* Adjusted for mobile tab position with extra clearance - increased by 10px */
+    top: 120px; /* Mobile: 110px content top + 10px padding = 120px */
     padding: 10px 12px;
-    max-width: 100vw; /* Prevent horizontal overflow on mobile */
+    max-width: 100vw;
     overflow: hidden;
-    height: 52px; /* Fixed height for mobile */
+    height: 52px;
   }
 
-  /* Ensure proper collapse when hidden on mobile */
   .selection-controls:not([style*="display: flex"]) {
     height: 0;
     padding: 0;
@@ -1657,18 +1656,16 @@ body:has(.selection-controls[style*="display: flex"]) {
     min-width: 60px;
   }
 
-  /* Mobile selection adjustment for independent tabs */
   .tab-content-wrapper.selection-active .tab-scroll-container {
-    margin-top: 52px; /* Mobile selection controls height */
+    margin-top: 52px;
     height: calc(100% - 52px);
   }
 
   .messages-content.selection-active {
-    margin-top: 105px !important; /* Mobile margin + selection bar + extra clearance - increased by 10px */
+    margin-top: 105px !important;
     transition: margin-top 0.2s ease;
   }
 
-  /* Mobile read indicator */
   .read-indicator {
     top: 8px;
     right: 8px;
@@ -1689,7 +1686,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-radius: 8px;
   max-width: 625px;
   width: 90%;
-  /* Removed transition to avoid conflict with expansion animation */
 }
 
 .message-thread.expanded {
@@ -1717,21 +1713,21 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Move entire expanded thread to top */
 .message-thread.expanded {
   position: fixed;
-  top: 185px; /* Position under tabs with more spacing: 109px header + 46px tabs + 30px spacing */
+  top: 185px;
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
   max-width: 625px;
-  z-index: 998; /* Below tabs but above content */
-  margin: 0; /* Remove default margin */
-  opacity: 0; /* Start invisible for JS animation */
+  z-index: 998;
+  margin: 0;
+  opacity: 0;
   transition: opacity 0.3s ease-in-out;
 }
 
 /* Show expanded thread after positioning */
 .message-thread.expanded.show {
   opacity: 1;
-  border: 1px solid rgba(240, 208, 170, 0.3); /* Subtle golden border */
+  border: 1px solid rgba(240, 208, 170, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(240, 208, 170, 0.1);
 }
 
@@ -1759,8 +1755,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-color: rgba(240, 208, 170, 0.5);
 }
 
-
-
 /* Enhanced styling for expanded thread header */
 .message-thread.expanded .message-thread-header {
   background: #2d3748;
@@ -1771,7 +1765,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Reset content margin when expanded */
 .message-thread.expanded .message-thread-content {
-  margin-top: 0; /* Reset margin since whole thread is positioned */
+  margin-top: 0;
 }
 
 /* Lightbox overlay for expanded thread */
@@ -1783,7 +1777,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.4);
-  z-index: 997; /* Below expanded thread but above everything else */
+  z-index: 997;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
 }
@@ -1846,19 +1840,18 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-scroll-container {
-  max-height: 481px; /* Reduced by 5% from 506px to ensure input field visibility */
+  max-height: 481px;
   overflow-y: auto;
   padding: 15px;
   background: #354048;
   border-radius: 0 0 8px 8px;
   -webkit-overflow-scrolling: touch;
-  /* Hide scrollbar */
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;     /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .message-scroll-container::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+  display: none;
 }
 
 /* Message Card Styles */
@@ -1874,11 +1867,11 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-card.incoming {
-  align-items: flex-end; /* Push everything to RIGHT side */
+  align-items: flex-end;
 }
 
 .message-card.outgoing {
-  align-items: flex-start; /* Push everything to LEFT side */
+  align-items: flex-start;
 }
 
 .message-header {
@@ -1890,11 +1883,11 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-card.incoming .message-header {
-  flex-direction: row; /* Avatar left, info right for incoming on RIGHT side */
+  flex-direction: row;
 }
 
 .message-card.outgoing .message-header {
-  flex-direction: row; /* Avatar left, info right for outgoing on LEFT side */
+  flex-direction: row;
 }
 
 .message-info {
@@ -1902,11 +1895,11 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-card.incoming .message-info {
-  text-align: right; /* Right align for messages on RIGHT side */
+  text-align: right;
 }
 
 .message-card.outgoing .message-info {
-  text-align: left; /* Left align for messages on LEFT side */
+  text-align: left;
 }
 
 .message-sender {
@@ -1940,7 +1933,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 .message-bubble {
   padding: 12px 16px;
   border-radius: 18px;
-  font-size: 1.025rem; /* Increased by 2px equivalent from 0.9rem */
+  font-size: 1.025rem;
   line-height: 1.4;
   max-width: 80%;
   word-wrap: break-word;
@@ -1951,7 +1944,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 .message-bubble.incoming {
   background: #4299e1;
   color: #ffffff;
-  align-self: flex-end; /* RIGHT side bubbles */
+  align-self: flex-end;
   border-top-right-radius: 4px;
   max-width: 85%;
 }
@@ -1971,7 +1964,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 .message-bubble.outgoing {
   background: #48bb78;
   color: #ffffff;
-  align-self: flex-start; /* LEFT side bubbles */
+  align-self: flex-start;
   border-top-left-radius: 4px;
   max-width: 85%;
 }
@@ -2013,18 +2006,15 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .message-scroll-container {
-    max-height: 460px; /* Increased further from 418px for even more thread visibility */
+    max-height: 460px;
     padding: 12px;
   }
 
-  /* Mobile positioning adjustment */
   .message-thread.expanded {
-    top: 138px; /* Mobile: 70px header + 38px tabs + 30px spacing */
+    top: 138px;
     width: 95%;
   }
   
-
-
   .message-card {
     margin-bottom: 12px;
   }
@@ -2044,7 +2034,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   .message-bubble {
     padding: 10px 14px;
-    font-size: 0.975rem; /* Increased by 2px equivalent from 0.85rem */
+    font-size: 0.975rem;
     max-width: 85%;
   }
 }
