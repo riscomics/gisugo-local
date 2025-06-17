@@ -2178,7 +2178,12 @@ function generateMessageThreadHTML(thread) {
         `data-last-message-time="${thread.lastMessageTime}"`
     ].join(' ');
 
-    const messagesHTML = thread.messages.map(message => generateMessageHTML(message)).join('');
+    // REVERSE MESSAGE ORDER: Newest messages at top
+    const messagesHTML = thread.messages
+        .slice()  // Create copy to avoid mutating original
+        .reverse()  // Reverse so newest is first
+        .map(message => generateMessageHTML(message))
+        .join('');
 
     return `
         <div class="message-thread" ${threadDataAttrs}>
@@ -2193,14 +2198,15 @@ function generateMessageThreadHTML(thread) {
                 </div>
             </div>
             <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
-                <div class="message-scroll-container">
-                    ${messagesHTML}
-                </div>
-                
-                <!-- Message Input Area -->
+                <!-- MESSAGE INPUT AT TOP - Never covered by keyboard -->
                 <div class="message-input-container">
                     <input type="text" class="message-input" placeholder="Type a message..." maxlength="200">
                     <button class="message-send-btn">Send</button>
+                </div>
+                
+                <!-- Messages below input - newest at top -->
+                <div class="message-scroll-container">
+                    ${messagesHTML}
                 </div>
             </div>
         </div>
@@ -2256,8 +2262,8 @@ function initializeMessages() {
                     // Remove thread-active class and overlay from container
                     messagesContainer.classList.remove('thread-active', 'show-overlay');
                     
-                    // Clean up keyboard detection for message threads - ALWAYS clean up
-                    cleanupMessageThreadKeyboardDetection();
+                    // Clean up mobile input visibility handlers
+                    cleanupMobileInputVisibility();
                 } else {
                     // First, close all other expanded threads
                     closeAllMessageThreads();
@@ -2287,11 +2293,11 @@ function initializeMessages() {
                         updateMessageCount();
                     }
                     
-                    // Scroll message container to bottom to show latest messages
+                    // Keep scroll at top since newest messages are now at top
                     setTimeout(() => {
                         const scrollContainer = threadContent.querySelector('.message-scroll-container');
                         if (scrollContainer) {
-                            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                            scrollContainer.scrollTop = 0;
                         }
                     }, 150);
                     
@@ -2576,85 +2582,10 @@ let mobileInputListeners = [];
 let scrollTimeouts = [];
 
 function initializeMobileInputVisibility(messageThread) {
-    // MOBILE ONLY - Exit immediately on desktop
-    if (window.innerWidth > 600) return;
-    
-    const messageInput = messageThread.querySelector('.message-input');
-    if (!messageInput) return;
-    
-    // TARGET PROBLEMATIC BROWSERS ONLY
-    const needsKeyboardFix = () => {
-        const ua = navigator.userAgent.toLowerCase();
-        return ua.includes('fban') ||        // Facebook in-app browser  
-               ua.includes('fbav') ||        // Facebook app
-               ua.includes('instagram') ||   // Instagram in-app browser
-               ua.includes('snapchat') ||    // Snapchat in-app browser
-               (ua.includes('safari') && ua.includes('mobile')); // iOS Safari/Chrome
-    };
-    
-    // DETECT FACEBOOK BROWSER specifically for extra aggressive treatment
-    const isFacebookBrowser = () => {
-        const ua = navigator.userAgent.toLowerCase();
-        return ua.includes('fban') || ua.includes('fbav');
-    };
-    
-    // SKIP WORKING BROWSERS (like Samsung Chrome)
-    if (!needsKeyboardFix()) {
-        console.log('✓ Browser handles keyboard properly - no fix needed');
-        return;
-    }
-    
-    console.log('🔧 Applying input visibility fix for problematic browser');
-    
-        // FLOATING INPUT SOLUTION: Float input above keyboard on problematic browsers
-    const inputContainer = messageInput.closest('.message-input-container');
-    const messageThreadElement = messageInput.closest('.message-thread');
-    
-    const handleInputFocus = () => {
-        console.log('🚀 Activating floating input for problematic browser');
-        
-        // Add floating class to input container
-        if (inputContainer) {
-            inputContainer.classList.add('keyboard-floating');
-        }
-        
-        // Add class to message thread to dim original input
-        if (messageThreadElement) {
-            messageThreadElement.classList.add('has-floating-input');
-        }
-        
-        // Ensure input maintains focus after floating
-        setTimeout(() => {
-            if (messageInput && document.activeElement !== messageInput) {
-                messageInput.focus();
-            }
-        }, 100);
-    };
-    
-    const handleInputBlur = () => {
-        console.log('🚀 Deactivating floating input');
-        
-        // Remove floating class with slight delay to prevent flicker
-        setTimeout(() => {
-            if (inputContainer) {
-                inputContainer.classList.remove('keyboard-floating');
-            }
-            
-            if (messageThreadElement) {
-                messageThreadElement.classList.remove('has-floating-input');
-            }
-        }, 200); // Delay to let keyboard close animation start
-    };
-    
-    // ATTACH LISTENERS
-    messageInput.addEventListener('focus', handleInputFocus);
-    messageInput.addEventListener('blur', handleInputBlur);
-    
-    // STORE FOR CLEANUP
-    mobileInputListeners.push(
-        { target: messageInput, event: 'focus', listener: handleInputFocus },
-        { target: messageInput, event: 'blur', listener: handleInputBlur }
-    );
+    // DISABLED: Reverting to simpler UI restructure approach
+    // Input will be moved to top of thread to avoid keyboard entirely
+    console.log('✓ Mobile input visibility - using top-input layout approach');
+    return;
 }
 
 function cleanupMobileInputVisibility() {

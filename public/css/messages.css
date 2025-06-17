@@ -2039,14 +2039,18 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Message Input Styles */
+/* Message Input Styles - Now at TOP of thread */
 .message-input-container {
   display: flex;
   gap: 10px;
   padding: 15px;
   background: #2d3748;
-  border-top: 1px solid #4a5568;
+  border-bottom: 2px solid #4a5568; /* Bottom border since it's at top now */
   align-items: center;
+  /* Ensure input stays at top and never gets covered by keyboard */
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .message-input {
@@ -2098,9 +2102,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   .message-input-container {
     padding: 12px;
     gap: 8px;
-    position: relative;
-    z-index: 1000;
-    transition: all 0.3s ease;
   }
 
   .message-input {
@@ -2111,65 +2112,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   .message-send-btn {
     padding: 10px 16px;
     font-size: 0.8rem;
-  }
-  
-  /* FLOATING INPUT: When keyboard is active, float input above it */
-  .message-input-container.keyboard-floating {
-    position: fixed !important;
-    bottom: 320px !important; /* Above typical mobile keyboard */
-    left: 15px !important;
-    right: 15px !important;
-    z-index: 9999 !important;
-    background: #2d3748 !important;
-    border-radius: 12px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-    border: 2px solid #f0d0aa !important;
-    transform: translateY(0) !important;
-    margin: 0 !important;
-    padding: 15px !important;
-  }
-  
-  /* Enhanced styling for floating input */
-  .message-input-container.keyboard-floating .message-input {
-    background: #354048 !important;
-    border: 2px solid #4a5568 !important;
-    border-radius: 8px !important;
-    color: #ffffff !important;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-  }
-  
-  .message-input-container.keyboard-floating .message-input:focus {
-    border-color: #f0d0aa !important;
-    outline: none !important;
-    box-shadow: 0 0 0 3px rgba(240, 208, 170, 0.2) !important;
-  }
-  
-  .message-input-container.keyboard-floating .message-send-btn {
-    background: #f0d0aa !important;
-    color: #2d3748 !important;
-    border: none !important;
-    font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-  }
-  
-  /* Hide original input container when floating is active */
-  .message-thread.has-floating-input .message-input-container:not(.keyboard-floating) {
-    opacity: 0.3;
-    pointer-events: none;
-  }
-  
-  /* ADDITIONAL FIX: Force scroll behavior on message threads */
-  .message-thread.expanded .message-scroll-container {
-    scroll-behavior: smooth;
-    overflow-y: auto !important;
-  }
-  
-  /* iOS SPECIFIC: Handle viewport changes */
-  @supports (-webkit-touch-callout: none) {
-    .message-input-container.keyboard-floating {
-      /* iOS keyboard positioning */
-      bottom: max(320px, env(keyboard-inset-height, 320px)) !important;
-    }
   }
 }
 
