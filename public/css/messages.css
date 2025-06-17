@@ -1631,7 +1631,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     max-width: 100vw;
     overflow: hidden;
     height: 52px;
-  }
+  } 
 
   .selection-controls:not([style*="display: flex"]) {
     height: 0;
