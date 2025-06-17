@@ -149,8 +149,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // CRITICAL FIX: Update all tab counts on page load to show correct numbers
     updateAllTabCounts();
     
-    // SAFETY CLEANUP: Ensure no lingering transforms on page load
-    cleanupMessageThreadKeyboardDetection();
+    // SAFETY CLEANUP: Ensure no lingering mobile input adjustments on page load
+    cleanupMobileInputVisibility();
     
     // Add click listener to document for overlay clicks
     document.addEventListener('click', function(e) {
@@ -2295,8 +2295,8 @@ function initializeMessages() {
                         }
                     }, 150);
                     
-                    // Initialize keyboard detection for message input on mobile
-                    initializeMessageThreadKeyboardDetection(messageThread);
+                    // Initialize mobile keyboard handling for input visibility
+                    initializeMobileInputVisibility(messageThread);
                 }
             }
         });
@@ -2327,8 +2327,8 @@ function closeAllMessageThreads() {
     // Remove thread-active class and overlay when all threads are closed
     messagesContainer.classList.remove('thread-active', 'show-overlay');
     
-    // Clean up keyboard detection for message threads - ALWAYS clean up
-    cleanupMessageThreadKeyboardDetection();
+    // Clean up mobile input visibility handlers - ALWAYS clean up
+    cleanupMobileInputVisibility();
 }
 
 function scrollToThreadTop() {
@@ -2569,179 +2569,83 @@ function cleanupKeyboardDetection() {
     }
 }
 
-// Message Thread Keyboard Detection (for problematic browsers like in-app browsers)
-let messageThreadKeyboardListeners = [];
-let initialMessageViewportHeight = 0;
-let isKeyboardActive = false;
-let keyboardDetectionTimeout = null;
+// ===== CLEAN MOBILE INPUT VISIBILITY SOLUTION =====
+// Targeted fix for problematic browsers where keyboard hides input field
 
-function initializeMessageThreadKeyboardDetection(messageThread) {
-    // DISABLED: This feature is causing UI issues where message threads move off-screen
-    // The keyboard detection is too unpredictable across different browsers and causing
-    // more problems than it solves. Users can scroll manually if needed.
-    console.log('Message thread keyboard detection disabled to prevent UI conflicts');
-    return;
-    
-    // Only run on mobile devices
+let mobileInputListeners = [];
+let scrollTimeouts = [];
+
+function initializeMobileInputVisibility(messageThread) {
+    // MOBILE ONLY - Exit immediately on desktop
     if (window.innerWidth > 600) return;
     
     const messageInput = messageThread.querySelector('.message-input');
     if (!messageInput) return;
     
-    // Store initial viewport height when thread opens
-    initialMessageViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    isKeyboardActive = false;
-    
-    // Detect problematic browsers (in-app browsers often have specific user agents)
-    const isProblematicBrowser = () => {
+    // TARGET PROBLEMATIC BROWSERS ONLY
+    const needsKeyboardFix = () => {
         const ua = navigator.userAgent.toLowerCase();
-        return ua.includes('fban') || // Facebook in-app browser
-               ua.includes('fbav') || // Facebook app
-               ua.includes('instagram') ||
-               ua.includes('snapchat') ||
-               (ua.includes('safari') && ua.includes('mobile') && !ua.includes('chrome')); // Safari iOS
+        return ua.includes('fban') ||        // Facebook in-app browser  
+               ua.includes('fbav') ||        // Facebook app
+               ua.includes('instagram') ||   // Instagram in-app browser
+               ua.includes('snapchat') ||    // Snapchat in-app browser
+               (ua.includes('safari') && ua.includes('mobile')); // iOS Safari/Chrome
     };
     
-    // Only proceed if this is likely a problematic browser
-    if (!isProblematicBrowser()) {
-        console.log('Browser likely handles keyboard automatically, skipping detection');
+    // SKIP WORKING BROWSERS (like Samsung Chrome)
+    if (!needsKeyboardFix()) {
+        console.log('✓ Browser handles keyboard properly - no fix needed');
         return;
     }
     
-    function handleMessageKeyboardShow() {
-        if (isKeyboardActive) return; // Prevent multiple triggers
-        
-        const currentViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const keyboardHeight = initialMessageViewportHeight - currentViewportHeight;
-        
-        if (keyboardHeight > 200) { // More conservative threshold
-            isKeyboardActive = true;
-            
-            // Only adjust position, don't change anything else
-            const translateY = Math.max(-(keyboardHeight / 3), -150); // More conservative movement, max 150px
-            messageThread.style.transform = `translateY(${translateY}px)`;
-            messageThread.style.transition = 'transform 0.2s ease';
-            console.log('Message thread keyboard detected (problematic browser), adjusting position:', translateY);
-        }
-    }
+    console.log('🔧 Applying input visibility fix for problematic browser');
     
-    function handleMessageKeyboardHide() {
-        if (!isKeyboardActive) return; // Only reset if we actually moved it
+    // SIMPLE SOLUTION: Scroll input into view when keyboard appears
+    const handleInputFocus = () => {
+        // Delay for keyboard animation to start
+        const timeoutId = setTimeout(() => {
+            messageInput.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',    // Center the input in viewport
+                inline: 'nearest'
+            });
+            console.log('📱 Scrolled input into view for keyboard visibility');
+        }, 400); // Slightly longer delay for reliability
         
-        isKeyboardActive = false;
-        
-        // Clear any pending timeouts
-        if (keyboardDetectionTimeout) {
-            clearTimeout(keyboardDetectionTimeout);
-            keyboardDetectionTimeout = null;
-        }
-        
-        // Reset position with smooth transition
-        messageThread.style.transform = 'translateY(0)';
-        messageThread.style.transition = 'transform 0.2s ease';
-        console.log('Message thread keyboard hidden, resetting position');
-        
-        // Clear transform after animation completes
-        setTimeout(() => {
-            if (messageThread && !isKeyboardActive) {
-                messageThread.style.transform = '';
-                messageThread.style.transition = '';
-            }
-        }, 200);
-    }
-    
-    // More conservative event handling
-    const inputFocusListener = () => {
-        // Delay to allow keyboard to appear, then check
-        keyboardDetectionTimeout = setTimeout(() => {
-            const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            if (currentHeight < initialMessageViewportHeight - 200) {
-                handleMessageKeyboardShow();
-            }
-        }, 600); // Longer delay to avoid false positives
+        scrollTimeouts.push(timeoutId);
     };
     
-    const inputBlurListener = () => {
-        // Clear timeout if focus lost before keyboard detection
-        if (keyboardDetectionTimeout) {
-            clearTimeout(keyboardDetectionTimeout);
-            keyboardDetectionTimeout = null;
-        }
-        
-        // Delay to allow keyboard to disappear
-        setTimeout(() => {
-            const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            if (currentHeight >= initialMessageViewportHeight - 100) {
-                handleMessageKeyboardHide();
-            }
-        }, 400);
+    const handleInputBlur = () => {
+        // Clean up any pending scrolls when focus is lost
+        scrollTimeouts.forEach(id => clearTimeout(id));
+        scrollTimeouts = [];
     };
     
-    // Only use input focus/blur events for more reliable detection
-    messageInput.addEventListener('focus', inputFocusListener);
-    messageInput.addEventListener('blur', inputBlurListener);
+    // ATTACH LISTENERS
+    messageInput.addEventListener('focus', handleInputFocus);
+    messageInput.addEventListener('blur', handleInputBlur);
     
-    messageThreadKeyboardListeners.push(
-        {
-            target: messageInput,
-            event: 'focus',
-            listener: inputFocusListener
-        },
-        {
-            target: messageInput,
-            event: 'blur',
-            listener: inputBlurListener
-        }
+    // STORE FOR CLEANUP
+    mobileInputListeners.push(
+        { target: messageInput, event: 'focus', listener: handleInputFocus },
+        { target: messageInput, event: 'blur', listener: handleInputBlur }
     );
-    
-    console.log('Initialized keyboard detection for problematic browser');
 }
 
-function cleanupMessageThreadKeyboardDetection() {
-    // Clear any pending timeouts
-    if (keyboardDetectionTimeout) {
-        clearTimeout(keyboardDetectionTimeout);
-        keyboardDetectionTimeout = null;
-    }
+function cleanupMobileInputVisibility() {
+    // Clear any pending scroll operations
+    scrollTimeouts.forEach(id => clearTimeout(id));
+    scrollTimeouts = [];
     
-    // Remove all stored event listeners
-    messageThreadKeyboardListeners.forEach(({ target, event, listener }) => {
+    // Remove all event listeners
+    mobileInputListeners.forEach(({ target, event, listener }) => {
         if (target && typeof target.removeEventListener === 'function') {
             target.removeEventListener(event, listener);
         }
     });
-    messageThreadKeyboardListeners = [];
+    mobileInputListeners = [];
     
-    // Reset state
-    isKeyboardActive = false;
-    
-    // COMPREHENSIVE CLEANUP: Reset transforms on ALL message threads
-    const allMessageThreads = document.querySelectorAll('.message-thread');
-    allMessageThreads.forEach(thread => {
-        // Reset any transforms that might have been applied
-        thread.style.transform = '';
-        thread.style.transition = '';
-        thread.style.webkitTransform = ''; // For Safari
-        thread.style.msTransform = ''; // For IE
-        
-        // Also reset any position or translation attributes
-        thread.style.position = '';
-        thread.style.top = '';
-        thread.style.left = '';
-        thread.style.right = '';
-        thread.style.bottom = '';
-    });
-    
-    // Also reset the messages container itself
-    const messagesContainer = document.querySelector('.messages-container');
-    if (messagesContainer) {
-        messagesContainer.style.transform = '';
-        messagesContainer.style.transition = '';
-        messagesContainer.style.webkitTransform = '';
-        messagesContainer.style.msTransform = '';
-    }
-    
-    console.log('Cleaned up message thread keyboard detection - COMPREHENSIVE RESET');
+    console.log('🧹 Mobile input visibility cleanup completed');
 }
 
 function initializeContactMessageOverlay() {
