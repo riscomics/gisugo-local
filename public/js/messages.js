@@ -1256,6 +1256,8 @@ function cleanupKeyboardDetection() {
 // Message Thread Keyboard Detection (for problematic browsers like in-app browsers)
 let messageThreadKeyboardListeners = [];
 let initialMessageViewportHeight = 0;
+let isKeyboardActive = false;
+let keyboardDetectionTimeout = null;
 
 function initializeMessageThreadKeyboardDetection(messageThread) {
     // Only run on mobile devices
@@ -1264,86 +1266,96 @@ function initializeMessageThreadKeyboardDetection(messageThread) {
     const messageInput = messageThread.querySelector('.message-input');
     if (!messageInput) return;
     
-    // Store initial viewport height
+    // Store initial viewport height when thread opens
     initialMessageViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    isKeyboardActive = false;
     
-    // Test if browser automatically handles keyboard (like Chrome mobile)
-    const testViewportHandling = () => {
-        const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        return Math.abs(currentHeight - initialMessageViewportHeight) < 50; // No significant change means browser handles it
+    // Detect problematic browsers (in-app browsers often have specific user agents)
+    const isProblematicBrowser = () => {
+        const ua = navigator.userAgent.toLowerCase();
+        return ua.includes('fban') || // Facebook in-app browser
+               ua.includes('fbav') || // Facebook app
+               ua.includes('instagram') ||
+               ua.includes('snapchat') ||
+               (ua.includes('safari') && ua.includes('mobile') && !ua.includes('chrome')); // Safari iOS
     };
     
+    // Only proceed if this is likely a problematic browser
+    if (!isProblematicBrowser()) {
+        console.log('Browser likely handles keyboard automatically, skipping detection');
+        return;
+    }
+    
     function handleMessageKeyboardShow() {
+        if (isKeyboardActive) return; // Prevent multiple triggers
+        
         const currentViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         const keyboardHeight = initialMessageViewportHeight - currentViewportHeight;
         
-        if (keyboardHeight > 150) { // Keyboard is likely open
-            // Only adjust if browser doesn't handle it automatically
-            setTimeout(() => {
-                const stillNeedsAdjustment = testViewportHandling();
-                if (stillNeedsAdjustment) {
-                    // Move the entire message thread up to sit above keyboard
-                    const translateY = -(keyboardHeight / 2 + 10);
-                    messageThread.style.transform = `translateY(${translateY}px)`;
-                    messageThread.style.transition = 'transform 0.3s ease';
-                    console.log('Message thread keyboard detected, adjusting position:', translateY);
-                }
-            }, 300); // Wait to see if browser handles it
+        if (keyboardHeight > 200) { // More conservative threshold
+            isKeyboardActive = true;
+            
+            // Only adjust position, don't change anything else
+            const translateY = Math.max(-(keyboardHeight / 3), -150); // More conservative movement, max 150px
+            messageThread.style.transform = `translateY(${translateY}px)`;
+            messageThread.style.transition = 'transform 0.2s ease';
+            console.log('Message thread keyboard detected (problematic browser), adjusting position:', translateY);
         }
     }
     
     function handleMessageKeyboardHide() {
-        // Reset position when keyboard is hidden
+        if (!isKeyboardActive) return; // Only reset if we actually moved it
+        
+        isKeyboardActive = false;
+        
+        // Clear any pending timeouts
+        if (keyboardDetectionTimeout) {
+            clearTimeout(keyboardDetectionTimeout);
+            keyboardDetectionTimeout = null;
+        }
+        
+        // Reset position with smooth transition
         messageThread.style.transform = 'translateY(0)';
+        messageThread.style.transition = 'transform 0.2s ease';
         console.log('Message thread keyboard hidden, resetting position');
+        
+        // Clear transform after animation completes
+        setTimeout(() => {
+            if (messageThread && !isKeyboardActive) {
+                messageThread.style.transform = '';
+                messageThread.style.transition = '';
+            }
+        }, 200);
     }
     
-    // Create event listeners that we can clean up later
-    const viewportResizeListener = () => {
-        const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        if (currentHeight < initialMessageViewportHeight - 150) {
-            handleMessageKeyboardShow();
-        } else {
-            handleMessageKeyboardHide();
-        }
-    };
-    
-    const windowResizeListener = () => {
-        const currentHeight = window.innerHeight;
-        if (currentHeight < initialMessageViewportHeight - 150) {
-            handleMessageKeyboardShow();
-        } else {
-            handleMessageKeyboardHide();
-        }
-    };
-    
+    // More conservative event handling
     const inputFocusListener = () => {
-        setTimeout(handleMessageKeyboardShow, 500); // Delay to allow keyboard to appear
+        // Delay to allow keyboard to appear, then check
+        keyboardDetectionTimeout = setTimeout(() => {
+            const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            if (currentHeight < initialMessageViewportHeight - 200) {
+                handleMessageKeyboardShow();
+            }
+        }, 600); // Longer delay to avoid false positives
     };
     
     const inputBlurListener = () => {
-        setTimeout(handleMessageKeyboardHide, 300); // Delay to allow keyboard to disappear
+        // Clear timeout if focus lost before keyboard detection
+        if (keyboardDetectionTimeout) {
+            clearTimeout(keyboardDetectionTimeout);
+            keyboardDetectionTimeout = null;
+        }
+        
+        // Delay to allow keyboard to disappear
+        setTimeout(() => {
+            const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            if (currentHeight >= initialMessageViewportHeight - 100) {
+                handleMessageKeyboardHide();
+            }
+        }, 400);
     };
     
-    // Add listeners based on browser support
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', viewportResizeListener);
-        messageThreadKeyboardListeners.push({
-            target: window.visualViewport,
-            event: 'resize',
-            listener: viewportResizeListener
-        });
-    } else {
-        // Fallback for older browsers
-        window.addEventListener('resize', windowResizeListener);
-        messageThreadKeyboardListeners.push({
-            target: window,
-            event: 'resize',
-            listener: windowResizeListener
-        });
-    }
-    
-    // Additional detection via input focus/blur
+    // Only use input focus/blur events for more reliable detection
     messageInput.addEventListener('focus', inputFocusListener);
     messageInput.addEventListener('blur', inputBlurListener);
     
@@ -1359,14 +1371,27 @@ function initializeMessageThreadKeyboardDetection(messageThread) {
             listener: inputBlurListener
         }
     );
+    
+    console.log('Initialized keyboard detection for problematic browser');
 }
 
 function cleanupMessageThreadKeyboardDetection() {
+    // Clear any pending timeouts
+    if (keyboardDetectionTimeout) {
+        clearTimeout(keyboardDetectionTimeout);
+        keyboardDetectionTimeout = null;
+    }
+    
     // Remove all stored event listeners
     messageThreadKeyboardListeners.forEach(({ target, event, listener }) => {
-        target.removeEventListener(event, listener);
+        if (target && typeof target.removeEventListener === 'function') {
+            target.removeEventListener(event, listener);
+        }
     });
     messageThreadKeyboardListeners = [];
+    
+    // Reset state
+    isKeyboardActive = false;
     
     // Reset any transforms on message threads
     const expandedThread = document.querySelector('.message-thread.expanded');
@@ -1374,6 +1399,8 @@ function cleanupMessageThreadKeyboardDetection() {
         expandedThread.style.transform = '';
         expandedThread.style.transition = '';
     }
+    
+    console.log('Cleaned up message thread keyboard detection');
 }
 
 function initializeContactMessageOverlay() {
