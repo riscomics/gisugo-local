@@ -146,6 +146,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Other tabs will load their content only when clicked
     initializeActiveTab('notifications');
     
+    // CRITICAL FIX: Update all tab counts on page load to show correct numbers
+    updateAllTabCounts();
+    
     // SAFETY CLEANUP: Ensure no lingering transforms on page load
     cleanupMessageThreadKeyboardDetection();
     
@@ -590,20 +593,25 @@ function initializeApplicationActions() {
                 `You have hired ${userName} for the job. They will be notified and you can coordinate the work details through messages.`
             );
             
-            // Remove the application card from UI after confirmation
+            // Remove the entire job listing when hired (since job is now filled)
             setTimeout(() => {
                 const applicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
                 if (applicationCard) {
-                    applicationCard.style.transition = 'all 0.3s ease';
-                    applicationCard.style.opacity = '0';
-                    applicationCard.style.transform = 'translateY(-20px)';
-                    
-                    setTimeout(() => {
-                        applicationCard.remove();
-                        updateApplicationsCount();
-                    }, 300);
+                    // Find the parent job listing
+                    const jobListing = applicationCard.closest('.job-listing');
+                    if (jobListing) {
+                        jobListing.style.transition = 'all 0.4s ease';
+                        jobListing.style.opacity = '0';
+                        jobListing.style.transform = 'translateY(-20px)';
+                        
+                        setTimeout(() => {
+                            jobListing.remove();
+                            updateApplicationsCount();
+                            updateJobHeaderCounts();
+                        }, 400);
+                    }
                 }
-            }, 2000);
+            }, 500); // Reduced delay from 2000ms to 500ms
         });
     }
     
@@ -735,10 +743,14 @@ function initializeApplicationActions() {
                     
                     setTimeout(() => {
                         applicationCard.remove();
+                        
+                        // Update counts after removing application card
+                        // Keep job listing even if empty (job is still open for new applications)
+                        updateJobHeaderCounts();
                         updateApplicationsCount();
                     }, 300);
                 }
-            }, 2000);
+            }, 500); // Reduced delay from 2000ms to 500ms
         });
     }
     
@@ -2369,6 +2381,59 @@ function updateApplicationsCount() {
             applicationsCountElement.style.display = 'inline-block';
         }
     }
+}
+
+function updateJobHeaderCounts() {
+    // Update each individual job header count based on remaining application cards
+    const jobListings = document.querySelectorAll('.job-listing');
+    
+    jobListings.forEach(jobListing => {
+        const applicationCards = jobListing.querySelectorAll('.application-card');
+        const countElement = jobListing.querySelector('.application-count');
+        
+        if (countElement) {
+            const currentCount = applicationCards.length;
+            countElement.textContent = currentCount;
+            
+            // If no applications left, the job listing will be removed elsewhere
+            // This just ensures the count is accurate while visible
+        }
+    });
+}
+
+function updateAllTabCounts() {
+    // Calculate and update all tab counts on page load based on mock data
+    // This ensures counts are accurate before tabs are clicked
+    
+    // Applications count - total application cards from mock data
+    const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
+    if (applicationsCountElement) {
+        let totalApplications = 0;
+        MOCK_APPLICATIONS.forEach(jobData => {
+            totalApplications += jobData.applications.length;
+        });
+        applicationsCountElement.textContent = totalApplications;
+        
+        if (totalApplications === 0) {
+            applicationsCountElement.style.display = 'none';
+        } else {
+            applicationsCountElement.style.display = 'inline-block';
+        }
+    }
+    
+    // Notifications count - keep existing count logic
+    updateNotificationsCount();
+    
+    // Messages count - calculate from mock data when available
+    const messagesCountElement = document.querySelector('#messagesTab .notification-count');
+    if (messagesCountElement) {
+        // For now, keep existing count or set based on mock data
+        // This can be updated when message mock data is available
+        const currentCount = messagesCountElement.textContent;
+        // Keep current count for messages tab
+    }
+    
+    console.log('All tab counts updated on page load');
 }
 
 function updateNotificationsCount() {
