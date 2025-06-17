@@ -2592,6 +2592,12 @@ function initializeMobileInputVisibility(messageThread) {
                (ua.includes('safari') && ua.includes('mobile')); // iOS Safari/Chrome
     };
     
+    // DETECT FACEBOOK BROWSER specifically for extra aggressive treatment
+    const isFacebookBrowser = () => {
+        const ua = navigator.userAgent.toLowerCase();
+        return ua.includes('fban') || ua.includes('fbav');
+    };
+    
     // SKIP WORKING BROWSERS (like Samsung Chrome)
     if (!needsKeyboardFix()) {
         console.log('✓ Browser handles keyboard properly - no fix needed');
@@ -2660,21 +2666,56 @@ function initializeMobileInputVisibility(messageThread) {
             }
         }, 600);
         
-        const timeoutId3 = setTimeout(() => {
-            // Method 3: Force page scroll as last resort
-            const inputRect = messageInput.getBoundingClientRect();
-            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            
-            // If input is in bottom half of viewport, scroll page up
-            if (inputRect.top > viewportHeight / 2) {
-                const scrollAmount = inputRect.top - (viewportHeight / 3);
-                window.scrollBy({
-                    top: scrollAmount,
-                    behavior: 'smooth'
-                });
-                console.log('📱 Method 3: Page scroll attempted');
-            }
-        }, 900);
+                 const timeoutId3 = setTimeout(() => {
+             // Method 3: Force page scroll as last resort
+             const inputRect = messageInput.getBoundingClientRect();
+             const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+             
+             // If input is in bottom half of viewport, scroll page up
+             if (inputRect.top > viewportHeight / 2) {
+                 const scrollAmount = inputRect.top - (viewportHeight / 3);
+                 window.scrollBy({
+                     top: scrollAmount,
+                     behavior: 'smooth'
+                 });
+                 console.log('📱 Method 3: Page scroll attempted');
+             }
+         }, 900);
+         
+         // FACEBOOK BROWSER NUCLEAR OPTION: Most aggressive approach
+         if (isFacebookBrowser()) {
+             const timeoutId4 = setTimeout(() => {
+                 console.log('💀 FACEBOOK NUCLEAR: Applying extreme measures');
+                 
+                 // Method 4A: Add bottom padding to push input up
+                 const messageThread = messageInput.closest('.message-thread');
+                 if (messageThread) {
+                     messageThread.style.paddingBottom = '300px';
+                     messageThread.style.transition = 'padding-bottom 0.3s ease';
+                 }
+                 
+                 // Method 4B: Force multiple scroll attempts
+                 for (let i = 0; i < 5; i++) {
+                     setTimeout(() => {
+                         messageInput.scrollIntoView({ behavior: 'auto', block: 'center' });
+                         window.scrollBy({ top: -100, behavior: 'auto' });
+                         console.log(`💀 FB scroll attempt ${i + 1}`);
+                     }, i * 200);
+                 }
+             }, 1200);
+             
+             const timeoutId5 = setTimeout(() => {
+                 // Method 4C: Manual CSS transform as last resort
+                 const inputContainer = messageInput.closest('.message-input-container');
+                 if (inputContainer) {
+                     inputContainer.style.transform = 'translateY(-200px)';
+                     inputContainer.style.transition = 'transform 0.3s ease';
+                     console.log('💀 FB transform applied');
+                 }
+             }, 1500);
+             
+             scrollTimeouts.push(timeoutId4, timeoutId5);
+         }
         
         scrollTimeouts.push(timeoutId1, timeoutId2, timeoutId3);
     };
@@ -2683,6 +2724,26 @@ function initializeMobileInputVisibility(messageThread) {
         // Clean up any pending scrolls when focus is lost
         scrollTimeouts.forEach(id => clearTimeout(id));
         scrollTimeouts = [];
+        
+        // FACEBOOK CLEANUP: Remove any extreme measures applied
+        if (isFacebookBrowser()) {
+            setTimeout(() => {
+                const messageThread = messageInput.closest('.message-thread');
+                const inputContainer = messageInput.closest('.message-input-container');
+                
+                if (messageThread) {
+                    messageThread.style.paddingBottom = '';
+                    messageThread.style.transition = '';
+                }
+                
+                if (inputContainer) {
+                    inputContainer.style.transform = '';
+                    inputContainer.style.transition = '';
+                }
+                
+                console.log('💀 FB cleanup completed');
+            }, 500); // Delay cleanup to let keyboard close
+        }
     };
     
     // ATTACH LISTENERS
