@@ -1000,6 +1000,9 @@ function initializeMessages() {
                     
                     // Remove thread-active class and overlay from container
                     messagesContainer.classList.remove('thread-active', 'show-overlay');
+                    
+                    // Clean up keyboard detection for message threads
+                    cleanupMessageThreadKeyboardDetection();
                 } else {
                     // First, close all other expanded threads
                     closeAllMessageThreads();
@@ -1036,6 +1039,9 @@ function initializeMessages() {
                             scrollContainer.scrollTop = scrollContainer.scrollHeight;
                         }
                     }, 150);
+                    
+                    // Initialize keyboard detection for message input on mobile
+                    initializeMessageThreadKeyboardDetection(messageThread);
                 }
             }
         });
@@ -1065,6 +1071,9 @@ function closeAllMessageThreads() {
     
     // Remove thread-active class and overlay when all threads are closed
     messagesContainer.classList.remove('thread-active', 'show-overlay');
+    
+    // Clean up keyboard detection for message threads
+    cleanupMessageThreadKeyboardDetection();
 }
 
 function scrollToThreadTop() {
@@ -1241,6 +1250,129 @@ function cleanupKeyboardDetection() {
     const modal = document.querySelector('.contact-message-modal');
     if (modal) {
         modal.style.transform = '';
+    }
+}
+
+// Message Thread Keyboard Detection (for problematic browsers like in-app browsers)
+let messageThreadKeyboardListeners = [];
+let initialMessageViewportHeight = 0;
+
+function initializeMessageThreadKeyboardDetection(messageThread) {
+    // Only run on mobile devices
+    if (window.innerWidth > 600) return;
+    
+    const messageInput = messageThread.querySelector('.message-input');
+    if (!messageInput) return;
+    
+    // Store initial viewport height
+    initialMessageViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    
+    // Test if browser automatically handles keyboard (like Chrome mobile)
+    const testViewportHandling = () => {
+        const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        return Math.abs(currentHeight - initialMessageViewportHeight) < 50; // No significant change means browser handles it
+    };
+    
+    function handleMessageKeyboardShow() {
+        const currentViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        const keyboardHeight = initialMessageViewportHeight - currentViewportHeight;
+        
+        if (keyboardHeight > 150) { // Keyboard is likely open
+            // Only adjust if browser doesn't handle it automatically
+            setTimeout(() => {
+                const stillNeedsAdjustment = testViewportHandling();
+                if (stillNeedsAdjustment) {
+                    // Move the entire message thread up to sit above keyboard
+                    const translateY = -(keyboardHeight / 2 + 10);
+                    messageThread.style.transform = `translateY(${translateY}px)`;
+                    messageThread.style.transition = 'transform 0.3s ease';
+                    console.log('Message thread keyboard detected, adjusting position:', translateY);
+                }
+            }, 300); // Wait to see if browser handles it
+        }
+    }
+    
+    function handleMessageKeyboardHide() {
+        // Reset position when keyboard is hidden
+        messageThread.style.transform = 'translateY(0)';
+        console.log('Message thread keyboard hidden, resetting position');
+    }
+    
+    // Create event listeners that we can clean up later
+    const viewportResizeListener = () => {
+        const currentHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        if (currentHeight < initialMessageViewportHeight - 150) {
+            handleMessageKeyboardShow();
+        } else {
+            handleMessageKeyboardHide();
+        }
+    };
+    
+    const windowResizeListener = () => {
+        const currentHeight = window.innerHeight;
+        if (currentHeight < initialMessageViewportHeight - 150) {
+            handleMessageKeyboardShow();
+        } else {
+            handleMessageKeyboardHide();
+        }
+    };
+    
+    const inputFocusListener = () => {
+        setTimeout(handleMessageKeyboardShow, 500); // Delay to allow keyboard to appear
+    };
+    
+    const inputBlurListener = () => {
+        setTimeout(handleMessageKeyboardHide, 300); // Delay to allow keyboard to disappear
+    };
+    
+    // Add listeners based on browser support
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', viewportResizeListener);
+        messageThreadKeyboardListeners.push({
+            target: window.visualViewport,
+            event: 'resize',
+            listener: viewportResizeListener
+        });
+    } else {
+        // Fallback for older browsers
+        window.addEventListener('resize', windowResizeListener);
+        messageThreadKeyboardListeners.push({
+            target: window,
+            event: 'resize',
+            listener: windowResizeListener
+        });
+    }
+    
+    // Additional detection via input focus/blur
+    messageInput.addEventListener('focus', inputFocusListener);
+    messageInput.addEventListener('blur', inputBlurListener);
+    
+    messageThreadKeyboardListeners.push(
+        {
+            target: messageInput,
+            event: 'focus',
+            listener: inputFocusListener
+        },
+        {
+            target: messageInput,
+            event: 'blur',
+            listener: inputBlurListener
+        }
+    );
+}
+
+function cleanupMessageThreadKeyboardDetection() {
+    // Remove all stored event listeners
+    messageThreadKeyboardListeners.forEach(({ target, event, listener }) => {
+        target.removeEventListener(event, listener);
+    });
+    messageThreadKeyboardListeners = [];
+    
+    // Reset any transforms on message threads
+    const expandedThread = document.querySelector('.message-thread.expanded');
+    if (expandedThread) {
+        expandedThread.style.transform = '';
+        expandedThread.style.transition = '';
     }
 }
 
