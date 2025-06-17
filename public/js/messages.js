@@ -2306,6 +2306,9 @@ function initializeMessages() {
                     
                     // Initialize input focus elegance for dimming effect
                     initializeInputFocusElegance(messageThread);
+                    
+                    // Initialize dynamic message sending for this thread
+                    initializeDynamicMessageSending(messageThread);
                 }
             }
         });
@@ -3076,6 +3079,309 @@ function initializeInputFocusElegance(messageThread) {
     } else {
         console.warn('Input field or container not found for focus elegance');
     }
+}
+
+// ===== DYNAMIC MESSAGE ENTRY FUNCTIONALITY =====
+// BACKEND-READY: This functionality is purely frontend mock data
+// When backend is ready, replace the mock logic with API calls
+
+/**
+ * Initialize dynamic message sending for a specific thread
+ * @param {HTMLElement} messageThread - The message thread container
+ */
+function initializeDynamicMessageSending(messageThread) {
+    const threadId = messageThread.getAttribute('data-thread-id');
+    const participantName = messageThread.getAttribute('data-participant-name');
+    const jobTitle = messageThread.getAttribute('data-job-title');
+    
+    const inputContainer = messageThread.querySelector('.message-input-container');
+    const messageInput = messageThread.querySelector('.message-input');
+    const sendButton = messageThread.querySelector('.message-send-btn');
+    const scrollContainer = messageThread.querySelector('.message-scroll-container');
+    
+    if (!inputContainer || !messageInput || !sendButton || !scrollContainer) {
+        console.warn(`Dynamic messaging: Missing elements for thread ${threadId}`);
+        return;
+    }
+    
+    // Handle send button click
+    sendButton.addEventListener('click', function() {
+        sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle);
+    });
+    
+    // Handle Enter key press (but not Shift+Enter for line breaks)
+    messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle);
+        }
+    });
+    
+    // Handle input expansion on focus and typing
+    messageInput.addEventListener('focus', function() {
+        this.classList.add('expanded');
+        inputContainer.classList.add('input-focused');
+        messageThread.classList.add('input-focused');
+    });
+    
+    messageInput.addEventListener('blur', function() {
+        // Only remove expanded if input is empty
+        if (this.value.trim() === '') {
+            this.classList.remove('expanded');
+        }
+        inputContainer.classList.remove('input-focused');
+        messageThread.classList.remove('input-focused');
+    });
+    
+    messageInput.addEventListener('input', function() {
+        // Keep expanded while typing
+        this.classList.add('expanded');
+    });
+    
+    console.log(`Dynamic messaging initialized for thread: ${threadId}`);
+}
+
+/**
+ * Send a dynamic message and add it to the thread
+ * BACKEND-READY: Replace this with actual API call
+ * @param {string} threadId - Thread identifier
+ * @param {HTMLElement} messageInput - Input element
+ * @param {HTMLElement} scrollContainer - Scroll container for messages
+ * @param {string} participantName - Name of the other participant
+ * @param {string} jobTitle - Job title for context
+ */
+function sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle) {
+    const messageText = messageInput.value.trim();
+    
+    if (messageText === '') {
+        return; // Don't send empty messages
+    }
+    
+    // BACKEND PREPARATION: This is the payload structure you'll need
+    const newMessagePayload = {
+        threadId: threadId,
+        content: messageText,
+        senderId: 'current_user_id', // Replace with actual Firebase UID
+        senderName: 'You', // Replace with actual user name
+        senderType: 'employer', // Replace with actual user role
+        recipientId: extractParticipantId(threadId), // Extract from thread data
+        recipientName: participantName,
+        timestamp: new Date().toISOString(),
+        jobTitle: jobTitle,
+        // Additional backend fields you might need:
+        messageType: 'text',
+        readStatus: false,
+        priority: 'normal'
+    };
+    
+    // MOCK FRONTEND IMPLEMENTATION: Create message object for display
+    const newMessage = createMockMessage(messageText, threadId);
+    
+    // Add message to the thread (at the top since newest are first)
+    addMessageToThread(newMessage, scrollContainer);
+    
+    // Clear input and reset state
+    messageInput.value = '';
+    messageInput.classList.remove('expanded');
+    messageInput.blur();
+    
+    // BACKEND TODO: Replace this console.log with actual API call
+    console.log('BACKEND PAYLOAD:', newMessagePayload);
+    console.log('Message sent successfully (mock)');
+    
+    // Simulate recipient response after 2-3 seconds (for demo purposes)
+    if (Math.random() > 0.3) { // 70% chance of auto-response
+        setTimeout(() => {
+            const responseMessage = createMockResponse(participantName, threadId);
+            addMessageToThread(responseMessage, scrollContainer);
+            
+            // Show notification for new message
+            showTemporaryNotification(`New message from ${participantName}`);
+        }, Math.random() * 2000 + 1500); // 1.5-3.5 seconds delay
+    }
+}
+
+/**
+ * Create a mock message object for frontend display
+ * BACKEND-READY: This structure matches your existing message format
+ * @param {string} content - Message content
+ * @param {string} threadId - Thread identifier
+ * @returns {Object} Message object
+ */
+function createMockMessage(content, threadId) {
+    const now = new Date();
+    const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    return {
+        id: messageId,
+        threadId: threadId,
+        content: content,
+        senderId: 'current_user_id',
+        senderName: 'You',
+        senderType: 'employer',
+        direction: 'outgoing',
+        avatar: 'public/users/Peter-J-Ang-User-01.jpg', // Current user avatar
+        timestamp: now.toISOString(),
+        timeDisplay: formatMessageTime(now),
+        read: true
+    };
+}
+
+/**
+ * Create a mock response message (for demo purposes)
+ * @param {string} participantName - Name of the participant
+ * @param {string} threadId - Thread identifier
+ * @returns {Object} Response message object
+ */
+function createMockResponse(participantName, threadId) {
+    const responses = [
+        "Thanks for your message! I'll get back to you soon.",
+        "Sounds good! When would be a good time to discuss this?",
+        "I'm interested in learning more about this opportunity.",
+        "That works for me. Let me know the next steps.",
+        "I have some questions about the job requirements.",
+        "Perfect! I'm available for an interview anytime.",
+        "Thank you for considering my application!"
+    ];
+    
+    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    const now = new Date();
+    const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
+    return {
+        id: messageId,
+        threadId: threadId,
+        content: randomResponse,
+        senderId: extractParticipantId(threadId),
+        senderName: participantName,
+        senderType: 'worker',
+        direction: 'incoming',
+        avatar: getParticipantAvatar(threadId),
+        timestamp: now.toISOString(),
+        timeDisplay: formatMessageTime(now),
+        read: false
+    };
+}
+
+/**
+ * Add a message to the thread display
+ * @param {Object} message - Message object
+ * @param {HTMLElement} scrollContainer - Scroll container
+ */
+function addMessageToThread(message, scrollContainer) {
+    const messageHTML = generateMessageHTML(message);
+    
+    // Add to top since newest messages are first
+    scrollContainer.insertAdjacentHTML('afterbegin', messageHTML);
+    
+    // Add entrance animation
+    const newMessageElement = scrollContainer.firstElementChild;
+    if (newMessageElement) {
+        newMessageElement.style.opacity = '0';
+        newMessageElement.style.transform = 'translateY(-10px)';
+        
+        setTimeout(() => {
+            newMessageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            newMessageElement.style.opacity = '1';
+            newMessageElement.style.transform = 'translateY(0)';
+        }, 50);
+    }
+    
+    // Keep scroll at top to show the new message
+    scrollContainer.scrollTop = 0;
+}
+
+/**
+ * Format message time for display
+ * @param {Date} date - Date object
+ * @returns {string} Formatted time string
+ */
+function formatMessageTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    return date.toLocaleDateString();
+}
+
+/**
+ * Extract participant ID from thread ID (mock implementation)
+ * BACKEND: Replace with actual data extraction
+ * @param {string} threadId - Thread identifier
+ * @returns {string} Participant ID
+ */
+function extractParticipantId(threadId) {
+    // Mock implementation - extract from existing thread data
+    const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
+    return threadElement ? threadElement.getAttribute('data-participant-id') || 'participant_123' : 'participant_123';
+}
+
+/**
+ * Get participant avatar from thread data
+ * @param {string} threadId - Thread identifier
+ * @returns {string} Avatar URL
+ */
+function getParticipantAvatar(threadId) {
+    // Mock implementation - could extract from existing thread data
+    const avatars = [
+        'public/users/User-03.jpg',
+        'public/users/User-06.jpg',
+        'public/users/User-08.jpg',
+        'public/users/User-10.jpg'
+    ];
+    return avatars[Math.floor(Math.random() * avatars.length)];
+}
+
+/**
+ * Show temporary notification for new messages
+ * @param {string} message - Notification message
+ */
+function showTemporaryNotification(message) {
+    // Create temporary notification element
+    const notification = document.createElement('div');
+    notification.className = 'temp-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: #48bb78;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        z-index: 9999;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Animate out and remove
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
 
 
