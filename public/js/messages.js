@@ -2358,6 +2358,9 @@ function initializeMessages() {
                     
                     // Initialize dynamic message sending for this thread
                     initializeDynamicMessageSending(messageThread);
+                    
+                    // Initialize avatar overlay functionality for this thread
+                    initializeAvatarOverlays(messageThread);
                 }
             }
         });
@@ -4564,6 +4567,200 @@ function showTemporaryNotification(message) {
             }
         }, 300);
     }, 3000);
+}
+
+// ===== AVATAR OVERLAY FUNCTIONALITY =====
+
+function initializeAvatarOverlays(messageThread) {
+    // Find all message avatars in this thread
+    const avatars = messageThread.querySelectorAll('.message-avatar');
+    
+    avatars.forEach(avatar => {
+        // Add click handler to each avatar
+        avatar.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent thread toggle
+            
+            // Get message data from the parent message card
+            const messageCard = this.closest('.message-card');
+            if (messageCard) {
+                const senderId = messageCard.getAttribute('data-sender-id');
+                const senderName = messageCard.getAttribute('data-sender-name');
+                const threadId = messageCard.getAttribute('data-thread-id');
+                
+                // Get job information from the thread
+                const threadElement = messageCard.closest('.message-thread');
+                const jobId = threadElement.getAttribute('data-job-id');
+                const jobTitle = threadElement.getAttribute('data-job-title');
+                
+                // Show avatar overlay
+                showAvatarOverlay(e, {
+                    senderId: senderId,
+                    senderName: senderName,
+                    threadId: threadId,
+                    jobId: jobId,
+                    jobTitle: jobTitle,
+                    avatar: this.querySelector('img').src
+                });
+            }
+        });
+        
+        // Add touch-friendly styling
+        avatar.style.cursor = 'pointer';
+        avatar.style.transition = 'transform 0.2s ease';
+        
+        // Add hover/touch feedback
+        avatar.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.05)';
+        });
+        
+        avatar.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+}
+
+function showAvatarOverlay(event, userData) {
+    // Remove any existing overlay
+    hideAvatarOverlay();
+    
+    // Create overlay element
+    const overlay = document.createElement('div');
+    overlay.className = 'avatar-overlay';
+    overlay.id = 'avatarOverlay';
+    
+    // Create overlay content
+    overlay.innerHTML = `
+        <div class="avatar-overlay-header">
+            <div class="avatar-overlay-name">${userData.senderName}</div>
+            <div class="avatar-overlay-subtitle">Message Participant</div>
+        </div>
+        <div class="avatar-overlay-actions">
+            <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
+                <span>👤</span>
+                <span>VIEW PROFILE</span>
+            </button>
+            <button class="avatar-action-btn job" data-job-id="${userData.jobId}" data-job-title="${userData.jobTitle}">
+                <span>💼</span>
+                <span>VIEW JOB POST</span>
+            </button>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(overlay);
+    
+    // Position overlay near the clicked avatar
+    positionAvatarOverlay(overlay, event);
+    
+    // Show overlay with animation
+    setTimeout(() => {
+        overlay.classList.add('show');
+    }, 10);
+    
+    // Add action handlers
+    initializeAvatarOverlayActions(overlay, userData);
+    
+    // Auto-hide on outside click
+    setTimeout(() => {
+        document.addEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+    }, 100);
+}
+
+function positionAvatarOverlay(overlay, event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let top = rect.bottom + 10;
+    let left = rect.left + (rect.width / 2) - (200 / 2); // Center on avatar
+    
+    // Adjust for viewport boundaries
+    if (left + 200 > viewportWidth - 20) {
+        left = viewportWidth - 220; // 200 + 20 margin
+    }
+    if (left < 20) {
+        left = 20;
+    }
+    
+    // If overlay would go below viewport, position above avatar
+    if (top + 150 > viewportHeight - 20) {
+        top = rect.top - 150 - 10;
+    }
+    
+    // Ensure it doesn't go above viewport
+    if (top < 20) {
+        top = 20;
+    }
+    
+    overlay.style.top = `${top}px`;
+    overlay.style.left = `${left}px`;
+}
+
+function initializeAvatarOverlayActions(overlay, userData) {
+    // VIEW PROFILE button
+    const profileBtn = overlay.querySelector('.avatar-action-btn.profile');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            console.log(`🔗 Opening profile for user: ${userName} (ID: ${userId})`);
+            
+            // BACKEND INTEGRATION POINT: Navigate to user profile
+            // Example: window.location.href = `/profile/${userId}`;
+            // Or: openUserProfile(userId);
+            
+            // Show temporary notification
+            showTemporaryNotification(`Opening profile for ${userName}...`);
+            
+            // Hide overlay
+            hideAvatarOverlay();
+        });
+    }
+    
+    // VIEW JOB POST button
+    const jobBtn = overlay.querySelector('.avatar-action-btn.job');
+    if (jobBtn) {
+        jobBtn.addEventListener('click', function() {
+            const jobId = this.getAttribute('data-job-id');
+            const jobTitle = this.getAttribute('data-job-title');
+            
+            console.log(`🔗 Opening job post: ${jobTitle} (ID: ${jobId})`);
+            
+            // BACKEND INTEGRATION POINT: Navigate to job post
+            // Example: window.location.href = `/job/${jobId}`;
+            // Or: openJobPost(jobId);
+            
+            // Show temporary notification
+            showTemporaryNotification(`Opening job post: ${jobTitle}...`);
+            
+            // Hide overlay
+            hideAvatarOverlay();
+        });
+    }
+}
+
+function hideAvatarOverlay() {
+    const existingOverlay = document.getElementById('avatarOverlay');
+    if (existingOverlay) {
+        existingOverlay.classList.remove('show');
+        setTimeout(() => {
+            if (existingOverlay.parentNode) {
+                existingOverlay.parentNode.removeChild(existingOverlay);
+            }
+        }, 200);
+    }
+    
+    // Remove outside click listener
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+}
+
+function hideAvatarOverlayOnOutsideClick(event) {
+    const overlay = document.getElementById('avatarOverlay');
+    if (overlay && !overlay.contains(event.target)) {
+        hideAvatarOverlay();
+    }
 }
 
 

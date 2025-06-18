@@ -2208,3 +2208,130 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
+/* Message Avatar Overlay Styles */
+.avatar-overlay {
+  position: fixed;
+  background: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 2200;
+  min-width: 200px;
+  opacity: 0;
+  transform: scale(0.9) translateY(-5px);
+  transition: all 0.2s ease-out;
+  pointer-events: none;
+  user-select: none;
+}
+
+.avatar-overlay.show {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.avatar-overlay-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #4a5568;
+  text-align: center;
+}
+
+.avatar-overlay-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e6d6ae;
+  font-family: Arial, Helvetica, sans-serif;
+  margin-bottom: 4px;
+}
+
+.avatar-overlay-subtitle {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.avatar-overlay-actions {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avatar-action-btn {
+  padding: 12px 16px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.avatar-action-btn.profile {
+  background: #4299e1;
+  color: #ffffff;
+  border-color: #63b3ed;
+}
+
+.avatar-action-btn.profile:hover {
+  background: #3182ce;
+  border-color: #4299e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.avatar-action-btn.job {
+  background: #48bb78;
+  color: #ffffff;
+  border-color: #68d391;
+}
+
+.avatar-action-btn.job:hover {
+  background: #38a169;
+  border-color: #48bb78;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.avatar-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile Avatar Overlay Styles */
+@media (max-width: 600px) {
+  .avatar-overlay {
+    min-width: 180px;
+    max-width: 280px;
+  }
+
+  .avatar-overlay-header {
+    padding: 12px 16px;
+  }
+
+  .avatar-overlay-name {
+    font-size: 1rem;
+  }
+
+  .avatar-overlay-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .avatar-overlay-actions {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .avatar-action-btn {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    gap: 6px;
+  }
+}
+
