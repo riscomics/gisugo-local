@@ -224,6 +224,18 @@ function initializeTabs() {
             // CLEANUP: Cancel any active selections when switching tabs
             cancelSelection();
             
+            // CRITICAL FIX: Clean up avatar overlay when switching tabs
+            // This prevents stuck overlays from persisting across tab switches
+            hideAvatarOverlay();
+            
+            // NUCLEAR OPTION: Force reset if normal cleanup fails
+            setTimeout(() => {
+                if (document.getElementById('avatarOverlay')) {
+                    console.log('🚨 Normal cleanup failed, using force reset');
+                    window.forceResetAvatarOverlay();
+                }
+            }, 250);
+            
             // Remove active class from all tabs and wrappers
             tabButtons.forEach(btn => btn.classList.remove('active'));
             tabWrappers.forEach(wrapper => {
@@ -2371,6 +2383,10 @@ function closeAllMessageThreads() {
     const allMessageThreads = document.querySelectorAll('.message-thread');
     const messagesContainer = document.querySelector('.messages-container');
     
+    // CRITICAL FIX: Clean up avatar overlay when closing threads
+    // This prevents overlay from being orphaned when threads are closed
+    hideAvatarOverlay();
+    
     allMessageThreads.forEach(thread => {
         const header = thread.querySelector('.message-thread-header');
         const threadId = header.getAttribute('data-thread-id');
@@ -4441,6 +4457,14 @@ function addMessageToThread(message, scrollContainer) {
             newMessageElement.style.opacity = '1';
             newMessageElement.style.transform = 'translateY(0)';
         }, 50);
+        
+        // CRITICAL FIX: Initialize avatar overlay for newly added message
+        // This ensures dynamic messages (like mock responses) have clickable avatars
+        const newAvatar = newMessageElement.querySelector('.message-avatar');
+        if (newAvatar) {
+            initializeAvatarForOverlay(newAvatar);
+            console.log('🎯 Avatar overlay initialized for new dynamic message');
+        }
     }
     
     // Keep scroll at top to show the new message
@@ -4571,56 +4595,98 @@ function showTemporaryNotification(message) {
 
 // ===== AVATAR OVERLAY FUNCTIONALITY =====
 
+// SHARED DEBOUNCING: Prevent rapid successive clicks across all avatars
+let globalAvatarClickProcessing = false;
+
+function initializeAvatarForOverlay(avatar) {
+    // Skip if already initialized (prevent duplicate handlers)
+    if (avatar.hasAttribute('data-overlay-initialized')) {
+        return;
+    }
+    
+    // Mark as initialized
+    avatar.setAttribute('data-overlay-initialized', 'true');
+    
+    // Add click handler to the avatar
+    avatar.addEventListener('click', function(e) {
+        e.stopPropagation(); // Prevent thread toggle
+        
+        // CRITICAL FIX: Debounce rapid clicks to prevent overlay stacking
+        if (globalAvatarClickProcessing) {
+            console.log('Avatar click ignored - still processing previous click');
+            return;
+        }
+        
+        globalAvatarClickProcessing = true;
+        
+        // Reset debounce flag after processing
+        setTimeout(() => {
+            globalAvatarClickProcessing = false;
+        }, 300); // 300ms debounce window
+        
+        // Get message data from the parent message card
+        const messageCard = this.closest('.message-card');
+        if (messageCard) {
+            const senderId = messageCard.getAttribute('data-sender-id');
+            const senderName = messageCard.getAttribute('data-sender-name');
+            const threadId = messageCard.getAttribute('data-thread-id');
+            
+            // Get job information from the thread
+            const threadElement = messageCard.closest('.message-thread');
+            const jobId = threadElement.getAttribute('data-job-id');
+            const jobTitle = threadElement.getAttribute('data-job-title');
+            
+            // Show avatar overlay
+            showAvatarOverlay(e, {
+                senderId: senderId,
+                senderName: senderName,
+                threadId: threadId,
+                jobId: jobId,
+                jobTitle: jobTitle,
+                avatar: this.querySelector('img').src
+            });
+        }
+    });
+    
+    // Add touch-friendly styling
+    avatar.style.cursor = 'pointer';
+    avatar.style.transition = 'transform 0.2s ease';
+    
+    // Add hover/touch feedback
+    avatar.addEventListener('mouseenter', function() {
+        this.style.transform = 'scale(1.05)';
+    });
+    
+    avatar.addEventListener('mouseleave', function() {
+        this.style.transform = 'scale(1)';
+    });
+}
+
 function initializeAvatarOverlays(messageThread) {
     // Find all message avatars in this thread
     const avatars = messageThread.querySelectorAll('.message-avatar');
     
+    // Initialize each avatar for overlay functionality
     avatars.forEach(avatar => {
-        // Add click handler to each avatar
-        avatar.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent thread toggle
-            
-            // Get message data from the parent message card
-            const messageCard = this.closest('.message-card');
-            if (messageCard) {
-                const senderId = messageCard.getAttribute('data-sender-id');
-                const senderName = messageCard.getAttribute('data-sender-name');
-                const threadId = messageCard.getAttribute('data-thread-id');
-                
-                // Get job information from the thread
-                const threadElement = messageCard.closest('.message-thread');
-                const jobId = threadElement.getAttribute('data-job-id');
-                const jobTitle = threadElement.getAttribute('data-job-title');
-                
-                // Show avatar overlay
-                showAvatarOverlay(e, {
-                    senderId: senderId,
-                    senderName: senderName,
-                    threadId: threadId,
-                    jobId: jobId,
-                    jobTitle: jobTitle,
-                    avatar: this.querySelector('img').src
-                });
-            }
-        });
-        
-        // Add touch-friendly styling
-        avatar.style.cursor = 'pointer';
-        avatar.style.transition = 'transform 0.2s ease';
-        
-        // Add hover/touch feedback
-        avatar.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.05)';
-        });
-        
-        avatar.addEventListener('mouseleave', function() {
-            this.style.transform = 'scale(1)';
-        });
+        initializeAvatarForOverlay(avatar);
     });
+    
+    console.log(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
 }
 
 function showAvatarOverlay(event, userData) {
-    // Remove any existing overlay
+    // CRITICAL FIX: Prevent rapid clicking from creating multiple overlays
+    if (document.getElementById('avatarOverlay')) {
+        console.log('Avatar overlay already exists, ignoring rapid click');
+        return; // Exit early if overlay already exists
+    }
+    
+    // CRITICAL FIX: Always clean up existing listeners first
+    // This prevents the stacking listener bug that causes stuck overlays
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+    
+    // Remove any existing overlay (redundant safety check)
     hideAvatarOverlay();
     
     // Create overlay element
@@ -4660,10 +4726,21 @@ function showAvatarOverlay(event, userData) {
     // Add action handlers
     initializeAvatarOverlayActions(overlay, userData);
     
-    // Auto-hide on outside click
+    // IMPROVED LISTENER MANAGEMENT: Add single listener with proper timing and tracking
+    // Wait for the overlay to be fully rendered before adding outside click detection
     setTimeout(() => {
-        document.addEventListener('click', hideAvatarOverlayOnOutsideClick, true);
-    }, 100);
+        // Initialize listener count if not exists
+        if (!window.avatarOverlayListenerCount) {
+            window.avatarOverlayListenerCount = 0;
+        }
+        
+        // Store reference for proper cleanup
+        window.avatarOverlayClickHandler = hideAvatarOverlayOnOutsideClick;
+        document.addEventListener('click', window.avatarOverlayClickHandler, true);
+        window.avatarOverlayListenerCount++;
+        
+        console.log(`📌 Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
+    }, 150); // Increased delay to ensure overlay is fully positioned
 }
 
 function positionAvatarOverlay(overlay, event) {
@@ -4752,16 +4829,71 @@ function hideAvatarOverlay() {
         }, 200);
     }
     
-    // Remove outside click listener
+    // CRITICAL FIX: Complete listener cleanup with multiple strategies
+    // Strategy 1: Remove using stored reference
+    if (window.avatarOverlayClickHandler) {
+        document.removeEventListener('click', window.avatarOverlayClickHandler, true);
+        document.removeEventListener('click', window.avatarOverlayClickHandler, false);
+        window.avatarOverlayClickHandler = null;
+    }
+    
+    // Strategy 2: Remove using function reference (fallback)
     document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+    
+    // Strategy 3: Clear any possible duplicate listeners by redefining the function
+    // This nuclear option ensures no listeners can survive
+    if (window.avatarOverlayListenerCount > 0) {
+        for (let i = 0; i < window.avatarOverlayListenerCount; i++) {
+            document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+            document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+        }
+        window.avatarOverlayListenerCount = 0;
+    }
+    
+    console.log('🧹 Avatar overlay cleanup completed');
 }
 
 function hideAvatarOverlayOnOutsideClick(event) {
     const overlay = document.getElementById('avatarOverlay');
     if (overlay && !overlay.contains(event.target)) {
-        hideAvatarOverlay();
+        // ENHANCED SAFETY: Extra checks to prevent stuck overlays
+        const isAvatarClick = event.target.closest('.message-avatar');
+        const isOverlayAction = event.target.closest('.avatar-action-btn');
+        
+        // Don't close if clicking on an avatar (new overlay will replace) or action button
+        if (!isAvatarClick && !isOverlayAction) {
+            console.log('🎯 Outside click detected, hiding avatar overlay');
+            hideAvatarOverlay();
+        }
     }
 }
+
+// NUCLEAR OPTION: Global reset function for stuck overlays
+// This can be called manually or triggered by specific events
+window.forceResetAvatarOverlay = function() {
+    console.log('🚨 FORCE RESET: Cleaning up any stuck avatar overlays');
+    
+    // Remove all possible overlays
+    const overlays = document.querySelectorAll('#avatarOverlay, .avatar-overlay');
+    overlays.forEach(overlay => {
+        if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    });
+    
+    // Reset all tracking variables
+    window.avatarOverlayClickHandler = null;
+    window.avatarOverlayListenerCount = 0;
+    
+    // Remove all possible listeners (brute force)
+    for (let i = 0; i < 10; i++) { // Remove up to 10 possible duplicate listeners
+        document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+        document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+    }
+    
+    console.log('✅ Force reset completed - all avatar overlays cleared');
+};
 
 
 
