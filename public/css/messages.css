@@ -333,6 +333,18 @@ body:has(.messages-header) {
   background: transparent;
   padding: 10px 5px;
   margin-top: 0;
+  /* Scrollable container for application cards */
+  max-height: 400px; /* Height of roughly 2 application cards */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Hide scrollbar for cleaner look */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.applications-list::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }
 
 /* Application Card Styles - Based on profile review cards */
@@ -1499,6 +1511,10 @@ body:has(.selection-controls[style*="display: flex"]) {
   .application-message {
     font-size: 0.85rem;
     padding: 10px;
+  }
+
+  .applications-list {
+    max-height: 350px; /* Slightly smaller for mobile */
   }
 
   .application-action-modal {
