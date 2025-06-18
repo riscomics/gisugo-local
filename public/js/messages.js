@@ -291,6 +291,11 @@ function initializeJobListings() {
                     jobListing.classList.add('expanded');
                     applicationsList.style.display = 'block';
                     expandIcon.textContent = '▲';
+                    
+                    // Smooth scroll to center the expanded job listing
+                    setTimeout(() => {
+                        scrollToJobListing(jobListing);
+                    }, 100); // Small delay to allow expansion animation
                 }
             }
         });
@@ -317,6 +322,47 @@ function closeAllJobListings() {
             }
         }
     });
+}
+
+// Smooth scroll to center an expanded job listing for optimal UX
+function scrollToJobListing(jobListing) {
+    // Find the applications tab scroll container
+    const applicationsTab = document.querySelector('#applications-content');
+    const scrollContainer = applicationsTab?.querySelector('.tab-scroll-container');
+    
+    if (!scrollContainer || !jobListing) {
+        console.warn('Scroll container or job listing not found for auto-scroll');
+        return;
+    }
+    
+    // Calculate the position to center the job listing
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const jobRect = jobListing.getBoundingClientRect();
+    
+    // Get current scroll position
+    const currentScrollTop = scrollContainer.scrollTop;
+    
+    // Calculate where the job listing currently is relative to the scroll container
+    const jobOffsetFromTop = jobRect.top - containerRect.top + currentScrollTop;
+    
+    // Calculate the scroll position to center the job listing
+    const containerHeight = containerRect.height;
+    const jobHeight = jobRect.height;
+    
+    // Position job listing in the center of the visible area
+    // Account for the expanded height by adding some extra space
+    const targetScrollTop = jobOffsetFromTop - (containerHeight / 2) + (jobHeight / 2);
+    
+    // Ensure we don't scroll past the top
+    const finalScrollTop = Math.max(0, targetScrollTop);
+    
+    // Smooth scroll animation
+    scrollContainer.scrollTo({
+        top: finalScrollTop,
+        behavior: 'smooth'
+    });
+    
+    console.log(`Auto-scrolling to center job listing at position ${finalScrollTop}`);
 }
 
 // Application Action Overlay Management
