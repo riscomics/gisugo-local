@@ -3243,6 +3243,798 @@ const MOCK_APPLICATIONS = [
                 }
             }
         ]
+    },
+    {
+        jobId: 'job_xP8kL9mR2qT5wN3jH6',
+        jobTitle: 'Babysitting - weekend childcare for 2 kids',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-21T10:00:00Z'),
+        updatedAt: new Date('2025-12-23T09:30:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_bN7mK4xR8qT2wL9sP5',
+                applicantUid: 'user_sP6nK3mR7qX8jL2wT9',
+                jobId: 'job_xP8kL9mR2qT5wN3jH6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T13:20:00Z'),
+                updatedAt: new Date('2025-12-22T13:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Maria Santos',
+                    photoURL: 'public/users/User-08.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 89,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T08:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 200,
+                    originalAmount: 250,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I have 12 years experience taking care of children. I am a licensed teacher and first aid certified. Your kids will be safe with me!',
+                
+                qualifications: {
+                    experience: '12 years',
+                    specializations: ['childcare', 'education'],
+                    availability: 'weekends',
+                    certifications: ['licensed teacher', 'first aid'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '1:20 PM',
+                    formattedPrice: '₱200 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rT6kN9mX4qL7wS3jP8',
+                applicantUid: 'user_jL8kT5mR9qW3nX6sB2',
+                jobId: 'job_xP8kL9mR2qT5wN3jH6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T16:45:00Z'),
+                updatedAt: new Date('2025-12-22T16:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Elena Rodriguez',
+                    photoURL: 'public/users/User-09.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 34,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T07:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 250,
+                    originalAmount: 250,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good afternoon! I love working with children and have experience with ages 3-10. I can help with homework and activities.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['homework help', 'activities'],
+                    availability: 'flexible weekends',
+                    references: 'available',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '4:45 PM',
+                    formattedPrice: '₱250 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_wS5kJ7mQ9rT3xN8lP4',
+                applicantUid: 'user_nP9kS6mT4qL8wR3jX7',
+                jobId: 'job_xP8kL9mR2qT5wN3jH6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T08:15:00Z'),
+                updatedAt: new Date('2025-12-23T08:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Grace Lim',
+                    photoURL: 'public/users/User-10.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 15,
+                    verified: false,
+                    lastActive: new Date('2025-12-23T09:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 180,
+                    originalAmount: 250,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi! I\'m new to the platform but very responsible. I have younger siblings so I understand children well.',
+                
+                qualifications: {
+                    experience: '2 years',
+                    specializations: ['sibling care', 'playtime'],
+                    availability: 'Saturday mornings',
+                    references: 'family references',
+                    languages: ['English', 'Filipino', 'Chinese']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '8:15 AM',
+                    formattedPrice: '₱180 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_qH4nL7mX9rK2jT8sW6',
+        jobTitle: 'Car washing and detailing - monthly service',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-20T16:30:00Z'),
+        updatedAt: new Date('2025-12-23T11:15:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_mK8jL4xN9qR5wT2sH7',
+                applicantUid: 'user_wT9nK6mL4qR8jX3sP5',
+                jobId: 'job_qH4nL7mX9rK2jT8sW6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T09:30:00Z'),
+                updatedAt: new Date('2025-12-22T09:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Rico Fernandez',
+                    photoURL: 'public/users/User-11.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 78,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T10:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 400,
+                    originalAmount: 500,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Professional car detailing service! I have my own equipment and premium cleaning products. Your car will look brand new!',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['car detailing', 'premium service'],
+                    availability: 'flexible schedule',
+                    equipment: 'professional grade',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '9:30 AM',
+                    formattedPrice: '₱400 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_xL5nK8mR2qT7jW4sP9',
+                applicantUid: 'user_sP7kL4mT9qR6wX8nJ3',
+                jobId: 'job_qH4nL7mX9rK2jT8sW6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T07:45:00Z'),
+                updatedAt: new Date('2025-12-23T07:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'John Martinez',
+                    photoURL: 'public/users/User-02.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 22,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T11:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 500,
+                    originalAmount: 500,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good morning! I can wash and detail your car monthly. I\'m very thorough and always on time.',
+                
+                qualifications: {
+                    experience: '4 years',
+                    specializations: ['car washing', 'interior cleaning'],
+                    availability: 'monthly schedule',
+                    equipment: 'basic tools',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '7:45 AM',
+                    formattedPrice: '₱500 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_tN9kR3mX6qL8wS2jP7',
+        jobTitle: 'Tutoring - high school math and science',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-21T14:20:00Z'),
+        updatedAt: new Date('2025-12-23T12:45:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_bL7nK5mR9qX4wT8sJ2',
+                applicantUid: 'user_jT6nL9mK4qR8wX3sP7',
+                jobId: 'job_tN9kR3mX6qL8wS2jP7',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T11:30:00Z'),
+                updatedAt: new Date('2025-12-22T11:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Prof. Anna Cruz',
+                    photoURL: 'public/users/User-03.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 156,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T12:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 300,
+                    originalAmount: 350,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I\'m a licensed Math teacher with 15 years experience. I specialize in making difficult concepts easy to understand.',
+                
+                qualifications: {
+                    experience: '15 years',
+                    specializations: ['mathematics', 'physics', 'chemistry'],
+                    availability: 'afternoons and weekends',
+                    certifications: ['licensed teacher', 'masters degree'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '11:30 AM',
+                    formattedPrice: '₱300 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rW8kN3mL7qT5jX9sK4',
+                applicantUid: 'user_kX8nW5mT2qL9jR6sP3',
+                jobId: 'job_tN9kR3mX6qL8wS2jP7',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T15:15:00Z'),
+                updatedAt: new Date('2025-12-22T15:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Mark Gonzales',
+                    photoURL: 'public/users/User-04.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 67,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T11:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 350,
+                    originalAmount: 350,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Hi! I\'m an engineering student and have been tutoring high school students for 3 years. Great with math and science!',
+                
+                qualifications: {
+                    experience: '3 years',
+                    specializations: ['algebra', 'calculus', 'physics'],
+                    availability: 'evenings',
+                    education: 'engineering student',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '3:15 PM',
+                    formattedPrice: '₱350 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_sJ6nM9mK3qR7wL5tX8',
+                applicantUid: 'user_wL4nJ8mR6qT9kX2sP5',
+                jobId: 'job_tN9kR3mX6qL8wS2jP7',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T09:20:00Z'),
+                updatedAt: new Date('2025-12-23T09:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Sarah Valdez',
+                    photoURL: 'public/users/User-05.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 29,
+                    verified: false,
+                    lastActive: new Date('2025-12-23T12:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 250,
+                    originalAmount: 350,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I just graduated with a science degree and love helping students understand math and science concepts.',
+                
+                qualifications: {
+                    experience: '1 year',
+                    specializations: ['basic math', 'general science'],
+                    availability: 'flexible',
+                    education: 'science graduate',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '9:20 AM',
+                    formattedPrice: '₱250 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_wK7nL2mX9qR5jT8sP3',
+        jobTitle: 'House painting - living room and kitchen',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-22T08:45:00Z'),
+        updatedAt: new Date('2025-12-23T13:30:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_nT5kW8mL3qR7jX2sK9',
+                applicantUid: 'user_jX9nT4mW8qL5kR2sP6',
+                jobId: 'job_wK7nL2mX9qR5jT8sP3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T14:10:00Z'),
+                updatedAt: new Date('2025-12-22T14:10:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Pablo Ramirez',
+                    photoURL: 'public/users/User-06.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 94,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T13:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 2500,
+                    originalAmount: 3000,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Professional painter with 10+ years experience. I use high-quality paints and guarantee perfect finish. Free color consultation!',
+                
+                qualifications: {
+                    experience: '10+ years',
+                    specializations: ['interior painting', 'color consultation'],
+                    availability: 'this week',
+                    equipment: 'professional tools and paints',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '2:10 PM',
+                    formattedPrice: '₱2500 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_kR6nS9mL4qT8wX3jP7',
+                applicantUid: 'user_sP3nK7mR9qL4wT8jX6',
+                jobId: 'job_wK7nL2mX9qR5jT8sP3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T10:25:00Z'),
+                updatedAt: new Date('2025-12-23T10:25:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Dante Silva',
+                    photoURL: 'public/users/User-07.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 38,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T13:15:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 3000,
+                    originalAmount: 3000,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I can paint your living room and kitchen. I\'m very careful with furniture and clean up after work.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['residential painting', 'clean work'],
+                    availability: 'next week',
+                    equipment: 'own brushes and rollers',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '10:25 AM',
+                    formattedPrice: '₱3000 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_rS8nK5mX2qT9wL6jP4',
+        jobTitle: 'Computer repair - laptop not starting up',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-22T11:30:00Z'),
+        updatedAt: new Date('2025-12-23T14:20:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_mX7kR4nL9qT6wS3jP8',
+                applicantUid: 'user_wS6nX9mR4qL7kT3jP5',
+                jobId: 'job_rS8nK5mX2qT9wL6jP4',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T16:20:00Z'),
+                updatedAt: new Date('2025-12-22T16:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Tech Mike Santos',
+                    photoURL: 'public/users/User-08.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 112,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T14:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 500,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Computer technician with 12 years experience. I can diagnose and fix your laptop today. Free diagnosis if I can\'t fix it!',
+                
+                qualifications: {
+                    experience: '12 years',
+                    specializations: ['laptop repair', 'hardware troubleshooting'],
+                    availability: 'same day service',
+                    certifications: ['A+ certified', 'authorized technician'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '4:20 PM',
+                    formattedPrice: '₱500 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_lK9nT6mS3qR8wX4jL7',
+                applicantUid: 'user_jL4nK8mT6qS9wR3xP7',
+                jobId: 'job_rS8nK5mX2qT9wL6jP4',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T08:45:00Z'),
+                updatedAt: new Date('2025-12-23T08:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Ryan Tech',
+                    photoURL: 'public/users/User-09.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 56,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T13:50:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 800,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Hello! I\'m an IT professional and can fix laptop issues. I have diagnostic tools and replacement parts if needed.',
+                
+                qualifications: {
+                    experience: '7 years',
+                    specializations: ['IT support', 'hardware repair'],
+                    availability: 'today or tomorrow',
+                    equipment: 'diagnostic tools',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '8:45 AM',
+                    formattedPrice: '₱800 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_wP5nL8mK4qR7jT9sX3',
+                applicantUid: 'user_sX7nP3mL9qK4wR8jT6',
+                jobId: 'job_rS8nK5mX2qT9wL6jP4',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T12:10:00Z'),
+                updatedAt: new Date('2025-12-23T12:10:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carl Mendoza',
+                    photoURL: 'public/users/User-10.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 21,
+                    verified: false,
+                    lastActive: new Date('2025-12-23T14:05:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 600,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi! I study computer science and repair laptops as part-time work. I can check your laptop this afternoon.',
+                
+                qualifications: {
+                    experience: '2 years',
+                    specializations: ['basic repairs', 'software troubleshooting'],
+                    availability: 'afternoon',
+                    education: 'computer science student',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '12:10 PM',
+                    formattedPrice: '₱600 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_nL6kT4mR9qX8wS5jP2',
+        jobTitle: 'Dog walking - daily walks for 2 small dogs',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-22T15:15:00Z'),
+        updatedAt: new Date('2025-12-23T15:45:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_kS9nL5mT8qR4wX7jP3',
+                applicantUid: 'user_wX4nS8mL9qT5kR7jP6',
+                jobId: 'job_nL6kT4mR9qX8wS5jP2',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T07:30:00Z'),
+                updatedAt: new Date('2025-12-23T07:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Luna Pet Care',
+                    photoURL: 'public/users/User-11.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 73,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T15:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 100,
+                    originalAmount: 150,
+                    currency: 'PHP',
+                    paymentType: 'per_walk',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I absolutely love dogs and have been walking pets for 6 years. Your dogs will get exercise and lots of love!',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['dog walking', 'pet care'],
+                    availability: 'daily morning and evening',
+                    insurance: 'pet care insured',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '7:30 AM',
+                    formattedPrice: '₱100 Per Walk'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rT7nK3mS9qL6wX8jP4',
+                applicantUid: 'user_jP8nT5mK9qS6wL3rX7',
+                jobId: 'job_nL6kT4mR9qX8wS5jP2',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T13:55:00Z'),
+                updatedAt: new Date('2025-12-23T13:55:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Jose Animal Lover',
+                    photoURL: 'public/users/User-02.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 42,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T15:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 150,
+                    originalAmount: 150,
+                    currency: 'PHP',
+                    paymentType: 'per_walk',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good afternoon! I have 2 dogs myself and understand how important daily exercise is. I can walk your dogs every day!',
+                
+                qualifications: {
+                    experience: '4 years',
+                    specializations: ['small dogs', 'daily routine'],
+                    availability: 'morning preferred',
+                    equipment: 'own leashes and poop bags',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '1:55 PM',
+                    formattedPrice: '₱150 Per Walk'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
     }
 ];
 
