@@ -334,7 +334,7 @@ body:has(.messages-header) {
   padding: 10px 5px;
   margin-top: 0;
   /* Scrollable container for application cards */
-  max-height: 400px; /* Height of roughly 2 application cards */
+  max-height: 450px; /* Height of roughly 2.5 application cards (increased by 50px) */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -1514,7 +1514,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .applications-list {
-    max-height: 350px; /* Slightly smaller for mobile */
+    max-height: 400px; /* Increased by 50px for mobile (was 350px) */
   }
 
   .application-action-modal {
