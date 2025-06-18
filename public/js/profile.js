@@ -108,7 +108,7 @@ function handleProfileOptionChange(value, text) {
 const sampleUserProfile = {
   // Basic Profile Information (from create account form)
   fullName: "Peter J. Ang",
-  profilePhoto: "public/users/Peter-J-Ang-User-01.jpg",
+      profilePhoto: "public/users/Peter-J-Ang-User-01.jpg",
   dateOfBirth: "1988-04-15", // Will calculate age from this
   educationLevel: "College", // Options: "No-High-School", "High School", "College", "Masters", "Doctorate"
   userSummary: "Hello! I'm Peter, a reliable and hardworking individual with over 3 years of experience in various service jobs. I take great pride in delivering quality work and building lasting relationships with my clients. Whether it's cleaning, maintenance, or assistance tasks, you can count on me to get the job done right and on time. I'm punctual, detail-oriented, and always ready to go the extra mile to ensure customer satisfaction.",

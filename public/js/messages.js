@@ -3649,7 +3649,15 @@ function getParticipantAvatar(threadId) {
         // Look for existing incoming message avatar in this thread
         const existingAvatar = threadElement.querySelector('.message-card.incoming .message-avatar img');
         if (existingAvatar && existingAvatar.src) {
-            return existingAvatar.src.replace(window.location.origin + '/', '');
+            // Extract just the path part that works for both local and online
+            const src = existingAvatar.src;
+            // Look for 'public/users/' in the URL and extract from there
+            const publicUsersIndex = src.indexOf('public/users/');
+            if (publicUsersIndex !== -1) {
+                return src.substring(publicUsersIndex);
+            }
+            // Fallback: try to extract relative path
+            return src.replace(window.location.origin + '/', '');
         }
     }
     
