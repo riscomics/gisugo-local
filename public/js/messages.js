@@ -228,6 +228,12 @@ function initializeTabs() {
             // This prevents stuck overlays from persisting across tab switches
             hideAvatarOverlay();
             
+            // MEMORY LEAK FIX: Clean up all avatar listeners when switching tabs
+            const activeTabContent = document.querySelector('.tab-content-wrapper.active');
+            if (activeTabContent) {
+                cleanupAvatarOverlays(activeTabContent);
+            }
+            
             // NUCLEAR OPTION: Force reset if normal cleanup fails
             setTimeout(() => {
                 if (document.getElementById('avatarOverlay')) {
@@ -2386,6 +2392,11 @@ function closeAllMessageThreads() {
     // CRITICAL FIX: Clean up avatar overlay when closing threads
     // This prevents overlay from being orphaned when threads are closed
     hideAvatarOverlay();
+    
+    // MEMORY LEAK FIX: Clean up all avatar listeners when closing threads
+    allMessageThreads.forEach(thread => {
+        cleanupAvatarOverlays(thread);
+    });
     
     allMessageThreads.forEach(thread => {
         const header = thread.querySelector('.message-thread-header');
@@ -4598,6 +4609,9 @@ function showTemporaryNotification(message) {
 // SHARED DEBOUNCING: Prevent rapid successive clicks across all avatars
 let globalAvatarClickProcessing = false;
 
+// MEMORY LEAK FIX: Track avatar listeners for proper cleanup
+const avatarListeners = new WeakMap(); // WeakMap prevents memory leaks for DOM elements
+
 function initializeAvatarForOverlay(avatar) {
     // Skip if already initialized (prevent duplicate handlers)
     if (avatar.hasAttribute('data-overlay-initialized')) {
@@ -4607,8 +4621,8 @@ function initializeAvatarForOverlay(avatar) {
     // Mark as initialized
     avatar.setAttribute('data-overlay-initialized', 'true');
     
-    // Add click handler to the avatar
-    avatar.addEventListener('click', function(e) {
+    // MEMORY LEAK FIX: Create named functions for proper cleanup
+    const clickHandler = function(e) {
         e.stopPropagation(); // Prevent thread toggle
         
         // CRITICAL FIX: Debounce rapid clicks to prevent overlay stacking
@@ -4636,31 +4650,42 @@ function initializeAvatarForOverlay(avatar) {
             const jobId = threadElement.getAttribute('data-job-id');
             const jobTitle = threadElement.getAttribute('data-job-title');
             
-            // Show avatar overlay
-            showAvatarOverlay(e, {
-                senderId: senderId,
-                senderName: senderName,
-                threadId: threadId,
-                jobId: jobId,
-                jobTitle: jobTitle,
-                avatar: this.querySelector('img').src
-            });
-        }
-    });
-    
-    // Add touch-friendly styling
-    avatar.style.cursor = 'pointer';
-    avatar.style.transition = 'transform 0.2s ease';
-    
-    // Add hover/touch feedback
-    avatar.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.05)';
-    });
-    
-    avatar.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1)';
-    });
-}
+                            // Show avatar overlay
+                showAvatarOverlay(e, {
+                    senderId: senderId,
+                    senderName: senderName,
+                    threadId: threadId,
+                    jobId: jobId,
+                    jobTitle: jobTitle,
+                    avatar: this.querySelector('img').src
+                });
+            }
+        };
+        
+        const mouseEnterHandler = function() {
+            this.style.transform = 'scale(1.05)';
+        };
+        
+        const mouseLeaveHandler = function() {
+            this.style.transform = 'scale(1)';
+        };
+        
+        // Add all event listeners
+        avatar.addEventListener('click', clickHandler);
+        avatar.addEventListener('mouseenter', mouseEnterHandler);
+        avatar.addEventListener('mouseleave', mouseLeaveHandler);
+        
+        // MEMORY LEAK FIX: Store listener references for cleanup
+        avatarListeners.set(avatar, {
+            click: clickHandler,
+            mouseenter: mouseEnterHandler,
+            mouseleave: mouseLeaveHandler
+        });
+        
+        // Add touch-friendly styling
+        avatar.style.cursor = 'pointer';
+        avatar.style.transition = 'transform 0.2s ease';
+    }
 
 function initializeAvatarOverlays(messageThread) {
     // Find all message avatars in this thread
@@ -4672,6 +4697,34 @@ function initializeAvatarOverlays(messageThread) {
     });
     
     console.log(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
+}
+
+// MEMORY LEAK FIX: Cleanup function for avatar listeners
+function cleanupAvatarOverlays(container) {
+    const avatars = container.querySelectorAll('.message-avatar[data-overlay-initialized="true"]');
+    
+    avatars.forEach(avatar => {
+        const listeners = avatarListeners.get(avatar);
+        if (listeners) {
+            // Remove all event listeners
+            avatar.removeEventListener('click', listeners.click);
+            avatar.removeEventListener('mouseenter', listeners.mouseenter);
+            avatar.removeEventListener('mouseleave', listeners.mouseleave);
+            
+            // Remove from tracking
+            avatarListeners.delete(avatar);
+            
+            // Reset initialization flag
+            avatar.removeAttribute('data-overlay-initialized');
+            
+            // Reset styling
+            avatar.style.cursor = '';
+            avatar.style.transition = '';
+            avatar.style.transform = '';
+        }
+    });
+    
+    console.log(`🧹 Cleaned up avatar overlays for ${avatars.length} avatars`);
 }
 
 function showAvatarOverlay(event, userData) {
@@ -4698,7 +4751,6 @@ function showAvatarOverlay(event, userData) {
     overlay.innerHTML = `
         <div class="avatar-overlay-header">
             <div class="avatar-overlay-name">${userData.senderName}</div>
-            <div class="avatar-overlay-subtitle">Message Participant</div>
         </div>
         <div class="avatar-overlay-actions">
             <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
@@ -4775,6 +4827,13 @@ function positionAvatarOverlay(overlay, event) {
 }
 
 function initializeAvatarOverlayActions(overlay, userData) {
+    // MEMORY LEAK FIX: Create AbortController for proper cleanup
+    const controller = new AbortController();
+    const signal = controller.signal;
+    
+    // Store controller reference on overlay for cleanup
+    overlay._abortController = controller;
+    
     // VIEW PROFILE button
     const profileBtn = overlay.querySelector('.avatar-action-btn.profile');
     if (profileBtn) {
@@ -4793,7 +4852,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
             
             // Hide overlay
             hideAvatarOverlay();
-        });
+        }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
     }
     
     // VIEW JOB POST button
@@ -4814,13 +4873,19 @@ function initializeAvatarOverlayActions(overlay, userData) {
             
             // Hide overlay
             hideAvatarOverlay();
-        });
+        }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
     }
 }
 
 function hideAvatarOverlay() {
     const existingOverlay = document.getElementById('avatarOverlay');
     if (existingOverlay) {
+        // MEMORY LEAK FIX: Cleanup action button listeners before removing overlay
+        if (existingOverlay._abortController) {
+            existingOverlay._abortController.abort();
+            existingOverlay._abortController = null;
+        }
+        
         existingOverlay.classList.remove('show');
         setTimeout(() => {
             if (existingOverlay.parentNode) {
@@ -4874,9 +4939,31 @@ function hideAvatarOverlayOnOutsideClick(event) {
 window.forceResetAvatarOverlay = function() {
     console.log('🚨 FORCE RESET: Cleaning up any stuck avatar overlays');
     
+    // MEMORY LEAK FIX: Clean up all avatar listeners globally
+    const allAvatars = document.querySelectorAll('.message-avatar[data-overlay-initialized="true"]');
+    allAvatars.forEach(avatar => {
+        const listeners = avatarListeners.get(avatar);
+        if (listeners) {
+            avatar.removeEventListener('click', listeners.click);
+            avatar.removeEventListener('mouseenter', listeners.mouseenter);
+            avatar.removeEventListener('mouseleave', listeners.mouseleave);
+            avatarListeners.delete(avatar);
+        }
+        avatar.removeAttribute('data-overlay-initialized');
+        avatar.style.cursor = '';
+        avatar.style.transition = '';
+        avatar.style.transform = '';
+    });
+    
     // Remove all possible overlays
     const overlays = document.querySelectorAll('#avatarOverlay, .avatar-overlay');
     overlays.forEach(overlay => {
+        // MEMORY LEAK FIX: Abort action button listeners
+        if (overlay._abortController) {
+            overlay._abortController.abort();
+            overlay._abortController = null;
+        }
+        
         if (overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
         }
@@ -4885,6 +4972,7 @@ window.forceResetAvatarOverlay = function() {
     // Reset all tracking variables
     window.avatarOverlayClickHandler = null;
     window.avatarOverlayListenerCount = 0;
+    globalAvatarClickProcessing = false;
     
     // Remove all possible listeners (brute force)
     for (let i = 0; i < 10; i++) { // Remove up to 10 possible duplicate listeners
@@ -4892,7 +4980,7 @@ window.forceResetAvatarOverlay = function() {
         document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
     }
     
-    console.log('✅ Force reset completed - all avatar overlays cleared');
+    console.log(`✅ Force reset completed - cleaned up ${allAvatars.length} avatar listeners and all overlays`);
 };
 
 
