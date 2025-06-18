@@ -465,8 +465,8 @@ body:has(.messages-header) {
 }
 
 .application-message {
-  color: #f0e6d2;
-  font-size: 0.9rem;
+  color: #d4dae0;
+  font-size: 0.95rem;
   line-height: 1.4;
   background: #2d3748;
   padding: 12px;
@@ -1509,7 +1509,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .application-message {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     padding: 10px;
   }
 
