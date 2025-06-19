@@ -2300,6 +2300,19 @@ body:has(.selection-controls[style*="display: flex"]) {
   box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
 }
 
+.avatar-action-btn.application {
+  background: #ed8936;
+  color: #ffffff;
+  border-color: #fd9749;
+}
+
+.avatar-action-btn.application:hover {
+  background: #dd7724;
+  border-color: #ed8936;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
+}
+
 .avatar-action-btn:active {
   transform: translateY(0);
 }

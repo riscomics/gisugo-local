@@ -135,6 +135,89 @@ This modular tab system is optimized for Firebase (Firestore + Authentication):
    - Message attachments in /messages/{threadId}/attachments/
 */
 
+// ===== MEMORY LEAK PREVENTION SYSTEM =====
+
+// Global registry for tracking all event listeners and cleanup functions
+const CLEANUP_REGISTRY = {
+    documentListeners: new Map(), // Track document-level listeners
+    elementListeners: new WeakMap(), // Track element-specific listeners
+    activeControllers: new Set(), // Track AbortControllers
+    intervals: new Set(), // Track setInterval/setTimeout
+    cleanupFunctions: new Set() // Track custom cleanup functions
+};
+
+// MEMORY LEAK FIX: Enhanced cleanup utility
+function registerCleanup(type, key, cleanupFn) {
+    if (type === 'function') {
+        CLEANUP_REGISTRY.cleanupFunctions.add(cleanupFn);
+    } else if (type === 'controller') {
+        CLEANUP_REGISTRY.activeControllers.add(cleanupFn);
+    } else if (type === 'interval') {
+        CLEANUP_REGISTRY.intervals.add(cleanupFn);
+    }
+    console.log(`🧹 Registered cleanup for ${type}: ${key || 'anonymous'}`);
+}
+
+// MEMORY LEAK FIX: Execute all registered cleanup functions
+function executeAllCleanups() {
+    console.log('🧹 EXECUTING COMPREHENSIVE CLEANUP...');
+    
+    // Clean up document listeners
+    CLEANUP_REGISTRY.documentListeners.forEach((listener, key) => {
+        const [event, handler, options] = listener;
+        document.removeEventListener(event, handler, options);
+        console.log(`🧹 Removed document listener: ${key}`);
+    });
+    CLEANUP_REGISTRY.documentListeners.clear();
+    
+    // Abort all active controllers
+    CLEANUP_REGISTRY.activeControllers.forEach(controller => {
+        if (controller && typeof controller.abort === 'function') {
+            controller.abort();
+        }
+    });
+    CLEANUP_REGISTRY.activeControllers.clear();
+    
+    // Clear all intervals/timeouts
+    CLEANUP_REGISTRY.intervals.forEach(id => {
+        clearTimeout(id);
+        clearInterval(id);
+    });
+    CLEANUP_REGISTRY.intervals.clear();
+    
+    // Execute custom cleanup functions
+    CLEANUP_REGISTRY.cleanupFunctions.forEach(fn => {
+        try {
+            fn();
+        } catch (error) {
+            console.warn('Cleanup function error:', error);
+        }
+    });
+    CLEANUP_REGISTRY.cleanupFunctions.clear();
+    
+    console.log('✅ COMPREHENSIVE CLEANUP COMPLETED');
+}
+
+// MEMORY LEAK FIX: Safe document event listener with automatic tracking
+function addDocumentListener(event, handler, options = false) {
+    const key = `${event}_${Date.now()}_${Math.random()}`;
+    document.addEventListener(event, handler, options);
+    CLEANUP_REGISTRY.documentListeners.set(key, [event, handler, options]);
+    return key; // Return key for manual removal if needed
+}
+
+// MEMORY LEAK FIX: Remove specific document listener
+function removeDocumentListener(key) {
+    const listener = CLEANUP_REGISTRY.documentListeners.get(key);
+    if (listener) {
+        const [event, handler, options] = listener;
+        document.removeEventListener(event, handler, options);
+        CLEANUP_REGISTRY.documentListeners.delete(key);
+        console.log(`🧹 Removed tracked document listener: ${key}`);
+    }
+}
+
+// Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize only the core functionality
     initializeTabs();
@@ -152,8 +235,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // SAFETY CLEANUP: Ensure no lingering mobile input adjustments on page load
     cleanupMobileInputVisibility();
     
-    // Add click listener to document for overlay clicks
-    document.addEventListener('click', function(e) {
+    // MEMORY LEAK FIX: Register page unload cleanup
+    registerCleanup('function', 'pageUnload', () => {
+        window.addEventListener('beforeunload', executeAllCleanups);
+        window.addEventListener('unload', executeAllCleanups);
+    });
+    
+    // MEMORY LEAK FIX: Use tracked document listener for overlay clicks
+    const overlayClickKey = addDocumentListener('click', function(e) {
         const messagesContainer = document.querySelector('.messages-container');
         const expandedThread = document.querySelector('.message-thread.expanded');
         
@@ -166,6 +255,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!expandedThread.contains(e.target)) {
             closeAllMessageThreads();
         }
+    });
+    
+    // Register cleanup for overlay click listener
+    registerCleanup('function', 'overlayClickCleanup', () => {
+        removeDocumentListener(overlayClickKey);
     });
     
     console.log('Modular tab system initialized - only notifications loaded on startup');
@@ -1939,6 +2033,8 @@ const MOCK_MESSAGES = [
         jobTitle: 'Plumbing repair - kitchen sink leak',
         participantId: 6,
         participantName: 'Miguel Torres',
+        threadOrigin: 'job', // NEW: Tracks thread origin ('job' or 'application')
+        applicationId: null, // NEW: null for job-based threads
         isNew: true,
         lastMessageTime: '2025-12-22T15:30:00Z',
         messages: [
@@ -2050,10 +2146,12 @@ const MOCK_MESSAGES = [
     },
     {
         threadId: 2,
-        jobId: 2,
+        jobId: 'job_gT5nM8xK2jS6wF3eA9', // Updated to match the application's jobId
         jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
-        participantId: 2,
+        participantId: 'user_qX5nK8mT3jR7wS2nC9', // Updated to match Ana's applicantUid
         participantName: 'Ana Rodriguez',
+        threadOrigin: 'application', // NEW: This thread originated from contacting from an application card
+        applicationId: 'app_kT3nH7mR8qX2bS9jL6', // NEW: Reference to Ana Rodriguez's specific application
         isNew: false,
         lastMessageTime: '2025-12-21T11:30:00Z',
         messages: [
@@ -2073,7 +2171,7 @@ const MOCK_MESSAGES = [
             {
                 id: 10,
                 threadId: 2,
-                senderId: 2,
+                senderId: 'user_qX5nK8mT3jR7wS2nC9',
                 senderName: 'Ana Rodriguez',
                 senderType: 'worker',
                 timestamp: '2025-12-20T15:45:00Z',
@@ -2099,7 +2197,7 @@ const MOCK_MESSAGES = [
             {
                 id: 12,
                 threadId: 2,
-                senderId: 2,
+                senderId: 'user_qX5nK8mT3jR7wS2nC9',
                 senderName: 'Ana Rodriguez',
                 senderType: 'worker',
                 timestamp: '2025-12-20T17:15:00Z',
@@ -2125,7 +2223,7 @@ const MOCK_MESSAGES = [
             {
                 id: 14,
                 threadId: 2,
-                senderId: 2,
+                senderId: 'user_qX5nK8mT3jR7wS2nC9',
                 senderName: 'Ana Rodriguez',
                 senderType: 'worker',
                 timestamp: '2025-12-20T19:45:00Z',
@@ -2151,7 +2249,7 @@ const MOCK_MESSAGES = [
             {
                 id: 16,
                 threadId: 2,
-                senderId: 2,
+                senderId: 'user_qX5nK8mT3jR7wS2nC9',
                 senderName: 'Ana Rodriguez',
                 senderType: 'worker',
                 timestamp: '2025-12-21T09:10:00Z',
@@ -2237,6 +2335,8 @@ function generateMessageThreadHTML(thread) {
         `data-job-title="${thread.jobTitle}"`,
         `data-participant-id="${thread.participantId}"`,
         `data-participant-name="${thread.participantName}"`,
+        `data-thread-origin="${thread.threadOrigin}"`, // NEW: Track thread origin
+        `data-application-id="${thread.applicationId || ''}"`, // NEW: Application ID for application-based threads
         `data-is-new="${thread.isNew}"`,
         `data-last-message-time="${thread.lastMessageTime}"`
     ].join(' ');
@@ -2620,7 +2720,10 @@ function initializeKeyboardDetection(overlay) {
         console.log('Keyboard hidden, resetting modal position');
     }
     
-    // Listen for viewport changes (best method for keyboard detection)
+    // MEMORY LEAK FIX: Listen for viewport changes with AbortController
+    const controller = new AbortController();
+    const signal = controller.signal;
+    
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
             const currentHeight = window.visualViewport.height;
@@ -2629,7 +2732,7 @@ function initializeKeyboardDetection(overlay) {
             } else {
                 handleKeyboardHide();
             }
-        });
+        }, { signal });
     } else {
         // Fallback for older browsers
         window.addEventListener('resize', () => {
@@ -2639,8 +2742,11 @@ function initializeKeyboardDetection(overlay) {
             } else {
                 handleKeyboardHide();
             }
-        });
+        }, { signal });
     }
+    
+    // Register controller for cleanup
+    registerCleanup('controller', `keyboardDetection_${Date.now()}`, controller);
     
     // Also listen for input focus/blur as additional detection
     messageInput.addEventListener('focus', () => {
@@ -2858,8 +2964,8 @@ const MOCK_APPLICATIONS = [
                 updatedAt: new Date('2025-12-21T10:15:00Z'),
                 
                 applicantProfile: {
-                    displayName: 'Rosa Delgado',
-                    photoURL: 'public/users/User-03.jpg', // Fixed local path
+                    displayName: 'Ana Rodriguez',
+                    photoURL: 'public/users/User-03.jpg', // Fixed local path - matches message thread
                     averageRating: 4.0,
                     totalReviews: 32,
                     verified: true,
@@ -4248,13 +4354,17 @@ function initializeInputFocusElegance(messageThread) {
                 }
             };
             
-            window.visualViewport.addEventListener('resize', handleViewportChange);
+            // MEMORY LEAK FIX: Use AbortController for proper cleanup
+            const controller = new AbortController();
+            window.visualViewport.addEventListener('resize', handleViewportChange, { signal: controller.signal });
+            
+            // Register controller for cleanup
+            registerCleanup('controller', `viewportFocus_${messageThread.dataset.threadId}`, controller);
             
             // Store cleanup function for potential future use
             messageThread._cleanupFocusElegance = () => {
-                if (window.visualViewport) {
-                    window.visualViewport.removeEventListener('resize', handleViewportChange);
-                }
+                controller.abort();
+                console.log(`🧹 Cleaned up viewport listener for thread ${messageThread.dataset.threadId}`);
             };
         }
         
@@ -4649,6 +4759,8 @@ function initializeAvatarForOverlay(avatar) {
             const threadElement = messageCard.closest('.message-thread');
             const jobId = threadElement.getAttribute('data-job-id');
             const jobTitle = threadElement.getAttribute('data-job-title');
+            const threadOrigin = threadElement.getAttribute('data-thread-origin'); // NEW
+            const applicationId = threadElement.getAttribute('data-application-id'); // NEW
             
                             // Show avatar overlay
                 showAvatarOverlay(e, {
@@ -4657,6 +4769,8 @@ function initializeAvatarForOverlay(avatar) {
                     threadId: threadId,
                     jobId: jobId,
                     jobTitle: jobTitle,
+                    threadOrigin: threadOrigin, // NEW: Include thread origin
+                    applicationId: applicationId, // NEW: Include application ID
                     avatar: this.querySelector('img').src
                 });
             }
@@ -4747,10 +4861,18 @@ function showAvatarOverlay(event, userData) {
     overlay.className = 'avatar-overlay';
     overlay.id = 'avatarOverlay';
     
-    // Create overlay content
+    // Create overlay content with conditional "View Application" button
+    const viewApplicationButton = userData.threadOrigin === 'application' && userData.applicationId 
+        ? `<button class="avatar-action-btn application" data-application-id="${userData.applicationId}" data-job-id="${userData.jobId}">
+               <span>📋</span>
+               <span>VIEW APPLICATION</span>
+           </button>`
+        : '';
+    
     overlay.innerHTML = `
         <div class="avatar-overlay-header">
             <div class="avatar-overlay-name">${userData.senderName}</div>
+            <div class="avatar-overlay-subtitle">${userData.threadOrigin === 'application' ? 'Application Conversation' : 'Job Inquiry'}</div>
         </div>
         <div class="avatar-overlay-actions">
             <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
@@ -4761,6 +4883,7 @@ function showAvatarOverlay(event, userData) {
                 <span>💼</span>
                 <span>VIEW JOB POST</span>
             </button>
+            ${viewApplicationButton}
         </div>
     `;
     
@@ -4875,6 +4998,28 @@ function initializeAvatarOverlayActions(overlay, userData) {
             hideAvatarOverlay();
         }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
     }
+    
+    // VIEW APPLICATION button (only for application-based threads)
+    const applicationBtn = overlay.querySelector('.avatar-action-btn.application');
+    if (applicationBtn) {
+        applicationBtn.addEventListener('click', function() {
+            const applicationId = this.getAttribute('data-application-id');
+            const jobId = this.getAttribute('data-job-id');
+            
+            console.log(`🔗 Opening application: ${applicationId} for job: ${jobId}`);
+            
+            // BACKEND INTEGRATION POINT: Navigate to specific application card
+            // This should scroll to the Applications tab and expand the specific application
+            // Example implementation:
+            navigateToApplicationCard(applicationId, jobId);
+            
+            // Show temporary notification
+            showTemporaryNotification(`Opening application details...`);
+            
+            // Hide overlay
+            hideAvatarOverlay();
+        }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
+    }
 }
 
 function hideAvatarOverlay() {
@@ -4930,6 +5075,146 @@ function hideAvatarOverlayOnOutsideClick(event) {
         if (!isAvatarClick && !isOverlayAction) {
             console.log('🎯 Outside click detected, hiding avatar overlay');
             hideAvatarOverlay();
+        }
+    }
+}
+
+// NUCLEAR OPTION: Global reset function for stuck overlays
+// This can be called manually or triggered by specific events
+// BACKEND INTEGRATION FUNCTION: Navigate to specific application card
+function navigateToApplicationCard(applicationId, jobId) {
+    console.log(`🎯 Navigating to application: ${applicationId} in job: ${jobId}`);
+    
+    // 1. Switch to Applications tab
+    const applicationsTab = document.querySelector('.tab-btn[data-tab="applications"]');
+    console.log(`📱 Applications tab found:`, applicationsTab);
+    console.log(`📱 Applications tab active:`, applicationsTab?.classList.contains('active'));
+    
+    if (applicationsTab && !applicationsTab.classList.contains('active')) {
+        console.log(`🔄 Switching to applications tab...`);
+        applicationsTab.click(); // This will load the applications content
+        
+        // 2. Wait for content to load, then find and expand the specific application
+        setTimeout(() => {
+            console.log(`🔍 Looking for job listing with data-job-id="${jobId}"`);
+            
+            // Debug: Show all job listings
+            const allJobListings = document.querySelectorAll('[data-job-id]');
+            console.log(`📊 Found ${allJobListings.length} job listings:`, 
+                Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
+            
+            // Find the job listing that contains this application
+            const targetJobListing = document.querySelector(`[data-job-id="${jobId}"]`);
+            console.log(`🎯 Target job listing found:`, targetJobListing);
+            
+            if (targetJobListing) {
+                console.log(`📂 Job listing found, checking if expanded...`);
+                console.log(`📂 Is expanded:`, targetJobListing.classList.contains('expanded'));
+                
+                // Expand the job listing if not already expanded
+                if (!targetJobListing.classList.contains('expanded')) {
+                    console.log(`🔽 Manually expanding job listing...`);
+                    
+                    // First, close all other expanded listings (same as job click handler)
+                    const allJobListings = document.querySelectorAll('.job-listing');
+                    allJobListings.forEach(listing => {
+                        const header = listing.querySelector('.job-header');
+                        const listingJobId = header.getAttribute('data-job-id');
+                        const applicationsList = document.getElementById('applications-' + listingJobId);
+                        const expandIcon = header.querySelector('.expand-icon');
+                        
+                        if (listing.classList.contains('expanded')) {
+                            listing.classList.remove('expanded');
+                            if (applicationsList) {
+                                applicationsList.style.display = 'none';
+                            }
+                            if (expandIcon) {
+                                expandIcon.textContent = '▼';
+                            }
+                        }
+                    });
+                    
+                    // Now expand the target listing (same logic as job click handler)
+                    const applicationsList = document.getElementById('applications-' + jobId);
+                    const expandIcon = targetJobListing.querySelector('.expand-icon');
+                    
+                    console.log(`📋 Applications list found:`, applicationsList);
+                    console.log(`🔽 Expand icon found:`, expandIcon);
+                    
+                    if (applicationsList && expandIcon) {
+                        targetJobListing.classList.add('expanded');
+                        applicationsList.style.display = 'block';
+                        expandIcon.textContent = '▲';
+                        console.log(`✅ Job listing expanded successfully`);
+                    } else {
+                        console.warn(`⚠️ Could not expand - missing applicationsList or expandIcon`);
+                    }
+                } else {
+                    console.log(`📂 Job listing already expanded`);
+                }
+                
+                // Wait for expansion animation, then find specific application card
+                setTimeout(() => {
+                    console.log(`🔍 Looking for application card with data-application-id="${applicationId}"`);
+                    
+                    // Debug: Show all application cards
+                    const allApplicationCards = document.querySelectorAll('[data-application-id]');
+                    console.log(`📊 Found ${allApplicationCards.length} application cards:`, 
+                        Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
+                    
+                    const targetApplicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+                    console.log(`🎯 Target application card found:`, targetApplicationCard);
+                    
+                    if (targetApplicationCard) {
+                        console.log(`✨ Scrolling to and highlighting application card...`);
+                        
+                        // Scroll to the application card and highlight it
+                        targetApplicationCard.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        
+                        // Add temporary highlight effect
+                        targetApplicationCard.style.boxShadow = '0 0 20px rgba(240, 208, 170, 0.6)';
+                        targetApplicationCard.style.transform = 'scale(1.02)';
+                        
+                        // Remove highlight after a few seconds
+                        setTimeout(() => {
+                            targetApplicationCard.style.boxShadow = '';
+                            targetApplicationCard.style.transform = '';
+                        }, 3000);
+                        
+                        console.log(`✅ Successfully navigated to application: ${applicationId}`);
+                    } else {
+                        console.warn(`⚠️ Application card not found: ${applicationId}`);
+                        console.warn(`Available application IDs:`, 
+                            Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
+                    }
+                }, 500); // Increased wait time for expansion
+            } else {
+                console.warn(`⚠️ Job listing not found: ${jobId}`);
+                console.warn(`Available job IDs:`, 
+                    Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
+            }
+        }, 300); // Increased wait time for tab content to load
+    } else {
+        console.log(`📱 Already on applications tab, searching directly...`);
+        
+        // Already on applications tab, just find the application
+        const targetApplicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+        console.log(`🎯 Target application card found directly:`, targetApplicationCard);
+        
+        if (targetApplicationCard) {
+            targetApplicationCard.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            console.log(`✅ Scrolled to application: ${applicationId}`);
+        } else {
+            console.warn(`⚠️ Application card not found: ${applicationId}`);
+            const allCards = document.querySelectorAll('[data-application-id]');
+            console.warn(`Available application IDs:`, 
+                Array.from(allCards).map(el => el.getAttribute('data-application-id')));
         }
     }
 }
