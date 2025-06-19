@@ -2087,6 +2087,21 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 0.975rem;
     max-width: 85%;
   }
+
+  /* Mobile Application Conversation Thread Styling */
+  .message-thread[data-thread-origin="application"] .message-thread-header {
+    background: #2f3a4f;
+    border-left: 3px solid rgba(66, 153, 225, 0.3);
+  }
+
+  .message-thread[data-thread-origin="application"] .message-thread-header:hover {
+    background: #3a4562;
+  }
+
+  .message-thread[data-thread-origin="application"].expanded .message-thread-header {
+    background: #2f3a4f;
+    border-left: 3px solid rgba(66, 153, 225, 0.4);
+  }
 }
 
 /* Message Input Styles - Now at TOP of thread */
@@ -2346,5 +2361,27 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 0.85rem;
     gap: 6px;
   }
+}
+
+/* Application Conversation Thread Styling - Subtle difference for user clarity */
+.message-thread[data-thread-origin="application"] .message-thread-header {
+  background: #2f3a4f; /* Subtle faded blue tone instead of default #2d3748 */
+  border-left: 3px solid rgba(66, 153, 225, 0.3); /* Faded blue accent for application conversations */
+}
+
+.message-thread[data-thread-origin="application"] .message-thread-header:hover {
+  background: #3a4562; /* Faded blue hover state */
+}
+
+/* For expanded application conversation threads */
+.message-thread[data-thread-origin="application"].expanded .message-thread-header {
+  background: #2f3a4f; /* Maintain the application conversation background when expanded */
+  border-left: 3px solid rgba(66, 153, 225, 0.4); /* Slightly more visible faded blue when expanded */
+}
+
+/* When thread is active but not expanded (dimmed state) */
+.messages-container.thread-active .message-thread[data-thread-origin="application"]:not(.expanded) .message-thread-header {
+  background: #1a1f2a; /* Dimmed version of the faded blue application conversation color */
+  border-left: 3px solid rgba(66, 153, 225, 0.2); /* Dimmed blue accent */
 }
 

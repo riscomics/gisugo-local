@@ -2353,7 +2353,7 @@ function generateMessageThreadHTML(thread) {
             <div class="message-thread-header" data-thread-id="${thread.threadId}">
                 <div class="thread-info">
                     <div class="thread-job-title">${thread.jobTitle}</div>
-                    <div class="thread-participant">Conversation with ${thread.participantName}</div>
+                    <div class="thread-participant">${thread.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'} with ${thread.participantName}</div>
                 </div>
                 <div class="thread-status">
                     ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
@@ -4872,7 +4872,7 @@ function showAvatarOverlay(event, userData) {
     overlay.innerHTML = `
         <div class="avatar-overlay-header">
             <div class="avatar-overlay-name">${userData.senderName}</div>
-            <div class="avatar-overlay-subtitle">${userData.threadOrigin === 'application' ? 'Application Conversation' : 'Job Inquiry'}</div>
+            <div class="avatar-overlay-subtitle">${userData.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'}</div>
         </div>
         <div class="avatar-overlay-actions">
             <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
