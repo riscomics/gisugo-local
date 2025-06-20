@@ -1269,20 +1269,62 @@ function handleReplyMessage(notificationItem) {
     const senderMatch = message.match(/\*\*(.*?)\*\*/);
     const senderName = senderMatch ? senderMatch[1] : 'Unknown';
     
-    // Switch to messages tab
+    // Get the threadId from the Reply button's data attributes
+    const replyButton = notificationItem.querySelector('[data-action="reply_message"]');
+    const threadId = replyButton ? replyButton.getAttribute('data-thread-id') : null;
+    
+    if (threadId) {
+        // Navigate to specific thread
+        navigateToMessageThread(threadId);
+    } else {
+        // Fallback: just switch to messages tab
+        const messagesTab = document.getElementById('messagesTab');
+        if (messagesTab) {
+            messagesTab.click();
+        }
+    }
+    
+    console.log('Backend action: Open message thread with:', senderName, 'ThreadID:', threadId);
+}
+
+function navigateToMessageThread(threadId) {
+    // Switch to messages tab first
     const messagesTab = document.getElementById('messagesTab');
     if (messagesTab) {
         messagesTab.click();
+        
+        // Use multiple attempts with increasing delays to find the thread
+        const attemptToFindThread = (attempt = 1, maxAttempts = 3) => {
+            // Try to find the specific message thread
+            const messageThread = document.querySelector(`.message-thread[data-thread-id="${threadId}"]`);
+            
+            if (messageThread) {
+                const threadHeader = messageThread.querySelector('.message-thread-header');
+                
+                if (threadHeader) {
+                    // Check if thread is already expanded
+                    const isExpanded = messageThread.classList.contains('expanded');
+                    
+                    if (!isExpanded) {
+                        // Click the header to expand the thread
+                        threadHeader.click();
+                    }
+                    
+                    // Scroll to the thread
+                    messageThread.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start',
+                        inline: 'nearest'
+                    });
+                }
+            } else if (attempt < maxAttempts) {
+                setTimeout(() => attemptToFindThread(attempt + 1, maxAttempts), attempt * 100);
+            }
+        };
+        
+        // Start the first attempt after a short delay
+        setTimeout(() => attemptToFindThread(), 100);
     }
-    
-    // Show confirmation
-    showConfirmationOverlay(
-        'success',
-        'Opening Messages',
-        `Opening conversation with ${senderName}.`
-    );
-    
-    console.log('Backend action: Open message thread with:', senderName);
 }
 
 // Update notification count (would be called when new notifications arrive)
@@ -1788,7 +1830,7 @@ const MOCK_NOTIFICATIONS = [
         updatedAt: new Date('2025-12-21T16:00:00Z'),
         
         title: 'New Message Received',
-        message: '<strong>Juan dela Cruz</strong> sent you a message: "Hello po! When can we start the carpentry work? I\'m available this weekend."',
+        message: '<strong>Carlos Mendoza</strong> sent you a message: "Good morning! I saw your garden maintenance job posting. I have 12 years experience in landscaping and lawn care. I can start this week if you\'re interested."',
         icon: '💬',
         iconClass: 'msg-icon',
         priority: 'medium',
@@ -1797,7 +1839,7 @@ const MOCK_NOTIFICATIONS = [
         dateDisplay: 'Dec. 21, 2025',
         
         relatedDocuments: {
-            threadId: 'thread_mX4nT8kR2qJ5wP9sL6',
+            threadId: 3,
             messageId: 'msg_bQ3nH7mK8vR2xJ4pS9',
             senderProfile: 'user_7yM3nK9rQ4vX2bS8jC5'
         },
@@ -1808,7 +1850,7 @@ const MOCK_NOTIFICATIONS = [
                 action: 'reply_message',
                 text: 'Reply',
                 actionData: {
-                    threadId: 'thread_mX4nT8kR2qJ5wP9sL6',
+                    threadId: 3,
                     navigateTo: 'messages'
                 }
             }
@@ -4738,8 +4780,8 @@ function extractParticipantId(threadId) {
  * @returns {string} Avatar URL
  */
 function getParticipantAvatar(threadId) {
-    // CONSISTENT AVATAR: First try to get existing avatar from thread DOM
-    const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
+    // CONSISTENT AVATAR: First try to get existing avatar from thread DOM - use specific selector
+    const threadElement = document.querySelector(`.message-thread[data-thread-id="${threadId}"]`);
     if (threadElement) {
         // Look for existing incoming message avatar in this thread
         const existingAvatar = threadElement.querySelector('.message-card.incoming .message-avatar img');
@@ -4766,8 +4808,9 @@ function getParticipantAvatar(threadId) {
     
     // Use threadId to create consistent hash for avatar selection
     let hash = 0;
-    for (let i = 0; i < threadId.length; i++) {
-        const char = threadId.charCodeAt(i);
+    const threadIdStr = String(threadId); // Ensure it's a string for consistent hashing
+    for (let i = 0; i < threadIdStr.length; i++) {
+        const char = threadIdStr.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
         hash = hash & hash; // Convert to 32-bit integer
     }
