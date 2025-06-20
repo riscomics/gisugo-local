@@ -1119,9 +1119,23 @@ function initializeConfirmationOverlay() {
 
 // Notifications Management
 function initializeNotifications() {
-    const notificationActionBtns = document.querySelectorAll('.notification-action-btn');
+    // Handle notification item clicks (mark as read, etc.) with memory leak prevention
+    const notificationItems = document.querySelectorAll('.notification-item');
     
-    notificationActionBtns.forEach(btn => {
+    // Clear any existing event listeners first (your memory leak prevention)
+    notificationItems.forEach(item => {
+        // Clone node to remove all event listeners
+        const newItem = item.cloneNode(true);
+        item.parentNode.replaceChild(newItem, item);
+    });
+    
+    // Re-select items after cloning (clean slate)
+    const freshNotificationItems = document.querySelectorAll('.notification-item');
+    
+    // Initialize action buttons on clean elements (no duplicates)
+    const freshActionBtns = document.querySelectorAll('.notification-action-btn');
+    
+    freshActionBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent notification item click
             
@@ -1148,19 +1162,6 @@ function initializeNotifications() {
             }
         });
     });
-    
-    // Handle notification item clicks (mark as read, etc.) with improved event delegation
-    const notificationItems = document.querySelectorAll('.notification-item');
-    
-    // Clear any existing event listeners first
-    notificationItems.forEach(item => {
-        // Clone node to remove all event listeners
-        const newItem = item.cloneNode(true);
-        item.parentNode.replaceChild(newItem, item);
-    });
-    
-    // Re-select items after cloning
-    const freshNotificationItems = document.querySelectorAll('.notification-item');
     
     freshNotificationItems.forEach((item, index) => {
         // Add debugging for first notification item
@@ -1233,20 +1234,34 @@ function handleViewApplication(notificationItem) {
     const applicantMatch = message.match(/\*\*(.*?)\*\*/);
     const applicantName = applicantMatch ? applicantMatch[1] : 'Unknown';
     
-    // Switch to applications tab
-    const applicationsTab = document.getElementById('applicationsTab');
-    if (applicationsTab) {
-        applicationsTab.click();
+    // Extract application data from notification
+    const applicationId = notificationItem.getAttribute('data-application-id');
+    const jobId = notificationItem.getAttribute('data-job-id');
+    const jobTitle = notificationItem.getAttribute('data-job-title');
+    
+    if (applicationId && jobId) {
+        // Backend-ready: Try navigation with fallback validation
+        try {
+            navigateToApplicationCard(applicationId, jobId);
+        } catch (error) {
+            // Backend-ready error handling
+            console.warn('Navigation failed, using fallback:', error);
+            const applicationsTab = document.getElementById('applicationsTab');
+            if (applicationsTab) {
+                applicationsTab.click();
+                showTemporaryNotification('Opening Applications tab...');
+            }
+        }
+    } else {
+        // Fallback to basic tab switch if data is missing
+        console.warn('Missing application or job ID, using fallback navigation');
+        const applicationsTab = document.getElementById('applicationsTab');
+        if (applicationsTab) {
+            applicationsTab.click();
+        }
     }
     
-    // Show confirmation
-    showConfirmationOverlay(
-        'success',
-        'Viewing Application',
-        `Opening ${applicantName}'s application for review.`
-    );
-    
-    console.log('Backend action: Open specific application for:', applicantName);
+    console.log('Backend action: Navigate to specific application for:', applicantName);
 }
 
 function handleReplyMessage(notificationItem) {
@@ -1740,7 +1755,7 @@ const MOCK_NOTIFICATIONS = [
         
         // Related document references for Firestore
         relatedDocuments: {
-            applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+            applicationId: 'app_kT3nH7mR8qX2bS9jL6',
             jobId: 'job_gT5nM8xK2jS6wF3eA9',
             userProfile: 'user_3vN8mQ4rT9xK2jP7sC1'
         },
@@ -1751,7 +1766,7 @@ const MOCK_NOTIFICATIONS = [
                 action: 'view_application',
                 text: 'View Application',
                 actionData: {
-                    applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+                    applicationId: 'app_kT3nH7mR8qX2bS9jL6',
                     navigateTo: 'applications'
                 }
             }
@@ -2014,19 +2029,24 @@ function generateNotificationHTML(notification) {
         `data-timestamp="${notification.timestamp}"`
     ];
 
-    // Add conditional data attributes
-    if (notification.jobId) dataAttributes.push(`data-job-id="${notification.jobId}"`);
+    // Add conditional data attributes - check both top-level and relatedDocuments
+    const jobId = notification.jobId || notification.relatedDocuments?.jobId;
+    const applicationId = notification.applicationId || notification.relatedDocuments?.applicationId;
+    const threadId = notification.threadId || notification.relatedDocuments?.threadId;
+    
+    if (jobId) dataAttributes.push(`data-job-id="${jobId}"`);
     if (notification.jobTitle) dataAttributes.push(`data-job-title="${notification.jobTitle}"`);
-    if (notification.applicationId) dataAttributes.push(`data-application-id="${notification.applicationId}"`);
-    if (notification.threadId) dataAttributes.push(`data-thread-id="${notification.threadId}"`);
+    if (applicationId) dataAttributes.push(`data-application-id="${applicationId}"`);
+    if (threadId) dataAttributes.push(`data-thread-id="${threadId}"`);
     if (notification.userId) dataAttributes.push(`data-user-id="${notification.userId}"`);
     if (notification.userName) dataAttributes.push(`data-user-name="${notification.userName}"`);
 
     const actionsHTML = notification.actions.map(action => {
         const actionDataAttrs = [`data-action="${action.action}"`];
-        if (action.jobId) actionDataAttrs.push(`data-job-id="${action.jobId}"`);
-        if (action.applicationId) actionDataAttrs.push(`data-application-id="${action.applicationId}"`);
-        if (action.threadId) actionDataAttrs.push(`data-thread-id="${action.threadId}"`);
+        // Use actionData for button-specific attributes
+        if (action.actionData?.jobId) actionDataAttrs.push(`data-job-id="${action.actionData.jobId}"`);
+        if (action.actionData?.applicationId) actionDataAttrs.push(`data-application-id="${action.actionData.applicationId}"`);
+        if (action.actionData?.threadId) actionDataAttrs.push(`data-thread-id="${action.actionData.threadId}"`);
         
         return `<button class="notification-action-btn ${action.type}" ${actionDataAttrs.join(' ')}>${action.text}</button>`;
     }).join('');
@@ -4950,6 +4970,12 @@ function showAvatarOverlay(event, userData) {
     overlay.className = 'avatar-overlay';
     overlay.id = 'avatarOverlay';
     
+    // DEBUG: Log userData to see what we're working with
+    console.log(`🔍 DEBUG: Avatar overlay userData:`, userData);
+    console.log(`🔍 DEBUG: threadOrigin = "${userData.threadOrigin}"`);
+    console.log(`🔍 DEBUG: applicationId = "${userData.applicationId}"`);
+    console.log(`🔍 DEBUG: jobId = "${userData.jobId}"`);
+    
     // Create overlay content with conditional "View Application" button
     const viewApplicationButton = userData.threadOrigin === 'application' && userData.applicationId 
         ? `<button class="avatar-action-btn application" data-application-id="${userData.applicationId}" data-job-id="${userData.jobId}">
@@ -4957,6 +4983,8 @@ function showAvatarOverlay(event, userData) {
                <span>VIEW APPLICATION</span>
            </button>`
         : '';
+    
+    console.log(`🔍 DEBUG: viewApplicationButton HTML:`, viewApplicationButton);
     
     overlay.innerHTML = `
         <div class="avatar-overlay-header">
@@ -5091,11 +5119,25 @@ function initializeAvatarOverlayActions(overlay, userData) {
     // VIEW APPLICATION button (only for application-based threads)
     const applicationBtn = overlay.querySelector('.avatar-action-btn.application');
     if (applicationBtn) {
+        console.log(`🔍 DEBUG: View Application button found:`, applicationBtn);
+        console.log(`🔍 DEBUG: Button data attributes:`, {
+            applicationId: applicationBtn.getAttribute('data-application-id'),
+            jobId: applicationBtn.getAttribute('data-job-id')
+        });
+        
         applicationBtn.addEventListener('click', function() {
             const applicationId = this.getAttribute('data-application-id');
             const jobId = this.getAttribute('data-job-id');
             
-            console.log(`🔗 Opening application: ${applicationId} for job: ${jobId}`);
+            console.log(`🔗 DEBUG: Avatar overlay View Application clicked!`);
+            console.log(`🔗 DEBUG: applicationId = "${applicationId}"`);
+            console.log(`🔗 DEBUG: jobId = "${jobId}"`);
+            
+            if (!applicationId || !jobId) {
+                console.error(`❌ Missing data: applicationId="${applicationId}", jobId="${jobId}"`);
+                showTemporaryNotification(`Error: Missing application data`);
+                return;
+            }
             
             // BACKEND INTEGRATION POINT: Navigate to specific application card
             // This should scroll to the Applications tab and expand the specific application
@@ -5108,6 +5150,8 @@ function initializeAvatarOverlayActions(overlay, userData) {
             // Hide overlay
             hideAvatarOverlay();
         }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
+    } else {
+        console.log(`🔍 DEBUG: No View Application button found in overlay`);
     }
 }
 
@@ -5187,13 +5231,22 @@ function navigateToApplicationCard(applicationId, jobId) {
         setTimeout(() => {
             console.log(`🔍 Looking for job listing with data-job-id="${jobId}"`);
             
-            // Debug: Show all job listings
-            const allJobListings = document.querySelectorAll('[data-job-id]');
-            console.log(`📊 Found ${allJobListings.length} job listings:`, 
+            // SCOPED SELECTOR: Only search within applications container for job listings
+            const applicationsContainer = document.querySelector('#applications-content .applications-container');
+            console.log(`📦 Applications container found:`, applicationsContainer);
+            
+            if (!applicationsContainer) {
+                console.error(`❌ Applications container not found!`);
+                return;
+            }
+            
+            // Debug: Show all job listings in the applications container only
+            const allJobListings = applicationsContainer.querySelectorAll('.job-listing[data-job-id]');
+            console.log(`📊 Found ${allJobListings.length} job listings in applications container:`, 
                 Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
             
-            // Find the job listing that contains this application
-            const targetJobListing = document.querySelector(`[data-job-id="${jobId}"]`);
+            // Find the job listing that contains this application (scoped to applications container)
+            const targetJobListing = applicationsContainer.querySelector(`.job-listing[data-job-id="${jobId}"]`);
             console.log(`🎯 Target job listing found:`, targetJobListing);
             
             if (targetJobListing) {
@@ -5246,32 +5299,67 @@ function navigateToApplicationCard(applicationId, jobId) {
                 setTimeout(() => {
                     console.log(`🔍 Looking for application card with data-application-id="${applicationId}"`);
                     
-                    // Debug: Show all application cards
-                    const allApplicationCards = document.querySelectorAll('[data-application-id]');
-                    console.log(`📊 Found ${allApplicationCards.length} application cards:`, 
+                    // SCOPED SELECTOR: Only search within applications container to avoid message threads
+                    const applicationsContainer = document.querySelector('#applications-content .applications-container');
+                    console.log(`📦 Applications container found:`, applicationsContainer);
+                    
+                    if (!applicationsContainer) {
+                        console.error(`❌ Applications container not found!`);
+                        return;
+                    }
+                    
+                    // Debug: Show all application cards in the applications container only
+                    const allApplicationCards = applicationsContainer.querySelectorAll('[data-application-id]');
+                    console.log(`📊 Found ${allApplicationCards.length} application cards in applications container:`, 
                         Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
                     
-                    const targetApplicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
-                    console.log(`🎯 Target application card found:`, targetApplicationCard);
+                    const targetApplicationCard = applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`);
                     
                     if (targetApplicationCard) {
                         console.log(`✨ Scrolling to and highlighting application card...`);
                         
-                        // Scroll to the application card and highlight it
+                        // Scroll to the application card and center it
                         targetApplicationCard.scrollIntoView({ 
                             behavior: 'smooth', 
                             block: 'center' 
                         });
                         
-                        // Add temporary highlight effect
-                        targetApplicationCard.style.boxShadow = '0 0 20px rgba(240, 208, 170, 0.6)';
-                        targetApplicationCard.style.transform = 'scale(1.02)';
-                        
-                        // Remove highlight after a few seconds
+                        // Enhanced multi-stage highlight effect
                         setTimeout(() => {
-                            targetApplicationCard.style.boxShadow = '';
-                            targetApplicationCard.style.transform = '';
-                        }, 3000);
+                            // Stage 1: Initial pulse and glow
+                            targetApplicationCard.style.transition = 'all 0.3s ease-in-out';
+                            targetApplicationCard.style.boxShadow = '0 0 25px rgba(52, 152, 219, 0.8), 0 0 40px rgba(52, 152, 219, 0.4)';
+                            targetApplicationCard.style.transform = 'scale(1.03)';
+                            targetApplicationCard.style.borderRadius = '12px';
+                            targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                            
+                            // Stage 2: Secondary pulse
+                            setTimeout(() => {
+                                targetApplicationCard.style.transform = 'scale(1.01)';
+                                targetApplicationCard.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.6), 0 0 30px rgba(52, 152, 219, 0.3)';
+                            }, 300);
+                            
+                            // Stage 3: Gentle settle
+                            setTimeout(() => {
+                                targetApplicationCard.style.transform = 'scale(1.005)';
+                                targetApplicationCard.style.boxShadow = '0 0 15px rgba(52, 152, 219, 0.4)';
+                                targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+                            }, 600);
+                            
+                            // Stage 4: Final fade out
+                            setTimeout(() => {
+                                targetApplicationCard.style.transition = 'all 0.8s ease-out';
+                                targetApplicationCard.style.boxShadow = '';
+                                targetApplicationCard.style.transform = '';
+                                targetApplicationCard.style.backgroundColor = '';
+                                targetApplicationCard.style.borderRadius = '';
+                                
+                                // Clean up after animation
+                                setTimeout(() => {
+                                    targetApplicationCard.style.transition = '';
+                                }, 800);
+                            }, 2500);
+                        }, 600); // Wait for scroll to complete
                         
                         console.log(`✅ Successfully navigated to application: ${applicationId}`);
                     } else {
@@ -5289,16 +5377,68 @@ function navigateToApplicationCard(applicationId, jobId) {
     } else {
         console.log(`📱 Already on applications tab, searching directly...`);
         
-        // Already on applications tab, just find the application
-        const targetApplicationCard = document.querySelector(`[data-application-id="${applicationId}"]`);
+        // Already on applications tab, just find the application with scoped selector
+        const applicationsContainer = document.querySelector('#applications-content .applications-container');
+        console.log(`📦 Applications container found for direct search:`, applicationsContainer);
+        
+        if (!applicationsContainer) {
+            console.error(`❌ Applications container not found for direct search!`);
+            return;
+        }
+        
+        // Debug: Show all application cards in the applications container only
+        const allApplicationCards = applicationsContainer.querySelectorAll('[data-application-id]');
+        console.log(`📊 Found ${allApplicationCards.length} application cards in applications container (direct):`, 
+            Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
+        
+        const targetApplicationCard = applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`);
         console.log(`🎯 Target application card found directly:`, targetApplicationCard);
         
         if (targetApplicationCard) {
+            // Enhanced scroll and highlight for direct navigation
             targetApplicationCard.scrollIntoView({ 
                 behavior: 'smooth', 
                 block: 'center' 
             });
-            console.log(`✅ Scrolled to application: ${applicationId}`);
+            
+            // Same enhanced highlight effect as the full navigation
+            setTimeout(() => {
+                // Stage 1: Initial pulse and glow
+                targetApplicationCard.style.transition = 'all 0.3s ease-in-out';
+                targetApplicationCard.style.boxShadow = '0 0 25px rgba(52, 152, 219, 0.8), 0 0 40px rgba(52, 152, 219, 0.4)';
+                targetApplicationCard.style.transform = 'scale(1.03)';
+                targetApplicationCard.style.borderRadius = '12px';
+                targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                
+                // Stage 2: Secondary pulse
+                setTimeout(() => {
+                    targetApplicationCard.style.transform = 'scale(1.01)';
+                    targetApplicationCard.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.6), 0 0 30px rgba(52, 152, 219, 0.3)';
+                }, 300);
+                
+                // Stage 3: Gentle settle
+                setTimeout(() => {
+                    targetApplicationCard.style.transform = 'scale(1.005)';
+                    targetApplicationCard.style.boxShadow = '0 0 15px rgba(52, 152, 219, 0.4)';
+                    targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+                }, 600);
+                
+                // Stage 4: Final fade out
+                setTimeout(() => {
+                    targetApplicationCard.style.transition = 'all 0.8s ease-out';
+                    targetApplicationCard.style.boxShadow = '';
+                    targetApplicationCard.style.transform = '';
+                    targetApplicationCard.style.backgroundColor = '';
+                    targetApplicationCard.style.borderRadius = '';
+                    
+                    // Clean up after animation
+                    setTimeout(() => {
+                        targetApplicationCard.style.transition = '';
+                    }, 800);
+                }, 2500);
+            }, 300); // Shorter wait since no tab switching
+            
+            console.log(`✅ Scrolled to and highlighted application: ${applicationId}`);
         } else {
             console.warn(`⚠️ Application card not found: ${applicationId}`);
             const allCards = document.querySelectorAll('[data-application-id]');
