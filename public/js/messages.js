@@ -641,25 +641,9 @@ function initializeApplicationActions() {
             const jobId = this.getAttribute('data-job-id');
             const jobTitle = this.getAttribute('data-job-title');
             
-            // CRITICAL DEBUG: Log data attributes to identify corruption
-            console.log('🔍 HIRE BUTTON DEBUG - Data Attributes Retrieved:', {
-                applicationId: applicationId,
-                userId: userId,
-                userName: userName,
-                jobId: jobId,
-                jobTitle: jobTitle,
-                buttonElement: this
-            });
-            
             // CRITICAL FIX: Validate data before proceeding
             if (!applicationId || !userId || !userName) {
-                console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes', {
-                    applicationId: applicationId,
-                    userId: userId,
-                    userName: userName,
-                    fix: 'Button data was not properly set - this is the cross-tab contamination bug!'
-                });
-                // Do not proceed with broken data - this prevents the partial execution
+                console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
                 return;
             }
             
@@ -797,45 +781,28 @@ function initializeApplicationActions() {
             
             // Remove the entire job listing when hired (since job is now filled)
             setTimeout(() => {
-                console.log('🎯 DOM REMOVAL DEBUG - Starting card removal process');
-                console.log('🔍 Looking for applicationCard with ID:', applicationId);
-                
                 // CRITICAL FIX: Scope selector to Applications tab only
                 // This prevents finding message threads with same application-id
                 const applicationsContainer = document.querySelector('#applications-content .applications-container');
                 const applicationCard = applicationsContainer ? 
                     applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`) : 
                     null;
-                console.log('🔍 Found applicationCard in Applications tab:', applicationCard);
                 
                 if (applicationCard) {
                     // Find the parent job listing
                     const jobListing = applicationCard.closest('.job-listing');
-                    console.log('🔍 Found jobListing parent:', jobListing);
                     
                     if (jobListing) {
-                        console.log('✅ Starting job listing removal animation');
                         jobListing.style.transition = 'all 0.4s ease';
                         jobListing.style.opacity = '0';
                         jobListing.style.transform = 'translateY(-20px)';
                         
                         setTimeout(() => {
-                            console.log('✅ Removing job listing from DOM');
                             jobListing.remove();
                             updateApplicationsCount();
                             updateJobHeaderCounts();
-                            console.log('✅ Job listing removal complete');
                         }, 400);
-                    } else {
-                        console.error('❌ DOM REMOVAL ERROR: Could not find parent job-listing');
                     }
-                } else {
-                    console.error('❌ DOM REMOVAL ERROR: Could not find application card');
-                    console.log('🔍 Available application cards in DOM:');
-                    const allCards = document.querySelectorAll('[data-application-id]');
-                    allCards.forEach((card, index) => {
-                        console.log(`Card ${index + 1}:`, card.getAttribute('data-application-id'), card);
-                    });
                 }
             }, 500); // Reduced delay from 2000ms to 500ms
         });
@@ -851,25 +818,9 @@ function initializeApplicationActions() {
             const jobId = this.getAttribute('data-job-id');
             const jobTitle = this.getAttribute('data-job-title');
             
-            // CRITICAL DEBUG: Log data attributes to identify corruption
-            console.log('🔍 REJECT BUTTON DEBUG - Data Attributes Retrieved:', {
-                applicationId: applicationId,
-                userId: userId,
-                userName: userName,
-                jobId: jobId,
-                jobTitle: jobTitle,
-                buttonElement: this
-            });
-            
             // CRITICAL FIX: Validate data before proceeding
             if (!applicationId || !userId || !userName) {
-                console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes', {
-                    applicationId: applicationId,
-                    userId: userId,
-                    userName: userName,
-                    fix: 'Button data was not properly set - this is the cross-tab contamination bug!'
-                });
-                // Do not proceed with broken data - this prevents the partial execution
+                console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes');
                 return;
             }
             
@@ -1024,45 +975,33 @@ function cleanupApplicationActionListeners() {
     const contactBtn = document.getElementById('contactBtn');
     const actionOverlay = document.getElementById('applicationActionOverlay');
     
-    console.log('🧹 Cleaning up application action listeners to prevent double-click bug');
-    
     // Clone and replace nodes to remove ALL event listeners
     // This is the most reliable way to ensure complete cleanup
     if (hireJobBtn && hireJobBtn.parentNode) {
         const newHireBtn = hireJobBtn.cloneNode(true);
         hireJobBtn.parentNode.replaceChild(newHireBtn, hireJobBtn);
-        console.log('✅ Hire button listeners cleaned');
     }
     
     if (rejectJobBtn && rejectJobBtn.parentNode) {
         const newRejectBtn = rejectJobBtn.cloneNode(true);
         rejectJobBtn.parentNode.replaceChild(newRejectBtn, rejectJobBtn);
-        console.log('✅ Reject button listeners cleaned');
     }
     
     if (profileBtn && profileBtn.parentNode) {
         const newProfileBtn = profileBtn.cloneNode(true);
         profileBtn.parentNode.replaceChild(newProfileBtn, profileBtn);
-        console.log('✅ Profile button listeners cleaned');
     }
     
     if (contactBtn && contactBtn.parentNode) {
         const newContactBtn = contactBtn.cloneNode(true);
         contactBtn.parentNode.replaceChild(newContactBtn, contactBtn);
-        console.log('✅ Contact button listeners cleaned');
     }
     
     // Clean up overlay click listeners
     if (actionOverlay && actionOverlay.parentNode) {
         const newOverlay = actionOverlay.cloneNode(true);
         actionOverlay.parentNode.replaceChild(newOverlay, actionOverlay);
-        console.log('✅ Action overlay listeners cleaned');
     }
-    
-    // Also clean up any document-level keydown listeners
-    // We'll re-add the escape key handler in the new initialization
-    
-    console.log('🎯 Application action cleanup complete - preventing cross-tab contamination');
 }
 
 function updateActionStars(rating) {
