@@ -2592,7 +2592,12 @@ function initializeMessages() {
                             threadOrigin: messageThread.getAttribute('data-thread-origin'),
                             applicationId: messageThread.getAttribute('data-application-id'),
                             jobId: messageThread.getAttribute('data-job-id'),
-                            jobTitle: messageThread.getAttribute('data-job-title')
+                            jobTitle: messageThread.getAttribute('data-job-title'),
+                            // Firebase integration fields
+                            currentUserId: getCurrentUserId(),
+                            conversationRef: `conversations/${messageThread.getAttribute('data-thread-id')}`,
+                            participantIds: [getCurrentUserId(), messageThread.getAttribute('data-participant-id')],
+                            lastActivity: new Date().toISOString()
                         };
                         
                         console.log('🔍 Thread header clicked (expanded), opening overlay:', userData);
@@ -5241,20 +5246,57 @@ function initializeAvatarOverlayActions(overlay, userData) {
             
             console.log(`🚫 Blocking user: ${userName} (ID: ${userId})`);
             
-            // BACKEND INTEGRATION POINT: Block user functionality
-            // Example: blockUser(userId);
-            // This should prevent the user from contacting you and hide their messages
-            
-            // Show confirmation
-            if (confirm(`Are you sure you want to block ${userName}? This will prevent them from contacting you and hide this conversation.`)) {
-                showTemporaryNotification(`${userName} has been blocked`);
-                
-                // Hide overlay
-                hideAvatarOverlay();
-                
-                // Optionally close the expanded thread since user is blocked
-                closeAllMessageThreads();
-            }
+            // Show custom confirmation dialog
+            showCustomConfirmation(
+                'Block User',
+                `Are you sure you want to block ${userName}? This will prevent them from contacting you and hide this conversation.`,
+                'Block',
+                'Cancel',
+                async () => {
+                    // Confirmed - block the user with Firebase integration
+                    console.log(`🚫 Initiating block for user: ${userName} (ID: ${userId})`);
+                    
+                    try {
+                        // Get current user ID for Firebase operations
+                        const currentUserId = getCurrentUserId();
+                        
+                        // Show loading state
+                        showTemporaryNotification(`Blocking ${userName}...`);
+                        
+                        // Firebase: Block user operation
+                        const result = await blockUserInFirebase(currentUserId, userId, userName);
+                        
+                        if (result.success) {
+                            // Success - update UI
+                            console.log(`✅ Firebase: User ${userName} successfully blocked`);
+                            showTemporaryNotification(`${userName} has been blocked`);
+                            
+                            // Hide overlay
+                            hideAvatarOverlay();
+                            
+                            // Close the expanded thread since user is blocked
+                            closeAllMessageThreads();
+                            
+                            // Refresh conversations list to hide blocked user's conversations
+                            await refreshConversationsList();
+                            
+                        } else {
+                            // Firebase operation failed
+                            console.error(`❌ Firebase: Failed to block ${userName}:`, result.error);
+                            showTemporaryNotification(`Failed to block ${userName}. Please try again.`);
+                        }
+                        
+                    } catch (error) {
+                        // Network or unexpected error
+                        console.error(`❌ Block user error:`, error);
+                        showTemporaryNotification(`Network error. Please check your connection and try again.`);
+                    }
+                },
+                () => {
+                    // Cancelled - do nothing
+                    console.log(`❌ Block cancelled for ${userName}`);
+                }
+            );
         }, { signal });
     }
     
@@ -5267,26 +5309,76 @@ function initializeAvatarOverlayActions(overlay, userData) {
             
             console.log(`🗑️ Deleting conversation with: ${userName} (Thread ID: ${threadId})`);
             
-            // BACKEND INTEGRATION POINT: Delete conversation functionality
-            // Example: deleteConversation(threadId);
-            
-            // Show confirmation
-            if (confirm(`Are you sure you want to delete this conversation with ${userName}? This action cannot be undone.`)) {
-                showTemporaryNotification(`Conversation with ${userName} deleted`);
-                
-                // Hide overlay
-                hideAvatarOverlay();
-                
-                // Close the expanded thread and remove it from the list
-                closeAllMessageThreads();
-                
-                // TODO: Remove the thread from the DOM and update message count
-                // const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
-                // if (threadElement) {
-                //     threadElement.remove();
-                //     updateMessageCount();
-                // }
-            }
+            // Show custom confirmation dialog
+            showCustomConfirmation(
+                'Delete Conversation',
+                `Are you sure you want to delete this conversation with ${userName}? This action cannot be undone.`,
+                'Delete',
+                'Cancel',
+                async () => {
+                    // Confirmed - delete the conversation with Firebase integration
+                    console.log(`🗑️ Initiating delete for conversation: ${threadId} with ${userName}`);
+                    
+                    try {
+                        // Get current user ID for Firebase operations
+                        const currentUserId = getCurrentUserId();
+                        
+                        // Show loading state
+                        showTemporaryNotification(`Deleting conversation with ${userName}...`);
+                        
+                        // Firebase: Delete conversation operation
+                        const result = await deleteConversationInFirebase(currentUserId, threadId, userName);
+                        
+                        if (result.success) {
+                            // Success - update UI
+                            console.log(`✅ Firebase: Conversation with ${userName} successfully deleted`);
+                            showTemporaryNotification(`Conversation with ${userName} deleted`);
+                            
+                            // Hide overlay
+                            hideAvatarOverlay();
+                            
+                            // Close the expanded thread and remove it from the list
+                            closeAllMessageThreads();
+                            
+                            // Remove the thread from the DOM immediately for better UX
+                            const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
+                            if (threadElement) {
+                                // Fade out animation before removal
+                                threadElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                threadElement.style.opacity = '0';
+                                threadElement.style.transform = 'translateX(-20px)';
+                                
+                                setTimeout(() => {
+                                    if (threadElement.parentNode) {
+                                        threadElement.remove();
+                                    }
+                                    // Update message count after removal
+                                    updateMessageCount();
+                                }, 300);
+                            }
+                            
+                            // Refresh conversations list to reflect Firebase changes
+                            setTimeout(async () => {
+                                await refreshConversationsList();
+                            }, 500);
+                            
+                        } else {
+                            // Firebase operation failed
+                            console.error(`❌ Firebase: Failed to delete conversation with ${userName}:`, result.error);
+                            showTemporaryNotification(`Failed to delete conversation. Please try again.`);
+                        }
+                        
+                    } catch (error) {
+                        // Network or unexpected error
+                        console.error(`❌ Delete conversation error:`, error);
+                        showTemporaryNotification(`Network error. Please check your connection and try again.`);
+                    }
+                },
+                () => {
+                    // Cancelled - do nothing
+                    console.log(`❌ Delete cancelled for conversation with ${userName}`);
+                }
+            );
         }, { signal });
     }
     
@@ -5365,6 +5457,314 @@ function hideAvatarOverlayOnOutsideClick(event) {
             hideAvatarOverlay();
         }
     }
+}
+
+/*
+ * FIREBASE INTEGRATION DOCUMENTATION
+ * 
+ * Required Firestore Collections Structure:
+ * 
+ * /users/{userId}
+ *   - blockedUsers: [array] - List of blocked user IDs for quick lookup
+ *   - activeConversations: [array] - List of active conversation IDs
+ *   - deletedConversations: [array] - List of deleted conversation IDs
+ *   - lastActivity: [timestamp] - Last user activity timestamp
+ * 
+ * /users/{userId}/blockedUsers/{blockedUserId}
+ *   - blockedUserId: [string] - ID of blocked user
+ *   - blockedUserName: [string] - Name of blocked user
+ *   - blockedAt: [timestamp] - When user was blocked
+ *   - reason: [string] - Reason for blocking ('user_initiated', etc.)
+ * 
+ * /conversations/{conversationId}
+ *   - participants: [array] - Array of participant user IDs
+ *   - hiddenFor: [object] - Map of userId -> boolean for hidden conversations
+ *   - deletedFor: [object] - Map of userId -> timestamp for deleted conversations
+ *   - blockedBy: [object] - Map of userId -> blockedUserId for blocked conversations
+ *   - lastActivity: [object] - Map of userId -> timestamp for activity tracking
+ * 
+ * /conversations/{conversationId}/messages/{messageId}
+ *   - senderId: [string] - ID of message sender
+ *   - content: [string] - Message content
+ *   - timestamp: [timestamp] - When message was sent
+ *   - deletedFor: [object] - Map of userId -> timestamp for deleted messages
+ *   - hiddenFor: [object] - Map of userId -> boolean for hidden messages
+ * 
+ * Required Firestore Security Rules:
+ * 
+ * rules_version = '2';
+ * service cloud.firestore {
+ *   match /databases/{database}/documents {
+ *     // Users can only access their own data
+ *     match /users/{userId} {
+ *       allow read, write: if request.auth != null && request.auth.uid == userId;
+ *       
+ *       // Blocked users subcollection
+ *       match /blockedUsers/{blockedUserId} {
+ *         allow read, write: if request.auth != null && request.auth.uid == userId;
+ *       }
+ *     }
+ *     
+ *     // Conversations - only participants can access
+ *     match /conversations/{conversationId} {
+ *       allow read, write: if request.auth != null && 
+ *         request.auth.uid in resource.data.participants &&
+ *         !isUserBlocked(request.auth.uid, resource.data);
+ *       
+ *       // Messages subcollection
+ *       match /messages/{messageId} {
+ *         allow read, write: if request.auth != null && 
+ *           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+ *       }
+ *     }
+ *   }
+ *   
+ *   // Helper function to check if user is blocked
+ *   function isUserBlocked(userId, conversationData) {
+ *     return conversationData.blockedBy != null && 
+ *            conversationData.blockedBy[userId] != null;
+ *   }
+ * }
+ */
+
+// Firebase Helper Functions
+function getCurrentUserId() {
+    // Get current user ID from Firebase Auth or session storage
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+        return firebase.auth().currentUser.uid;
+    }
+    // Fallback to session storage for development
+    return localStorage.getItem('currentUserId') || 'current_user_id';
+}
+
+function checkFirebaseConnection() {
+    // Check if Firebase is available and properly initialized
+    if (typeof firebase === 'undefined') {
+        console.warn('⚠️ Firebase not loaded');
+        return { connected: false, error: 'Firebase not loaded' };
+    }
+    
+    if (typeof db === 'undefined') {
+        console.warn('⚠️ Firestore not initialized');
+        return { connected: false, error: 'Firestore not initialized' };
+    }
+    
+    // Check authentication
+    const currentUser = getCurrentUserId();
+    if (!currentUser || currentUser === 'current_user_id') {
+        console.warn('⚠️ User not authenticated');
+        return { connected: false, error: 'User not authenticated' };
+    }
+    
+    return { connected: true };
+}
+
+async function blockUserInFirebase(currentUserId, blockedUserId, blockedUserName) {
+    try {
+        console.log(`🔥 Firebase: Blocking user ${blockedUserName} (${blockedUserId})`);
+        
+        // Check Firebase connection first
+        const connectionCheck = checkFirebaseConnection();
+        if (!connectionCheck.connected) {
+            throw new Error(`Firebase connection failed: ${connectionCheck.error}`);
+        }
+        
+        // Initialize Firestore batch
+        const batch = db.batch();
+        
+        // 1. Add to blocked users subcollection
+        const blockedUserRef = db.collection('users').doc(currentUserId)
+                                .collection('blockedUsers').doc(blockedUserId);
+        batch.set(blockedUserRef, {
+            blockedUserId: blockedUserId,
+            blockedUserName: blockedUserName,
+            blockedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            reason: 'user_initiated'
+        });
+        
+        // 2. Update user's blocked list array for quick lookups
+        const userRef = db.collection('users').doc(currentUserId);
+        batch.update(userRef, {
+            blockedUsers: firebase.firestore.FieldValue.arrayUnion(blockedUserId),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 3. Hide all conversations with blocked user
+        const conversationsQuery = await db.collection('conversations')
+            .where('participants', 'array-contains', currentUserId)
+            .get();
+        
+        const conversationsToUpdate = [];
+        conversationsQuery.forEach(doc => {
+            const participants = doc.data().participants || [];
+            if (participants.includes(blockedUserId)) {
+                conversationsToUpdate.push(doc.ref);
+            }
+        });
+        
+        conversationsToUpdate.forEach(conversationRef => {
+            batch.update(conversationRef, {
+                [`hiddenFor.${currentUserId}`]: true,
+                [`blockedBy.${currentUserId}`]: blockedUserId,
+                [`lastActivity.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        // 4. Commit all changes atomically
+        await batch.commit();
+        
+        console.log(`✅ Firebase: Successfully blocked user ${blockedUserName}`);
+        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Firebase: Block user failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function deleteConversationInFirebase(currentUserId, threadId, participantName) {
+    try {
+        console.log(`🔥 Firebase: Deleting conversation ${threadId} for user ${currentUserId}`);
+        
+        // Check Firebase connection first
+        const connectionCheck = checkFirebaseConnection();
+        if (!connectionCheck.connected) {
+            throw new Error(`Firebase connection failed: ${connectionCheck.error}`);
+        }
+        
+        // Initialize Firestore batch
+        const batch = db.batch();
+        
+        // 1. Mark conversation as deleted for current user (soft delete)
+        const conversationRef = db.collection('conversations').doc(threadId);
+        batch.update(conversationRef, {
+            [`deletedFor.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp(),
+            [`hiddenFor.${currentUserId}`]: true,
+            [`lastActivity.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 2. Soft delete all messages for this user
+        const messagesQuery = await db.collection('conversations').doc(threadId)
+                                    .collection('messages').get();
+        
+        messagesQuery.forEach(messageDoc => {
+            batch.update(messageDoc.ref, {
+                [`deletedFor.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp(),
+                [`hiddenFor.${currentUserId}`]: true
+            });
+        });
+        
+        // 3. Update user's conversation management
+        const userRef = db.collection('users').doc(currentUserId);
+        batch.update(userRef, {
+            activeConversations: firebase.firestore.FieldValue.arrayRemove(threadId),
+            deletedConversations: firebase.firestore.FieldValue.arrayUnion(threadId),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 4. Commit all changes atomically
+        await batch.commit();
+        
+        console.log(`✅ Firebase: Successfully deleted conversation with ${participantName}`);
+        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Firebase: Delete conversation failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function refreshConversationsList() {
+    try {
+        console.log('🔄 Firebase: Refreshing conversations list...');
+        
+        // Re-load the messages tab to reflect changes
+        const messagesTab = document.querySelector('.tab-btn[data-tab="messages"]');
+        if (messagesTab && messagesTab.classList.contains('active')) {
+            loadMessagesTab();
+        }
+        
+        // Update message count
+        updateMessageCount();
+        
+        console.log('✅ Firebase: Conversations list refreshed');
+        
+    } catch (error) {
+        console.error('❌ Firebase: Failed to refresh conversations:', error);
+    }
+}
+
+// Custom Confirmation Dialog System
+function showCustomConfirmation(title, message, confirmText, cancelText, onConfirm, onCancel) {
+    // Remove any existing custom confirmation
+    const existingConfirm = document.getElementById('customConfirmationOverlay');
+    if (existingConfirm) {
+        existingConfirm.remove();
+    }
+    
+    // Create confirmation overlay
+    const confirmOverlay = document.createElement('div');
+    confirmOverlay.id = 'customConfirmationOverlay';
+    confirmOverlay.className = 'custom-confirmation-overlay';
+    confirmOverlay.innerHTML = `
+        <div class="custom-confirmation-modal">
+            <div class="custom-confirmation-title">${title}</div>
+            <div class="custom-confirmation-message">${message}</div>
+            <div class="custom-confirmation-buttons">
+                <button class="custom-confirmation-btn cancel" id="customCancelBtn">${cancelText}</button>
+                <button class="custom-confirmation-btn confirm" id="customConfirmBtn">${confirmText}</button>
+            </div>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(confirmOverlay);
+    
+    // Show with animation
+    setTimeout(() => {
+        confirmOverlay.classList.add('show');
+    }, 10);
+    
+    // Handle button clicks
+    const confirmBtn = confirmOverlay.querySelector('#customConfirmBtn');
+    const cancelBtn = confirmOverlay.querySelector('#customCancelBtn');
+    
+    const cleanup = () => {
+        confirmOverlay.classList.remove('show');
+        setTimeout(() => {
+            if (confirmOverlay.parentNode) {
+                confirmOverlay.parentNode.removeChild(confirmOverlay);
+            }
+        }, 200);
+    };
+    
+    confirmBtn.addEventListener('click', () => {
+        cleanup();
+        if (onConfirm) onConfirm();
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+        cleanup();
+        if (onCancel) onCancel();
+    });
+    
+    // Close on outside click
+    confirmOverlay.addEventListener('click', (e) => {
+        if (e.target === confirmOverlay) {
+            cleanup();
+            if (onCancel) onCancel();
+        }
+    });
+    
+    // Close on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            cleanup();
+            document.removeEventListener('keydown', escapeHandler);
+            if (onCancel) onCancel();
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
 }
 
 // NUCLEAR OPTION: Global reset function for stuck overlays
