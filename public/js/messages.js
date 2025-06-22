@@ -217,6 +217,23 @@ function removeDocumentListener(key) {
     }
 }
 
+// MEMORY LEAK FIX: Helper function to track timeouts for automatic cleanup
+function trackTimeout(callback, delay) {
+    const timeoutId = setTimeout(() => {
+        CLEANUP_REGISTRY.intervals.delete(timeoutId);
+        callback();
+    }, delay);
+    CLEANUP_REGISTRY.intervals.add(timeoutId);
+    return timeoutId;
+}
+
+// MEMORY LEAK FIX: Helper function to track intervals for automatic cleanup
+function trackInterval(callback, delay) {
+    const intervalId = setInterval(callback, delay);
+    CLEANUP_REGISTRY.intervals.add(intervalId);
+    return intervalId;
+}
+
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize only the core functionality
@@ -236,10 +253,8 @@ document.addEventListener('DOMContentLoaded', function() {
     cleanupMobileInputVisibility();
     
     // MEMORY LEAK FIX: Register page unload cleanup
-    registerCleanup('function', 'pageUnload', () => {
-        window.addEventListener('beforeunload', executeAllCleanups);
-        window.addEventListener('unload', executeAllCleanups);
-    });
+    window.addEventListener('beforeunload', executeAllCleanups);
+    window.addEventListener('unload', executeAllCleanups);
     
     // MEMORY LEAK FIX: Use tracked document listener for overlay clicks
     const overlayClickKey = addDocumentListener('click', function(e) {
@@ -1087,6 +1102,12 @@ function closeConfirmationOverlay() {
     const overlay = document.getElementById('confirmationOverlay');
     if (overlay) {
         overlay.classList.remove('show');
+        
+        // MEMORY LEAK FIX: Remove escape key listener
+        if (overlay._escapeHandler) {
+            document.removeEventListener('keydown', overlay._escapeHandler);
+            overlay._escapeHandler = null;
+        }
     }
 }
 
@@ -1109,12 +1130,16 @@ function initializeConfirmationOverlay() {
         });
     }
     
-    // Close with Escape key
-    document.addEventListener('keydown', function(e) {
+    // Close with Escape key - MEMORY LEAK FIX: Store reference for cleanup
+    const escapeHandler = function(e) {
         if (e.key === 'Escape' && overlay && overlay.classList.contains('show')) {
             closeConfirmationOverlay();
         }
-    });
+    };
+    document.addEventListener('keydown', escapeHandler);
+    
+    // Store reference for cleanup
+    overlay._escapeHandler = escapeHandler;
 }
 
 // Notifications Management
@@ -5093,8 +5118,8 @@ function showAvatarOverlay(event, userData) {
     // Position overlay near the clicked avatar
     positionAvatarOverlay(overlay, event);
     
-    // Show overlay with animation
-    setTimeout(() => {
+    // Show overlay with animation - MEMORY LEAK FIX: Use tracked timeout
+    trackTimeout(() => {
         overlay.classList.add('show');
     }, 10);
     
@@ -5103,7 +5128,8 @@ function showAvatarOverlay(event, userData) {
     
     // IMPROVED LISTENER MANAGEMENT: Add single listener with proper timing and tracking
     // Wait for the overlay to be fully rendered before adding outside click detection
-    setTimeout(() => {
+    // MEMORY LEAK FIX: Use tracked timeout
+    trackTimeout(() => {
         // Initialize listener count if not exists
         if (!window.avatarOverlayListenerCount) {
             window.avatarOverlayListenerCount = 0;
@@ -5156,6 +5182,9 @@ function initializeAvatarOverlayActions(overlay, userData) {
     
     // Store controller reference on overlay for cleanup
     overlay._abortController = controller;
+    
+    // MEMORY LEAK FIX: Track controller in global registry
+    CLEANUP_REGISTRY.activeControllers.add(controller);
     
     // VIEW PROFILE button
     const profileBtn = overlay.querySelector('.avatar-action-btn.profile');
@@ -5348,7 +5377,8 @@ function initializeAvatarOverlayActions(overlay, userData) {
                                 threadElement.style.opacity = '0';
                                 threadElement.style.transform = 'translateX(-20px)';
                                 
-                                setTimeout(() => {
+                                // MEMORY LEAK FIX: Use tracked timeout
+                                trackTimeout(() => {
                                     if (threadElement.parentNode) {
                                         threadElement.remove();
                                     }
@@ -5358,7 +5388,8 @@ function initializeAvatarOverlayActions(overlay, userData) {
                             }
                             
                             // Refresh conversations list to reflect Firebase changes
-                            setTimeout(async () => {
+                            // MEMORY LEAK FIX: Use tracked timeout
+                            trackTimeout(async () => {
                                 await refreshConversationsList();
                             }, 500);
                             
@@ -5408,11 +5439,14 @@ function hideAvatarOverlay() {
         // MEMORY LEAK FIX: Cleanup action button listeners before removing overlay
         if (existingOverlay._abortController) {
             existingOverlay._abortController.abort();
+            // MEMORY LEAK FIX: Remove from global registry
+            CLEANUP_REGISTRY.activeControllers.delete(existingOverlay._abortController);
             existingOverlay._abortController = null;
         }
         
         existingOverlay.classList.remove('show');
-        setTimeout(() => {
+        // MEMORY LEAK FIX: Use tracked timeout
+        trackTimeout(() => {
             if (existingOverlay.parentNode) {
                 existingOverlay.parentNode.removeChild(existingOverlay);
             }
@@ -5720,8 +5754,8 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
     // Add to page
     document.body.appendChild(confirmOverlay);
     
-    // Show with animation
-    setTimeout(() => {
+    // Show with animation - MEMORY LEAK FIX: Use tracked timeout
+    trackTimeout(() => {
         confirmOverlay.classList.add('show');
     }, 10);
     
@@ -5731,7 +5765,8 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
     
     const cleanup = () => {
         confirmOverlay.classList.remove('show');
-        setTimeout(() => {
+        // MEMORY LEAK FIX: Use tracked timeout
+        trackTimeout(() => {
             if (confirmOverlay.parentNode) {
                 confirmOverlay.parentNode.removeChild(confirmOverlay);
             }
