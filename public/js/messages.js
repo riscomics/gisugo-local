@@ -2500,7 +2500,12 @@ function generateMessageThreadHTML(thread) {
             <div class="message-thread-header" data-thread-id="${thread.threadId}">
                 <div class="thread-info">
                     <div class="thread-job-title">${thread.jobTitle}</div>
-                    <div class="thread-participant">${thread.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'} with ${thread.participantName}</div>
+                    <div class="thread-participant closed-only">${thread.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'} with ${thread.participantName}</div>
+                    <div class="thread-options-container expanded-only">
+                        <button class="thread-options-btn" data-thread-id="${thread.threadId}">
+                            <span class="options-icon">▼</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="thread-status">
                     ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
@@ -2626,9 +2631,43 @@ function initializeMessages() {
                     
                     // Initialize avatar overlay functionality for this thread
                     initializeAvatarOverlays(messageThread);
+                    
+                    // Initialize thread options button for this thread
+                    initializeThreadOptionsButton(messageThread);
                 }
             }
         });
+    });
+}
+
+function initializeThreadOptionsButton(messageThread) {
+    const optionsBtn = messageThread.querySelector('.thread-options-btn');
+    if (!optionsBtn) return;
+    
+    optionsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent thread header click
+        
+        const threadId = this.getAttribute('data-thread-id');
+        const threadElement = this.closest('.message-thread');
+        
+        // Collect thread data for the avatar overlay
+        const userData = {
+            senderId: threadElement.getAttribute('data-participant-id'),
+            senderName: threadElement.getAttribute('data-participant-name'),
+            threadOrigin: threadElement.getAttribute('data-thread-origin'),
+            applicationId: threadElement.getAttribute('data-application-id'),
+            jobId: threadElement.getAttribute('data-job-id'),
+            jobTitle: threadElement.getAttribute('data-job-title')
+        };
+        
+        console.log('🔍 Thread options button clicked:', userData);
+        
+        // Store reference to this button for icon toggling
+        userData.sourceButton = this;
+        
+        // Show the same avatar overlay used for avatar clicks
+        showAvatarOverlay(e, userData);
     });
 }
 
@@ -5061,6 +5100,15 @@ function showAvatarOverlay(event, userData) {
     // Add action handlers
     initializeAvatarOverlayActions(overlay, userData);
     
+    // Change triangle icon to upward if this was opened from a thread options button
+    if (userData.sourceButton) {
+        const icon = userData.sourceButton.querySelector('.options-icon');
+        if (icon) {
+            icon.textContent = '▲';
+            userData.sourceButton.classList.add('overlay-open');
+        }
+    }
+    
     // IMPROVED LISTENER MANAGEMENT: Add single listener with proper timing and tracking
     // Wait for the overlay to be fully rendered before adding outside click detection
     setTimeout(() => {
@@ -5199,6 +5247,16 @@ function initializeAvatarOverlayActions(overlay, userData) {
 }
 
 function hideAvatarOverlay() {
+    // Reset triangle icon for any thread options buttons that opened this overlay
+    const activeButtons = document.querySelectorAll('.thread-options-btn.overlay-open');
+    activeButtons.forEach(button => {
+        const icon = button.querySelector('.options-icon');
+        if (icon) {
+            icon.textContent = '▼';
+        }
+        button.classList.remove('overlay-open');
+    });
+    
     const existingOverlay = document.getElementById('avatarOverlay');
     if (existingOverlay) {
         // MEMORY LEAK FIX: Cleanup action button listeners before removing overlay
