@@ -2562,7 +2562,7 @@ function initializeMessages() {
     const messageThreadHeaders = document.querySelectorAll('.message-thread-header');
     
     messageThreadHeaders.forEach(header => {
-        header.addEventListener('click', function() {
+        header.addEventListener('click', function(e) {
             const threadId = this.getAttribute('data-thread-id');
             const messageThread = this.closest('.message-thread');
             const threadContent = document.getElementById('thread-' + threadId);
@@ -2572,17 +2572,25 @@ function initializeMessages() {
                 const isExpanded = messageThread.classList.contains('expanded');
                 const messagesContainer = document.querySelector('.messages-container');
                 
+                // IMPROVED UX: Only allow closing if click was specifically on the X button
                 if (isExpanded) {
-                    // Collapse current thread
-                    messageThread.classList.remove('expanded', 'show');
-                    threadContent.style.display = 'none';
-                    expandIcon.textContent = '▼';
+                    // Check if the click was on the expand icon (X button)
+                    const clickedOnExpandIcon = e.target.closest('.expand-icon');
                     
-                    // Remove thread-active class and overlay from container
-                    messagesContainer.classList.remove('thread-active', 'show-overlay');
-                    
-                    // Clean up mobile input visibility handlers
-                    cleanupMobileInputVisibility();
+                    if (clickedOnExpandIcon) {
+                        // Collapse current thread
+                        messageThread.classList.remove('expanded', 'show');
+                        threadContent.style.display = 'none';
+                        expandIcon.textContent = '▼';
+                        
+                        // Remove thread-active class and overlay from container
+                        messagesContainer.classList.remove('thread-active', 'show-overlay');
+                        
+                        // Clean up mobile input visibility handlers
+                        cleanupMobileInputVisibility();
+                    }
+                    // If expanded but didn't click X button, do nothing (no accidental closes)
+                    return;
                 } else {
                     // First, close all other expanded threads
                     closeAllMessageThreads();
