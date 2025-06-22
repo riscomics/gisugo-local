@@ -2349,6 +2349,45 @@ body:has(.selection-controls[style*="display: flex"]) {
   box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
 }
 
+.avatar-action-btn.block {
+  background: #e53e3e;
+  color: #ffffff;
+  border-color: #fc8181;
+}
+
+.avatar-action-btn.block:hover {
+  background: #c53030;
+  border-color: #e53e3e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+}
+
+.avatar-action-btn.delete {
+  background: #9f7aea;
+  color: #ffffff;
+  border-color: #b794f6;
+}
+
+.avatar-action-btn.delete:hover {
+  background: #805ad5;
+  border-color: #9f7aea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(159, 122, 234, 0.3);
+}
+
+.avatar-action-btn.close {
+  background: #718096;
+  color: #ffffff;
+  border-color: #a0aec0;
+}
+
+.avatar-action-btn.close:hover {
+  background: #4a5568;
+  border-color: #718096;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
+}
+
 .avatar-action-btn:active {
   transform: translateY(0);
 }

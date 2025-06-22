@@ -2586,6 +2586,7 @@ function initializeMessages() {
                     } else {
                         // If clicked elsewhere on header when expanded, open overlay
                         const userData = {
+                            threadId: messageThread.getAttribute('data-thread-id'),
                             senderId: messageThread.getAttribute('data-participant-id'),
                             senderName: messageThread.getAttribute('data-participant-name'),
                             threadOrigin: messageThread.getAttribute('data-thread-origin'),
@@ -5066,6 +5067,18 @@ function showAvatarOverlay(event, userData) {
                 <span>VIEW JOB POST</span>
             </button>
             ${viewApplicationButton}
+            <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
+                <span>🚫</span>
+                <span>BLOCK USER</span>
+            </button>
+            <button class="avatar-action-btn delete" data-thread-id="${userData.threadId || 'unknown'}" data-user-name="${userData.senderName}">
+                <span>🗑️</span>
+                <span>DELETE CONVERSATION</span>
+            </button>
+            <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
+                <span>✕</span>
+                <span>CLOSE CONVERSATION</span>
+            </button>
         </div>
     `;
     
@@ -5217,6 +5230,83 @@ function initializeAvatarOverlayActions(overlay, userData) {
         }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
     } else {
         console.log(`🔍 DEBUG: No View Application button found in overlay`);
+    }
+    
+    // BLOCK USER button
+    const blockBtn = overlay.querySelector('.avatar-action-btn.block');
+    if (blockBtn) {
+        blockBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            console.log(`🚫 Blocking user: ${userName} (ID: ${userId})`);
+            
+            // BACKEND INTEGRATION POINT: Block user functionality
+            // Example: blockUser(userId);
+            // This should prevent the user from contacting you and hide their messages
+            
+            // Show confirmation
+            if (confirm(`Are you sure you want to block ${userName}? This will prevent them from contacting you and hide this conversation.`)) {
+                showTemporaryNotification(`${userName} has been blocked`);
+                
+                // Hide overlay
+                hideAvatarOverlay();
+                
+                // Optionally close the expanded thread since user is blocked
+                closeAllMessageThreads();
+            }
+        }, { signal });
+    }
+    
+    // DELETE CONVERSATION button
+    const deleteBtn = overlay.querySelector('.avatar-action-btn.delete');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            const threadId = this.getAttribute('data-thread-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            console.log(`🗑️ Deleting conversation with: ${userName} (Thread ID: ${threadId})`);
+            
+            // BACKEND INTEGRATION POINT: Delete conversation functionality
+            // Example: deleteConversation(threadId);
+            
+            // Show confirmation
+            if (confirm(`Are you sure you want to delete this conversation with ${userName}? This action cannot be undone.`)) {
+                showTemporaryNotification(`Conversation with ${userName} deleted`);
+                
+                // Hide overlay
+                hideAvatarOverlay();
+                
+                // Close the expanded thread and remove it from the list
+                closeAllMessageThreads();
+                
+                // TODO: Remove the thread from the DOM and update message count
+                // const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
+                // if (threadElement) {
+                //     threadElement.remove();
+                //     updateMessageCount();
+                // }
+            }
+        }, { signal });
+    }
+    
+    // CLOSE CONVERSATION button
+    const closeBtn = overlay.querySelector('.avatar-action-btn.close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            const threadId = this.getAttribute('data-thread-id');
+            
+            console.log(`✕ Closing conversation (Thread ID: ${threadId})`);
+            
+            // Hide overlay
+            hideAvatarOverlay();
+            
+            // Close the expanded thread
+            closeAllMessageThreads();
+            
+            // Show temporary notification
+            showTemporaryNotification(`Conversation closed`);
+        }, { signal });
     }
 }
 
