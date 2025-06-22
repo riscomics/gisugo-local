@@ -1459,6 +1459,10 @@ body:has(.selection-controls[style*="display: flex"]) {
     min-height: calc(100vh - 35px);
   }
 
+  .messages-container {
+    padding: 15px 0 0 0;
+  }
+
   .job-header {
     padding: 15px;
   }
@@ -1692,7 +1696,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Messages Tab Styles */
 .messages-container {
-  padding: 0;
+  padding: 20px 0 0 0;
 }
 
 /* Message Thread Styles */
