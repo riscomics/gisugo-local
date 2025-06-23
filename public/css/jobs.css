@@ -422,8 +422,8 @@ body:has(.jobs-header) {
 .application-count {
   background: rgba(230, 214, 174, 0.15);
   color: #e6d6ae;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
@@ -442,6 +442,11 @@ body:has(.jobs-header) {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.job-date-row {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .job-time-row {
@@ -660,7 +665,7 @@ body:has(.jobs-header) {
   .application-count {
     padding: 3px 8px;
     font-size: 0.75rem;
-    border-radius: 10px;
+    border-radius: 4px;
   }
 
 
