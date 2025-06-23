@@ -98,6 +98,33 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Overlay -->
+    <div class="delete-confirmation-overlay" id="deleteConfirmationOverlay">
+        <div class="delete-confirmation-container">
+            <div class="delete-confirmation-header">
+                <div class="delete-confirmation-icon">⚠️</div>
+                <div class="delete-confirmation-title">Delete Job Posting</div>
+                <div class="delete-confirmation-subtitle" id="deleteConfirmationSubtitle">Are you sure you want to permanently delete this job?</div>
+            </div>
+            <div class="delete-confirmation-warning">
+                <div class="delete-warning-text">
+                    This action cannot be undone. The job posting and all related applications will be permanently removed.
+                </div>
+                <div class="delete-application-count" id="deleteApplicationCount">
+                    <!-- Application count warning will be inserted here -->
+                </div>
+            </div>
+            <div class="delete-confirmation-actions">
+                <button class="delete-confirmation-btn cancel" id="deleteConfirmCancelBtn">
+                    CANCEL
+                </button>
+                <button class="delete-confirmation-btn delete" id="deleteConfirmDeleteBtn">
+                    DELETE PERMANENTLY
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="public/js/shared-menu.js"></script>
     <script src="public/js/jobs.js"></script>
 </body>

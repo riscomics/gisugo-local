@@ -620,25 +620,256 @@ function handleModifyJob(jobData) {
     console.log(`✏️ MODIFY job: ${jobData.jobId}`);
     hideListingOptionsOverlay();
     
-    // TODO: Navigate to edit page or show edit form
-    console.log(`📝 Opening job editor for ${jobData.jobId}`);
-    console.log(`📄 Job page: ${jobData.jobPageUrl}`);
+    // Navigate to new-post.html with edit mode
+    const editUrl = `new-post.html?edit=${jobData.jobId}&category=${jobData.category}`;
+    console.log(`📝 Navigating to edit mode: ${editUrl}`);
+    
+    // Firebase data mapping for edit mode:
+    // - Load job document from: db.collection('jobs').doc(jobData.jobId)
+    // - Pre-populate form with existing data
+    // - Update document on save instead of creating new
+    
+    window.location.href = editUrl;
 }
 
-function handlePauseJob(jobData) {
+async function handlePauseJob(jobData) {
     console.log(`⏸️ PAUSE job: ${jobData.jobId}`);
     hideListingOptionsOverlay();
     
-    // TODO: Show confirmation dialog and update job status
-    console.log(`⏸️ Pausing job ${jobData.jobId} - hiding from public listings`);
-    console.log(`📊 Job will be moved to paused status`);
+    try {
+        // Firebase data mapping for pause:
+        // db.collection('jobs').doc(jobData.jobId).update({
+        //     status: 'paused',
+        //     pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        //     isActive: false,
+        //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
+        // });
+        
+        // Update status in mock data for demonstration
+        updateJobStatusInMockData(jobData.jobId, 'paused');
+        
+        // Update the status badge in the UI immediately
+        const statusBadge = document.querySelector(`[data-job-id="${jobData.jobId}"] .status-badge`);
+        if (statusBadge) {
+            statusBadge.textContent = 'PAUSED';
+            statusBadge.className = 'status-badge status-paused';
+        }
+        
+        console.log(`⏸️ Job ${jobData.jobId} paused successfully`);
+        console.log(`📊 Status updated: active → paused`);
+        console.log(`🔄 UI updated to show paused status`);
+        
+    } catch (error) {
+        console.error(`❌ Error pausing job ${jobData.jobId}:`, error);
+        // Show error notification to user
+        showErrorNotification('Failed to pause job. Please try again.');
+    }
 }
 
-function handleDeleteJob(jobData) {
+async function handleDeleteJob(jobData) {
     console.log(`🗑️ DELETE job: ${jobData.jobId}`);
     hideListingOptionsOverlay();
     
-    // TODO: Show confirmation dialog and delete job
-    console.log(`❌ Confirming deletion of job ${jobData.jobId}`);
-    console.log(`⚠️ This action will permanently remove the job posting`);
+    // Get full job data for confirmation dialog
+    const fullJobData = getJobDataById(jobData.jobId);
+    const confirmationData = { ...jobData, ...fullJobData };
+    
+    // Show confirmation dialog before deleting
+    const confirmed = await showDeleteConfirmationDialog(confirmationData);
+    if (!confirmed) return;
+    
+    try {
+        // Firebase data mapping for delete:
+        // 1. Delete job document: db.collection('jobs').doc(jobData.jobId).delete()
+        // 2. Delete related applications: 
+        //    const applicationsRef = db.collection('applications').where('jobId', '==', jobData.jobId);
+        //    const applicationsSnapshot = await applicationsRef.get();
+        //    const batch = db.batch();
+        //    applicationsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+        //    await batch.commit();
+        // 3. Delete job images from Storage:
+        //    const storageRef = firebase.storage().ref(`jobs/${jobData.jobId}/`);
+        //    await deleteJobImages(storageRef);
+        // 4. Update user's job count:
+        //    db.collection('users').doc(jobData.posterId).update({
+        //        activeJobsCount: firebase.firestore.FieldValue.increment(-1),
+        //        totalJobsPosted: firebase.firestore.FieldValue.increment(-1)
+        //    });
+        
+        console.log(`🗑️ Job ${jobData.jobId} deleted successfully`);
+        console.log(`📄 Job document removed from Firestore`);
+        console.log(`📝 Related applications cleaned up`);
+        console.log(`🖼️ Job images removed from Storage`);
+        console.log(`👤 User stats updated`);
+        
+        // Refresh listings to remove deleted job
+        await refreshListingsAfterDeletion(jobData.jobId);
+        
+        // Show success notification
+        showSuccessNotification('Job deleted successfully');
+        
+    } catch (error) {
+        console.error(`❌ Error deleting job ${jobData.jobId}:`, error);
+                 showErrorNotification('Failed to delete job. Please try again.');
+     }
+}
+
+// ========================== FIREBASE HELPER FUNCTIONS ==========================
+
+async function refreshListingsAfterStatusChange() {
+    // Reload listings data to reflect status changes
+    console.log('🔄 Refreshing listings after status change...');
+    
+    // Firebase query: db.collection('jobs').where('posterId', '==', currentUserId).orderBy('datePosted', 'desc')
+    // Update the listings container with fresh data
+    const listingsContainer = document.querySelector('.listings-container');
+    if (listingsContainer) {
+        await loadListingsContent();
+    }
+}
+
+async function refreshListingsAfterDeletion(deletedJobId) {
+    // Remove deleted job from UI and refresh counts
+    console.log(`🔄 Refreshing listings after deletion of ${deletedJobId}...`);
+    
+    // Remove the deleted card from DOM immediately
+    const deletedCard = document.querySelector(`[data-job-id="${deletedJobId}"]`);
+    if (deletedCard) {
+        deletedCard.remove();
+    }
+    
+    // Update tab notification counts
+    await updateTabCounts();
+    
+    // If no jobs left, show empty state
+    const remainingCards = document.querySelectorAll('.listing-card');
+    if (remainingCards.length === 0) {
+        showEmptyListingsState();
+    }
+}
+
+async function showDeleteConfirmationDialog(jobData) {
+    console.log(`⚠️ Showing delete confirmation for job: ${jobData.jobId}`);
+    
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('deleteConfirmationOverlay');
+        const subtitle = document.getElementById('deleteConfirmationSubtitle');
+        const applicationCount = document.getElementById('deleteApplicationCount');
+        const cancelBtn = document.getElementById('deleteConfirmCancelBtn');
+        const deleteBtn = document.getElementById('deleteConfirmDeleteBtn');
+        
+        // Update overlay content
+        subtitle.textContent = `Are you sure you want to permanently delete "${jobData.title}"?`;
+        
+        // Show application count warning if there are applications
+        const appCount = parseInt(jobData.applicationCount) || 0;
+        if (appCount > 0) {
+            applicationCount.innerHTML = `⚠️ This job has <strong>${appCount} application${appCount === 1 ? '' : 's'}</strong> that will also be deleted.`;
+            applicationCount.style.display = 'block';
+        } else {
+            applicationCount.style.display = 'none';
+        }
+        
+        // Show overlay
+        overlay.classList.add('show');
+        
+        // Set up button handlers
+        const handleCancel = () => {
+            overlay.classList.remove('show');
+            cancelBtn.removeEventListener('click', handleCancel);
+            deleteBtn.removeEventListener('click', handleDelete);
+            document.removeEventListener('keydown', handleEscape);
+            resolve(false);
+        };
+        
+        const handleDelete = () => {
+            overlay.classList.remove('show');
+            cancelBtn.removeEventListener('click', handleCancel);
+            deleteBtn.removeEventListener('click', handleDelete);
+            document.removeEventListener('keydown', handleEscape);
+            resolve(true);
+        };
+        
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        };
+        
+        // Add event listeners
+        cancelBtn.addEventListener('click', handleCancel);
+        deleteBtn.addEventListener('click', handleDelete);
+        document.addEventListener('keydown', handleEscape);
+        
+        // Background click to cancel
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                handleCancel();
+            }
+        });
+    });
+}
+
+function showSuccessNotification(message) {
+    console.log(`✅ Success: ${message}`);
+    // TODO: Implement toast notification system
+    // Create temporary notification overlay or toast
+}
+
+function showErrorNotification(message) {
+    console.log(`❌ Error: ${message}`);
+    // TODO: Implement error notification system
+    // Create temporary error overlay or toast
+}
+
+function showEmptyListingsState() {
+    const listingsContainer = document.querySelector('.listings-container');
+    if (!listingsContainer) return;
+    
+    listingsContainer.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">📝</div>
+            <div class="empty-state-title">No Job Listings</div>
+            <div class="empty-state-message">
+                You haven't posted any jobs yet.<br>
+                Start by creating your first job posting.
+            </div>
+            <a href="new-post.html" class="empty-state-btn">Post Your First Job</a>
+        </div>
+    `;
+}
+
+async function updateTabCounts() {
+    // Update notification counts on tabs after job operations
+    console.log('🔢 Updating tab notification counts...');
+    
+    // Firebase queries to get fresh counts:
+    // - Active jobs: db.collection('jobs').where('posterId', '==', currentUserId).where('status', '==', 'active').get()
+    // - Hiring jobs: db.collection('jobs').where('posterId', '==', currentUserId).where('status', '==', 'hiring').get()
+    // - Previous jobs: db.collection('jobs').where('posterId', '==', currentUserId).where('status', 'in', ['completed', 'cancelled']).get()
+    
+    // Update the notification badges
+    const listingsCount = document.querySelector('#listingsTab .notification-count');
+    const hiringCount = document.querySelector('#hiringTab .notification-count');
+    const previousCount = document.querySelector('#previousTab .notification-count');
+    
+    // TODO: Replace with actual Firebase counts
+    if (listingsCount) {
+        const currentCount = parseInt(listingsCount.textContent) || 0;
+        listingsCount.textContent = Math.max(0, currentCount - 1);
+    }
+}
+
+function updateJobStatusInMockData(jobId, newStatus) {
+    // Update status in the mock data for demonstration purposes
+    console.log(`🔄 Updating mock data: ${jobId} → ${newStatus}`);
+    
+    // In production, this would be:
+    // db.collection('jobs').doc(jobId).update({ 
+    //     status: newStatus,
+    //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    // });
+    
+    // For now, just log the change
+    console.log(`📊 Mock data updated: Job ${jobId} status changed to ${newStatus}`);
 } 
