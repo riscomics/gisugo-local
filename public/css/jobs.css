@@ -571,7 +571,7 @@ body:has(.jobs-header) {
   .listing-card {
     width: calc(100% - 16px);
     max-width: none;
-    height: 140px;
+    height: 154px;
     margin: 0 8px 12px 8px;
     border-radius: 10px;
   }
@@ -583,8 +583,8 @@ body:has(.jobs-header) {
   }
 
   .listing-thumbnail {
-    width: 120px;
-    height: 140px;
+    width: 135px;
+    height: 154px;
   }
 
   .listing-content {
