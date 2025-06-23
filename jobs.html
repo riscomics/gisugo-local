@@ -23,6 +23,50 @@
         <div class="jobs-header-borderline"></div>
     </div>
 
+    <!-- Tab Navigation -->
+    <div class="jobs-tabs">
+        <button class="tab-btn active" data-tab="listings" id="listingsTab">
+            <span class="tab-label">LISTINGS</span>
+            <span class="notification-count">5</span>
+        </button>
+        <button class="tab-btn" data-tab="hiring" id="hiringTab">
+            <span class="tab-label">HIRING</span>
+            <span class="notification-count">3</span>
+        </button>
+        <button class="tab-btn" data-tab="previous" id="previousTab">
+            <span class="tab-label">PREVIOUS JOBS</span>
+            <span class="notification-count">12</span>
+        </button>
+    </div>
+
+    <!-- Independent Tab Content Areas -->
+    <!-- Listings Tab Content - Independent Scroll Container -->
+    <div class="tab-content-wrapper active" id="listings-content">
+        <div class="tab-scroll-container">
+            <div class="listings-container">
+                <!-- Listings content will be loaded dynamically when tab is active -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Hiring Tab Content - Independent Scroll Container -->
+    <div class="tab-content-wrapper" id="hiring-content">
+        <div class="tab-scroll-container">
+            <div class="hiring-container">
+                <!-- Hiring content will be loaded dynamically when tab is active -->
+            </div>
+        </div>
+    </div>
+            
+    <!-- Previous Jobs Tab Content - Independent Scroll Container -->
+    <div class="tab-content-wrapper" id="previous-content">
+        <div class="tab-scroll-container">
+            <div class="previous-container">
+                <!-- Previous jobs content will be loaded dynamically when tab is active -->
+            </div>
+        </div>
+    </div>
+
     <!-- Menu Overlay -->
     <div class="jobs-menu-overlay" id="jobsMenuOverlay">
         <div class="jobs-menu-items">
