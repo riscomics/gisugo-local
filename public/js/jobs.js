@@ -201,15 +201,203 @@ function initializeListingsTab() {
         return;
     }
     
-    // Show placeholder for now
-    container.innerHTML = `
-        <div class="content-placeholder">
-            📋 Your job listings will appear here.<br>
-            You can modify or delete your posted jobs.
-        </div>
-    `;
+    // Load listings content
+    loadListingsContent();
     
     console.log('📋 Listings tab initialized');
+}
+
+function loadListingsContent() {
+    const container = document.querySelector('.listings-container');
+    if (!container) return;
+    
+    // Generate mock listings data
+    const mockListings = generateMockListings();
+    
+    if (mockListings.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">No active job listings yet</div>
+                <div class="empty-state-message">Ready to post your first job? Create a listing and start finding help!</div>
+                <button class="empty-state-btn" onclick="window.location.href='new-post.html'">
+                    Post Your First Job
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    // Generate listings HTML
+    const listingsHTML = mockListings.map(listing => generateListingCardHTML(listing)).join('');
+    container.innerHTML = listingsHTML;
+    
+    // Initialize card click handlers
+    initializeListingCardHandlers();
+}
+
+function generateMockListings() {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const twoDaysAgo = new Date(today);
+    twoDaysAgo.setDate(today.getDate() - 2);
+    const threeDaysAgo = new Date(today);
+    threeDaysAgo.setDate(today.getDate() - 3);
+    
+    const formatDate = (date) => date.toISOString().split('T')[0];
+    
+    return [
+        {
+            id: 'listing-1',
+            title: 'Deep Clean My 3-Bedroom House Before Family Visit',
+            category: 'limpyo',
+            thumbnail: 'public/mock/mock-limpyo-post1.jpg',
+            datePosted: formatDate(yesterday),
+            timePosted: '10:30 AM',
+            jobDate: '2024-01-18',
+            jobTime: '9:00 AM',
+            status: 'active',
+            applicationCount: 3
+        },
+        {
+            id: 'listing-2', 
+            title: 'Weekly Grocery Shopping for Elderly Grandmother',
+            category: 'kompra',
+            thumbnail: 'public/mock/mock-kompra-post3.jpg',
+            datePosted: formatDate(twoDaysAgo),
+            timePosted: '2:15 PM',
+            jobDate: '2024-01-20',
+            jobTime: '3:00 PM',
+            status: 'active',
+            applicationCount: 7
+        },
+        {
+            id: 'listing-3',
+            title: 'Airport Pickup & Drop-off for Business Trip',
+            category: 'hatod',
+            thumbnail: 'public/mock/mock-hatod-post2.jpg',
+            datePosted: formatDate(today),
+            timePosted: '8:45 AM',
+            jobDate: '2024-01-17',
+            jobTime: '6:30 AM',
+            status: 'active',
+            applicationCount: 2
+        },
+        {
+            id: 'listing-4',
+            title: 'Move Heavy Furniture from 2nd Floor to Storage',
+            category: 'hakot',
+            thumbnail: 'public/mock/mock-hakot-post4.jpg',
+            datePosted: formatDate(threeDaysAgo),
+            timePosted: '4:20 PM',
+            jobDate: '2024-01-19',
+            jobTime: '1:00 PM',
+            status: 'active',
+            applicationCount: 5
+        }
+    ];
+}
+
+function generateListingCardHTML(listing) {
+    const timeAgo = formatTimeAgo(listing.datePosted);
+    const applicationText = listing.applicationCount === 1 ? '1 application' : `${listing.applicationCount} applications`;
+    const jobDateFormatted = formatJobDate(listing.jobDate);
+    
+    return `
+        <div class="listing-card" data-listing-id="${listing.id}" data-category="${listing.category}">
+            <div class="listing-thumbnail">
+                <img src="${listing.thumbnail}" alt="${listing.title}">
+                <div class="status-badge status-${listing.status}">${listing.status.toUpperCase()}</div>
+            </div>
+            <div class="listing-content">
+                <div class="listing-title">${listing.title}</div>
+                <div class="listing-meta">
+                    <div class="job-schedule">
+                        <span class="job-date">📅 ${jobDateFormatted}</span>
+                        <div class="job-time-row">
+                            <span class="job-time">🕒 ${listing.jobTime}</span>
+                            <div class="application-count">${applicationText}</div>
+                        </div>
+                    </div>
+                    <div class="posting-info">
+                        <span class="listing-time-ago">Posted ${timeAgo}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+        return 'today';
+    } else if (diffDays === 2) {
+        return 'yesterday';
+    } else if (diffDays <= 7) {
+        return `${diffDays - 1} days ago`;
+    } else if (diffDays <= 30) {
+        return `${Math.ceil(diffDays / 7)} weeks ago`;
+    } else {
+        return `${Math.ceil(diffDays / 30)} months ago`;
+    }
+}
+
+function formatJobDate(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    // Reset time to compare just dates
+    const jobDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const tomorrowDate = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+    
+    if (jobDate.getTime() === todayDate.getTime()) {
+        return 'Today';
+    } else if (jobDate.getTime() === tomorrowDate.getTime()) {
+        return 'Tomorrow';
+    } else {
+        const diffTime = jobDate - todayDate;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 0 && diffDays <= 7) {
+            return `In ${diffDays} days`;
+        } else {
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'short',
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+    }
+}
+
+function initializeListingCardHandlers() {
+    const listingCards = document.querySelectorAll('.listing-card');
+    
+    listingCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            e.preventDefault();
+            const listingId = this.getAttribute('data-listing-id');
+            const category = this.getAttribute('data-category');
+            showListingOptionsOverlay(listingId, category);
+        });
+    });
+}
+
+function showListingOptionsOverlay(listingId, category) {
+    console.log(`🔧 Opening options overlay for listing: ${listingId} (${category})`);
+    
+    // TODO: Create and show overlay with Modify/Delete options
+    // For now, just log the action
+    console.log('📋 Listings overlay options: MODIFY | DELETE');
 }
 
 function initializeHiringTab() {
