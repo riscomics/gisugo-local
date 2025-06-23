@@ -785,7 +785,7 @@ async function handleDeleteJob(jobData) {
     hideListingOptionsOverlay();
     
     // Get full job data for confirmation dialog
-    const fullJobData = getJobDataById(jobData.jobId);
+    const fullJobData = await getJobDataById(jobData.jobId);
     const confirmationData = { ...jobData, ...fullJobData };
     
     // Show confirmation dialog before deleting
