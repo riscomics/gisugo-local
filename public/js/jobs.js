@@ -263,7 +263,8 @@ function generateMockListings() {
             category: 'limpyo',
             thumbnail: 'public/mock/mock-limpyo-post1.jpg',
             jobDate: '2024-01-18',
-            jobTime: '9:00 AM',
+            startTime: '9:00 AM',
+            endTime: '1:00 PM',
             datePosted: formatDateTime(yesterday),
             status: 'active',
             applicationCount: 3,
@@ -278,7 +279,8 @@ function generateMockListings() {
             category: 'kompra',
             thumbnail: 'public/mock/mock-kompra-post3.jpg',
             jobDate: '2024-01-20',
-            jobTime: '3:00 PM',
+            startTime: '3:00 PM',
+            endTime: '5:00 PM',
             datePosted: formatDateTime(twoDaysAgo),
             status: 'active',
             applicationCount: 7,
@@ -293,7 +295,8 @@ function generateMockListings() {
             category: 'hatod',
             thumbnail: 'public/mock/mock-kompra-post6.jpg',
             jobDate: '2024-01-17',
-            jobTime: '6:30 AM',
+            startTime: '7:00 AM',
+            endTime: '9:00 AM',
             datePosted: formatDateTime(today),
             status: 'active',
             applicationCount: 2,
@@ -308,7 +311,8 @@ function generateMockListings() {
             category: 'hakot',
             thumbnail: 'public/mock/mock-hakot-post7.jpg',
             jobDate: '2024-01-19',
-            jobTime: '1:00 PM',
+            startTime: '1:00 PM',
+            endTime: '4:00 PM',
             datePosted: formatDateTime(threeDaysAgo),
             status: 'active',
             applicationCount: 5,
@@ -322,6 +326,7 @@ function generateListingCardHTML(listing) {
     const timeAgo = formatTimeAgo(listing.datePosted);
     const applicationText = listing.applicationCount === 1 ? '1 application' : `${listing.applicationCount} applications`;
     const jobDateFormatted = formatJobDate(listing.jobDate);
+    const timeRange = `${listing.startTime} - ${listing.endTime}`;
     
     return `
         <div class="listing-card" 
@@ -343,7 +348,7 @@ function generateListingCardHTML(listing) {
                         </div>
                         <div class="job-time-row">
                             <div class="application-count">${applicationText}</div>
-                            <span class="job-time">🕒 ${listing.jobTime}</span>
+                            <span class="job-time">🕒 ${timeRange}</span>
                         </div>
                     </div>
                     <div class="posting-info">
