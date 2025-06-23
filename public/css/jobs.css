@@ -565,7 +565,7 @@ body:has(.jobs-header) {
 
   /* Mobile Listing Card Styles */
   .listings-container {
-    padding: 15px 0 60px 0;
+    padding: 25px 0 60px 0;
   }
 
   .listing-card {
