@@ -159,7 +159,7 @@ function updatePageTitle(activeTab) {
     if (titleElement) {
         switch (activeTab) {
             case 'listings':
-                titleElement.textContent = 'JOBS POSTED';
+                titleElement.textContent = 'JOBS MANAGER';
                 break;
             case 'hiring':
                 titleElement.textContent = 'ACTIVE HIRING';
