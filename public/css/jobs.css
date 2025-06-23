@@ -668,5 +668,164 @@ body:has(.jobs-header) {
     border-radius: 4px;
   }
 
-
 } 
+
+/* Smaller Mobile Screens (400px and below) */
+@media (max-width: 400px) {
+  body {
+    padding-top: 73px; /* Slightly reduced for smaller screens */
+  }
+  
+  .jobs-header-title-container {
+    height: 66px;
+    padding-right: 3px; 
+  } 
+  
+  .jobs-header-title {
+    font-size: 1.5rem;
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+   
+  .jobs-header-btn {
+    width: 42px;
+    height: 44px;
+    font-size: 11px;
+  }
+  
+  .jobs-header-btn img {
+    width: auto;
+    height: 32px;
+    margin-bottom: 3px;
+  }
+  
+  .jobs-menu-items {
+    height: 66px;
+  }
+  
+  .jobs-menu-item {
+    font-size: 11px;
+    width: 42px;
+  }
+  
+  .jobs-menu-item img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .jobs-tabs {
+    top: 70px; /* Adjusted for smaller header */
+  }
+
+  .tab-btn {
+    padding: 8px 6px; /* More compact tabs */
+    font-size: 0.8rem;
+    gap: 2px;
+  }
+  
+  .tab-label {
+    font-size: 0.75rem;
+  }
+
+  .tab-content-wrapper {
+    top: 116px; /* Adjusted for smaller header + tabs */
+    height: calc(100vh - 116px);
+  }
+
+  /* Smaller Mobile Listing Card Styles */
+  .listings-container {
+    padding: 20px 0 60px 0;
+  }
+
+  .listing-card {
+    width: calc(100% - 12px);
+    height: 148px; /* Slightly smaller for very small screens */
+    margin: 0 6px 10px 6px;
+    border-radius: 8px;
+  }
+
+  .listing-thumbnail {
+    width: 125px;
+    height: 148px;
+  }
+
+  .listing-content {
+    padding: 10px 12px;
+  }
+
+  .listing-title {
+    font-size: 1rem;
+    line-height: 1.2;
+    margin: 0 0 5px 0;
+  }
+
+  .listing-meta {
+    gap: 5px;
+    font-size: 0.8rem;
+  }
+
+  .job-schedule {
+    gap: 2px;
+  }
+
+  .job-time-row {
+    gap: 6px;
+  }
+
+  .job-date {
+    font-size: 0.8rem;
+  }
+
+  .job-time {
+    font-size: 0.75rem;
+  }
+
+  .posting-info {
+    padding-top: 2px;
+  }
+
+  .listing-time-ago {
+    font-size: 0.7rem;
+  }
+
+  /* Smaller Mobile Application Count */
+  .application-count {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    border-radius: 3px;
+  }
+
+  /* Smaller Mobile Status Badge */
+  .status-badge {
+    top: 4px;
+    left: 4px;
+    padding: 2px 4px;
+    font-size: 0.6rem;
+  }
+
+  /* Smaller Mobile Empty State */
+  .empty-state {
+    padding: 30px 12px;
+    margin: 15px auto;
+  }
+
+  .empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+  }
+
+  .empty-state-title {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .empty-state-message {
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+  }
+
+  .empty-state-btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+}
