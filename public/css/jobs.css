@@ -474,9 +474,116 @@ body:has(.jobs-header) {
 }
 
 .listing-time-ago {
+  color: #9CA3AF;
+  font-size: 0.875rem;
   font-weight: 400;
-  color: #a0aec0;
-  font-size: 0.8rem;
+}
+
+/* Listing Card Options Overlay */
+.listing-options-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.listing-options-overlay.show {
+  display: flex;
+}
+
+.listing-options-container {
+  background: #2d3748;
+  border-radius: 16px;
+  padding: 32px;
+  width: 90%;
+  max-width: 400px;
+  border: 2px solid #4a5568;
+}
+
+.listing-options-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.listing-options-title {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.listing-options-subtitle {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  font-weight: 400;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.listing-options-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.listing-option-btn {
+  background: #4a5568;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  padding: 16px 20px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.listing-option-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.listing-option-btn.modify {
+  background: #3b82f6;
+}
+
+.listing-option-btn.modify:hover {
+  background: #2563eb;
+}
+
+.listing-option-btn.pause {
+  background: #f59e0b;
+}
+
+.listing-option-btn.pause:hover {
+  background: #d97706;
+}
+
+.listing-option-btn.delete {
+  background: #ef4444;
+}
+
+.listing-option-btn.delete:hover {
+  background: #dc2626;
+}
+
+.listing-option-btn.cancel {
+  background: #6b7280;
+  margin-top: 8px;
+}
+
+.listing-option-btn.cancel:hover {
+  background: #4b5563;
 }
 
 @media (max-width: 600px) {
@@ -668,6 +775,22 @@ body:has(.jobs-header) {
     border-radius: 4px;
   }
 
+  /* Mobile Listing Options Overlay */
+  .listing-options-container {
+    padding: 24px;
+    width: 95%;
+    max-width: 350px;
+  }
+
+  .listing-options-title {
+    font-size: 1.3rem;
+  }
+
+  .listing-option-btn {
+    padding: 14px 18px;
+    font-size: 1rem;
+  }
+
 } 
 
 /* Smaller Mobile Screens (400px and below) */
@@ -827,5 +950,25 @@ body:has(.jobs-header) {
   .empty-state-btn {
     padding: 8px 16px;
     font-size: 0.85rem;
+  }
+
+  /* Smaller Mobile Listing Options Overlay */
+  .listing-options-container {
+    padding: 20px;
+    width: 96%;
+    max-width: 300px;
+  }
+
+  .listing-options-title {
+    font-size: 1.2rem;
+  }
+
+  .listing-options-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .listing-option-btn {
+    padding: 12px 16px;
+    font-size: 0.95rem;
   }
 }

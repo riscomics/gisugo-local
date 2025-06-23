@@ -436,12 +436,26 @@ function extractJobDataFromCard(cardElement) {
 
 function showListingOptionsOverlay(jobData) {
     console.log(`🔧 Opening options overlay for job: ${jobData.jobId}`);
-    console.log(`📊 Job Data:`, jobData);
     
-    // TODO: Create and show overlay with Modify/Delete options
-    console.log('📋 Listings overlay options: MODIFY | DELETE');
-    console.log(`👥 Applications: ${jobData.applicationCount}`);
-    console.log(`📄 Job Page: ${jobData.jobPageUrl}`);
+    const overlay = document.getElementById('listingOptionsOverlay');
+    const title = document.getElementById('listingOptionsTitle');
+    const subtitle = document.getElementById('listingOptionsSubtitle');
+    
+    // Update overlay content
+    title.textContent = 'Manage Job';
+    subtitle.textContent = jobData.title;
+    
+    // Store current job data for button handlers
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-poster-id', jobData.posterId);
+    overlay.setAttribute('data-category', jobData.category);
+    overlay.setAttribute('data-job-page-url', jobData.jobPageUrl);
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    // Initialize overlay event handlers if not already done
+    initializeOptionsOverlayHandlers();
 }
 
 // Helper function to get full job data by ID (for Firebase integration)
@@ -499,4 +513,132 @@ function initializePreviousTab() {
     `;
     
     console.log('📜 Previous tab initialized');
+}
+
+// ========================== LISTING OPTIONS OVERLAY HANDLERS ==========================
+
+function initializeOptionsOverlayHandlers() {
+    const overlay = document.getElementById('listingOptionsOverlay');
+    if (!overlay || overlay.dataset.handlersInitialized) return;
+
+    const modifyBtn = document.getElementById('modifyJobBtn');
+    const pauseBtn = document.getElementById('pauseJobBtn');
+    const deleteBtn = document.getElementById('deleteJobBtn');
+    const cancelBtn = document.getElementById('cancelOptionsBtn');
+
+    // Modify job handler
+    if (modifyBtn) {
+        const modifyHandler = function(e) {
+            e.preventDefault();
+            const jobData = getJobDataFromOverlay();
+            handleModifyJob(jobData);
+        };
+        modifyBtn.addEventListener('click', modifyHandler);
+        registerCleanup('listings', 'modifyBtn', () => {
+            modifyBtn.removeEventListener('click', modifyHandler);
+        });
+    }
+
+    // Pause job handler  
+    if (pauseBtn) {
+        const pauseHandler = function(e) {
+            e.preventDefault();
+            const jobData = getJobDataFromOverlay();
+            handlePauseJob(jobData);
+        };
+        pauseBtn.addEventListener('click', pauseHandler);
+        registerCleanup('listings', 'pauseBtn', () => {
+            pauseBtn.removeEventListener('click', pauseHandler);
+        });
+    }
+
+    // Delete job handler
+    if (deleteBtn) {
+        const deleteHandler = function(e) {
+            e.preventDefault();
+            const jobData = getJobDataFromOverlay();
+            handleDeleteJob(jobData);
+        };
+        deleteBtn.addEventListener('click', deleteHandler);
+        registerCleanup('listings', 'deleteBtn', () => {
+            deleteBtn.removeEventListener('click', deleteHandler);
+        });
+    }
+
+    // Cancel handler
+    if (cancelBtn) {
+        const cancelHandler = function(e) {
+            e.preventDefault();
+            hideListingOptionsOverlay();
+        };
+        cancelBtn.addEventListener('click', cancelHandler);
+        registerCleanup('listings', 'cancelBtn', () => {
+            cancelBtn.removeEventListener('click', cancelHandler);
+        });
+    }
+
+    // Background click handler
+    const backgroundHandler = function(e) {
+        if (e.target === overlay) {
+            hideListingOptionsOverlay();
+        }
+    };
+    overlay.addEventListener('click', backgroundHandler);
+    registerCleanup('listings', 'overlayBackground', () => {
+        overlay.removeEventListener('click', backgroundHandler);
+    });
+
+    // Escape key handler
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideListingOptionsOverlay();
+        }
+    };
+    addDocumentListener('overlayEscape', escapeHandler);
+
+    overlay.dataset.handlersInitialized = 'true';
+    console.log('🔧 Options overlay handlers initialized');
+}
+
+function getJobDataFromOverlay() {
+    const overlay = document.getElementById('listingOptionsOverlay');
+    return {
+        jobId: overlay.getAttribute('data-job-id'),
+        posterId: overlay.getAttribute('data-poster-id'),
+        category: overlay.getAttribute('data-category'),
+        jobPageUrl: overlay.getAttribute('data-job-page-url')
+    };
+}
+
+function hideListingOptionsOverlay() {
+    const overlay = document.getElementById('listingOptionsOverlay');
+    overlay.classList.remove('show');
+    console.log('🔧 Options overlay hidden');
+}
+
+function handleModifyJob(jobData) {
+    console.log(`✏️ MODIFY job: ${jobData.jobId}`);
+    hideListingOptionsOverlay();
+    
+    // TODO: Navigate to edit page or show edit form
+    console.log(`📝 Opening job editor for ${jobData.jobId}`);
+    console.log(`📄 Job page: ${jobData.jobPageUrl}`);
+}
+
+function handlePauseJob(jobData) {
+    console.log(`⏸️ PAUSE job: ${jobData.jobId}`);
+    hideListingOptionsOverlay();
+    
+    // TODO: Show confirmation dialog and update job status
+    console.log(`⏸️ Pausing job ${jobData.jobId} - hiding from public listings`);
+    console.log(`📊 Job will be moved to paused status`);
+}
+
+function handleDeleteJob(jobData) {
+    console.log(`🗑️ DELETE job: ${jobData.jobId}`);
+    hideListingOptionsOverlay();
+    
+    // TODO: Show confirmation dialog and delete job
+    console.log(`❌ Confirming deletion of job ${jobData.jobId}`);
+    console.log(`⚠️ This action will permanently remove the job posting`);
 } 
