@@ -21,7 +21,7 @@ const MENU_ITEMS = [
   {
     icon: 'public/icons/Jobs.png',
     text: 'Jobs',
-    link: null // Future implementation
+    link: 'jobs.html'
   },
   {
     icon: 'public/icons/Post.png',
@@ -50,7 +50,7 @@ function generateMenuHTML() {
 function initializeSharedMenu() {
   // Find the menu container (works across different page types)
   const menuContainer = document.querySelector(
-    '.profile-menu-items, .jobcat-menu-items, .new-post-menu-items, .messages-menu-items'
+    '.profile-menu-items, .jobcat-menu-items, .new-post-menu-items, .messages-menu-items, .jobs-menu-items'
   );
   
   if (!menuContainer) {
@@ -73,6 +73,8 @@ function initializeSharedMenu() {
       item.className = item.className.replace('menu-item-wrapper', 'new-post-menu-item');
     } else if (menuContainer.classList.contains('messages-menu-items')) {
       item.className = item.className.replace('menu-item-wrapper', 'messages-menu-item');
+    } else if (menuContainer.classList.contains('jobs-menu-items')) {
+      item.className = item.className.replace('menu-item-wrapper', 'jobs-menu-item');
     }
   });
   
