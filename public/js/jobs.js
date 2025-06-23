@@ -9,6 +9,147 @@ const CLEANUP_REGISTRY = {
     cleanupFunctions: new Set()
 };
 
+// ===== GLOBAL MOCK DATA STORE =====
+// This simulates Firebase real-time updates for development
+// In production, this will be replaced by Firebase listeners
+let MOCK_LISTINGS_DATA = null;
+
+// ===== DATA ACCESS LAYER (Firebase-Ready) =====
+// This layer abstracts data access to make Firebase transition seamless
+const JobsDataService = {
+    // Initialize data (simulates Firebase connection)
+    initialize() {
+        if (!MOCK_LISTINGS_DATA) {
+            MOCK_LISTINGS_DATA = this._generateInitialData();
+        }
+        return MOCK_LISTINGS_DATA;
+    },
+    
+    // Get all jobs (simulates Firebase query)
+    async getAllJobs() {
+        // Firebase: return await db.collection('jobs').where('posterId', '==', currentUserId).get()
+        return this.initialize();
+    },
+    
+    // Get single job (simulates Firebase doc get)
+    async getJobById(jobId) {
+        // Firebase: return await db.collection('jobs').doc(jobId).get()
+        const jobs = this.initialize();
+        return jobs.find(job => job.jobId === jobId);
+    },
+    
+    // Update job status (simulates Firebase update)
+    async updateJobStatus(jobId, newStatus) {
+        // Firebase: await db.collection('jobs').doc(jobId).update({ status: newStatus })
+        const jobs = this.initialize();
+        const jobIndex = jobs.findIndex(job => job.jobId === jobId);
+        if (jobIndex !== -1) {
+            jobs[jobIndex].status = newStatus;
+            jobs[jobIndex].lastModified = new Date().toISOString();
+            return { success: true };
+        }
+        return { success: false, error: 'Job not found' };
+    },
+    
+    // Delete job (simulates Firebase delete)
+    async deleteJob(jobId) {
+        // Firebase: await db.collection('jobs').doc(jobId).delete()
+        if (MOCK_LISTINGS_DATA) {
+            const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
+            if (jobIndex !== -1) {
+                MOCK_LISTINGS_DATA.splice(jobIndex, 1);
+                return { success: true };
+            }
+        }
+        return { success: false, error: 'Job not found' };
+    },
+    
+    // Clean up (prevents memory leaks)
+    cleanup() {
+        MOCK_LISTINGS_DATA = null;
+    },
+    
+    // Private method to generate initial mock data
+    _generateInitialData() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const twoDaysAgo = new Date(today);
+        twoDaysAgo.setDate(today.getDate() - 2);
+        const threeDaysAgo = new Date(today);
+        threeDaysAgo.setDate(today.getDate() - 3);
+        
+        const formatDateTime = (date) => date.toISOString();
+        
+        return [
+            {
+                jobId: 'job_2024_001_limpyo',
+                posterId: 'user_peter_ang_001',
+                posterName: 'Peter J. Ang',
+                title: 'Deep Clean My 3-Bedroom House Before Family Visit',
+                category: 'limpyo',
+                thumbnail: 'public/mock/mock-limpyo-post1.jpg',
+                jobDate: '2024-01-18',
+                startTime: '9AM',
+                endTime: '1PM',
+                datePosted: formatDateTime(yesterday),
+                status: 'active',
+                applicationCount: 3,
+                applicationIds: ['app_001_user05', 'app_002_user08', 'app_003_user11'],
+                jobPageUrl: 'limpyo.html'
+            },
+            {
+                jobId: 'job_2024_002_kompra',
+                posterId: 'user_maria_santos_002',
+                posterName: 'Maria Santos',
+                title: 'Weekly Grocery Shopping for Elderly Grandmother',
+                category: 'kompra',
+                thumbnail: 'public/mock/mock-kompra-post3.jpg',
+                jobDate: '2024-01-20',
+                startTime: '3PM',
+                endTime: '5PM',
+                datePosted: formatDateTime(twoDaysAgo),
+                status: 'active',
+                applicationCount: 7,
+                applicationIds: ['app_004_user03', 'app_005_user07', 'app_006_user09', 'app_007_user12', 'app_008_user15', 'app_009_user18', 'app_010_user20'],
+                jobPageUrl: 'kompra.html'
+            },
+            {
+                jobId: 'job_2024_003_hatod',
+                posterId: 'user_carlos_dela_cruz_003',
+                posterName: 'Carlos Dela Cruz',
+                title: 'Airport Pickup & Drop-off for Business Trip',
+                category: 'hatod',
+                thumbnail: 'public/mock/mock-kompra-post6.jpg',
+                jobDate: '2024-01-17',
+                startTime: '7AM',
+                endTime: '9AM',
+                datePosted: formatDateTime(today),
+                status: 'active',
+                applicationCount: 2,
+                applicationIds: ['app_011_user06', 'app_012_user14'],
+                jobPageUrl: 'hatod.html'
+            },
+            {
+                jobId: 'job_2024_004_hakot',
+                posterId: 'user_ana_reyes_004',
+                posterName: 'Ana Reyes',
+                title: 'Move Heavy Furniture from 2nd Floor to Storage',
+                category: 'hakot',
+                thumbnail: 'public/mock/mock-hakot-post7.jpg',
+                jobDate: '2024-01-19',
+                startTime: '1PM',
+                endTime: '4PM',
+                datePosted: formatDateTime(threeDaysAgo),
+                status: 'active',
+                applicationCount: 5,
+                applicationIds: ['app_013_user02', 'app_014_user10', 'app_015_user13', 'app_016_user16', 'app_017_user19'],
+                jobPageUrl: 'hakot.html'
+            }
+        ];
+    }
+};
+
 function registerCleanup(type, key, cleanupFn) {
     if (type === 'function') {
         CLEANUP_REGISTRY.cleanupFunctions.add(cleanupFn);
@@ -53,6 +194,11 @@ function executeAllCleanups() {
     });
     CLEANUP_REGISTRY.intervals.clear();
     
+    // ===== CLEANUP GLOBAL MOCK DATA =====
+    // Prevent memory leaks and scope contamination
+    JobsDataService.cleanup();
+    console.log('🧹 Global mock data cleared');
+    
     console.log('🧹 Jobs page cleanup completed');
 }
 
@@ -82,6 +228,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTabs();
     // Initialize the first tab (listings) content
     initializeActiveTab('listings');
+    // Update tab counts based on actual data
+    updateTabCounts();
 });
 
 function initializeMenu() {
@@ -191,7 +339,7 @@ function initializeActiveTab(tabType) {
     }
 }
 
-function initializeListingsTab() {
+async function initializeListingsTab() {
     const container = document.querySelector('.listings-container');
     if (!container) return;
     
@@ -202,17 +350,17 @@ function initializeListingsTab() {
     }
     
     // Load listings content
-    loadListingsContent();
+    await loadListingsContent();
     
     console.log('📋 Listings tab initialized');
 }
 
-function loadListingsContent() {
+async function loadListingsContent() {
     const container = document.querySelector('.listings-container');
     if (!container) return;
     
     // Generate mock listings data
-    const mockListings = generateMockListings();
+    const mockListings = await generateMockListings();
     
     if (mockListings.length === 0) {
         container.innerHTML = `
@@ -243,83 +391,9 @@ function loadListingsContent() {
     initializeListingCardHandlers();
 }
 
-function generateMockListings() {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const twoDaysAgo = new Date(today);
-    twoDaysAgo.setDate(today.getDate() - 2);
-    const threeDaysAgo = new Date(today);
-    threeDaysAgo.setDate(today.getDate() - 3);
-    
-    const formatDateTime = (date) => date.toISOString();
-    
-    return [
-        {
-            jobId: 'job_2024_001_limpyo',
-            posterId: 'user_peter_ang_001',
-            posterName: 'Peter J. Ang',
-            title: 'Deep Clean My 3-Bedroom House Before Family Visit',
-            category: 'limpyo',
-            thumbnail: 'public/mock/mock-limpyo-post1.jpg',
-            jobDate: '2024-01-18',
-                    startTime: '9AM',
-        endTime: '1PM',
-            datePosted: formatDateTime(yesterday),
-            status: 'active',
-            applicationCount: 3,
-            applicationIds: ['app_001_user05', 'app_002_user08', 'app_003_user11'],
-            jobPageUrl: 'limpyo.html'
-        },
-        {
-            jobId: 'job_2024_002_kompra',
-            posterId: 'user_maria_santos_002',
-            posterName: 'Maria Santos',
-            title: 'Weekly Grocery Shopping for Elderly Grandmother',
-            category: 'kompra',
-            thumbnail: 'public/mock/mock-kompra-post3.jpg',
-            jobDate: '2024-01-20',
-                    startTime: '3PM',
-        endTime: '5PM',
-            datePosted: formatDateTime(twoDaysAgo),
-            status: 'active',
-            applicationCount: 7,
-            applicationIds: ['app_004_user03', 'app_005_user07', 'app_006_user09', 'app_007_user12', 'app_008_user15', 'app_009_user18', 'app_010_user20'],
-            jobPageUrl: 'kompra.html'
-        },
-        {
-            jobId: 'job_2024_003_hatod',
-            posterId: 'user_carlos_dela_cruz_003',
-            posterName: 'Carlos Dela Cruz',
-            title: 'Airport Pickup & Drop-off for Business Trip',
-            category: 'hatod',
-            thumbnail: 'public/mock/mock-kompra-post6.jpg',
-            jobDate: '2024-01-17',
-                    startTime: '7AM',
-        endTime: '9AM',
-            datePosted: formatDateTime(today),
-            status: 'active',
-            applicationCount: 2,
-            applicationIds: ['app_011_user06', 'app_012_user14'],
-            jobPageUrl: 'hatod.html'
-        },
-        {
-            jobId: 'job_2024_004_hakot',
-            posterId: 'user_ana_reyes_004',
-            posterName: 'Ana Reyes',
-            title: 'Move Heavy Furniture from 2nd Floor to Storage',
-            category: 'hakot',
-            thumbnail: 'public/mock/mock-hakot-post7.jpg',
-            jobDate: '2024-01-19',
-                    startTime: '1PM',
-        endTime: '4PM',
-            datePosted: formatDateTime(threeDaysAgo),
-            status: 'active',
-            applicationCount: 5,
-            applicationIds: ['app_013_user02', 'app_014_user10', 'app_015_user13', 'app_016_user16', 'app_017_user19'],
-            jobPageUrl: 'hakot.html'
-        }
-    ];
+async function generateMockListings() {
+    // Use the data service layer for Firebase-ready data access
+    return await JobsDataService.getAllJobs();
 }
 
 function generateListingCardHTML(listing) {
@@ -414,10 +488,10 @@ function initializeListingCardHandlers() {
     const listingCards = document.querySelectorAll('.listing-card');
     
     listingCards.forEach(card => {
-        card.addEventListener('click', function(e) {
+        card.addEventListener('click', async function(e) {
             e.preventDefault();
             const jobData = extractJobDataFromCard(this);
-            showListingOptionsOverlay(jobData);
+            await showListingOptionsOverlay(jobData);
         });
     });
 }
@@ -434,22 +508,39 @@ function extractJobDataFromCard(cardElement) {
     };
 }
 
-function showListingOptionsOverlay(jobData) {
+async function showListingOptionsOverlay(jobData) {
     console.log(`🔧 Opening options overlay for job: ${jobData.jobId}`);
     
     const overlay = document.getElementById('listingOptionsOverlay');
     const title = document.getElementById('listingOptionsTitle');
     const subtitle = document.getElementById('listingOptionsSubtitle');
+    const pauseBtn = document.getElementById('pauseJobBtn');
+    
+    // Get full job data to check current status
+    const fullJobData = await getJobDataById(jobData.jobId);
+    const currentStatus = fullJobData ? fullJobData.status : 'active';
     
     // Update overlay content
     title.textContent = 'Manage Job';
     subtitle.textContent = jobData.title;
+    
+    // Update pause/activate button text based on current status
+    if (pauseBtn) {
+        if (currentStatus === 'paused') {
+            pauseBtn.textContent = 'ACTIVATE';
+            pauseBtn.setAttribute('data-action', 'activate');
+        } else {
+            pauseBtn.textContent = 'PAUSE';
+            pauseBtn.setAttribute('data-action', 'pause');
+        }
+    }
     
     // Store current job data for button handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-poster-id', jobData.posterId);
     overlay.setAttribute('data-category', jobData.category);
     overlay.setAttribute('data-job-page-url', jobData.jobPageUrl);
+    overlay.setAttribute('data-current-status', currentStatus);
     
     // Show overlay
     overlay.classList.add('show');
@@ -459,9 +550,8 @@ function showListingOptionsOverlay(jobData) {
 }
 
 // Helper function to get full job data by ID (for Firebase integration)
-function getJobDataById(jobId) {
-    const mockListings = generateMockListings();
-    return mockListings.find(job => job.jobId === jobId);
+async function getJobDataById(jobId) {
+    return await JobsDataService.getJobById(jobId);
 }
 
 // Helper function to get applications for a job (for Firebase integration)
@@ -606,7 +696,8 @@ function getJobDataFromOverlay() {
         jobId: overlay.getAttribute('data-job-id'),
         posterId: overlay.getAttribute('data-poster-id'),
         category: overlay.getAttribute('data-category'),
-        jobPageUrl: overlay.getAttribute('data-job-page-url')
+        jobPageUrl: overlay.getAttribute('data-job-page-url'),
+        currentStatus: overlay.getAttribute('data-current-status')
     };
 }
 
@@ -633,36 +724,59 @@ function handleModifyJob(jobData) {
 }
 
 async function handlePauseJob(jobData) {
-    console.log(`⏸️ PAUSE job: ${jobData.jobId}`);
+    const currentStatus = jobData.currentStatus || 'active';
+    const action = currentStatus === 'paused' ? 'activate' : 'pause';
+    const newStatus = action === 'pause' ? 'paused' : 'active';
+    
+    console.log(`${action === 'pause' ? '⏸️ PAUSE' : '▶️ ACTIVATE'} job: ${jobData.jobId}`);
     hideListingOptionsOverlay();
     
     try {
-        // Firebase data mapping for pause:
-        // db.collection('jobs').doc(jobData.jobId).update({
-        //     status: 'paused',
-        //     pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        //     isActive: false,
-        //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
-        // });
+        // Firebase data mapping for pause/activate:
+        if (action === 'pause') {
+            // db.collection('jobs').doc(jobData.jobId).update({
+            //     status: 'paused',
+            //     pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     isActive: false,
+            //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
+            // });
+        } else {
+            // db.collection('jobs').doc(jobData.jobId).update({
+            //     status: 'active',
+            //     activatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     isActive: true,
+            //     pausedAt: firebase.firestore.FieldValue.delete(),
+            //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
+            // });
+        }
         
         // Update status in mock data for demonstration
-        updateJobStatusInMockData(jobData.jobId, 'paused');
+        updateJobStatusInMockData(jobData.jobId, newStatus);
         
         // Update the status badge in the UI immediately
         const statusBadge = document.querySelector(`[data-job-id="${jobData.jobId}"] .status-badge`);
         if (statusBadge) {
-            statusBadge.textContent = 'PAUSED';
-            statusBadge.className = 'status-badge status-paused';
+            if (newStatus === 'paused') {
+                statusBadge.textContent = 'PAUSED';
+                statusBadge.className = 'status-badge status-paused';
+            } else {
+                statusBadge.textContent = 'ACTIVE';
+                statusBadge.className = 'status-badge status-active';
+            }
         }
         
-        console.log(`⏸️ Job ${jobData.jobId} paused successfully`);
-        console.log(`📊 Status updated: active → paused`);
-        console.log(`🔄 UI updated to show paused status`);
+        console.log(`${action === 'pause' ? '⏸️' : '▶️'} Job ${jobData.jobId} ${action}d successfully`);
+        console.log(`📊 Status updated: ${currentStatus} → ${newStatus}`);
+        console.log(`🔄 UI updated to show ${newStatus} status`);
+        
+        showSuccessNotification(`Job ${action}d successfully`);
+        
+        // Update tab counts after status change
+        await updateTabCounts();
         
     } catch (error) {
-        console.error(`❌ Error pausing job ${jobData.jobId}:`, error);
-        // Show error notification to user
-        showErrorNotification('Failed to pause job. Please try again.');
+        console.error(`❌ Error ${action}ing job ${jobData.jobId}:`, error);
+        showErrorNotification(`Failed to ${action} job. Please try again.`);
     }
 }
 
@@ -679,28 +793,84 @@ async function handleDeleteJob(jobData) {
     if (!confirmed) return;
     
     try {
-        // Firebase data mapping for delete:
-        // 1. Delete job document: db.collection('jobs').doc(jobData.jobId).delete()
-        // 2. Delete related applications: 
-        //    const applicationsRef = db.collection('applications').where('jobId', '==', jobData.jobId);
-        //    const applicationsSnapshot = await applicationsRef.get();
-        //    const batch = db.batch();
-        //    applicationsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
-        //    await batch.commit();
-        // 3. Delete job images from Storage:
-        //    const storageRef = firebase.storage().ref(`jobs/${jobData.jobId}/`);
-        //    await deleteJobImages(storageRef);
-        // 4. Update user's job count:
-        //    db.collection('users').doc(jobData.posterId).update({
-        //        activeJobsCount: firebase.firestore.FieldValue.increment(-1),
-        //        totalJobsPosted: firebase.firestore.FieldValue.increment(-1)
-        //    });
+        // Firebase data mapping for comprehensive deletion:
+        
+        // 1. Get all applications for this job BEFORE deleting the job
+        // const applicationsQuery = db.collection('applications').where('jobId', '==', jobData.jobId);
+        // const applicationsSnapshot = await applicationsQuery.get();
+        // const applicationIds = applicationsSnapshot.docs.map(doc => doc.id);
+        // const applicantUserIds = applicationsSnapshot.docs.map(doc => doc.data().applicantId);
+        
+        // For mock data, get application count
+        const applicationCount = fullJobData ? fullJobData.applicationCount : 0;
+        const mockApplicationIds = fullJobData ? fullJobData.applicationIds : [];
+        
+        // 2. Delete all related applications in a batch
+        // const batch = db.batch();
+        // applicationsSnapshot.docs.forEach(doc => {
+        //     batch.delete(doc.ref);
+        // });
+        
+        // 3. Update applicant users' statistics (remove from their applied jobs count)
+        // for (const applicantId of applicantUserIds) {
+        //     const applicantRef = db.collection('users').doc(applicantId);
+        //     batch.update(applicantRef, {
+        //         appliedJobsCount: firebase.firestore.FieldValue.increment(-1),
+        //         activeApplicationsCount: firebase.firestore.FieldValue.increment(-1)
+        //     });
+        // }
+        
+        // 4. Delete conversation threads related to this job
+        // const conversationsQuery = db.collection('conversations').where('jobId', '==', jobData.jobId);
+        // const conversationsSnapshot = await conversationsQuery.get();
+        // conversationsSnapshot.docs.forEach(doc => {
+        //     batch.delete(doc.ref);
+        // });
+        
+        // 5. Delete job notifications related to this job
+        // const notificationsQuery = db.collection('notifications').where('jobId', '==', jobData.jobId);
+        // const notificationsSnapshot = await notificationsQuery.get();
+        // notificationsSnapshot.docs.forEach(doc => {
+        //     batch.delete(doc.ref);
+        // });
+        
+        // 6. Delete the main job document
+        // const jobRef = db.collection('jobs').doc(jobData.jobId);
+        // batch.delete(jobRef);
+        
+        // 7. Update job poster's statistics
+        // const posterRef = db.collection('users').doc(jobData.posterId);
+        // batch.update(posterRef, {
+        //     activeJobsCount: firebase.firestore.FieldValue.increment(-1),
+        //     totalJobsPosted: firebase.firestore.FieldValue.increment(-1)
+        // });
+        
+        // 8. Execute all deletions and updates in a single batch
+        // await batch.commit();
+        
+        // 9. Delete job images from Cloud Storage
+        // const storageRef = firebase.storage().ref(`jobs/${jobData.jobId}/`);
+        // try {
+        //     const listResult = await storageRef.listAll();
+        //     const deletePromises = listResult.items.map(item => item.delete());
+        //     await Promise.all(deletePromises);
+        //     console.log(`🖼️ Deleted ${listResult.items.length} job images from Storage`);
+        // } catch (storageError) {
+        //     console.warn('⚠️ Some job images may not have been deleted:', storageError);
+        // }
+        
+        // ===== ACTUALLY DELETE THE JOB FROM DATA =====
+        const deleteResult = await JobsDataService.deleteJob(jobData.jobId);
+        if (!deleteResult.success) {
+            throw new Error(deleteResult.error || 'Failed to delete job from data store');
+        }
         
         console.log(`🗑️ Job ${jobData.jobId} deleted successfully`);
         console.log(`📄 Job document removed from Firestore`);
-        console.log(`📝 Related applications cleaned up`);
-        console.log(`🖼️ Job images removed from Storage`);
-        console.log(`👤 User stats updated`);
+        console.log(`📝 ${applicationCount} related applications cleaned up`);
+        console.log(`💬 Related conversations and notifications removed`);
+        console.log(`🖼️ Job images removed from Cloud Storage`);
+        console.log(`👤 User statistics updated for poster and applicants`);
         
         // Refresh listings to remove deleted job
         await refreshListingsAfterDeletion(jobData.jobId);
@@ -710,8 +880,18 @@ async function handleDeleteJob(jobData) {
         
     } catch (error) {
         console.error(`❌ Error deleting job ${jobData.jobId}:`, error);
-                 showErrorNotification('Failed to delete job. Please try again.');
-     }
+        
+        // Detailed error handling for different failure scenarios
+        if (error.code === 'permission-denied') {
+            showErrorNotification('You do not have permission to delete this job.');
+        } else if (error.code === 'not-found') {
+            showErrorNotification('Job no longer exists.');
+        } else if (error.code === 'failed-precondition') {
+            showErrorNotification('Job cannot be deleted due to active applications.');
+        } else {
+            showErrorNotification('Failed to delete job. Please try again.');
+        }
+    }
 }
 
 // ========================== FIREBASE HELPER FUNCTIONS ==========================
@@ -843,33 +1023,70 @@ async function updateTabCounts() {
     // Update notification counts on tabs after job operations
     console.log('🔢 Updating tab notification counts...');
     
-    // Firebase queries to get fresh counts:
-    // - Active jobs: db.collection('jobs').where('posterId', '==', currentUserId).where('status', '==', 'active').get()
-    // - Hiring jobs: db.collection('jobs').where('posterId', '==', currentUserId).where('status', '==', 'hiring').get()
-    // - Previous jobs: db.collection('jobs').where('posterId', '==', currentUserId).where('status', 'in', ['completed', 'cancelled']).get()
-    
-    // Update the notification badges
-    const listingsCount = document.querySelector('#listingsTab .notification-count');
-    const hiringCount = document.querySelector('#hiringTab .notification-count');
-    const previousCount = document.querySelector('#previousTab .notification-count');
-    
-    // TODO: Replace with actual Firebase counts
-    if (listingsCount) {
-        const currentCount = parseInt(listingsCount.textContent) || 0;
-        listingsCount.textContent = Math.max(0, currentCount - 1);
+    try {
+        // Get all jobs data
+        const allJobs = await JobsDataService.getAllJobs();
+        
+        // Count jobs by status for each tab
+        const counts = {
+            listings: 0,    // Active jobs posted by user
+            hiring: 0,      // Jobs with hired workers  
+            previous: 0     // Completed/cancelled jobs
+        };
+        
+        allJobs.forEach(job => {
+            switch (job.status) {
+                case 'active':
+                case 'paused':
+                    counts.listings++;
+                    break;
+                case 'hiring':
+                case 'in-progress':
+                    counts.hiring++;
+                    break;
+                case 'completed':
+                case 'cancelled':
+                    counts.previous++;
+                    break;
+                default:
+                    // Default to listings for unknown status
+                    counts.listings++;
+            }
+        });
+        
+        // Update the notification badges in DOM
+        const listingsCount = document.querySelector('#listingsTab .notification-count');
+        const hiringCount = document.querySelector('#hiringTab .notification-count');
+        const previousCount = document.querySelector('#previousTab .notification-count');
+        
+        if (listingsCount) {
+            listingsCount.textContent = counts.listings;
+        }
+        if (hiringCount) {
+            hiringCount.textContent = counts.hiring;
+        }
+        if (previousCount) {
+            previousCount.textContent = counts.previous;
+        }
+        
+        console.log(`📊 Tab counts updated: Listings(${counts.listings}), Hiring(${counts.hiring}), Previous(${counts.previous})`);
+        
+    } catch (error) {
+        console.error('❌ Error updating tab counts:', error);
     }
 }
 
-function updateJobStatusInMockData(jobId, newStatus) {
-    // Update status in the mock data for demonstration purposes
-    console.log(`🔄 Updating mock data: ${jobId} → ${newStatus}`);
+async function updateJobStatusInMockData(jobId, newStatus) {
+    // Update status using the data service layer
+    console.log(`🔄 Updating job status: ${jobId} → ${newStatus}`);
     
-    // In production, this would be:
-    // db.collection('jobs').doc(jobId).update({ 
-    //     status: newStatus,
-    //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
-    // });
+    const result = await JobsDataService.updateJobStatus(jobId, newStatus);
     
-    // For now, just log the change
-    console.log(`📊 Mock data updated: Job ${jobId} status changed to ${newStatus}`);
+    if (result.success) {
+        console.log(`📊 Job status updated: ${jobId} → ${newStatus}`);
+    } else {
+        console.warn(`⚠️ Failed to update job status: ${result.error}`);
+    }
+    
+    return result;
 } 
