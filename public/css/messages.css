@@ -1425,6 +1425,20 @@ body:has(.selection-controls[style*="display: flex"]) {
     height: 32px;
   }
 
+  /* Mobile avatar overlay positioning */
+  .avatar-overlay {
+    top: 188px !important; /* Mobile: 138px expanded thread + 45px header + 5px gap */
+  }
+
+  /* Mobile message thread hamburger icon - only when expanded */
+  .message-thread.expanded .message-thread-header::after {
+    bottom: 3px;
+    width: 12px;
+    height: 6px;
+    background-size: 12px 1px;
+    background-position: 0 0, 0 2.5px, 0 5px;
+  }
+
   .messages-tabs {
     top: 72px; /* Mobile: 68px header + 4px border = 72px */
   }
@@ -1758,6 +1772,34 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Position header relatively for hint positioning */
 .message-thread.expanded .message-thread-header {
   position: relative;
+}
+
+/* Small hamburger icon at center bottom of message thread headers - only when expanded */
+.message-thread.expanded .message-thread-header::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 8px;
+  background-image: 
+    linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px),
+    linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px),
+    linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px);
+  background-size: 14px 1.5px;
+  background-position: 0 0, 0 3px, 0 6px;
+  background-repeat: no-repeat;
+  border-radius: 1px;
+  transition: all 0.2s ease;
+  z-index: 12;
+}
+
+.message-thread.expanded .message-thread-header:hover::after {
+  background-image: 
+    linear-gradient(to right, rgba(188, 206, 212, 0.7) 0px, rgba(188, 206, 212, 0.7) 14px),
+    linear-gradient(to right, rgba(188, 206, 212, 0.7) 0px, rgba(188, 206, 212, 0.7) 14px),
+    linear-gradient(to right, rgba(188, 206, 212, 0.7) 0px, rgba(188, 206, 212, 0.7) 14px);
 }
 
 /* Circle around the X button when expanded */
@@ -2356,7 +2398,12 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Message Avatar Overlay Styles */
 .avatar-overlay {
-  position: fixed;
+  position: fixed !important;
+  top: 240px !important; /* Position just below expanded thread header (185px + 50px header + 5px gap) */
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) scale(0.9) translateY(-5px) !important;
   background: #2d3748;
   border: 2px solid #4a5568;
   border-radius: 12px;
@@ -2364,7 +2411,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   z-index: 2200;
   min-width: 200px;
   opacity: 0;
-  transform: scale(0.9) translateY(-5px);
   transition: all 0.2s ease-out;
   pointer-events: none;
   user-select: none;
@@ -2372,7 +2418,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 .avatar-overlay.show {
   opacity: 1;
-  transform: scale(1) translateY(0);
+  transform: translateX(-50%) scale(1) translateY(0) !important;
   pointer-events: auto;
 }
 
@@ -2463,8 +2509,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: #e53e3e;
   color: #ffffff;
   border-color: #fc8181;
-  margin-top: 16px;
-  position: relative;
 }
 
 .avatar-action-btn.block::before {
@@ -2565,5 +2609,52 @@ body:has(.selection-controls[style*="display: flex"]) {
 .messages-container.thread-active .message-thread[data-thread-origin="application"]:not(.expanded) .message-thread-header {
   background: #1a1f2a; /* Dimmed version of the faded blue application conversation color */
   border-left: 3px solid rgba(66, 153, 225, 0.2); /* Dimmed blue accent */
+}
+
+/* Smaller Mobile Screens (400px and below) */
+@media (max-width: 400px) {
+  /* Smaller mobile header adjustments for positioning calculations */
+  .messages-header-title-container {
+    height: 66px;
+  }
+
+  /* Smaller mobile avatar overlay positioning */
+  .avatar-overlay {
+    top: 188px !important; /* Smaller mobile: same as mobile 600px since expanded thread positioning is consistent */
+    min-width: 160px;
+    max-width: 240px;
+  }
+
+  .avatar-overlay-header {
+    padding: 10px 14px;
+  }
+
+  .avatar-overlay-name {
+    font-size: 0.95rem;
+  }
+
+  .avatar-overlay-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .avatar-overlay-actions {
+    padding: 6px;
+    gap: 5px;
+  }
+
+  .avatar-action-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    gap: 5px;
+  }
+
+  /* Smaller mobile message thread hamburger icon - only when expanded */
+  .message-thread.expanded .message-thread-header::after {
+    bottom: 2px;
+    width: 10px;
+    height: 5px;
+    background-size: 10px 0.8px;
+    background-position: 0 0, 0 2px, 0 4px;
+  }
 }
 
