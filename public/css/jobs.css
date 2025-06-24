@@ -1571,7 +1571,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-due-label {
-    font-size: 0.725rem;
+    font-size: 0.65rem;
     margin-bottom: 0;
   }
 
@@ -1580,7 +1580,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-date {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
   }
 
   .hiring-times-section {
@@ -1596,7 +1596,7 @@ body:has(.jobs-header) {
 
   .hiring-times-section::before {
     content: "TIME:";
-    font-size: 0.725rem;
+    font-size: 0.65rem;
     font-weight: 600;
     color: #cbd5e0;
     text-transform: uppercase;
@@ -1605,7 +1605,7 @@ body:has(.jobs-header) {
 
   .hiring-times-section::after {
     content: attr(data-start-time) " - " attr(data-end-time);
-    font-size: 0.825rem;
+    font-size: 0.75rem;
     color: #f0e6d2;
     font-weight: 600;
   }
