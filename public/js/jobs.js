@@ -872,8 +872,400 @@ function extractHiringJobDataFromCard(cardElement) {
 
 async function showHiringOptionsOverlay(jobData) {
     console.log('👥 Show hiring options for:', jobData);
-    // TODO: Implement hiring options overlay
-    alert(`Hiring options for: ${jobData.title}\nRole: ${jobData.role}\nJob ID: ${jobData.jobId}`);
+    
+    const overlay = document.getElementById('hiringOptionsOverlay');
+    const title = document.getElementById('hiringOptionsTitle');
+    const subtitle = document.getElementById('hiringOptionsSubtitle');
+    const actionsContainer = document.getElementById('hiringOptionsActions');
+    
+    if (!overlay || !actionsContainer) {
+        console.error('❌ Hiring overlay elements not found');
+        return;
+    }
+    
+    // Set overlay data attributes
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-role', jobData.role);
+    overlay.setAttribute('data-title', jobData.title);
+    
+    // Update title and subtitle
+    title.textContent = 'Manage Hiring';
+    subtitle.textContent = `Choose an action for "${jobData.title}"`;
+    
+    // Generate buttons based on role
+    let buttonsHTML = '';
+    
+    if (jobData.role === 'customer') {
+        // Customer perspective: You hired someone
+        buttonsHTML = `
+            <button class="listing-option-btn modify" id="completeJobBtn">
+                MARK AS COMPLETED
+            </button>
+            <button class="listing-option-btn pause" id="relistJobBtn">
+                RELIST JOB
+            </button>
+            <button class="listing-option-btn cancel" id="cancelHiringBtn">
+                CLOSE
+            </button>
+        `;
+    } else if (jobData.role === 'worker') {
+        // Worker perspective: You were hired
+        buttonsHTML = `
+            <button class="listing-option-btn delete" id="resignJobBtn">
+                RESIGN FROM JOB
+            </button>
+            <button class="listing-option-btn cancel" id="cancelHiringBtn">
+                CLOSE
+            </button>
+        `;
+    }
+    
+    actionsContainer.innerHTML = buttonsHTML;
+    
+    // Initialize handlers for the dynamically created buttons
+    initializeHiringOverlayHandlers();
+    
+    // Show overlay
+    overlay.classList.add('show');
+    console.log(`👥 Hiring overlay shown for ${jobData.role} role`);
+}
+
+function initializeHiringOverlayHandlers() {
+    const overlay = document.getElementById('hiringOptionsOverlay');
+    if (!overlay) return;
+    
+    // Remove existing listeners to prevent duplicates
+    const completeBtn = document.getElementById('completeJobBtn');
+    const relistBtn = document.getElementById('relistJobBtn');
+    const resignBtn = document.getElementById('resignJobBtn');
+    const cancelBtn = document.getElementById('cancelHiringBtn');
+    
+    // Complete job handler (customer)
+    if (completeBtn) {
+        const completeHandler = function(e) {
+            e.preventDefault();
+            const jobData = getHiringJobDataFromOverlay();
+            handleCompleteJob(jobData);
+        };
+        completeBtn.addEventListener('click', completeHandler);
+    }
+    
+    // Relist job handler (customer)
+    if (relistBtn) {
+        const relistHandler = function(e) {
+            e.preventDefault();
+            const jobData = getHiringJobDataFromOverlay();
+            handleRelistJob(jobData);
+        };
+        relistBtn.addEventListener('click', relistHandler);
+    }
+    
+    // Resign job handler (worker)
+    if (resignBtn) {
+        const resignHandler = function(e) {
+            e.preventDefault();
+            const jobData = getHiringJobDataFromOverlay();
+            handleResignJob(jobData);
+        };
+        resignBtn.addEventListener('click', resignHandler);
+    }
+    
+    // Cancel handler
+    if (cancelBtn) {
+        const cancelHandler = function(e) {
+            e.preventDefault();
+            hideHiringOptionsOverlay();
+        };
+        cancelBtn.addEventListener('click', cancelHandler);
+    }
+    
+    // Background click handler
+    const backgroundHandler = function(e) {
+        if (e.target === overlay) {
+            hideHiringOptionsOverlay();
+        }
+    };
+    overlay.addEventListener('click', backgroundHandler);
+    
+    // Escape key handler
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideHiringOptionsOverlay();
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+function getHiringJobDataFromOverlay() {
+    const overlay = document.getElementById('hiringOptionsOverlay');
+    return {
+        jobId: overlay.getAttribute('data-job-id'),
+        role: overlay.getAttribute('data-role'),
+        title: overlay.getAttribute('data-title')
+    };
+}
+
+function hideHiringOptionsOverlay() {
+    const overlay = document.getElementById('hiringOptionsOverlay');
+    overlay.classList.remove('show');
+    console.log('👥 Hiring overlay hidden');
+}
+
+async function handleCompleteJob(jobData) {
+    console.log(`✅ COMPLETE job: ${jobData.jobId} (Customer perspective)`);
+    hideHiringOptionsOverlay();
+    
+    // Show completion confirmation overlay
+    const overlay = document.getElementById('completeJobConfirmationOverlay');
+    const subtitle = document.getElementById('completeJobSubtitle');
+    
+    subtitle.textContent = `Please confirm that "${jobData.title}" has been completed`;
+    
+    // Store job data for confirmation handlers
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-job-title', jobData.title);
+    
+    overlay.classList.add('show');
+    
+    // Initialize confirmation handlers
+    initializeCompleteJobConfirmationHandlers();
+}
+
+async function handleRelistJob(jobData) {
+    console.log(`🔄 RELIST job: ${jobData.jobId} (Customer perspective)`);
+    hideHiringOptionsOverlay();
+    
+    // Get worker name from job data
+    const hiredJobs = await JobsDataService.getAllHiredJobs();
+    const job = hiredJobs.find(j => j.jobId === jobData.jobId);
+    const workerName = job ? job.hiredWorkerName : 'the worker';
+    
+    // Show relist confirmation overlay
+    const overlay = document.getElementById('relistJobConfirmationOverlay');
+    const subtitle = document.getElementById('relistJobSubtitle');
+    const workerNameSpan = document.getElementById('relistWorkerName');
+    const workerNameReminderSpan = document.getElementById('relistWorkerNameReminder');
+    
+    subtitle.textContent = `This will void the contract with ${workerName}`;
+    workerNameSpan.textContent = workerName;
+    workerNameReminderSpan.textContent = workerName;
+    
+    // Store job data for confirmation handlers
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-job-title', jobData.title);
+    overlay.setAttribute('data-worker-name', workerName);
+    
+    overlay.classList.add('show');
+    
+    // Initialize confirmation handlers
+    initializeRelistJobConfirmationHandlers();
+}
+
+async function handleResignJob(jobData) {
+    console.log(`👋 RESIGN from job: ${jobData.jobId} (Worker perspective)`);
+    hideHiringOptionsOverlay();
+    
+    // Get customer name from job data
+    const hiredJobs = await JobsDataService.getAllHiredJobs();
+    const job = hiredJobs.find(j => j.jobId === jobData.jobId);
+    const customerName = job ? job.posterName : 'the customer';
+    
+    // Show resign confirmation overlay
+    const overlay = document.getElementById('resignJobConfirmationOverlay');
+    const subtitle = document.getElementById('resignJobSubtitle');
+    const customerNameSpan = document.getElementById('resignCustomerName');
+    
+    subtitle.textContent = `This will void your contract with ${customerName}`;
+    customerNameSpan.textContent = customerName;
+    
+    // Store job data for confirmation handlers
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-job-title', jobData.title);
+    overlay.setAttribute('data-customer-name', customerName);
+    
+    overlay.classList.add('show');
+    
+    // Initialize confirmation handlers
+    initializeResignJobConfirmationHandlers();
+}
+
+// ========================== CONFIRMATION OVERLAY HANDLERS ==========================
+
+function initializeCompleteJobConfirmationHandlers() {
+    const yesBtn = document.getElementById('completeJobYesBtn');
+    const noBtn = document.getElementById('completeJobNoBtn');
+    
+    if (yesBtn) {
+        yesBtn.onclick = async function() {
+            const overlay = document.getElementById('completeJobConfirmationOverlay');
+            const jobId = overlay.getAttribute('data-job-id');
+            const jobTitle = overlay.getAttribute('data-job-title');
+            
+            // Hide confirmation overlay
+            overlay.classList.remove('show');
+            
+            // TODO: Mark job as completed in Firebase
+            // await db.collection('jobs').doc(jobId).update({
+            //     status: 'completed',
+            //     completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     completedBy: 'customer'
+            // });
+            
+            // Show success overlay
+            showJobCompletedSuccess(jobTitle);
+        };
+    }
+    
+    if (noBtn) {
+        noBtn.onclick = function() {
+            document.getElementById('completeJobConfirmationOverlay').classList.remove('show');
+        };
+    }
+}
+
+function initializeRelistJobConfirmationHandlers() {
+    const yesBtn = document.getElementById('relistJobYesBtn');
+    const noBtn = document.getElementById('relistJobNoBtn');
+    
+    if (yesBtn) {
+        yesBtn.onclick = async function() {
+            const overlay = document.getElementById('relistJobConfirmationOverlay');
+            const jobId = overlay.getAttribute('data-job-id');
+            const jobTitle = overlay.getAttribute('data-job-title');
+            const workerName = overlay.getAttribute('data-worker-name');
+            
+            // Hide confirmation overlay
+            overlay.classList.remove('show');
+            
+            // TODO: Void contract and relist job in Firebase
+            // await db.collection('jobs').doc(jobId).update({
+            //     status: 'active',
+            //     hiredWorkerId: firebase.firestore.FieldValue.delete(),
+            //     hiredWorkerName: firebase.firestore.FieldValue.delete(),
+            //     contractVoidedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     voidedBy: 'customer'
+            // });
+            
+            // Show contract voided with negative theme (since we're breaking a contract)
+            showContractVoidedNegative(jobTitle, workerName);
+        };
+    }
+    
+    if (noBtn) {
+        noBtn.onclick = function() {
+            document.getElementById('relistJobConfirmationOverlay').classList.remove('show');
+        };
+    }
+}
+
+function initializeResignJobConfirmationHandlers() {
+    const yesBtn = document.getElementById('resignJobYesBtn');
+    const noBtn = document.getElementById('resignJobNoBtn');
+    
+    if (yesBtn) {
+        yesBtn.onclick = async function() {
+            const overlay = document.getElementById('resignJobConfirmationOverlay');
+            const jobId = overlay.getAttribute('data-job-id');
+            const jobTitle = overlay.getAttribute('data-job-title');
+            const customerName = overlay.getAttribute('data-customer-name');
+            
+            // Hide confirmation overlay
+            overlay.classList.remove('show');
+            
+            // TODO: Void contract and make job active in Firebase
+            // await db.collection('jobs').doc(jobId).update({
+            //     status: 'active',
+            //     hiredWorkerId: firebase.firestore.FieldValue.delete(),
+            //     hiredWorkerName: firebase.firestore.FieldValue.delete(),
+            //     resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     resignedBy: 'worker'
+            // });
+            
+            // Show resignation confirmation with disappointed theme
+            showResignationConfirmed(jobTitle, customerName);
+        };
+    }
+    
+    if (noBtn) {
+        noBtn.onclick = function() {
+            document.getElementById('resignJobConfirmationOverlay').classList.remove('show');
+        };
+    }
+}
+
+function showJobCompletedSuccess(jobTitle) {
+    const overlay = document.getElementById('jobCompletedSuccessOverlay');
+    const message = document.getElementById('jobCompletedMessage');
+    const okBtn = document.getElementById('jobCompletedOkBtn');
+    
+    message.textContent = `"${jobTitle}" has been marked as completed successfully! The job will be moved to your Previous Jobs.`;
+    
+    okBtn.onclick = async function() {
+        overlay.classList.remove('show');
+        // Refresh hiring tab content to remove completed job
+        await loadHiringContent();
+        // Update tab counts
+        await updateTabCounts();
+    };
+    
+    overlay.classList.add('show');
+}
+
+function showContractVoidedSuccess(message) {
+    const overlay = document.getElementById('contractVoidedSuccessOverlay');
+    const messageEl = document.getElementById('contractVoidedMessage');
+    const okBtn = document.getElementById('contractVoidedOkBtn');
+    
+    messageEl.textContent = message;
+    
+    okBtn.onclick = async function() {
+        overlay.classList.remove('show');
+        // Refresh both hiring and listings tabs
+        await loadHiringContent();
+        await loadListingsContent();
+        // Update tab counts
+        await updateTabCounts();
+    };
+    
+    overlay.classList.add('show');
+}
+
+function showResignationConfirmed(jobTitle, customerName) {
+    const overlay = document.getElementById('resignationConfirmedOverlay');
+    const message = document.getElementById('resignationMessage');
+    const okBtn = document.getElementById('resignationOkBtn');
+    
+    message.textContent = `You have resigned from "${jobTitle}". Your contract with ${customerName} has been voided.`;
+    
+    okBtn.onclick = async function() {
+        overlay.classList.remove('show');
+        // Refresh both hiring and listings tabs
+        await loadHiringContent();
+        await loadListingsContent();
+        // Update tab counts
+        await updateTabCounts();
+    };
+    
+    overlay.classList.add('show');
+}
+
+function showContractVoidedNegative(jobTitle, workerName) {
+    const overlay = document.getElementById('contractVoidedNegativeOverlay');
+    const message = document.getElementById('contractVoidedNegativeMessage');
+    const okBtn = document.getElementById('contractVoidedNegativeOkBtn');
+    
+    message.textContent = `Contract with ${workerName} has been voided for "${jobTitle}". The job is now active for new applications.`;
+    
+    okBtn.onclick = async function() {
+        overlay.classList.remove('show');
+        // Refresh both hiring and listings tabs
+        await loadHiringContent();
+        await loadListingsContent();
+        // Update tab counts
+        await updateTabCounts();
+    };
+    
+    overlay.classList.add('show');
 }
 
 function showEmptyHiringState() {
