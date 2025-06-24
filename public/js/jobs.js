@@ -808,7 +808,7 @@ function generateHiringCardHTML(job) {
                                 <div class="hiring-due-label">DATE</div>
                                 <div class="hiring-date">${formatJobDate(job.jobDate)}</div>
                             </div>
-                            <div class="hiring-times-section">
+                            <div class="hiring-times-section" data-start-time="${job.startTime}" data-end-time="${job.endTime}">
                                 <div class="hiring-time-labels">
                                     <div class="hiring-time-label">Start</div>
                                     <div class="hiring-time-label">End</div>

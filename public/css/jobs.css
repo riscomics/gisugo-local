@@ -1102,14 +1102,25 @@ body:has(.jobs-header) {
   }
 
   .hiring-schedule-row {
-    gap: 15px;
+    flex-direction: column;
+    gap: 8px;
     margin-top: 9px;
     margin-bottom: 10px;
   }
 
-  .hiring-due-label,
-  .hiring-time-label {
+  .hiring-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hiring-due-label {
     font-size: 0.775rem;
+    margin-bottom: 0;
+  }
+
+  .hiring-due-label::after {
+    content: ":";
   }
 
   .hiring-date {
@@ -1117,21 +1128,30 @@ body:has(.jobs-header) {
   }
 
   .hiring-times-section {
-    gap: 3px;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
   }
 
   .hiring-time-labels,
   .hiring-time-values {
-    gap: 16px;
+    display: none;
   }
 
-  .hiring-time-label {
-    min-width: 35px;
+  .hiring-times-section::before {
+    content: "TIME:";
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  .hiring-time-value {
+  .hiring-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
     font-size: 0.875rem;
-    min-width: 35px;
+    color: #f0e6d2;
+    font-weight: 600;
   }
 
   .hiring-role-caption {
@@ -1535,14 +1555,25 @@ body:has(.jobs-header) {
   }
 
   .hiring-schedule-row {
-    gap: 12px;
+    flex-direction: column;
+    gap: 6px;
     margin-top: 8px;
     margin-bottom: 8px;
   }
 
-  .hiring-due-label,
-  .hiring-time-label {
+  .hiring-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hiring-due-label {
     font-size: 0.725rem;
+    margin-bottom: 0;
+  }
+
+  .hiring-due-label::after {
+    content: ":";
   }
 
   .hiring-date {
@@ -1550,21 +1581,30 @@ body:has(.jobs-header) {
   }
 
   .hiring-times-section {
-    gap: 3px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
   }
 
   .hiring-time-labels,
   .hiring-time-values {
-    gap: 14px;
+    display: none;
   }
 
-  .hiring-time-label {
-    min-width: 30px;
+  .hiring-times-section::before {
+    content: "TIME:";
+    font-size: 0.725rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
-  .hiring-time-value {
+  .hiring-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
     font-size: 0.825rem;
-    min-width: 30px;
+    color: #f0e6d2;
+    font-weight: 600;
   }
 
   .hiring-role-caption {
