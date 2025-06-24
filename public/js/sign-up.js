@@ -100,8 +100,9 @@ function handlePhotoUpload(event) {
   }
 }
 
-// Initialize character counter for summary
+// Initialize character counter for summary and full name
 function initializeCharacterCounter() {
+  // Summary character counter
   const summaryTextarea = document.getElementById('userSummary');
   const summaryCounter = document.getElementById('summaryCounter');
   
@@ -119,6 +120,26 @@ function initializeCharacterCounter() {
         summaryCounter.style.color = '#fc8181';
       } else {
         summaryCounter.style.color = '#a0aec0';
+      }
+    });
+  }
+  
+  // Full Name character counter
+  const fullNameInput = document.getElementById('fullName');
+  const fullNameCounter = document.getElementById('fullNameCounter');
+  
+  if (fullNameInput && fullNameCounter) {
+    fullNameInput.addEventListener('input', function() {
+      const currentLength = this.value.length;
+      fullNameCounter.textContent = currentLength;
+      
+      // Color coding for character count
+      if (currentLength >= 13) {
+        fullNameCounter.style.color = '#fbbf24'; // Warning color (yellow/orange)
+      } else if (currentLength >= 15) {
+        fullNameCounter.style.color = '#fc8181'; // Error color (red)
+      } else {
+        fullNameCounter.style.color = '#a0aec0'; // Default color (gray)
       }
     });
   }
@@ -155,6 +176,10 @@ function validateField(field) {
       }
       if (value.length < 2) {
         showError(fieldId, 'Full name must be at least 2 characters');
+        return false;
+      }
+      if (value.length > 15) {
+        showError(fieldId, 'Full name must be 15 characters or less');
         return false;
       }
       break;

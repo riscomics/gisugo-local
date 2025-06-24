@@ -20,7 +20,7 @@
   </div>
 
   <div class="signup-container">
-    <form class="signup-form" id="signupForm">
+    <form class="signup-form" id="signupForm" autocomplete="off">
       <!-- Profile Photo Section -->
       <div class="form-section"> 
         <div class="form-section-header">Profile Photo</div>
@@ -40,21 +40,24 @@
         <!-- Full Name -->
         <div class="form-group">
           <label for="fullName" class="form-label">Full Name *</label>
-          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" required>
+          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="15" autocomplete="off" required>
+          <div class="character-counter">
+            <span id="fullNameCounter">0</span>/15 characters
+          </div>
           <div class="form-error" id="fullNameError"></div>
         </div>
 
         <!-- Date of Birth -->
         <div class="form-group">
           <label for="dateOfBirth" class="form-label">Date of Birth *</label>
-          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" required>
+          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" autocomplete="off" required>
           <div class="form-error" id="dateOfBirthError"></div>
         </div>
 
         <!-- Education Level -->
         <div class="form-group">
           <label for="educationLevel" class="form-label">Education Level *</label>
-          <select id="educationLevel" name="educationLevel" class="form-select" required>
+          <select id="educationLevel" name="educationLevel" class="form-select" autocomplete="off" required>
             <option value="">Select your education level</option>
             <option value="No-High-School">No High School</option>
             <option value="High School">High School</option>
@@ -74,7 +77,7 @@
         <div class="form-group">
           <label for="userSummary" class="form-label">Introduction & Summary *</label>
           <div class="form-hint">Tell potential customers about yourself, your experience, and why they can trust you.</div>
-          <textarea id="userSummary" name="userSummary" class="form-textarea" placeholder="Hello! I'm... (minimum 50 characters)" rows="5" required></textarea>
+          <textarea id="userSummary" name="userSummary" class="form-textarea" placeholder="Hello! I'm... (minimum 50 characters)" rows="5" autocomplete="off" required></textarea>
           <div class="character-counter">
             <span id="summaryCounter">0</span>/500 characters
           </div>
@@ -93,7 +96,7 @@
             <img src="public/icons/FB.png" alt="Facebook" class="social-icon-small">
             Facebook Profile URL
           </label>
-          <input type="url" id="facebook" name="facebook" class="form-input" placeholder="https://facebook.com/yourprofile">
+          <input type="url" id="facebook" name="facebook" class="form-input" placeholder="https://facebook.com/yourprofile" autocomplete="off">
         </div>
 
         <!-- Instagram -->
@@ -102,7 +105,7 @@
             <img src="public/icons/IG.png" alt="Instagram" class="social-icon-small">
             Instagram Profile URL
           </label>
-          <input type="url" id="instagram" name="instagram" class="form-input" placeholder="https://instagram.com/yourprofile">
+          <input type="url" id="instagram" name="instagram" class="form-input" placeholder="https://instagram.com/yourprofile" autocomplete="off">
         </div>
 
         <!-- LinkedIn -->
@@ -111,7 +114,7 @@
             <img src="public/icons/IN.png" alt="LinkedIn" class="social-icon-small">
             LinkedIn Profile URL
           </label>
-          <input type="url" id="linkedin" name="linkedin" class="form-input" placeholder="https://linkedin.com/in/yourprofile">
+          <input type="url" id="linkedin" name="linkedin" class="form-input" placeholder="https://linkedin.com/in/yourprofile" autocomplete="off">
         </div>
       </div>
 
