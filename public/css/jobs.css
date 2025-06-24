@@ -1131,7 +1131,7 @@ body:has(.jobs-header) {
   .hiring-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
   }
 
   .hiring-time-labels,
@@ -1581,7 +1581,7 @@ body:has(.jobs-header) {
   .hiring-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
   }
 
   .hiring-time-labels,
@@ -1911,7 +1911,7 @@ body:has(.jobs-header) {
   .hiring-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 6px;
+    gap: 3px;
   }
 
   .hiring-time-labels,
