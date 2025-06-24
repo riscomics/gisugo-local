@@ -1169,7 +1169,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-role-caption.worker {
-    max-width: 80%; /* Mobile: Longer worker captions need more constraint */
+    max-width: 90%; /* Mobile: Longer worker captions need more constraint */
     text-align: center;
     padding: 4px 5px;
     font-size: 0.7rem;
@@ -1624,7 +1624,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-role-caption.worker {
-    max-width: 80%; /* Small mobile: Worker captions need tight constraint */
+    max-width: 90%; /* Small mobile: Worker captions need tight constraint */
     text-align: center;
     padding: 3px 4px;
     font-size: 0.65rem;

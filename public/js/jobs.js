@@ -779,7 +779,7 @@ function generateHiringCardHTML(job) {
         userName = job.hiredWorkerName;
     } else {
         // Worker perspective: I'm working for someone, show the customer's thumbnail
-        roleCaption = `YOU ARE WORKING FOR ${job.posterName.toUpperCase()}`;
+        roleCaption = `WORKING FOR ${job.posterName.toUpperCase()}`;
         // For worker cards, we need the poster's thumbnail (customer who posted the job)
         userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
         userName = job.posterName;
