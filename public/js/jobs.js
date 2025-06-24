@@ -13,6 +13,10 @@ const CLEANUP_REGISTRY = {
 // This simulates Firebase real-time updates for development
 // In production, this will be replaced by Firebase listeners
 let MOCK_LISTINGS_DATA = null;
+let MOCK_HIRING_DATA = null;
+
+// Current user ID for testing different perspectives
+const CURRENT_USER_ID = 'user_peter_ang_001';
 
 // ===== DATA ACCESS LAYER (Firebase-Ready) =====
 // This layer abstracts data access to make Firebase transition seamless
@@ -29,6 +33,15 @@ const JobsDataService = {
     async getAllJobs() {
         // Firebase: return await db.collection('jobs').where('posterId', '==', currentUserId).get()
         return this.initialize();
+    },
+    
+    // Get all hired jobs (simulates Firebase query)
+    async getAllHiredJobs() {
+        // Firebase: return await db.collection('jobs').where('status', '==', 'hired').get()
+        if (!MOCK_HIRING_DATA) {
+            MOCK_HIRING_DATA = this._generateHiredJobsData();
+        }
+        return MOCK_HIRING_DATA;
     },
     
     // Get single job (simulates Firebase doc get)
@@ -67,6 +80,7 @@ const JobsDataService = {
     // Clean up (prevents memory leaks)
     cleanup() {
         MOCK_LISTINGS_DATA = null;
+        MOCK_HIRING_DATA = null;
     },
     
     // Private method to generate initial mock data
@@ -101,7 +115,7 @@ const JobsDataService = {
             {
                 jobId: 'job_2024_002_kompra',
                 posterId: 'user_maria_santos_002',
-                posterName: 'Maria Santos',
+                posterName: 'Mario Santos',
                 title: 'Weekly Grocery Shopping for Elderly Grandmother',
                 category: 'kompra',
                 thumbnail: 'public/mock/mock-kompra-post3.jpg',
@@ -116,8 +130,8 @@ const JobsDataService = {
             },
             {
                 jobId: 'job_2024_003_hatod',
-                posterId: 'user_carlos_dela_cruz_003',
-                posterName: 'Carlos Dela Cruz',
+                posterId: 'user_carla_dela_cruz_003',
+                posterName: 'Carla Dela Cruz',
                 title: 'Airport Pickup & Drop-off for Business Trip',
                 category: 'hatod',
                 thumbnail: 'public/mock/mock-kompra-post6.jpg',
@@ -145,6 +159,146 @@ const JobsDataService = {
                 applicationCount: 5,
                 applicationIds: ['app_013_user02', 'app_014_user10', 'app_015_user13', 'app_016_user16', 'app_017_user19'],
                 jobPageUrl: 'hakot.html'
+            }
+        ];
+    },
+    
+    // Private method to generate hired jobs mock data
+    _generateHiredJobsData() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const twoDaysAgo = new Date(today);
+        twoDaysAgo.setDate(today.getDate() - 2);
+        
+        const formatDateTime = (date) => date.toISOString();
+        
+        return [
+            // Job where current user hired someone (customer perspective)
+            {
+                jobId: 'job_2024_hired_001',
+                posterId: CURRENT_USER_ID, // Current user posted this job
+                posterName: 'Peter J. Ang',
+                title: 'Washing Dishes for Busy Restaurant During Peak Hours',
+                category: 'limpyo',
+                thumbnail: 'public/mock/mock-limpyo-post2.jpg',
+                jobDate: '2024-01-20',
+                startTime: '10AM',
+                endTime: '2PM',
+                priceOffer: '₱800',
+                datePosted: formatDateTime(twoDaysAgo),
+                dateHired: formatDateTime(yesterday),
+                status: 'hired',
+                hiredWorkerId: 'user_maria_santos_002',
+                hiredWorkerName: 'Mario Santos',
+                hiredWorkerThumbnail: 'public/users/User-02.jpg',
+                role: 'customer' // Current user is the customer
+            },
+            
+            // Job where current user was hired (worker perspective)
+            {
+                jobId: 'job_2024_hired_002',
+                posterId: 'user_miguel_torres_006',
+                posterName: 'Miguel Torres',
+                posterThumbnail: 'public/users/User-06.jpg',
+                title: 'Move Furniture to New Place',
+                category: 'hakot',
+                thumbnail: 'public/mock/mock-hakot-post3.jpg',
+                jobDate: '2024-01-22',
+                startTime: '8AM',
+                endTime: '12PM',
+                priceOffer: '₱1,200',
+                datePosted: formatDateTime(twoDaysAgo),
+                dateHired: formatDateTime(yesterday),
+                status: 'hired',
+                hiredWorkerId: CURRENT_USER_ID, // Current user was hired for this job
+                hiredWorkerName: 'Peter J. Ang',
+                hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
+                role: 'worker' // Current user is the worker
+            },
+            
+            // Another job where current user hired someone
+            {
+                jobId: 'job_2024_hired_003',
+                posterId: CURRENT_USER_ID,
+                posterName: 'Peter J. Ang',
+                title: 'Weekly Grocery Shopping',
+                category: 'kompra',
+                thumbnail: 'public/mock/mock-kompra-post4.jpg',
+                jobDate: '2024-01-25',
+                startTime: '2PM',
+                endTime: '4PM',
+                priceOffer: '₱500',
+                datePosted: formatDateTime(yesterday),
+                dateHired: formatDateTime(today),
+                status: 'hired',
+                hiredWorkerId: 'user_ana_reyes_004',
+                hiredWorkerName: 'Ana Reyes',
+                hiredWorkerThumbnail: 'public/users/User-03.jpg',
+                role: 'customer'
+            },
+            
+            // Additional long title jobs for testing
+            {
+                jobId: 'job_2024_hired_004',
+                posterId: 'user_elena_rodriguez_005',
+                posterName: 'Elena Rodriguez',
+                posterThumbnail: 'public/users/User-05.jpg',
+                title: 'Professional Deep Cleaning of 4-Bedroom House Today',
+                category: 'limpyo',
+                thumbnail: 'public/mock/mock-limpyo-post5.jpg',
+                jobDate: '2024-01-26',
+                startTime: '9AM',
+                endTime: '3PM',
+                priceOffer: '₱1,500',
+                datePosted: formatDateTime(yesterday),
+                dateHired: formatDateTime(today),
+                status: 'hired',
+                hiredWorkerId: CURRENT_USER_ID,
+                hiredWorkerName: 'Peter J. Ang',
+                hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
+                role: 'worker'
+            },
+            
+                         {
+                 jobId: 'job_2024_hired_005',
+                 posterId: CURRENT_USER_ID,
+                 posterName: 'Peter J. Ang',
+                 title: 'Airport Pickup & Drop-off Service',
+                 category: 'hatod',
+                 thumbnail: 'public/mock/mock-hatod-post2.jpg',
+                jobDate: '2024-01-28',
+                startTime: '6AM',
+                endTime: '10AM',
+                priceOffer: '₱2,000',
+                datePosted: formatDateTime(today),
+                dateHired: formatDateTime(today),
+                status: 'hired',
+                hiredWorkerId: 'user_carla_dela_cruz_003',
+                hiredWorkerName: 'Carla Dela Cruz',
+                hiredWorkerThumbnail: 'public/users/User-04.jpg',
+                role: 'customer'
+            },
+            
+            {
+                jobId: 'job_2024_hired_006',
+                posterId: 'user_rosa_martinez_007',
+                posterName: 'Ryan Martinez',
+                posterThumbnail: 'public/users/User-07.jpg',
+                title: 'Heavy Construction Materials Transport & Delivery',
+                category: 'hakot',
+                thumbnail: 'public/mock/mock-hakot-post4.jpg',
+                jobDate: '2024-01-30',
+                startTime: '7AM',
+                endTime: '5PM',
+                priceOffer: '₱3,000',
+                datePosted: formatDateTime(twoDaysAgo),
+                dateHired: formatDateTime(yesterday),
+                status: 'hired',
+                hiredWorkerId: CURRENT_USER_ID,
+                hiredWorkerName: 'Peter J. Ang',
+                hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
+                role: 'worker'
             }
         ];
     }
@@ -223,13 +377,13 @@ function removeDocumentListener(key) {
 window.addEventListener('beforeunload', executeAllCleanups);
 
 // ===== JOBS PAGE INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initializeMenu();
     initializeTabs();
     // Initialize the first tab (listings) content
-    initializeActiveTab('listings');
+    await initializeActiveTab('listings');
     // Update tab counts based on actual data
-    updateTabCounts();
+    await updateTabCounts();
 });
 
 function initializeMenu() {
@@ -264,15 +418,15 @@ function initializeTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     
     tabButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', async function(e) {
             e.preventDefault();
             const tabType = this.getAttribute('data-tab');
-            switchToTab(tabType);
+            await switchToTab(tabType);
         });
     });
 }
 
-function switchToTab(tabType) {
+async function switchToTab(tabType) {
     // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -297,7 +451,7 @@ function switchToTab(tabType) {
     updatePageTitle(tabType);
     
     // Initialize content for the active tab (lazy loading approach)
-    initializeActiveTab(tabType);
+    await initializeActiveTab(tabType);
     
     console.log(`🔄 Switched to ${tabType} tab`);
 }
@@ -321,15 +475,15 @@ function updatePageTitle(activeTab) {
     }
 }
 
-function initializeActiveTab(tabType) {
+async function initializeActiveTab(tabType) {
     console.log(`🚀 Initializing ${tabType} tab content`);
     
     switch (tabType) {
         case 'listings':
-            initializeListingsTab();
+            await initializeListingsTab();
             break;
         case 'hiring':
-            initializeHiringTab();
+            await initializeHiringTab();
             break;
         case 'previous':
             initializePreviousTab();
@@ -563,7 +717,7 @@ function getApplicationsByJobId(jobId) {
     return jobData.applicationIds;
 }
 
-function initializeHiringTab() {
+async function initializeHiringTab() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
     
@@ -573,15 +727,169 @@ function initializeHiringTab() {
         return;
     }
     
-    // Show placeholder for now
-    container.innerHTML = `
-        <div class="content-placeholder">
-            👥 Active hiring jobs will appear here.<br>
-            You can mark jobs as completed or cancel them.
+    console.log('👥 Loading hiring tab...');
+    await loadHiringContent();
+    console.log('👥 Hiring tab loaded, checking for captions and thumbnails...');
+}
+
+async function loadHiringContent() {
+    const container = document.querySelector('.hiring-container');
+    if (!container) return;
+    
+    try {
+        const hiredJobs = await JobsDataService.getAllHiredJobs();
+        
+        if (!hiredJobs || hiredJobs.length === 0) {
+            showEmptyHiringState();
+            return;
+        }
+        
+        const hiringHTML = await generateMockHiredJobs(hiredJobs);
+        container.innerHTML = hiringHTML;
+        
+        // Initialize event handlers for hiring cards
+        initializeHiringCardHandlers();
+        
+        console.log(`👥 Loaded ${hiredJobs.length} hired jobs`);
+        
+    } catch (error) {
+        console.error('❌ Error loading hiring content:', error);
+        container.innerHTML = `
+            <div class="content-placeholder">
+                ❌ Error loading hired jobs.<br>
+                Please try refreshing the page.
+            </div>
+        `;
+    }
+}
+
+async function generateMockHiredJobs(hiredJobs) {
+    return hiredJobs.map(job => generateHiringCardHTML(job)).join('');
+}
+
+function generateHiringCardHTML(job) {
+    const roleClass = job.role; // 'customer' or 'worker'
+    
+    // Determine role caption and user info based on perspective
+    let roleCaption, userThumbnail, userName;
+    if (job.role === 'customer') {
+        // Customer perspective: I hired someone, show the worker's thumbnail
+        roleCaption = `YOU HIRED ${job.hiredWorkerName.toUpperCase()}`;
+        userThumbnail = job.hiredWorkerThumbnail;
+        userName = job.hiredWorkerName;
+    } else {
+        // Worker perspective: I'm working for someone, show the customer's thumbnail
+        roleCaption = `YOU ARE WORKING FOR ${job.posterName.toUpperCase()}`;
+        // For worker cards, we need the poster's thumbnail (customer who posted the job)
+        userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
+        userName = job.posterName;
+    }
+    
+    return `
+        <div class="hiring-card ${roleClass}" 
+             data-job-id="${job.jobId}"
+             data-poster-id="${job.posterId}"
+             data-category="${job.category}"
+             data-role="${job.role}"
+             data-hired-worker-id="${job.hiredWorkerId}"
+             data-hired-worker-name="${job.hiredWorkerName}">
+            
+            <div class="hiring-thumbnail">
+                <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+            </div>
+            
+            <div class="hiring-content">
+                <div class="hiring-title">${job.title}</div>
+                
+                <div class="hiring-main-row">
+                    <div class="hiring-schedule-column">
+                        <div class="hiring-schedule-row">
+                            <div class="hiring-date-section">
+                                <div class="hiring-due-label">DATE</div>
+                                <div class="hiring-date">${formatJobDate(job.jobDate)}</div>
+                            </div>
+                            <div class="hiring-times-section">
+                                <div class="hiring-time-labels">
+                                    <div class="hiring-time-label">Start</div>
+                                    <div class="hiring-time-label">End</div>
+                                </div>
+                                <div class="hiring-time-values">
+                                    <div class="hiring-time-value">${job.startTime}</div>
+                                    <div class="hiring-time-value">${job.endTime}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="hiring-role-caption ${roleClass}">${roleCaption}</div>
+                    </div>
+                    
+                    <div class="hiring-price-column">
+                        <div class="hiring-price">${job.priceOffer}</div>
+                        
+                        <div class="hiring-user-thumbnail">
+                            <img src="${userThumbnail}" alt="${userName}" loading="lazy">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+}
+
+function initializeHiringCardHandlers() {
+    const hiringCards = document.querySelectorAll('.hiring-card');
     
-    console.log('👥 Hiring tab initialized');
+    hiringCards.forEach(card => {
+        const clickHandler = function(e) {
+            e.preventDefault();
+            const jobData = extractHiringJobDataFromCard(card);
+            showHiringOptionsOverlay(jobData);
+        };
+        
+        card.addEventListener('click', clickHandler);
+        
+        // Store handler for cleanup
+        if (!CLEANUP_REGISTRY.elementListeners.has(card)) {
+            CLEANUP_REGISTRY.elementListeners.set(card, []);
+        }
+        CLEANUP_REGISTRY.elementListeners.get(card).push(['click', clickHandler]);
+    });
+    
+    console.log(`🔧 Initialized ${hiringCards.length} hiring card handlers`);
+}
+
+function extractHiringJobDataFromCard(cardElement) {
+    return {
+        jobId: cardElement.getAttribute('data-job-id'),
+        posterId: cardElement.getAttribute('data-poster-id'),
+        category: cardElement.getAttribute('data-category'),
+        role: cardElement.getAttribute('data-role'),
+        hiredWorkerId: cardElement.getAttribute('data-hired-worker-id'),
+        hiredWorkerName: cardElement.getAttribute('data-hired-worker-name'),
+        title: cardElement.querySelector('.hiring-title')?.textContent || 'Unknown Job'
+    };
+}
+
+async function showHiringOptionsOverlay(jobData) {
+    console.log('👥 Show hiring options for:', jobData);
+    // TODO: Implement hiring options overlay
+    alert(`Hiring options for: ${jobData.title}\nRole: ${jobData.role}\nJob ID: ${jobData.jobId}`);
+}
+
+function showEmptyHiringState() {
+    const container = document.querySelector('.hiring-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <div class="empty-state-title">No Active Hired Jobs</div>
+            <div class="empty-state-message">
+                Jobs you've hired someone for or been hired for will appear here.<br>
+                You can mark them as completed or manage the hiring.
+            </div>
+        </div>
+    `;
 }
 
 function initializePreviousTab() {
