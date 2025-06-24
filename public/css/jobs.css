@@ -1533,7 +1533,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-title {
-    font-size: 0.65rem;
+    font-size: 0.8rem;
     line-height: 1.15;
     margin: 0 0 10px 0;
     min-height: 1.7rem;
@@ -1905,7 +1905,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-date {
-    font-size: 0.65rem;
+    font-size: 0.55rem;
   }
 
   .hiring-times-section {
@@ -1946,6 +1946,7 @@ body:has(.jobs-header) {
     max-width: 80%; /* Small mobile: Customer captions */
     text-align: center;
     padding: 3px 4px;
+    font-size: 0.6rem;
   }
 
   .hiring-role-caption.worker {
