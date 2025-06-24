@@ -1166,6 +1166,7 @@ body:has(.jobs-header) {
     max-width: 85%; /* Mobile: Shorter customer captions */
     text-align: center;
     padding: 4px 5px;
+    font-size: 0.7rem;
   }
 
   .hiring-role-caption.worker {
