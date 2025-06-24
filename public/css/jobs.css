@@ -1063,7 +1063,7 @@ body:has(.jobs-header) {
   .hiring-card {
     width: calc(100% - 16px);
     max-width: none;
-    height: 185px;
+    height: 210px;
     margin: 0 8px 12px 8px;
     border-radius: 10px;
   }
@@ -1075,7 +1075,7 @@ body:has(.jobs-header) {
 
   .hiring-thumbnail {
     width: 130px;
-    height: 185px;
+    height: 210px;
   }
 
   .hiring-content {
@@ -1171,6 +1171,7 @@ body:has(.jobs-header) {
     max-width: 80%; /* Mobile: Longer worker captions need more constraint */
     text-align: center;
     padding: 4px 5px;
+    font-size: 0.7rem;
   }
 
   .hiring-user-thumbnail {
@@ -1521,14 +1522,14 @@ body:has(.jobs-header) {
 
   .hiring-card {
     width: calc(100% - 12px);
-    height: 180px;
+    height: 200px;
     margin: 0 6px 10px 6px;
     border-radius: 8px;
   }
 
   .hiring-thumbnail {
     width: 125px;
-    height: 180px;
+    height: 200px;
   }
 
   .hiring-content {
@@ -1624,6 +1625,7 @@ body:has(.jobs-header) {
     max-width: 80%; /* Small mobile: Worker captions need tight constraint */
     text-align: center;
     padding: 3px 4px;
+    font-size: 0.65rem;
   }
 
   .hiring-user-thumbnail {
