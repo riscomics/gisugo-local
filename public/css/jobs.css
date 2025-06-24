@@ -1309,6 +1309,331 @@ body:has(.jobs-header) {
 
 } 
 
+/* iPhone 7 and Similar Devices (375px and below) */
+@media (max-width: 375px) {
+  body {
+    padding-top: 71px; /* Slightly reduced for smaller screens */
+  }
+  
+  .jobs-header-title-container {
+    height: 64px;
+    padding-right: 3px; 
+  } 
+  
+  .jobs-header-title {
+    font-size: 1.4rem;
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+   
+  .jobs-header-btn {
+    width: 40px;
+    height: 42px;
+    font-size: 10px;
+  }
+  
+  .jobs-header-btn img {
+    width: auto;
+    height: 30px;
+    margin-bottom: 3px;
+  }
+  
+  .jobs-menu-items {
+    height: 64px;
+  }
+  
+  .jobs-menu-item {
+    font-size: 10px;
+    width: 40px;
+  }
+  
+  .jobs-menu-item img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .jobs-tabs {
+    top: 68px; /* Adjusted for smaller header */
+  }
+
+  .tab-btn {
+    padding: 7px 5px; /* More compact tabs */
+    font-size: 0.75rem;
+    gap: 2px;
+  }
+  
+  .tab-label {
+    font-size: 0.7rem;
+  }
+
+  .tab-content-wrapper {
+    top: 112px; /* Adjusted for smaller header + tabs */
+    height: calc(100vh - 112px);
+  }
+
+  /* iPhone 7 Listings Container */
+  .listings-container {
+    padding: 18px 0 55px 0;
+  }
+
+  .listing-card {
+    width: calc(100% - 10px);
+    height: 142px; /* Smaller for iPhone 7 */
+    margin: 0 5px 9px 5px;
+    border-radius: 8px;
+  }
+
+  .listing-thumbnail {
+    width: 120px;
+    height: 142px;
+  }
+
+  .listing-content {
+    padding: 9px 11px;
+  }
+
+  .listing-title {
+    font-size: 0.8rem;
+    line-height: 1.15;
+    margin: 0 0 4px 0;
+  }
+
+  .listing-meta {
+    gap: 4px;
+    font-size: 0.75rem;
+  }
+
+  .job-schedule {
+    gap: 2px;
+  }
+
+  .job-time-row {
+    gap: 5px;
+  }
+
+  .job-date {
+    font-size: 0.75rem;
+  }
+
+  .job-time {
+    font-size: 0.7rem;
+  }
+
+  .posting-info {
+    padding-top: 2px;
+  }
+
+  .listing-time-ago {
+    font-size: 0.65rem;
+  }
+
+  .application-count {
+    padding: 2px 5px;
+    font-size: 0.65rem;
+    border-radius: 3px;
+  }
+
+  .status-badge {
+    top: 3px;
+    left: 3px;
+    padding: 2px 4px;
+    font-size: 0.55rem;
+  }
+
+  .empty-state {
+    padding: 25px 10px;
+    margin: 12px auto;
+  }
+
+  .empty-state-icon {
+    font-size: 2.2rem;
+    margin-bottom: 10px;
+  }
+
+  .empty-state-title {
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .empty-state-message {
+    font-size: 0.8rem;
+    margin-bottom: 18px;
+  }
+
+  .empty-state-btn {
+    padding: 7px 14px;
+    font-size: 0.8rem;
+  }
+
+  .listing-options-container {
+    padding: 18px;
+    width: 97%;
+    max-width: 280px;
+  }
+
+  .listing-options-title {
+    font-size: 1.1rem;
+  }
+
+  .listing-options-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .listing-option-btn {
+    padding: 11px 14px;
+    font-size: 0.9rem;
+  }
+
+  .delete-confirmation-container {
+    padding: 18px;
+    width: 97%;
+    max-width: 300px;
+  }
+
+  .delete-confirmation-icon {
+    font-size: 2.2rem;
+  }
+
+  .delete-confirmation-title {
+    font-size: 1.1rem;
+  }
+
+  .delete-confirmation-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .delete-warning-text {
+    font-size: 0.8rem;
+  }
+
+  .delete-confirmation-btn {
+    padding: 11px 14px;
+    font-size: 0.85rem;
+  }
+
+  /* iPhone 7 Hiring Container */
+  .hiring-container {
+    padding: 18px 0 55px 0;
+  }
+
+  .hiring-card {
+    width: calc(100% - 10px);
+    height: 190px;
+    margin: 0 5px 9px 5px;
+    border-radius: 8px;
+  }
+
+  .hiring-thumbnail {
+    width: 120px;
+    height: 190px;
+  }
+
+  .hiring-content {
+    padding: 9px 11px;
+  }
+
+  .hiring-title {
+    font-size: 0.65rem;
+    line-height: 1.15;
+    margin: 0 0 10px 0;
+    min-height: 1.7rem;
+  }
+
+  .hiring-main-row {
+    gap: 9px;
+    margin-top: 10px;
+    margin-bottom: 7px;
+  }
+
+  .hiring-price {
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+
+  .hiring-schedule-row {
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 7px;
+    margin-bottom: 7px;
+  }
+
+  .hiring-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .hiring-due-label {
+    font-size: 0.6rem;
+    margin-bottom: 0;
+  }
+
+  .hiring-due-label::after {
+    content: ":";
+  }
+
+  .hiring-date {
+    font-size: 0.7rem;
+  }
+
+  .hiring-times-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .hiring-time-labels,
+  .hiring-time-values {
+    display: none;
+  }
+
+  .hiring-times-section::before {
+    content: "TIME:";
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .hiring-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
+    font-size: 0.7rem;
+    color: #f0e6d2;
+    font-weight: 600;
+  }
+
+  .hiring-role-caption {
+    font-size: 0.65rem;
+    line-height: 1.15;
+    padding: 2px 3px;
+    margin-top: 9px;
+  }
+
+  .hiring-role-caption.customer {
+    max-width: 75%; /* iPhone 7: Customer captions */
+    text-align: center;
+    padding: 2px 3px;
+  }
+
+  .hiring-role-caption.worker {
+    max-width: 85%; /* iPhone 7: Worker captions need more space */
+    text-align: center;
+    padding: 2px 3px;
+    font-size: 0.6rem;
+    margin-top: 5px;
+  }
+
+  .hiring-user-thumbnail {
+    width: 65px;
+    height: 65px;
+    margin-top: 5px;
+  }
+
+}
+
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   body {
