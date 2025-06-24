@@ -1765,7 +1765,7 @@ function deleteSelectedNotifications() {
 const MOCK_NOTIFICATIONS = [
     {
         id: 'notif_xKj9mL2pQ8vR4sW7nC1e',  // Firebase auto-generated ID format
-        notificationType: 'critical_action_required',
+        notificationType: 'interview_request',
         recipientUid: 'user_currentUserUid', // Firebase UID format
         senderUid: 'system',
         read: false,
@@ -1773,33 +1773,41 @@ const MOCK_NOTIFICATIONS = [
         updatedAt: new Date('2025-12-22T12:30:00Z'),
         
         // Firestore document structure - flat for better indexing
-        title: 'URGENT: Account Verification Required',
-        message: 'Your account requires immediate verification to continue using GISUGO services. Failure to verify within 24 hours will result in account suspension.',
-        icon: '⚠️',
-        iconClass: 'critical-icon',
-        priority: 'high',
-        category: 'account',
+        title: '🎯 APPLICATION INTERVIEW REQUEST',
+        message: '<strong>Janice Legaspi</strong> wants to interview you: "Hi Peter! I reviewed your application for the mobile app development project. Your portfolio is impressive! I\'d like to discuss the project details with you."',
+        icon: '🎯',
+        iconClass: 'interview-icon',
+        priority: 'critical',
+        category: 'interview',
         timeDisplay: '1 hour ago',
         dateDisplay: 'Dec. 22, 2025',
+        
+        // Related documents for Firestore
+        relatedDocuments: {
+            threadId: 4,
+            messageId: 'msg_jL3nH8mK9vR4xJ2pS7',
+            senderProfile: 'user_sL9nR4mK6jV8wT3yG7'
+        },
         
         // Firebase-optimized action structure
         actions: [
             {
-                type: 'primary',
-                action: 'verify_account',
-                text: 'Verify Now',
+                type: 'secondary',
+                action: 'reply_message',
+                text: 'Reply',
                 actionData: {
-                    redirectUrl: '/verify',
-                    urgency: 'critical'
+                    threadId: 4,
+                    navigateTo: 'messages'
                 }
             }
         ],
         
         // Firestore security rules compatibility
         metadata: {
-            source: 'system',
-            businessLogic: 'account_verification',
-            indexed: true
+            source: 'interview_system',
+            businessLogic: 'application_interview_flow',
+            indexed: true,
+            specialCategory: 'high_priority_career_opportunity'
         }
     },
     {
@@ -2197,7 +2205,185 @@ function fixFirstNotificationSelection() {
     }
 }
 
-// Mock Messages Data
+// ===== FIREBASE DATA MAPPING DOCUMENTATION =====
+/*
+COMPREHENSIVE MESSAGE SYSTEM FIREBASE INTEGRATION MAPPING
+
+This mock data structure is designed for direct Firebase Firestore integration.
+All fields and relationships are mapped for production backend implementation.
+
+COLLECTIONS STRUCTURE:
+1. conversations/ - Main conversation threads
+2. conversations/{conversationId}/messages/ - Individual messages
+3. users/{userId}/conversations/ - User conversation indexes
+4. applications/{applicationId} - Referenced applications
+5. jobs/{jobId} - Referenced job posts
+
+CONVERSATION DOCUMENT SCHEMA:
+{
+  conversationId: string (auto-generated or threadId),
+  participants: [userId1, userId2], // Array for easy querying
+  participantDetails: {
+    userId1: { name: string, avatar: string, role: 'customer'|'worker' },
+    userId2: { name: string, avatar: string, role: 'customer'|'worker' }
+  },
+  jobId: string, // Reference to jobs collection
+  jobTitle: string, // Denormalized for performance
+  threadOrigin: 'application'|'job', // How the conversation started
+  applicationId: string|null, // Reference to applications collection if origin is 'application'
+  currentUserRole: { // Per-user role mapping
+    userId1: 'customer'|'worker',
+    userId2: 'customer'|'worker'
+  },
+  status: 'active'|'archived'|'deleted',
+  isNew: { // Per-user new status
+    userId1: boolean,
+    userId2: boolean
+  },
+  lastMessage: {
+    content: string,
+    senderId: string,
+    timestamp: timestamp,
+    messageId: string
+  },
+  lastActivity: timestamp,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  // Privacy and moderation
+  blockedBy: { userId: blockedUserId }, // If conversation is blocked by user
+  hiddenFor: { userId: boolean }, // If conversation is hidden for user
+  deletedFor: { userId: timestamp }, // Soft delete per user
+  reportedBy: [userId], // Moderation flags
+  // Firebase security rules support
+  readPermissions: [userId1, userId2],
+  writePermissions: [userId1, userId2]
+}
+
+MESSAGE DOCUMENT SCHEMA:
+{
+  messageId: string (auto-generated),
+  conversationId: string, // Parent conversation reference
+  senderId: string, // Reference to users collection
+  senderName: string, // Denormalized for performance
+  senderType: 'customer'|'worker', // Role in this conversation
+  recipientId: string, // Other participant
+  content: string,
+  timestamp: timestamp,
+  read: boolean,
+  readAt: timestamp|null,
+  direction: 'incoming'|'outgoing', // Relative to current user
+  messageType: 'text'|'image'|'file'|'system', // Future extensibility
+  // Moderation and privacy
+  deletedFor: { userId: timestamp }, // Soft delete per user
+  hiddenFor: { userId: boolean },
+  edited: boolean,
+  editedAt: timestamp|null,
+  reportedBy: [userId],
+  // Firebase security
+  readPermissions: [senderId, recipientId],
+  writePermissions: [senderId] // Only sender can edit/delete
+}
+
+CONVERSATION CREATION RULES:
+1. APPLICATION-BASED THREADS (threadOrigin: 'application'):
+   - Created when customer contacts worker's application via "Contact" button
+   - applicationId must be provided and valid
+   - currentUserRole determines who can see "View Application" button
+   - Customer role: Can view application details
+   - Worker role: Cannot view their own application (redundant)
+
+2. JOB-BASED THREADS (threadOrigin: 'job'):
+   - Created when worker contacts customer's job post via "Contact" button
+   - applicationId is null
+   - All participants can view job post via "View Job Post" button
+   - Essential for workers to reference original job requirements
+
+AVATAR OVERLAY PERMISSIONS:
+- Current user's own avatars: NO overlay (prevents self-actions)
+- Other participants' avatars: Full overlay with context-aware buttons
+- View Application: Only for customers in application threads
+- View Job Post: Available for all participants in all threads
+- Profile/Block/Delete: Available for all other participants
+
+FIREBASE SECURITY RULES LOGIC:
+- Users can only read/write conversations they participate in
+- Messages inherit parent conversation permissions
+- Soft deletes preserve data for the other participant
+- Block functionality hides conversations without deleting
+- All user actions are logged with timestamps for moderation
+
+INDEXING REQUIREMENTS:
+- conversations: participants array, lastActivity desc
+- messages: conversationId, timestamp desc
+- users conversations: userId, lastActivity desc
+- applications: applicantUid, jobId
+- jobs: customerId, createdAt desc
+
+REAL-TIME LISTENERS:
+- Conversation list: Listen to user's active conversations
+- Message thread: Listen to specific conversation messages
+- Notification system: Listen to new messages and conversation updates
+- Online status: Track participant availability (future feature)
+
+WORKER PERSPECTIVE EXAMPLES (Threads 4 & 5):
+Thread 4 - Peter as Worker receiving Interview Request:
+- Janice (customer) contacted Peter's application
+- Peter sees "Application Interview with Janice Legaspi"
+- No "View Application" button (worker can't view own application)
+- "View Job Post" button available to reference original job
+- Critical for Peter to understand what job Janice is hiring for
+
+Thread 5 - Peter as Worker inquiring about Job:
+- Peter (worker) contacted Chris's job post
+- Peter sees "Direct Message with Chris Vicente"
+- No response yet from Chris (realistic scenario)
+- "View Job Post" button essential for Peter to reference job details
+- Helps Peter follow up appropriately when Chris eventually responds
+
+BACKEND INTEGRATION POINTS:
+1. Authentication: getCurrentUserId() → Firebase Auth
+2. Real-time: Firestore listeners for live updates
+3. Notifications: Cloud Functions for push notifications
+4. Moderation: Automated content filtering + manual review
+5. Analytics: Conversation success rates, response times
+6. Search: Full-text search on conversation content (future)
+
+DETAILED THREAD AVATAR OVERLAY MAPPING:
+
+Thread 1 (Miguel Torres - Plumber):
+- threadOrigin: 'job', currentUserRole: 'customer', applicationId: null
+- Miguel's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- Peter's Avatar: NO overlay (current user)
+
+Thread 2 (Ana Rodriguez - Cleaner):
+- threadOrigin: 'application', currentUserRole: 'customer', applicationId: 'app_kT3nH7mR8qX2bS9jL6'
+- Ana's Avatar Overlay: View Profile, View Job Post, VIEW APPLICATION, Block, Delete, Close
+- Peter's Avatar: NO overlay (current user)
+
+Thread 3 (Carlos Mendoza - Gardener):
+- threadOrigin: 'job', currentUserRole: 'customer', applicationId: null
+- Carlos's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- Peter's Avatar: NO overlay (current user)
+
+Thread 4 (Janice Legaspi - Customer seeking Programmer):
+- threadOrigin: 'application', currentUserRole: 'worker', applicationId: 'app_nK5jT7mR8pL3wQ2xF6'
+- Janice's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- NO "View Application" (worker perspective - can't view own application)
+- Peter's Avatar: NO overlay (current user)
+
+Thread 5 (Chris Vicente - Customer needing App Development):
+- threadOrigin: 'job', currentUserRole: 'worker', applicationId: null
+- Chris's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- CRITICAL: View Job Post essential for Peter to reference original requirements
+- Peter's Avatar: NO overlay (current user)
+
+NAVIGATION IMPORTANCE:
+- Thread 4: Peter needs "View Job Post" to understand what position Janice is hiring for
+- Thread 5: Peter needs "View Job Post" to reference his inquiry and follow up appropriately
+- All worker perspective threads benefit from easy job post access for context
+*/
+
+// Mock Messages Data (Firebase-ready structure)
 const MOCK_MESSAGES = [
     {
         threadId: 1,
@@ -2207,6 +2393,7 @@ const MOCK_MESSAGES = [
         participantName: 'Miguel Torres',
         threadOrigin: 'job', // NEW: Tracks thread origin ('job' or 'application')
         applicationId: null, // NEW: null for job-based threads
+        currentUserRole: 'customer', // NEW: Current user (Peter) is the customer who posted the job
         isNew: true,
         lastMessageTime: '2025-12-22T15:30:00Z',
         messages: [
@@ -2324,6 +2511,7 @@ const MOCK_MESSAGES = [
         participantName: 'Ana Rodriguez',
         threadOrigin: 'application', // NEW: This thread originated from contacting from an application card
         applicationId: 'app_kT3nH7mR8qX2bS9jL6', // NEW: Reference to Ana Rodriguez's specific application
+        currentUserRole: 'customer', // NEW: Current user (Peter) is the customer who contacted Ana's application
         isNew: false,
         lastMessageTime: '2025-12-21T11:30:00Z',
         messages: [
@@ -2439,6 +2627,9 @@ const MOCK_MESSAGES = [
         jobTitle: 'Garden maintenance and lawn mowing service',
         participantId: 8,
         participantName: 'Carlos Mendoza',
+        threadOrigin: 'job', // NEW: This thread originated from worker contacting job post
+        applicationId: null, // NEW: null for job-based threads
+        currentUserRole: 'customer', // NEW: Current user (Peter) is the customer who posted the job
         isNew: true,
         lastMessageTime: '2025-12-23T07:30:00Z',
         messages: [
@@ -2454,6 +2645,60 @@ const MOCK_MESSAGES = [
                 direction: 'incoming',
                 avatar: 'public/users/User-08.jpg',
                 content: 'Good morning! I saw your garden maintenance job posting. I have 12 years experience in landscaping and lawn care. I can start this week if you\'re interested. My rate is ₱1,200 for full garden maintenance including mowing, trimming, and weeding.'
+            }
+        ]
+    },
+    {
+        threadId: 4,
+        jobId: 'job_mR8pL3nK5jT7wQ2xF6', // Programmer job that Peter applied to
+        jobTitle: 'Mobile App Development - iOS and Android',
+        participantId: 'user_sL9nR4mK6jV8wT3yG7', // Janice Legaspi's user ID
+        participantName: 'Janice Legaspi',
+        threadOrigin: 'application', // NEW: This thread originated from customer contacting Peter's application
+        applicationId: 'app_nK5jT7mR8pL3wQ2xF6', // NEW: Reference to Peter's application
+        currentUserRole: 'worker', // NEW: Current user (Peter) is the worker whose application was contacted
+        isNew: true,
+        lastMessageTime: '2025-12-23T10:15:00Z',
+        messages: [
+            {
+                id: 18,
+                threadId: 4,
+                senderId: 'user_sL9nR4mK6jV8wT3yG7',
+                senderName: 'Janice Legaspi',
+                senderType: 'customer',
+                timestamp: '2025-12-23T10:15:00Z',
+                timeDisplay: 'Dec. 23, 2025 - 10:15 AM',
+                read: true,
+                direction: 'incoming',
+                avatar: 'public/users/User-11.jpg',
+                content: 'Hi Peter! I reviewed your application for the mobile app development project. Your portfolio is impressive! I\'d like to discuss the project details with you. Are you available for a call this week?'
+            }
+        ]
+    },
+    {
+        threadId: 5,
+        jobId: 'job_vW9nM4kL7jS8wR5xB3', // App building project job
+        jobTitle: 'Custom Business App Development',
+        participantId: 'user_tX2nP5mK8jU9wS6yC4', // Chris Vicente's user ID
+        participantName: 'Chris Vicente',
+        threadOrigin: 'job', // NEW: This thread originated from Peter contacting job post
+        applicationId: null, // NEW: null for job-based threads
+        currentUserRole: 'worker', // NEW: Current user (Peter) is the worker who contacted the job
+        isNew: false,
+        lastMessageTime: '2025-12-22T16:30:00Z',
+        messages: [
+            {
+                id: 20,
+                threadId: 5,
+                senderId: 1,
+                senderName: 'You',
+                senderType: 'worker',
+                timestamp: '2025-12-22T16:30:00Z',
+                timeDisplay: 'Dec. 22, 2025 - 4:30 PM',
+                read: true,
+                direction: 'outgoing',
+                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
+                content: 'Good afternoon! I saw your custom business app development project and I\'m very interested. I have 5+ years experience in mobile app development with expertise in both iOS and Android. I\'d love to learn more about your specific requirements and discuss how I can help bring your vision to life. What\'s the best time to discuss the project details?'
             }
         ]
     }
@@ -2510,7 +2755,8 @@ function generateMessageThreadHTML(thread) {
         `data-thread-origin="${thread.threadOrigin}"`, // NEW: Track thread origin
         `data-application-id="${thread.applicationId || ''}"`, // NEW: Application ID for application-based threads
         `data-is-new="${thread.isNew}"`,
-        `data-last-message-time="${thread.lastMessageTime}"`
+        `data-last-message-time="${thread.lastMessageTime}"`,
+        `data-current-user-role="${thread.currentUserRole || 'customer'}"` // NEW: Track current user's role in this thread
     ].join(' ');
 
     // REVERSE MESSAGE ORDER: Newest messages at top
@@ -2525,7 +2771,7 @@ function generateMessageThreadHTML(thread) {
             <div class="message-thread-header" data-thread-id="${thread.threadId}">
                 <div class="thread-info">
                     <div class="thread-job-title">${thread.jobTitle}</div>
-                    <div class="thread-participant">${thread.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'} with ${thread.participantName}</div>
+                    <div class="thread-participant">${thread.threadOrigin === 'application' ? 'Application Interview with' : 'Direct Message with'} ${thread.participantName}</div>
                 </div>
                 <div class="thread-status">
                     ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
@@ -2618,6 +2864,7 @@ function initializeMessages() {
                             applicationId: messageThread.getAttribute('data-application-id'),
                             jobId: messageThread.getAttribute('data-job-id'),
                             jobTitle: messageThread.getAttribute('data-job-title'),
+                            currentUserRole: messageThread.getAttribute('data-current-user-role'),
                             // Firebase integration fields
                             currentUserId: getCurrentUserId(),
                             conversationRef: `conversations/${messageThread.getAttribute('data-thread-id')}`,
@@ -2815,13 +3062,20 @@ function updateAllTabCounts() {
     // Notifications count - keep existing count logic
     updateNotificationsCount();
     
-    // Messages count - calculate from mock data when available
+    // Messages count - calculate from mock data
     const messagesCountElement = document.querySelector('#messagesTab .notification-count');
     if (messagesCountElement) {
-        // For now, keep existing count or set based on mock data
-        // This can be updated when message mock data is available
-        const currentCount = messagesCountElement.textContent;
-        // Keep current count for messages tab
+        // Count "new" threads from MOCK_MESSAGES data
+        const newThreadsCount = MOCK_MESSAGES.filter(thread => thread.isNew === true).length;
+        messagesCountElement.textContent = newThreadsCount;
+        
+        if (newThreadsCount === 0) {
+            messagesCountElement.style.display = 'none';
+        } else {
+            messagesCountElement.style.display = 'inline-block';
+        }
+        
+        console.log('Messages count updated from mock data:', newThreadsCount);
     }
     
     console.log('All tab counts updated on page load');
@@ -4933,6 +5187,20 @@ function initializeAvatarForOverlay(avatar) {
         return;
     }
     
+    // Get message data to check if this is the current user's avatar
+    const messageCard = avatar.closest('.message-card');
+    if (messageCard) {
+        const senderId = messageCard.getAttribute('data-sender-id');
+        const currentUserId = getCurrentUserId();
+        
+        // Skip overlay initialization for current user's own avatar
+        // Convert both to strings for comparison since DOM attributes are strings
+        if (String(senderId) === String(currentUserId) || senderId === '1') {
+            console.log(`🚫 Skipping avatar overlay for current user (ID: ${senderId})`);
+            return;
+        }
+    }
+    
     // Mark as initialized
     avatar.setAttribute('data-overlay-initialized', 'true');
     
@@ -4966,6 +5234,7 @@ function initializeAvatarForOverlay(avatar) {
             const jobTitle = threadElement.getAttribute('data-job-title');
             const threadOrigin = threadElement.getAttribute('data-thread-origin'); // NEW
             const applicationId = threadElement.getAttribute('data-application-id'); // NEW
+            const currentUserRole = threadElement.getAttribute('data-current-user-role'); // NEW
             
                             // Show avatar overlay
                 showAvatarOverlay(e, {
@@ -4976,6 +5245,7 @@ function initializeAvatarForOverlay(avatar) {
                     jobTitle: jobTitle,
                     threadOrigin: threadOrigin, // NEW: Include thread origin
                     applicationId: applicationId, // NEW: Include application ID
+                    currentUserRole: currentUserRole, // NEW: Include current user role
                     avatar: this.querySelector('img').src
                 });
             }
@@ -5073,7 +5343,10 @@ function showAvatarOverlay(event, userData) {
     console.log(`🔍 DEBUG: jobId = "${userData.jobId}"`);
     
     // Create overlay content with conditional "View Application" button
-    const viewApplicationButton = userData.threadOrigin === 'application' && userData.applicationId 
+    // Only show "View Application" for customers in application-based threads
+    const viewApplicationButton = userData.threadOrigin === 'application' && 
+                                   userData.applicationId && 
+                                   userData.currentUserRole === 'customer'
         ? `<button class="avatar-action-btn application" data-application-id="${userData.applicationId}" data-job-id="${userData.jobId}">
                <span>📋</span>
                <span>VIEW APPLICATION</span>
@@ -5568,7 +5841,7 @@ function getCurrentUserId() {
         return firebase.auth().currentUser.uid;
     }
     // Fallback to session storage for development
-    return localStorage.getItem('currentUserId') || 'current_user_id';
+    return localStorage.getItem('currentUserId') || '1'; // Peter's ID for mock environment
 }
 
 function checkFirebaseConnection() {
