@@ -31,13 +31,78 @@ const JobsDataService = {
     
     // Get all jobs (simulates Firebase query)
     async getAllJobs() {
-        // Firebase: return await db.collection('jobs').where('posterId', '==', currentUserId).get()
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // const listingsSnapshot = await db.collection('jobs')
+        //     .where('posterId', '==', currentUserId)
+        //     .where('status', 'in', ['active', 'paused'])
+        //     .orderBy('datePosted', 'desc')
+        //     .get();
+        // 
+        // return listingsSnapshot.docs.map(doc => {
+        //     const data = doc.data();
+        //     return {
+        //         jobId: doc.id,
+        //         posterId: data.posterId,
+        //         posterName: data.posterName,
+        //         title: data.title,
+        //         category: data.category,
+        //         thumbnail: data.thumbnail,
+        //         jobDate: data.scheduledDate,
+        //         startTime: data.startTime,
+        //         endTime: data.endTime,
+        //         datePosted: data.datePosted,
+        //         status: data.status,
+        //         applicationCount: data.applicationCount || 0,
+        //         applicationIds: data.applicationIds || [],
+        //         jobPageUrl: `${data.category}.html`
+        //     };
+        // });
+        
         return this.initialize();
     },
     
     // Get all hired jobs (simulates Firebase query)
     async getAllHiredJobs() {
-        // Firebase: return await db.collection('jobs').where('status', '==', 'hired').get()
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // const hiredJobsSnapshot = await db.collection('jobs')
+        //     .where('status', '==', 'hired')
+        //     .where(firebase.firestore.Filter.or(
+        //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
+        //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
+        //     ))
+        //     .orderBy('hiredAt', 'desc')
+        //     .get();
+        // 
+        // return hiredJobsSnapshot.docs.map(doc => {
+        //     const data = doc.data();
+        //     return {
+        //         jobId: doc.id,
+        //         posterId: data.posterId,
+        //         posterName: data.posterName,
+        //         posterThumbnail: data.posterThumbnail,
+        //         title: data.title,
+        //         category: data.category,
+        //         thumbnail: data.thumbnail,
+        //         jobDate: data.scheduledDate,
+        //         startTime: data.startTime,
+        //         endTime: data.endTime,
+        //         priceOffer: data.priceOffer,
+        //         datePosted: data.datePosted,
+        //         dateHired: data.hiredAt,
+        //         status: data.status,
+        //         hiredWorkerId: data.hiredWorkerId,
+        //         hiredWorkerName: data.hiredWorkerName,
+        //         hiredWorkerThumbnail: data.hiredWorkerThumbnail,
+        //         role: data.posterId === currentUserId ? 'customer' : 'worker'
+        //     };
+        // });
+        
         if (!MOCK_HIRING_DATA) {
             MOCK_HIRING_DATA = this._generateHiredJobsData();
         }
@@ -53,7 +118,17 @@ const JobsDataService = {
     
     // Update job status (simulates Firebase update)
     async updateJobStatus(jobId, newStatus) {
-        // Firebase: await db.collection('jobs').doc(jobId).update({ status: newStatus })
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // 
+        // await db.collection('jobs').doc(jobId).update({
+        //     status: newStatus,
+        //     lastModified: firebase.firestore.FieldValue.serverTimestamp(),
+        //     modifiedBy: firebase.auth().currentUser.uid
+        // });
+        // 
+        // return { success: true };
+        
         const jobs = this.initialize();
         const jobIndex = jobs.findIndex(job => job.jobId === jobId);
         if (jobIndex !== -1) {
@@ -66,7 +141,33 @@ const JobsDataService = {
     
     // Delete job (simulates Firebase delete)
     async deleteJob(jobId) {
-        // Firebase: await db.collection('jobs').doc(jobId).delete()
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const batch = db.batch();
+        // 
+        // // Delete the job document
+        // const jobRef = db.collection('jobs').doc(jobId);
+        // batch.delete(jobRef);
+        // 
+        // // Delete all applications for this job
+        // const applicationsSnapshot = await db.collection('applications')
+        //     .where('jobId', '==', jobId).get();
+        // applicationsSnapshot.docs.forEach(doc => {
+        //     batch.delete(doc.ref);
+        // });
+        // 
+        // // Create deletion record for audit trail
+        // const deletionRef = db.collection('job_deletions').doc();
+        // batch.set(deletionRef, {
+        //     jobId: jobId,
+        //     deletedBy: firebase.auth().currentUser.uid,
+        //     deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        //     reason: 'user_requested'
+        // });
+        // 
+        // await batch.commit();
+        // return { success: true };
+        
         if (MOCK_LISTINGS_DATA) {
             const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
             if (jobIndex !== -1) {
@@ -311,6 +412,11 @@ function registerCleanup(type, key, cleanupFn) {
         CLEANUP_REGISTRY.activeControllers.add(cleanupFn);
     } else if (type === 'interval') {
         CLEANUP_REGISTRY.intervals.add(cleanupFn);
+    } else {
+        // For overlay-specific cleanup (hiring, listings, confirmation, success)
+        cleanupFn._type = type;
+        cleanupFn._key = key;
+        CLEANUP_REGISTRY.cleanupFunctions.add(cleanupFn);
     }
 }
 
@@ -354,6 +460,31 @@ function executeAllCleanups() {
     console.log('🧹 Global mock data cleared');
     
     console.log('🧹 Jobs page cleanup completed');
+}
+
+function executeCleanupsByType(type) {
+    console.log(`🧹 Executing cleanup functions for type: ${type}`);
+    
+    // Clean up functions registered for specific type
+    const toRemove = [];
+    CLEANUP_REGISTRY.cleanupFunctions.forEach((cleanupFn) => {
+        if (typeof cleanupFn === 'function' && cleanupFn._type === type) {
+            try {
+                cleanupFn();
+                toRemove.push(cleanupFn);
+                console.log(`🧹 Executed cleanup for ${type}.${cleanupFn._key || 'unknown'}`);
+            } catch (error) {
+                console.warn(`Cleanup function error for type ${type}:`, error);
+            }
+        }
+    });
+    
+    // Remove executed cleanup functions from the Set
+    toRemove.forEach(cleanupFn => {
+        CLEANUP_REGISTRY.cleanupFunctions.delete(cleanupFn);
+    });
+    
+    console.log(`🧹 Cleanup completed for type: ${type} (${toRemove.length} functions)`);
 }
 
 function addDocumentListener(event, handler, options = false) {
@@ -710,10 +841,33 @@ async function getJobDataById(jobId) {
 
 // Helper function to get applications for a job (for Firebase integration)
 function getApplicationsByJobId(jobId) {
+    // Firebase Implementation:
+    // const db = firebase.firestore();
+    // 
+    // const applicationsSnapshot = await db.collection('applications')
+    //     .where('jobId', '==', jobId)
+    //     .where('status', 'in', ['pending', 'accepted'])
+    //     .orderBy('appliedAt', 'desc')
+    //     .get();
+    // 
+    // return applicationsSnapshot.docs.map(doc => {
+    //     const data = doc.data();
+    //     return {
+    //         applicationId: doc.id,
+    //         jobId: data.jobId,
+    //         applicantId: data.applicantId,
+    //         applicantName: data.applicantName,
+    //         applicantThumbnail: data.applicantThumbnail,
+    //         appliedAt: data.appliedAt,
+    //         status: data.status,
+    //         message: data.message || ''
+    //     };
+    // });
+    
     const jobData = getJobDataById(jobId);
     if (!jobData) return [];
     
-    // TODO: Replace with Firebase query: db.collection('applications').where('jobId', '==', jobId)
+    // For now, return mock application IDs
     return jobData.applicationIds;
 }
 
@@ -932,9 +1086,8 @@ async function showHiringOptionsOverlay(jobData) {
 
 function initializeHiringOverlayHandlers() {
     const overlay = document.getElementById('hiringOptionsOverlay');
-    if (!overlay) return;
+    if (!overlay || overlay.dataset.handlersInitialized) return;
     
-    // Remove existing listeners to prevent duplicates
     const completeBtn = document.getElementById('completeJobBtn');
     const relistBtn = document.getElementById('relistJobBtn');
     const resignBtn = document.getElementById('resignJobBtn');
@@ -948,6 +1101,9 @@ function initializeHiringOverlayHandlers() {
             handleCompleteJob(jobData);
         };
         completeBtn.addEventListener('click', completeHandler);
+        registerCleanup('hiring', 'completeBtn', () => {
+            completeBtn.removeEventListener('click', completeHandler);
+        });
     }
     
     // Relist job handler (customer)
@@ -958,6 +1114,9 @@ function initializeHiringOverlayHandlers() {
             handleRelistJob(jobData);
         };
         relistBtn.addEventListener('click', relistHandler);
+        registerCleanup('hiring', 'relistBtn', () => {
+            relistBtn.removeEventListener('click', relistHandler);
+        });
     }
     
     // Resign job handler (worker)
@@ -968,6 +1127,9 @@ function initializeHiringOverlayHandlers() {
             handleResignJob(jobData);
         };
         resignBtn.addEventListener('click', resignHandler);
+        registerCleanup('hiring', 'resignBtn', () => {
+            resignBtn.removeEventListener('click', resignHandler);
+        });
     }
     
     // Cancel handler
@@ -977,6 +1139,9 @@ function initializeHiringOverlayHandlers() {
             hideHiringOptionsOverlay();
         };
         cancelBtn.addEventListener('click', cancelHandler);
+        registerCleanup('hiring', 'cancelBtn', () => {
+            cancelBtn.removeEventListener('click', cancelHandler);
+        });
     }
     
     // Background click handler
@@ -986,6 +1151,9 @@ function initializeHiringOverlayHandlers() {
         }
     };
     overlay.addEventListener('click', backgroundHandler);
+    registerCleanup('hiring', 'overlayBackground', () => {
+        overlay.removeEventListener('click', backgroundHandler);
+    });
     
     // Escape key handler
     const escapeHandler = function(e) {
@@ -993,7 +1161,10 @@ function initializeHiringOverlayHandlers() {
             hideHiringOptionsOverlay();
         }
     };
-    document.addEventListener('keydown', escapeHandler);
+    addDocumentListener('overlayEscape', escapeHandler);
+    
+    overlay.dataset.handlersInitialized = 'true';
+    console.log('👥 Hiring overlay handlers initialized with cleanup');
 }
 
 function getHiringJobDataFromOverlay() {
@@ -1008,7 +1179,14 @@ function getHiringJobDataFromOverlay() {
 function hideHiringOptionsOverlay() {
     const overlay = document.getElementById('hiringOptionsOverlay');
     overlay.classList.remove('show');
-    console.log('👥 Hiring overlay hidden');
+    
+    // Clear handlers initialization flag to allow re-initialization
+    delete overlay.dataset.handlersInitialized;
+    
+    // Clean up all hiring overlay handlers
+    executeCleanupsByType('hiring');
+    
+    console.log('👥 Hiring overlay hidden and handlers cleaned up');
 }
 
 async function handleCompleteJob(jobData) {
@@ -1045,10 +1223,24 @@ async function handleRelistJob(jobData) {
     const subtitle = document.getElementById('relistJobSubtitle');
     const workerNameSpan = document.getElementById('relistWorkerName');
     const workerNameReminderSpan = document.getElementById('relistWorkerNameReminder');
+    const workerNameInputSpan = document.getElementById('relistWorkerNameInput');
+    const reasonInput = document.getElementById('relistReasonInput');
+    const charCount = document.getElementById('relistCharCount');
+    const reasonError = document.getElementById('relistReasonError');
+    const yesBtn = document.getElementById('relistJobYesBtn');
     
     subtitle.textContent = `This will void the contract with ${workerName}`;
     workerNameSpan.textContent = workerName;
     workerNameReminderSpan.textContent = workerName;
+    workerNameInputSpan.textContent = workerName;
+    
+    // Reset form state
+    if (reasonInput) {
+        reasonInput.value = '';
+        charCount.textContent = '0';
+        reasonError.classList.remove('show');
+        yesBtn.disabled = true;
+    }
     
     // Store job data for confirmation handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
@@ -1074,9 +1266,21 @@ async function handleResignJob(jobData) {
     const overlay = document.getElementById('resignJobConfirmationOverlay');
     const subtitle = document.getElementById('resignJobSubtitle');
     const customerNameSpan = document.getElementById('resignCustomerName');
+    const reasonInput = document.getElementById('resignReasonInput');
+    const charCount = document.getElementById('resignCharCount');
+    const reasonError = document.getElementById('resignReasonError');
+    const yesBtn = document.getElementById('resignJobYesBtn');
     
     subtitle.textContent = `This will void your contract with ${customerName}`;
     customerNameSpan.textContent = customerName;
+    
+    // Reset form state
+    if (reasonInput) {
+        reasonInput.value = '';
+        charCount.textContent = '0';
+        reasonError.classList.remove('show');
+        yesBtn.disabled = true;
+    }
     
     // Store job data for confirmation handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
@@ -1095,8 +1299,10 @@ function initializeCompleteJobConfirmationHandlers() {
     const yesBtn = document.getElementById('completeJobYesBtn');
     const noBtn = document.getElementById('completeJobNoBtn');
     
+    // Clear any existing handlers to prevent duplicates
     if (yesBtn) {
-        yesBtn.onclick = async function() {
+        yesBtn.onclick = null;
+        const yesHandler = async function() {
             const overlay = document.getElementById('completeJobConfirmationOverlay');
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
@@ -1104,12 +1310,29 @@ function initializeCompleteJobConfirmationHandlers() {
             // Hide confirmation overlay
             overlay.classList.remove('show');
             
-            // TODO: Mark job as completed in Firebase
-            // await db.collection('jobs').doc(jobId).update({
+            // Firebase Implementation - Mark job as completed:
+            // const db = firebase.firestore();
+            // const batch = db.batch();
+            // 
+            // // Update job status to completed
+            // const jobRef = db.collection('jobs').doc(jobId);
+            // batch.update(jobRef, {
             //     status: 'completed',
             //     completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     completedBy: 'customer'
+            //     completedBy: 'customer',
+            //     completionConfirmed: true
             // });
+            // 
+            // // Create completion record for tracking
+            // const completionRef = db.collection('job_completions').doc();
+            // batch.set(completionRef, {
+            //     jobId: jobId,
+            //     completedBy: firebase.auth().currentUser.uid,
+            //     completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     workerNotified: false
+            // });
+            // 
+            // await batch.commit();
             
             // Store job ID for data manipulation
             const successOverlay = document.getElementById('jobCompletedSuccessOverlay');
@@ -1118,37 +1341,136 @@ function initializeCompleteJobConfirmationHandlers() {
             // Show success overlay
             showJobCompletedSuccess(jobTitle);
         };
+        yesBtn.addEventListener('click', yesHandler);
+        registerCleanup('confirmation', 'completeYes', () => {
+            yesBtn.removeEventListener('click', yesHandler);
+        });
     }
     
     if (noBtn) {
-        noBtn.onclick = function() {
+        noBtn.onclick = null;
+        const noHandler = function() {
             document.getElementById('completeJobConfirmationOverlay').classList.remove('show');
         };
+        noBtn.addEventListener('click', noHandler);
+        registerCleanup('confirmation', 'completeNo', () => {
+            noBtn.removeEventListener('click', noHandler);
+        });
     }
 }
 
 function initializeRelistJobConfirmationHandlers() {
     const yesBtn = document.getElementById('relistJobYesBtn');
     const noBtn = document.getElementById('relistJobNoBtn');
+    const reasonInput = document.getElementById('relistReasonInput');
+    const charCount = document.getElementById('relistCharCount');
+    const reasonError = document.getElementById('relistReasonError');
     
+    // Initialize input validation handlers
+    if (reasonInput) {
+        const inputHandler = function() {
+            const text = reasonInput.value;
+            const length = text.length;
+            
+            // Update character count
+            charCount.textContent = length;
+            
+            // Check minimum length requirement
+            if (length >= 2) {
+                yesBtn.disabled = false;
+                reasonError.classList.remove('show');
+            } else {
+                yesBtn.disabled = true;
+                if (length > 0) {
+                    reasonError.classList.add('show');
+                }
+            }
+        };
+        
+        reasonInput.addEventListener('input', inputHandler);
+        registerCleanup('confirmation', 'relistInput', () => {
+            reasonInput.removeEventListener('input', inputHandler);
+        });
+    }
+    
+    // Clear any existing handlers to prevent duplicates
     if (yesBtn) {
-        yesBtn.onclick = async function() {
+        yesBtn.onclick = null;
+        const yesHandler = async function() {
             const overlay = document.getElementById('relistJobConfirmationOverlay');
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const workerName = overlay.getAttribute('data-worker-name');
+            const reason = reasonInput ? reasonInput.value.trim() : '';
+            
+            // Validate reason input
+            if (!reason || reason.length < 2) {
+                reasonError.classList.add('show');
+                return;
+            }
             
             // Hide confirmation overlay
             overlay.classList.remove('show');
             
-            // TODO: Void contract and relist job in Firebase
-            // await db.collection('jobs').doc(jobId).update({
+            // Firebase Implementation - Void contract and relist job:
+            // const db = firebase.firestore();
+            // const batch = db.batch();
+            // const currentUserId = 'current-user-id'; // Get from auth
+            // 
+            // // Update job to active status and remove hired worker data
+            // const jobRef = db.collection('jobs').doc(jobId);
+            // batch.update(jobRef, {
             //     status: 'active',
             //     hiredWorkerId: firebase.firestore.FieldValue.delete(),
             //     hiredWorkerName: firebase.firestore.FieldValue.delete(),
+            //     hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+            //     hiredAt: firebase.firestore.FieldValue.delete(),
             //     contractVoidedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     voidedBy: 'customer'
+            //     voidedBy: 'customer',
+            //     terminationReason: reason,
+            //     applicationCount: 0,
+            //     datePosted: firebase.firestore.FieldValue.serverTimestamp() // Refresh posting date
             // });
+            // 
+            // // Create notification for the voided worker
+            // const notificationRef = db.collection('notifications').doc();
+            // batch.set(notificationRef, {
+            //     recipientId: workerName, // Should be hiredWorkerId in real implementation
+            //     type: 'contract_voided',
+            //     jobId: jobId,
+            //     jobTitle: jobTitle,
+            //     message: `Your contract for "${jobTitle}" has been voided by the customer. Reason: ${reason}`,
+            //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     read: false
+            // });
+            // 
+            // // Create admin dashboard record for termination tracking
+            // const terminationRef = db.collection('user_termination_records').doc();
+            // batch.set(terminationRef, {
+            //     customerId: currentUserId,
+            //     workerId: workerName, // Should be hiredWorkerId
+            //     jobId: jobId,
+            //     jobTitle: jobTitle,
+            //     reason: reason,
+            //     terminatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     type: 'customer_terminated_worker'
+            // });
+            // 
+            // // Update customer's termination count
+            // const customerStatsRef = db.collection('user_admin_stats').doc(currentUserId);
+            // batch.set(customerStatsRef, {
+            //     terminationCount: firebase.firestore.FieldValue.increment(1),
+            //     lastTerminationAt: firebase.firestore.FieldValue.serverTimestamp()
+            // }, { merge: true });
+            // 
+            // // Clear existing applications for this job
+            // const applicationsSnapshot = await db.collection('applications')
+            //     .where('jobId', '==', jobId).get();
+            // applicationsSnapshot.docs.forEach(doc => {
+            //     batch.delete(doc.ref);
+            // });
+            // 
+            // await batch.commit();
             
             // Store job ID for data manipulation
             const negativeOverlay = document.getElementById('contractVoidedNegativeOverlay');
@@ -1157,37 +1479,129 @@ function initializeRelistJobConfirmationHandlers() {
             // Show contract voided with negative theme (since we're breaking a contract)
             showContractVoidedNegative(jobTitle, workerName);
         };
+        yesBtn.addEventListener('click', yesHandler);
+        registerCleanup('confirmation', 'relistYes', () => {
+            yesBtn.removeEventListener('click', yesHandler);
+        });
     }
     
     if (noBtn) {
-        noBtn.onclick = function() {
+        noBtn.onclick = null;
+        const noHandler = function() {
             document.getElementById('relistJobConfirmationOverlay').classList.remove('show');
         };
+        noBtn.addEventListener('click', noHandler);
+        registerCleanup('confirmation', 'relistNo', () => {
+            noBtn.removeEventListener('click', noHandler);
+        });
     }
 }
 
 function initializeResignJobConfirmationHandlers() {
     const yesBtn = document.getElementById('resignJobYesBtn');
     const noBtn = document.getElementById('resignJobNoBtn');
+    const reasonInput = document.getElementById('resignReasonInput');
+    const charCount = document.getElementById('resignCharCount');
+    const reasonError = document.getElementById('resignReasonError');
     
+    // Initialize input validation handlers
+    if (reasonInput) {
+        const inputHandler = function() {
+            const text = reasonInput.value;
+            const length = text.length;
+            
+            // Update character count
+            charCount.textContent = length;
+            
+            // Check minimum length requirement
+            if (length >= 2) {
+                yesBtn.disabled = false;
+                reasonError.classList.remove('show');
+            } else {
+                yesBtn.disabled = true;
+                if (length > 0) {
+                    reasonError.classList.add('show');
+                }
+            }
+        };
+        
+        reasonInput.addEventListener('input', inputHandler);
+        registerCleanup('confirmation', 'resignInput', () => {
+            reasonInput.removeEventListener('input', inputHandler);
+        });
+    }
+    
+    // Clear any existing handlers to prevent duplicates
     if (yesBtn) {
-        yesBtn.onclick = async function() {
+        yesBtn.onclick = null;
+        const yesHandler = async function() {
             const overlay = document.getElementById('resignJobConfirmationOverlay');
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const customerName = overlay.getAttribute('data-customer-name');
+            const reason = reasonInput ? reasonInput.value.trim() : '';
+            
+            // Validate reason input
+            if (!reason || reason.length < 2) {
+                reasonError.classList.add('show');
+                return;
+            }
             
             // Hide confirmation overlay
             overlay.classList.remove('show');
             
-            // TODO: Void contract and make job active in Firebase
-            // await db.collection('jobs').doc(jobId).update({
+            // Firebase Implementation - Worker resignation:
+            // const db = firebase.firestore();
+            // const batch = db.batch();
+            // const currentUserId = 'current-user-id'; // Get from auth
+            // 
+            // // Update job to active status and remove hired worker data
+            // const jobRef = db.collection('jobs').doc(jobId);
+            // batch.update(jobRef, {
             //     status: 'active',
             //     hiredWorkerId: firebase.firestore.FieldValue.delete(),
             //     hiredWorkerName: firebase.firestore.FieldValue.delete(),
+            //     hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+            //     hiredAt: firebase.firestore.FieldValue.delete(),
             //     resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     resignedBy: 'worker'
+            //     resignedBy: 'worker',
+            //     resignationReason: reason,
+            //     applicationCount: 0,
+            //     datePosted: firebase.firestore.FieldValue.serverTimestamp() // Refresh posting date
             // });
+            // 
+            // // Create notification for the customer
+            // const notificationRef = db.collection('notifications').doc();
+            // batch.set(notificationRef, {
+            //     recipientId: customerName, // Should be posterId in real implementation
+            //     type: 'worker_resigned',
+            //     jobId: jobId,
+            //     jobTitle: jobTitle,
+            //     message: `The worker has resigned from "${jobTitle}". Reason: ${reason}. Your job is now active for new applications.`,
+            //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     read: false
+            // });
+            // 
+            // // Create admin dashboard record for resignation tracking
+            // const resignationRef = db.collection('user_termination_records').doc();
+            // batch.set(resignationRef, {
+            //     customerId: customerName, // Should be posterId
+            //     workerId: currentUserId,
+            //     jobId: jobId,
+            //     jobTitle: jobTitle,
+            //     reason: reason,
+            //     terminatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            //     type: 'worker_resigned'
+            // });
+            // 
+            // // Update worker's resignation count
+            // const workerStatsRef = db.collection('user_admin_stats').doc(currentUserId);
+            // batch.set(workerStatsRef, {
+            //     resignationCount: firebase.firestore.FieldValue.increment(1),
+            //     lastResignationAt: firebase.firestore.FieldValue.serverTimestamp()
+            // }, { merge: true });
+            // 
+            // await batch.commit();
             
             // Store job ID for data manipulation
             const resignationOverlay = document.getElementById('resignationConfirmedOverlay');
@@ -1196,12 +1610,21 @@ function initializeResignJobConfirmationHandlers() {
             // Show resignation confirmation with disappointed theme
             showResignationConfirmed(jobTitle, customerName);
         };
+        yesBtn.addEventListener('click', yesHandler);
+        registerCleanup('confirmation', 'resignYes', () => {
+            yesBtn.removeEventListener('click', yesHandler);
+        });
     }
     
     if (noBtn) {
-        noBtn.onclick = function() {
+        noBtn.onclick = null;
+        const noHandler = function() {
             document.getElementById('resignJobConfirmationOverlay').classList.remove('show');
         };
+        noBtn.addEventListener('click', noHandler);
+        registerCleanup('confirmation', 'resignNo', () => {
+            noBtn.removeEventListener('click', noHandler);
+        });
     }
 }
 
@@ -1212,7 +1635,9 @@ function showJobCompletedSuccess(jobTitle) {
     
     message.textContent = `"${jobTitle}" has been marked as completed successfully! The job will be moved to your Previous Jobs.`;
     
-    okBtn.onclick = async function() {
+    // Clear any existing handler and add new one with cleanup
+    okBtn.onclick = null;
+    const okHandler = async function() {
         overlay.classList.remove('show');
         
         // Find and slide out the card first
@@ -1234,6 +1659,10 @@ function showJobCompletedSuccess(jobTitle) {
         // Update tab counts
         await updateTabCounts();
     };
+    okBtn.addEventListener('click', okHandler);
+    registerCleanup('success', 'jobCompletedOk', () => {
+        okBtn.removeEventListener('click', okHandler);
+    });
     
     overlay.classList.add('show');
 }
@@ -1245,7 +1674,9 @@ function showContractVoidedSuccess(message) {
     
     messageEl.textContent = message;
     
-    okBtn.onclick = async function() {
+    // Clear any existing handler and add new one with cleanup
+    okBtn.onclick = null;
+    const okHandler = async function() {
         overlay.classList.remove('show');
         // Refresh both hiring and listings tabs
         await loadHiringContent();
@@ -1253,6 +1684,10 @@ function showContractVoidedSuccess(message) {
         // Update tab counts
         await updateTabCounts();
     };
+    okBtn.addEventListener('click', okHandler);
+    registerCleanup('success', 'contractVoidedOk', () => {
+        okBtn.removeEventListener('click', okHandler);
+    });
     
     overlay.classList.add('show');
 }
@@ -1264,7 +1699,9 @@ function showResignationConfirmed(jobTitle, customerName) {
     
     message.textContent = `You have resigned from "${jobTitle}". Your contract with ${customerName} has been voided.`;
     
-    okBtn.onclick = async function() {
+    // Clear any existing handler and add new one with cleanup
+    okBtn.onclick = null;
+    const okHandler = async function() {
         overlay.classList.remove('show');
         
         // Find and slide out the card first
@@ -1296,6 +1733,10 @@ function showResignationConfirmed(jobTitle, customerName) {
         // Update tab counts
         await updateTabCounts();
     };
+    okBtn.addEventListener('click', okHandler);
+    registerCleanup('success', 'resignationOk', () => {
+        okBtn.removeEventListener('click', okHandler);
+    });
     
     overlay.classList.add('show');
 }
@@ -1307,7 +1748,9 @@ function showContractVoidedNegative(jobTitle, workerName) {
     
     message.textContent = `Contract with ${workerName} has been voided for "${jobTitle}". The job is now active for new applications.`;
     
-    okBtn.onclick = async function() {
+    // Clear any existing handler and add new one with cleanup
+    okBtn.onclick = null;
+    const okHandler = async function() {
         overlay.classList.remove('show');
         
         // Find and slide out the card first
@@ -1356,6 +1799,10 @@ function showContractVoidedNegative(jobTitle, workerName) {
         // Update tab counts
         await updateTabCounts();
     };
+    okBtn.addEventListener('click', okHandler);
+    registerCleanup('success', 'contractVoidedNegativeOk', () => {
+        okBtn.removeEventListener('click', okHandler);
+    });
     
     overlay.classList.add('show');
 }
@@ -1496,7 +1943,14 @@ function getJobDataFromOverlay() {
 function hideListingOptionsOverlay() {
     const overlay = document.getElementById('listingOptionsOverlay');
     overlay.classList.remove('show');
-    console.log('🔧 Options overlay hidden');
+    
+    // Clear handlers initialization flag to allow re-initialization
+    delete overlay.dataset.handlersInitialized;
+    
+    // Clean up all listings overlay handlers
+    executeCleanupsByType('listings');
+    
+    console.log('🔧 Options overlay hidden and handlers cleaned up');
 }
 
 function handleModifyJob(jobData) {
@@ -1872,6 +2326,40 @@ async function updateTabCounts() {
     console.log('🔢 Updating tab notification counts...');
     
     try {
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // // Count listings (active/paused jobs posted by current user)
+        // const listingsSnapshot = await db.collection('jobs')
+        //     .where('posterId', '==', currentUserId)
+        //     .where('status', 'in', ['active', 'paused'])
+        //     .get();
+        // 
+        // // Count hiring jobs (jobs where current user is customer OR worker)
+        // const hiringSnapshot = await db.collection('jobs')
+        //     .where('status', '==', 'hired')
+        //     .where(firebase.firestore.Filter.or(
+        //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
+        //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
+        //     ))
+        //     .get();
+        // 
+        // // Count previous jobs (completed/cancelled involving current user)
+        // const previousSnapshot = await db.collection('jobs')
+        //     .where('status', 'in', ['completed', 'cancelled'])
+        //     .where(firebase.firestore.Filter.or(
+        //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
+        //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
+        //     ))
+        //     .get();
+        // 
+        // const counts = {
+        //     listings: listingsSnapshot.size,
+        //     hiring: hiringSnapshot.size,
+        //     previous: previousSnapshot.size
+        // };
+        
         // Get data directly from their respective arrays
         const listingsJobs = await JobsDataService.getAllJobs();
         const hiringJobs = await JobsDataService.getAllHiredJobs();

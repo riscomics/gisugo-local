@@ -1548,6 +1548,10 @@ body:has(.jobs-header) {
     font-size: 1.3rem;
   }
 
+  .listing-options-subtitle {
+    font-size: 0.75rem;
+  }
+
   .listing-option-btn {
     padding: 14px 18px;
     font-size: 1rem;
@@ -1560,8 +1564,20 @@ body:has(.jobs-header) {
     max-width: 380px;
   }
 
+  .delete-confirmation-icon {
+    font-size: 2.2rem;
+  }
+
   .delete-confirmation-title {
     font-size: 1.3rem;
+  }
+
+  .delete-confirmation-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .delete-warning-text {
+    font-size: 0.8rem;
   }
 
   .delete-confirmation-btn {
@@ -1870,29 +1886,31 @@ body:has(.jobs-header) {
   .hiring-role-caption {
     font-size: 0.65rem;
     line-height: 1.15;
-    padding: 2px 3px;
-    margin-top: 9px;
+    padding: 2px 4px;
+    margin-top: 10px;
   }
 
   .hiring-role-caption.customer {
-    max-width: 75%; /* iPhone 7: Customer captions */
+    max-width: 80%; /* Small mobile: Customer captions */
     text-align: center;
-    padding: 2px 3px;
+    padding: 3px 4px;
+    font-size: 0.65rem;
   }
 
   .hiring-role-caption.worker {
-    max-width: 85%; /* iPhone 7: Worker captions need more space */
+    max-width: 90%; /* Small mobile: Worker captions need tight constraint */
     text-align: center;
-    padding: 2px 3px;
-    font-size: 0.6rem;
-    margin-top: 5px;
+    padding: 3px 4px;
+    font-size: 0.65rem;
+    margin-top: 6px;
   }
 
   .hiring-user-thumbnail {
-    width: 65px;
-    height: 65px;
-    margin-top: 5px;
+    width: 72px;
+    height: 72px;
+    margin-top: 6px;
   }
+
 
 }
 
@@ -2328,5 +2346,240 @@ body:has(.jobs-header) {
     right: 10px;
     left: 10px;
     padding: 8px 12px;
+  }
+}
+
+/* ===== REASON INPUT SECTION STYLES ===== */
+
+/* Title Row Layout - Icon and Title on Same Row */
+.delete-confirmation-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.delete-confirmation-title-row .delete-confirmation-icon {
+  margin-bottom: 0;
+  font-size: 1.8rem;
+}
+
+.delete-confirmation-title-row .delete-confirmation-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* Reason Input Section */
+.reason-input-section {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reason-label {
+  display: block;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.reason-textarea {
+  width: 100%;
+  min-height: 50px;
+  max-height: 100px;
+  padding: 10px 12px;
+  background: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.4;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.reason-textarea:focus {
+  outline: none;
+  border-color: #63b3ed;
+  background: #1a202c;
+}
+
+.reason-textarea::placeholder {
+  color: #a0aec0;
+}
+
+.reason-char-count {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 5px;
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.reason-error {
+  display: none;
+  color: #fc8181;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+.reason-error.show {
+  display: block;
+}
+
+/* Button Disabled State */
+.delete-confirmation-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #4a5568 !important;
+}
+
+.delete-confirmation-btn:disabled:hover {
+  background: #4a5568 !important;
+  transform: none;
+}
+
+/* ===== MOBILE RESPONSIVE STYLES ===== */
+
+@media (max-width: 600px) {
+  .delete-confirmation-container {
+    padding: 20px 15px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  .delete-confirmation-title-row .delete-confirmation-icon {
+    font-size: 1.5rem;
+  }
+
+  .delete-confirmation-title-row .delete-confirmation-title {
+    font-size: 1.1rem;
+  }
+
+  .reason-input-section {
+    margin: 15px 0;
+    padding: 12px;
+  }
+
+  .reason-label {
+    font-size: 0.85rem;
+  }
+
+  .reason-textarea {
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    min-height: 45px;
+  }
+
+  .reason-char-count {
+    font-size: 0.75rem;
+  }
+
+  .delete-confirmation-btn {
+    padding: 10px 15px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .delete-confirmation-container {
+    padding: 15px 12px;
+    max-height: 80vh;
+  }
+
+  .delete-confirmation-title-row {
+    gap: 8px;
+  }
+
+  .delete-confirmation-title-row .delete-confirmation-icon {
+    font-size: 1.3rem;
+  }
+
+  .delete-confirmation-title-row .delete-confirmation-title {
+    font-size: 1rem;
+  }
+
+  .reason-input-section {
+    margin: 12px 0;
+    padding: 10px;
+  }
+
+  .reason-label {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+  }
+
+  .reason-textarea {
+    font-size: 0.8rem;
+    padding: 8px;
+    min-height: 40px;
+  }
+
+  .delete-confirmation-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .delete-confirmation-container {
+    padding: 12px 10px;
+    max-height: 75vh;
+  }
+
+  .delete-confirmation-title-row .delete-confirmation-title {
+    font-size: 0.95rem;
+  }
+
+  .reason-label {
+    font-size: 0.75rem;
+  }
+
+  .reason-textarea {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+  }
+
+  .reason-char-count {
+    font-size: 0.7rem;
+  }
+}
+
+/* ===== KEYBOARD RESPONSIVENESS ===== */
+
+/* When mobile keyboard is open, reduce modal size */
+@media (max-height: 500px) and (max-width: 600px) {
+  .delete-confirmation-container {
+    max-height: 90vh;
+    padding: 10px;
+  }
+
+  .delete-confirmation-warning {
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .reason-input-section {
+    margin: 8px 0;
+    padding: 8px;
+  }
+
+  .reason-textarea {
+    min-height: 35px;
+    font-size: 0.8rem;
+  }
+
+  .delete-confirmation-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
   }
 }

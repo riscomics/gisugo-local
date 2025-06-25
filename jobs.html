@@ -142,8 +142,10 @@
     <div class="delete-confirmation-overlay" id="relistJobConfirmationOverlay">
         <div class="delete-confirmation-container">
             <div class="delete-confirmation-header">
-                <div class="delete-confirmation-icon">🔄</div>
-                <div class="delete-confirmation-title">Relist Job</div>
+                <div class="delete-confirmation-title-row">
+                    <div class="delete-confirmation-icon">🔄</div>
+                    <div class="delete-confirmation-title">Relist Job</div>
+                </div>
                 <div class="delete-confirmation-subtitle" id="relistJobSubtitle">This will void the contract</div>
             </div>
             <div class="delete-confirmation-warning">
@@ -156,11 +158,26 @@
                     Please make sure you have notified <span id="relistWorkerNameReminder">the worker</span> that you are removing them from this job before proceeding.
                 </div>
             </div>
+            <div class="reason-input-section">
+                <label for="relistReasonInput" class="reason-label">
+                    For records, please provide reason why you are firing <span id="relistWorkerNameInput">the worker</span>:
+                </label>
+                <textarea 
+                    id="relistReasonInput" 
+                    class="reason-textarea" 
+                    placeholder="Enter reason for termination (minimum 2 characters)"
+                    maxlength="200"
+                    rows="2"></textarea>
+                <div class="reason-char-count">
+                    <span id="relistCharCount">0</span>/200 characters
+                </div>
+                <div class="reason-error" id="relistReasonError">Please enter at least 2 characters</div>
+            </div>
             <div class="delete-confirmation-actions">
                 <button class="delete-confirmation-btn cancel" id="relistJobNoBtn">
                     NO, KEEP CONTRACT
                 </button>
-                <button class="delete-confirmation-btn delete" id="relistJobYesBtn">
+                <button class="delete-confirmation-btn delete" id="relistJobYesBtn" disabled>
                     YES, VOID & RELIST
                 </button>
             </div>
@@ -171,8 +188,10 @@
     <div class="delete-confirmation-overlay" id="resignJobConfirmationOverlay">
         <div class="delete-confirmation-container">
             <div class="delete-confirmation-header">
-                <div class="delete-confirmation-icon">👋</div>
-                <div class="delete-confirmation-title">Resign from Job</div>
+                <div class="delete-confirmation-title-row">
+                    <div class="delete-confirmation-icon">👋</div>
+                    <div class="delete-confirmation-title">Resign from Job</div>
+                </div>
                 <div class="delete-confirmation-subtitle" id="resignJobSubtitle">This will void your contract</div>
             </div>
             <div class="delete-confirmation-warning">
@@ -184,11 +203,26 @@
                     Please ensure you have contacted the customer about quitting before proceeding.
                 </div>
             </div>
+            <div class="reason-input-section">
+                <label for="resignReasonInput" class="reason-label">
+                    For records, please provide reason why you are quitting before the job is complete:
+                </label>
+                <textarea 
+                    id="resignReasonInput" 
+                    class="reason-textarea" 
+                    placeholder="Enter reason for resignation (minimum 2 characters)"
+                    maxlength="200"
+                    rows="2"></textarea>
+                <div class="reason-char-count">
+                    <span id="resignCharCount">0</span>/200 characters
+                </div>
+                <div class="reason-error" id="resignReasonError">Please enter at least 2 characters</div>
+            </div>
             <div class="delete-confirmation-actions">
                 <button class="delete-confirmation-btn cancel" id="resignJobNoBtn">
                     NO, CONTINUE WORKING
                 </button>
-                <button class="delete-confirmation-btn delete" id="resignJobYesBtn">
+                <button class="delete-confirmation-btn delete" id="resignJobYesBtn" disabled>
                     YES, RESIGN
                 </button>
             </div>
