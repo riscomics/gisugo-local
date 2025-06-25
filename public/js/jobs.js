@@ -902,7 +902,7 @@ async function showHiringOptionsOverlay(jobData) {
                 MARK AS COMPLETED
             </button>
             <button class="listing-option-btn pause" id="relistJobBtn">
-                RELIST JOB
+                RELIST JOB (Void Current Hire)
             </button>
             <button class="listing-option-btn cancel" id="cancelHiringBtn">
                 CLOSE
@@ -1111,6 +1111,10 @@ function initializeCompleteJobConfirmationHandlers() {
             //     completedBy: 'customer'
             // });
             
+            // Store job ID for data manipulation
+            const successOverlay = document.getElementById('jobCompletedSuccessOverlay');
+            successOverlay.setAttribute('data-completed-job-id', jobId);
+            
             // Show success overlay
             showJobCompletedSuccess(jobTitle);
         };
@@ -1145,6 +1149,10 @@ function initializeRelistJobConfirmationHandlers() {
             //     contractVoidedAt: firebase.firestore.FieldValue.serverTimestamp(),
             //     voidedBy: 'customer'
             // });
+            
+            // Store job ID for data manipulation
+            const negativeOverlay = document.getElementById('contractVoidedNegativeOverlay');
+            negativeOverlay.setAttribute('data-relisted-job-id', jobId);
             
             // Show contract voided with negative theme (since we're breaking a contract)
             showContractVoidedNegative(jobTitle, workerName);
@@ -1181,6 +1189,10 @@ function initializeResignJobConfirmationHandlers() {
             //     resignedBy: 'worker'
             // });
             
+            // Store job ID for data manipulation
+            const resignationOverlay = document.getElementById('resignationConfirmedOverlay');
+            resignationOverlay.setAttribute('data-resigned-job-id', jobId);
+            
             // Show resignation confirmation with disappointed theme
             showResignationConfirmed(jobTitle, customerName);
         };
@@ -1202,6 +1214,14 @@ function showJobCompletedSuccess(jobTitle) {
     
     okBtn.onclick = async function() {
         overlay.classList.remove('show');
+        
+        // Remove completed job from hiring data
+        const completedJobId = overlay.getAttribute('data-completed-job-id');
+        if (completedJobId && MOCK_HIRING_DATA) {
+            MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
+            console.log(`✅ Removed completed job ${completedJobId} from hiring data`);
+        }
+        
         // Refresh hiring tab content to remove completed job
         await loadHiringContent();
         // Update tab counts
@@ -1239,6 +1259,40 @@ function showResignationConfirmed(jobTitle, customerName) {
     
     okBtn.onclick = async function() {
         overlay.classList.remove('show');
+        
+        // Remove resigned job from hiring data and add back to customer's listings
+        const resignedJobId = overlay.getAttribute('data-resigned-job-id');
+        if (resignedJobId && MOCK_HIRING_DATA) {
+            // Find the job to resign from
+            const jobToResign = MOCK_HIRING_DATA.find(job => job.jobId === resignedJobId);
+            if (jobToResign) {
+                // Remove from hiring data
+                MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== resignedJobId);
+                
+                // Add back to listings data (make available for customer)
+                if (MOCK_LISTINGS_DATA) {
+                    const reactivatedJob = {
+                        jobId: jobToResign.jobId,
+                        posterId: jobToResign.posterId,
+                        posterName: jobToResign.posterName,
+                        title: jobToResign.title,
+                        category: jobToResign.category,
+                        thumbnail: jobToResign.thumbnail,
+                        jobDate: jobToResign.jobDate,
+                        startTime: jobToResign.startTime,
+                        endTime: jobToResign.endTime,
+                        datePosted: new Date().toISOString(), // Update posted date
+                        status: 'active',
+                        applicationCount: 0, // Reset application count
+                        applicationIds: [], // Reset applications
+                        jobPageUrl: `${jobToResign.category}.html`
+                    };
+                    MOCK_LISTINGS_DATA.push(reactivatedJob);
+                    console.log(`👋 Resigned from job ${resignedJobId} - moved back to listings for customer`);
+                }
+            }
+        }
+        
         // Refresh both hiring and listings tabs
         await loadHiringContent();
         await loadListingsContent();
@@ -1258,6 +1312,40 @@ function showContractVoidedNegative(jobTitle, workerName) {
     
     okBtn.onclick = async function() {
         overlay.classList.remove('show');
+        
+        // Remove relisted job from hiring data and add back to listings
+        const relistedJobId = overlay.getAttribute('data-relisted-job-id');
+        if (relistedJobId && MOCK_HIRING_DATA) {
+            // Find the job to relist
+            const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === relistedJobId);
+            if (jobToRelist) {
+                // Remove from hiring data
+                MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== relistedJobId);
+                
+                // Add back to listings data (convert back to active listing)
+                if (MOCK_LISTINGS_DATA) {
+                    const reactivatedJob = {
+                        jobId: jobToRelist.jobId,
+                        posterId: jobToRelist.posterId,
+                        posterName: jobToRelist.posterName,
+                        title: jobToRelist.title,
+                        category: jobToRelist.category,
+                        thumbnail: jobToRelist.thumbnail,
+                        jobDate: jobToRelist.jobDate,
+                        startTime: jobToRelist.startTime,
+                        endTime: jobToRelist.endTime,
+                        datePosted: new Date().toISOString(), // Update posted date
+                        status: 'active',
+                        applicationCount: 0, // Reset application count
+                        applicationIds: [], // Reset applications
+                        jobPageUrl: `${jobToRelist.category}.html`
+                    };
+                    MOCK_LISTINGS_DATA.push(reactivatedJob);
+                    console.log(`🔄 Relisted job ${relistedJobId} - moved from hiring to listings`);
+                }
+            }
+        }
+        
         // Refresh both hiring and listings tabs
         await loadHiringContent();
         await loadListingsContent();
