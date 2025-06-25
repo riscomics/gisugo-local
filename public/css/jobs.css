@@ -2558,14 +2558,16 @@ body:has(.jobs-header) {
 
 /* iPhone 7 and similar devices - viewport height < 600px when keyboard is open */
 @media (max-height: 600px) and (max-width: 400px) {
-  .delete-confirmation-overlay {
+  #relistJobConfirmationOverlay.show.input-focused,
+  #resignJobConfirmationOverlay.show.input-focused {
     padding: 5px !important;
     display: flex !important;
     align-items: flex-start !important;
     padding-top: 20px !important;
   }
 
-  .delete-confirmation-container {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-container,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-container {
     position: relative !important;
     top: 0 !important;
     transform: none !important;
@@ -2576,31 +2578,36 @@ body:has(.jobs-header) {
     overflow-y: auto !important;
   }
 
-  .delete-confirmation-warning {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-warning,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-warning {
     max-height: 80px !important;
     overflow-y: auto !important;
     margin: 8px 0 !important;
   }
 
-  .reason-input-section {
+  #relistJobConfirmationOverlay.show.input-focused .reason-input-section,
+  #resignJobConfirmationOverlay.show.input-focused .reason-input-section {
     margin: 6px 0 !important;
     padding: 6px !important;
   }
 
-  .reason-textarea {
+  #relistJobConfirmationOverlay.show.input-focused .reason-textarea,
+  #resignJobConfirmationOverlay.show.input-focused .reason-textarea {
     min-height: 30px !important;
     max-height: 60px !important;
     font-size: 0.75rem !important;
     padding: 4px 6px !important;
   }
 
-  .delete-confirmation-btn {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-btn,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-btn {
     padding: 4px 8px !important;
     font-size: 0.7rem !important;
     margin: 2px !important;
   }
 
-  .delete-confirmation-actions {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-actions,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-actions {
     margin-top: 8px !important;
     gap: 8px !important;
   }
@@ -2608,66 +2615,79 @@ body:has(.jobs-header) {
 
 /* iPhone 7 Portrait - 375px width, keyboard reduces height to ~400px */
 @media (max-height: 450px) and (max-width: 375px) {
-  .delete-confirmation-overlay {
+  #relistJobConfirmationOverlay.show.input-focused,
+  #resignJobConfirmationOverlay.show.input-focused {
     padding: 3px !important;
     padding-top: 15px !important;
   }
 
-  .delete-confirmation-container {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-container,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-container {
     max-height: 98vh !important;
     padding: 6px !important;
   }
 
-  .delete-confirmation-title-row {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-title-row,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-title-row {
     margin-bottom: 4px !important;
   }
 
-  .delete-confirmation-title-row .delete-confirmation-icon {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-title-row .delete-confirmation-icon,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-title-row .delete-confirmation-icon {
     font-size: 1.1rem !important;
   }
 
-  .delete-confirmation-title-row .delete-confirmation-title {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-title-row .delete-confirmation-title,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-title-row .delete-confirmation-title {
     font-size: 0.85rem !important;
   }
 
-  .delete-confirmation-subtitle {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-subtitle,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-subtitle {
     font-size: 0.7rem !important;
     margin-bottom: 6px !important;
   }
 
-  .delete-confirmation-warning {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-warning,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-warning {
     max-height: 60px !important;
     margin: 6px 0 !important;
   }
 
-  .delete-warning-text {
+  #relistJobConfirmationOverlay.show.input-focused .delete-warning-text,
+  #resignJobConfirmationOverlay.show.input-focused .delete-warning-text {
     font-size: 0.65rem !important;
     line-height: 1.2 !important;
   }
 
-  .reason-input-section {
+  #relistJobConfirmationOverlay.show.input-focused .reason-input-section,
+  #resignJobConfirmationOverlay.show.input-focused .reason-input-section {
     margin: 4px 0 !important;
     padding: 4px !important;
   }
 
-  .reason-label {
+  #relistJobConfirmationOverlay.show.input-focused .reason-label,
+  #resignJobConfirmationOverlay.show.input-focused .reason-label {
     font-size: 0.65rem !important;
     margin-bottom: 3px !important;
   }
 
-  .reason-textarea {
+  #relistJobConfirmationOverlay.show.input-focused .reason-textarea,
+  #resignJobConfirmationOverlay.show.input-focused .reason-textarea {
     min-height: 25px !important;
     max-height: 50px !important;
     font-size: 0.7rem !important;
     padding: 3px 5px !important;
   }
 
-  .reason-char-count {
+  #relistJobConfirmationOverlay.show.input-focused .reason-char-count,
+  #resignJobConfirmationOverlay.show.input-focused .reason-char-count {
     font-size: 0.6rem !important;
     margin-top: 2px !important;
   }
 
-  .delete-confirmation-btn {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-btn,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-btn {
     padding: 3px 6px !important;
     font-size: 0.65rem !important;
     margin: 1px !important;
@@ -2676,71 +2696,43 @@ body:has(.jobs-header) {
 
 /* Extreme keyboard cases - very small height */
 @media (max-height: 350px) and (max-width: 400px) {
-  .delete-confirmation-overlay {
+  #relistJobConfirmationOverlay.show.input-focused,
+  #resignJobConfirmationOverlay.show.input-focused {
     padding: 2px !important;
     padding-top: 10px !important;
   }
 
-  .delete-confirmation-container {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-container,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-container {
     max-height: 99vh !important;
     padding: 4px !important;
     border-radius: 4px !important;
   }
 
-  .delete-confirmation-warning {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-warning,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-warning {
     max-height: 40px !important;
     margin: 4px 0 !important;
   }
 
-  .reason-input-section {
+  #relistJobConfirmationOverlay.show.input-focused .reason-input-section,
+  #resignJobConfirmationOverlay.show.input-focused .reason-input-section {
     margin: 3px 0 !important;
     padding: 3px !important;
   }
 
-  .reason-textarea {
+  #relistJobConfirmationOverlay.show.input-focused .reason-textarea,
+  #resignJobConfirmationOverlay.show.input-focused .reason-textarea {
     min-height: 20px !important;
     max-height: 35px !important;
     font-size: 0.65rem !important;
     padding: 2px 4px !important;
   }
 
-  .delete-confirmation-btn {
+  #relistJobConfirmationOverlay.show.input-focused .delete-confirmation-btn,
+  #resignJobConfirmationOverlay.show.input-focused .delete-confirmation-btn {
     padding: 2px 4px !important;
     font-size: 0.6rem !important;
   }
 }
 
-/* ===== INPUT FOCUSED STATE (iOS Safari Keyboard Detection) ===== */
-
-/* When input is focused on iPhone 7 and keyboard appears */
-.delete-confirmation-overlay.input-focused {
-  align-items: flex-start !important;
-  padding-top: 5px !important;
-}
-
-@media (max-height: 450px) and (max-width: 375px) {
-  .delete-confirmation-overlay.input-focused {
-    padding-top: 3px !important;
-  }
-  
-  .delete-confirmation-overlay.input-focused .delete-confirmation-container {
-    transform: translateY(0) !important;
-    position: static !important;
-    margin-top: 0 !important;
-  }
-}
-
-@media (max-height: 400px) and (max-width: 375px) {
-  .delete-confirmation-overlay.input-focused {
-    padding-top: 1px !important;
-  }
-  
-  .delete-confirmation-overlay.input-focused .delete-confirmation-warning {
-    max-height: 30px !important;
-  }
-  
-  .delete-confirmation-overlay.input-focused .reason-textarea {
-    min-height: 20px !important;
-    max-height: 40px !important;
-  }
-}
