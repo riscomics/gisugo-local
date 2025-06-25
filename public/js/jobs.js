@@ -1387,9 +1387,35 @@ function initializeRelistJobConfirmationHandlers() {
             }
         };
         
+        // Focus handler for mobile keyboard positioning
+        const focusHandler = function() {
+            // Mark overlay as having active input (for iOS Safari keyboard detection)
+            const overlay = document.getElementById('relistJobConfirmationOverlay');
+            overlay.classList.add('input-focused');
+            
+            // Small delay to allow keyboard to appear
+            setTimeout(() => {
+                reasonInput.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }, 300);
+        };
+        
+        // Blur handler to remove focused state
+        const blurHandler = function() {
+            const overlay = document.getElementById('relistJobConfirmationOverlay');
+            overlay.classList.remove('input-focused');
+        };
+        
         reasonInput.addEventListener('input', inputHandler);
+        reasonInput.addEventListener('focus', focusHandler);
+        reasonInput.addEventListener('blur', blurHandler);
         registerCleanup('confirmation', 'relistInput', () => {
             reasonInput.removeEventListener('input', inputHandler);
+            reasonInput.removeEventListener('focus', focusHandler);
+            reasonInput.removeEventListener('blur', blurHandler);
         });
     }
     
@@ -1525,9 +1551,35 @@ function initializeResignJobConfirmationHandlers() {
             }
         };
         
+        // Focus handler for mobile keyboard positioning
+        const focusHandler = function() {
+            // Mark overlay as having active input (for iOS Safari keyboard detection)
+            const overlay = document.getElementById('resignJobConfirmationOverlay');
+            overlay.classList.add('input-focused');
+            
+            // Small delay to allow keyboard to appear
+            setTimeout(() => {
+                reasonInput.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }, 300);
+        };
+        
+        // Blur handler to remove focused state
+        const blurHandler = function() {
+            const overlay = document.getElementById('resignJobConfirmationOverlay');
+            overlay.classList.remove('input-focused');
+        };
+        
         reasonInput.addEventListener('input', inputHandler);
+        reasonInput.addEventListener('focus', focusHandler);
+        reasonInput.addEventListener('blur', blurHandler);
         registerCleanup('confirmation', 'resignInput', () => {
             reasonInput.removeEventListener('input', inputHandler);
+            reasonInput.removeEventListener('focus', focusHandler);
+            reasonInput.removeEventListener('blur', blurHandler);
         });
     }
     
