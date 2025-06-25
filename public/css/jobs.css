@@ -2398,7 +2398,7 @@ body:has(.jobs-header) {
   border: 2px solid #4a5568;
   border-radius: 6px;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.4;
   resize: vertical;
@@ -2475,7 +2475,7 @@ body:has(.jobs-header) {
   }
 
   .reason-textarea {
-    font-size: 0.85rem;
+    font-size: 1rem;
     padding: 8px 10px;
     min-height: 45px;
   }
@@ -2519,7 +2519,7 @@ body:has(.jobs-header) {
   }
 
   .reason-textarea {
-    font-size: 0.8rem;
+    font-size: 1rem;
     padding: 8px;
     min-height: 40px;
   }
@@ -2545,12 +2545,42 @@ body:has(.jobs-header) {
   }
 
   .reason-textarea {
-    font-size: 0.75rem;
+    font-size: 1rem;
     padding: 6px 8px;
   }
 
   .reason-char-count {
     font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .delete-confirmation-container {
+    padding: 10px 8px;
+    max-height: 70vh;
+  }
+
+  .delete-confirmation-title-row .delete-confirmation-title {
+    font-size: 0.9rem;
+  }
+
+  .reason-label {
+    font-size: 0.7rem;
+  }
+
+  .reason-textarea {
+    font-size: 1rem;
+    padding: 5px 6px;
+    min-height: 35px;
+  }
+
+  .reason-char-count {
+    font-size: 0.65rem;
+  }
+
+  .delete-confirmation-btn {
+    padding: 6px 8px;
+    font-size: 0.75rem;
   }
 }
 
