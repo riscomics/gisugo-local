@@ -1215,8 +1215,15 @@ function showJobCompletedSuccess(jobTitle) {
     okBtn.onclick = async function() {
         overlay.classList.remove('show');
         
-        // Remove completed job from hiring data
+        // Find and slide out the card first
         const completedJobId = overlay.getAttribute('data-completed-job-id');
+        const cardToRemove = document.querySelector(`[data-job-id="${completedJobId}"]`);
+        
+        // Slide out card and show toast
+        await slideOutCard(cardToRemove, 'right');
+        showSuccessNotification('Job moved to Previous Jobs');
+        
+        // Remove completed job from hiring data
         if (completedJobId && MOCK_HIRING_DATA) {
             MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
             console.log(`✅ Removed completed job ${completedJobId} from hiring data`);
@@ -1260,42 +1267,32 @@ function showResignationConfirmed(jobTitle, customerName) {
     okBtn.onclick = async function() {
         overlay.classList.remove('show');
         
-        // Remove resigned job from hiring data and add back to customer's listings
+        // Find and slide out the card first
         const resignedJobId = overlay.getAttribute('data-resigned-job-id');
+        const cardToRemove = document.querySelector(`[data-job-id="${resignedJobId}"]`);
+        
+        // Slide out card and show toast
+        await slideOutCard(cardToRemove, 'right');
+        showSuccessNotification('You have resigned from this job');
+        
+        // Remove resigned job from hiring data (worker resignation = job simply disappears)
         if (resignedJobId && MOCK_HIRING_DATA) {
             // Find the job to resign from
             const jobToResign = MOCK_HIRING_DATA.find(job => job.jobId === resignedJobId);
             if (jobToResign) {
-                // Remove from hiring data
+                // Remove from hiring data (worker resigned, so job is effectively completed/cancelled from worker's perspective)
                 MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== resignedJobId);
                 
-                // Add back to listings data (make available for customer)
-                if (MOCK_LISTINGS_DATA) {
-                    const reactivatedJob = {
-                        jobId: jobToResign.jobId,
-                        posterId: jobToResign.posterId,
-                        posterName: jobToResign.posterName,
-                        title: jobToResign.title,
-                        category: jobToResign.category,
-                        thumbnail: jobToResign.thumbnail,
-                        jobDate: jobToResign.jobDate,
-                        startTime: jobToResign.startTime,
-                        endTime: jobToResign.endTime,
-                        datePosted: new Date().toISOString(), // Update posted date
-                        status: 'active',
-                        applicationCount: 0, // Reset application count
-                        applicationIds: [], // Reset applications
-                        jobPageUrl: `${jobToResign.category}.html`
-                    };
-                    MOCK_LISTINGS_DATA.push(reactivatedJob);
-                    console.log(`👋 Resigned from job ${resignedJobId} - moved back to listings for customer`);
-                }
+                // Worker resignation: Job simply disappears from worker's view
+                // Backend handles: Job goes back to customer's Listings + notification sent to customer
+                // Worker has no further involvement with this job
+                
+                console.log(`👋 Worker resigned from job ${resignedJobId} - removed from worker's hiring view`);
             }
         }
         
-        // Refresh both hiring and listings tabs
+        // Refresh hiring tab only (worker won't see customer's listings)
         await loadHiringContent();
-        await loadListingsContent();
         // Update tab counts
         await updateTabCounts();
     };
@@ -1313,8 +1310,15 @@ function showContractVoidedNegative(jobTitle, workerName) {
     okBtn.onclick = async function() {
         overlay.classList.remove('show');
         
-        // Remove relisted job from hiring data and add back to listings
+        // Find and slide out the card first
         const relistedJobId = overlay.getAttribute('data-relisted-job-id');
+        const cardToRemove = document.querySelector(`[data-job-id="${relistedJobId}"]`);
+        
+        // Slide out card and show toast
+        await slideOutCard(cardToRemove, 'left');
+        showSuccessNotification('Job moved back to Listings');
+        
+        // Remove relisted job from hiring data and add back to listings
         if (relistedJobId && MOCK_HIRING_DATA) {
             // Find the job to relist
             const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === relistedJobId);
@@ -1780,14 +1784,70 @@ async function showDeleteConfirmationDialog(jobData) {
 
 function showSuccessNotification(message) {
     console.log(`✅ Success: ${message}`);
-    // TODO: Implement toast notification system
-    // Create temporary notification overlay or toast
+    createToastNotification(message, 'success');
 }
 
 function showErrorNotification(message) {
     console.log(`❌ Error: ${message}`);
-    // TODO: Implement error notification system
-    // Create temporary error overlay or toast
+    createToastNotification(message, 'error');
+}
+
+function createToastNotification(message, type = 'success') {
+    // Remove existing toast if any
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">${type === 'success' ? '✅' : '❌'}</span>
+            <span class="toast-message">${message}</span>
+        </div>
+    `;
+    
+    // Add to body
+    document.body.appendChild(toast);
+    
+    // Force reflow and add show class for animation
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300); // Wait for fade-out animation
+    }, 3000);
+}
+
+function slideOutCard(cardElement, direction = 'right') {
+    return new Promise((resolve) => {
+        if (!cardElement) {
+            resolve();
+            return;
+        }
+        
+        // Add slide-out animation class
+        cardElement.style.transition = 'transform 0.5s ease-in-out, opacity 0.5s ease-in-out';
+        cardElement.style.transform = direction === 'right' ? 'translateX(100%)' : 'translateX(-100%)';
+        cardElement.style.opacity = '0';
+        
+        // Remove card after animation completes
+        setTimeout(() => {
+            if (cardElement.parentNode) {
+                cardElement.parentNode.removeChild(cardElement);
+            }
+            resolve();
+        }, 500);
+    });
 }
 
 function showEmptyListingsState() {
@@ -1812,35 +1872,16 @@ async function updateTabCounts() {
     console.log('🔢 Updating tab notification counts...');
     
     try {
-        // Get all jobs data
-        const allJobs = await JobsDataService.getAllJobs();
+        // Get data directly from their respective arrays
+        const listingsJobs = await JobsDataService.getAllJobs();
+        const hiringJobs = await JobsDataService.getAllHiredJobs();
         
-        // Count jobs by status for each tab
+        // Count actual jobs in each data set
         const counts = {
-            listings: 0,    // Active jobs posted by user
-            hiring: 0,      // Jobs with hired workers  
-            previous: 0     // Completed/cancelled jobs
+            listings: listingsJobs.length,    // Active/paused jobs posted by user
+            hiring: hiringJobs.length,        // Jobs with hired workers (status: 'hired')
+            previous: 0                       // TODO: Implement when previous jobs feature is added
         };
-        
-        allJobs.forEach(job => {
-            switch (job.status) {
-                case 'active':
-                case 'paused':
-                    counts.listings++;
-                    break;
-                case 'hiring':
-                case 'in-progress':
-                    counts.hiring++;
-                    break;
-                case 'completed':
-                case 'cancelled':
-                    counts.previous++;
-                    break;
-                default:
-                    // Default to listings for unknown status
-                    counts.listings++;
-            }
-        });
         
         // Update the notification badges in DOM
         const listingsCount = document.querySelector('#listingsTab .notification-count');
