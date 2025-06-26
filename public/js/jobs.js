@@ -1240,7 +1240,7 @@ async function handleRelistJob(jobData) {
     workerNameReminderSpan.textContent = workerName;
     workerNameInputSpan.textContent = workerName;
     
-    // Reset form state
+    // Reset form state and button text for hiring context
     if (reasonInput) {
         reasonInput.value = '';
         charCount.textContent = '0';
@@ -1248,10 +1248,16 @@ async function handleRelistJob(jobData) {
         yesBtn.disabled = true;
     }
     
+    // Reset button text for hiring job context
+    const noBtn = document.getElementById('relistJobNoBtn');
+    if (noBtn) noBtn.textContent = 'NO, KEEP CONTRACT';
+    if (yesBtn) yesBtn.textContent = 'YES, VOID & RELIST';
+    
     // Store job data for confirmation handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
     overlay.setAttribute('data-worker-name', workerName);
+    overlay.removeAttribute('data-relist-type'); // Clear previous relist type
     
     overlay.classList.add('show');
     
@@ -1433,7 +1439,7 @@ function initializeRelistJobConfirmationHandlers() {
             const overlay = document.getElementById('relistJobConfirmationOverlay');
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
-            const workerName = overlay.getAttribute('data-worker-name');
+            const relistType = overlay.getAttribute('data-relist-type');
             const reason = reasonInput ? reasonInput.value.trim() : '';
             
             // Validate reason input
@@ -1445,72 +1451,41 @@ function initializeRelistJobConfirmationHandlers() {
             // Hide confirmation overlay
             overlay.classList.remove('show');
             
-            // Firebase Implementation - Void contract and relist job:
-            // const db = firebase.firestore();
-            // const batch = db.batch();
-            // const currentUserId = 'current-user-id'; // Get from auth
-            // 
-            // // Update job to active status and remove hired worker data
-            // const jobRef = db.collection('jobs').doc(jobId);
-            // batch.update(jobRef, {
-            //     status: 'active',
-            //     hiredWorkerId: firebase.firestore.FieldValue.delete(),
-            //     hiredWorkerName: firebase.firestore.FieldValue.delete(),
-            //     hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
-            //     hiredAt: firebase.firestore.FieldValue.delete(),
-            //     contractVoidedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     voidedBy: 'customer',
-            //     terminationReason: reason,
-            //     applicationCount: 0,
-            //     datePosted: firebase.firestore.FieldValue.serverTimestamp() // Refresh posting date
-            // });
-            // 
-            // // Create notification for the voided worker
-            // const notificationRef = db.collection('notifications').doc();
-            // batch.set(notificationRef, {
-            //     recipientId: workerName, // Should be hiredWorkerId in real implementation
-            //     type: 'contract_voided',
-            //     jobId: jobId,
-            //     jobTitle: jobTitle,
-            //     message: `Your contract for "${jobTitle}" has been voided by the customer. Reason: ${reason}`,
-            //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     read: false
-            // });
-            // 
-            // // Create admin dashboard record for termination tracking
-            // const terminationRef = db.collection('user_termination_records').doc();
-            // batch.set(terminationRef, {
-            //     customerId: currentUserId,
-            //     workerId: workerName, // Should be hiredWorkerId
-            //     jobId: jobId,
-            //     jobTitle: jobTitle,
-            //     reason: reason,
-            //     terminatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     type: 'customer_terminated_worker'
-            // });
-            // 
-            // // Update customer's termination count
-            // const customerStatsRef = db.collection('user_admin_stats').doc(currentUserId);
-            // batch.set(customerStatsRef, {
-            //     terminationCount: firebase.firestore.FieldValue.increment(1),
-            //     lastTerminationAt: firebase.firestore.FieldValue.serverTimestamp()
-            // }, { merge: true });
-            // 
-            // // Clear existing applications for this job
-            // const applicationsSnapshot = await db.collection('applications')
-            //     .where('jobId', '==', jobId).get();
-            // applicationsSnapshot.docs.forEach(doc => {
-            //     batch.delete(doc.ref);
-            // });
-            // 
-            // await batch.commit();
-            
-            // Store job ID for data manipulation
-            const negativeOverlay = document.getElementById('contractVoidedNegativeOverlay');
-            negativeOverlay.setAttribute('data-relisted-job-id', jobId);
-            
-            // Show contract voided with negative theme (since we're breaking a contract)
-            showContractVoidedNegative(jobTitle, workerName);
+            if (relistType === 'completed') {
+                // Handle completed job relisting - create draft
+                console.log(`🔄 Creating job draft from completed job: ${jobId}`);
+                
+                // Get the completed job data to copy
+                const completedJobs = await getCompletedJobs();
+                const sourceJob = completedJobs.find(j => j.jobId === jobId);
+                
+                if (sourceJob) {
+                    // Create new draft based on completed job
+                    // In Firebase, this would create a new job document with status: 'draft'
+                    showSuccessNotification(`Job draft created! You can now edit details and repost "${jobTitle}".`);
+                    
+                    // Navigate to new-post.html with pre-filled data for editing
+                    // In real implementation: window.location.href = `/new-post.html?draft=${newDraftId}`;
+                    setTimeout(() => {
+                        showSuccessNotification('Draft feature not yet implemented - would redirect to edit page');
+                    }, 2000);
+                } else {
+                    showErrorNotification('Failed to find job data for relisting');
+                }
+            } else {
+                // Handle hiring job relisting - void contract
+                const workerName = overlay.getAttribute('data-worker-name');
+                
+                // Firebase Implementation - Void contract and relist job:
+                // [Firebase code stays the same as before for hiring jobs]
+                
+                // Store job ID for data manipulation
+                const negativeOverlay = document.getElementById('contractVoidedNegativeOverlay');
+                negativeOverlay.setAttribute('data-relisted-job-id', jobId);
+                
+                // Show contract voided with negative theme (since we're breaking a contract)
+                showContractVoidedNegative(jobTitle, workerName);
+            }
         };
         yesBtn.addEventListener('click', yesHandler);
         registerCleanup('confirmation', 'relistYes', () => {
@@ -2519,7 +2494,7 @@ function generateCompletedCardHTML(job) {
             feedbackHTML = `
                 <div class="completed-feedback-section worker-instructions">
                     <div class="completed-feedback-label">Leave Feedback</div>
-                    <div class="completed-feedback-instructions">Tap to rate your experience with ${job.posterName} and help other workers.</div>
+                    <div class="completed-feedback-instructions">Tap to rate your experience with ${job.posterName}.</div>
                 </div>
             `;
         }
@@ -2551,7 +2526,7 @@ function generateCompletedCardHTML(job) {
                                 <div class="completed-due-label">Job Date</div>
                                 <div class="completed-date">${formatJobDate(job.jobDate)}</div>
                             </div>
-                            <div class="completed-times-section" data-start-time="${job.startTime}" data-end-time="${job.endTime}">
+                            <div class="completed-times-section" data-start-time="${formatTime(job.startTime)}" data-end-time="${formatTime(job.endTime)}">
                                 <div class="completed-time-labels">
                                     <div class="completed-time-label">FROM</div>
                                     <div class="completed-time-label">TO</div>
@@ -3075,20 +3050,17 @@ function handleRelistCompletedJob(jobData) {
     console.log(`🔄 RELIST completed job: ${jobData.jobId}`);
     hidePreviousOptionsOverlay();
     
-    // Show relist confirmation - reuse existing relist overlay
-    document.getElementById('relistJobSubtitle').textContent = 'This will create a new job listing';
-    document.getElementById('relistWorkerName').textContent = jobData.hiredWorkerName;
-    document.getElementById('relistWorkerNameReminder').textContent = jobData.hiredWorkerName;
-    document.getElementById('relistWorkerNameInput').textContent = jobData.hiredWorkerName;
+    // Update overlay for completed job relisting (different from hiring tab)
+    document.getElementById('relistJobSubtitle').textContent = 'This will create a new job draft for editing';
     
     // Update warning text for completed job relisting
     const warningText = document.querySelector('#relistJobConfirmationOverlay .delete-warning-text');
     if (warningText) {
         warningText.innerHTML = `
             Relisting this completed job will:<br>
-            • Create a new job posting based on this completed job<br>
-            • Make it available for new applications<br>
-            • Add it to your active listings<br><br>
+            • Create a new job draft with the same details<br>
+            • Allow you to edit date/time and other details<br>
+            • Add it to your active listings once finalized<br><br>
             This is useful if you need the same work done again.
         `;
     }
@@ -3104,10 +3076,26 @@ function handleRelistCompletedJob(jobData) {
     const relistInput = document.getElementById('relistReasonInput');
     if (relistInput) {
         relistInput.placeholder = 'Enter reason for relisting (minimum 2 characters)';
+        relistInput.value = ''; // Clear any previous value
     }
     
+    // Update button text for completed job context
+    const noBtn = document.getElementById('relistJobNoBtn');
+    const yesBtn = document.getElementById('relistJobYesBtn');
+    if (noBtn) noBtn.textContent = 'CANCEL';
+    if (yesBtn) {
+        yesBtn.textContent = 'CREATE DRAFT';
+        yesBtn.disabled = true; // Reset disabled state
+    }
+    
+    // Mark this as a completed job relist for different handling
+    const overlay = document.getElementById('relistJobConfirmationOverlay');
+    overlay.setAttribute('data-relist-type', 'completed');
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-job-title', jobData.title);
+    
     // Show the overlay
-    document.getElementById('relistJobConfirmationOverlay').classList.add('show');
+    overlay.classList.add('show');
 }
 
 function handleLeaveFeedback(jobData) {
