@@ -3716,7 +3716,7 @@ body:has(.jobs-header) {
   .completed-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 4px;
+    gap: 8px; /* Increased from 4px to 8px for better spacing */
   }
 
   .completed-time-labels,
@@ -3731,6 +3731,7 @@ body:has(.jobs-header) {
     color: #cbd5e0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-right: 4px; /* Add right margin for spacing */
   }
 
   .completed-times-section::after {
@@ -3879,7 +3880,7 @@ body:has(.jobs-header) {
   .completed-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 3px;
+    gap: 6px; /* Increased from 3px to 6px for better spacing */
   }
 
   .completed-time-labels,
@@ -3894,6 +3895,7 @@ body:has(.jobs-header) {
     color: #cbd5e0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-right: 4px; /* Add right margin for spacing */
   }
 
   .completed-times-section::after {
@@ -4040,7 +4042,7 @@ body:has(.jobs-header) {
   .completed-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 3px;
+    gap: 5px; /* Increased from 3px to 5px for better spacing */
   }
 
   .completed-time-labels,
@@ -4055,6 +4057,7 @@ body:has(.jobs-header) {
     color: #cbd5e0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-right: 3px; /* Add right margin for spacing */
   }
 
   .completed-times-section::after {
@@ -4200,7 +4203,7 @@ body:has(.jobs-header) {
   .completed-times-section {
     flex-direction: row;
     align-items: center;
-    gap: 2px;
+    gap: 4px; /* Increased from 2px to 4px for better spacing */
   }
 
   .completed-time-labels,
@@ -4215,6 +4218,7 @@ body:has(.jobs-header) {
     color: #cbd5e0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-right: 2px; /* Add right margin for spacing */
   }
 
   .completed-times-section::after {

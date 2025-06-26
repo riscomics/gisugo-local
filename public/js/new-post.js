@@ -1895,6 +1895,9 @@ document.addEventListener('DOMContentLoaded', function() {
   initializePaymentValidation(); // Add payment amount validation
   initializeJobTitleCharacterCounter(); // Add job title character counter
   initializeMobileKeyboardClose(); // Add mobile keyboard close functionality
+  
+  // Handle URL parameters for EDIT and RELIST modes
+  handleUrlParameters();
 });
 
 // Call updateCityMenuLabelFontSize on window resize
@@ -2004,4 +2007,310 @@ function closeJobPostedOverlay() {
   setTimeout(() => {
     overlay.style.display = 'none';
   }, 300);
+}
+
+// ========================== URL PARAMETER HANDLING FOR EDIT/RELIST MODES ==========================
+
+function handleUrlParameters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const editJobId = urlParams.get('edit');
+  const relistJobId = urlParams.get('relist');
+  const category = urlParams.get('category');
+  
+  console.log('🔍 URL Parameters:', { 
+    editJobId, 
+    relistJobId, 
+    category, 
+    fullUrl: window.location.href 
+  });
+  
+  if (editJobId && category) {
+    console.log(`📝 EDIT mode detected: jobId=${editJobId}, category=${category}`);
+    handleEditMode(editJobId, category);
+  } else if (relistJobId && category) {
+    console.log(`🔄 RELIST mode detected: jobId=${relistJobId}, category=${category}`);
+    handleRelistMode(relistJobId, category);
+  } else {
+    console.log('ℹ️ No edit/relist parameters found - normal new post mode');
+  }
+}
+
+async function handleEditMode(jobId, category) {
+  try {
+    // Update page title
+    document.getElementById('newPostTitle').textContent = 'EDIT POST';
+    
+    // Load job data from active listings
+    const jobData = await getActiveJobData(jobId);
+    if (!jobData) {
+      console.error(`❌ Active job not found: ${jobId}`);
+      showValidationOverlay('Job not found. Redirecting to new post...');
+      return;
+    }
+    
+    console.log(`📋 Loading job data for editing:`, jobData);
+    await populateFormWithJobData(jobData, category, 'edit');
+    
+  } catch (error) {
+    console.error(`❌ Error loading job for editing:`, error);
+    showValidationOverlay('Error loading job data. Please try again.');
+  }
+}
+
+async function handleRelistMode(jobId, category) {
+  try {
+    // Update page title
+    document.getElementById('newPostTitle').textContent = 'RELIST JOB';
+    
+    // Load job data from completed jobs
+    const jobData = await getCompletedJobData(jobId);
+    if (!jobData) {
+      console.error(`❌ Completed job not found: ${jobId}`);
+      showValidationOverlay('Job not found. Redirecting to new post...');
+      return;
+    }
+    
+    console.log(`📋 Loading completed job data for relisting:`, jobData);
+    await populateFormWithJobData(jobData, category, 'relist');
+    
+  } catch (error) {
+    console.error(`❌ Error loading job for relisting:`, error);
+    showValidationOverlay('Error loading job data. Please try again.');
+  }
+}
+
+async function getActiveJobData(jobId) {
+  // Access active job data from JobsDataService
+  // In Firebase: db.collection('jobs').doc(jobId).get()
+  
+  try {
+    // Check if JobsDataService is available (from jobs.js)
+    if (typeof JobsDataService !== 'undefined') {
+      console.log('🔍 Using JobsDataService to find active job:', jobId);
+      const job = await JobsDataService.getJobById(jobId);
+      if (job) {
+        return {
+          ...job,
+          category: job.category
+        };
+      }
+    }
+    
+    // Fallback: Try localStorage method for jobs posted through new-post form
+    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    
+    // Search through all categories for the job
+    for (const category in allJobs) {
+      const categoryJobs = allJobs[category] || [];
+      const job = categoryJobs.find(j => j.jobId === jobId);
+      if (job) {
+        console.log('📋 Found job in localStorage:', job);
+        return {
+          ...job,
+          category: category
+        };
+      }
+    }
+    
+    console.log('❌ Job not found in any data source:', jobId);
+    return null;
+  } catch (error) {
+    console.error('Error loading active job data:', error);
+    return null;
+  }
+}
+
+async function getCompletedJobData(jobId) {
+  // Access completed job data from global variables or getCompletedJobs function
+  // In Firebase: db.collection('completedJobs').doc(jobId).get()
+  
+  try {
+    // Try to access getCompletedJobs function from jobs.js
+    if (typeof getCompletedJobs !== 'undefined') {
+      console.log('🔍 Using getCompletedJobs to find completed job:', jobId);
+      const completedJobs = await getCompletedJobs();
+      const job = completedJobs.find(j => j.jobId === jobId);
+      
+      if (job) {
+        console.log('📋 Found completed job:', job);
+        return {
+          ...job,
+          // Map completed job fields to form fields if needed
+          jobId: job.jobId,
+          title: job.title,
+          description: job.description || '',
+          priceOffer: job.priceOffer,
+          startTime: job.startTime,
+          endTime: job.endTime,
+          dateNeeded: job.jobDate, // Map jobDate to dateNeeded
+          category: job.category,
+          region: 'CEBU', // Default region
+          city: 'Cebu City', // Default city - could be enhanced with actual location data
+        };
+      }
+    }
+    
+    // Fallback: Try localStorage method 
+    const completedJobs = JSON.parse(localStorage.getItem('gisugoCompletedJobs') || '[]');
+    const job = completedJobs.find(j => j.jobId === jobId);
+    
+    if (job) {
+      console.log('📋 Found completed job in localStorage:', job);
+      return {
+        ...job,
+        dateNeeded: job.jobDate,
+        category: job.category,
+        region: 'CEBU',
+        city: 'Cebu City',
+      };
+    }
+    
+    console.log('❌ Completed job not found in any data source:', jobId);
+    return null;
+  } catch (error) {
+    console.error('Error loading completed job data:', error);
+    return null;
+  }
+}
+
+async function populateFormWithJobData(jobData, category, mode) {
+  console.log(`📝 Populating form with job data (${mode} mode):`, jobData);
+  
+  // Set category first
+  await setCategoryAndUpdateForm(category);
+  
+  // Wait a bit for category-specific elements to render
+  setTimeout(() => {
+    // Populate basic fields
+    populateBasicFields(jobData, mode);
+    
+    // Populate time fields (clear for relist mode)
+    populateTimeFields(jobData, mode);
+    
+    // Populate location and extras
+    populateLocationAndExtras(jobData);
+    
+    console.log(`✅ Form populated successfully (${mode} mode)`);
+  }, 100);
+}
+
+function populateBasicFields(jobData, mode) {
+  // Job title
+  const titleInput = document.getElementById('jobTitleInput');
+  if (titleInput && jobData.title) {
+    titleInput.value = jobData.title;
+    // Trigger character counter update
+    titleInput.dispatchEvent(new Event('input'));
+  }
+  
+  // Job description (if exists in form)
+  const descriptionInput = document.getElementById('jobDescriptionInput');
+  if (descriptionInput && jobData.description) {
+    descriptionInput.value = jobData.description;
+  }
+  
+  // Payment amount
+  const paymentInput = document.getElementById('paymentAmountInput');
+  if (paymentInput && jobData.priceOffer) {
+    // Remove currency symbol if present
+    const amount = jobData.priceOffer.replace('₱', '').trim();
+    paymentInput.value = amount;
+    // Trigger validation update
+    paymentInput.dispatchEvent(new Event('input'));
+  }
+  
+  console.log(`📝 Basic fields populated for ${mode} mode`);
+}
+
+function populateTimeFields(jobData, mode) {
+  if (mode === 'relist') {
+    // For relist mode, clear date and time fields so user can set new schedule
+    const dateInput = document.getElementById('jobDateInput');
+    if (dateInput) {
+      dateInput.value = '';
+    }
+    
+    // Reset time dropdowns to default
+    const startTimeLabel = document.getElementById('jobTimeStartLabel');
+    const endTimeLabel = document.getElementById('jobTimeEndLabel');
+    const startPeriodLabel = document.getElementById('jobTimeStartPeriodLabel');
+    const endPeriodLabel = document.getElementById('jobTimeEndPeriodLabel');
+    
+    if (startTimeLabel) startTimeLabel.textContent = 'Hour';
+    if (endTimeLabel) endTimeLabel.textContent = 'Hour';
+    if (startPeriodLabel) startPeriodLabel.textContent = 'AM';
+    if (endPeriodLabel) endPeriodLabel.textContent = 'AM';
+    
+    console.log(`🕐 Time fields cleared for relist mode`);
+  } else {
+    // For edit mode, populate existing time values
+    const dateInput = document.getElementById('jobDateInput');
+    if (dateInput && jobData.dateNeeded) {
+      dateInput.value = jobData.dateNeeded;
+    }
+    
+    // Populate time dropdowns if time data exists
+    if (jobData.startTime) {
+      populateTimeDropdown('Start', jobData.startTime);
+    }
+    if (jobData.endTime) {
+      populateTimeDropdown('End', jobData.endTime);
+    }
+    
+    console.log(`🕐 Time fields populated for edit mode`);
+  }
+}
+
+function populateTimeDropdown(timeType, timeValue) {
+  // Parse time like "8:00 AM" or "2:30 PM"
+  const timeParts = timeValue.match(/(\d+):?(\d+)?\s*(AM|PM)/i);
+  if (timeParts) {
+    const hour = timeParts[1];
+    const period = timeParts[3].toUpperCase();
+    
+    const hourLabel = document.getElementById(`jobTime${timeType}Label`);
+    const periodLabel = document.getElementById(`jobTime${timeType}PeriodLabel`);
+    
+    if (hourLabel) hourLabel.textContent = hour;
+    if (periodLabel) periodLabel.textContent = period;
+  }
+}
+
+function populateLocationAndExtras(jobData) {
+  // Set region and city if available
+  if (jobData.region) {
+    const regionLabel = document.getElementById('newPostRegionMenuLabel');
+    if (regionLabel) regionLabel.textContent = jobData.region;
+  }
+  
+  if (jobData.city) {
+    const cityLabel = document.getElementById('newPostCityMenuLabel');
+    if (cityLabel) cityLabel.textContent = jobData.city;
+    
+    // Update global city variable for barangay population
+    window.activeCity = jobData.city;
+  }
+  
+  // Populate extras fields if they exist
+  // This would need to be expanded based on the specific job data structure
+  
+  console.log(`📍 Location and extras populated`);
+}
+
+async function setCategoryAndUpdateForm(category) {
+  // Set the category dropdown
+  const categoryNameElement = document.getElementById('selectedCategoryName');
+  if (categoryNameElement) {
+    // Convert category to display name
+    const displayName = category.charAt(0).toUpperCase() + category.slice(1) + ' Jobs';
+    categoryNameElement.textContent = displayName;
+  }
+  
+  // Store selected category globally
+  window.selectedJobCategory = category;
+  
+  // Update extras configuration for this category
+  updateExtrasForCategory(category);
+  
+  console.log(`📂 Category set to: ${category}`);
 }

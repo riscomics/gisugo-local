@@ -3050,52 +3050,17 @@ function handleRelistCompletedJob(jobData) {
     console.log(`🔄 RELIST completed job: ${jobData.jobId}`);
     hidePreviousOptionsOverlay();
     
-    // Update overlay for completed job relisting (different from hiring tab)
-    document.getElementById('relistJobSubtitle').textContent = 'This will create a new job draft for editing';
+    // Navigate directly to new-post.html with relist mode (like MODIFY)
+    const relistUrl = `new-post.html?relist=${jobData.jobId}&category=${jobData.category}`;
+    console.log(`📝 Navigating to relist mode: ${relistUrl}`);
     
-    // Update warning text for completed job relisting
-    const warningText = document.querySelector('#relistJobConfirmationOverlay .delete-warning-text');
-    if (warningText) {
-        warningText.innerHTML = `
-            Relisting this completed job will:<br>
-            • Create a new job draft with the same details<br>
-            • Allow you to edit date/time and other details<br>
-            • Add it to your active listings once finalized<br><br>
-            This is useful if you need the same work done again.
-        `;
-    }
+    // Firebase data mapping for relist mode:
+    // - Load completed job document from: db.collection('completedJobs').doc(jobData.jobId)
+    // - Pre-populate form with existing data (title, description, price, etc.)
+    // - Clear date/time fields for new scheduling
+    // - Create new job document on save (not update existing)
     
-    // Update reason label for completed job relisting
-    const reasonLabel = document.querySelector('#relistJobConfirmationOverlay .reason-label');
-    if (reasonLabel) {
-        reasonLabel.innerHTML = `
-            For records, please provide reason why you are relisting this completed job:
-        `;
-    }
-    
-    const relistInput = document.getElementById('relistReasonInput');
-    if (relistInput) {
-        relistInput.placeholder = 'Enter reason for relisting (minimum 2 characters)';
-        relistInput.value = ''; // Clear any previous value
-    }
-    
-    // Update button text for completed job context
-    const noBtn = document.getElementById('relistJobNoBtn');
-    const yesBtn = document.getElementById('relistJobYesBtn');
-    if (noBtn) noBtn.textContent = 'CANCEL';
-    if (yesBtn) {
-        yesBtn.textContent = 'CREATE DRAFT';
-        yesBtn.disabled = true; // Reset disabled state
-    }
-    
-    // Mark this as a completed job relist for different handling
-    const overlay = document.getElementById('relistJobConfirmationOverlay');
-    overlay.setAttribute('data-relist-type', 'completed');
-    overlay.setAttribute('data-job-id', jobData.jobId);
-    overlay.setAttribute('data-job-title', jobData.title);
-    
-    // Show the overlay
-    overlay.classList.add('show');
+    window.location.href = relistUrl;
 }
 
 function handleLeaveFeedback(jobData) {
