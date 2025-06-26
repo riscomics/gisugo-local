@@ -247,10 +247,46 @@
                 <div class="confetti-piece confetti-11"></div>
                 <div class="confetti-piece confetti-12"></div>
             </div>
-            <div class="success-icon">🎉</div>
-            <div class="success-title">Congratulations!</div>
-            <div class="success-message" id="jobCompletedMessage">The job has been marked as completed successfully!</div>
-            <button class="success-btn" id="jobCompletedOkBtn">GREAT!</button>
+            
+            <div class="success-header">
+                <div class="success-title-row">
+                    <div class="success-title">Congratulations!</div>
+                    <div class="success-icon">🎉</div>
+                </div>
+                <div class="success-subtitle" id="jobCompletedMessage">The job has been marked as completed successfully!</div>
+            </div>
+            
+            <div class="success-feedback-section">
+                <div class="feedback-label">Please rate your experience and leave feedback for <span id="completedWorkerName">the worker</span>:</div>
+                
+                <div class="feedback-rating-section">
+                    <label class="feedback-rating-label">Rating:</label>
+                    <div class="feedback-stars-container">
+                        <div class="feedback-star" data-rating="1">★</div>
+                        <div class="feedback-star" data-rating="2">★</div>
+                        <div class="feedback-star" data-rating="3">★</div>
+                        <div class="feedback-star" data-rating="4">★</div>
+                        <div class="feedback-star" data-rating="5">★</div>
+                    </div>
+                </div>
+                
+                <div class="feedback-text-section">
+                    <label for="completionFeedback" class="feedback-text-label">Feedback (optional):</label>
+                    <textarea 
+                        id="completionFeedback" 
+                        class="feedback-textarea" 
+                        placeholder="Share your experience working with this person..."
+                        maxlength="300"
+                        rows="3"></textarea>
+                    <div class="feedback-char-count">
+                        <span id="feedbackCharCount">0</span>/300 characters
+                    </div>
+                </div>
+            </div>
+            
+            <div class="success-actions">
+                <button class="success-btn" id="jobCompletedOkBtn">SUBMIT</button>
+            </div>
         </div>
     </div>
 

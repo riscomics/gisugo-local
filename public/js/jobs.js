@@ -1193,6 +1193,11 @@ async function handleCompleteJob(jobData) {
     console.log(`✅ COMPLETE job: ${jobData.jobId} (Customer perspective)`);
     hideHiringOptionsOverlay();
     
+    // Get worker name from job data
+    const hiredJobs = await JobsDataService.getAllHiredJobs();
+    const job = hiredJobs.find(j => j.jobId === jobData.jobId);
+    const workerName = job ? job.hiredWorkerName : 'the worker';
+    
     // Show completion confirmation overlay
     const overlay = document.getElementById('completeJobConfirmationOverlay');
     const subtitle = document.getElementById('completeJobSubtitle');
@@ -1202,6 +1207,7 @@ async function handleCompleteJob(jobData) {
     // Store job data for confirmation handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
+    overlay.setAttribute('data-worker-name', workerName);
     
     overlay.classList.add('show');
     
@@ -1306,6 +1312,7 @@ function initializeCompleteJobConfirmationHandlers() {
             const overlay = document.getElementById('completeJobConfirmationOverlay');
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
+            const workerName = overlay.getAttribute('data-worker-name');
             
             // Hide confirmation overlay
             overlay.classList.remove('show');
@@ -1338,8 +1345,8 @@ function initializeCompleteJobConfirmationHandlers() {
             const successOverlay = document.getElementById('jobCompletedSuccessOverlay');
             successOverlay.setAttribute('data-completed-job-id', jobId);
             
-            // Show success overlay
-            showJobCompletedSuccess(jobTitle);
+            // Show success overlay with worker name for feedback
+            showJobCompletedSuccess(jobTitle, workerName);
         };
         yesBtn.addEventListener('click', yesHandler);
         registerCleanup('confirmation', 'completeYes', () => {
@@ -1680,16 +1687,49 @@ function initializeResignJobConfirmationHandlers() {
     }
 }
 
-function showJobCompletedSuccess(jobTitle) {
+function showJobCompletedSuccess(jobTitle, workerName) {
     const overlay = document.getElementById('jobCompletedSuccessOverlay');
     const message = document.getElementById('jobCompletedMessage');
-    const okBtn = document.getElementById('jobCompletedOkBtn');
+    const workerNameSpan = document.getElementById('completedWorkerName');
+    const submitBtn = document.getElementById('jobCompletedOkBtn');
     
-    message.textContent = `"${jobTitle}" has been marked as completed successfully! The job will be moved to your Previous Jobs.`;
+    message.textContent = `"${jobTitle}" has been marked as completed successfully!`;
+    workerNameSpan.textContent = workerName;
+    
+    // Initialize feedback systems
+    initializeFeedbackStarRating();
+    initializeFeedbackCharacterCount();
     
     // Clear any existing handler and add new one with cleanup
-    okBtn.onclick = null;
-    const okHandler = async function() {
+    submitBtn.onclick = null;
+    const submitHandler = async function() {
+        // Get feedback data
+        const rating = getFeedbackRating();
+        const feedbackText = document.getElementById('completionFeedback').value.trim();
+        
+        // Get job and user data for Firebase integration
+        const jobId = overlay.getAttribute('data-completed-job-id');
+        const hiredJobs = await JobsDataService.getAllHiredJobs();
+        const job = hiredJobs.find(j => j.jobId === jobId);
+        
+        if (job && rating > 0) {
+            // Submit feedback to Firebase (or mock for development)
+            try {
+                await submitJobCompletionFeedback(
+                    jobId,
+                    job.hiredWorkerId || 'worker-user-id',
+                    CURRENT_USER_ID,
+                    rating,
+                    feedbackText
+                );
+                console.log(`✅ Feedback submitted successfully for job ${jobId}`);
+            } catch (error) {
+                console.error('❌ Error submitting feedback:', error);
+            }
+        } else if (rating === 0) {
+            console.log('ℹ️ No rating provided - job completed without feedback');
+        }
+        
         overlay.classList.remove('show');
         
         // Find and slide out the card first
@@ -1698,7 +1738,7 @@ function showJobCompletedSuccess(jobTitle) {
         
         // Slide out card and show toast
         await slideOutCard(cardToRemove, 'right');
-        showSuccessNotification('Job moved to Previous Jobs');
+        showSuccessNotification('Job completed and feedback submitted');
         
         // Remove completed job from hiring data
         if (completedJobId && MOCK_HIRING_DATA) {
@@ -1706,17 +1746,279 @@ function showJobCompletedSuccess(jobTitle) {
             console.log(`✅ Removed completed job ${completedJobId} from hiring data`);
         }
         
+        // Reset feedback form for next use
+        resetFeedbackForm();
+        
         // Refresh hiring tab content to remove completed job
         await loadHiringContent();
         // Update tab counts
         await updateTabCounts();
     };
-    okBtn.addEventListener('click', okHandler);
+    submitBtn.addEventListener('click', submitHandler);
     registerCleanup('success', 'jobCompletedOk', () => {
-        okBtn.removeEventListener('click', okHandler);
+        submitBtn.removeEventListener('click', submitHandler);
     });
     
     overlay.classList.add('show');
+}
+
+// Initialize star rating functionality
+function initializeFeedbackStarRating() {
+    const stars = document.querySelectorAll('.feedback-star');
+    let currentRating = 0;
+    
+    stars.forEach((star, index) => {
+        const rating = index + 1;
+        
+        // Remove existing event listeners to prevent duplicates
+        star.replaceWith(star.cloneNode(true));
+    });
+    
+    // Re-select stars after cloning to remove listeners
+    const newStars = document.querySelectorAll('.feedback-star');
+    
+    newStars.forEach((star, index) => {
+        const rating = index + 1;
+        
+        // Hover effect
+        star.addEventListener('mouseenter', () => {
+            highlightStars(rating, newStars);
+        });
+        
+        // Click to select rating
+        star.addEventListener('click', () => {
+            currentRating = rating;
+            selectStars(rating, newStars);
+        });
+    });
+    
+    // Reset to current rating when mouse leaves container
+    const starsContainer = document.querySelector('.feedback-stars-container');
+    starsContainer.addEventListener('mouseleave', () => {
+        if (currentRating > 0) {
+            selectStars(currentRating, newStars);
+        } else {
+            clearStars(newStars);
+        }
+    });
+}
+
+// Highlight stars on hover
+function highlightStars(rating, stars) {
+    stars.forEach((star, index) => {
+        star.classList.remove('filled', 'hover');
+        if (index < rating) {
+            star.classList.add('hover');
+        }
+    });
+}
+
+// Select stars on click
+function selectStars(rating, stars) {
+    stars.forEach((star, index) => {
+        star.classList.remove('filled', 'hover');
+        if (index < rating) {
+            star.classList.add('filled');
+        }
+    });
+}
+
+// Clear all star highlights
+function clearStars(stars) {
+    stars.forEach(star => {
+        star.classList.remove('filled', 'hover');
+    });
+}
+
+// Get current feedback rating
+function getFeedbackRating() {
+    const filledStars = document.querySelectorAll('.feedback-star.filled');
+    return filledStars.length;
+}
+
+// Firebase Integration Structure for Job Completion Feedback
+// This will replace the console.log when backend is ready
+async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, rating, feedbackText) {
+    // Firebase Implementation:
+    // const db = firebase.firestore();
+    // const batch = db.batch();
+    // const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    // 
+    // // 1. Create review record in reviews collection
+    // const reviewRef = db.collection('reviews').doc();
+    // batch.set(reviewRef, {
+    //     reviewId: reviewRef.id,
+    //     jobId: jobId,
+    //     reviewerUserId: customerUserId,        // Customer leaving review
+    //     revieweeUserId: workerUserId,          // Worker being reviewed
+    //     reviewerRole: 'customer',
+    //     revieweeRole: 'worker',
+    //     rating: rating,                        // 1-5 stars
+    //     feedbackText: feedbackText,           // Optional text feedback
+    //     createdAt: timestamp,
+    //     modifiedAt: timestamp,
+    //     status: 'active',
+    //     helpful: 0,                           // For future voting system
+    //     reported: false
+    // });
+    // 
+    // // 2. Update worker's aggregate rating stats
+    // const workerStatsRef = db.collection('user_stats').doc(workerUserId);
+    // const workerStatsDoc = await workerStatsRef.get();
+    // 
+    // if (workerStatsDoc.exists) {
+    //     const currentStats = workerStatsDoc.data();
+    //     const currentRating = currentStats.averageRating || 0;
+    //     const currentCount = currentStats.reviewCount || 0;
+    //     
+    //     // Calculate new average rating
+    //     const newTotalRating = (currentRating * currentCount) + rating;
+    //     const newCount = currentCount + 1;
+    //     const newAverageRating = newTotalRating / newCount;
+    //     
+    //     batch.update(workerStatsRef, {
+    //         averageRating: newAverageRating,
+    //         reviewCount: newCount,
+    //         lastReviewAt: timestamp
+    //     });
+    // } else {
+    //     // First review for this worker
+    //     batch.set(workerStatsRef, {
+    //         averageRating: rating,
+    //         reviewCount: 1,
+    //         lastReviewAt: timestamp
+    //     }, { merge: true });
+    // }
+    // 
+    // // 3. Update job document with completion feedback flag
+    // const jobRef = db.collection('jobs').doc(jobId);
+    // batch.update(jobRef, {
+    //     customerFeedbackSubmitted: true,
+    //     customerFeedbackAt: timestamp,
+    //     customerRating: rating
+    // });
+    // 
+    // // 4. Create notification for worker
+    // const notificationRef = db.collection('notifications').doc();
+    // batch.set(notificationRef, {
+    //     recipientId: workerUserId,
+    //     type: 'review_received',
+    //     title: 'New Review Received',
+    //     message: `You received a ${rating}-star review for your completed job.`,
+    //     jobId: jobId,
+    //     reviewId: reviewRef.id,
+    //     createdAt: timestamp,
+    //     read: false
+    // });
+    // 
+    // // Commit all operations atomically
+    // await batch.commit();
+    // 
+    // return {
+    //     success: true,
+    //     reviewId: reviewRef.id,
+    //     newWorkerRating: newAverageRating,
+    //     newWorkerReviewCount: newCount
+    // };
+    
+    // Mock implementation for development
+    console.log(`📝 Job completion feedback submitted:`, {
+        jobId,
+        workerUserId,
+        customerUserId,
+        rating,
+        feedbackText,
+        timestamp: new Date().toISOString()
+    });
+    
+    return {
+        success: true,
+        reviewId: `review_${Date.now()}`,
+        newWorkerRating: 4.5,
+        newWorkerReviewCount: 12
+    };
+}
+
+// Initialize character counting for feedback text
+function initializeFeedbackCharacterCount() {
+    const textarea = document.getElementById('completionFeedback');
+    const charCount = document.getElementById('feedbackCharCount');
+    
+    if (textarea && charCount) {
+        // Clear existing listeners
+        textarea.removeEventListener('input', updateFeedbackCharCount);
+        
+        // Add input event listener
+        textarea.addEventListener('input', updateFeedbackCharCount);
+        
+        // Add mobile-specific event handlers to prevent zoom
+        textarea.addEventListener('focus', handleFeedbackTextareaFocus);
+        textarea.addEventListener('blur', handleFeedbackTextareaBlur);
+        
+        // Initialize count
+        updateFeedbackCharCount();
+    }
+}
+
+// Handle textarea focus with zoom prevention
+function handleFeedbackTextareaFocus(e) {
+    const textarea = e.target;
+    const overlay = document.getElementById('jobCompletedSuccessOverlay');
+    
+    // Mark overlay as having active input for mobile positioning
+    overlay.classList.add('input-focused');
+    
+    // Prevent iOS zoom by ensuring font-size is 16px+ during focus
+    if (window.innerWidth <= 600) {
+        textarea.style.fontSize = '16px';
+        
+        // Small delay to allow keyboard to appear, then scroll into view
+        setTimeout(() => {
+            textarea.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'nearest'
+            });
+        }, 300);
+    }
+}
+
+// Handle textarea blur - restore original styling
+function handleFeedbackTextareaBlur(e) {
+    const textarea = e.target;
+    const overlay = document.getElementById('jobCompletedSuccessOverlay');
+    
+    // Remove focused state
+    overlay.classList.remove('input-focused');
+    
+    // Restore responsive font-size
+    if (window.innerWidth <= 600) {
+        textarea.style.fontSize = '';
+    }
+}
+
+// Update character count display
+function updateFeedbackCharCount() {
+    const textarea = document.getElementById('completionFeedback');
+    const charCount = document.getElementById('feedbackCharCount');
+    
+    if (textarea && charCount) {
+        const length = textarea.value.length;
+        charCount.textContent = length;
+    }
+}
+
+function resetFeedbackForm() {
+    // Clear star rating
+    const stars = document.querySelectorAll('.feedback-star');
+    clearStars(stars);
+    
+    // Clear text input
+    const textarea = document.getElementById('completionFeedback');
+    if (textarea) {
+        textarea.value = '';
+        updateFeedbackCharCount();
+    }
 }
 
 function showContractVoidedSuccess(message) {
