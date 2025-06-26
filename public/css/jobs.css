@@ -1440,7 +1440,7 @@ body:has(.jobs-header) {
   .listings-container,
   .hiring-container,
   .previous-container {
-    padding: 0 0 60px 0; /* More bottom padding for mobile scrolling */
+    padding: 35px 0 60px 0; /* Increased top padding from 0 to 35px */
   }
 
   .notification-count {
@@ -1577,7 +1577,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-role-caption.worker {
-    max-width: 90%; /* Mobile: Longer worker captions need more constraint */
+    max-width: 75%; /* Mobile: Longer worker captions need more constraint */
     text-align: center;
     padding: 4px 5px;
     font-size: 0.7rem;
@@ -3648,7 +3648,7 @@ body:has(.jobs-header) {
   .completed-card {
     width: calc(100% - 16px);
     max-width: none;
-    height: 300px;
+    height: 350px; /* Increased from 300px to 350px */
     margin: 0 8px 12px 8px;
     border-radius: 10px;
   }
@@ -3660,11 +3660,11 @@ body:has(.jobs-header) {
 
   .completed-thumbnail {
     width: 130px;
-    height: 300px;
+    height: 350px; /* Increased from 300px to 350px */
   }
 
   .completed-content {
-    padding: 12px 16px;
+    padding: 12px 20px; /* Increased left/right padding from 16px to 20px */
   }
 
   .completed-title {
@@ -3811,18 +3811,18 @@ body:has(.jobs-header) {
 @media (max-width: 400px) {
   .completed-card {
     width: calc(100% - 12px);
-    height: 280px;
+    height: 330px; /* Increased from 280px to 330px */
     margin: 0 6px 10px 6px;
     border-radius: 8px;
   }
 
   .completed-thumbnail {
     width: 125px;
-    height: 280px;
+    height: 330px; /* Increased from 280px to 330px */
   }
 
   .completed-content {
-    padding: 10px 12px;
+    padding: 10px 18px; /* Increased left/right padding from 12px to 18px */
   }
 
   .completed-title {
@@ -3972,18 +3972,18 @@ body:has(.jobs-header) {
 @media (max-width: 375px) {
   .completed-card {
     width: calc(100% - 10px);
-    height: 270px;
+    height: 320px; /* Increased from 270px to 320px */
     margin: 0 5px 9px 5px;
     border-radius: 8px;
   }
 
   .completed-thumbnail {
     width: 120px;
-    height: 270px;
+    height: 320px; /* Increased from 270px to 320px */
   }
 
   .completed-content {
-    padding: 9px 11px;
+    padding: 9px 16px; /* Increased left/right padding from 11px to 16px */
   }
 
   .completed-title {
@@ -4133,17 +4133,17 @@ body:has(.jobs-header) {
 @media (max-width: 320px) {
   .completed-card {
     width: calc(100% - 8px);
-    height: 260px;
+    height: 310px; /* Increased from 260px to 310px */
     margin: 0 4px 8px 4px;
   }
 
   .completed-thumbnail {
     width: 115px;
-    height: 260px;
+    height: 310px; /* Increased from 260px to 310px */
   }
 
   .completed-content {
-    padding: 8px 9px;
+    padding: 8px 14px; /* Increased left/right padding from 9px to 14px */
   }
 
   .completed-title {
