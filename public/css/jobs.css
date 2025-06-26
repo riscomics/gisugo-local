@@ -3215,3 +3215,1201 @@ body:has(.jobs-header) {
   }
 }
 
+/* ========================== COMPLETED JOBS (PREVIOUS TAB) STYLES ========================== */
+
+/* Completed Job Card Styles - Based on Hiring Cards */
+.completed-card {
+  display: flex;
+  flex-direction: row;
+  width: calc(100% - 20px);
+  max-width: 700px;
+  height: 380px;
+  border-radius: 12px;
+  margin: 0 auto 16px auto;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #f0e6d2;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Removed old completed status indicator overlay - now using badge in photo area */
+
+/* Worker Perspective - Jobs I worked on (Dark Green theme) */
+.completed-card.worker {
+  background: linear-gradient(135deg, #1a2e05 0%, #365314 100%);
+  border-color: rgba(101, 163, 13, 0.2);
+}
+
+.completed-card.worker:hover {
+  background: linear-gradient(135deg, #365314 0%, #4d7c0f 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(101, 163, 13, 0.3);
+  border-color: rgba(101, 163, 13, 0.4);
+}
+
+/* Customer Perspective - Jobs I posted and completed (Blue theme) */
+.completed-card.customer {
+  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+  border-color: rgba(8, 145, 178, 0.2);
+}
+
+.completed-card.customer:hover {
+  background: linear-gradient(135deg, #075985 0%, #0369a1 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(8, 145, 178, 0.3);
+  border-color: rgba(8, 145, 178, 0.4);
+}
+
+.completed-card:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+}
+
+/* Completed Card Content Structure */
+.completed-thumbnail {
+  width: 200px;
+  height: 380px;
+  overflow: hidden;
+  background: #4a5568;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.completed-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Completed overlay badge in photo area */
+.completed-overlay-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(72, 187, 120, 0.95);
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.completed-content {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.completed-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  margin: 0 0 12px 0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-height: 2.6rem;
+  display: flex;
+  align-items: flex-start;
+}
+
+/* Main Content Row - Single Row Layout - Same as Hiring Cards */
+.completed-main-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.completed-schedule-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  flex: 1;
+}
+
+.completed-price-column {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.completed-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.completed-schedule-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 60px;
+  margin-top: 12px;
+  margin-bottom: 14px;
+}
+
+.completed-date-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.completed-due-label {
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.completed-date {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #e6d6ae;
+  line-height: 1.4;
+}
+
+.completed-times-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-left: -15px;
+}
+
+.completed-time-labels {
+  display: flex;
+  gap: 25px;
+}
+
+.completed-time-values {
+  display: flex;
+  gap: 25px;
+}
+
+.completed-time-label {
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 60px;
+  text-align: left;
+}
+
+.completed-time-value {
+  font-size: 1.15rem;
+  color: #f0e6d2;
+  font-weight: 600;
+  line-height: 1.4;
+  width: 60px;
+  text-align: left;
+}
+
+/* Star Rating Section */
+.completed-rating-section {
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.completed-rating-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.completed-rating-stars {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.completed-rating-star {
+  font-size: 1.2rem;
+  color: #ffd700;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+}
+
+.completed-rating-star.empty {
+  color: #4a5568;
+  text-shadow: none;
+}
+
+.completed-rating-count {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  margin-left: 8px;
+}
+
+/* Feedback Section (Customer POV only) - Compact */
+.completed-feedback-section {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.completed-feedback-section:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.completed-feedback-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.completed-feedback-text {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  line-height: 1.4;
+  font-style: italic;
+  max-height: 2.8rem; /* ~2 lines on desktop */
+  overflow: hidden;
+  position: relative;
+}
+
+.completed-feedback-text.truncated {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  padding-right: 80px; /* Space for read more indicator */
+}
+
+/* Read more indicator for truncated feedback */
+.completed-feedback-text.truncated::after {
+  content: "Read more";
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: #4ade80;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-style: normal;
+  font-size: 0.8rem;
+}
+
+/* Worker feedback instructions */
+.completed-feedback-section.worker-instructions {
+  background: rgba(101, 163, 13, 0.08);
+  border: 1px solid rgba(101, 163, 13, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.completed-feedback-section.worker-instructions:hover {
+  background: rgba(101, 163, 13, 0.12);
+  border-color: rgba(101, 163, 13, 0.25);
+  transform: translateY(-1px);
+}
+
+.completed-feedback-instructions {
+  font-size: 0.8rem;
+  color: #a3e635;
+  line-height: 1.3;
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* Role Caption for Completed Jobs - Compact Design */
+.completed-role-caption {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(2px);
+  display: inline-block;
+  margin-top: 8px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.completed-role-caption.customer {
+  color: #38bdf8;
+  max-width: 85%;
+  text-align: center;
+  padding: 5px 6px;
+}
+
+.completed-role-caption.worker {
+  color: #a3e635;
+  max-width: 75%;
+  text-align: center;
+  padding: 5px 6px;
+}
+
+/* Completion Info Section */
+.completed-info-section {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.completed-on-date {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a0aec0;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 6px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* User Thumbnail for Completed Jobs - Now in Price Column */
+.completed-user-section {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.completed-user-thumbnail {
+  width: 85px;
+  height: 85px;
+  border-radius: 6px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.completed-user-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.completed-card.worker .completed-user-thumbnail {
+  border-color: rgba(101, 163, 13, 0.5);
+}
+
+.completed-card.customer .completed-user-thumbnail {
+  border-color: rgba(8, 145, 178, 0.5);
+}
+
+.completed-user-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+/* ========================== MOBILE RESPONSIVE - COMPLETED JOBS ========================== */
+
+@media (max-width: 600px) {
+  .completed-card {
+    width: calc(100% - 16px);
+    max-width: none;
+    height: 300px;
+    margin: 0 8px 12px 8px;
+    border-radius: 10px;
+  }
+
+  .completed-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .completed-thumbnail {
+    width: 130px;
+    height: 300px;
+  }
+
+  .completed-content {
+    padding: 12px 16px;
+  }
+
+  .completed-title {
+    font-size: 1rem;
+    line-height: 1.25;
+    margin: 0 0 10px 0;
+    min-height: 2.2rem;
+  }
+
+  .completed-main-row {
+    gap: 12px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+  }
+
+  .completed-price {
+    font-size: 1.0rem;
+    font-weight: 500;
+    padding: 5px 8px;
+    border-radius: 5px;
+  }
+
+  .completed-schedule-row {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 9px;
+    margin-bottom: 10px;
+  }
+
+  .completed-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .completed-due-label {
+    font-size: 0.775rem;
+    margin-bottom: 0;
+  }
+
+  .completed-due-label::after {
+    content: ":";
+  }
+
+  .completed-date {
+    font-size: 0.925rem;
+  }
+
+  .completed-times-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .completed-time-labels,
+  .completed-time-values {
+    display: none;
+  }
+
+  .completed-times-section::before {
+    content: "TIME:";
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .completed-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
+    font-size: 0.875rem;
+    color: #f0e6d2;
+    font-weight: 600;
+  }
+
+  .completed-info-section {
+    margin: 6px 0;
+  }
+
+  .completed-on-date {
+    font-size: 0.7rem;
+    padding: 2px 4px;
+  }
+
+  .completed-rating-section {
+    margin-bottom: 10px;
+  }
+
+  .completed-rating-label {
+    font-size: 0.7rem;
+    margin-bottom: 3px;
+  }
+
+  .completed-rating-star {
+    font-size: 1rem;
+  }
+
+  .completed-rating-count {
+    font-size: 0.7rem;
+    margin-left: 6px;
+  }
+
+  .completed-feedback-section {
+    padding: 5px 7px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
+
+  .completed-feedback-label {
+    font-size: 0.6rem;
+    margin-bottom: 3px;
+  }
+
+  .completed-feedback-text {
+    font-size: 0.7rem;
+    max-height: 35px;
+    -webkit-line-clamp: 2;
+  }
+
+  .completed-role-caption {
+    font-size: 0.65rem;
+    padding: 1px 3px;
+    margin-top: 6px;
+    max-width: 160px;
+  }
+
+  .completed-user-section {
+    margin-top: 8px;
+    gap: 3px;
+  }
+
+  .completed-user-thumbnail {
+    width: 55px;
+    height: 55px;
+  }
+
+  .completed-user-label {
+    font-size: 0.6rem;
+  }
+
+  /* Removed mobile completed overlay - using badge in photo area */
+}
+
+@media (max-width: 400px) {
+  .completed-card {
+    width: calc(100% - 12px);
+    height: 280px;
+    margin: 0 6px 10px 6px;
+    border-radius: 8px;
+  }
+
+  .completed-thumbnail {
+    width: 125px;
+    height: 280px;
+  }
+
+  .completed-content {
+    padding: 10px 12px;
+  }
+
+  .completed-title {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin: 0 0 8px 0;
+    min-height: 1.9rem;
+  }
+
+  .completed-main-row {
+    gap: 10px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+  }
+
+  .completed-price {
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 4px 7px;
+    border-radius: 4px;
+  }
+
+  .completed-schedule-row {
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+
+  .completed-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .completed-due-label {
+    font-size: 0.65rem;
+    margin-bottom: 0;
+  }
+
+  .completed-due-label::after {
+    content: ":";
+  }
+
+  .completed-date {
+    font-size: 0.75rem;
+  }
+
+  .completed-times-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .completed-time-labels,
+  .completed-time-values {
+    display: none;
+  }
+
+  .completed-times-section::before {
+    content: "TIME:";
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .completed-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
+    font-size: 0.75rem;
+    color: #f0e6d2;
+    font-weight: 600;
+  }
+
+  .completed-info-section {
+    margin: 6px 0;
+  }
+
+  .completed-on-label {
+    font-size: 0.65rem;
+    margin-bottom: 2px;
+  }
+
+  .completed-on-date {
+    font-size: 0.75rem;
+  }
+
+  .completed-rating-section {
+    margin-bottom: 8px;
+  }
+
+  .completed-rating-label {
+    font-size: 0.65rem;
+    margin-bottom: 2px;
+  }
+
+  .completed-rating-star {
+    font-size: 0.9rem;
+  }
+
+  .completed-rating-count {
+    font-size: 0.65rem;
+    margin-left: 5px;
+  }
+
+  .completed-feedback-section {
+    padding: 6px 8px;
+    margin-bottom: 8px;
+  }
+
+  .completed-feedback-label {
+    font-size: 0.65rem;
+    margin-bottom: 3px;
+  }
+
+  .completed-feedback-text {
+    font-size: 0.75rem;
+    max-height: 40px;
+    -webkit-line-clamp: 2;
+  }
+
+  .completed-role-caption {
+    font-size: 0.6rem;
+    padding: 1px 3px;
+    margin-top: 5px;
+    max-width: 140px;
+  }
+
+  .completed-user-section {
+    margin-top: 7px;
+    gap: 2px;
+  }
+
+  .completed-user-thumbnail {
+    width: 50px;
+    height: 50px;
+  }
+
+  .completed-user-label {
+    font-size: 0.55rem;
+  }
+
+  /* Removed mobile completed overlay - using badge in photo area */
+}
+
+@media (max-width: 375px) {
+  .completed-card {
+    width: calc(100% - 10px);
+    height: 270px;
+    margin: 0 5px 9px 5px;
+    border-radius: 8px;
+  }
+
+  .completed-thumbnail {
+    width: 120px;
+    height: 270px;
+  }
+
+  .completed-content {
+    padding: 9px 11px;
+  }
+
+  .completed-title {
+    font-size: 0.85rem;
+    line-height: 1.15;
+    margin: 0 0 7px 0;
+    min-height: 1.7rem;
+  }
+
+  .completed-main-row {
+    gap: 9px;
+    margin-top: 10px;
+    margin-bottom: 7px;
+  }
+
+  .completed-price {
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+
+  .completed-schedule-row {
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 7px;
+    margin-bottom: 7px;
+  }
+
+  .completed-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .completed-due-label {
+    font-size: 0.6rem;
+    margin-bottom: 0;
+  }
+
+  .completed-due-label::after {
+    content: ":";
+  }
+
+  .completed-date {
+    font-size: 0.7rem;
+  }
+
+  .completed-times-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .completed-time-labels,
+  .completed-time-values {
+    display: none;
+  }
+
+  .completed-times-section::before {
+    content: "TIME:";
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .completed-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
+    font-size: 0.7rem;
+    color: #f0e6d2;
+    font-weight: 600;
+  }
+
+  .completed-info-section {
+    margin: 5px 0;
+  }
+
+  .completed-on-label {
+    font-size: 0.6rem;
+    margin-bottom: 2px;
+  }
+
+  .completed-on-date {
+    font-size: 0.7rem;
+  }
+
+  .completed-rating-section {
+    margin-bottom: 7px;
+  }
+
+  .completed-rating-label {
+    font-size: 0.6rem;
+    margin-bottom: 2px;
+  }
+
+  .completed-rating-star {
+    font-size: 0.85rem;
+  }
+
+  .completed-rating-count {
+    font-size: 0.6rem;
+    margin-left: 4px;
+  }
+
+  .completed-feedback-section {
+    padding: 5px 7px;
+    margin-bottom: 7px;
+  }
+
+  .completed-feedback-label {
+    font-size: 0.6rem;
+    margin-bottom: 2px;
+  }
+
+  .completed-feedback-text {
+    font-size: 0.7rem;
+    max-height: 35px;
+    -webkit-line-clamp: 2;
+  }
+
+  .completed-role-caption {
+    font-size: 0.55rem;
+    padding: 1px 2px;
+    margin-top: 4px;
+    max-width: 120px;
+  }
+
+  .completed-user-section {
+    margin-top: 6px;
+    gap: 2px;
+  }
+
+  .completed-user-thumbnail {
+    width: 45px;
+    height: 45px;
+  }
+
+  .completed-user-label {
+    font-size: 0.5rem;
+  }
+
+  /* Removed mobile completed overlay - using badge in photo area */
+}
+
+@media (max-width: 320px) {
+  .completed-card {
+    width: calc(100% - 8px);
+    height: 260px;
+    margin: 0 4px 8px 4px;
+  }
+
+  .completed-thumbnail {
+    width: 115px;
+    height: 260px;
+  }
+
+  .completed-content {
+    padding: 8px 9px;
+  }
+
+  .completed-title {
+    font-size: 0.8rem;
+    line-height: 1.1;
+    margin: 0 0 6px 0;
+    min-height: 1.5rem;
+  }
+
+  .completed-main-row {
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 6px;
+  }
+
+  .completed-price {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 2px 5px;
+    border-radius: 3px;
+  }
+
+  .completed-schedule-row {
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+  }
+
+  .completed-date-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .completed-due-label {
+    font-size: 0.55rem;
+    margin-bottom: 0;
+  }
+
+  .completed-due-label::after {
+    content: ":";
+  }
+
+  .completed-date {
+    font-size: 0.65rem;
+  }
+
+  .completed-times-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .completed-time-labels,
+  .completed-time-values {
+    display: none;
+  }
+
+  .completed-times-section::before {
+    content: "TIME:";
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: #cbd5e0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .completed-times-section::after {
+    content: attr(data-start-time) " - " attr(data-end-time);
+    font-size: 0.65rem;
+    color: #f0e6d2;
+    font-weight: 600;
+  }
+
+  .completed-info-section {
+    margin: 4px 0;
+  }
+
+  .completed-on-label {
+    font-size: 0.55rem;
+    margin-bottom: 1px;
+  }
+
+  .completed-on-date {
+    font-size: 0.65rem;
+  }
+
+  .completed-rating-section {
+    margin-bottom: 6px;
+  }
+
+  .completed-rating-label {
+    font-size: 0.55rem;
+    margin-bottom: 1px;
+  }
+
+  .completed-rating-star {
+    font-size: 0.8rem;
+  }
+
+  .completed-rating-count {
+    font-size: 0.55rem;
+    margin-left: 3px;
+  }
+
+  .completed-feedback-section {
+    padding: 4px 6px;
+    margin-bottom: 6px;
+  }
+
+  .completed-feedback-label {
+    font-size: 0.55rem;
+    margin-bottom: 2px;
+  }
+
+  .completed-feedback-text {
+    font-size: 0.65rem;
+    max-height: 30px;
+    -webkit-line-clamp: 2;
+  }
+
+  .completed-role-caption {
+    font-size: 0.5rem;
+    padding: 1px 2px;
+    margin-top: 3px;
+    max-width: 100px;
+  }
+
+  .completed-user-section {
+    margin-top: 5px;
+    gap: 1px;
+  }
+
+  .completed-user-thumbnail {
+    width: 40px;
+    height: 40px;
+  }
+
+  .completed-user-label {
+    font-size: 0.45rem;
+  }
+
+  /* Removed mobile completed overlay - using badge in photo area */
+}
+
+/* Feedback Expanded Overlay Styling */
+#feedbackExpandedOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#feedbackExpandedOverlay.show {
+  display: flex;
+}
+
+.feedback-expanded-content {
+  background: #2c3e50;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  border: 2px solid #3498db;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #34495e;
+  padding-bottom: 1rem;
+}
+
+.overlay-header h3 {
+  color: #ecf0f1;
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #ecf0f1;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.overlay-body {
+  padding: 0;
+}
+
+.feedback-expanded-text {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #e2e8f0;
+  font-style: italic;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Mobile responsive for feedback expanded overlay */
+@media (max-width: 600px) {
+  .feedback-expanded-content {
+    max-width: 95vw;
+    max-height: 75vh;
+  }
+  
+  .feedback-expanded-text {
+    padding: 12px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+}
+
+@media (max-width: 400px) {
+  .feedback-expanded-content {
+    max-height: 70vh;
+  }
+  
+  .feedback-expanded-text {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .feedback-expanded-text {
+    padding: 8px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .feedback-expanded-text {
+    padding: 6px;
+    font-size: 0.75rem;
+  }
+}
+

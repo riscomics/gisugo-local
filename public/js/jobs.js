@@ -968,8 +968,8 @@ function generateHiringCardHTML(job) {
                                     <div class="hiring-time-label">End</div>
                                 </div>
                                 <div class="hiring-time-values">
-                                    <div class="hiring-time-value">${job.startTime}</div>
-                                    <div class="hiring-time-value">${job.endTime}</div>
+                                    <div class="hiring-time-value">${formatTime(job.startTime)}</div>
+                                    <div class="hiring-time-value">${formatTime(job.endTime)}</div>
                                 </div>
                             </div>
                         </div>
@@ -1712,7 +1712,18 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         const hiredJobs = await JobsDataService.getAllHiredJobs();
         const job = hiredJobs.find(j => j.jobId === jobId);
         
-        if (job && rating > 0) {
+        // Validate required fields
+        if (rating === 0) {
+            showErrorNotification('Please select a star rating before submitting');
+            return;
+        }
+        
+        if (feedbackText.length < 2) {
+            showErrorNotification('Please provide feedback with at least 2 characters');
+            return;
+        }
+        
+        if (job) {
             // Submit feedback to Firebase (or mock for development)
             try {
                 await submitJobCompletionFeedback(
@@ -1726,8 +1737,6 @@ function showJobCompletedSuccess(jobTitle, workerName) {
             } catch (error) {
                 console.error('❌ Error submitting feedback:', error);
             }
-        } else if (rating === 0) {
-            console.log('ℹ️ No rating provided - job completed without feedback');
         }
         
         overlay.classList.remove('show');
@@ -1740,17 +1749,25 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         await slideOutCard(cardToRemove, 'right');
         showSuccessNotification('Job completed and feedback submitted');
         
-        // Remove completed job from hiring data
+        // Remove completed job from hiring data and transfer to completed data
         if (completedJobId && MOCK_HIRING_DATA) {
-            MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
-            console.log(`✅ Removed completed job ${completedJobId} from hiring data`);
+            const completedJob = MOCK_HIRING_DATA.find(job => job.jobId === completedJobId);
+            if (completedJob) {
+                // Add to completed jobs data
+                await addJobToCompletedData(completedJob, rating, feedbackText);
+                
+                // Remove from hiring data
+                MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
+                console.log(`✅ Transferred completed job ${completedJobId} from Hiring to Previous tab`);
+            }
         }
         
         // Reset feedback form for next use
         resetFeedbackForm();
         
-        // Refresh hiring tab content to remove completed job
+        // Refresh hiring tab content to remove completed job and previous tab to show new job
         await loadHiringContent();
+        await loadPreviousContent();
         // Update tab counts
         await updateTabCounts();
     };
@@ -1789,6 +1806,7 @@ function initializeFeedbackStarRating() {
         star.addEventListener('click', () => {
             currentRating = rating;
             selectStars(rating, newStars);
+            updateJobCompletionSubmitButtonState();
         });
     });
     
@@ -1943,20 +1961,26 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
 function initializeFeedbackCharacterCount() {
     const textarea = document.getElementById('completionFeedback');
     const charCount = document.getElementById('feedbackCharCount');
+    const submitBtn = document.getElementById('jobCompletedOkBtn');
     
     if (textarea && charCount) {
         // Clear existing listeners
         textarea.removeEventListener('input', updateFeedbackCharCount);
         
-        // Add input event listener
-        textarea.addEventListener('input', updateFeedbackCharCount);
+        // Add input event listener with validation
+        const updateHandler = function() {
+            updateFeedbackCharCount();
+            updateJobCompletionSubmitButtonState();
+        };
+        textarea.addEventListener('input', updateHandler);
         
         // Add mobile-specific event handlers to prevent zoom
         textarea.addEventListener('focus', handleFeedbackTextareaFocus);
         textarea.addEventListener('blur', handleFeedbackTextareaBlur);
         
-        // Initialize count
+        // Initialize count and button state
         updateFeedbackCharCount();
+        updateJobCompletionSubmitButtonState();
     }
 }
 
@@ -2005,6 +2029,38 @@ function updateFeedbackCharCount() {
     if (textarea && charCount) {
         const length = textarea.value.length;
         charCount.textContent = length;
+        
+        // Color feedback based on length
+        if (length < 2) {
+            charCount.style.color = '#fc8181'; // Red for insufficient
+        } else if (length > 280) {
+            charCount.style.color = '#fc8181'; // Red for too long
+        } else if (length > 240) {
+            charCount.style.color = '#fbbf24'; // Yellow for warning
+        } else {
+            charCount.style.color = '#10b981'; // Green for good
+        }
+    }
+}
+
+function updateJobCompletionSubmitButtonState() {
+    const textarea = document.getElementById('completionFeedback');
+    const submitBtn = document.getElementById('jobCompletedOkBtn');
+    const rating = getFeedbackRating();
+    
+    if (textarea && submitBtn) {
+        const feedbackText = textarea.value.trim();
+        const isValid = rating > 0 && feedbackText.length >= 2;
+        
+        if (isValid) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.style.cursor = 'not-allowed';
+        }
     }
 }
 
@@ -2019,6 +2075,9 @@ function resetFeedbackForm() {
         textarea.value = '';
         updateFeedbackCharCount();
     }
+    
+    // Reset submit button state
+    updateJobCompletionSubmitButtonState();
 }
 
 function showContractVoidedSuccess(message) {
@@ -2168,14 +2227,22 @@ function showEmptyHiringState() {
     container.innerHTML = `
         <div class="empty-state">
             <div class="empty-state-icon">👥</div>
-            <div class="empty-state-title">No Active Hired Jobs</div>
+            <div class="empty-state-title">No Active Hires Yet</div>
             <div class="empty-state-message">
-                Jobs you've hired someone for or been hired for will appear here.<br>
-                You can mark them as completed or manage the hiring.
+                Jobs you've hired workers for or been hired to work on will appear here.
+                Check your active listings to hire workers or find work.
             </div>
+            <a href="jobs.html" class="empty-state-btn">
+                VIEW LISTINGS
+            </a>
         </div>
     `;
 }
+
+// ========================== PREVIOUS TAB FUNCTIONALITY ==========================
+
+// Global store for completed jobs data
+let MOCK_COMPLETED_DATA = null;
 
 function initializePreviousTab() {
     const container = document.querySelector('.previous-container');
@@ -2187,15 +2254,907 @@ function initializePreviousTab() {
         return;
     }
     
-    // Show placeholder for now
+    console.log('📜 Initializing Previous tab...');
+    loadPreviousContent();
+}
+
+async function loadPreviousContent() {
+    const container = document.querySelector('.previous-container');
+    if (!container) return;
+    
+    try {
+        // Get completed jobs data
+        const completedJobs = await getCompletedJobs();
+        
+        if (completedJobs.length === 0) {
+            showEmptyPreviousState();
+        } else {
+            await generateMockCompletedJobs(completedJobs);
+            initializeCompletedCardHandlers();
+            checkTruncatedFeedback();
+            
+            // Create overlay immediately for testing
+            createFeedbackExpandedOverlay();
+        }
+        
+        console.log(`📜 Previous tab loaded with ${completedJobs.length} completed jobs`);
+        
+    } catch (error) {
+        console.error('❌ Error loading previous jobs:', error);
     container.innerHTML = `
         <div class="content-placeholder">
-            📜 Completed jobs will appear here.<br>
-            You can relist jobs or leave feedback.
+                ❌ Error loading completed jobs.<br>
+                Please try again later.
+        </div>
+    `;
+    }
+}
+
+async function getCompletedJobs() {
+    // Firebase Implementation:
+    // const db = firebase.firestore();
+    // const currentUserId = firebase.auth().currentUser.uid;
+    // 
+    // const completedJobsSnapshot = await db.collection('jobs')
+    //     .where('status', '==', 'completed')
+    //     .where(firebase.firestore.Filter.or(
+    //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
+    //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
+    //     ))
+    //     .orderBy('completedAt', 'desc')
+    //     .get();
+    
+    if (!MOCK_COMPLETED_DATA) {
+        MOCK_COMPLETED_DATA = generateCompletedJobsData();
+    }
+    return MOCK_COMPLETED_DATA;
+}
+
+function generateCompletedJobsData() {
+    const today = new Date();
+    const formatDateTime = (date) => date.toISOString();
+    
+    // Generate 6 mock completed jobs with mix of customer and worker perspectives
+    return [
+        {
+            jobId: 'completed_job_001',
+            posterId: CURRENT_USER_ID, // Peter posted this job
+            posterName: 'Peter J. Ang',
+            posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
+            title: 'Kitchen Deep Cleaning Service with Cabinet Organization',
+            category: 'limpyo',
+            thumbnail: 'public/mock/mock-limpyo-post1.jpg', // Use actual job photo
+            jobDate: '2024-12-20',
+            startTime: '8:00 AM',
+            endTime: '12:00 PM',
+            priceOffer: '800',
+            completedAt: formatDateTime(new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)), // 3 days ago
+            rating: 5,
+            feedback: 'Maria did an excellent job! My kitchen looks brand new. Very professional and thorough work.',
+            role: 'customer', // Current user (Peter) hired someone
+            hiredWorkerId: 'user_maria_santos_005',
+            hiredWorkerName: 'Maria Santos',
+            hiredWorkerThumbnail: 'public/users/User-05.jpg'
+        },
+        {
+            jobId: 'completed_job_002',
+            posterId: 'user_carlos_dela_cruz_003',
+            posterName: 'Carlos Dela Cruz',
+            posterThumbnail: 'public/users/User-03.jpg',
+            title: 'Custom Furniture Repair & Assembly with Wood Finishing',
+            category: 'carpenter',
+            thumbnail: 'public/mock/mock-hakot-post2.jpg', // Use actual job photo
+            jobDate: '2024-12-18',
+            startTime: '1:00 PM',
+            endTime: '5:00 PM',
+            priceOffer: '1200',
+            completedAt: formatDateTime(new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000)), // 5 days ago
+            rating: 4, // Customer's rating of the job completion
+            feedback: null, // Worker perspective - no feedback initially, will show instructions
+            workerFeedback: null, // No feedback left yet - first card
+            workerRating: null, // No rating given yet - will be set when worker submits feedback
+            role: 'worker', // Current user (Peter) worked for Carlos
+            hiredWorkerId: CURRENT_USER_ID,
+            hiredWorkerName: 'Peter J. Ang',
+            hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
+        },
+        {
+            jobId: 'completed_job_003',
+            posterId: CURRENT_USER_ID, // Peter posted this job
+            posterName: 'Peter J. Ang',
+            posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
+            title: 'Complete Garden Maintenance & Landscaping Project',
+            category: 'limpyo',
+            thumbnail: 'public/mock/mock-limpyo-post3.jpg', // Use actual job photo
+            jobDate: '2024-12-15',
+            startTime: '7:00 AM',
+            endTime: '11:00 AM',
+            priceOffer: '600',
+            completedAt: formatDateTime(new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000)), // 8 days ago
+            rating: 5,
+            feedback: 'Amazing work! Ana transformed our garden completely. Highly recommended!',
+            role: 'customer', // Current user (Peter) hired someone
+            hiredWorkerId: 'user_ana_reyes_007',
+            hiredWorkerName: 'Ana Reyes',
+            hiredWorkerThumbnail: 'public/users/User-07.jpg'
+        },
+        {
+            jobId: 'completed_job_004',
+            posterId: 'user_rico_torres_009',
+            posterName: 'Rico Torres',
+            posterThumbnail: 'public/users/User-09.jpg',
+            title: 'Complete Appliance Installation & Electrical Wiring Setup',
+            category: 'electrician',
+            thumbnail: 'public/mock/mock-hatod-post4.jpg', // Use actual job photo
+            jobDate: '2024-12-12',
+            startTime: '9:00 AM',
+            endTime: '2:00 PM',
+            priceOffer: '1500',
+            completedAt: formatDateTime(new Date(today.getTime() - 11 * 24 * 60 * 60 * 1000)), // 11 days ago
+            rating: 3, // Customer's rating of the job completion
+            feedback: null, // Worker perspective - no feedback shown initially
+            workerFeedback: 'Rico was very organized and clear with his instructions. The workspace was clean and he provided all necessary tools. Great communication throughout the job.',
+            workerRating: 4, // Worker already gave a 4-star rating along with feedback
+            role: 'worker', // Current user (Peter) worked for Rico
+            hiredWorkerId: CURRENT_USER_ID,
+            hiredWorkerName: 'Peter J. Ang',
+            hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
+        },
+        {
+            jobId: 'completed_job_005',
+            posterId: CURRENT_USER_ID, // Peter posted this job
+            posterName: 'Peter J. Ang',
+            posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
+            title: 'Bathroom Renovation',
+            category: 'plumber',
+            thumbnail: 'public/mock/mock-limpyo-post5.jpg', // Use actual job photo
+            jobDate: '2024-12-10',
+            startTime: '8:00 AM',
+            endTime: '6:00 PM',
+            priceOffer: '2500',
+            completedAt: formatDateTime(new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000)), // 13 days ago
+            rating: 5,
+            feedback: 'Outstanding service! Elena finished the bathroom renovation perfectly. Very skilled and reliable.',
+            role: 'customer', // Current user (Peter) hired someone
+            hiredWorkerId: 'user_elena_garcia_006',
+            hiredWorkerName: 'Elena Garcia',
+            hiredWorkerThumbnail: 'public/users/User-06.jpg'
+        },
+        {
+            jobId: 'completed_job_006',
+            posterId: 'user_miguel_santos_011',
+            posterName: 'Miguel Santos',
+            posterThumbnail: 'public/users/User-11.jpg',
+            title: 'House Painting',
+            category: 'painter',
+            thumbnail: 'public/mock/mock-kompra-post6.jpg', // Use actual job photo
+            jobDate: '2024-12-08',
+            startTime: '7:00 AM',
+            endTime: '4:00 PM',
+            priceOffer: '1800',
+            completedAt: formatDateTime(new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000)), // 15 days ago
+            rating: 4, // Customer's rating of the job completion
+            feedback: null, // Worker perspective - no feedback shown initially
+            workerFeedback: 'Miguel was a fantastic customer! He was flexible with timing and very appreciative of the work. The house preparation was perfect and payment was prompt.',
+            workerRating: 5, // Worker already gave a 5-star rating along with feedback
+            role: 'worker', // Current user (Peter) worked for Miguel
+            hiredWorkerId: CURRENT_USER_ID,
+            hiredWorkerName: 'Peter J. Ang',
+            hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
+        }
+    ];
+}
+
+async function generateMockCompletedJobs(completedJobs) {
+    const container = document.querySelector('.previous-container');
+    if (!container) return;
+    
+    const cardsHTML = completedJobs.map(job => {
+        const hasWorkerFeedback = job.role === 'worker' && job.workerFeedback;
+        console.log(`🔍 Job ${job.jobId} - Role: ${job.role}, HasWorkerFeedback: ${hasWorkerFeedback}, WorkerFeedback: ${job.workerFeedback ? 'exists' : 'null'}`);
+        return generateCompletedCardHTML(job);
+    }).join('');
+    container.innerHTML = cardsHTML;
+}
+
+function generateCompletedCardHTML(job) {
+    const roleClass = job.role; // 'customer' or 'worker'
+    
+    // Determine role caption and user info based on perspective
+    let roleCaption, userThumbnail, userName, userLabel;
+    if (job.role === 'customer') {
+        // Customer perspective: I hired someone and completed the job
+        roleCaption = `YOU HIRED ${job.hiredWorkerName.toUpperCase()}`;
+        userThumbnail = job.hiredWorkerThumbnail;
+        userName = job.hiredWorkerName;
+        userLabel = 'WORKER';
+    } else {
+        // Worker perspective: I worked for someone who completed the job
+        roleCaption = `WORKED FOR ${job.posterName.toUpperCase()}`;
+        userThumbnail = job.posterThumbnail;
+        userName = job.posterName;
+        userLabel = 'CUSTOMER';
+    }
+    
+    // Generate star rating HTML - use appropriate rating based on role and feedback status
+    let displayRating, ratingCount;
+    if (job.role === 'customer') {
+        // Customer perspective: Show the rating they gave for the worker
+        displayRating = job.rating || 0;
+        ratingCount = `(${displayRating}/5)`;
+    } else {
+        // Worker perspective: Show the rating they gave for the customer (only if feedback submitted)
+        if (job.workerFeedback && job.workerRating) {
+            displayRating = job.workerRating;
+            ratingCount = `(${displayRating}/5)`;
+        } else {
+            // No feedback submitted yet - show 0 stars
+            displayRating = 0;
+            ratingCount = '(0/5)';
+        }
+    }
+    const starsHTML = generateStarRatingHTML(displayRating);
+    
+    // Generate feedback section
+    let feedbackHTML = '';
+    if (job.role === 'customer' && job.feedback) {
+        // Customer perspective: Show feedback left for worker
+        feedbackHTML = `
+            <div class="completed-feedback-section">
+                <div class="completed-feedback-label">Your Feedback</div>
+                <div class="completed-feedback-text">${job.feedback}</div>
+            </div>
+        `;
+    } else if (job.role === 'worker') {
+        if (job.workerFeedback) {
+            // Worker perspective: Show feedback left for customer
+            feedbackHTML = `
+                <div class="completed-feedback-section">
+                    <div class="completed-feedback-label">Your Feedback</div>
+                    <div class="completed-feedback-text">${job.workerFeedback}</div>
+                </div>
+            `;
+        } else {
+            // Worker perspective: Show instructions to leave feedback
+            feedbackHTML = `
+                <div class="completed-feedback-section worker-instructions">
+                    <div class="completed-feedback-label">Leave Feedback</div>
+                    <div class="completed-feedback-instructions">Tap to rate your experience with ${job.posterName} and help other workers.</div>
+                </div>
+            `;
+        }
+    }
+    
+    return `
+        <div class="completed-card ${roleClass}" 
+             data-job-id="${job.jobId}"
+             data-poster-id="${job.posterId}"
+             data-category="${job.category}"
+             data-role="${job.role}"
+             data-hired-worker-id="${job.hiredWorkerId}"
+             data-hired-worker-name="${job.hiredWorkerName}"
+             data-poster-name="${job.posterName}"
+             data-has-worker-feedback="${job.role === 'worker' && job.workerFeedback ? 'true' : 'false'}">
+            
+            <div class="completed-thumbnail">
+                <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                <div class="completed-overlay-badge">COMPLETED</div>
+            </div>
+            
+            <div class="completed-content">
+                <div class="completed-title">${job.title}</div>
+                
+                <div class="completed-main-row">
+                    <div class="completed-schedule-column">
+                        <div class="completed-schedule-row">
+                            <div class="completed-date-section">
+                                <div class="completed-due-label">Job Date</div>
+                                <div class="completed-date">${formatJobDate(job.jobDate)}</div>
+                            </div>
+                            <div class="completed-times-section" data-start-time="${job.startTime}" data-end-time="${job.endTime}">
+                                <div class="completed-time-labels">
+                                    <div class="completed-time-label">FROM</div>
+                                    <div class="completed-time-label">TO</div>
+                                </div>
+                                <div class="completed-time-values">
+                                    <div class="completed-time-value">${formatTime(job.startTime)}</div>
+                                    <div class="completed-time-value">${formatTime(job.endTime)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="completed-info-section">
+                            <div class="completed-on-date">Completed ${formatCompletedDate(job.completedAt)}</div>
+                        </div>
+                        
+                        <div class="completed-role-caption ${roleClass}">${roleCaption}</div>
+                    </div>
+                    
+                    <div class="completed-price-column">
+                        <div class="completed-price">${job.priceOffer.startsWith('₱') ? job.priceOffer : '₱' + job.priceOffer}</div>
+                        
+                        <div class="completed-user-section">
+                            <div class="completed-user-thumbnail">
+                                <img src="${userThumbnail}" alt="${userName}" loading="lazy">
+                            </div>
+                            <div class="completed-user-label">${userLabel}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="completed-rating-section">
+                    <div class="completed-rating-label">Rating</div>
+                    <div class="completed-rating-stars">
+                        ${starsHTML}
+                        <span class="completed-rating-count">${ratingCount}</span>
+                    </div>
+                </div>
+                
+                ${feedbackHTML}
+            </div>
+        </div>
+    `;
+}
+
+function generateStarRatingHTML(rating) {
+    let starsHTML = '';
+    for (let i = 1; i <= 5; i++) {
+        if (i <= rating) {
+            starsHTML += '<span class="completed-rating-star">★</span>';
+        } else {
+            starsHTML += '<span class="completed-rating-star empty">★</span>';
+        }
+    }
+    return starsHTML;
+}
+
+function formatTime(timeString) {
+    // Remove :00 from times like "8:00 AM" -> "8 AM" and "12:00 PM" -> "12 PM"
+    return timeString.replace(':00', '');
+}
+
+function formatCompletedDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = now - date;
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        return 'Today';
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    } else if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    } else {
+        return date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+        });
+    }
+}
+
+function initializeCompletedCardHandlers() {
+    const completedCards = document.querySelectorAll('.completed-card');
+    
+    completedCards.forEach((card, index) => {
+        // Add click handlers to feedback sections directly
+        const feedbackSection = card.querySelector('.completed-feedback-section');
+        if (feedbackSection) {
+            console.log(`🎯 Adding feedback handler to card ${index}:`, feedbackSection);
+            
+            const feedbackClickHandler = function(e) {
+                console.log('💬 Feedback section clicked!', e.target);
+                e.stopPropagation();
+                e.preventDefault();
+                
+                const jobData = extractCompletedJobDataFromCard(card);
+                console.log('📋 Job data:', jobData);
+                
+                // Check if this is an instruction box (for leaving feedback) or actual feedback text
+                const isInstructionBox = feedbackSection.classList.contains('worker-instructions');
+                const hasInstructionText = feedbackSection.querySelector('.completed-feedback-instructions');
+                
+                if (isInstructionBox || hasInstructionText) {
+                    // This is an instruction box - trigger leave feedback flow
+                    console.log('📝 Instruction box clicked - triggering leave feedback');
+                    handleLeaveFeedback(jobData);
+                } else {
+                    // This is actual feedback text - trigger expand overlay
+                    console.log('📖 Feedback text clicked - showing expanded view');
+                    showFeedbackExpandedOverlay(jobData);
+                }
+            };
+            
+            feedbackSection.addEventListener('click', feedbackClickHandler);
+            
+            // Also add handler to feedback text specifically
+            const feedbackText = feedbackSection.querySelector('.completed-feedback-text');
+            if (feedbackText) {
+                feedbackText.addEventListener('click', feedbackClickHandler);
+                console.log(`📝 Added click handler to feedback text in card ${index}`);
+            }
+            
+            // Store handler for cleanup
+            if (!CLEANUP_REGISTRY.elementListeners.has(feedbackSection)) {
+                CLEANUP_REGISTRY.elementListeners.set(feedbackSection, []);
+            }
+            CLEANUP_REGISTRY.elementListeners.get(feedbackSection).push(['click', feedbackClickHandler]);
+        } else {
+            console.log(`❌ No feedback section found in card ${index}`);
+        }
+        
+        // Card click handler (excluding feedback sections)
+        const cardClickHandler = function(e) {
+            // Don't handle if click was on feedback section
+            if (e.target.closest('.completed-feedback-section')) {
+                console.log('🚫 Click on feedback section, ignoring card handler');
+                return;
+            }
+            
+            console.log('📄 Card clicked (non-feedback area)');
+            e.preventDefault();
+            const jobData = extractCompletedJobDataFromCard(card);
+            showPreviousOptionsOverlay(jobData);
+        };
+        
+        card.addEventListener('click', cardClickHandler);
+        
+        // Store handler for cleanup
+        if (!CLEANUP_REGISTRY.elementListeners.has(card)) {
+            CLEANUP_REGISTRY.elementListeners.set(card, []);
+        }
+        CLEANUP_REGISTRY.elementListeners.get(card).push(['click', cardClickHandler]);
+    });
+    
+    console.log(`🔧 Initialized ${completedCards.length} completed card handlers`);
+}
+
+function extractCompletedJobDataFromCard(cardElement) {
+    return {
+        jobId: cardElement.getAttribute('data-job-id'),
+        posterId: cardElement.getAttribute('data-poster-id'),
+        category: cardElement.getAttribute('data-category'),
+        role: cardElement.getAttribute('data-role'),
+        hiredWorkerId: cardElement.getAttribute('data-hired-worker-id'),
+        hiredWorkerName: cardElement.getAttribute('data-hired-worker-name'),
+        posterName: cardElement.getAttribute('data-poster-name'),
+        hasWorkerFeedback: cardElement.getAttribute('data-has-worker-feedback') === 'true',
+        title: cardElement.querySelector('.completed-title')?.textContent || 'Unknown Job'
+    };
+}
+
+async function showFeedbackExpandedOverlay(jobData) {
+    console.log('💬 Show expanded feedback for:', jobData);
+    
+    // Find the feedback content from the completed jobs data (use updated data if available)
+    const completedJobs = MOCK_COMPLETED_DATA || generateCompletedJobsData();
+    const job = completedJobs.find(j => j.jobId === jobData.jobId);
+    
+    if (!job) {
+        console.error('❌ Job not found for feedback expansion');
+        return;
+    }
+    
+    console.log('📝 Found job for feedback:', job);
+    
+    let overlay = document.getElementById('feedbackExpandedOverlay');
+    if (!overlay) {
+        console.log('🏗️ Creating feedback expanded overlay');
+        createFeedbackExpandedOverlay();
+        overlay = document.getElementById('feedbackExpandedOverlay');
+    }
+    
+    const title = document.getElementById('feedbackExpandedTitle');
+    const content = document.getElementById('feedbackExpandedContent');
+    const closeBtn = document.getElementById('feedbackExpandedCloseBtn');
+    
+    if (!overlay || !title || !content || !closeBtn) {
+        console.error('❌ Overlay elements not found after creation');
+        return;
+    }
+    
+    // Determine feedback content (instruction boxes are handled at click level now)
+    let feedbackText = '';
+    if (job.role === 'customer' && job.feedback) {
+        feedbackText = job.feedback;
+        title.textContent = 'Your Feedback';
+        console.log('📝 Showing customer feedback');
+    } else if (job.role === 'worker' && job.workerFeedback) {
+        feedbackText = job.workerFeedback;
+        title.textContent = 'Your Feedback';
+        console.log('📝 Showing worker feedback');
+    } else {
+        console.error('❌ No feedback content found for expansion');
+        return;
+    }
+    
+    console.log('📝 Feedback text:', feedbackText);
+    content.textContent = feedbackText;
+    
+    // Close handler
+    const closeHandler = function() {
+        overlay.classList.remove('show');
+        closeBtn.removeEventListener('click', closeHandler);
+    };
+    closeBtn.addEventListener('click', closeHandler);
+    
+    // Background close handler
+    const backgroundHandler = function(e) {
+        if (e.target === overlay) {
+            overlay.classList.remove('show');
+            overlay.removeEventListener('click', backgroundHandler);
+        }
+    };
+    overlay.addEventListener('click', backgroundHandler);
+    
+    console.log('🎭 Showing feedback overlay');
+    overlay.classList.add('show');
+}
+
+function createFeedbackExpandedOverlay() {
+    // Check if overlay already exists
+    if (document.getElementById('feedbackExpandedOverlay')) {
+        console.log('📱 Feedback expanded overlay already exists');
+        return;
+    }
+    
+    const overlayHTML = `
+        <div id="feedbackExpandedOverlay">
+            <div class="feedback-expanded-content">
+                <div class="overlay-header">
+                    <h3 id="feedbackExpandedTitle">Feedback</h3>
+                    <button id="feedbackExpandedCloseBtn" class="close-btn">&times;</button>
+                </div>
+                <div class="overlay-body">
+                    <div id="feedbackExpandedContent" class="feedback-expanded-text"></div>
+                </div>
+            </div>
         </div>
     `;
     
-    console.log('📜 Previous tab initialized');
+    document.body.insertAdjacentHTML('beforeend', overlayHTML);
+    console.log('📱 Feedback expanded overlay created successfully');
+    
+    // Verify elements were created
+    const overlay = document.getElementById('feedbackExpandedOverlay');
+    const title = document.getElementById('feedbackExpandedTitle');
+    const content = document.getElementById('feedbackExpandedContent');
+    const closeBtn = document.getElementById('feedbackExpandedCloseBtn');
+    
+    console.log('🔍 Overlay verification:', {
+        overlay: !!overlay,
+        title: !!title,
+        content: !!content,
+        closeBtn: !!closeBtn
+    });
+}
+
+function checkTruncatedFeedback() {
+    // Small delay to ensure proper rendering
+    setTimeout(() => {
+        // Check all feedback text elements for truncation
+        const feedbackTexts = document.querySelectorAll('.completed-feedback-text');
+        
+        feedbackTexts.forEach(textElement => {
+            // Skip instruction boxes
+            if (textElement.closest('.worker-instructions')) {
+                return;
+            }
+            
+            // Temporarily remove truncated class to get natural height
+            textElement.classList.remove('truncated');
+            const naturalHeight = textElement.scrollHeight;
+            
+            // Apply truncated class and check if it's actually truncated
+            textElement.classList.add('truncated');
+            const truncatedHeight = textElement.clientHeight;
+            
+            if (naturalHeight > truncatedHeight + 5) { // 5px tolerance
+                textElement.classList.add('truncated');
+                console.log(`📏 Truncated: ${textElement.textContent.substring(0, 30)}...`);
+            } else {
+                textElement.classList.remove('truncated');
+                console.log(`📏 Not truncated: ${textElement.textContent.substring(0, 30)}...`);
+            }
+        });
+        
+        console.log(`🔍 Checked ${feedbackTexts.length} feedback texts for truncation`);
+    }, 100);
+}
+
+async function showPreviousOptionsOverlay(jobData) {
+    console.log('📜 Show previous options for:', jobData);
+    
+    const overlay = document.getElementById('previousOptionsOverlay');
+    const title = document.getElementById('previousOptionsTitle');
+    const subtitle = document.getElementById('previousOptionsSubtitle');
+    const actionsContainer = document.getElementById('previousOptionsActions');
+    
+    if (!overlay || !actionsContainer) {
+        console.error('❌ Previous overlay elements not found');
+        return;
+    }
+    
+    // Set overlay data attributes
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-role', jobData.role);
+    overlay.setAttribute('data-title', jobData.title);
+    overlay.setAttribute('data-hired-worker-name', jobData.hiredWorkerName);
+    overlay.setAttribute('data-poster-name', jobData.posterName);
+    overlay.setAttribute('data-has-worker-feedback', jobData.hasWorkerFeedback);
+    
+    // Update title and subtitle
+    title.textContent = 'Completed Job Options';
+    subtitle.textContent = `Choose an action for "${jobData.title}"`;
+    
+    // Generate buttons based on role
+    let buttonsHTML = '';
+    
+    if (jobData.role === 'worker') {
+        // Worker perspective: You worked for someone
+        if (jobData.hasWorkerFeedback) {
+            // Worker already left feedback - only show report dispute option
+            buttonsHTML = `
+                <button class="listing-option-btn delete" id="reportDisputeBtn">
+                    REPORT DISPUTE
+                </button>
+                <button class="listing-option-btn cancel" id="cancelPreviousBtn">
+                    CLOSE
+                </button>
+            `;
+        } else {
+            // Worker hasn't left feedback yet - show both options
+            buttonsHTML = `
+                <button class="listing-option-btn modify" id="leaveFeedbackBtn">
+                    LEAVE FEEDBACK
+                </button>
+                <button class="listing-option-btn delete" id="reportDisputeBtn">
+                    REPORT DISPUTE
+                </button>
+                <button class="listing-option-btn cancel" id="cancelPreviousBtn">
+                    CLOSE
+                </button>
+            `;
+        }
+    } else if (jobData.role === 'customer') {
+        // Customer perspective: You hired someone and completed the job - can relist
+        buttonsHTML = `
+            <button class="listing-option-btn modify" id="relistCompletedJobBtn">
+                RELIST JOB
+            </button>
+            <button class="listing-option-btn cancel" id="cancelPreviousBtn">
+                CLOSE
+            </button>
+        `;
+    }
+    
+    actionsContainer.innerHTML = buttonsHTML;
+    
+    // Initialize handlers for the dynamically created buttons
+    initializePreviousOverlayHandlers();
+    
+    // Show overlay
+    overlay.classList.add('show');
+    console.log(`📜 Previous overlay shown for ${jobData.role} role - hasWorkerFeedback: ${jobData.hasWorkerFeedback}`);
+}
+
+function showEmptyPreviousState() {
+    const container = document.querySelector('.previous-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">📜</div>
+            <div class="empty-state-title">No Completed Jobs Yet</div>
+            <div class="empty-state-message">
+                Completed jobs will appear here once you finish working on hired jobs.
+                You can relist completed jobs or leave feedback for customers.
+            </div>
+            <a href="jobs.html" class="empty-state-btn">
+                VIEW ACTIVE JOBS
+            </a>
+        </div>
+    `;
+}
+
+// ========================== PREVIOUS TAB OVERLAY HANDLERS ==========================
+
+function initializePreviousOverlayHandlers() {
+    const overlay = document.getElementById('previousOptionsOverlay');
+    if (!overlay || overlay.dataset.handlersInitialized) return;
+
+    const relistBtn = document.getElementById('relistCompletedJobBtn');
+    const feedbackBtn = document.getElementById('leaveFeedbackBtn');
+    const disputeBtn = document.getElementById('reportDisputeBtn');
+    const cancelBtn = document.getElementById('cancelPreviousBtn');
+
+    // Relist completed job handler (customer)
+    if (relistBtn) {
+        const relistHandler = function(e) {
+            e.preventDefault();
+            const jobData = getPreviousJobDataFromOverlay();
+            handleRelistCompletedJob(jobData);
+        };
+        relistBtn.addEventListener('click', relistHandler);
+        registerCleanup('previous', 'relistBtn', () => {
+            relistBtn.removeEventListener('click', relistHandler);
+        });
+    }
+
+    // Leave feedback handler (worker)
+    if (feedbackBtn) {
+        const feedbackHandler = function(e) {
+            e.preventDefault();
+            const jobData = getPreviousJobDataFromOverlay();
+            handleLeaveFeedback(jobData);
+        };
+        feedbackBtn.addEventListener('click', feedbackHandler);
+        registerCleanup('previous', 'feedbackBtn', () => {
+            feedbackBtn.removeEventListener('click', feedbackHandler);
+        });
+    }
+
+    // Report dispute handler (worker)
+    if (disputeBtn) {
+        const disputeHandler = function(e) {
+            e.preventDefault();
+            const jobData = getPreviousJobDataFromOverlay();
+            handleReportDispute(jobData);
+        };
+        disputeBtn.addEventListener('click', disputeHandler);
+        registerCleanup('previous', 'disputeBtn', () => {
+            disputeBtn.removeEventListener('click', disputeHandler);
+        });
+    }
+
+    // Cancel handler
+    if (cancelBtn) {
+        const cancelHandler = function(e) {
+            e.preventDefault();
+            hidePreviousOptionsOverlay();
+        };
+        cancelBtn.addEventListener('click', cancelHandler);
+        registerCleanup('previous', 'cancelBtn', () => {
+            cancelBtn.removeEventListener('click', cancelHandler);
+        });
+    }
+
+    // Background click handler
+    const backgroundHandler = function(e) {
+        if (e.target === overlay) {
+            hidePreviousOptionsOverlay();
+        }
+    };
+    overlay.addEventListener('click', backgroundHandler);
+    registerCleanup('previous', 'overlayBackground', () => {
+        overlay.removeEventListener('click', backgroundHandler);
+    });
+
+    // Escape key handler
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hidePreviousOptionsOverlay();
+        }
+    };
+    addDocumentListener('previousOverlayEscape', escapeHandler);
+
+    overlay.dataset.handlersInitialized = 'true';
+    console.log('🔧 Previous overlay handlers initialized');
+}
+
+function getPreviousJobDataFromOverlay() {
+    const overlay = document.getElementById('previousOptionsOverlay');
+    return {
+        jobId: overlay.getAttribute('data-job-id'),
+        role: overlay.getAttribute('data-role'),
+        title: overlay.getAttribute('data-title'),
+        hiredWorkerName: overlay.getAttribute('data-hired-worker-name'),
+        posterName: overlay.getAttribute('data-poster-name'),
+        hasWorkerFeedback: overlay.getAttribute('data-has-worker-feedback') === 'true'
+    };
+}
+
+function hidePreviousOptionsOverlay() {
+    const overlay = document.getElementById('previousOptionsOverlay');
+    overlay.classList.remove('show');
+    
+    // Clear handlers initialization flag to allow re-initialization
+    delete overlay.dataset.handlersInitialized;
+    
+    // Clean up all previous overlay handlers
+    executeCleanupsByType('previous');
+    
+    console.log('🔧 Previous overlay hidden and handlers cleaned up');
+}
+
+function handleRelistCompletedJob(jobData) {
+    console.log(`🔄 RELIST completed job: ${jobData.jobId}`);
+    hidePreviousOptionsOverlay();
+    
+    // Show relist confirmation - reuse existing relist overlay
+    document.getElementById('relistJobSubtitle').textContent = 'This will create a new job listing';
+    document.getElementById('relistWorkerName').textContent = jobData.hiredWorkerName;
+    document.getElementById('relistWorkerNameReminder').textContent = jobData.hiredWorkerName;
+    document.getElementById('relistWorkerNameInput').textContent = jobData.hiredWorkerName;
+    
+    // Update warning text for completed job relisting
+    const warningText = document.querySelector('#relistJobConfirmationOverlay .delete-warning-text');
+    if (warningText) {
+        warningText.innerHTML = `
+            Relisting this completed job will:<br>
+            • Create a new job posting based on this completed job<br>
+            • Make it available for new applications<br>
+            • Add it to your active listings<br><br>
+            This is useful if you need the same work done again.
+        `;
+    }
+    
+    // Update reason label for completed job relisting
+    const reasonLabel = document.querySelector('#relistJobConfirmationOverlay .reason-label');
+    if (reasonLabel) {
+        reasonLabel.innerHTML = `
+            For records, please provide reason why you are relisting this completed job:
+        `;
+    }
+    
+    const relistInput = document.getElementById('relistReasonInput');
+    if (relistInput) {
+        relistInput.placeholder = 'Enter reason for relisting (minimum 2 characters)';
+    }
+    
+    // Show the overlay
+    document.getElementById('relistJobConfirmationOverlay').classList.add('show');
+}
+
+function handleLeaveFeedback(jobData) {
+    console.log(`💭 LEAVE FEEDBACK for customer: ${jobData.posterName}`);
+    hidePreviousOptionsOverlay();
+    
+    // Update feedback overlay content
+    document.getElementById('feedbackCustomerName').textContent = `Rate your experience working for ${jobData.posterName}`;
+    document.getElementById('feedbackCustomerNameSpan').textContent = jobData.posterName;
+    
+    // Store job data in the overlay for submission
+    const feedbackOverlay = document.getElementById('leaveFeedbackOverlay');
+    feedbackOverlay.setAttribute('data-job-id', jobData.jobId);
+    feedbackOverlay.setAttribute('data-customer-name', jobData.posterName);
+    
+    // Reset feedback form
+    resetCustomerFeedbackForm();
+    
+    // Initialize feedback handlers
+    initializeCustomerFeedbackHandlers();
+    
+    // Show feedback overlay
+    feedbackOverlay.classList.add('show');
+}
+
+function handleReportDispute(jobData) {
+    console.log(`⚠️ REPORT DISPUTE for customer: ${jobData.posterName}`);
+    hidePreviousOptionsOverlay();
+    
+    // Update dispute overlay content
+    document.getElementById('disputeJobSubtitle').textContent = `Report an issue with "${jobData.title}"`;
+    document.getElementById('disputeCustomerName').textContent = jobData.posterName;
+    
+    // Store job data in the overlay for submission
+    const disputeOverlay = document.getElementById('reportDisputeOverlay');
+    disputeOverlay.setAttribute('data-job-id', jobData.jobId);
+    disputeOverlay.setAttribute('data-customer-name', jobData.posterName);
+    disputeOverlay.setAttribute('data-job-title', jobData.title);
+    
+    // Reset dispute form
+    resetDisputeForm();
+    
+    // Initialize dispute handlers
+    initializeDisputeHandlers();
+    
+    // Show dispute overlay
+    disputeOverlay.classList.add('show');
 }
 
 // ========================== LISTING OPTIONS OVERLAY HANDLERS ==========================
@@ -2717,12 +3676,13 @@ async function updateTabCounts() {
         // Get data directly from their respective arrays
         const listingsJobs = await JobsDataService.getAllJobs();
         const hiringJobs = await JobsDataService.getAllHiredJobs();
+        const completedJobs = await getCompletedJobs();
         
         // Count actual jobs in each data set
         const counts = {
             listings: listingsJobs.length,    // Active/paused jobs posted by user
             hiring: hiringJobs.length,        // Jobs with hired workers (status: 'hired')
-            previous: 0                       // TODO: Implement when previous jobs feature is added
+            previous: completedJobs.length    // Completed jobs involving current user
         };
         
         // Update the notification badges in DOM
@@ -2748,16 +3708,633 @@ async function updateTabCounts() {
 }
 
 async function updateJobStatusInMockData(jobId, newStatus) {
-    // Update status using the data service layer
-    console.log(`🔄 Updating job status: ${jobId} → ${newStatus}`);
+    if (MOCK_LISTINGS_DATA) {
+        const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
+        if (jobIndex !== -1) {
+            MOCK_LISTINGS_DATA[jobIndex].status = newStatus;
+            MOCK_LISTINGS_DATA[jobIndex].lastModified = new Date().toISOString();
+            console.log(`📊 Mock data updated: Job ${jobId} status → ${newStatus}`);
+            return true;
+        }
+    }
+    return false;
+}
+
+async function updateCompletedJobWorkerFeedback(jobId, feedbackText, rating) {
+    // This simulates updating worker feedback in Firebase
+    console.log(`📝 Updating worker feedback for job ${jobId}: "${feedbackText}" with ${rating} stars`);
     
-    const result = await JobsDataService.updateJobStatus(jobId, newStatus);
-    
-    if (result.success) {
-        console.log(`📊 Job status updated: ${jobId} → ${newStatus}`);
-    } else {
-        console.warn(`⚠️ Failed to update job status: ${result.error}`);
+    // Update the mock data
+    if (!MOCK_COMPLETED_DATA) {
+        MOCK_COMPLETED_DATA = generateCompletedJobsData();
     }
     
-    return result;
+    const jobIndex = MOCK_COMPLETED_DATA.findIndex(job => job.jobId === jobId);
+    if (jobIndex !== -1) {
+        MOCK_COMPLETED_DATA[jobIndex].workerFeedback = feedbackText;
+        MOCK_COMPLETED_DATA[jobIndex].workerRating = rating;
+        console.log(`✅ Mock data updated: Job ${jobId} now has worker feedback (${rating} stars)`);
+        
+        // Refresh the Previous tab to show the updated card
+        await loadPreviousContent();
+        return true;
+    }
+    
+    console.error(`❌ Job ${jobId} not found in completed jobs data`);
+    return false;
+}
+
+async function addJobToCompletedData(hiringJob, customerRating, customerFeedback) {
+    // Initialize completed data if it doesn't exist
+    if (!MOCK_COMPLETED_DATA) {
+        MOCK_COMPLETED_DATA = generateCompletedJobsData();
+    }
+    
+    // Transform hiring job into completed job format
+    const completedJob = {
+        jobId: hiringJob.jobId,
+        posterId: hiringJob.posterId,
+        posterName: hiringJob.posterName,
+        posterThumbnail: hiringJob.posterThumbnail,
+        title: hiringJob.title,
+        category: hiringJob.category,
+        thumbnail: hiringJob.thumbnail,
+        jobDate: hiringJob.jobDate,
+        startTime: hiringJob.startTime,
+        endTime: hiringJob.endTime,
+        priceOffer: hiringJob.priceOffer,
+        completedAt: new Date().toISOString(), // Current timestamp
+        rating: customerRating, // Customer's rating for the worker
+        feedback: customerFeedback, // Customer's feedback for the worker
+        workerFeedback: null, // Worker can leave feedback later
+        workerRating: 0, // Worker rating for customer (can be added later)
+        role: 'customer', // Current user (Peter) is the customer in this scenario
+        hiredWorkerId: hiringJob.hiredWorkerId,
+        hiredWorkerName: hiringJob.hiredWorkerName,
+        hiredWorkerThumbnail: hiringJob.hiredWorkerThumbnail
+    };
+    
+    // Add to the beginning of completed data (most recent first)
+    MOCK_COMPLETED_DATA.unshift(completedJob);
+    
+    console.log(`📋 Added job ${hiringJob.jobId} to completed data with customer rating: ${customerRating}/5`);
+    return true;
+}
+
+// ========================== CUSTOMER FEEDBACK HANDLING ==========================
+
+function initializeCustomerFeedbackHandlers() {
+    const overlay = document.getElementById('leaveFeedbackOverlay');
+    if (!overlay || overlay.dataset.feedbackHandlersInitialized) return;
+
+    const submitBtn = document.getElementById('submitCustomerFeedbackBtn');
+    const cancelBtn = document.getElementById('cancelCustomerFeedbackBtn');
+    const textarea = document.getElementById('customerFeedback');
+    const stars = document.querySelectorAll('#customerFeedbackStars .feedback-star');
+
+    // Submit feedback handler
+    if (submitBtn) {
+        const submitHandler = async function() {
+            await submitCustomerFeedback();
+        };
+        submitBtn.addEventListener('click', submitHandler);
+        registerCleanup('customerFeedback', 'submitBtn', () => {
+            submitBtn.removeEventListener('click', submitHandler);
+        });
+    }
+
+    // Cancel feedback handler
+    if (cancelBtn) {
+        const cancelHandler = function() {
+            hideCustomerFeedbackOverlay();
+        };
+        cancelBtn.addEventListener('click', cancelHandler);
+        registerCleanup('customerFeedback', 'cancelBtn', () => {
+            cancelBtn.removeEventListener('click', cancelHandler);
+        });
+    }
+
+    // Initialize star rating for customer feedback
+    initializeCustomerFeedbackStarRating();
+
+    // Initialize character count for customer feedback
+    initializeCustomerFeedbackCharacterCount();
+
+    // Background click handler
+    const backgroundHandler = function(e) {
+        if (e.target === overlay) {
+            hideCustomerFeedbackOverlay();
+        }
+    };
+    overlay.addEventListener('click', backgroundHandler);
+    registerCleanup('customerFeedback', 'overlayBackground', () => {
+        overlay.removeEventListener('click', backgroundHandler);
+    });
+
+    // Escape key handler
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideCustomerFeedbackOverlay();
+        }
+    };
+    addDocumentListener('customerFeedbackEscape', escapeHandler);
+
+    overlay.dataset.feedbackHandlersInitialized = 'true';
+    console.log('🔧 Customer feedback handlers initialized');
+}
+
+function initializeCustomerFeedbackStarRating() {
+    const stars = document.querySelectorAll('#customerFeedbackStars .feedback-star');
+    
+    stars.forEach((star, index) => {
+        const rating = parseInt(star.getAttribute('data-rating'));
+        
+        const mouseEnterHandler = function() {
+            highlightCustomerStars(rating, stars);
+        };
+        
+        const mouseLeaveHandler = function() {
+            const selectedRating = getCustomerFeedbackRating();
+            if (selectedRating > 0) {
+                selectCustomerStars(selectedRating, stars);
+    } else {
+                clearCustomerStars(stars);
+            }
+        };
+        
+        const clickHandler = function() {
+            selectCustomerStars(rating, stars);
+            star.dataset.selected = 'true';
+            
+            // Clear other selections
+            stars.forEach((s, i) => {
+                if (i < rating) {
+                    s.dataset.selected = 'true';
+                } else {
+                    s.dataset.selected = 'false';
+                }
+            });
+            
+            // Update submit button state when rating changes
+            const textarea = document.getElementById('customerFeedback');
+            const submitBtn = document.getElementById('submitCustomerFeedbackBtn');
+            if (textarea && submitBtn) {
+                const textLength = textarea.value.trim().length;
+                if (textLength >= 2 && rating > 0) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true;
+                }
+            }
+        };
+        
+        star.addEventListener('mouseenter', mouseEnterHandler);
+        star.addEventListener('mouseleave', mouseLeaveHandler);
+        star.addEventListener('click', clickHandler);
+        
+        // Store handlers for cleanup
+        registerCleanup('customerFeedback', `star_${index}`, () => {
+            star.removeEventListener('mouseenter', mouseEnterHandler);
+            star.removeEventListener('mouseleave', mouseLeaveHandler);
+            star.removeEventListener('click', clickHandler);
+        });
+    });
+}
+
+function highlightCustomerStars(rating, stars) {
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('hover');
+            star.classList.remove('filled');
+        } else {
+            star.classList.remove('hover', 'filled');
+        }
+    });
+}
+
+function selectCustomerStars(rating, stars) {
+    stars.forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('filled');
+            star.classList.remove('hover');
+        } else {
+            star.classList.remove('filled', 'hover');
+        }
+    });
+}
+
+function clearCustomerStars(stars) {
+    stars.forEach(star => {
+        star.classList.remove('filled', 'hover');
+    });
+}
+
+function getCustomerFeedbackRating() {
+    const stars = document.querySelectorAll('#customerFeedbackStars .feedback-star');
+    for (let i = stars.length - 1; i >= 0; i--) {
+        if (stars[i].dataset.selected === 'true') {
+            return i + 1;
+        }
+    }
+    return 0;
+}
+
+function initializeCustomerFeedbackCharacterCount() {
+    const textarea = document.getElementById('customerFeedback');
+    const charCount = document.getElementById('customerFeedbackCharCount');
+    const submitBtn = document.getElementById('submitCustomerFeedbackBtn');
+    
+    if (!textarea || !charCount || !submitBtn) return;
+    
+    const updateHandler = function() {
+        const count = textarea.value.length;
+        charCount.textContent = count;
+        
+        // Update character count color
+        if (count > 280) {
+            charCount.style.color = '#fc8181';
+        } else if (count > 240) {
+            charCount.style.color = '#fbbf24';
+        } else {
+            charCount.style.color = '#a0aec0';
+        }
+        
+        // Enable/disable submit button based on minimum 2 characters
+        const rating = getCustomerFeedbackRating();
+        if (count >= 2 && rating > 0) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+    };
+    
+    const focusHandler = function(e) {
+        handleCustomerFeedbackTextareaFocus(e);
+    };
+    
+    const blurHandler = function(e) {
+        handleCustomerFeedbackTextareaBlur(e);
+    };
+    
+    textarea.addEventListener('input', updateHandler);
+    textarea.addEventListener('focus', focusHandler);
+    textarea.addEventListener('blur', blurHandler);
+    
+    registerCleanup('customerFeedback', 'textarea', () => {
+        textarea.removeEventListener('input', updateHandler);
+        textarea.removeEventListener('focus', focusHandler);
+        textarea.removeEventListener('blur', blurHandler);
+    });
+}
+
+function handleCustomerFeedbackTextareaFocus(e) {
+    const overlay = document.getElementById('leaveFeedbackOverlay');
+    overlay.classList.add('input-focused');
+}
+
+function handleCustomerFeedbackTextareaBlur(e) {
+    const overlay = document.getElementById('leaveFeedbackOverlay');
+    overlay.classList.remove('input-focused');
+}
+
+async function submitCustomerFeedback() {
+    const overlay = document.getElementById('leaveFeedbackOverlay');
+    const jobId = overlay.getAttribute('data-job-id');
+    const customerName = overlay.getAttribute('data-customer-name');
+    const rating = getCustomerFeedbackRating();
+    const feedbackText = document.getElementById('customerFeedback').value.trim();
+    
+    if (rating === 0) {
+        showErrorNotification('Please select a rating before submitting');
+        return;
+    }
+    
+    if (feedbackText.length < 2) {
+        showErrorNotification('Feedback must be at least 2 characters long');
+        return;
+    }
+    
+    console.log('💭 Submitting customer feedback:', {
+        jobId,
+        customerName,
+        rating,
+        feedbackText
+    });
+    
+    try {
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // await db.collection('feedback').add({
+        //     jobId: jobId,
+        //     fromUserId: currentUserId,
+        //     toUserId: customerUserId,
+        //     rating: rating,
+        //     feedbackText: feedbackText,
+        //     feedbackType: 'worker_to_customer',
+        //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        //     isPublic: true
+        // });
+        
+        // Mock submission delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Update mock data to reflect the new feedback
+        await updateCompletedJobWorkerFeedback(jobId, feedbackText, rating);
+        
+        hideCustomerFeedbackOverlay();
+        showFeedbackSubmittedSuccess(customerName);
+        
+    } catch (error) {
+        console.error('❌ Error submitting customer feedback:', error);
+        showErrorNotification('Failed to submit feedback. Please try again.');
+    }
+}
+
+function resetCustomerFeedbackForm() {
+    const stars = document.querySelectorAll('#customerFeedbackStars .feedback-star');
+    const textarea = document.getElementById('customerFeedback');
+    const charCount = document.getElementById('customerFeedbackCharCount');
+    const submitBtn = document.getElementById('submitCustomerFeedbackBtn');
+    
+    // Reset stars
+    stars.forEach(star => {
+        star.classList.remove('filled', 'hover');
+        star.dataset.selected = 'false';
+    });
+    
+    // Reset textarea
+    if (textarea) {
+        textarea.value = '';
+    }
+    
+    // Reset char count
+    if (charCount) {
+        charCount.textContent = '0';
+        charCount.style.color = '#a0aec0';
+    }
+    
+    // Disable submit button initially
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+}
+
+function hideCustomerFeedbackOverlay() {
+    const overlay = document.getElementById('leaveFeedbackOverlay');
+    overlay.classList.remove('show', 'input-focused');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.feedbackHandlersInitialized;
+    
+    // Clean up handlers
+    executeCleanupsByType('customerFeedback');
+    
+    console.log('🔧 Customer feedback overlay hidden and handlers cleaned up');
+}
+
+function showFeedbackSubmittedSuccess(customerName) {
+    const overlay = document.getElementById('feedbackSubmittedOverlay');
+    const message = document.getElementById('feedbackSubmittedMessage');
+    
+    message.textContent = `Thank you! Your feedback for ${customerName} has been submitted successfully.`;
+    
+    const okBtn = document.getElementById('feedbackSubmittedOkBtn');
+    const okHandler = function() {
+        overlay.classList.remove('show');
+        okBtn.removeEventListener('click', okHandler);
+    };
+    okBtn.addEventListener('click', okHandler);
+    
+    overlay.classList.add('show');
+}
+
+// ========================== DISPUTE HANDLING ==========================
+
+function initializeDisputeHandlers() {
+    const overlay = document.getElementById('reportDisputeOverlay');
+    if (!overlay || overlay.dataset.disputeHandlersInitialized) return;
+
+    const submitBtn = document.getElementById('submitDisputeBtn');
+    const cancelBtn = document.getElementById('disputeCancelBtn');
+    const textarea = document.getElementById('disputeReasonInput');
+
+    // Submit dispute handler
+    if (submitBtn) {
+        const submitHandler = async function() {
+            await submitDispute();
+        };
+        submitBtn.addEventListener('click', submitHandler);
+        registerCleanup('dispute', 'submitBtn', () => {
+            submitBtn.removeEventListener('click', submitHandler);
+        });
+    }
+
+    // Cancel dispute handler
+    if (cancelBtn) {
+        const cancelHandler = function() {
+            hideDisputeOverlay();
+        };
+        cancelBtn.addEventListener('click', cancelHandler);
+        registerCleanup('dispute', 'cancelBtn', () => {
+            cancelBtn.removeEventListener('click', cancelHandler);
+        });
+    }
+
+    // Initialize character count and validation
+    initializeDisputeCharacterCount();
+
+    // Background click handler
+    const backgroundHandler = function(e) {
+        if (e.target === overlay) {
+            hideDisputeOverlay();
+        }
+    };
+    overlay.addEventListener('click', backgroundHandler);
+    registerCleanup('dispute', 'overlayBackground', () => {
+        overlay.removeEventListener('click', backgroundHandler);
+    });
+
+    // Escape key handler
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideDisputeOverlay();
+        }
+    };
+    addDocumentListener('disputeEscape', escapeHandler);
+
+    overlay.dataset.disputeHandlersInitialized = 'true';
+    console.log('🔧 Dispute handlers initialized');
+}
+
+function initializeDisputeCharacterCount() {
+    const textarea = document.getElementById('disputeReasonInput');
+    const charCount = document.getElementById('disputeCharCount');
+    const submitBtn = document.getElementById('submitDisputeBtn');
+    const errorDiv = document.getElementById('disputeReasonError');
+    
+    if (!textarea || !charCount || !submitBtn || !errorDiv) return;
+    
+    const updateHandler = function() {
+        const count = textarea.value.length;
+        charCount.textContent = count;
+        
+        // Update character count color
+        if (count > 450) {
+            charCount.style.color = '#fc8181';
+        } else if (count > 400) {
+            charCount.style.color = '#fbbf24';
+        } else {
+            charCount.style.color = '#a0aec0';
+        }
+        
+        // Validate minimum length (10 characters)
+        if (count >= 10) {
+            submitBtn.disabled = false;
+            errorDiv.classList.remove('show');
+        } else {
+            submitBtn.disabled = true;
+            if (count > 0) {
+                errorDiv.classList.add('show');
+            } else {
+                errorDiv.classList.remove('show');
+            }
+        }
+    };
+    
+    const focusHandler = function(e) {
+        handleDisputeTextareaFocus(e);
+    };
+    
+    const blurHandler = function(e) {
+        handleDisputeTextareaBlur(e);
+    };
+    
+    textarea.addEventListener('input', updateHandler);
+    textarea.addEventListener('focus', focusHandler);
+    textarea.addEventListener('blur', blurHandler);
+    
+    registerCleanup('dispute', 'textarea', () => {
+        textarea.removeEventListener('input', updateHandler);
+        textarea.removeEventListener('focus', focusHandler);
+        textarea.removeEventListener('blur', blurHandler);
+    });
+    
+    // Initial validation
+    updateHandler();
+}
+
+function handleDisputeTextareaFocus(e) {
+    const overlay = document.getElementById('reportDisputeOverlay');
+    overlay.classList.add('input-focused');
+}
+
+function handleDisputeTextareaBlur(e) {
+    const overlay = document.getElementById('reportDisputeOverlay');
+    overlay.classList.remove('input-focused');
+}
+
+async function submitDispute() {
+    const overlay = document.getElementById('reportDisputeOverlay');
+    const jobId = overlay.getAttribute('data-job-id');
+    const customerName = overlay.getAttribute('data-customer-name');
+    const jobTitle = overlay.getAttribute('data-job-title');
+    const disputeReason = document.getElementById('disputeReasonInput').value.trim();
+    
+    if (disputeReason.length < 10) {
+        showErrorNotification('Please provide at least 10 characters for the dispute reason');
+        return;
+    }
+    
+    console.log('⚠️ Submitting dispute:', {
+        jobId,
+        customerName,
+        jobTitle,
+        disputeReason
+    });
+    
+    try {
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // await db.collection('disputes').add({
+        //     jobId: jobId,
+        //     reporterUserId: currentUserId,
+        //     reportedUserId: customerUserId,
+        //     jobTitle: jobTitle,
+        //     disputeReason: disputeReason,
+        //     status: 'pending',
+        //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        //     priority: 'medium'
+        // });
+        
+        // Mock submission delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        hideDisputeOverlay();
+        showDisputeSubmittedSuccess(customerName, jobTitle);
+        
+    } catch (error) {
+        console.error('❌ Error submitting dispute:', error);
+        showErrorNotification('Failed to submit dispute. Please try again.');
+    }
+}
+
+function resetDisputeForm() {
+    const textarea = document.getElementById('disputeReasonInput');
+    const charCount = document.getElementById('disputeCharCount');
+    const submitBtn = document.getElementById('submitDisputeBtn');
+    const errorDiv = document.getElementById('disputeReasonError');
+    
+    // Reset textarea
+    if (textarea) {
+        textarea.value = '';
+    }
+    
+    // Reset char count
+    if (charCount) {
+        charCount.textContent = '0';
+        charCount.style.color = '#a0aec0';
+    }
+    
+    // Reset button state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+    }
+    
+    // Hide error
+    if (errorDiv) {
+        errorDiv.classList.remove('show');
+    }
+}
+
+function hideDisputeOverlay() {
+    const overlay = document.getElementById('reportDisputeOverlay');
+    overlay.classList.remove('show', 'input-focused');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.disputeHandlersInitialized;
+    
+    // Clean up handlers
+    executeCleanupsByType('dispute');
+    
+    console.log('🔧 Dispute overlay hidden and handlers cleaned up');
+}
+
+function showDisputeSubmittedSuccess(customerName, jobTitle) {
+    const overlay = document.getElementById('disputeSubmittedOverlay');
+    const message = document.getElementById('disputeSubmittedMessage');
+    
+    message.textContent = `Your dispute regarding "${jobTitle}" with ${customerName} has been submitted and will be reviewed by our support team within 24-48 hours.`;
+    
+    const okBtn = document.getElementById('disputeSubmittedOkBtn');
+    const okHandler = function() {
+        overlay.classList.remove('show');
+        okBtn.removeEventListener('click', okHandler);
+    };
+    okBtn.addEventListener('click', okHandler);
+    
+    overlay.classList.add('show');
 } 

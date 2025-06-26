@@ -271,7 +271,7 @@
                 </div>
                 
                 <div class="feedback-text-section">
-                    <label for="completionFeedback" class="feedback-text-label">Feedback (optional):</label>
+                    <label for="completionFeedback" class="feedback-text-label">Feedback (required):</label>
                     <textarea 
                         id="completionFeedback" 
                         class="feedback-textarea" 
@@ -367,6 +367,126 @@
                     DELETE PERMANENTLY
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Previous Jobs Options Overlay -->
+    <div class="listing-options-overlay" id="previousOptionsOverlay">
+        <div class="listing-options-container">
+            <div class="listing-options-header">
+                <div class="listing-options-title" id="previousOptionsTitle">Completed Job Options</div>
+                <div class="listing-options-subtitle" id="previousOptionsSubtitle">Choose an action for this completed job</div>
+            </div>
+            <div class="listing-options-actions" id="previousOptionsActions">
+                <!-- Dynamic options based on customer/worker role -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Feedback Overlay -->
+    <div class="success-overlay" id="leaveFeedbackOverlay">
+        <div class="success-modal">
+            <div class="success-header">
+                <div class="success-title-row">
+                    <div class="success-title">Leave Feedback</div>
+                    <div class="success-icon">💭</div>
+                </div>
+                <div class="success-subtitle" id="feedbackCustomerName">Rate your experience working for the customer</div>
+            </div>
+            
+            <div class="success-feedback-section">
+                <div class="feedback-label">How was your experience with <span id="feedbackCustomerNameSpan">the customer</span>?</div>
+                
+                <div class="feedback-rating-section">
+                    <label class="feedback-rating-label">Rating:</label>
+                    <div class="feedback-stars-container" id="customerFeedbackStars">
+                        <div class="feedback-star" data-rating="1">★</div>
+                        <div class="feedback-star" data-rating="2">★</div>
+                        <div class="feedback-star" data-rating="3">★</div>
+                        <div class="feedback-star" data-rating="4">★</div>
+                        <div class="feedback-star" data-rating="5">★</div>
+                    </div>
+                </div>
+                
+                <div class="feedback-text-section">
+                    <label for="customerFeedback" class="feedback-text-label">Feedback (optional):</label>
+                    <textarea 
+                        id="customerFeedback" 
+                        class="feedback-textarea" 
+                        placeholder="Share your experience working for this customer..."
+                        maxlength="300"
+                        rows="3"></textarea>
+                    <div class="feedback-char-count">
+                        <span id="customerFeedbackCharCount">0</span>/300 characters
+                    </div>
+                </div>
+            </div>
+            
+            <div class="success-actions">
+                <button class="success-btn" id="submitCustomerFeedbackBtn">SUBMIT FEEDBACK</button>
+                <button class="success-btn" id="cancelCustomerFeedbackBtn" style="background: #6b7280; margin-left: 10px;">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Dispute Overlay -->
+    <div class="delete-confirmation-overlay" id="reportDisputeOverlay">
+        <div class="delete-confirmation-container">
+            <div class="delete-confirmation-header">
+                <div class="delete-confirmation-title-row">
+                    <div class="delete-confirmation-icon">⚠️</div>
+                    <div class="delete-confirmation-title">Report Dispute</div>
+                </div>
+                <div class="delete-confirmation-subtitle" id="disputeJobSubtitle">Report an issue with this completed job</div>
+            </div>
+            <div class="delete-confirmation-warning">
+                <div class="delete-warning-text">
+                    Please describe the issue you experienced with <span id="disputeCustomerName">the customer</span>. This will be reviewed by our support team.
+                </div>
+            </div>
+            <div class="reason-input-section">
+                <label for="disputeReasonInput" class="reason-label">
+                    Describe the issue or dispute (required):
+                </label>
+                <textarea 
+                    id="disputeReasonInput" 
+                    class="reason-textarea" 
+                    placeholder="Describe what went wrong with this job (minimum 10 characters)"
+                    maxlength="500"
+                    rows="4"></textarea>
+                <div class="reason-char-count">
+                    <span id="disputeCharCount">0</span>/500 characters
+                </div>
+                <div class="reason-error" id="disputeReasonError">Please enter at least 10 characters</div>
+            </div>
+            <div class="delete-confirmation-actions">
+                <button class="delete-confirmation-btn cancel" id="disputeCancelBtn">
+                    CANCEL
+                </button>
+                <button class="delete-confirmation-btn delete" id="submitDisputeBtn" disabled>
+                    SUBMIT REPORT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feedback Submitted Success Overlay -->
+    <div class="success-overlay" id="feedbackSubmittedOverlay">
+        <div class="success-modal">
+            <div class="success-icon">✅</div>
+            <div class="success-title">Feedback Submitted</div>
+            <div class="success-message" id="feedbackSubmittedMessage">Thank you! Your feedback has been submitted successfully.</div>
+            <button class="success-btn" id="feedbackSubmittedOkBtn">OK</button>
+        </div>
+    </div>
+
+    <!-- Dispute Submitted Success Overlay -->
+    <div class="success-overlay" id="disputeSubmittedOverlay">
+        <div class="success-modal">
+            <div class="success-icon">📋</div>
+            <div class="success-title">Dispute Reported</div>
+            <div class="success-message" id="disputeSubmittedMessage">Your dispute has been submitted and will be reviewed by our support team within 24-48 hours.</div>
+            <button class="success-btn" id="disputeSubmittedOkBtn">UNDERSTOOD</button>
         </div>
     </div>
 
