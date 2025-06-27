@@ -2807,24 +2807,24 @@ function checkTruncatedFeedback() {
                 return;
             }
             
-            // Temporarily remove truncated class to get natural height
+            // Remove truncated class temporarily to measure natural height
             textElement.classList.remove('truncated');
             const naturalHeight = textElement.scrollHeight;
             
-            // Apply truncated class and check if it's actually truncated
+            // Add truncated class back to measure constrained height
             textElement.classList.add('truncated');
             const truncatedHeight = textElement.clientHeight;
             
-            if (naturalHeight > truncatedHeight + 5) { // 5px tolerance
-                textElement.classList.add('truncated');
-                console.log(`📏 Truncated: ${textElement.textContent.substring(0, 30)}...`);
-            } else {
+            // Only keep truncated class if text actually overflows
+            if (naturalHeight <= truncatedHeight + 5) { // 5px tolerance
                 textElement.classList.remove('truncated');
-                console.log(`📏 Not truncated: ${textElement.textContent.substring(0, 30)}...`);
+                console.log(`📏 No truncation needed: ${textElement.textContent.substring(0, 30)}...`);
+            } else {
+                console.log(`📏 Applied truncation: ${textElement.textContent.substring(0, 30)}...`);
             }
         });
         
-        console.log(`🔍 Checked ${feedbackTexts.length} feedback texts for truncation`);
+        console.log(`🔍 Processed ${feedbackTexts.length} feedback texts`);
     }, 100);
 }
 
