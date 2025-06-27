@@ -3340,13 +3340,13 @@ body:has(.jobs-header) {
 
 /* ========================== COMPLETED JOBS (PREVIOUS TAB) STYLES ========================== */
 
-/* Completed Job Card Styles - Based on Hiring Cards */
+/* Completed Job Card Styles - New Layout Design */
 .completed-card {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   width: calc(100% - 20px);
   max-width: 700px;
-  height: 380px;
+  height: 360px;
   border-radius: 12px;
   margin: 0 auto 16px auto;
   cursor: pointer;
@@ -3390,10 +3390,77 @@ body:has(.jobs-header) {
   box-shadow: 0 3px 12px rgba(0,0,0,0.2);
 }
 
-/* Completed Card Content Structure */
+/* Completed Card Content Structure - New Layout */
+.completed-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  margin: 0;
+  padding: 16px 20px 12px 20px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.completed-date-time-row {
+  padding: 8px 20px 12px 20px;
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 40px;
+  font-size: 0.85rem;
+}
+
+.completed-date-part {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.completed-date-label {
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.completed-date-value {
+  font-weight: 700;
+  color: #e6d6ae;
+}
+
+.completed-time-part {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.completed-time-label {
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.completed-time-value {
+  font-weight: 600;
+  color: #f0e6d2;
+}
+
+.completed-main-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  padding: 0;
+}
+
 .completed-thumbnail {
-  width: 200px;
-  height: 380px;
+  width: 140px;
+  height: calc(100% - 0px);
   overflow: hidden;
   background: #4a5568;
   display: flex;
@@ -3428,135 +3495,53 @@ body:has(.jobs-header) {
 }
 
 .completed-content {
-  padding: 18px 20px;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
   flex: 1;
   min-width: 0;
   position: relative;
 }
 
-.completed-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.3;
-  margin: 0 0 12px 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  min-height: 2.6rem;
-  display: flex;
-  align-items: flex-start;
-}
-
-/* Main Content Row - Single Row Layout - Same as Hiring Cards */
-.completed-main-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.completed-schedule-column {
+.completed-left-content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  text-align: left;
+  gap: 8px;
   flex: 1;
+  padding-right: 12px;
 }
 
-.completed-price-column {
+.completed-right-content {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
+  gap: 8px;
 }
 
 .completed-price {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #fff;
   background: rgba(255, 255, 255, 0.15);
-  padding: 8px 12px;
+  padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(4px);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  margin-bottom: 0;
+  text-align: center;
+  min-width: 85px;
 }
 
-.completed-schedule-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 60px;
-  margin-top: 12px;
-  margin-bottom: 14px;
-}
 
-.completed-date-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  flex: 1;
-}
 
-.completed-due-label {
-  font-size: 0.975rem;
-  font-weight: 600;
-  color: #cbd5e0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.completed-date {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #e6d6ae;
-  line-height: 1.4;
-}
-
-.completed-times-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  margin-left: -15px;
-}
-
-.completed-time-labels {
-  display: flex;
-  gap: 25px;
-}
-
-.completed-time-values {
-  display: flex;
-  gap: 25px;
-}
-
-.completed-time-label {
-  font-size: 0.975rem;
-  font-weight: 600;
-  color: #cbd5e0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  width: 60px;
-  text-align: left;
-}
-
-.completed-time-value {
-  font-size: 1.15rem;
-  color: #f0e6d2;
-  font-weight: 600;
-  line-height: 1.4;
-  width: 60px;
-  text-align: left;
-}
-
-/* Star Rating Section */
+/* Star Rating Section - Now in Left Content */
 .completed-rating-section {
-  margin-top: 10px;
-  margin-bottom: 8px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .completed-rating-label {
@@ -3603,6 +3588,9 @@ body:has(.jobs-header) {
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  /* Expand to full width of card content area */
+  margin-right: -120px;
+  padding-right: 120px;
 }
 
 .completed-feedback-section:hover {
@@ -3674,44 +3662,35 @@ body:has(.jobs-header) {
   font-weight: 500;
 }
 
-/* Role Caption for Completed Jobs - Compact Design */
+/* Role Caption for Completed Jobs - New Layout */
 .completed-role-caption {
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.2px;
-  line-height: 1.2;
-  padding: 1px 4px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(2px);
+  letter-spacing: 0.3px;
+  line-height: 1.3;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
   display: inline-block;
-  margin-top: 8px;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 .completed-role-caption.customer {
   color: #38bdf8;
-  max-width: 85%;
-  text-align: center;
-  padding: 5px 6px;
 }
 
 .completed-role-caption.worker {
   color: #a3e635;
-  max-width: 75%;
-  text-align: center;
-  padding: 5px 6px;
 }
 
-/* Completion Info Section */
+/* Completion Info Section - Now in Left Content */
 .completed-info-section {
-  margin-top: 8px;
-  margin-bottom: 8px;
+  margin-top: 0;
+  margin-bottom: 16px;
 }
 
 .completed-on-date {
@@ -3725,15 +3704,7 @@ body:has(.jobs-header) {
   display: inline-block;
 }
 
-/* User Thumbnail for Completed Jobs - Now in Price Column */
-.completed-user-section {
-  margin-top: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
+/* User Thumbnail for Completed Jobs - Now in Right Content */
 .completed-user-thumbnail {
   width: 85px;
   height: 85px;

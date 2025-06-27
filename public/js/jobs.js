@@ -2505,61 +2505,54 @@ function generateCompletedCardHTML(job) {
              data-poster-name="${job.posterName}"
              data-has-worker-feedback="${job.role === 'worker' && job.workerFeedback ? 'true' : 'false'}">
             
-            <div class="completed-thumbnail">
-                <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
-                <div class="completed-overlay-badge">COMPLETED</div>
+            <div class="completed-title">${job.title}</div>
+            
+            <div class="completed-date-time-row">
+                <div class="completed-date-part">
+                    <span class="completed-date-label">JOB DATE:</span>
+                    <span class="completed-date-value">${formatJobDate(job.jobDate)}</span>
+                </div>
+                <div class="completed-time-part">
+                    <span class="completed-time-label">FROM:</span>
+                    <span class="completed-time-value">${formatTime(job.startTime)}</span>
+                    <span class="completed-time-label">TO:</span>
+                    <span class="completed-time-value">${formatTime(job.endTime)}</span>
+                </div>
             </div>
             
-            <div class="completed-content">
-                <div class="completed-title">${job.title}</div>
+            <div class="completed-main-row">
+                <div class="completed-thumbnail">
+                    <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                    <div class="completed-overlay-badge">COMPLETED</div>
+                </div>
                 
-                <div class="completed-main-row">
-                    <div class="completed-schedule-column">
-                        <div class="completed-schedule-row">
-                            <div class="completed-date-section">
-                                <div class="completed-due-label">Job Date</div>
-                                <div class="completed-date">${formatJobDate(job.jobDate)}</div>
-                            </div>
-                            <div class="completed-times-section" data-start-time="${formatTime(job.startTime)}" data-end-time="${formatTime(job.endTime)}">
-                                <div class="completed-time-labels">
-                                    <div class="completed-time-label">FROM</div>
-                                    <div class="completed-time-label">TO</div>
-                                </div>
-                                <div class="completed-time-values">
-                                    <div class="completed-time-value">${formatTime(job.startTime)}</div>
-                                    <div class="completed-time-value">${formatTime(job.endTime)}</div>
-                                </div>
-                            </div>
-                        </div>
+                <div class="completed-content">
+                    <div class="completed-left-content">
+                        <div class="completed-role-caption ${roleClass}">${roleCaption}</div>
                         
                         <div class="completed-info-section">
                             <div class="completed-on-date">Completed ${formatCompletedDate(job.completedAt)}</div>
                         </div>
                         
-                        <div class="completed-role-caption ${roleClass}">${roleCaption}</div>
+                        <div class="completed-rating-section">
+                            <div class="completed-rating-label">Rating</div>
+                            <div class="completed-rating-stars">
+                                ${starsHTML}
+                                <span class="completed-rating-count">${ratingCount}</span>
+                            </div>
+                        </div>
+                        
+                        ${feedbackHTML}
                     </div>
                     
-                    <div class="completed-price-column">
+                    <div class="completed-right-content">
                         <div class="completed-price">${job.priceOffer.startsWith('₱') ? job.priceOffer : '₱' + job.priceOffer}</div>
-                        
-                        <div class="completed-user-section">
-                            <div class="completed-user-thumbnail">
-                                <img src="${userThumbnail}" alt="${userName}" loading="lazy">
-                            </div>
-                            <div class="completed-user-label">${userLabel}</div>
+                        <div class="completed-user-thumbnail">
+                            <img src="${userThumbnail}" alt="${userName}" loading="lazy">
                         </div>
+                        <div class="completed-user-label">${userLabel}</div>
                     </div>
                 </div>
-                
-                <div class="completed-rating-section">
-                    <div class="completed-rating-label">Rating</div>
-                    <div class="completed-rating-stars">
-                        ${starsHTML}
-                        <span class="completed-rating-count">${ratingCount}</span>
-                    </div>
-                </div>
-                
-                ${feedbackHTML}
             </div>
         </div>
     `;
