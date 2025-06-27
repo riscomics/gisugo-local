@@ -264,7 +264,7 @@ body:has(.jobs-header) {
 .listings-container,
 .hiring-container,
 .previous-container {
-  padding: 40px 0 40px 0;
+  padding: 40px 0 20px 0;
 }
 
 .content-placeholder {
@@ -582,7 +582,7 @@ body:has(.jobs-header) {
 }
 
 .listings-container {
-  padding: 20px 0 100px 0;
+  padding: 20px 0 30px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1414,7 +1414,7 @@ body:has(.jobs-header) {
   .listings-container,
   .hiring-container,
   .previous-container {
-    padding: 35px 0 60px 0; /* Increased top padding from 0 to 35px */
+    padding: 35px 0 30px 0; /* Reduced bottom padding from 60px to 30px */
   }
 
   .notification-count {
@@ -1425,7 +1425,7 @@ body:has(.jobs-header) {
 
   /* Mobile Listing Card Styles */
   .listings-container {
-    padding: 25px 0 60px 0;
+    padding: 25px 0 30px 0;
   }
 
   .listing-card {
@@ -1438,7 +1438,7 @@ body:has(.jobs-header) {
 
   /* Mobile Hiring Card Styles */
   .hiring-container {
-    padding: 25px 0 60px 0;
+    padding: 25px 0 30px 0;
   }
 
   .hiring-card {
@@ -1742,7 +1742,7 @@ body:has(.jobs-header) {
 
   /* iPhone 7 Listings Container */
   .listings-container {
-    padding: 18px 0 55px 0;
+    padding: 18px 0 25px 0;
   }
 
   .listing-card {
@@ -1882,7 +1882,7 @@ body:has(.jobs-header) {
 
   /* iPhone 7 Hiring Container */
   .hiring-container {
-    padding: 18px 0 55px 0;
+    padding: 18px 0 25px 0;
   }
 
   .hiring-card {
@@ -1944,7 +1944,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-role-caption {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     line-height: 1.15;
     padding: 3px 6px;
     margin-bottom: 0;
@@ -2030,7 +2030,7 @@ body:has(.jobs-header) {
 
   /* Smaller Mobile Listing Card Styles */
   .listings-container {
-    padding: 20px 0 60px 0;
+    padding: 20px 0 30px 0;
   }
 
   .listing-card {
@@ -2175,7 +2175,7 @@ body:has(.jobs-header) {
 
   /* Smaller Mobile Hiring Card Styles */
   .hiring-container {
-    padding: 20px 0 60px 0;
+    padding: 20px 0 30px 0;
   }
 
   .hiring-card {
@@ -2237,7 +2237,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-role-caption {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     line-height: 1.2;
     padding: 3px 7px;
     margin-bottom: 0;
@@ -2630,7 +2630,7 @@ body:has(.jobs-header) {
 
   /* 320px Listing Card Styles */
   .listings-container {
-    padding: 15px 0 50px 0;
+    padding: 15px 0 20px 0;
   }
 
   .listing-card {
@@ -2743,7 +2743,7 @@ body:has(.jobs-header) {
 
   /* 320px Hiring Card Styles */
   .hiring-container {
-    padding: 15px 0 50px 0;
+    padding: 15px 0 20px 0;
   }
 
   .hiring-card {
@@ -2805,7 +2805,7 @@ body:has(.jobs-header) {
   }
 
   .hiring-role-caption {
-    font-size: 0.6rem;
+    font-size: 0.55rem;
     line-height: 1.1;
     padding: 2px 5px;
     margin-bottom: 0;
