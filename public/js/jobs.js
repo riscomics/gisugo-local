@@ -948,38 +948,32 @@ function generateHiringCardHTML(job) {
              data-hired-worker-id="${job.hiredWorkerId}"
              data-hired-worker-name="${job.hiredWorkerName}">
             
-            <div class="hiring-thumbnail">
-                <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+            <div class="hiring-title">${job.title}</div>
+            
+            <div class="hiring-date-time-row">
+                <div class="hiring-date-part">
+                    <span class="hiring-date-label">DUE:</span>
+                    <span class="hiring-date-value">${formatJobDate(job.jobDate)}</span>
+                </div>
+                <div class="hiring-time-part">
+                    <span class="hiring-time-label">FROM:</span>
+                    <span class="hiring-time-value">${formatTime(job.startTime)}</span>
+                    <span class="hiring-time-label">TO:</span>
+                    <span class="hiring-time-value">${formatTime(job.endTime)}</span>
+                </div>
             </div>
             
-            <div class="hiring-content">
-                <div class="hiring-title">${job.title}</div>
+            <div class="hiring-main-row">
+                <div class="hiring-thumbnail">
+                    <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                </div>
                 
-                <div class="hiring-main-row">
-                    <div class="hiring-schedule-column">
-                        <div class="hiring-schedule-row">
-                            <div class="hiring-date-section">
-                                <div class="hiring-due-label">DATE</div>
-                                <div class="hiring-date">${formatJobDate(job.jobDate)}</div>
-                            </div>
-                            <div class="hiring-times-section" data-start-time="${job.startTime}" data-end-time="${job.endTime}">
-                                <div class="hiring-time-labels">
-                                    <div class="hiring-time-label">Start</div>
-                                    <div class="hiring-time-label">End</div>
-                                </div>
-                                <div class="hiring-time-values">
-                                    <div class="hiring-time-value">${formatTime(job.startTime)}</div>
-                                    <div class="hiring-time-value">${formatTime(job.endTime)}</div>
-                                </div>
-                            </div>
-                        </div>
-                        
+                <div class="hiring-content">
+                    <div class="hiring-left-content">
+                        <div class="hiring-price">${job.priceOffer}</div>
                         <div class="hiring-role-caption ${roleClass}">${roleCaption}</div>
                     </div>
-                    
-                    <div class="hiring-price-column">
-                        <div class="hiring-price">${job.priceOffer}</div>
-                        
+                    <div class="hiring-right-content">
                         <div class="hiring-user-thumbnail">
                             <img src="${userThumbnail}" alt="${userName}" loading="lazy">
                         </div>

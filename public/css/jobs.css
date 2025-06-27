@@ -359,7 +359,7 @@ body:has(.jobs-header) {
 /* Hiring Card Styles - Similar to Listings but with Role-based Themes */
 .hiring-card {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   width: calc(100% - 20px);
   max-width: 700px;
   height: 260px;
@@ -404,9 +404,76 @@ body:has(.jobs-header) {
 }
 
 /* Hiring Card Content Structure - Redesigned Layout */
+.hiring-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+  margin: 0;
+  padding: 16px 20px 12px 20px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hiring-date-time-row {
+  padding: 8px 20px 12px 20px;
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 40px;
+  font-size: 0.85rem;
+}
+
+.hiring-date-part {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hiring-date-label {
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hiring-date-value {
+  font-weight: 700;
+  color: #e6d6ae;
+}
+
+.hiring-time-part {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hiring-time-label {
+  font-weight: 600;
+  color: #cbd5e0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hiring-time-value {
+  font-weight: 600;
+  color: #f0e6d2;
+}
+
+.hiring-main-row {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  padding: 0;
+}
+
 .hiring-thumbnail {
   width: 140px;
-  height: 260px;
+  height: calc(100% - 0px);
   overflow: hidden;
   background: #4a5568;
   display: flex;
@@ -423,50 +490,29 @@ body:has(.jobs-header) {
 }
 
 .hiring-content {
-  padding: 18px 20px;
+  padding: 16px 20px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
   flex: 1;
   min-width: 0;
   position: relative;
 }
 
-.hiring-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #fff;
-  line-height: 1.3;
-  margin: 0 0 12px 0;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  min-height: 2.6rem;
-  display: flex;
-  align-items: flex-start;
-}
-
-/* Main Content Row - Single Row Layout */
-.hiring-main-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-}
-
-.hiring-schedule-column {
+.hiring-left-content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  text-align: left;
-  flex: 1;
+  gap: 8px;
 }
 
-.hiring-price-column {
+.hiring-right-content {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
 }
 
+/* Hiring Content - Updated Layout */
 .hiring-price {
   font-size: 1.3rem;
   font-weight: 700;
@@ -477,111 +523,39 @@ body:has(.jobs-header) {
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(4px);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.hiring-schedule-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 60px;
-  margin-top: 12px;
-  margin-bottom: 14px;
-}
-
-.hiring-date-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  flex: 1;
-}
-
-.hiring-due-label {
-  font-size: 0.975rem;
-  font-weight: 600;
-  color: #cbd5e0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-
-.hiring-date {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #e6d6ae;
-  line-height: 1.4;
-}
-
-.hiring-times-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.hiring-time-labels {
-  display: flex;
-  gap: 20px;
-}
-
-.hiring-time-values {
-  display: flex;
-  gap: 20px;
-}
-
-.hiring-time-label {
-  font-size: 0.975rem;
-  font-weight: 600;
-  color: #cbd5e0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  min-width: 40px;
-  text-align: center;
-}
-
-.hiring-time-value {
-  font-size: 1.15rem;
-  color: #f0e6d2;
-  font-weight: 600;
-  line-height: 1.4;
-  min-width: 40px;
-  text-align: center;
+  margin-bottom: 0;
 }
 
 .hiring-role-caption {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   line-height: 1.3;
-  padding: 3px 6px;
+  padding: 6px 10px;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(4px);
   display: inline-block;
-  margin-top: 18px;
-  max-width: 100%;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 .hiring-role-caption.customer {
-  max-width: 85%; /* Shorter captions like "YOU HIRED CARLOS DELA CRUZ" */
-  text-align: center;
-  padding: 5px 6px;
+  color: #38bdf8;
 }
 
 .hiring-role-caption.worker {
-  max-width: 75%; /* Longer captions like "YOU ARE WORKING FOR CARLOS DELA CRUZ" */
-  text-align: center;
-  padding: 5px 6px;
+  color: #a3e635;
 }
 
 .hiring-user-thumbnail {
-  width: 100px;
-  height: 100px;
+  width: 85px;
+  height: 85px;
   border-radius: 6px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   overflow: hidden;
-  margin-top: 12px;
 }
 
 .hiring-user-thumbnail img {
@@ -1492,101 +1466,72 @@ body:has(.jobs-header) {
   .hiring-title {
     font-size: 0.95rem;
     line-height: 1.25;
-    margin: 0 0 10px 0;
-    min-height: 2.2rem;
+    margin: 0;
+    padding: 12px 16px 8px 16px;
+  }
+
+  .hiring-date-time-row {
+    padding: 6px 16px 8px 16px;
+    font-size: 0.8rem;
+    gap: 30px;
+  }
+
+  .hiring-date-label,
+  .hiring-time-label {
+    font-size: 0.75rem;
+  }
+
+  .hiring-date-value {
+    font-size: 0.85rem;
+  }
+
+  .hiring-time-value {
+    font-size: 0.8rem;
   }
 
   .hiring-main-row {
-    gap: 12px;
-    margin-top: 15px;
-    margin-bottom: 10px;
+    padding: 0;
+  }
+
+  .hiring-thumbnail {
+    width: 130px;
+    height: calc(100% - 0px);
+  }
+
+  .hiring-content {
+    padding: 12px 16px;
+    gap: 15px;
+  }
+
+  .hiring-left-content {
+    gap: 6px;
   }
 
   .hiring-price {
     font-size: 1.0rem;
-    font-weight: 500;
-    padding: 5px 8px;
+    font-weight: 600;
+    padding: 6px 10px;
     border-radius: 5px;
   }
 
-  .hiring-schedule-row {
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 9px;
-    margin-bottom: 10px;
-  }
-
-  .hiring-date-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .hiring-due-label {
-    font-size: 0.775rem;
+  .hiring-role-caption {
+    font-size: 0.75rem;
+    line-height: 1.25;
+    padding: 4px 8px;
     margin-bottom: 0;
   }
 
-  .hiring-due-label::after {
-    content: ":";
-  }
-
-  .hiring-date {
-    font-size: 0.925rem;
-  }
-
-  .hiring-times-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .hiring-time-labels,
-  .hiring-time-values {
-    display: none;
-  }
-
-  .hiring-times-section::before {
-    content: "TIME:";
-    font-size: 0.775rem;
-    font-weight: 600;
-    color: #cbd5e0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .hiring-times-section::after {
-    content: attr(data-start-time) " - " attr(data-end-time);
-    font-size: 0.875rem;
-    color: #f0e6d2;
-    font-weight: 600;
-  }
-
-  .hiring-role-caption {
-    font-size: 0.775rem;
-    line-height: 1.25;
-    padding: 2px 5px;
-    margin-top: 12px;
-  }
-
   .hiring-role-caption.customer {
-    max-width: 85%; /* Mobile: Shorter customer captions */
-    text-align: center;
-    padding: 4px 5px;
-    font-size: 0.7rem;
+    max-width: 140px;
   }
 
   .hiring-role-caption.worker {
-    max-width: 75%; /* Mobile: Longer worker captions need more constraint */
-    text-align: center;
-    padding: 4px 5px;
-    font-size: 0.7rem;
+    max-width: 120px;
   }
 
   .hiring-user-thumbnail {
-    width: 80px;
-    height: 80px;
-    margin-top: 8px;
+    width: 70px;
+    height: 70px;
   }
 
 
@@ -1947,114 +1892,75 @@ body:has(.jobs-header) {
     border-radius: 8px;
   }
 
-  .hiring-thumbnail {
-    width: 120px;
-    height: 190px;
-  }
-
-  .hiring-content {
-    padding: 9px 11px;
-  }
-
   .hiring-title {
     font-size: 0.8rem;
     line-height: 1.15;
-    margin: 0 0 10px 0;
-    min-height: 1.7rem;
+    margin: 0;
+    padding: 10px 12px 6px 12px;
+  }
+
+  .hiring-date-time-row {
+    padding: 4px 12px 6px 12px;
+    font-size: 0.7rem;
+    gap: 20px;
+  }
+
+  .hiring-date-label,
+  .hiring-time-label {
+    font-size: 0.65rem;
+  }
+
+  .hiring-date-value {
+    font-size: 0.75rem;
+  }
+
+  .hiring-time-value {
+    font-size: 0.7rem;
   }
 
   .hiring-main-row {
-    gap: 9px;
-    margin-top: 10px;
-    margin-bottom: 7px;
+    padding: 0;
+  }
+
+  .hiring-thumbnail {
+    width: 120px;
+    height: calc(100% - 0px);
+  }
+
+  .hiring-content {
+    padding: 10px 12px;
+    gap: 12px;
+  }
+
+  .hiring-left-content {
+    gap: 5px;
   }
 
   .hiring-price {
     font-size: 0.9rem;
-    font-weight: 500;
-    padding: 3px 6px;
+    font-weight: 600;
+    padding: 4px 8px;
     border-radius: 4px;
-  }
-
-  .hiring-schedule-row {
-    flex-direction: column;
-    gap: 5px;
-    margin-top: 7px;
-    margin-bottom: 7px;
-  }
-
-  .hiring-date-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .hiring-due-label {
-    font-size: 0.6rem;
-    margin-bottom: 0;
-  }
-
-  .hiring-due-label::after {
-    content: ":";
-  }
-
-  .hiring-date {
-    font-size: 0.7rem;
-  }
-
-  .hiring-times-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .hiring-time-labels,
-  .hiring-time-values {
-    display: none;
-  }
-
-  .hiring-times-section::before {
-    content: "TIME:";
-    font-size: 0.6rem;
-    font-weight: 600;
-    color: #cbd5e0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .hiring-times-section::after {
-    content: attr(data-start-time) " - " attr(data-end-time);
-    font-size: 0.7rem;
-    color: #f0e6d2;
-    font-weight: 600;
   }
 
   .hiring-role-caption {
     font-size: 0.65rem;
     line-height: 1.15;
-    padding: 2px 4px;
-    margin-top: 10px;
+    padding: 3px 6px;
+    margin-bottom: 0;
   }
 
   .hiring-role-caption.customer {
-    max-width: 80%; /* Small mobile: Customer captions */
-    text-align: center;
-    padding: 3px 4px;
-    font-size: 0.65rem;
+    max-width: 110px;
   }
 
   .hiring-role-caption.worker {
-    max-width: 90%; /* Small mobile: Worker captions need tight constraint */
-    text-align: center;
-    padding: 3px 4px;
-    font-size: 0.65rem;
-    margin-top: 6px;
+    max-width: 100px;
   }
 
   .hiring-user-thumbnail {
-    width: 72px;
-    height: 72px;
-    margin-top: 6px;
+    width: 60px;
+    height: 60px;
   }
 
 
@@ -2279,114 +2185,75 @@ body:has(.jobs-header) {
     border-radius: 8px;
   }
 
-  .hiring-thumbnail {
-    width: 125px;
-    height: 200px;
-  }
-
-  .hiring-content {
-    padding: 10px 12px;
-  }
-
   .hiring-title {
     font-size: 0.85rem;
     line-height: 1.2;
-    margin: 0 0 12px 0;
-    min-height: 1.9rem;
+    margin: 0;
+    padding: 10px 14px 7px 14px;
+  }
+
+  .hiring-date-time-row {
+    padding: 5px 14px 7px 14px;
+    font-size: 0.75rem;
+    gap: 25px;
+  }
+
+  .hiring-date-label,
+  .hiring-time-label {
+    font-size: 0.7rem;
+  }
+
+  .hiring-date-value {
+    font-size: 0.8rem;
+  }
+
+  .hiring-time-value {
+    font-size: 0.75rem;
   }
 
   .hiring-main-row {
-    gap: 10px;
-    margin-top: 12px;
-    margin-bottom: 8px;
+    padding: 0;
+  }
+
+  .hiring-thumbnail {
+    width: 125px;
+    height: calc(100% - 0px);
+  }
+
+  .hiring-content {
+    padding: 10px 14px;
+    gap: 13px;
+  }
+
+  .hiring-left-content {
+    gap: 6px;
   }
 
   .hiring-price {
     font-size: 0.95rem;
-    font-weight: 500;
-    padding: 4px 7px;
+    font-weight: 600;
+    padding: 5px 9px;
     border-radius: 4px;
   }
 
-  .hiring-schedule-row {
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-    margin-bottom: 8px;
-  }
-
-  .hiring-date-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .hiring-due-label {
-    font-size: 0.65rem;
+  .hiring-role-caption {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    padding: 3px 7px;
     margin-bottom: 0;
   }
 
-  .hiring-due-label::after {
-    content: ":";
-  }
-
-  .hiring-date {
-    font-size: 0.75rem;
-  }
-
-  .hiring-times-section {
-    flex-direction: row;
-    align-items: center;
-    gap: 3px;
-  }
-
-  .hiring-time-labels,
-  .hiring-time-values {
-    display: none;
-  }
-
-  .hiring-times-section::before {
-    content: "TIME:";
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #cbd5e0;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .hiring-times-section::after {
-    content: attr(data-start-time) " - " attr(data-end-time);
-    font-size: 0.75rem;
-    color: #f0e6d2;
-    font-weight: 600;
-  }
-
-  .hiring-role-caption {
-    font-size: 0.725rem;
-    line-height: 1.2;
-    padding: 2px 4px;
-    margin-top: 10px;
-  }
-
   .hiring-role-caption.customer {
-    max-width: 80%; /* Small mobile: Customer captions */
-    text-align: center;
-    padding: 3px 4px;
-    font-size: 0.65rem;
+    max-width: 130px;
   }
 
   .hiring-role-caption.worker {
-    max-width: 90%; /* Small mobile: Worker captions need tight constraint */
-    text-align: center;
-    padding: 3px 4px;
-    font-size: 0.65rem;
-    margin-top: 6px;
+    max-width: 115px;
   }
 
   .hiring-user-thumbnail {
-    width: 72px;
-    height: 72px;
-    margin-top: 6px;
+    width: 65px;
+    height: 65px;
   }
 
 
@@ -2701,6 +2568,262 @@ body:has(.jobs-header) {
 }
 
 @media (max-width: 320px) {
+  body {
+    padding-top: 69px;
+  }
+  
+  .jobs-header-title-container {
+    height: 62px;
+    padding-right: 2px; 
+  } 
+  
+  .jobs-header-title {
+    font-size: 1.3rem;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+   
+  .jobs-header-btn {
+    width: 38px;
+    height: 40px;
+    font-size: 9px;
+  }
+  
+  .jobs-header-btn img {
+    width: auto;
+    height: 28px;
+    margin-bottom: 2px;
+  }
+  
+  .jobs-menu-items {
+    height: 62px;
+  }
+  
+  .jobs-menu-item {
+    font-size: 9px;
+    width: 38px;
+  }
+  
+  .jobs-menu-item img {
+    width: 26px;
+    height: 26px;
+  }
+
+  .jobs-tabs {
+    top: 66px;
+  }
+
+  .tab-btn {
+    padding: 6px 4px;
+    font-size: 0.7rem;
+    gap: 1px;
+  }
+  
+  .tab-label {
+    font-size: 0.65rem;
+  }
+
+  .tab-content-wrapper {
+    top: 108px;
+    height: calc(100vh - 108px);
+  }
+
+  /* 320px Listing Card Styles */
+  .listings-container {
+    padding: 15px 0 50px 0;
+  }
+
+  .listing-card {
+    width: calc(100% - 8px);
+    height: 135px;
+    margin: 0 4px 8px 4px;
+    border-radius: 6px;
+  }
+
+  .listing-thumbnail {
+    width: 110px;
+    height: 135px;
+  }
+
+  .listing-content {
+    padding: 8px 10px;
+  }
+
+  .listing-title {
+    font-size: 0.75rem;
+    line-height: 1.1;
+    margin: 0 0 4px 0;
+  }
+
+  .listing-meta {
+    gap: 3px;
+    font-size: 0.7rem;
+  }
+
+  .job-schedule {
+    gap: 1px;
+  }
+
+  .job-time-row {
+    gap: 4px;
+  }
+
+  .job-date {
+    font-size: 0.7rem;
+  }
+
+  .job-time {
+    font-size: 0.65rem;
+  }
+
+  .posting-info {
+    padding-top: 1px;
+  }
+
+  .listing-time-ago {
+    font-size: 0.6rem;
+  }
+
+  .application-count {
+    padding: 1px 4px;
+    font-size: 0.6rem;
+    border-radius: 2px;
+  }
+
+  .status-badge {
+    top: 2px;
+    left: 2px;
+    padding: 1px 3px;
+    font-size: 0.5rem;
+  }
+
+  .empty-state {
+    padding: 20px 8px;
+    margin: 10px auto;
+  }
+
+  .empty-state-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+
+  .empty-state-title {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+
+  .empty-state-message {
+    font-size: 0.7rem;
+    margin-bottom: 15px;
+  }
+
+  .empty-state-btn {
+    padding: 6px 12px;
+    font-size: 0.7rem;
+  }
+
+  .listing-options-container {
+    padding: 15px;
+    width: 98%;
+    max-width: 260px;
+  }
+
+  .listing-options-title {
+    font-size: 1rem;
+  }
+
+  .listing-options-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .listing-option-btn {
+    padding: 10px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* 320px Hiring Card Styles */
+  .hiring-container {
+    padding: 15px 0 50px 0;
+  }
+
+  .hiring-card {
+    width: calc(100% - 8px);
+    height: 180px;
+    margin: 0 4px 8px 4px;
+    border-radius: 6px;
+  }
+
+  .hiring-title {
+    font-size: 0.75rem;
+    line-height: 1.1;
+    margin: 0;
+    padding: 8px 10px 5px 10px;
+  }
+
+  .hiring-date-time-row {
+    padding: 3px 10px 5px 10px;
+    font-size: 0.65rem;
+    gap: 15px;
+  }
+
+  .hiring-date-label,
+  .hiring-time-label {
+    font-size: 0.6rem;
+  }
+
+  .hiring-date-value {
+    font-size: 0.7rem;
+  }
+
+  .hiring-time-value {
+    font-size: 0.65rem;
+  }
+
+  .hiring-main-row {
+    padding: 0;
+  }
+
+  .hiring-thumbnail {
+    width: 110px;
+    height: calc(100% - 0px);
+  }
+
+  .hiring-content {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .hiring-left-content {
+    gap: 4px;
+  }
+
+  .hiring-price {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 3px 6px;
+    border-radius: 3px;
+  }
+
+  .hiring-role-caption {
+    font-size: 0.6rem;
+    line-height: 1.1;
+    padding: 2px 5px;
+    margin-bottom: 0;
+  }
+
+  .hiring-role-caption.customer {
+    max-width: 90px;
+  }
+
+  .hiring-role-caption.worker {
+    max-width: 85px;
+  }
+
+  .hiring-user-thumbnail {
+    width: 50px;
+    height: 50px;
+  }
+
   .delete-confirmation-container {
     padding: 10px 8px;
     max-height: 70vh;
