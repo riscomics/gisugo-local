@@ -2486,8 +2486,8 @@ function generateCompletedCardHTML(job) {
             // Worker perspective: Show instructions to leave feedback
             feedbackHTML = `
                 <div class="completed-feedback-section worker-instructions">
-                    <div class="completed-feedback-label">Leave Feedback</div>
-                    <div class="completed-feedback-instructions">Tap to rate your experience with ${job.posterName}.</div>
+                    <div class="completed-feedback-label">LEAVE FEEDBACK</div>
+                    <div class="completed-feedback-instructions">For ${job.posterName}</div>
                 </div>
             `;
         }
