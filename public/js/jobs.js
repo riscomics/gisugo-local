@@ -302,7 +302,7 @@ const JobsDataService = {
                 posterId: 'user_miguel_torres_006',
                 posterName: 'Miguel Torres',
                 posterThumbnail: 'public/users/User-06.jpg',
-                title: 'Move Furniture to New Place',
+                title: 'Move Heavy Furniture & Electronics to New House Location',
                 category: 'hakot',
                 thumbnail: 'public/mock/mock-hakot-post3.jpg',
                 jobDate: '2024-01-22',
@@ -365,7 +365,7 @@ const JobsDataService = {
                  jobId: 'job_2024_hired_005',
                  posterId: CURRENT_USER_ID,
                  posterName: 'Peter J. Ang',
-                 title: 'Airport Pickup & Drop-off Service',
+                 title: 'Airport Pickup & Drop-off Service with Luggage Handling',
                  category: 'hatod',
                  thumbnail: 'public/mock/mock-hatod-post2.jpg',
                 jobDate: '2024-01-28',
@@ -2373,7 +2373,7 @@ function generateCompletedJobsData() {
             posterId: CURRENT_USER_ID, // Peter posted this job
             posterName: 'Peter J. Ang',
             posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-            title: 'Bathroom Renovation',
+            title: 'Complete Bathroom Renovation with Plumbing & Tile Work',
             category: 'plumber',
             thumbnail: 'public/mock/mock-limpyo-post5.jpg', // Use actual job photo
             jobDate: '2024-12-10',
@@ -2393,7 +2393,7 @@ function generateCompletedJobsData() {
             posterId: 'user_miguel_santos_011',
             posterName: 'Miguel Santos',
             posterThumbnail: 'public/users/User-11.jpg',
-            title: 'House Painting',
+            title: 'Complete Interior & Exterior House Painting with Primer',
             category: 'painter',
             thumbnail: 'public/mock/mock-kompra-post6.jpg', // Use actual job photo
             jobDate: '2024-12-08',

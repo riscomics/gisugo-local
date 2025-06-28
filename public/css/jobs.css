@@ -3991,21 +3991,21 @@ body:has(.jobs-header) {
 
   .completed-date-time-row {
     gap: 20px; /* Reduced from 40px */
-    font-size: 0.7rem; /* Reduced */
+    font-size: 0.8rem; /* Increased for better readability */
     padding: 5px 14px 7px 14px;
   }
 
   .completed-date-label,
   .completed-time-label {
-    font-size: 0.6rem; /* Reduced */
+    font-size: 0.7rem; /* Increased for better readability */
   }
 
   .completed-date-value {
-    font-size: 0.75rem; /* Reduced */
+    font-size: 0.85rem; /* Increased for better readability */
   }
 
   .completed-time-value {
-    font-size: 0.7rem; /* Reduced */
+    font-size: 0.8rem; /* Increased for better readability */
   }
 
   .completed-main-row {
@@ -4193,21 +4193,21 @@ body:has(.jobs-header) {
 
   .completed-date-time-row {
     gap: 18px; /* Reduced from 40px */
-    font-size: 0.65rem; /* Reduced */
+    font-size: 0.75rem; /* Increased for better readability */
     padding: 4px 12px 6px 12px;
   }
 
   .completed-date-label,
   .completed-time-label {
-    font-size: 0.55rem; /* Reduced */
+    font-size: 0.65rem; /* Increased for better readability */
   }
 
   .completed-date-value {
-    font-size: 0.7rem; /* Reduced */
+    font-size: 0.8rem; /* Increased for better readability */
   }
 
   .completed-time-value {
-    font-size: 0.65rem; /* Reduced */
+    font-size: 0.75rem; /* Increased for better readability */
   }
 
   .completed-main-row {
@@ -4394,21 +4394,21 @@ body:has(.jobs-header) {
 
   .completed-date-time-row {
     gap: 15px; /* Reduced from 40px */
-    font-size: 0.6rem; /* Reduced */
+    font-size: 0.7rem; /* Increased for better readability */
     padding: 3px 10px 5px 10px;
   }
 
   .completed-date-label,
   .completed-time-label {
-    font-size: 0.5rem; /* Reduced */
+    font-size: 0.6rem; /* Increased for better readability */
   }
 
   .completed-date-value {
-    font-size: 0.65rem; /* Reduced */
+    font-size: 0.75rem; /* Increased for better readability */
   }
 
   .completed-time-value {
-    font-size: 0.6rem; /* Reduced */
+    font-size: 0.7rem; /* Increased for better readability */
   }
 
   .completed-main-row {
