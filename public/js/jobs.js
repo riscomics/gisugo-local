@@ -761,7 +761,6 @@ function formatJobDate(dateString) {
             return `In ${diffDays} days`;
         } else {
             return date.toLocaleDateString('en-US', { 
-                weekday: 'short',
                 month: 'short', 
                 day: 'numeric' 
             });
@@ -2509,7 +2508,7 @@ function generateCompletedCardHTML(job) {
             
             <div class="completed-date-time-row">
                 <div class="completed-date-part">
-                    <span class="completed-date-label">JOB DATE:</span>
+                    <span class="completed-date-label">DATE:</span>
                     <span class="completed-date-value">${formatJobDate(job.jobDate)}</span>
                 </div>
                 <div class="completed-time-part">
