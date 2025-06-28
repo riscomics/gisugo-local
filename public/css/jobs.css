@@ -3771,7 +3771,7 @@ body:has(.jobs-header) {
   }
 
   .completed-content {
-    padding: 8px 12px; /* Reduced padding significantly */
+    padding: 18px 12px 8px 12px; /* Added top padding for spacing from date/time row */
   }
 
   .completed-upper-row {
@@ -3807,7 +3807,7 @@ body:has(.jobs-header) {
 
   .completed-main-row {
     gap: 2px;
-    margin-top: 15px;
+    margin-top: 0;
     margin-bottom: 10px;
   }
 
@@ -3974,7 +3974,7 @@ body:has(.jobs-header) {
   }
 
   .completed-content {
-    padding: 6px 10px; /* Reduced padding significantly */
+    padding: 16px 10px 6px 10px; /* Added top padding for spacing from date/time row */
   }
 
   .completed-upper-row {
@@ -4010,7 +4010,7 @@ body:has(.jobs-header) {
 
   .completed-main-row {
     gap: 1px;
-    margin-top: 12px;
+    margin-top: 0;
     margin-bottom: 8px;
   }
 
@@ -4176,7 +4176,7 @@ body:has(.jobs-header) {
   }
 
   .completed-content {
-    padding: 4px 8px; /* Reduced padding significantly */
+    padding: 14px 8px 4px 8px; /* Added top padding for spacing from date/time row */
   }
 
   .completed-upper-row {
@@ -4212,7 +4212,7 @@ body:has(.jobs-header) {
 
   .completed-main-row {
     gap: 1px;
-    margin-top: 10px;
+    margin-top: 0;
     margin-bottom: 7px;
   }
 
@@ -4377,7 +4377,7 @@ body:has(.jobs-header) {
   }
 
   .completed-content {
-    padding: 2px 6px; /* Reduced padding significantly */
+    padding: 12px 6px 2px 6px; /* Added top padding for spacing from date/time row */
   }
 
   .completed-upper-row {
@@ -4413,7 +4413,7 @@ body:has(.jobs-header) {
 
   .completed-main-row {
     gap: 0px;
-    margin-top: 8px;
+    margin-top: 0;
     margin-bottom: 6px;
   }
 
