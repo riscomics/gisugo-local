@@ -3755,7 +3755,7 @@ body:has(.jobs-header) {
   .completed-card {
     width: calc(100% - 16px);
     max-width: none;
-    height: 350px; /* Increased from 300px to 350px */
+    height: 320px; /* Reduced from 350px for more compact mobile layout */
     margin: 0 8px 12px 8px;
     border-radius: 10px;
   }
@@ -3767,7 +3767,7 @@ body:has(.jobs-header) {
 
   .completed-thumbnail {
     width: 130px;
-    height: 350px; /* Increased from 300px to 350px */
+    height: 320px; /* Reduced from 350px for more compact mobile layout */
   }
 
   .completed-content {
@@ -3963,14 +3963,14 @@ body:has(.jobs-header) {
 @media (max-width: 400px) {
   .completed-card {
     width: calc(100% - 12px);
-    height: 330px; /* Increased from 280px to 330px */
+    height: 300px; /* Reduced from 330px for more compact mobile layout */
     margin: 0 6px 10px 6px;
     border-radius: 8px;
   }
 
   .completed-thumbnail {
     width: 125px;
-    height: 330px; /* Increased from 280px to 330px */
+    height: 300px; /* Reduced from 330px for more compact mobile layout */
   }
 
   .completed-content {
@@ -4165,14 +4165,14 @@ body:has(.jobs-header) {
 @media (max-width: 375px) {
   .completed-card {
     width: calc(100% - 10px);
-    height: 320px; /* Increased from 270px to 320px */
+    height: 290px; /* Reduced from 320px for more compact mobile layout */
     margin: 0 5px 9px 5px;
     border-radius: 8px;
   }
 
   .completed-thumbnail {
     width: 120px;
-    height: 320px; /* Increased from 270px to 320px */
+    height: 290px; /* Reduced from 320px for more compact mobile layout */
   }
 
   .completed-content {
