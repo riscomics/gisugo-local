@@ -392,6 +392,18 @@ function populateExtrasDropdown(fieldNumber, options) {
   });
 }
 
+// Function to update job details section position after extras changes
+function updateJobDetailsSectionPosition() {
+  // This function adjusts layout when extras section is shown/hidden
+  // Currently a placeholder - can be expanded for specific positioning needs
+  console.log('📐 Updating job details section position');
+  
+  // Potential implementations:
+  // - Adjust margins/padding of job details section
+  // - Trigger layout recalculation for mobile keyboard
+  // - Update spacer heights for scrolling
+}
+
 // Extras dropdown event listeners
 for (let i = 1; i <= 2; i++) {
   const extrasMenuBtn = document.getElementById(`newPostExtrasMenu${i}`);
@@ -1529,15 +1541,35 @@ function initializePreviewOverlayEvents() {
   
   // Post job button - only add listener if not already added
   if (postBtn && !postBtn.dataset.listenerAdded) {
-    postBtn.addEventListener('click', function() {
+    postBtn.addEventListener('click', async function() {
       // Prevent multiple clicks
       if (this.disabled) return;
       
-      // Get form data
-      const formData = getFormData();
+      console.log('🔥 POST BUTTON CLICKED - Starting submission process');
       
-      // Create the job post
-      createJobPost(formData);
+      try {
+        // Get form data
+        console.log('📋 Getting form data...');
+        const formData = getFormData();
+        console.log('✅ Form data retrieved:', formData);
+        
+        // Create the job post
+        console.log('🚀 Calling createJobPost...');
+        await createJobPost(formData);
+        console.log('✅ createJobPost completed');
+        
+      } catch (error) {
+        console.error('❌ Error in post button handler:', error);
+        
+        // Reset button state on error
+        if (postBtn) {
+          postBtn.textContent = 'POST JOB';
+          postBtn.disabled = false;
+        }
+        
+        // Show validation overlay with error
+        showValidationOverlay('Error processing form. Please check all required fields and try again.');
+      }
     });
     postBtn.dataset.listenerAdded = 'true';
   }
@@ -1552,13 +1584,13 @@ function initializePreviewOverlayEvents() {
     previewOverlay.dataset.backgroundListenerAdded = 'true';
   }
   
-  if (!document.dataset.escapeListenerAdded) {
+  if (!document.documentElement.dataset.escapeListenerAdded) {
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && previewOverlay.style.display === 'flex') {
         previewOverlay.style.display = 'none';
       }
     });
-    document.dataset.escapeListenerAdded = 'true';
+    document.documentElement.dataset.escapeListenerAdded = 'true';
   }
 }
 
@@ -1568,24 +1600,60 @@ async function createJobPost(formData) {
   const postBtn = document.getElementById('previewPostBtn');
   const previewOverlay = document.getElementById('previewOverlay');
   
+  // Determine operation mode from URL parameters
+  const urlParams = new URLSearchParams(window.location.search);
+  const editJobId = urlParams.get('edit');
+  const relistJobId = urlParams.get('relist');
+  const mode = editJobId ? 'edit' : (relistJobId ? 'relist' : 'new');
+  
   try {
-    // Show loading state
+    // Show loading state with mode-specific text
     if (postBtn) {
-      postBtn.textContent = 'POSTING...';
+      postBtn.textContent = mode === 'edit' ? 'UPDATING...' : (mode === 'relist' ? 'RELISTING...' : 'POSTING...');
       postBtn.disabled = true;
     }
     
-    // Get the next available job number for this category
-    const jobNumber = getNextJobNumber(formData.category);
+    let jobNumber;
+    let jobId;
     
-    // Create the job template file
-    await createJobTemplate(formData, jobNumber);
-    
-    // Add job preview card to listing page
-    await addJobPreviewCard(formData, jobNumber);
-    
-    // Store job data in localStorage
-    storeJobData(formData, jobNumber);
+    if (mode === 'edit') {
+      // EDIT MODE: Update existing job
+      jobId = editJobId;
+      jobNumber = await getJobNumberFromId(editJobId);
+      
+      // Firebase Implementation for EDIT:
+      // await updateJobDocument(editJobId, formData);
+      
+      await updateJobTemplate(formData, jobNumber, editJobId);
+      await updateJobPreviewCard(formData, jobNumber, editJobId);
+      updateStoredJobData(formData, jobNumber, editJobId);
+      
+    } else if (mode === 'relist') {
+      // RELIST MODE: Create new job from completed job
+      jobNumber = getNextJobNumber(formData.category);
+      jobId = `${formData.category}_job_2025_${jobNumber}`;
+      
+      // Firebase Implementation for RELIST:
+      // const originalJobId = relistJobId;
+      // const newJobDoc = await createJobFromTemplate(originalJobId, formData);
+      // await updateCompletedJobStatus(originalJobId, { relistedAs: newJobDoc.id });
+      
+      await createJobTemplate(formData, jobNumber);
+      await addJobPreviewCard(formData, jobNumber);
+      storeJobData(formData, jobNumber);
+      
+    } else {
+      // NEW MODE: Create completely new job
+      jobNumber = getNextJobNumber(formData.category);
+      jobId = `${formData.category}_job_2025_${jobNumber}`;
+      
+      // Firebase Implementation for NEW:
+      // const newJobDoc = await createNewJobDocument(formData);
+      
+      await createJobTemplate(formData, jobNumber);
+      await addJobPreviewCard(formData, jobNumber);
+      storeJobData(formData, jobNumber);
+    }
     
     // Close preview overlay
     if (previewOverlay) {
@@ -1594,24 +1662,40 @@ async function createJobPost(formData) {
     
     // Reset button state before showing success overlay
     if (postBtn) {
-      postBtn.textContent = 'POST JOB';
+      postBtn.textContent = mode === 'edit' ? 'UPDATE JOB' : 'POST JOB';
       postBtn.disabled = false;
     }
     
-    // Show job posted overlay
-    showJobPostedOverlay(formData);
+    // Show appropriate success overlay based on mode
+    console.log(`🎉 Determining overlay to show - mode: ${mode}`);
+    if (mode === 'edit') {
+      console.log('🎉 MODIFY detected - showing job updated overlay');
+      showJobUpdatedOverlay(formData);
+    } else if (mode === 'relist') {
+      console.log('🎉 RELIST detected - showing job relisted overlay');
+      showJobRelistedOverlay(formData);
+    } else {
+      console.log('🎉 NEW POST detected - showing job posted overlay');
+      showJobPostedOverlay(formData);
+    }
     
   } catch (error) {
-    console.error('Error creating job post:', error);
+    console.error(`Error ${mode}ing job post:`, error);
     
     // Reset button state
     if (postBtn) {
-      postBtn.textContent = 'POST JOB';
+      postBtn.textContent = mode === 'edit' ? 'UPDATE JOB' : 'POST JOB';
       postBtn.disabled = false;
     }
     
-    // Show error overlay instead of alert
-    showValidationOverlay('Error posting job. Please try again.\n\nIf the problem persists, please refresh the page and try again.');
+    // Show error overlay with mode-specific message
+    const errorMessage = mode === 'edit' 
+      ? 'Error updating job. Please try again.\n\nIf the problem persists, please refresh the page and try again.'
+      : mode === 'relist'
+      ? 'Error relisting job. Please try again.\n\nIf the problem persists, please refresh the page and try again.'
+      : 'Error posting job. Please try again.\n\nIf the problem persists, please refresh the page and try again.';
+    
+    showValidationOverlay(errorMessage);
   }
 }
 
@@ -2003,10 +2087,12 @@ function initializeJobPostedOverlayEvents(formData) {
 
 function closeJobPostedOverlay() {
   const overlay = document.getElementById('jobPostedOverlay');
+  
+  // Remove both class and style display
   overlay.classList.remove('show');
-  setTimeout(() => {
-    overlay.style.display = 'none';
-  }, 300);
+  overlay.style.display = 'none';
+  
+  console.log('🔄 Job posted overlay closed');
 }
 
 // ========================== URL PARAMETER HANDLING FOR EDIT/RELIST MODES ==========================
@@ -2071,7 +2157,20 @@ async function handleRelistMode(jobId, category) {
     }
     
     console.log(`📋 Loading completed job data for relisting:`, jobData);
-    await populateFormWithJobData(jobData, category, 'relist');
+    
+    // CRITICAL FIX: Use jobData.category instead of URL category parameter
+    // The URL category might be 'null' or incorrect, but jobData.category is from the actual job
+    const actualCategory = jobData.category || category;
+    console.log(`📂 Using category from job data: ${actualCategory} (URL had: ${category})`);
+    
+    await populateFormWithJobData(jobData, actualCategory, 'relist');
+    
+    // Track RELIST mode for analytics (Firebase Integration)
+    // await trackJobAction('relist_initiated', { 
+    //   originalJobId: jobId, 
+    //   category: actualCategory, 
+    //   timestamp: Date.now() 
+    // });
     
   } catch (error) {
     console.error(`❌ Error loading job for relisting:`, error);
@@ -2087,11 +2186,21 @@ async function getActiveJobData(jobId) {
     // Check if JobsDataService is available (from jobs.js)
     if (typeof JobsDataService !== 'undefined') {
       console.log('🔍 Using JobsDataService to find active job:', jobId);
+      
+      // Ensure data is available (initialize if needed)
+      JobsDataService.initialize();
+      
       const job = await JobsDataService.getJobById(jobId);
       if (job) {
+        console.log('✅ Found job in JobsDataService:', job);
         return {
           ...job,
-          category: job.category
+          category: job.category,
+          description: job.description || '', // Add description field
+          priceOffer: job.priceOffer || '', // Add price field
+          dateNeeded: job.jobDate, // Map jobDate to dateNeeded
+          region: 'CEBU', // Default region
+          city: 'Cebu City' // Default city
         };
       }
     }
@@ -2113,6 +2222,11 @@ async function getActiveJobData(jobId) {
     }
     
     console.log('❌ Job not found in any data source:', jobId);
+    console.log('🔍 Available job IDs in JobsDataService:', 
+      typeof JobsDataService !== 'undefined' ? 
+        JobsDataService.initialize().map(j => j.jobId) : 
+        'JobsDataService not available'
+    );
     return null;
   } catch (error) {
     console.error('Error loading active job data:', error);
@@ -2195,58 +2309,77 @@ async function populateFormWithJobData(jobData, category, mode) {
 }
 
 function populateBasicFields(jobData, mode) {
+  console.log('📝 Starting basic fields population for', mode, 'mode');
+  console.log('📝 Basic fields data:', {
+    title: jobData.title,
+    paymentAmount: jobData.paymentAmount,
+    priceOffer: jobData.priceOffer,
+    description: jobData.description
+  });
+  
   // Job title
   const titleInput = document.getElementById('jobTitleInput');
   if (titleInput && jobData.title) {
     titleInput.value = jobData.title;
     // Trigger character counter update
     titleInput.dispatchEvent(new Event('input'));
+    console.log('📝 ✅ Set job title to:', jobData.title);
+  } else if (!titleInput) {
+    console.warn('📝 ❌ Title input element not found');
+  } else {
+    console.log('📝 ⚠️ No title data found');
   }
   
-  // Job description (if exists in form)
-  const descriptionInput = document.getElementById('jobDescriptionInput');
+  // Job description (correct field ID)
+  const descriptionInput = document.getElementById('jobDetailsTextarea');
   if (descriptionInput && jobData.description) {
     descriptionInput.value = jobData.description;
+    // Trigger character counter update if it exists
+    descriptionInput.dispatchEvent(new Event('input'));
+    console.log('📝 ✅ Set description to:', jobData.description.substring(0, 50) + '...');
+  } else if (!descriptionInput) {
+    console.warn('📝 ❌ Description textarea element not found');
+  } else {
+    console.log('📝 ⚠️ No description data found');
   }
   
   // Payment amount
   const paymentInput = document.getElementById('paymentAmountInput');
-  if (paymentInput && jobData.priceOffer) {
-    // Remove currency symbol if present
-    const amount = jobData.priceOffer.replace('₱', '').trim();
+  const paymentValue = jobData.paymentAmount || jobData.priceOffer;
+  if (paymentInput && paymentValue) {
+    // Remove currency symbol if present and handle both string and number types
+    const amount = typeof paymentValue === 'string' ? paymentValue.replace('₱', '').trim() : paymentValue.toString();
     paymentInput.value = amount;
     // Trigger validation update
     paymentInput.dispatchEvent(new Event('input'));
+    console.log('📝 ✅ Set payment amount to:', amount, '(from', paymentValue, ')');
+  } else if (!paymentInput) {
+    console.warn('📝 ❌ Payment input element not found');
+  } else {
+    console.log('📝 ⚠️ No payment value found');
   }
   
-  console.log(`📝 Basic fields populated for ${mode} mode`);
+  // Set payment type to default "Per Hour" (avoiding "Total Amount" contamination)
+  const paymentTypeLabel = document.getElementById('paymentTypeLabel');
+  if (paymentTypeLabel) {
+    paymentTypeLabel.textContent = 'Per Hour';
+    console.log('📝 ✅ Set payment type to default: Per Hour (avoiding field contamination)');
+  }
+  
+  console.log(`📝 Basic fields population completed for ${mode} mode`);
 }
 
 function populateTimeFields(jobData, mode) {
   if (mode === 'relist') {
-    // For relist mode, clear date and time fields so user can set new schedule
-    const dateInput = document.getElementById('jobDateInput');
-    if (dateInput) {
-      dateInput.value = '';
-    }
+    // For RELIST mode, clear date and time fields so user can set new schedule
+    clearDateAndTimeFields();
     
-    // Reset time dropdowns to default
-    const startTimeLabel = document.getElementById('jobTimeStartLabel');
-    const endTimeLabel = document.getElementById('jobTimeEndLabel');
-    const startPeriodLabel = document.getElementById('jobTimeStartPeriodLabel');
-    const endPeriodLabel = document.getElementById('jobTimeEndPeriodLabel');
-    
-    if (startTimeLabel) startTimeLabel.textContent = 'Hour';
-    if (endTimeLabel) endTimeLabel.textContent = 'Hour';
-    if (startPeriodLabel) startPeriodLabel.textContent = 'AM';
-    if (endPeriodLabel) endPeriodLabel.textContent = 'AM';
-    
-    console.log(`🕐 Time fields cleared for relist mode`);
+    console.log(`🕐 Date and time fields cleared for relist mode`);
   } else {
-    // For edit mode, populate existing time values
+    // For EDIT mode, populate existing time values
     const dateInput = document.getElementById('jobDateInput');
-    if (dateInput && jobData.dateNeeded) {
-      dateInput.value = jobData.dateNeeded;
+    if (dateInput && (jobData.dateNeeded || jobData.jobDate)) {
+      dateInput.value = jobData.dateNeeded || jobData.jobDate;
     }
     
     // Populate time dropdowns if time data exists
@@ -2258,6 +2391,37 @@ function populateTimeFields(jobData, mode) {
     }
     
     console.log(`🕐 Time fields populated for edit mode`);
+  }
+}
+
+function clearDateAndTimeFields() {
+  // Clear date input
+  const dateInput = document.getElementById('jobDateInput');
+  if (dateInput) {
+    dateInput.value = '';
+  }
+  
+  // Reset time dropdowns to default placeholders
+  const startTimeLabel = document.getElementById('jobTimeStartLabel');
+  const endTimeLabel = document.getElementById('jobTimeEndLabel');
+  const startPeriodLabel = document.getElementById('jobTimeStartPeriodLabel');
+  const endPeriodLabel = document.getElementById('jobTimeEndPeriodLabel');
+  
+  if (startTimeLabel) startTimeLabel.textContent = 'Hour';
+  if (endTimeLabel) endTimeLabel.textContent = 'Hour';
+  if (startPeriodLabel) startPeriodLabel.textContent = 'AM';
+  if (endPeriodLabel) endPeriodLabel.textContent = 'AM';
+  
+  // Clear any hidden time input values (for backend integration)
+  const startTimeInput = document.getElementById('startTimeInput');
+  const endTimeInput = document.getElementById('endTimeInput');
+  if (startTimeInput) startTimeInput.value = '';
+  if (endTimeInput) endTimeInput.value = '';
+  
+  // Reset form validation state for time fields
+  const timeFieldsContainer = document.querySelector('.time-section');
+  if (timeFieldsContainer) {
+    timeFieldsContainer.classList.remove('error', 'valid');
   }
 }
 
@@ -2277,24 +2441,35 @@ function populateTimeDropdown(timeType, timeValue) {
 }
 
 function populateLocationAndExtras(jobData) {
-  // Set region and city if available
+  console.log('📍 Starting simplified location population (CORE FIELDS ONLY)');
+  console.log('📍 Mock data limited to: Job Title, Date/Time, Details, Rate/Price');
+  
+  // Set region and city if available - basic location info only
   if (jobData.region) {
     const regionLabel = document.getElementById('newPostRegionMenuLabel');
-    if (regionLabel) regionLabel.textContent = jobData.region;
+    if (regionLabel) {
+      regionLabel.textContent = jobData.region;
+      console.log(`📍 ✅ Set region to: ${jobData.region}`);
+    }
   }
   
   if (jobData.city) {
     const cityLabel = document.getElementById('newPostCityMenuLabel');
-    if (cityLabel) cityLabel.textContent = jobData.city;
-    
-    // Update global city variable for barangay population
-    window.activeCity = jobData.city;
+    if (cityLabel) {
+      cityLabel.textContent = jobData.city;
+      console.log(`📍 ✅ Set city to: ${jobData.city}`);
+      
+      // Update global city variable for barangay population
+      window.activeCity = jobData.city;
+    }
   }
   
-  // Populate extras fields if they exist
-  // This would need to be expanded based on the specific job data structure
+  // 🚫 SKIP EXTRAS AND PAYMENT TYPE - Let user select appropriate values
+  // This prevents field contamination where mock data doesn't match category templates
+  console.log('📍 ⚠️ SKIPPING extras and payment type population to prevent field contamination');
+  console.log('📍 ℹ️ User will need to manually select category-appropriate values');
   
-  console.log(`📍 Location and extras populated`);
+  console.log(`📍 Simplified location population completed`);
 }
 
 async function setCategoryAndUpdateForm(category) {
@@ -2313,4 +2488,360 @@ async function setCategoryAndUpdateForm(category) {
   updateExtrasForCategory(category);
   
   console.log(`📂 Category set to: ${category}`);
+}
+
+// ========================== MODE-SPECIFIC HELPER FUNCTIONS ==========================
+
+async function getJobNumberFromId(jobId) {
+  // Extract job number from jobId format: "category_job_2025_X"
+  const parts = jobId.split('_');
+  return parseInt(parts[parts.length - 1]) || 1;
+  
+  // Firebase Implementation:
+  // const jobDoc = await db.collection('jobs').doc(jobId).get();
+  // return jobDoc.data().jobNumber;
+}
+
+async function updateJobTemplate(formData, jobNumber, jobId) {
+  // Update existing template data in localStorage
+  const templateKey = `jobTemplate_${formData.category}_${jobNumber}`;
+  const existingTemplate = JSON.parse(localStorage.getItem(templateKey) || '{}');
+  
+  const updatedTemplate = {
+    ...existingTemplate,
+    title: formData.jobTitle,
+    description: formData.description,
+    date: formData.jobDate,
+    startTime: formData.startTime,
+    endTime: formData.endTime,
+    paymentAmount: formData.paymentAmount,
+    paymentType: formData.paymentType,
+    photo: formData.photo,
+    extras: formData.extras,
+    updatedAt: new Date().toISOString()
+  };
+  
+  localStorage.setItem(templateKey, JSON.stringify(updatedTemplate));
+  
+  // Firebase Implementation:
+  // await db.collection('jobs').doc(jobId).update({
+  //   title: formData.jobTitle,
+  //   description: formData.description,
+  //   scheduledDate: formData.jobDate,
+  //   startTime: formData.startTime,
+  //   endTime: formData.endTime,
+  //   paymentAmount: formData.paymentAmount,
+  //   photo: formData.photo,
+  //   extras: formData.extras,
+  //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  // });
+}
+
+async function updateJobPreviewCard(formData, jobNumber, jobId) {
+  // Update existing preview card in localStorage
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  const categoryCards = previewCards[formData.category] || [];
+  
+  console.log('🔍 Updating preview card:', {
+    formData: formData,
+    jobNumber: jobNumber,
+    jobId: jobId,
+    categoryCards: categoryCards.length
+  });
+  
+  // Find and update the specific card by jobNumber OR by matching title/data
+  let cardIndex = categoryCards.findIndex(card => card.jobNumber === jobNumber);
+  
+  // If not found by jobNumber, try to find by title match (fallback)
+  if (cardIndex === -1) {
+    // Look for existing card with similar data (fallback matching)
+    const existingTitles = categoryCards.map(c => c.title);
+    console.log('🔍 Existing card titles:', existingTitles);
+    console.log('🔍 Looking for title:', formData.jobTitle);
+  }
+  
+  if (cardIndex !== -1) {
+    const date = new Date(formData.jobDate);
+    const options = { month: 'short', day: 'numeric' };
+    const formattedDate = date.toLocaleDateString('en-US', options);
+    const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
+    
+    const originalCard = categoryCards[cardIndex];
+    console.log('🔍 Original preview card:', originalCard);
+    
+    categoryCards[cardIndex] = {
+      ...originalCard, // Keep existing data
+      title: formData.jobTitle,
+      extra1: formData.extras && formData.extras[0] ? formData.extras[0] : '',
+      extra2: formData.extras && formData.extras[1] ? formData.extras[1] : '',
+      price: `₱${formData.paymentAmount}`,
+      rate: formData.paymentType,
+      date: formattedDate,
+      time: timeDisplay,
+      photo: formData.photo || originalCard.photo,
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('✅ Preview card updated:', categoryCards[cardIndex]);
+    localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
+    console.log('✅ Preview card data saved to localStorage');
+  } else {
+    console.error('❌ Preview card not found for update:', { 
+      jobNumber, 
+      jobId,
+      availableCards: categoryCards.map(c => ({ jobNumber: c.jobNumber, title: c.title }))
+    });
+  }
+  
+  // Firebase Implementation:
+  // await db.collection('jobPreviews').doc(jobId).update({
+  //   title: formData.jobTitle,
+  //   paymentAmount: formData.paymentAmount,
+  //   scheduledDate: formData.jobDate,
+  //   startTime: formData.startTime,
+  //   endTime: formData.endTime,
+  //   extras: formData.extras,
+  //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  // });
+}
+
+function updateStoredJobData(formData, jobNumber, jobId) {
+  // Update existing job data in localStorage
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  const categoryJobs = allJobs[formData.category] || [];
+  
+  console.log('🔍 Updating stored job data:', {
+    formData: formData,
+    jobNumber: jobNumber, 
+    jobId: jobId,
+    categoryJobs: categoryJobs.length
+  });
+  
+  // Find and update the specific job by jobId (not jobNumber as mock data uses jobId)
+  const jobIndex = categoryJobs.findIndex(job => job.jobId === jobId);
+  console.log('🔍 Job index found:', jobIndex);
+  
+  if (jobIndex !== -1) {
+    const originalJob = categoryJobs[jobIndex];
+    console.log('🔍 Original job data:', originalJob);
+    
+    categoryJobs[jobIndex] = {
+      ...originalJob, // Keep existing data
+      ...formData,    // Override with new form data
+      jobId: jobId,   // Ensure jobId is preserved
+      jobNumber: jobNumber,
+      updatedAt: new Date().toISOString()
+    };
+    
+    console.log('✅ Job data updated:', categoryJobs[jobIndex]);
+    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+    console.log('✅ Job data saved to localStorage');
+  } else {
+    console.error('❌ Job not found for update:', { jobId, categoryJobs: categoryJobs.map(j => j.jobId) });
+  }
+  
+  // Firebase Implementation:
+  // await db.collection('jobs').doc(jobId).update({
+  //   ...formData,
+  //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  // });
+}
+
+function showJobUpdatedOverlay(formData) {
+  console.log('🎉 Showing job updated overlay (MODIFY)');
+  console.log('🔍 Form data for overlay:', formData);
+  
+  // Show success overlay for updated job
+  const overlay = document.getElementById('jobPostedOverlay');
+  console.log('🔍 Overlay element found:', !!overlay);
+  
+  if (overlay) {
+    // Update overlay content for update mode - use correct selectors
+    const title = overlay.querySelector('.job-posted-title');
+    const subtitle = overlay.querySelector('.job-posted-subtitle');
+    
+    console.log('🔍 Title element found:', !!title);
+    console.log('🔍 Subtitle element found:', !!subtitle);
+    console.log('🔍 Title element classes:', title ? Array.from(title.classList) : 'N/A');
+    console.log('🔍 Subtitle element classes:', subtitle ? Array.from(subtitle.classList) : 'N/A');
+    
+    if (title) {
+      title.textContent = '✏️ Job Modified Successfully!';
+      console.log('✅ Title updated to:', title.textContent);
+    } else {
+      console.error('❌ Title element not found with selector: .job-posted-title');
+    }
+    
+    if (subtitle) {
+      subtitle.textContent = `Your job "${formData.jobTitle}" has been successfully modified and is now updated.`;
+      console.log('✅ Subtitle updated to:', subtitle.textContent);
+    } else {
+      console.error('❌ Subtitle element not found with selector: .job-posted-subtitle');
+    }
+    
+    // Force overlay to be fully visible with multiple approaches
+    overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    overlay.style.zIndex = '10000';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    
+    // Force a reflow to ensure styles are applied
+    overlay.offsetHeight;
+    
+    console.log('✅ Job updated overlay displayed and fully visible');
+    console.log('🔍 Overlay computed styles:', {
+      display: window.getComputedStyle(overlay).display,
+      visibility: window.getComputedStyle(overlay).visibility,
+      opacity: window.getComputedStyle(overlay).opacity,
+      zIndex: window.getComputedStyle(overlay).zIndex,
+      position: window.getComputedStyle(overlay).position
+    });
+    
+    // Scroll to top to ensure overlay is visible
+    window.scrollTo(0, 0);
+    
+    // Initialize navigation events for updated job
+    initializeJobUpdatedOverlayEvents(formData);
+    
+    // Auto-redirect after 3 seconds to Jobs > Listings tab for MODIFY
+    setTimeout(() => {
+      console.log('🔄 Auto-redirecting back to Jobs > Listings tab after MODIFY');
+      closeJobPostedOverlay();
+      window.location.href = 'jobs.html';
+    }, 3000);
+  } else {
+    console.error('❌ Job posted overlay element not found - checking DOM...');
+    console.log('🔍 Available overlays in DOM:', Array.from(document.querySelectorAll('[id*="overlay"]')).map(el => el.id));
+    console.log('🔍 Available elements with "job-posted" class:', Array.from(document.querySelectorAll('[class*="job-posted"]')).map(el => ({id: el.id, classes: Array.from(el.classList)})));
+  }
+}
+
+function showJobRelistedOverlay(formData) {
+  console.log('🎉 Showing job relisted overlay');
+  
+  // Show success overlay for relisted job
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay) {
+    // Update overlay content for relist mode - use correct selectors
+    const title = overlay.querySelector('.job-posted-title');
+    const subtitle = overlay.querySelector('.job-posted-subtitle');
+    
+    if (title) title.textContent = '🔄 Job Relisted Successfully!';
+    if (subtitle) subtitle.textContent = `Your job "${formData.jobTitle}" has been successfully relisted and is now active.`;
+    
+    // Force overlay to be fully visible
+    overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    overlay.style.zIndex = '10000';
+    
+    console.log('✅ Job relisted overlay displayed');
+    
+    // Initialize navigation events for relisted job
+    initializeJobRelistedOverlayEvents(formData);
+    
+    // Auto-redirect after 3 seconds to Jobs > Listings tab for RELIST (as new post)
+    setTimeout(() => {
+      console.log('🔄 Auto-redirecting to Jobs > Listings tab after RELIST (new post)');
+      closeJobPostedOverlay();
+      window.location.href = 'jobs.html'; // Changed from jobs.html#previous
+    }, 3000);
+  } else {
+    console.error('❌ Job posted overlay element not found');
+  }
+}
+
+// Navigation events for updated job overlay
+function initializeJobUpdatedOverlayEvents(formData) {
+  const goToMessagesBtn = document.getElementById('goToMessagesBtn');
+  const viewJobPostBtn = document.getElementById('viewJobPostBtn');
+  const gotItBtn = document.getElementById('jobPostedGotItBtn');
+  const overlay = document.getElementById('jobPostedOverlay');
+  
+  // Remove any existing listeners to prevent duplicates
+  const newGoToMessagesBtn = goToMessagesBtn.cloneNode(true);
+  const newViewJobPostBtn = viewJobPostBtn.cloneNode(true);
+  const newGotItBtn = gotItBtn.cloneNode(true);
+  
+  goToMessagesBtn.parentNode.replaceChild(newGoToMessagesBtn, goToMessagesBtn);
+  viewJobPostBtn.parentNode.replaceChild(newViewJobPostBtn, viewJobPostBtn);
+  gotItBtn.parentNode.replaceChild(newGotItBtn, gotItBtn);
+  
+  // Add new event listeners - Navigate back to Jobs > Listings tab for MODIFY
+  newGoToMessagesBtn.addEventListener('click', function() {
+    console.log('🔄 Navigating back to Jobs > Listings tab after MODIFY');
+    closeJobPostedOverlay();
+    window.location.href = 'jobs.html';
+  });
+  
+  newViewJobPostBtn.addEventListener('click', function() {
+    console.log('🔄 Navigating back to Jobs > Listings tab after MODIFY');
+    closeJobPostedOverlay();
+    window.location.href = 'jobs.html';
+  });
+  
+  newGotItBtn.addEventListener('click', function() {
+    console.log('🔄 Navigating back to Jobs > Listings tab after MODIFY');
+    closeJobPostedOverlay();
+    window.location.href = 'jobs.html';
+  });
+  
+  // Close overlay when clicking outside and redirect
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      console.log('🔄 Navigating back to Jobs > Listings tab after MODIFY');
+      closeJobPostedOverlay();
+      window.location.href = 'jobs.html';
+    }
+  });
+}
+
+// Navigation events for relisted job overlay
+function initializeJobRelistedOverlayEvents(formData) {
+  const goToMessagesBtn = document.getElementById('goToMessagesBtn');
+  const viewJobPostBtn = document.getElementById('viewJobPostBtn');
+  const gotItBtn = document.getElementById('jobPostedGotItBtn');
+  const overlay = document.getElementById('jobPostedOverlay');
+  
+  // Remove any existing listeners to prevent duplicates
+  const newGoToMessagesBtn = goToMessagesBtn.cloneNode(true);
+  const newViewJobPostBtn = viewJobPostBtn.cloneNode(true);
+  const newGotItBtn = gotItBtn.cloneNode(true);
+  
+  goToMessagesBtn.parentNode.replaceChild(newGoToMessagesBtn, goToMessagesBtn);
+  viewJobPostBtn.parentNode.replaceChild(newViewJobPostBtn, viewJobPostBtn);
+  gotItBtn.parentNode.replaceChild(newGotItBtn, gotItBtn);
+  
+  // Add new event listeners - Navigate to Jobs > Listings tab for RELIST (as new post)
+  newGoToMessagesBtn.addEventListener('click', function() {
+    console.log('🔄 Navigating to Jobs > Listings tab after RELIST (new post)');
+    closeJobPostedOverlay();
+    window.location.href = 'jobs.html'; // Changed from jobs.html#previous
+  });
+  
+  newViewJobPostBtn.addEventListener('click', function() {
+    console.log('🔄 Navigating to Jobs > Listings tab after RELIST (new post)');
+    closeJobPostedOverlay();
+    window.location.href = 'jobs.html'; // Changed from jobs.html#previous
+  });
+  
+  newGotItBtn.addEventListener('click', function() {
+    console.log('🔄 Navigating to Jobs > Listings tab after RELIST (new post)');
+    closeJobPostedOverlay();
+    window.location.href = 'jobs.html'; // Changed from jobs.html#previous
+  });
+  
+  // Close overlay when clicking outside and redirect
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      console.log('🔄 Navigating to Jobs > Listings tab after RELIST (new post)');
+      closeJobPostedOverlay();
+      window.location.href = 'jobs.html'; // Changed from jobs.html#previous
+    }
+  });
 }

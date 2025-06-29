@@ -3,7 +3,7 @@
 // ===== MEMORY LEAK PREVENTION SYSTEM =====
 const CLEANUP_REGISTRY = {
     documentListeners: new Map(),
-    elementListeners: new WeakMap(), 
+    elementListeners: new Map(), 
     activeControllers: new Set(),
     intervals: new Set(),
     cleanupFunctions: new Set()
@@ -14,13 +14,15 @@ const CLEANUP_REGISTRY = {
 // In production, this will be replaced by Firebase listeners
 let MOCK_LISTINGS_DATA = null;
 let MOCK_HIRING_DATA = null;
+let MOCK_COMPLETED_DATA = null; // ADD: Missing completed data tracking
 
 // Current user ID for testing different perspectives
 const CURRENT_USER_ID = 'user_peter_ang_001';
 
 // ===== DATA ACCESS LAYER (Firebase-Ready) =====
 // This layer abstracts data access to make Firebase transition seamless
-const JobsDataService = {
+// ===== GLOBAL DATA SERVICE FOR CROSS-FILE ACCESS =====
+window.JobsDataService = {
     // Initialize data (simulates Firebase connection)
     initialize() {
         if (!MOCK_LISTINGS_DATA) {
@@ -61,7 +63,14 @@ const JobsDataService = {
         //     };
         // });
         
-        return this.initialize();
+        // Get all jobs and filter for current user's listings
+        const allJobs = this.initialize();
+        
+        // Filter for jobs posted by current user with active/paused status
+        return allJobs.filter(job => 
+            job.posterId === CURRENT_USER_ID && 
+            (job.status === 'active' || job.status === 'paused')
+        );
     },
     
     // Get all hired jobs (simulates Firebase query)
@@ -178,10 +187,12 @@ const JobsDataService = {
         return { success: false, error: 'Job not found' };
     },
     
-    // Clean up (prevents memory leaks)
+    // Clean up (prevents memory leaks) - ENHANCED
     cleanup() {
         MOCK_LISTINGS_DATA = null;
         MOCK_HIRING_DATA = null;
+        MOCK_COMPLETED_DATA = null; // ADD: Clean up completed data
+        console.log('🧹 JobsDataService mock data cleared');
     },
     
     // Private method to generate initial mock data
@@ -199,14 +210,23 @@ const JobsDataService = {
         return [
             {
                 jobId: 'job_2024_001_limpyo',
-                posterId: 'user_peter_ang_001',
+                jobNumber: 1, // Extracted from jobId for update operations
+                posterId: CURRENT_USER_ID, // Current user posted this job
                 posterName: 'Peter J. Ang',
                 title: 'Deep Clean My 3-Bedroom House Before Family Visit',
+                description: 'Looking for experienced cleaner to deep clean my 3-bedroom house before family arrives for holidays. Need thorough cleaning of bathrooms, kitchen, living areas, and bedrooms. All cleaning supplies will be provided.',
                 category: 'limpyo',
                 thumbnail: 'public/mock/mock-limpyo-post1.jpg',
                 jobDate: '2024-01-18',
+                dateNeeded: '2024-01-18', // Backend field name
                 startTime: '9AM',
                 endTime: '1PM',
+                priceOffer: '800', // Remove ₱ symbol for form population
+                paymentAmount: '800', // Backend field name
+                paymentType: 'total', // hourly, daily, total
+                region: 'Metro Manila',
+                city: 'Quezon City',
+                extras: ['Deep Kitchen Cleaning', 'Bathroom Disinfection'],
                 datePosted: formatDateTime(yesterday),
                 status: 'active',
                 applicationCount: 3,
@@ -215,14 +235,23 @@ const JobsDataService = {
             },
             {
                 jobId: 'job_2024_002_kompra',
-                posterId: 'user_maria_santos_002',
-                posterName: 'Mario Santos',
+                jobNumber: 2, // Extracted from jobId for update operations
+                posterId: CURRENT_USER_ID, // Current user posted this job
+                posterName: 'Peter J. Ang',
                 title: 'Weekly Grocery Shopping for Elderly Grandmother',
+                description: 'Need reliable person to do weekly grocery shopping for my 85-year-old grandmother. Will provide detailed list and payment. Must be careful with fresh produce selection and check expiration dates.',
                 category: 'kompra',
                 thumbnail: 'public/mock/mock-kompra-post3.jpg',
                 jobDate: '2024-01-20',
+                dateNeeded: '2024-01-20',
                 startTime: '3PM',
                 endTime: '5PM',
+                priceOffer: '500',
+                paymentAmount: '500',
+                paymentType: 'total',
+                region: 'Metro Manila',
+                city: 'Manila',
+                extras: ['Fresh Produce Selection', 'Receipt Required'],
                 datePosted: formatDateTime(twoDaysAgo),
                 status: 'active',
                 applicationCount: 7,
@@ -231,14 +260,23 @@ const JobsDataService = {
             },
             {
                 jobId: 'job_2024_003_hatod',
-                posterId: 'user_carla_dela_cruz_003',
-                posterName: 'Carla Dela Cruz',
+                jobNumber: 3, // Extracted from jobId for update operations
+                posterId: CURRENT_USER_ID, // Current user posted this job
+                posterName: 'Peter J. Ang',
                 title: 'Airport Pickup & Drop-off for Business Trip',
+                description: 'Need reliable driver for airport pickup and drop-off service for important business trip. Must have clean, air-conditioned vehicle and be punctual. Will provide flight details.',
                 category: 'hatod',
                 thumbnail: 'public/mock/mock-kompra-post6.jpg',
                 jobDate: '2024-01-17',
+                dateNeeded: '2024-01-17',
                 startTime: '7AM',
                 endTime: '9AM',
+                priceOffer: '1200',
+                paymentAmount: '1200',
+                paymentType: 'total',
+                region: 'Metro Manila',
+                city: 'Pasay',
+                extras: ['Air-conditioned Vehicle', 'Luggage Assistance'],
                 datePosted: formatDateTime(today),
                 status: 'active',
                 applicationCount: 2,
@@ -247,14 +285,23 @@ const JobsDataService = {
             },
             {
                 jobId: 'job_2024_004_hakot',
-                posterId: 'user_ana_reyes_004',
-                posterName: 'Ana Reyes',
+                jobNumber: 4, // Extracted from jobId for update operations
+                posterId: CURRENT_USER_ID, // Current user posted this job
+                posterName: 'Peter J. Ang',
                 title: 'Move Heavy Furniture from 2nd Floor to Storage',
+                description: 'Need 2-3 strong workers to move heavy furniture and boxes from 2nd floor apartment to ground floor storage unit. Items include sofa, dining table, refrigerator, and multiple boxes.',
                 category: 'hakot',
                 thumbnail: 'public/mock/mock-hakot-post7.jpg',
                 jobDate: '2024-01-19',
+                dateNeeded: '2024-01-19',
                 startTime: '1PM',
                 endTime: '4PM',
+                priceOffer: '1000',
+                paymentAmount: '1000',
+                paymentType: 'total',
+                region: 'Metro Manila',
+                city: 'Makati',
+                extras: ['Heavy Lifting Required', 'Furniture Protection'],
                 datePosted: formatDateTime(threeDaysAgo),
                 status: 'active',
                 applicationCount: 5,
@@ -402,6 +449,77 @@ const JobsDataService = {
                 role: 'worker'
             }
         ];
+    },
+    
+    // Get completed jobs (simulates Firebase query) - FIREBASE READY
+    async getCompletedJobs() {
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // const completedJobsSnapshot = await db.collection('jobs')
+        //     .where('status', '==', 'completed')
+        //     .where(firebase.firestore.Filter.or(
+        //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
+        //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
+        //     ))
+        //     .orderBy('completedAt', 'desc')
+        //     .get();
+        // 
+        // return completedJobsSnapshot.docs.map(doc => {
+        //     const data = doc.data();
+        //     return {
+        //         // Core job identification
+        //         jobId: doc.id,
+        //         posterId: data.posterId,
+        //         posterName: data.posterName,
+        //         posterThumbnail: data.posterThumbnail,
+        //         
+        //         // Job details - CONSISTENT WITH OTHER TABS
+        //         title: data.title,
+        //         category: data.category,
+        //         thumbnail: data.thumbnail,
+        //         
+        //         // Scheduling - FIREBASE TIMESTAMP FORMAT
+        //         scheduledDate: data.scheduledDate, // YYYY-MM-DD
+        //         startTime: data.startTime,
+        //         endTime: data.endTime,
+        //         
+        //         // Financial
+        //         priceOffer: data.priceOffer, // Consistent field name
+        //         
+        //         // Completion data - FIREBASE TIMESTAMPS
+        //         completedAt: data.completedAt.toDate(), // Firebase timestamp
+        //         completedBy: data.completedBy, // 'customer' | 'worker'
+        //         
+        //         // Hiring information - CONSISTENT WITH HIRING TAB
+        //         hiredWorkerId: data.hiredWorkerId,
+        //         hiredWorkerName: data.hiredWorkerName,
+        //         hiredWorkerThumbnail: data.hiredWorkerThumbnail,
+        //         
+        //         // Role determination - CONSISTENT LOGIC
+        //         role: data.posterId === currentUserId ? 'customer' : 'worker',
+        //         
+        //         // Rating and feedback - FIREBASE SUBCOLLECTION READY
+        //         rating: data.rating || 0,
+        //         feedback: data.feedback || null,
+        //         workerFeedback: data.workerFeedback || null,
+        //         workerRating: data.workerRating || 0,
+        //         
+        //         // Status tracking - CONSISTENT WITH OTHER TABS
+        //         status: data.status,
+        //         datePosted: data.datePosted.toDate(), // Firebase timestamp
+        //         
+        //         // Firebase metadata
+        //         lastModified: data.lastModified?.toDate(),
+        //         modifiedBy: data.modifiedBy
+        //     };
+        // });
+        
+        if (!MOCK_COMPLETED_DATA) {
+            MOCK_COMPLETED_DATA = generateCompletedJobsData();
+        }
+        return MOCK_COMPLETED_DATA;
     }
 };
 
@@ -413,7 +531,7 @@ function registerCleanup(type, key, cleanupFn) {
     } else if (type === 'interval') {
         CLEANUP_REGISTRY.intervals.add(cleanupFn);
     } else {
-        // For overlay-specific cleanup (hiring, listings, confirmation, success)
+        // For overlay-specific cleanup (hiring, listings, confirmation, success, previous)
         cleanupFn._type = type;
         cleanupFn._key = key;
         CLEANUP_REGISTRY.cleanupFunctions.add(cleanupFn);
@@ -427,6 +545,14 @@ function executeAllCleanups() {
         document.removeEventListener(event, handler, options);
     });
     CLEANUP_REGISTRY.documentListeners.clear();
+    
+    // Clean up element listeners - ENHANCED
+    CLEANUP_REGISTRY.elementListeners.forEach((listeners, element) => {
+        listeners.forEach(([event, handler]) => {
+            element.removeEventListener(event, handler);
+        });
+    });
+    CLEANUP_REGISTRY.elementListeners.clear();
     
     // Clean up functions
     CLEANUP_REGISTRY.cleanupFunctions.forEach(cleanupFn => {
@@ -455,7 +581,6 @@ function executeAllCleanups() {
     CLEANUP_REGISTRY.intervals.clear();
     
     // ===== CLEANUP GLOBAL MOCK DATA =====
-    // Prevent memory leaks and scope contamination
     JobsDataService.cleanup();
     console.log('🧹 Global mock data cleared');
     
@@ -465,6 +590,29 @@ function executeAllCleanups() {
 function executeCleanupsByType(type) {
     console.log(`🧹 Executing cleanup functions for type: ${type}`);
     
+    // Clean up element listeners for specific type
+    const elementsToClean = [];
+    CLEANUP_REGISTRY.elementListeners.forEach((listeners, element) => {
+        const filteredListeners = listeners.filter(([event, handler]) => {
+            if (handler._type === type) {
+                element.removeEventListener(event, handler);
+                return false;
+            }
+            return true;
+        });
+        
+        if (filteredListeners.length === 0) {
+            elementsToClean.push(element);
+        } else {
+            CLEANUP_REGISTRY.elementListeners.set(element, filteredListeners);
+        }
+    });
+    
+    // Remove empty element entries
+    elementsToClean.forEach(element => {
+        CLEANUP_REGISTRY.elementListeners.delete(element);
+    });
+    
     // Clean up functions registered for specific type
     const toRemove = [];
     CLEANUP_REGISTRY.cleanupFunctions.forEach((cleanupFn) => {
@@ -472,19 +620,18 @@ function executeCleanupsByType(type) {
             try {
                 cleanupFn();
                 toRemove.push(cleanupFn);
-                console.log(`🧹 Executed cleanup for ${type}.${cleanupFn._key || 'unknown'}`);
             } catch (error) {
                 console.warn(`Cleanup function error for type ${type}:`, error);
             }
         }
     });
     
-    // Remove executed cleanup functions from the Set
+    // Remove completed cleanup functions
     toRemove.forEach(cleanupFn => {
         CLEANUP_REGISTRY.cleanupFunctions.delete(cleanupFn);
     });
     
-    console.log(`🧹 Cleanup completed for type: ${type} (${toRemove.length} functions)`);
+    console.log(`🧹 Cleanup completed for type: ${type}`);
 }
 
 function addDocumentListener(event, handler, options = false) {
@@ -558,6 +705,32 @@ function initializeTabs() {
 }
 
 async function switchToTab(tabType) {
+    // Get current active tab before making changes
+    const currentActiveTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
+    
+    // Only clean up if we're actually switching to a different tab
+    if (currentActiveTab && currentActiveTab !== tabType) {
+        console.log(`🧹 Cleaning up ${currentActiveTab} tab handlers before switching to ${tabType}`);
+        switch (currentActiveTab) {
+            case 'listings':
+                executeCleanupsByType('listings');
+                executeCleanupsByType('listing-cards');
+                executeCleanupsByType('listing-overlay');
+                break;
+            case 'hiring':
+                executeCleanupsByType('hiring');
+                executeCleanupsByType('hiring-cards');
+                executeCleanupsByType('hiring-overlay');
+                break;
+            case 'previous':
+                executeCleanupsByType('previous');
+                executeCleanupsByType('previous-cards');
+                executeCleanupsByType('previous-overlay');
+                executeCleanupsByType('previous-feedback-overlay');
+                break;
+        }
+    }
+    
     // Update tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -584,7 +757,7 @@ async function switchToTab(tabType) {
     // Initialize content for the active tab (lazy loading approach)
     await initializeActiveTab(tabType);
     
-    console.log(`🔄 Switched to ${tabType} tab`);
+    console.log(`🔄 Switched to ${tabType} tab with proper cleanup`);
 }
 
 function updatePageTitle(activeTab) {
@@ -617,7 +790,7 @@ async function initializeActiveTab(tabType) {
             await initializeHiringTab();
             break;
         case 'previous':
-            initializePreviousTab();
+            await initializePreviousTab(); // Make this async to ensure proper initialization
             break;
         default:
             console.warn('Unknown tab type:', tabType);
@@ -2209,21 +2382,31 @@ function showEmptyHiringState() {
 
 // ========================== PREVIOUS TAB FUNCTIONALITY ==========================
 
-// Global store for completed jobs data
-let MOCK_COMPLETED_DATA = null;
+// Note: MOCK_COMPLETED_DATA is declared globally at the top of this file
 
-function initializePreviousTab() {
+async function initializePreviousTab() {
     const container = document.querySelector('.previous-container');
     if (!container) return;
     
+    console.log('📜 Initializing Previous tab...');
+    
+    // Always clean up existing handlers to prevent the bug
+    executeCleanupsByType('previous-cards');
+    executeCleanupsByType('previous-overlay');
+    executeCleanupsByType('previous-feedback-overlay');
+    
     // Check if already loaded
     if (container.children.length > 0) {
-        console.log('📜 Previous tab already loaded');
+        console.log('📜 Previous tab content exists, reinitializing handlers...');
+        // Reinitialize handlers for existing cards
+        initializeCompletedCardHandlers();
+        checkTruncatedFeedback();
+        createFeedbackExpandedOverlay();
         return;
     }
     
-    console.log('📜 Initializing Previous tab...');
-    loadPreviousContent();
+    // Load fresh content
+    await loadPreviousContent();
 }
 
 async function loadPreviousContent() {
@@ -2258,7 +2441,8 @@ async function loadPreviousContent() {
     }
 }
 
-async function getCompletedJobs() {
+// ===== GLOBAL FUNCTION FOR CROSS-FILE ACCESS =====
+window.getCompletedJobs = async function() {
     // Firebase Implementation:
     // const db = firebase.firestore();
     // const currentUserId = firebase.auth().currentUser.uid;
@@ -2600,8 +2784,19 @@ function formatCompletedDate(dateString) {
     }
 }
 
+// ===== ENHANCED COMPLETED CARD HANDLERS - MEMORY LEAK PREVENTION =====
 function initializeCompletedCardHandlers() {
     const completedCards = document.querySelectorAll('.completed-card');
+    
+    // Clean up existing handlers first to prevent memory leaks
+    executeCleanupsByType('previous-cards');
+    
+    // Safety check: prevent multiple simultaneous initializations
+    if (window.previousCardsInitializing) {
+        console.log('⚠️ Previous card handlers already being initialized, skipping...');
+        return;
+    }
+    window.previousCardsInitializing = true;
     
     completedCards.forEach((card, index) => {
         // Add click handlers to feedback sections directly
@@ -2632,16 +2827,33 @@ function initializeCompletedCardHandlers() {
                 }
             };
             
+            // Mark handler for cleanup tracking
+            feedbackClickHandler._type = 'previous-cards';
+            feedbackClickHandler._key = `feedback-section-${index}`;
+            
             feedbackSection.addEventListener('click', feedbackClickHandler);
             
             // Also add handler to feedback text specifically
             const feedbackText = feedbackSection.querySelector('.completed-feedback-text');
             if (feedbackText) {
-                feedbackText.addEventListener('click', feedbackClickHandler);
+                const feedbackTextClickHandler = function(e) {
+                    feedbackClickHandler(e); // Reuse same logic
+                };
+                feedbackTextClickHandler._type = 'previous-cards';
+                feedbackTextClickHandler._key = `feedback-text-${index}`;
+                
+                feedbackText.addEventListener('click', feedbackTextClickHandler);
+                
+                // Register for cleanup
+                if (!CLEANUP_REGISTRY.elementListeners.has(feedbackText)) {
+                    CLEANUP_REGISTRY.elementListeners.set(feedbackText, []);
+                }
+                CLEANUP_REGISTRY.elementListeners.get(feedbackText).push(['click', feedbackTextClickHandler]);
+                
                 console.log(`📝 Added click handler to feedback text in card ${index}`);
             }
             
-            // Store handler for cleanup
+            // Register for cleanup
             if (!CLEANUP_REGISTRY.elementListeners.has(feedbackSection)) {
                 CLEANUP_REGISTRY.elementListeners.set(feedbackSection, []);
             }
@@ -2664,30 +2876,96 @@ function initializeCompletedCardHandlers() {
             showPreviousOptionsOverlay(jobData);
         };
         
+        // Mark handler for cleanup tracking
+        cardClickHandler._type = 'previous-cards';
+        cardClickHandler._key = `card-${index}`;
+        
         card.addEventListener('click', cardClickHandler);
         
-        // Store handler for cleanup
+        // Register for cleanup
         if (!CLEANUP_REGISTRY.elementListeners.has(card)) {
             CLEANUP_REGISTRY.elementListeners.set(card, []);
         }
         CLEANUP_REGISTRY.elementListeners.get(card).push(['click', cardClickHandler]);
+        
+        // Register cleanup function for this specific card
+        registerCleanup('previous-cards', `card-${index}`, () => {
+            card.removeEventListener('click', cardClickHandler);
+            if (feedbackSection) {
+                const feedbackHandler = CLEANUP_REGISTRY.elementListeners.get(feedbackSection)?.[0]?.[1];
+                if (feedbackHandler) {
+                    feedbackSection.removeEventListener('click', feedbackHandler);
+                }
+            }
+        });
     });
     
-    console.log(`🔧 Initialized ${completedCards.length} completed card handlers`);
+    // Mark initialization as complete
+    window.previousCardsInitializing = false;
+    
+    console.log(`🔧 Initialized ${completedCards.length} completed card handlers with memory leak prevention`);
 }
 
+// ===== FIREBASE-READY DATA EXTRACTION - CONSISTENT WITH OTHER TABS =====
 function extractCompletedJobDataFromCard(cardElement) {
-    return {
+    // Extract data attributes (Firebase document fields)
+    const jobData = {
+        // Core job identification - CONSISTENT WITH FIREBASE SCHEMA
         jobId: cardElement.getAttribute('data-job-id'),
         posterId: cardElement.getAttribute('data-poster-id'),
+        posterName: cardElement.getAttribute('data-poster-name'),
+        posterThumbnail: cardElement.getAttribute('data-poster-thumbnail'),
+        
+        // Job details - CONSISTENT WITH OTHER TABS
+        title: cardElement.querySelector('.completed-title')?.textContent || 'Unknown Job',
         category: cardElement.getAttribute('data-category'),
-        role: cardElement.getAttribute('data-role'),
+        thumbnail: cardElement.getAttribute('data-thumbnail'),
+        
+        // Scheduling data - FIREBASE TIMESTAMP READY
+        scheduledDate: cardElement.getAttribute('data-scheduled-date'), // YYYY-MM-DD format
+        startTime: cardElement.getAttribute('data-start-time'),
+        endTime: cardElement.getAttribute('data-end-time'),
+        
+        // Financial data - CONSISTENT FORMAT
+        priceOffer: cardElement.getAttribute('data-price-offer'),
+        
+        // Completion data - FIREBASE TIMESTAMPS
+        completedAt: cardElement.getAttribute('data-completed-at'), // ISO string
+        completedBy: cardElement.getAttribute('data-completed-by'), // 'customer' | 'worker'
+        
+        // Role determination - CONSISTENT LOGIC
+        role: cardElement.getAttribute('data-role'), // 'customer' | 'worker'
+        
+        // Hiring information - CONSISTENT WITH HIRING TAB
         hiredWorkerId: cardElement.getAttribute('data-hired-worker-id'),
         hiredWorkerName: cardElement.getAttribute('data-hired-worker-name'),
-        posterName: cardElement.getAttribute('data-poster-name'),
+        hiredWorkerThumbnail: cardElement.getAttribute('data-hired-worker-thumbnail'),
+        
+        // Rating and feedback data - FIREBASE SUBCOLLECTION READY
+        rating: parseInt(cardElement.getAttribute('data-rating')) || 0,
+        feedback: cardElement.getAttribute('data-feedback'),
+        workerFeedback: cardElement.getAttribute('data-worker-feedback'),
+        workerRating: parseInt(cardElement.getAttribute('data-worker-rating')) || 0,
         hasWorkerFeedback: cardElement.getAttribute('data-has-worker-feedback') === 'true',
-        title: cardElement.querySelector('.completed-title')?.textContent || 'Unknown Job'
+        
+        // Status tracking - CONSISTENT WITH OTHER TABS
+        status: cardElement.getAttribute('data-status') || 'completed',
+        datePosted: cardElement.getAttribute('data-date-posted'), // ISO string
+        
+        // Firebase metadata - PREPARED FOR BACKEND
+        lastModified: cardElement.getAttribute('data-last-modified'),
+        modifiedBy: cardElement.getAttribute('data-modified-by')
     };
+    
+    // Validate critical fields
+    if (!jobData.jobId) {
+        console.error('❌ Missing jobId in completed card data extraction');
+    }
+    if (!jobData.role) {
+        console.error('❌ Missing role in completed card data extraction');
+    }
+    
+    return jobData;
 }
 
 async function showFeedbackExpandedOverlay(jobData) {
@@ -2738,21 +3016,40 @@ async function showFeedbackExpandedOverlay(jobData) {
     console.log('📝 Feedback text:', feedbackText);
     content.textContent = feedbackText;
     
-    // Close handler
+    // Close handler with proper cleanup
     const closeHandler = function() {
         overlay.classList.remove('show');
+        // Clean up handlers
         closeBtn.removeEventListener('click', closeHandler);
+        overlay.removeEventListener('click', backgroundHandler);
+        document.removeEventListener('keydown', escapeHandler);
+        console.log('🧹 Feedback expanded overlay closed and cleaned up');
     };
     closeBtn.addEventListener('click', closeHandler);
     
     // Background close handler
     const backgroundHandler = function(e) {
         if (e.target === overlay) {
-            overlay.classList.remove('show');
-            overlay.removeEventListener('click', backgroundHandler);
+            closeHandler(); // Use main close handler for consistent cleanup
         }
     };
     overlay.addEventListener('click', backgroundHandler);
+    
+    // Escape key handler
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape') {
+            closeHandler(); // Use main close handler for consistent cleanup
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+    
+    // Register cleanup for this overlay instance
+    registerCleanup('previous-feedback-overlay', 'expanded-overlay', () => {
+        overlay.classList.remove('show');
+        closeBtn.removeEventListener('click', closeHandler);
+        overlay.removeEventListener('click', backgroundHandler);
+        document.removeEventListener('keydown', escapeHandler);
+    });
     
     console.log('🎭 Showing feedback overlay');
     overlay.classList.add('show');
@@ -2842,13 +3139,33 @@ async function showPreviousOptionsOverlay(jobData) {
         return;
     }
     
-    // Set overlay data attributes
+    // Set overlay data attributes - ALL FIELDS FOR FIREBASE OPERATIONS
     overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-poster-id', jobData.posterId || '');
+    overlay.setAttribute('data-poster-name', jobData.posterName || '');
+    overlay.setAttribute('data-poster-thumbnail', jobData.posterThumbnail || '');
     overlay.setAttribute('data-role', jobData.role);
     overlay.setAttribute('data-title', jobData.title);
-    overlay.setAttribute('data-hired-worker-name', jobData.hiredWorkerName);
-    overlay.setAttribute('data-poster-name', jobData.posterName);
+    overlay.setAttribute('data-category', jobData.category || ''); // CRITICAL FIX: Add missing category
+    overlay.setAttribute('data-thumbnail', jobData.thumbnail || '');
+    overlay.setAttribute('data-scheduled-date', jobData.scheduledDate || jobData.jobDate || '');
+    overlay.setAttribute('data-start-time', jobData.startTime || '');
+    overlay.setAttribute('data-end-time', jobData.endTime || '');
+    overlay.setAttribute('data-price-offer', jobData.priceOffer || '');
+    overlay.setAttribute('data-completed-at', jobData.completedAt || '');
+    overlay.setAttribute('data-completed-by', jobData.completedBy || '');
+    overlay.setAttribute('data-hired-worker-id', jobData.hiredWorkerId || '');
+    overlay.setAttribute('data-hired-worker-name', jobData.hiredWorkerName || '');
+    overlay.setAttribute('data-hired-worker-thumbnail', jobData.hiredWorkerThumbnail || '');
+    overlay.setAttribute('data-rating', jobData.rating || '0');
+    overlay.setAttribute('data-feedback', jobData.feedback || '');
+    overlay.setAttribute('data-worker-feedback', jobData.workerFeedback || '');
+    overlay.setAttribute('data-worker-rating', jobData.workerRating || '0');
     overlay.setAttribute('data-has-worker-feedback', jobData.hasWorkerFeedback);
+    overlay.setAttribute('data-status', jobData.status || 'completed');
+    overlay.setAttribute('data-date-posted', jobData.datePosted || '');
+    overlay.setAttribute('data-last-modified', jobData.lastModified || '');
+    overlay.setAttribute('data-modified-by', jobData.modifiedBy || '');
     
     // Update title and subtitle
     title.textContent = 'Completed Job Options';
@@ -3009,16 +3326,69 @@ function initializePreviousOverlayHandlers() {
     console.log('🔧 Previous overlay handlers initialized');
 }
 
+// ===== FIREBASE-READY DATA EXTRACTION FROM OVERLAY =====
 function getPreviousJobDataFromOverlay() {
     const overlay = document.getElementById('previousOptionsOverlay');
-    return {
+    
+    // Extract comprehensive data for Firebase operations
+    const jobData = {
+        // Core job identification - FIREBASE DOCUMENT ID
         jobId: overlay.getAttribute('data-job-id'),
-        role: overlay.getAttribute('data-role'),
-        title: overlay.getAttribute('data-title'),
-        hiredWorkerName: overlay.getAttribute('data-hired-worker-name'),
+        posterId: overlay.getAttribute('data-poster-id'),
         posterName: overlay.getAttribute('data-poster-name'),
-        hasWorkerFeedback: overlay.getAttribute('data-has-worker-feedback') === 'true'
+        posterThumbnail: overlay.getAttribute('data-poster-thumbnail'),
+        
+        // Job details - CONSISTENT WITH OTHER TABS
+        title: overlay.getAttribute('data-title'),
+        category: overlay.getAttribute('data-category'),
+        thumbnail: overlay.getAttribute('data-thumbnail'),
+        
+        // Scheduling data - FIREBASE TIMESTAMP READY
+        scheduledDate: overlay.getAttribute('data-scheduled-date'),
+        startTime: overlay.getAttribute('data-start-time'),
+        endTime: overlay.getAttribute('data-end-time'),
+        
+        // Financial data
+        priceOffer: overlay.getAttribute('data-price-offer'),
+        
+        // Completion data - FIREBASE TIMESTAMPS
+        completedAt: overlay.getAttribute('data-completed-at'),
+        completedBy: overlay.getAttribute('data-completed-by'),
+        
+        // Role determination - CONSISTENT LOGIC
+        role: overlay.getAttribute('data-role'), // 'customer' | 'worker'
+        
+        // Hiring information - CONSISTENT WITH HIRING TAB
+        hiredWorkerId: overlay.getAttribute('data-hired-worker-id'),
+        hiredWorkerName: overlay.getAttribute('data-hired-worker-name'),
+        hiredWorkerThumbnail: overlay.getAttribute('data-hired-worker-thumbnail'),
+        
+        // Rating and feedback data - FIREBASE SUBCOLLECTION READY
+        rating: parseInt(overlay.getAttribute('data-rating')) || 0,
+        feedback: overlay.getAttribute('data-feedback'),
+        workerFeedback: overlay.getAttribute('data-worker-feedback'),
+        workerRating: parseInt(overlay.getAttribute('data-worker-rating')) || 0,
+        hasWorkerFeedback: overlay.getAttribute('data-has-worker-feedback') === 'true',
+        
+        // Status tracking - CONSISTENT WITH OTHER TABS
+        status: overlay.getAttribute('data-status') || 'completed',
+        datePosted: overlay.getAttribute('data-date-posted'),
+        
+        // Firebase metadata
+        lastModified: overlay.getAttribute('data-last-modified'),
+        modifiedBy: overlay.getAttribute('data-modified-by')
     };
+    
+    // Validate critical fields for Firebase operations
+    if (!jobData.jobId) {
+        console.error('❌ Missing jobId in previous overlay data extraction');
+    }
+    if (!jobData.role) {
+        console.error('❌ Missing role in previous overlay data extraction');
+    }
+    
+    console.log('📋 Previous overlay job data extracted:', jobData);
+    return jobData;
 }
 
 function hidePreviousOptionsOverlay() {
@@ -3038,15 +3408,15 @@ function handleRelistCompletedJob(jobData) {
     console.log(`🔄 RELIST completed job: ${jobData.jobId}`);
     hidePreviousOptionsOverlay();
     
-    // Navigate directly to new-post.html with relist mode (like MODIFY)
+    // Navigate directly to new-post.html with relist mode
     const relistUrl = `new-post.html?relist=${jobData.jobId}&category=${jobData.category}`;
     console.log(`📝 Navigating to relist mode: ${relistUrl}`);
     
     // Firebase data mapping for relist mode:
-    // - Load completed job document from: db.collection('completedJobs').doc(jobData.jobId)
-    // - Pre-populate form with existing data (title, description, price, etc.)
-    // - Clear date/time fields for new scheduling
-    // - Create new job document on save (not update existing)
+    // - Load completed job document: db.collection('completedJobs').doc(jobData.jobId)
+    // - Create new job document with status: 'active' (not update existing)
+    // - Link original job: { originalJobId: jobData.jobId, relistedAt: timestamp }
+    // - Update analytics: trackJobAction('job_relisted', { originalJobId, newJobId })
     
     window.location.href = relistUrl;
 }
@@ -3676,8 +4046,14 @@ async function updateCompletedJobWorkerFeedback(jobId, feedbackText, rating) {
         MOCK_COMPLETED_DATA[jobIndex].workerRating = rating;
         console.log(`✅ Mock data updated: Job ${jobId} now has worker feedback (${rating} stars)`);
         
-        // Refresh the Previous tab to show the updated card
-        await loadPreviousContent();
+        // Only refresh if Previous tab is currently active to avoid handler interference
+        const currentActiveTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
+        if (currentActiveTab === 'previous') {
+            console.log('🔄 Previous tab is active, refreshing content...');
+            await loadPreviousContent();
+        } else {
+            console.log('📋 Previous tab is not active, will refresh on next visit');
+        }
         return true;
     }
     
