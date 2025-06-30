@@ -944,7 +944,7 @@ body:has(.jobs-header) {
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 10000; /* Increased from 1000 for mobile compatibility */
 }
 
 .success-overlay.show {
@@ -961,6 +961,7 @@ body:has(.jobs-header) {
   position: relative;
   border: 2px solid #3498db;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  z-index: 10001; /* Ensure modal is above overlay */
 }
 
 /* Success Header Styles */
@@ -3041,11 +3042,24 @@ body:has(.jobs-header) {
 
 /* Mobile responsive success modal and feedback styles */
 @media (max-width: 600px) {
+  /* Ensure success overlay is visible on mobile */
+  .success-overlay {
+    z-index: 99999 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    backdrop-filter: blur(8px);
+  }
+  
   .success-modal {
     padding: 1.5rem;
     width: 95%;
     max-width: none;
     margin: 1rem;
+    z-index: 100000 !important;
+    position: relative !important;
   }
   
   .success-title-row {
@@ -3099,9 +3113,15 @@ body:has(.jobs-header) {
 }
 
 @media (max-width: 400px) {
+  .success-overlay {
+    z-index: 99999 !important;
+    backdrop-filter: blur(8px);
+  }
+  
   .success-modal {
     padding: 1.2rem;
     width: 96%;
+    z-index: 100000 !important;
   }
   
   .success-title {
@@ -3150,9 +3170,15 @@ body:has(.jobs-header) {
 }
 
 @media (max-width: 375px) {
+  .success-overlay {
+    z-index: 99999 !important;
+    backdrop-filter: blur(8px);
+  }
+  
   .success-modal {
     padding: 1rem;
     width: 97%;
+    z-index: 100000 !important;
   }
   
   .success-title {
@@ -3189,9 +3215,15 @@ body:has(.jobs-header) {
 }
 
 @media (max-width: 320px) {
+  .success-overlay {
+    z-index: 99999 !important;
+    backdrop-filter: blur(8px);
+  }
+  
   .success-modal {
     padding: 0.8rem;
     width: 98%;
+    z-index: 100000 !important;
   }
   
   .success-title {

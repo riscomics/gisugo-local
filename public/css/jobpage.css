@@ -1021,7 +1021,7 @@ body::-webkit-scrollbar {
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.8);
-  z-index: 4000;
+  z-index: 99999; /* Boosted from 4000 for mobile compatibility */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1452,6 +1452,13 @@ body::-webkit-scrollbar {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    z-index: 999999 !important; /* Extra high z-index for mobile */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    backdrop-filter: blur(8px);
   }
   
   .job-posted-modal {
@@ -1517,5 +1524,21 @@ body::-webkit-scrollbar {
   .job-posted-overlay:not(.show) {
     opacity: 0 !important;
     visibility: hidden !important;
+  }
+  
+  /* AGGRESSIVE MOBILE OVERLAY SHOW FIX */
+  .job-posted-overlay.show {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 999999 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
   }
 }

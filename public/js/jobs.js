@@ -63,8 +63,20 @@ window.JobsDataService = {
         //     };
         // });
         
-        // Get all jobs and filter for current user's listings
-        const allJobs = this.initialize();
+        // ENHANCED: Get base mock data and merge with localStorage updates
+        const baseMockJobs = this.initialize();
+        
+        // Get user-generated/modified jobs from localStorage (where new-post.js saves them)
+        const localStorageJobs = this._getJobsFromLocalStorage();
+        
+        // Merge localStorage jobs with mock data, prioritizing localStorage versions
+        const allJobs = this._mergeJobData(baseMockJobs, localStorageJobs);
+        
+        console.log('🔄 JobsDataService.getAllJobs() - Combined job data:', {
+            mockJobs: baseMockJobs.length,
+            localStorageJobs: localStorageJobs.length,
+            totalMerged: allJobs.length
+        });
         
         // Filter for jobs posted by current user with active/paused status
         return allJobs.filter(job => 
@@ -193,6 +205,81 @@ window.JobsDataService = {
         MOCK_HIRING_DATA = null;
         MOCK_COMPLETED_DATA = null; // ADD: Clean up completed data
         console.log('🧹 JobsDataService mock data cleared');
+    },
+    
+    // ENHANCED: Get jobs from localStorage (where new-post.js saves modified jobs)
+    _getJobsFromLocalStorage() {
+        try {
+            const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+            
+            // Flatten all category arrays into a single jobs array
+            const flattenedJobs = [];
+            Object.keys(allJobs).forEach(category => {
+                if (Array.isArray(allJobs[category])) {
+                    allJobs[category].forEach(job => {
+                        // Ensure each job has the required fields for compatibility
+                        flattenedJobs.push({
+                            ...job,
+                            category: job.category || category,
+                            jobPageUrl: job.jobPageUrl || `${job.category || category}.html`
+                        });
+                    });
+                }
+            });
+            
+            console.log('📱 Retrieved jobs from localStorage:', {
+                totalJobs: flattenedJobs.length,
+                byCategory: Object.keys(allJobs).map(cat => ({ category: cat, count: allJobs[cat]?.length || 0 }))
+            });
+            
+            return flattenedJobs;
+        } catch (error) {
+            console.error('❌ Error reading localStorage jobs:', error);
+            return [];
+        }
+    },
+    
+    // ENHANCED: Merge localStorage jobs with mock data (localStorage takes priority)
+    _mergeJobData(mockJobs, localStorageJobs) {
+        // Create a map of localStorage jobs by jobId for fast lookup
+        const localStorageJobsMap = new Map();
+        localStorageJobs.forEach(job => {
+            if (job.jobId) {
+                localStorageJobsMap.set(job.jobId, job);
+            }
+        });
+        
+        // Start with localStorage jobs (highest priority)
+        const mergedJobs = [...localStorageJobs];
+        
+        // Add mock jobs that don't exist in localStorage
+        mockJobs.forEach(mockJob => {
+            if (!localStorageJobsMap.has(mockJob.jobId)) {
+                mergedJobs.push(mockJob);
+            }
+        });
+        
+        // ENHANCED DEBUGGING - Show exactly what's happening with job data
+        console.log('🔀 DETAILED Merged job data:', {
+            localStorageOverrides: localStorageJobsMap.size,
+            mockJobsAdded: mockJobs.length - localStorageJobsMap.size,
+            totalAfterMerge: mergedJobs.length,
+            mockJobIds: mockJobs.map(j => j.jobId),
+            localStorageJobIds: localStorageJobs.map(j => j.jobId),
+            overriddenMockJobs: mockJobs.filter(mockJob => localStorageJobsMap.has(mockJob.jobId)).map(j => j.jobId),
+            finalJobIds: mergedJobs.map(j => j.jobId)
+        });
+        
+        // Show specific job details for troubleshooting
+        const problemJobId = 'job_2024_001_limpyo'; // The "Deep Clean" job that should be getting updated
+        if (localStorageJobsMap.has(problemJobId)) {
+            console.log('✅ Found updated version in localStorage for:', problemJobId, localStorageJobsMap.get(problemJobId));
+        } else {
+            console.log('❌ No localStorage override found for:', problemJobId);
+            console.log('Mock version will be used:', mockJobs.find(j => j.jobId === problemJobId));
+        }
+        
+        return mergedJobs;
     },
     
     // Private method to generate initial mock data
@@ -656,12 +743,48 @@ window.addEventListener('beforeunload', executeAllCleanups);
 
 // ===== JOBS PAGE INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', async function() {
-    initializeMenu();
-    initializeTabs();
-    // Initialize the first tab (listings) content
-    await initializeActiveTab('listings');
-    // Update tab counts based on actual data
-    await updateTabCounts();
+    // Only run jobs page initialization on jobs.html (check for jobs-specific elements)
+    const jobsTabsContainer = document.querySelector('.jobs-tabs');
+    const jobsHeader = document.querySelector('.jobs-header');
+    
+    // Only initialize if we're on the actual jobs page
+    if (jobsTabsContainer && jobsHeader) {
+        console.log('🎯 Jobs page detected - initializing jobs functionality');
+        
+        // Check for refresh parameter from MODIFY/RELIST success overlays
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldRefresh = urlParams.get('refresh');
+        const preferredTab = urlParams.get('tab') || 'listings';
+        
+        if (shouldRefresh) {
+            console.log('🔄 Refresh parameter detected - clearing cached job data');
+            // Clear all cached data to force fresh load
+            MOCK_LISTINGS_DATA = null;
+            MOCK_HIRING_DATA = null;
+            MOCK_COMPLETED_DATA = null;
+            
+            // Remove refresh parameter from URL without reloading page
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+            console.log('✅ Job data cache cleared and URL cleaned');
+        }
+        
+        initializeMenu();
+        initializeTabs();
+        
+        // Initialize the preferred tab (listings by default, can be overridden by tab parameter)
+        await initializeActiveTab(preferredTab);
+        
+        // If preferred tab is not listings, switch to it
+        if (preferredTab !== 'listings') {
+            await switchToTab(preferredTab);
+        }
+        
+        // Update tab counts based on actual data
+        await updateTabCounts();
+    } else {
+        console.log('📋 Non-jobs page detected - skipping jobs initialization (DataService still available)');
+    }
 });
 
 function initializeMenu() {

@@ -447,8 +447,138 @@
     </div>
   </div>
   
+  <!-- DEBUG PANEL - Shows when ?debug=true in URL -->
+  <div id="debugPanel" style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: #1a202c; color: white; padding: 15px; border-top: 3px solid #e53e3e; z-index: 999999; max-height: 200px; overflow-y: auto;">
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+      <button onclick="testMobileOverlay()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">TEST OVERLAY</button>
+      <button onclick="checkLocalStorage()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">CHECK STORAGE</button>
+      <button onclick="addTestJob()" style="background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">ADD TEST JOB</button>
+      <button onclick="hideDebugPanel()" style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">HIDE</button>
+    </div>
+    <div id="debugOutput" style="font-family: monospace; font-size: 12px; background: #2d3748; padding: 10px; border-radius: 4px; white-space: pre-wrap; max-height: 100px; overflow-y: auto;">Ready for testing...</div>
+  </div>
+
   <script src="public/js/shared-menu.js"></script>
   <script src="public/js/jobs.js"></script>
   <script src="public/js/new-post.js?v=17"></script>
+  
+  <script>
+    // Debug functions to test overlay and localStorage
+    function testMobileOverlay() {
+      const output = document.getElementById('debugOutput');
+      const overlay = document.getElementById('jobPostedOverlay');
+      
+      output.textContent = 'Testing overlay on mobile...\n';
+      
+      if (!overlay) {
+        output.textContent += 'ERROR: Overlay not found!\n';
+        return;
+      }
+      
+      // Force show with aggressive mobile-friendly styles
+      overlay.style.display = 'flex';
+      overlay.style.visibility = 'visible';
+      overlay.style.opacity = '1';
+      overlay.style.zIndex = '999999';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100vw';
+      overlay.style.height = '100vh';
+      overlay.style.background = 'rgba(0, 0, 0, 0.9)';
+      overlay.classList.add('show');
+      
+      const modal = overlay.querySelector('.job-posted-modal');
+      if (modal) {
+        modal.style.zIndex = '1000000';
+        modal.style.position = 'relative';
+      }
+      
+      const computed = window.getComputedStyle(overlay);
+      output.textContent += `Display: ${computed.display}\n`;
+      output.textContent += `Z-index: ${computed.zIndex}\n`;
+      output.textContent += `Position: ${computed.position}\n`;
+      output.textContent += 'OVERLAY FORCED TO SHOW - Check if visible on screen!\n';
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.classList.remove('show');
+        output.textContent += 'Auto-hidden after 5 seconds\n';
+      }, 5000);
+    }
+    
+    function checkLocalStorage() {
+      const output = document.getElementById('debugOutput');
+      
+      try {
+        const allJobs = localStorage.getItem('gisugoJobs');
+        output.textContent = 'localStorage Check:\n';
+        output.textContent += allJobs ? `Found: ${allJobs.length} chars\n` : 'No gisugoJobs data\n';
+        
+        if (allJobs) {
+          const parsed = JSON.parse(allJobs);
+          Object.keys(parsed).forEach(category => {
+            output.textContent += `${category}: ${(parsed[category]?.length || 0)} jobs\n`;
+          });
+        }
+      } catch (error) {
+        output.textContent = `Error: ${error.message}\n`;
+      }
+    }
+    
+    function addTestJob() {
+      const output = document.getElementById('debugOutput');
+      
+      try {
+        const testJob = {
+          jobId: 'debug_test_' + Date.now(),
+          jobNumber: 999,
+          posterId: 'user_peter_ang_001',  // Fixed: Must match CURRENT_USER_ID in jobs.js
+          posterName: 'Peter J. Ang',
+          title: 'DEBUG TEST JOB - Should appear in jobs.html',
+          description: 'Test job description for debugging visibility',
+          category: 'limpyo',
+          thumbnail: 'public/mock/mock-limpyo-post1.jpg',
+          jobDate: '2024-01-25',
+          dateNeeded: '2024-01-25',  // Backend field name
+          startTime: '10AM',
+          endTime: '2PM',
+          priceOffer: '999',  // Remove ₱ symbol for form population
+          paymentAmount: '999',  // Backend field name
+          paymentType: 'total',
+          region: 'Metro Manila',
+          city: 'Cebu City',
+          extras: ['Test Extra 1', 'Test Extra 2'],
+          status: 'active',
+          datePosted: new Date().toISOString(),
+          applicationCount: 0,
+          applicationIds: [],
+          jobPageUrl: 'limpyo.html',
+          updatedAt: new Date().toISOString()
+        };
+        
+        const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+        if (!allJobs.limpyo) allJobs.limpyo = [];
+        allJobs.limpyo.push(testJob);
+        
+        localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+        
+        output.textContent = `Test job added with ALL REQUIRED FIELDS!\nID: ${testJob.jobId}\nTitle: ${testJob.title}\nCategory: ${testJob.category}\nTotal limpyo jobs: ${allJobs.limpyo.length}\n\nNow go to jobs.html?refresh=true to see it\n`;
+        
+      } catch (error) {
+        output.textContent = `Error: ${error.message}\n`;
+      }
+    }
+    
+    function hideDebugPanel() {
+      document.getElementById('debugPanel').style.display = 'none';
+    }
+    
+    // Show debug panel if ?debug=true in URL
+    if (window.location.search.includes('debug=true')) {
+      document.getElementById('debugPanel').style.display = 'block';
+    }
+  </script>
 </body>
 </html> 
