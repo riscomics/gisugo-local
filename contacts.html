@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - GISUGO</title>
+    <link rel="stylesheet" href="public/css/contacts.css">
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="contacts-header">
+        <div class="contacts-header-title-container">
+            <button class="contacts-header-btn back" onclick="goBack()">
+                <img src="public/icons/back.png" alt="Back">
+                <span>BACK</span>
+            </button>
+            
+            <h1 class="contacts-header-title">CONTACT US</h1>
+            
+            <button class="contacts-header-btn menu" onclick="toggleMenu()">
+                <img src="public/icons/menu.png" alt="Menu">
+                <span>MENU</span>
+            </button>
+        </div>
+        <div class="contacts-header-borderline"></div>
+    </header>
+
+    <!-- Menu Overlay -->
+    <div class="contacts-menu-overlay" id="menuOverlay">
+        <div class="contacts-menu-items">
+            <a href="index.html" class="contacts-menu-item">
+                <img src="public/icons/Home.png" alt="Home">
+                <span>HOME</span>
+            </a>
+            <a href="jobs.html" class="contacts-menu-item">
+                <img src="public/icons/Jobs.png" alt="Jobs">
+                <span>JOBS</span>
+            </a>
+            <a href="new-post.html" class="contacts-menu-item">
+                <img src="public/icons/Post.png" alt="Post">
+                <span>POST</span>
+            </a>
+            <a href="messages.html" class="contacts-menu-item">
+                <img src="public/icons/Messages.png" alt="Messages">
+                <span>MESSAGES</span>
+            </a>
+            <a href="profile.html" class="contacts-menu-item">
+                <img src="public/icons/Profile.png" alt="Profile">
+                <span>PROFILE</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="contacts-main">
+        <div class="contacts-container">
+            <!-- Page Header Info -->
+            <div class="contacts-page-header">
+                <div class="contacts-icon">
+                    <img src="public/icons/Messages.png" alt="Contact">
+                </div>
+                <h2 class="contacts-page-title">Get in Touch</h2>
+                <p class="contacts-page-subtitle">
+                    Have questions, concerns, or feedback? We're here to help! 
+                    Send us a message and our team will get back to you as soon as possible.
+                </p>
+            </div>
+
+            <!-- Contact Form -->
+            <form class="contact-form" id="contactForm">
+                <!-- User Information Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Your Information</h3>
+                    
+                    <div class="form-group">
+                        <label for="userName" class="form-label">
+                            <span class="label-text">Full Name</span>
+                            <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="userName" 
+                            name="userName" 
+                            class="form-input" 
+                            placeholder="Enter your full name"
+                            required
+                            maxlength="100"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userEmail" class="form-label">
+                            <span class="label-text">Email Address</span>
+                            <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="email" 
+                            id="userEmail" 
+                            name="userEmail" 
+                            class="form-input" 
+                            placeholder="Enter your email address"
+                            required
+                            maxlength="150"
+                        >
+                    </div>
+                </div>
+
+                <!-- Contact Details Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Contact Details</h3>
+                    
+                    <div class="form-group">
+                        <label for="contactTopic" class="form-label">
+                            <span class="label-text">Topic</span>
+                            <span class="required">*</span>
+                        </label>
+                        <select id="contactTopic" name="contactTopic" class="form-select" required>
+                            <option value="">Select a topic...</option>
+                            <option value="general">General Inquiry</option>
+                            <option value="website-issues">Website Issues</option>
+                            <option value="complaints-disputes">Complaints & Disputes</option>
+                            <option value="feature-request">Feature Request</option>
+                            <option value="bug-report">Bug Report</option>
+                            <option value="account-issues">Account Issues</option>
+                            <option value="safety-security">Safety & Security</option>
+                            <option value="payment-billing">Payment & Billing</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactSubject" class="form-label">
+                            <span class="label-text">Subject</span>
+                            <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="contactSubject" 
+                            name="contactSubject" 
+                            class="form-input" 
+                            placeholder="Brief description of your inquiry"
+                            required
+                            maxlength="200"
+                        >
+                        <div class="char-count">
+                            <span id="subjectCharCount">0</span>/200
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="contactMessage" class="form-label">
+                            <span class="label-text">Message</span>
+                            <span class="required">*</span>
+                        </label>
+                        <textarea 
+                            id="contactMessage" 
+                            name="contactMessage" 
+                            class="form-textarea" 
+                            placeholder="Please provide detailed information about your inquiry, issue, or feedback..."
+                            required
+                            maxlength="2000"
+                            rows="8"
+                        ></textarea>
+                        <div class="char-count">
+                            <span id="messageCharCount">0</span>/2000
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo Upload Section -->
+                <div class="form-section">
+                    <h3 class="section-title">Attachments (Optional)</h3>
+                    
+                    <div class="form-group">
+                        <label for="contactPhoto" class="form-label">
+                            <span class="label-text">Photo Upload</span>
+                            <span class="optional">(Optional)</span>
+                        </label>
+                        <div class="photo-upload-container">
+                            <input 
+                                type="file" 
+                                id="contactPhoto" 
+                                name="contactPhoto" 
+                                class="photo-input"
+                                accept="image/*"
+                                capture="environment"
+                            >
+                            <label for="contactPhoto" class="photo-upload-label">
+                                <div class="upload-icon">📷</div>
+                                <div class="upload-text">
+                                    <span class="upload-title">Add Photo</span>
+                                    <span class="upload-subtitle">Tap to select or take a photo</span>
+                                </div>
+                            </label>
+                            <div class="photo-preview" id="photoPreview" style="display: none;">
+                                <img id="previewImage" src="" alt="Preview">
+                                <button type="button" class="remove-photo" onclick="removePhoto()">×</button>
+                            </div>
+                        </div>
+                        <div class="upload-info">
+                            Maximum file size: 5MB. Supported formats: JPG, PNG, GIF
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn" id="submitBtn">
+                        <span class="btn-text">Send Message</span>
+                        <span class="btn-icon">📤</span>
+                    </button>
+                    <div class="submit-info">
+                        We typically respond within 24-48 hours
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Success Overlay -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-modal">
+            <div class="success-icon">✅</div>
+            <h3 class="success-title">Message Sent Successfully!</h3>
+            <p class="success-message">
+                Thank you for contacting us. We've received your message and will get back to you within 24-48 hours.
+            </p>
+            <div class="success-details">
+                <div class="detail-item">
+                    <span class="detail-label">Reference ID:</span>
+                    <span class="detail-value" id="referenceId">CONTACT-2024-001</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Topic:</span>
+                    <span class="detail-value" id="submittedTopic">General Inquiry</span>
+                </div>
+            </div>
+            <button class="success-btn" onclick="closeSuccessOverlay()">Continue</button>
+        </div>
+    </div>
+
+    <!-- Error Overlay -->
+    <div class="error-overlay" id="errorOverlay">
+        <div class="error-modal">
+            <div class="error-icon">❌</div>
+            <h3 class="error-title">Message Failed to Send</h3>
+            <p class="error-message" id="errorMessage">
+                Sorry, there was an error sending your message. Please try again.
+            </p>
+            <div class="error-actions">
+                <button class="error-btn retry" onclick="retrySubmission()">Try Again</button>
+                <button class="error-btn cancel" onclick="closeErrorOverlay()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p class="loading-text">Sending your message...</p>
+        </div>
+    </div>
+
+    <script src="public/js/contacts.js"></script>
+</body>
+</html> 
