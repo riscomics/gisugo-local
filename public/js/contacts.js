@@ -577,13 +577,22 @@ function showLeaveConfirmation() {
 }
 
 function preloadUserData() {
+    // Only pre-fill user data if user is actually logged in
+    // Mock check for logged-in user - in real implementation, check Firebase Auth
+    const isLoggedIn = false; // Set to false for now - will be true when Firebase Auth is connected
+    
+    if (!isLoggedIn) {
+        console.log('👤 No user logged in - leaving form fields empty');
+        return;
+    }
+    
     // Mock user data - in real implementation, get from Firebase Auth
     const mockUser = {
         name: 'John Doe',
         email: 'john.doe@example.com'
     };
     
-    // Only pre-fill if fields are empty
+    // Only pre-fill if fields are empty and user is logged in
     const nameField = document.getElementById('userName');
     const emailField = document.getElementById('userEmail');
     
