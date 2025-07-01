@@ -150,7 +150,12 @@ function createBarangayInputFallback(fieldNumber) {
     inputField.style.paddingLeft = isMobile ? '10px' : '12px';
     inputField.style.paddingRight = isMobile ? '10px' : '12px';
     inputField.style.fontSize = isMobile ? '15px' : '18px';
-    arrow.style.fontSize = isMobile ? '1em' : '1.1em';
+    
+    // Find arrow element within the input field
+    const arrow = inputField.querySelector('.arrow');
+    if (arrow) {
+      arrow.style.fontSize = isMobile ? '1em' : '1.1em';
+    }
   });
 }
 
@@ -1836,6 +1841,16 @@ async function createJobPostWithData(formData) {
       jobId = `${formData.category}_job_2025_${jobNumber}`;
       console.log('✅ New job ID generated:', jobId, 'with job number:', jobNumber);
       
+      // FIXED: Get original completed job data to preserve thumbnail
+      console.log('🔍 Getting original completed job data for thumbnail preservation...');
+      const originalJobData = await getCompletedJobData(relistJobId);
+      if (originalJobData && originalJobData.thumbnail) {
+        formData.originalThumbnail = originalJobData.thumbnail;
+        console.log('✅ Original thumbnail preserved:', originalJobData.thumbnail);
+      } else {
+        console.log('⚠️ No original thumbnail found for completed job:', relistJobId);
+      }
+      
       // Firebase Implementation for RELIST:
       // const originalJobId = relistJobId;
       // const newJobDoc = await createJobFromTemplate(originalJobId, formData);
@@ -1977,7 +1992,7 @@ function storeJobData(formData, jobNumber) {
     title: formData.jobTitle,           // Form: jobTitle → Mock: title
     description: formData.description,
     category: formData.category,
-    thumbnail: formData.photo || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    thumbnail: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
     jobDate: formData.jobDate,
     dateNeeded: formData.jobDate,       // Backend field name
     startTime: formData.startTime,
@@ -2069,7 +2084,7 @@ async function addJobPreviewCard(formData, jobNumber) {
     rate: formData.paymentType,
     date: formattedDate,
     time: timeDisplay,
-    photo: formData.photo || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    photo: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
     templateUrl: `dynamic-job.html?category=${formData.category}&jobNumber=${jobNumber}`,
     region: formData.region,
     city: formData.city,
@@ -2504,11 +2519,11 @@ async function getActiveJobData(jobId) {
 }
 
 async function getCompletedJobData(jobId) {
-  // Access completed job data from global variables or getCompletedJobs function
-  // In Firebase: db.collection('completedJobs').doc(jobId).get()
+  // Access completed job data OR hiring job data for RELIST functionality
+  // In Firebase: db.collection('completedJobs').doc(jobId).get() OR db.collection('hiredJobs').doc(jobId).get()
   
   try {
-    // Try to access getCompletedJobs function from jobs.js
+    // First, try to find in completed jobs
     if (typeof getCompletedJobs !== 'undefined') {
       console.log('🔍 Using getCompletedJobs to find completed job:', jobId);
       const completedJobs = await getCompletedJobs();
@@ -2529,6 +2544,34 @@ async function getCompletedJobData(jobId) {
           category: job.category,
           region: 'CEBU', // Default region
           city: 'Cebu City', // Default city - could be enhanced with actual location data
+          thumbnail: job.thumbnail, // FIXED: Preserve original photo from completed job
+        };
+      }
+    }
+    
+    // If not found in completed jobs, try hiring jobs (for RELIST from Hiring tab)
+    if (typeof JobsDataService !== 'undefined') {
+      console.log('🔍 Using JobsDataService to find hiring job:', jobId);
+      const hiredJobs = await JobsDataService.getAllHiredJobs();
+      const job = hiredJobs.find(j => j.jobId === jobId);
+      
+      if (job) {
+        console.log('📋 Found hiring job for RELIST:', job);
+        return {
+          ...job,
+          // Map hiring job fields to form fields
+          jobId: job.jobId,
+          title: job.title,
+          description: job.description || '',
+          priceOffer: job.priceOffer || job.paymentAmount,
+          paymentAmount: job.priceOffer || job.paymentAmount,
+          startTime: job.startTime,
+          endTime: job.endTime,
+          dateNeeded: job.jobDate, // Map jobDate to dateNeeded
+          category: job.category,
+          region: 'CEBU', // Default region
+          city: 'Cebu City', // Default city
+          thumbnail: job.thumbnail, // Preserve original photo from hiring job
         };
       }
     }
@@ -2545,6 +2588,7 @@ async function getCompletedJobData(jobId) {
         category: job.category,
         region: 'CEBU',
         city: 'Cebu City',
+        thumbnail: job.thumbnail, // FIXED: Preserve original photo from completed job
       };
     }
     

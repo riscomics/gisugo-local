@@ -133,8 +133,22 @@ window.JobsDataService = {
     // Get single job (simulates Firebase doc get)
     async getJobById(jobId) {
         // Firebase: return await db.collection('jobs').doc(jobId).get()
-        const jobs = this.initialize();
-        return jobs.find(job => job.jobId === jobId);
+        
+        // FIXED: Use same logic as getAllJobs() to get fresh data including localStorage updates
+        const baseMockJobs = this.initialize();
+        const localStorageJobs = this._getJobsFromLocalStorage();
+        const allJobs = this._mergeJobData(baseMockJobs, localStorageJobs);
+        
+        console.log(`🔍 getJobById(${jobId}) - searching in ${allJobs.length} jobs (${baseMockJobs.length} mock + ${localStorageJobs.length} localStorage)`);
+        
+        const foundJob = allJobs.find(job => job.jobId === jobId);
+        if (foundJob) {
+            console.log(`✅ getJobById found job with status: ${foundJob.status}`);
+        } else {
+            console.log(`❌ getJobById job not found: ${jobId}`);
+        }
+        
+        return foundJob;
     },
     
     // Update job status (simulates Firebase update)
@@ -189,13 +203,85 @@ window.JobsDataService = {
         // await batch.commit();
         // return { success: true };
         
+        console.log(`🗑️ Attempting to delete job: ${jobId}`);
+        
+        // FIXED: Check localStorage jobs first (where RELISTED jobs are stored)
+        try {
+            const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+            let foundInLocalStorage = false;
+            
+            // Search through all categories in localStorage
+            Object.keys(allJobs).forEach(category => {
+                if (Array.isArray(allJobs[category])) {
+                    const jobIndex = allJobs[category].findIndex(job => job.jobId === jobId);
+                    if (jobIndex !== -1) {
+                        const deletedJob = allJobs[category][jobIndex];
+                        console.log(`✅ Found RELISTED job in localStorage category '${category}':`, deletedJob);
+                        
+                        // Job deletion confirmed (no special blacklist needed)
+                        console.log(`✅ RELISTED job deleted successfully: ${jobId}`);
+                        
+                        // Remove the job from the array
+                        allJobs[category].splice(jobIndex, 1);
+                        foundInLocalStorage = true;
+                        
+                        // Update localStorage
+                        localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+                        console.log(`🗑️ Successfully deleted RELISTED job from localStorage: ${jobId}`);
+                        
+                        // CRITICAL FIX: Also remove from jobPreviewCards (used by category pages)
+                        console.log('🔍 Removing job from jobPreviewCards for category pages...');
+                        try {
+                            let previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+                            const categoryPreviewCards = previewCards[category] || [];
+                            
+                            // Extract jobNumber from jobId (e.g., limpyo_job_2025_1751300670777 → 1751300670777)
+                            const jobNumberMatch = jobId.match(/_(\d+)$/);
+                            const jobNumber = jobNumberMatch ? jobNumberMatch[1] : null;
+                            
+                            console.log(`🔍 Extracted jobNumber: ${jobNumber} from jobId: ${jobId}`);
+                            
+                            // Find and remove the job preview card by matching template URL containing jobNumber
+                            const previewCardIndex = categoryPreviewCards.findIndex(card => 
+                                card.templateUrl && card.templateUrl.includes(`jobNumber=${jobNumber}`)
+                            );
+                            
+                            if (previewCardIndex !== -1) {
+                                const deletedCard = categoryPreviewCards[previewCardIndex];
+                                categoryPreviewCards.splice(previewCardIndex, 1);
+                                previewCards[category] = categoryPreviewCards;
+                                localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
+                                console.log(`✅ Job preview card also deleted from category '${category}':`, deletedCard);
+                            } else {
+                                console.log(`⚠️ Job preview card not found in category '${category}' for jobNumber '${jobNumber}'`);
+                                console.log(`🔍 Available template URLs:`, categoryPreviewCards.map(c => c.templateUrl));
+                            }
+                        } catch (error) {
+                            console.error('❌ Error removing job preview card:', error);
+                        }
+                    }
+                }
+            });
+            
+            if (foundInLocalStorage) {
+                return { success: true };
+            }
+        } catch (error) {
+            console.error('❌ Error deleting from localStorage:', error);
+        }
+        
+        // Fallback: Check mock data for original jobs
         if (MOCK_LISTINGS_DATA) {
             const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
             if (jobIndex !== -1) {
+                console.log(`✅ Found original job in mock data:`, MOCK_LISTINGS_DATA[jobIndex]);
                 MOCK_LISTINGS_DATA.splice(jobIndex, 1);
+                console.log(`🗑️ Successfully deleted original job from mock data: ${jobId}`);
                 return { success: true };
             }
         }
+        
+        console.error(`❌ Job not found in localStorage or mock data: ${jobId}`);
         return { success: false, error: 'Job not found' };
     },
     
@@ -828,6 +914,12 @@ function initializeTabs() {
 }
 
 async function switchToTab(tabType) {
+    // Clean up old deletion blacklist (no longer needed) - one-time cleanup
+    if (localStorage.getItem('deletedJobsBlacklist')) {
+        localStorage.removeItem('deletedJobsBlacklist');
+        console.log('🧹 Cleaned up old deletion blacklist');
+    }
+    
     // Get current active tab before making changes
     const currentActiveTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
     
@@ -1762,18 +1854,97 @@ function initializeRelistJobConfirmationHandlers() {
                     showErrorNotification('Failed to find job data for relisting');
                 }
             } else {
-                // Handle hiring job relisting - void contract
+                // Handle hiring job relisting - void contract and create new active job directly in Listings
                 const workerName = overlay.getAttribute('data-worker-name');
                 
-                // Firebase Implementation - Void contract and relist job:
-                // [Firebase code stays the same as before for hiring jobs]
+                console.log(`🔄 RELIST hiring job: ${jobId} (Customer perspective)`);
                 
-                // Store job ID for data manipulation
-                const negativeOverlay = document.getElementById('contractVoidedNegativeOverlay');
-                negativeOverlay.setAttribute('data-relisted-job-id', jobId);
+                // Get the hiring job data to create new active job
+                const hiredJobs = await JobsDataService.getAllHiredJobs();
+                const sourceJob = hiredJobs.find(j => j.jobId === jobId);
                 
-                // Show contract voided with negative theme (since we're breaking a contract)
-                showContractVoidedNegative(jobTitle, workerName);
+                if (sourceJob) {
+                    // Create new active job directly in localStorage (similar to storeJobData)
+                    const newJobNumber = Date.now();
+                    const newJobId = `${sourceJob.category}_job_2025_${newJobNumber}`;
+                    
+                    const newActiveJob = {
+                        jobId: newJobId,
+                        jobNumber: newJobNumber,
+                        posterId: sourceJob.posterId,
+                        posterName: sourceJob.posterName,
+                        title: sourceJob.title,
+                        description: sourceJob.description || '',
+                        category: sourceJob.category,
+                        thumbnail: sourceJob.thumbnail,
+                        jobDate: sourceJob.jobDate,
+                        dateNeeded: sourceJob.jobDate,
+                        startTime: sourceJob.startTime,
+                        endTime: sourceJob.endTime,
+                        priceOffer: sourceJob.priceOffer || sourceJob.paymentAmount,
+                        paymentAmount: sourceJob.priceOffer || sourceJob.paymentAmount,
+                        paymentType: sourceJob.paymentType || 'Per Hour',
+                        region: sourceJob.region || 'CEBU',
+                        city: sourceJob.city || 'Cebu City',
+                        extras: sourceJob.extras || [],
+                        status: 'active',
+                        applicationCount: 0,
+                        applicationIds: [],
+                        datePosted: new Date().toISOString(),
+                        jobPageUrl: `${sourceJob.category}.html`,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                        relistedFrom: 'hiring', // Track source for delete behavior
+                        originalJobId: jobId
+                    };
+                    
+                    // Store in gisugoJobs localStorage
+                    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+                    if (!allJobs[sourceJob.category]) {
+                        allJobs[sourceJob.category] = [];
+                    }
+                    allJobs[sourceJob.category].push(newActiveJob);
+                    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+                    
+                    // Store in jobPreviewCards for category pages
+                    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+                    if (!previewCards[sourceJob.category]) {
+                        previewCards[sourceJob.category] = [];
+                    }
+                    
+                    const date = new Date(sourceJob.jobDate);
+                    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const timeDisplay = `${sourceJob.startTime} - ${sourceJob.endTime}`;
+                    
+                    const previewCard = {
+                        jobNumber: newJobNumber,
+                        title: sourceJob.title,
+                        extra1: sourceJob.extras && sourceJob.extras[0] ? sourceJob.extras[0] : '',
+                        extra2: sourceJob.extras && sourceJob.extras[1] ? sourceJob.extras[1] : '',
+                        price: `₱${sourceJob.priceOffer || sourceJob.paymentAmount}`,
+                        rate: sourceJob.paymentType || 'Per Hour',
+                        date: formattedDate,
+                        time: timeDisplay,
+                        photo: sourceJob.thumbnail,
+                        templateUrl: `dynamic-job.html?category=${sourceJob.category}&jobNumber=${newJobNumber}`,
+                        region: sourceJob.region || 'CEBU',
+                        city: sourceJob.city || 'Cebu City',
+                        createdAt: new Date().toISOString(),
+                        relistedFrom: 'hiring',
+                        originalJobId: jobId
+                    };
+                    
+                    previewCards[sourceJob.category].unshift(previewCard);
+                    localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
+                    
+                    console.log(`✅ Created new active job: ${newJobId} from hiring job: ${jobId}`);
+                    
+                    // Show success and redirect to jobs.html (Listings tab)
+                    showContractVoidedSuccess(`Job relisted successfully! "${sourceJob.title}" is now active in your Listings.`);
+                } else {
+                    console.error(`❌ Source hiring job not found: ${jobId}`);
+                    showErrorNotification('Failed to relist job - source job not found');
+                }
             }
         };
         yesBtn.addEventListener('click', yesHandler);
@@ -3597,10 +3768,24 @@ function initializeOptionsOverlayHandlers() {
     const overlay = document.getElementById('listingOptionsOverlay');
     if (!overlay || overlay.dataset.handlersInitialized) return;
 
+    const viewBtn = document.getElementById('viewJobBtn');
     const modifyBtn = document.getElementById('modifyJobBtn');
     const pauseBtn = document.getElementById('pauseJobBtn');
     const deleteBtn = document.getElementById('deleteJobBtn');
     const cancelBtn = document.getElementById('cancelOptionsBtn');
+
+    // View job handler
+    if (viewBtn) {
+        const viewHandler = function(e) {
+            e.preventDefault();
+            const jobData = getJobDataFromOverlay();
+            handleViewJob(jobData);
+        };
+        viewBtn.addEventListener('click', viewHandler);
+        registerCleanup('listings', 'viewBtn', () => {
+            viewBtn.removeEventListener('click', viewHandler);
+        });
+    }
 
     // Modify job handler
     if (modifyBtn) {
@@ -3698,6 +3883,22 @@ function hideListingOptionsOverlay() {
     executeCleanupsByType('listings');
     
     console.log('🔧 Options overlay hidden and handlers cleaned up');
+}
+
+function handleViewJob(jobData) {
+    console.log(`👁️ VIEW job post: ${jobData.jobId}`);
+    hideListingOptionsOverlay();
+    
+    // Navigate to dynamic job page
+    const viewUrl = `dynamic-job.html?jobId=${jobData.jobId}&category=${jobData.category}`;
+    console.log(`👀 Navigating to job view: ${viewUrl}`);
+    
+    // Firebase data mapping for view mode:
+    // - Load job document from: db.collection('jobs').doc(jobData.jobId)
+    // - Display job details in read-only format
+    // - Show application statistics and status
+    
+    window.location.href = viewUrl;
 }
 
 function handleModifyJob(jobData) {
@@ -4142,16 +4343,101 @@ async function updateTabCounts() {
 }
 
 async function updateJobStatusInMockData(jobId, newStatus) {
+    let updated = false;
+    
+    // First, try to update in mock data (for original jobs)
     if (MOCK_LISTINGS_DATA) {
         const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
         if (jobIndex !== -1) {
             MOCK_LISTINGS_DATA[jobIndex].status = newStatus;
             MOCK_LISTINGS_DATA[jobIndex].lastModified = new Date().toISOString();
             console.log(`📊 Mock data updated: Job ${jobId} status → ${newStatus}`);
-            return true;
+            updated = true;
         }
     }
-    return false;
+    
+    // If not found in mock data, check localStorage (for RELISTED/MODIFIED jobs)
+    if (!updated) {
+        console.log(`🔍 Job ${jobId} not found in mock data, checking localStorage...`);
+        try {
+            // Check both localStorage structures: jobPreviewCards and gisugoJobs
+            
+            // First check: jobPreviewCards structure (direct category mapping)
+            const jobPreviewCardsRaw = localStorage.getItem('jobPreviewCards');
+            if (jobPreviewCardsRaw) {
+                console.log(`🔍 Checking jobPreviewCards structure...`);
+                const jobPreviewCards = JSON.parse(jobPreviewCardsRaw);
+                
+                for (const [category, jobs] of Object.entries(jobPreviewCards)) {
+                    if (Array.isArray(jobs)) {
+                        const jobIndex = jobs.findIndex(job => job.jobId === jobId);
+                        if (jobIndex !== -1) {
+                            jobs[jobIndex].status = newStatus;
+                            jobs[jobIndex].lastModified = new Date().toISOString();
+                            localStorage.setItem('jobPreviewCards', JSON.stringify(jobPreviewCards));
+                            console.log(`📊 jobPreviewCards updated: Job ${jobId} in category '${category}' status → ${newStatus}`);
+                            updated = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Second check: gisugoJobs structure (byCategory format)
+            if (!updated) {
+                const gisugoJobsRaw = localStorage.getItem('gisugoJobs');
+                if (gisugoJobsRaw) {
+                    console.log(`🔍 Checking gisugoJobs structure...`);
+                    const gisugoJobs = JSON.parse(gisugoJobsRaw);
+                    
+                    // Handle byCategory format
+                    if (gisugoJobs.byCategory && Array.isArray(gisugoJobs.byCategory)) {
+                        for (const categoryData of gisugoJobs.byCategory) {
+                            if (categoryData.jobs && Array.isArray(categoryData.jobs)) {
+                                const jobIndex = categoryData.jobs.findIndex(job => job.jobId === jobId);
+                                if (jobIndex !== -1) {
+                                    categoryData.jobs[jobIndex].status = newStatus;
+                                    categoryData.jobs[jobIndex].lastModified = new Date().toISOString();
+                                    localStorage.setItem('gisugoJobs', JSON.stringify(gisugoJobs));
+                                    console.log(`📊 gisugoJobs (byCategory) updated: Job ${jobId} in category '${categoryData.category}' status → ${newStatus}`);
+                                    updated = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    // Handle direct category mapping format
+                    else {
+                        for (const [category, jobs] of Object.entries(gisugoJobs)) {
+                            if (Array.isArray(jobs)) {
+                                const jobIndex = jobs.findIndex(job => job.jobId === jobId);
+                                if (jobIndex !== -1) {
+                                    jobs[jobIndex].status = newStatus;
+                                    jobs[jobIndex].lastModified = new Date().toISOString();
+                                    localStorage.setItem('gisugoJobs', JSON.stringify(gisugoJobs));
+                                    console.log(`📊 gisugoJobs (direct mapping) updated: Job ${jobId} in category '${category}' status → ${newStatus}`);
+                                    updated = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (!updated) {
+                console.log(`🔍 Job ${jobId} not found in any localStorage structure`);
+            }
+        } catch (error) {
+            console.error('❌ Error updating job status in localStorage:', error);
+        }
+    }
+    
+    if (!updated) {
+        console.warn(`⚠️ Job ${jobId} not found in either mock data or localStorage`);
+    }
+    
+    return updated;
 }
 
 async function updateCompletedJobWorkerFeedback(jobId, feedbackText, rating) {

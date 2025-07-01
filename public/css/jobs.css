@@ -784,6 +784,14 @@ body:has(.jobs-header) {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+.listing-option-btn.view {
+  background: #10b981;
+}
+
+.listing-option-btn.view:hover {
+  background: #059669;
+}
+
 .listing-option-btn.modify {
   background: #3b82f6;
 }

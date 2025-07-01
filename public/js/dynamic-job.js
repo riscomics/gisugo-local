@@ -116,39 +116,107 @@ function loadJobData() {
     return;
   }
   
+  console.log(`🔍 Loading job data for category: ${category}, jobNumber: ${jobNumber}`);
+  
   // Try to get job data from localStorage
   const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
   const categoryJobs = jobData[category] || [];
   
-  // Find the specific job
-  const job = categoryJobs.find(j => j.jobNumber == jobNumber);
+  console.log(`📱 Found ${categoryJobs.length} jobs in localStorage for category '${category}':`, categoryJobs);
+  
+  // Find the specific job by jobNumber OR by extracting from jobId
+  let job = categoryJobs.find(j => j.jobNumber == jobNumber);
   
   if (!job) {
+    // Try alternative: match by jobId pattern (for RELISTED jobs that might have different jobNumber)
+    job = categoryJobs.find(j => {
+      if (j.jobId) {
+        // Extract number from jobId like "limpyo_job_2025_1751300670771"
+        const extractedNumber = j.jobId.split('_').pop();
+        return extractedNumber == jobNumber;
+      }
+      return false;
+    });
+    
+    if (job) {
+      console.log(`✅ Found job by jobId pattern match:`, job);
+    }
+  } else {
+    console.log(`✅ Found job by direct jobNumber match:`, job);
+  }
+  
+  if (!job) {
+    console.error(`❌ Job not found. Available jobNumbers:`, categoryJobs.map(j => ({
+      jobId: j.jobId,
+      jobNumber: j.jobNumber,
+      title: j.title || j.jobTitle
+    })));
     showErrorMessage('Job not found. This job may have been removed or does not exist.');
     return;
   }
+  
+  console.log(`🎯 Loading job data:`, job);
   
   // Populate the page with job data
   populateJobPage(job);
 }
 
 function populateJobPage(jobData) {
-  // Set page title
-  document.title = `${jobData.jobTitle} - GISUGO`;
-  document.getElementById('pageTitle').textContent = `${jobData.jobTitle} - GISUGO`;
+  // Set page title (check both jobTitle and title fields)
+  const jobTitle = jobData.jobTitle || jobData.title;
+  document.title = `${jobTitle} - GISUGO`;
+  document.getElementById('pageTitle').textContent = `${jobTitle} - GISUGO`;
   
   // Set job title
-  document.getElementById('jobTitle').textContent = jobData.jobTitle;
+  document.getElementById('jobTitle').textContent = jobTitle;
   
-  // Set job photo if available
-  if (jobData.photo) {
+  // Set job photo if available (check both photo and thumbnail fields)
+  const photoSrc = jobData.photo || jobData.thumbnail;
+  console.log(`🖼️ Photo debugging:`, {
+    hasPhoto: !!jobData.photo,
+    hasThumbnail: !!jobData.thumbnail,
+    photoValue: jobData.photo,
+    thumbnailValue: jobData.thumbnail,
+    finalPhotoSrc: photoSrc,
+    allJobFields: Object.keys(jobData)
+  });
+  
+  if (photoSrc) {
     const photoContainer = document.getElementById('jobPhotoContainer');
     const photoBorderline = document.getElementById('jobPhotoBorderline');
     const photoImg = document.getElementById('jobPhoto');
     
-    photoImg.src = jobData.photo;
-    photoContainer.style.display = 'block';
-    photoBorderline.style.display = 'block';
+    if (photoContainer && photoBorderline && photoImg) {
+      photoImg.src = photoSrc;
+      photoContainer.style.display = 'block';
+      photoBorderline.style.display = 'block';
+      console.log('✅ Job photo loaded successfully:', photoSrc);
+      
+      // Add error handling for broken images
+      photoImg.onload = function() {
+        console.log('✅ Photo image loaded successfully from:', photoSrc);
+      };
+      
+      photoImg.onerror = function() {
+        console.error('❌ Failed to load photo image from:', photoSrc);
+        photoContainer.style.display = 'none';
+        photoBorderline.style.display = 'none';
+      };
+    } else {
+      console.error('❌ Photo container elements not found:', {
+        photoContainer: !!photoContainer,
+        photoBorderline: !!photoBorderline,
+        photoImg: !!photoImg
+      });
+    }
+  } else {
+    console.log('⚠️ No job photo found. Job data structure:', {
+      availableFields: Object.keys(jobData),
+      photoField: jobData.photo,
+      thumbnailField: jobData.thumbnail,
+      imageField: jobData.image,
+      pictureField: jobData.picture
+    });
   }
   
   // Set date
@@ -173,10 +241,12 @@ function populateJobPage(jobData) {
   // Set description
   document.getElementById('jobDescription').textContent = jobData.description || 'No description provided.';
   
-  // Set payment
-  document.getElementById('jobPaymentAmount').textContent = `₱${jobData.paymentAmount}`;
-  document.getElementById('jobPaymentRate').textContent = jobData.paymentType;
-  document.getElementById('modalPaymentAmount').textContent = `₱${jobData.paymentAmount}`;
+  // Set payment (check multiple field variations)
+  const paymentAmount = jobData.paymentAmount || jobData.priceOffer || '0';
+  const paymentType = jobData.paymentType || 'Per Hour';
+  document.getElementById('jobPaymentAmount').textContent = `₱${paymentAmount}`;
+  document.getElementById('jobPaymentRate').textContent = paymentType;
+  document.getElementById('modalPaymentAmount').textContent = `₱${paymentAmount}`;
 }
 
 function populateExtras(jobData) {
@@ -517,6 +587,7 @@ function initializeContactDropdown() {
 
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 Dynamic job page loading...');
   loadJobData();
   initializeMenu();
   initializeApplyJob();
@@ -525,9 +596,5 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeContactDropdown();
   initCounterOfferFormatting();
   
-  // Add barangay font size adjustment
-  adjustBarangayFontSizes();
-  
-  // Also call after a short delay to ensure all content is loaded
-  setTimeout(adjustBarangayFontSizes, 100);
+  console.log('✅ Dynamic job page initialization completed');
 }); 
