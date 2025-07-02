@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GISUGO Forum - Coming Soon</title>
+    <link rel="stylesheet" href="public/css/forum.css">
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="forum-header">
+        <div class="forum-header-title-container">
+            <button class="forum-header-btn back" onclick="window.history.back()">
+                <img src="public/categories/Home.png" alt="Back">
+                <span>BACK</span>
+            </button>
+            <h1 class="forum-header-title">FORUM</h1>
+            <button class="forum-header-btn menu" id="menuBtn">
+                <img src="public/categories/Menu.png" alt="Menu">
+                <span>MENU</span>
+            </button>
+        </div>
+        <div class="forum-header-borderline"></div>
+    </header>
+
+    <!-- Menu Overlay -->
+    <div class="forum-menu-overlay" id="menuOverlay">
+        <nav class="forum-menu-items">
+            <a href="index.html" class="forum-menu-item">
+                <img src="public/categories/Home.png" alt="Home">
+                <span>HOME</span>
+            </a>
+            <a href="jobs.html" class="forum-menu-item">
+                <img src="public/categories/Jobs.png" alt="Jobs">
+                <span>JOBS</span>
+            </a>
+            <a href="new-post.html" class="forum-menu-item">
+                <img src="public/categories/Post.png" alt="Post">
+                <span>POST</span>
+            </a>
+            <a href="messages.html" class="forum-menu-item">
+                <img src="public/categories/Message.png" alt="Messages">
+                <span>MESSAGES</span>
+            </a>
+            <a href="profile.html" class="forum-menu-item">
+                <img src="public/categories/Me.png" alt="Profile">
+                <span>PROFILE</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <main class="forum-main">
+        <!-- Coming Soon Hero Section -->
+        <section class="coming-soon-hero">
+            <div class="hero-icon">
+                <span class="forum-emoji">💬</span>
+            </div>
+            <h1 class="hero-title">GISUGO Forum</h1>
+            <h2 class="hero-subtitle">Coming Soon</h2>
+            <p class="hero-description">
+                We're building something special for our community
+            </p>
+        </section>
+
+        <!-- What to Expect Section -->
+        <section class="features-section">
+            <h3 class="section-title">What to Expect</h3>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h4 class="feature-title">Community Discussions</h4>
+                    <p class="feature-description">
+                        Connect with other users, share experiences, and ask questions about GISUGO services
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💡</div>
+                    <h4 class="feature-title">Tips & Advice</h4>
+                    <p class="feature-description">
+                        Get practical tips from experienced workers and customers on how to succeed on GISUGO
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h4 class="feature-title">Technical Support</h4>
+                    <p class="feature-description">
+                        Get help with technical issues, report bugs, and request new features for the platform
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📢</div>
+                    <h4 class="feature-title">Announcements</h4>
+                    <p class="feature-description">
+                        Stay updated with the latest GISUGO news, feature releases, and community events
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⭐</div>
+                    <h4 class="feature-title">Success Stories</h4>
+                    <p class="feature-description">
+                        Share and read inspiring stories from the GISUGO community about successful jobs and partnerships
+                    </p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🏆</div>
+                    <h4 class="feature-title">Recognition</h4>
+                    <p class="feature-description">
+                        Celebrate top performers, helpful community members, and outstanding service providers
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notification Section -->
+        <section class="notification-section">
+            <div class="notification-card">
+                <div class="notification-icon">🔔</div>
+                <h3 class="notification-title">Get Notified When We Launch</h3>
+                <p class="notification-description">
+                    Be the first to know when the GISUGO Forum goes live. We'll notify all registered users via email and push notifications.
+                </p>
+                <div class="notification-actions">
+                    <button class="notification-btn primary" onclick="showComingSoonMessage()">
+                        <span class="btn-icon">📧</span>
+                        Notify Me
+                    </button>
+                    <a href="index.html" class="notification-btn secondary">
+                        <span class="btn-icon">🏠</span>
+                        Back to Home
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Timeline Section -->
+        <section class="timeline-section">
+            <h3 class="section-title">Development Timeline</h3>
+            <div class="timeline">
+                <div class="timeline-item completed">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Platform Launch</h4>
+                        <p>GISUGO job marketplace is live and running</p>
+                        <span class="timeline-date">Completed</span>
+                    </div>
+                </div>
+                <div class="timeline-item completed">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Core Features</h4>
+                        <p>Job posting, applications, and messaging system</p>
+                        <span class="timeline-date">Completed</span>
+                    </div>
+                </div>
+                <div class="timeline-item active">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Forum Development</h4>
+                        <p>Building community discussion platform</p>
+                        <span class="timeline-date">In Progress</span>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Beta Testing</h4>
+                        <p>Testing with select community members</p>
+                        <span class="timeline-date">Coming Soon</span>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Public Launch</h4>
+                        <p>Forum available to all GISUGO users</p>
+                        <span class="timeline-date">Q2 2025</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Success Overlay -->
+    <div class="success-overlay" id="comingSoonOverlay">
+        <div class="success-modal">
+            <div class="success-icon">🚀</div>
+            <h3 class="success-title">Thanks for Your Interest!</h3>
+            <p class="success-message">
+                We'll notify all registered users when the GISUGO Forum launches. Keep an eye on your notifications and email for updates!
+            </p>
+            <button class="success-btn" onclick="hideComingSoonMessage()">Got It</button>
+        </div>
+    </div>
+
+    <script src="public/js/forum.js"></script>
+</body>
+</html> 

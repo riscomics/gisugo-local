@@ -1695,7 +1695,7 @@ body:has(.jobs-header) {
 /* iPhone 7 and Similar Devices (375px and below) */
 @media (max-width: 375px) {
   body {
-    padding-top: 71px; /* Slightly reduced for smaller screens */
+    padding-top: 77px; /* Slightly reduced for smaller screens */
   }
   
   .jobs-header-title-container {
@@ -1988,7 +1988,7 @@ body:has(.jobs-header) {
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   body {
-    padding-top: 73px; /* Slightly reduced for smaller screens */
+    padding-top: 79px; /* Slightly reduced for smaller screens */
   }
   
   .jobs-header-title-container {
