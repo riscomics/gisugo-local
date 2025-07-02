@@ -188,8 +188,8 @@ function populateJobPage(jobData) {
     
     if (photoContainer && photoBorderline && photoImg) {
       photoImg.src = photoSrc;
-      photoContainer.style.display = 'block';
-      photoBorderline.style.display = 'block';
+    photoContainer.style.display = 'block';
+    photoBorderline.style.display = 'block';
       console.log('✅ Job photo loaded successfully:', photoSrc);
       
       // Add error handling for broken images

@@ -154,7 +154,7 @@ function createBarangayInputFallback(fieldNumber) {
     // Find arrow element within the input field
     const arrow = inputField.querySelector('.arrow');
     if (arrow) {
-      arrow.style.fontSize = isMobile ? '1em' : '1.1em';
+    arrow.style.fontSize = isMobile ? '1em' : '1.1em';
     }
   });
 }
@@ -1493,15 +1493,15 @@ function getFormData() {
   const data = {};
   
   try {
-    // Get selected category
-    data.category = window.selectedJobCategory || null;
+  // Get selected category
+  data.category = window.selectedJobCategory || null;
     console.log('📝 Category:', data.category);
     
     if (!data.category) {
       throw new Error('No job category selected');
     }
-    
-    // Get selected region and city
+  
+  // Get selected region and city
     const regionElement = document.getElementById('newPostRegionMenuLabel');
     const cityElement = document.getElementById('newPostCityMenuLabel');
     
@@ -1512,8 +1512,8 @@ function getFormData() {
     data.region = regionElement.textContent;
     data.city = cityElement.textContent;
     console.log('📝 Location:', `${data.region}, ${data.city}`);
-    
-    // Get job details
+  
+  // Get job details
     const titleInput = document.getElementById('jobTitleInput');
     const dateInput = document.getElementById('jobDateInput');
     
@@ -1532,8 +1532,8 @@ function getFormData() {
     if (!data.jobDate) {
       throw new Error('Job date is required');
     }
-    
-    // Get time
+  
+  // Get time
     const startHourElement = document.getElementById('jobTimeStartLabel');
     const startPeriodElement = document.getElementById('jobTimeStartPeriodLabel');
     const endHourElement = document.getElementById('jobTimeEndLabel');
@@ -1547,63 +1547,63 @@ function getFormData() {
     const startPeriod = startPeriodElement.textContent;
     const endHour = endHourElement.textContent;
     const endPeriod = endPeriodElement.textContent;
-    
-    if (startHour !== 'Hour' && endHour !== 'Hour') {
+  
+  if (startHour !== 'Hour' && endHour !== 'Hour') {
       data.startTime = `${startHour} ${startPeriod}`;
       data.endTime = `${endHour} ${endPeriod}`;
       console.log('📝 Time:', `${data.startTime} - ${data.endTime}`);
     } else {
       throw new Error('Start and end times are required');
-    }
-    
-    // Get photo
-    const photoPreview = document.getElementById('photoPreviewImage');
-    if (photoPreview && photoPreview.src && !photoPreview.src.includes('data:,')) {
-      data.photo = photoPreview.src;
+  }
+  
+  // Get photo
+  const photoPreview = document.getElementById('photoPreviewImage');
+  if (photoPreview && photoPreview.src && !photoPreview.src.includes('data:,')) {
+    data.photo = photoPreview.src;
       console.log('📝 Photo:', 'Image included');
     } else {
       console.log('📝 Photo:', 'No image');
-    }
-    
-    // Get extras
-    data.extras = [];
-    const extrasHeader = document.getElementById('newPostExtrasHeader');
-    if (extrasHeader && extrasHeader.style.display !== 'none') {
-      // Get field 1
+  }
+  
+  // Get extras
+  data.extras = [];
+  const extrasHeader = document.getElementById('newPostExtrasHeader');
+  if (extrasHeader && extrasHeader.style.display !== 'none') {
+    // Get field 1
       const label1Element = document.getElementById('newPostExtrasLabel1');
       const value1Element = document.getElementById('newPostExtrasMenuLabel1');
-      const input1 = document.getElementById('newPostExtrasInput1');
+    const input1 = document.getElementById('newPostExtrasInput1');
       
       if (label1Element && value1Element) {
         const label1 = label1Element.textContent;
         const value1 = value1Element.textContent;
-        
-        if (value1 && value1 !== 'Select Option') {
-          data.extras.push(`${label1} ${value1}`);
-        } else if (input1 && input1.value.trim()) {
-          data.extras.push(`${label1} ${input1.value.trim()}`);
+    
+    if (value1 && value1 !== 'Select Option') {
+      data.extras.push(`${label1} ${value1}`);
+    } else if (input1 && input1.value.trim()) {
+      data.extras.push(`${label1} ${input1.value.trim()}`);
         }
-      }
-      
-      // Get field 2
+    }
+    
+    // Get field 2
       const label2Element = document.getElementById('newPostExtrasLabel2');
       const value2Element = document.getElementById('newPostExtrasMenuLabel2');
-      const input2 = document.getElementById('newPostExtrasInput2');
+    const input2 = document.getElementById('newPostExtrasInput2');
       
       if (label2Element && value2Element) {
         const label2 = label2Element.textContent;
         const value2 = value2Element.textContent;
-        
-        if (value2 && value2 !== 'Select Option') {
-          data.extras.push(`${label2} ${value2}`);
-        } else if (input2 && input2.value.trim()) {
-          data.extras.push(`${label2} ${input2.value.trim()}`);
-        }
-      }
+    
+    if (value2 && value2 !== 'Select Option') {
+      data.extras.push(`${label2} ${value2}`);
+    } else if (input2 && input2.value.trim()) {
+      data.extras.push(`${label2} ${input2.value.trim()}`);
+    }
+  }
     }
     console.log('📝 Extras:', data.extras);
-    
-    // Get description
+  
+  // Get description
     const descriptionElement = document.getElementById('jobDetailsTextarea');
     if (!descriptionElement) {
       throw new Error('Description element not found');
@@ -1615,8 +1615,8 @@ function getFormData() {
     if (!data.description) {
       throw new Error('Job description is required');
     }
-    
-    // Get payment
+  
+  // Get payment
     const paymentTypeElement = document.getElementById('paymentTypeLabel');
     const paymentAmountElement = document.getElementById('paymentAmountInput');
     
@@ -1634,8 +1634,8 @@ function getFormData() {
     
     console.log('✅ Form data collection completed successfully');
     console.log('📝 Complete form data:', data);
-    
-    return data;
+  
+  return data;
     
   } catch (error) {
     console.error('❌ Error collecting form data:', error);
@@ -1755,7 +1755,7 @@ function initializePreviewOverlayEvents() {
         if (firstField) {
           firstField.focus();
           console.log('✅ Focused on job title field for continued editing');
-        }
+      }
       }, 300); // Small delay to ensure smooth scroll completes
       
       console.log('✅ Returned to form for editing');

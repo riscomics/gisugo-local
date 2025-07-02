@@ -2592,7 +2592,7 @@ body:has(.jobs-header) {
 
 @media (max-width: 320px) {
   body {
-    padding-top: 69px;
+    padding-top: 75px;
   }
   
   .jobs-header-title-container {

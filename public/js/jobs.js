@@ -855,8 +855,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.log('✅ Job data cache cleared and URL cleaned');
         }
         
-        initializeMenu();
-        initializeTabs();
+    initializeMenu();
+    initializeTabs();
         
         // Initialize the preferred tab (listings by default, can be overridden by tab parameter)
         await initializeActiveTab(preferredTab);
@@ -866,8 +866,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             await switchToTab(preferredTab);
         }
         
-        // Update tab counts based on actual data
-        await updateTabCounts();
+    // Update tab counts based on actual data
+    await updateTabCounts();
     } else {
         console.log('📋 Non-jobs page detected - skipping jobs initialization (DataService still available)');
     }
