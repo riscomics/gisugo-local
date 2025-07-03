@@ -2702,10 +2702,10 @@ body:has(.jobs-header) {
   .posting-info {
     padding-top: 1px;
   }
-
+ 
   .listing-time-ago {
     font-size: 0.6rem;
-  }
+  } 
 
   .application-count {
     padding: 1px 4px;
