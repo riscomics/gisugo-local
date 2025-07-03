@@ -263,7 +263,7 @@ body::-webkit-scrollbar {
 
 /* Compact Value Section */
 .value-section {
-  padding: 5px 20px;
+  padding: 5px 20px 30px 20px;
   background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
   text-align: center;
   color: #f0e6d2;
@@ -313,7 +313,7 @@ body::-webkit-scrollbar {
 
 /* Social Section */
 .social-section {
-  padding: 5px 20px;
+  padding: 5px 20px 30px 20px;
   background: linear-gradient(135deg, #856f67 0%, #a0805a 50%, #6b5b52 100%);
   text-align: center;
   color: #f0e6d2;
@@ -401,7 +401,7 @@ body::-webkit-scrollbar {
 
 /* Timeline Section */
 .timeline-section {
-  padding: 5px 20px;
+  padding: 5px 20px 30px 20px;
   background: linear-gradient(135deg, #2d3748 0%, #363f4f 100%);
   color: #f0e6d2;
 }
