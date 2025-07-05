@@ -564,7 +564,7 @@ body:has(.profile-header) {
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   body {
-    padding-top: clamp(3.5rem, 7.5vh, 4.2rem); /* Responsive smaller mobile padding */
+    padding-top: clamp(3.4rem, 7vh, 4rem); /* Match header height + borderline + small buffer */
   }
   
   .profile-header-title-container {
@@ -622,7 +622,7 @@ body:has(.profile-header) {
 /* iPhone 7 and Similar Devices (375px and below) */
 @media (max-width: 375px) {
   body {
-    padding-top: clamp(3.2rem, 7vh, 3.8rem); /* Responsive iPhone 7 padding */
+    padding-top: clamp(3.3rem, 7vh, 3.9rem); /* Increased to clear header properly */
   }
   
   .profile-header-title-container {
@@ -680,7 +680,7 @@ body:has(.profile-header) {
 /* Ultra Small Screens (320px and below) */
 @media (max-width: 320px) {
   body {
-    padding-top: clamp(2.8rem, 6.5vh, 3.5rem); /* Responsive ultra-small padding */
+    padding-top: clamp(2.9rem, 6.5vh, 3.6rem); /* Increased to clear header properly */
   }
   
   .profile-header-title-container {
