@@ -478,6 +478,7 @@ body::-webkit-scrollbar {
   width: 100%;
   box-sizing: border-box;
   margin-left: 2.5rem;
+  text-align: center;
 }
 
 .timeline-content:hover {
@@ -795,6 +796,10 @@ body::-webkit-scrollbar {
     padding: 1rem 1rem 1.5rem 1rem;
   }
 
+  .timeline-container {
+    max-width: 500px;
+  }
+
   .timeline-item {
     margin-left: 0;
   }
@@ -809,6 +814,7 @@ body::-webkit-scrollbar {
   .timeline-content {
     padding: 1rem;
     margin-left: 2rem;
+    text-align: center;
   }
 
   .timeline-content h4 {
@@ -943,6 +949,10 @@ body::-webkit-scrollbar {
     padding: 0.75rem 0.75rem 1.25rem 0.75rem;
   }
 
+  .timeline-container {
+    max-width: 400px;
+  }
+
   .timeline-item {
     margin-left: 0;
   }
@@ -955,6 +965,7 @@ body::-webkit-scrollbar {
   .timeline-content {
     padding: 0.875rem;
     margin-left: 1.75rem;
+    text-align: center;
   }
 }
 
@@ -996,6 +1007,10 @@ body::-webkit-scrollbar {
   .social-link {
     padding: 0.5rem;
     min-height: 4rem;
+  }
+
+  .timeline-container {
+    max-width: 350px;
   }
 }
 
@@ -1110,6 +1125,10 @@ body::-webkit-scrollbar {
     padding: 0.625rem 0.625rem 1rem 0.625rem;
   }
 
+  .timeline-container {
+    max-width: 300px;
+  }
+
   .timeline-item {
     margin-left: 0;
   }
@@ -1122,6 +1141,7 @@ body::-webkit-scrollbar {
   .timeline-content {
     padding: 0.75rem;
     margin-left: 1.5rem;
+    text-align: center;
   }
 
   .timeline-content h4 {
