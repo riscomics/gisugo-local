@@ -389,16 +389,16 @@ section {
 @media (min-width: 1024px) {
   .header {
     padding: clamp(0.25rem, 1vw, 1.5rem);
-    height: 136px;
-    min-height: 136px;
+    height: clamp(8rem, 11vh, 8.5rem);
+    min-height: clamp(7.5rem, 10vh, 8rem);
   }
 
   .header-wrapper {
-    height: 144px; /* 136px header + 8px accent line */
+    height: clamp(8.5rem, 12vh, 9rem); /* Responsive desktop wrapper */
   }
 
   .header-spacer {
-    height: 144px; /* Matches header-wrapper */
+    height: clamp(8.5rem, 12vh, 9rem); /* Matches wrapper */
   }
 
   .header__logo {
@@ -466,16 +466,16 @@ section {
 /* Enhanced Tablet Styles */
 @media (min-width: 768px) and (max-width: 1023px) { 
   .header, .listheader {
-    height: 128px;
-    min-height: 128px;
+    height: clamp(7rem, 10vh, 8rem);
+    min-height: clamp(6.5rem, 9vh, 7.5rem);
   }
 
   .header-wrapper {
-    height: 136px; /* 128px header + 8px accent line */
+    height: clamp(7.5rem, 11vh, 8.5rem); /* Responsive tablet wrapper */
   }
 
   .header-spacer {
-    height: 136px; /* Matches header-wrapper */
+    height: clamp(7.5rem, 11vh, 8.5rem); /* Matches wrapper */
   }
 
   .header__logo {
@@ -532,16 +532,16 @@ section {
 /* Mobile Responsive Media Queries */
 @media (max-width: 600px) {
   .header, .listheader {
-    height: 48px;
-    min-height: 44px;
+    height: clamp(2.8rem, 7vh, 3.5rem);
+    min-height: clamp(2.5rem, 6vh, 3rem);
   }
 
   .header-wrapper {
-    height: 52px; /* 48px header + 4px accent line */
+    height: clamp(3.2rem, 8vh, 4rem); /* Responsive mobile wrapper */
   }
 
   .header-spacer {
-    height: 52px; /* Matches header-wrapper */
+    height: clamp(3.2rem, 8vh, 4rem); /* Matches wrapper */
   }
 
   .header {
@@ -594,7 +594,7 @@ section {
   .menu-overlay {
     width: 220px;
     margin: 8px;
-    top: 52px; /* Matches header-wrapper height */
+    top: clamp(3.2rem, 8vh, 4rem); /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -635,14 +635,14 @@ section {
   }
 
   .headerbutton {
-    width: 36px;
-    height: 36px;
+    width: clamp(32px, 6vw, 40px);
+    height: clamp(32px, 6vw, 40px);
     font-size: clamp(6px, 2vw, 7px);
   }
 
   .headerbutton img {
-    width: 24px; 
-    height: 20px;
+    width: clamp(20px, 4vw, 28px); 
+    height: clamp(16px, 3.5vw, 24px);
   }
 
   .headerbutton .posttext {
@@ -653,16 +653,16 @@ section {
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   .header, .listheader {
-    height: 45px;
-    min-height: 42px;
+    height: clamp(2.5rem, 6.5vh, 3.2rem);
+    min-height: clamp(2.2rem, 5.5vh, 2.8rem);
   }
 
   .header-wrapper {
-    height: 49px; /* 45px header + 4px accent line */
+    height: clamp(2.8rem, 7.5vh, 3.6rem); /* Responsive smaller mobile wrapper */
   }
 
   .header-spacer {
-    height: 49px; /* Matches header-wrapper */
+    height: clamp(2.8rem, 7.5vh, 3.6rem); /* Matches wrapper */
   }
 
   .header {
@@ -714,7 +714,7 @@ section {
   .menu-overlay {
     width: 200px;
     margin: 6px;
-    top: 49px; /* Matches header-wrapper height */
+    top: clamp(2.8rem, 7.5vh, 3.6rem); /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -723,14 +723,14 @@ section {
   }
 
   .headerbutton {
-    width: 32px;
-    height: 32px;
+    width: clamp(28px, 5.5vw, 36px);
+    height: clamp(28px, 5.5vw, 36px);
     font-size: clamp(5px, 2vw, 6px);
   }
 
   .headerbutton img {
-    width: 20px; 
-    height: 16px;
+    width: clamp(18px, 3.5vw, 24px); 
+    height: clamp(14px, 3vw, 20px);
   }
 
   .headerbutton .posttext {
@@ -741,16 +741,16 @@ section {
 /* iPhone 7 and Similar Devices (375px and below) */
 @media (max-width: 375px) {
   .header, .listheader {
-    height: 42px;
-    min-height: 40px;
+    height: clamp(2.2rem, 6vh, 2.8rem);
+    min-height: clamp(2rem, 5vh, 2.5rem);
   }
 
   .header-wrapper {
-    height: 46px; /* 42px header + 4px accent line */
+    height: clamp(2.5rem, 7vh, 3.2rem); /* Responsive iPhone 7 wrapper */
   }
 
   .header-spacer {
-    height: 46px; /* Matches header-wrapper */
+    height: clamp(2.5rem, 7vh, 3.2rem); /* Matches wrapper */
   }
 
   .header {
@@ -802,7 +802,7 @@ section {
   .menu-overlay {
     width: 180px;
     margin: 5px;
-    top: 46px; /* Matches header-wrapper height */
+    top: clamp(2.5rem, 7vh, 3.2rem); /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -811,14 +811,14 @@ section {
   }
 
   .headerbutton {
-    width: 28px;
-    height: 28px;
+    width: clamp(24px, 5vw, 32px);
+    height: clamp(24px, 5vw, 32px);
     font-size: clamp(4px, 2vw, 5px);
   }
 
   .headerbutton img {
-    width: 18px; 
-    height: 14px;
+    width: clamp(16px, 3vw, 22px); 
+    height: clamp(12px, 2.5vw, 18px);
   }
 
   .headerbutton .posttext {
@@ -829,16 +829,16 @@ section {
 /* Ultra Small Screens (320px and below) */
 @media (max-width: 320px) {
   .header, .listheader {
-    height: 40px;
-    min-height: 38px;
+    height: clamp(2rem, 5.5vh, 2.5rem);
+    min-height: clamp(1.8rem, 4.5vh, 2.2rem);
   }
 
   .header-wrapper {
-    height: 44px; /* 40px header + 4px accent line */
+    height: clamp(2.2rem, 6.5vh, 2.8rem); /* Responsive ultra-small wrapper */
   }
 
   .header-spacer {
-    height: 44px; /* Matches header-wrapper */
+    height: clamp(2.2rem, 6.5vh, 2.8rem); /* Matches wrapper */
   }
 
   .header {
@@ -895,7 +895,7 @@ section {
   .menu-overlay {
     width: 160px;
     margin: 4px;
-    top: 44px; /* Matches header-wrapper height */
+    top: clamp(2.2rem, 6.5vh, 2.8rem); /* Matches header-wrapper height */
   }
 
   .menu-list {
@@ -908,15 +908,15 @@ section {
   }
 
   .headerbutton {
-    width: 24px;
-    height: 24px;
+    width: clamp(20px, 4.5vw, 28px);
+    height: clamp(20px, 4.5vw, 28px);
     font-size: clamp(3px, 2vw, 4px);
     margin-left: 4px;
   }
 
   .headerbutton img {
-    width: 16px; 
-    height: 12px;
+    width: clamp(14px, 2.8vw, 20px); 
+    height: clamp(10px, 2.2vw, 16px);
   }
 
   .headerbutton .posttext {
@@ -1016,7 +1016,7 @@ section {
   height: clamp(30px, 5vw, 40px);
 }
 
-/* Header wrapper with proper height synchronization */
+/* Header wrapper with responsive height synchronization */
 .header-wrapper {
   position: fixed;
   top: 0;
@@ -1024,12 +1024,12 @@ section {
   right: 0;
   z-index: 100;
   background-color: #fef6da;
-  height: 136px; /* Matches default header height + accent line */
+  height: clamp(8.5rem, 12vh, 9rem); /* Responsive header wrapper */
 }
 
-/* Header spacer with synchronized height */
+/* Header spacer with synchronized responsive height */
 .header-spacer {
-  height: 136px; /* Matches header-wrapper height */
+  height: clamp(8.5rem, 12vh, 9rem); /* Matches header-wrapper */
 }
 
 /* Video Section */
