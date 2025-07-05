@@ -653,16 +653,16 @@ section {
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   .header, .listheader {
-    height: clamp(2.5rem, 6.5vh, 3.2rem);
-    min-height: clamp(2.2rem, 5.5vh, 2.8rem);
+    height: clamp(3.2rem, 7.5vh, 3.8rem); /* Increased min height for better spacing */
+    min-height: clamp(2.8rem, 6.5vh, 3.4rem);
   }
 
   .header-wrapper {
-    height: clamp(2.8rem, 7.5vh, 3.6rem); /* Responsive smaller mobile wrapper */
+    height: clamp(3.6rem, 8.5vh, 4.2rem); /* Increased for better spacing */
   }
 
   .header-spacer {
-    height: clamp(2.8rem, 7.5vh, 3.6rem); /* Matches wrapper */
+    height: clamp(3.6rem, 8.5vh, 4.2rem); /* Matches wrapper */
   }
 
   .header {
@@ -741,16 +741,16 @@ section {
 /* iPhone 7 and Similar Devices (375px and below) */
 @media (max-width: 375px) {
   .header, .listheader {
-    height: clamp(2.2rem, 6vh, 2.8rem);
-    min-height: clamp(2rem, 5vh, 2.5rem);
+    height: clamp(3rem, 7vh, 3.6rem); /* Increased for iPhone 7 comfort */
+    min-height: clamp(2.6rem, 6vh, 3.2rem);
   }
 
   .header-wrapper {
-    height: clamp(2.5rem, 7vh, 3.2rem); /* Responsive iPhone 7 wrapper */
+    height: clamp(3.4rem, 8vh, 4rem); /* Increased for better iPhone 7 spacing */
   }
 
   .header-spacer {
-    height: clamp(2.5rem, 7vh, 3.2rem); /* Matches wrapper */
+    height: clamp(3.4rem, 8vh, 4rem); /* Matches wrapper */
   }
 
   .header {
@@ -802,7 +802,7 @@ section {
   .menu-overlay {
     width: 180px;
     margin: 5px;
-    top: clamp(2.5rem, 7vh, 3.2rem); /* Matches header-wrapper height */
+    top: clamp(3.4rem, 8vh, 4rem); /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -829,16 +829,16 @@ section {
 /* Ultra Small Screens (320px and below) */
 @media (max-width: 320px) {
   .header, .listheader {
-    height: clamp(2rem, 5.5vh, 2.5rem);
-    min-height: clamp(1.8rem, 4.5vh, 2.2rem);
+    height: clamp(2.8rem, 6.5vh, 3.2rem); /* Increased for ultra-small comfort */
+    min-height: clamp(2.4rem, 5.5vh, 2.8rem);
   }
 
   .header-wrapper {
-    height: clamp(2.2rem, 6.5vh, 2.8rem); /* Responsive ultra-small wrapper */
+    height: clamp(3.2rem, 7.5vh, 3.6rem); /* Increased for better ultra-small spacing */
   }
 
   .header-spacer {
-    height: clamp(2.2rem, 6.5vh, 2.8rem); /* Matches wrapper */
+    height: clamp(3.2rem, 7.5vh, 3.6rem); /* Matches wrapper */
   }
 
   .header {
@@ -895,7 +895,7 @@ section {
   .menu-overlay {
     width: 160px;
     margin: 4px;
-    top: clamp(2.2rem, 6.5vh, 2.8rem); /* Matches header-wrapper height */
+    top: clamp(3.2rem, 7.5vh, 3.6rem); /* Matches header-wrapper height */
   }
 
   .menu-list {
