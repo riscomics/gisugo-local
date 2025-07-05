@@ -611,6 +611,12 @@ body:has(.profile-header) {
   .full-name {
     font-size: clamp(1.1rem, 5vw, 1.25rem) !important; /* Smaller name */
   }
+
+  /* Fix subheader positioning for smaller screens */
+  .profile-subheader {
+    margin-top: clamp(-3.7rem, -7.5vh, -3.1rem); /* Adjusted for smaller header */
+    padding-top: clamp(2.8rem, 5vh, 3.2rem); /* Increased padding for proper spacing */
+  }
 }
 
 /* iPhone 7 and Similar Devices (375px and below) */
@@ -663,6 +669,12 @@ body:has(.profile-header) {
   .full-name {
     font-size: clamp(1rem, 5.5vw, 1.15rem) !important; /* iPhone 7 name */
   }
+
+  /* Fix subheader positioning for iPhone 7 sizes */
+  .profile-subheader {
+    margin-top: clamp(-3.4rem, -7vh, -2.8rem); /* Adjusted for iPhone 7 header */
+    padding-top: clamp(3rem, 5.5vh, 3.4rem); /* Increased padding for proper spacing */
+  }
 }
 
 /* Ultra Small Screens (320px and below) */
@@ -714,6 +726,12 @@ body:has(.profile-header) {
   
   .full-name {
     font-size: clamp(0.9rem, 6vw, 1.05rem) !important; /* Ultra-small name */
+  }
+
+  /* Fix subheader positioning for ultra-small screens */
+  .profile-subheader {
+    margin-top: clamp(-3rem, -6.5vh, -2.4rem); /* Adjusted for ultra-small header */
+    padding-top: clamp(3.2rem, 6vh, 3.6rem); /* Increased padding for proper spacing */
   }
 }
 
