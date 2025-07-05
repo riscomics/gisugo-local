@@ -935,7 +935,7 @@ section {
   width: 100%;
 }
 
-/* Header Styles */
+/* Header Styles - Mobile-first approach */
 .header {
   position: relative;
   width: 100%;
@@ -944,8 +944,8 @@ section {
   z-index: 200;
   background-color: #fef6da;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  height: clamp(8rem, 11vh, 8.5rem);
-  min-height: clamp(7.5rem, 10vh, 8rem);
+  height: clamp(2.8rem, 7vh, 3.5rem); /* Mobile-first responsive header */
+  min-height: clamp(2.5rem, 6vh, 3rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1024,12 +1024,12 @@ section {
   right: 0;
   z-index: 100;
   background-color: #fef6da;
-  height: clamp(8.5rem, 12vh, 9rem); /* Responsive header wrapper */
+  height: clamp(3.2rem, 8vh, 4rem); /* Mobile-first responsive header wrapper */
 }
 
 /* Header spacer with synchronized responsive height */
 .header-spacer {
-  height: clamp(8.5rem, 12vh, 9rem); /* Matches header-wrapper */
+  height: clamp(3.2rem, 8vh, 4rem); /* Matches header-wrapper */
 }
 
 /* Video Section */
