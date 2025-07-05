@@ -228,6 +228,8 @@ body::-webkit-scrollbar {
   text-transform: uppercase;
   letter-spacing: 0.05rem;
   min-height: 3rem;
+  margin: 0 auto;
+  width: fit-content;
 }
 
 .email-submit-btn:hover {
@@ -348,9 +350,10 @@ body::-webkit-scrollbar {
 
 .social-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
   gap: 1.5rem;
-  max-width: 900px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
@@ -422,22 +425,12 @@ body::-webkit-scrollbar {
   position: relative;
 }
 
-.timeline-container::before {
-  content: '';
-  position: absolute;
-  left: 1.875rem;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #48bb78 0%, #e6d6ae 50%, #f56565 100%);
-}
-
 .timeline-item {
   display: flex;
   align-items: center;
   margin-bottom: 2.5rem;
   position: relative;
-  margin-left: 4rem;
+  margin-left: 0;
 }
 
 .timeline-marker {
@@ -447,9 +440,10 @@ body::-webkit-scrollbar {
   border: 0.25rem solid #363f4f;
   box-shadow: 0 0 0 3px;
   position: absolute;
-  left: -5.5rem;
+  left: 0;
   top: 50%;
   transform: translateY(-50%);
+  margin-right: 1rem;
 }
 
 .timeline-item.completed .timeline-marker {
@@ -483,6 +477,7 @@ body::-webkit-scrollbar {
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
+  margin-left: 2.5rem;
 }
 
 .timeline-content:hover {
@@ -731,6 +726,8 @@ body::-webkit-scrollbar {
   .email-submit-btn {
     padding: 0.875rem 1.5rem;
     font-size: clamp(0.875rem, 3vw, 1rem);
+    margin: 0 auto;
+    width: fit-content;
   }
 
   .benefits-list {
@@ -777,8 +774,10 @@ body::-webkit-scrollbar {
   }
 
   .social-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
     gap: 1rem;
+    max-width: 500px;
   }
 
   .social-link {
@@ -796,22 +795,20 @@ body::-webkit-scrollbar {
     padding: 1rem 1rem 1.5rem 1rem;
   }
 
-  .timeline-container::before {
-    left: 1.25rem;
-  }
-
   .timeline-item {
-    margin-left: 2.5rem;
+    margin-left: 0;
   }
 
   .timeline-marker {
     width: 1rem;
     height: 1rem;
-    left: -3.75rem;
+    left: 0;
+    margin-right: 0.75rem;
   }
 
   .timeline-content {
     padding: 1rem;
+    margin-left: 2rem;
   }
 
   .timeline-content h4 {
@@ -888,6 +885,8 @@ body::-webkit-scrollbar {
 
   .email-submit-btn {
     padding: 0.75rem 1.25rem;
+    margin: 0 auto;
+    width: fit-content;
   }
 
   .value-section {
@@ -923,8 +922,10 @@ body::-webkit-scrollbar {
   }
 
   .social-grid {
-    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
     gap: 0.75rem;
+    max-width: 400px;
   }
 
   .social-link {
@@ -942,20 +943,18 @@ body::-webkit-scrollbar {
     padding: 0.75rem 0.75rem 1.25rem 0.75rem;
   }
 
-  .timeline-container::before {
-    left: 1rem;
-  }
-
   .timeline-item {
-    margin-left: 2rem;
+    margin-left: 0;
   }
 
   .timeline-marker {
-    left: -3.25rem;
+    left: 0;
+    margin-right: 0.75rem;
   }
 
   .timeline-content {
     padding: 0.875rem;
+    margin-left: 1.75rem;
   }
 }
 
@@ -988,6 +987,10 @@ body::-webkit-scrollbar {
   .hero-signup .image-container {
     margin: -1rem -0.75rem 0.75rem -0.75rem;
     width: calc(100% + 1.5rem);
+  }
+
+  .social-grid {
+    max-width: 350px;
   }
 
   .social-link {
@@ -1044,6 +1047,8 @@ body::-webkit-scrollbar {
 
   .email-submit-btn {
     padding: 0.625rem 1rem;
+    margin: 0 auto;
+    width: fit-content;
   }
 
   .benefits-list {
@@ -1086,6 +1091,10 @@ body::-webkit-scrollbar {
     font-size: clamp(0.7rem, 5vw, 0.8rem);
   }
 
+  .social-grid {
+    max-width: 300px;
+  }
+
   .social-link {
     padding: 0.375rem;
     min-height: 3.5rem;
@@ -1101,20 +1110,18 @@ body::-webkit-scrollbar {
     padding: 0.625rem 0.625rem 1rem 0.625rem;
   }
 
-  .timeline-container::before {
-    left: 0.875rem;
-  }
-
   .timeline-item {
-    margin-left: 1.75rem;
+    margin-left: 0;
   }
 
   .timeline-marker {
-    left: -2.75rem;
+    left: 0;
+    margin-right: 0.625rem;
   }
 
   .timeline-content {
     padding: 0.75rem;
+    margin-left: 1.5rem;
   }
 
   .timeline-content h4 {
