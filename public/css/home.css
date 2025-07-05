@@ -944,8 +944,8 @@ section {
   z-index: 200;
   background-color: #fef6da;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  height: 128px;
-  min-height: 110px;
+  height: clamp(8rem, 11vh, 8.5rem);
+  min-height: clamp(7.5rem, 10vh, 8rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
