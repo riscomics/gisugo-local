@@ -532,39 +532,39 @@ section {
 /* Mobile Responsive Media Queries */
 @media (max-width: 600px) {
   .header, .listheader {
-    height: 60px;
-    min-height: 55px;
+    height: 48px;
+    min-height: 44px;
   }
 
   .header-wrapper {
-    height: 65px; /* 60px header + 5px accent line */
+    height: 52px; /* 48px header + 4px accent line */
   }
 
   .header-spacer {
-    height: 65px; /* Matches header-wrapper */
+    height: 52px; /* Matches header-wrapper */
   }
 
   .header {
-    padding: clamp(0.25rem, 1vw, 0.5rem);
+    padding: clamp(0.2rem, 1vw, 0.4rem);
   }
 
   .header__logo {
-    width: clamp(35px, 7vw, 45px);
-    height: clamp(35px, 7vw, 45px);
+    width: clamp(32px, 6vw, 40px);
+    height: clamp(32px, 6vw, 40px);
   }
 
   .header__title {
-    font-size: clamp(1.2rem, 5vw, 1.6rem);
+    font-size: clamp(1.1rem, 4.5vw, 1.4rem);
     line-height: 1.1;
   }
 
   .header__subtitle {
-    font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+    font-size: clamp(0.65rem, 2.2vw, 0.8rem);
   }
 
   .header__menu svg {
-    width: clamp(25px, 4vw, 32px);
-    height: clamp(25px, 4vw, 32px);
+    width: clamp(22px, 4vw, 28px);
+    height: clamp(22px, 4vw, 28px);
   }
 
   .category-header {
@@ -594,7 +594,7 @@ section {
   .menu-overlay {
     width: 220px;
     margin: 8px;
-    top: 65px; /* Matches header-wrapper height */
+    top: 52px; /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -635,56 +635,56 @@ section {
   }
 
   .headerbutton {
-    width: 40px;
-    height: 40px;
-    font-size: clamp(7px, 2vw, 8px);
+    width: 36px;
+    height: 36px;
+    font-size: clamp(6px, 2vw, 7px);
   }
 
   .headerbutton img {
-    width: 28px; 
-    height: 24px;
+    width: 24px; 
+    height: 20px;
   }
 
   .headerbutton .posttext {
-    font-size: clamp(7px, 2vw, 8px);
+    font-size: clamp(6px, 2vw, 7px);
   }
 }
 
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   .header, .listheader {
-    height: 55px;
-    min-height: 50px;
+    height: 45px;
+    min-height: 42px;
   }
 
   .header-wrapper {
-    height: 60px; /* 55px header + 5px accent line */
+    height: 49px; /* 45px header + 4px accent line */
   }
 
   .header-spacer {
-    height: 60px; /* Matches header-wrapper */
+    height: 49px; /* Matches header-wrapper */
   }
 
   .header {
-    padding: clamp(0.2rem, 1vw, 0.4rem);
+    padding: clamp(0.15rem, 1vw, 0.3rem);
   }
 
   .header__logo {
-    width: clamp(32px, 8vw, 40px);
-    height: clamp(32px, 8vw, 40px);
+    width: clamp(30px, 7vw, 36px);
+    height: clamp(30px, 7vw, 36px);
   }
 
   .header__title {
-    font-size: clamp(1.1rem, 6vw, 1.4rem);
+    font-size: clamp(1rem, 5.5vw, 1.3rem);
   }
 
   .header__subtitle {
-    font-size: clamp(0.65rem, 3vw, 0.8rem);
+    font-size: clamp(0.6rem, 2.8vw, 0.75rem);
   }
 
   .header__menu svg {
-    width: clamp(22px, 5vw, 28px);
-    height: clamp(22px, 5vw, 28px);
+    width: clamp(20px, 4.5vw, 25px);
+    height: clamp(20px, 4.5vw, 25px);
   }
 
   .category-header {
@@ -714,7 +714,7 @@ section {
   .menu-overlay {
     width: 200px;
     margin: 6px;
-    top: 60px; /* Matches header-wrapper height */
+    top: 49px; /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -723,56 +723,56 @@ section {
   }
 
   .headerbutton {
-    width: 36px;
-    height: 36px;
-    font-size: clamp(6px, 2vw, 7px);
+    width: 32px;
+    height: 32px;
+    font-size: clamp(5px, 2vw, 6px);
   }
 
   .headerbutton img {
-    width: 24px; 
-    height: 20px;
+    width: 20px; 
+    height: 16px;
   }
 
   .headerbutton .posttext {
-    font-size: clamp(6px, 2vw, 7px);
+    font-size: clamp(5px, 2vw, 6px);
   }
 }
 
 /* iPhone 7 and Similar Devices (375px and below) */
 @media (max-width: 375px) {
   .header, .listheader {
-    height: 50px;
-    min-height: 45px;
+    height: 42px;
+    min-height: 40px;
   }
 
   .header-wrapper {
-    height: 55px; /* 50px header + 5px accent line */
+    height: 46px; /* 42px header + 4px accent line */
   }
 
   .header-spacer {
-    height: 55px; /* Matches header-wrapper */
+    height: 46px; /* Matches header-wrapper */
   }
 
   .header {
-    padding: clamp(0.2rem, 1vw, 0.35rem);
+    padding: clamp(0.1rem, 1vw, 0.25rem);
   }
 
   .header__logo {
-    width: clamp(30px, 9vw, 38px);
-    height: clamp(30px, 9vw, 38px);
+    width: clamp(28px, 8vw, 34px);
+    height: clamp(28px, 8vw, 34px);
   }
 
   .header__title {
-    font-size: clamp(1rem, 7vw, 1.3rem);
+    font-size: clamp(0.95rem, 6vw, 1.2rem);
   }
 
   .header__subtitle {
-    font-size: clamp(0.6rem, 3.5vw, 0.75rem);
+    font-size: clamp(0.55rem, 3vw, 0.7rem);
   }
 
   .header__menu svg {
-    width: clamp(20px, 5vw, 25px);
-    height: clamp(20px, 5vw, 25px);
+    width: clamp(18px, 5vw, 22px);
+    height: clamp(18px, 5vw, 22px);
   }
 
   .category-header {
@@ -802,7 +802,7 @@ section {
   .menu-overlay {
     width: 180px;
     margin: 5px;
-    top: 55px; /* Matches header-wrapper height */
+    top: 46px; /* Matches header-wrapper height */
   }
 
   .menu-list a {
@@ -811,56 +811,56 @@ section {
   }
 
   .headerbutton {
-    width: 32px;
-    height: 32px;
-    font-size: clamp(5px, 2vw, 6px);
+    width: 28px;
+    height: 28px;
+    font-size: clamp(4px, 2vw, 5px);
   }
 
   .headerbutton img {
-    width: 20px; 
-    height: 16px;
+    width: 18px; 
+    height: 14px;
   }
 
   .headerbutton .posttext {
-    font-size: clamp(5px, 2vw, 6px);
+    font-size: clamp(4px, 2vw, 5px);
   }
 }
 
 /* Ultra Small Screens (320px and below) */
 @media (max-width: 320px) {
   .header, .listheader {
-    height: 45px;
-    min-height: 40px;
+    height: 40px;
+    min-height: 38px;
   }
 
   .header-wrapper {
-    height: 50px; /* 45px header + 5px accent line */
+    height: 44px; /* 40px header + 4px accent line */
   }
 
   .header-spacer {
-    height: 50px; /* Matches header-wrapper */
+    height: 44px; /* Matches header-wrapper */
   }
 
   .header {
-    padding: clamp(0.15rem, 1vw, 0.3rem);
+    padding: clamp(0.1rem, 1vw, 0.2rem);
   }
 
   .header__logo {
-    width: clamp(28px, 10vw, 35px);
-    height: clamp(28px, 10vw, 35px);
+    width: clamp(24px, 9vw, 30px);
+    height: clamp(24px, 9vw, 30px);
   }
 
   .header__title {
-    font-size: clamp(0.9rem, 8vw, 1.2rem);
+    font-size: clamp(0.85rem, 7vw, 1.1rem);
   }
 
   .header__subtitle {
-    font-size: clamp(0.55rem, 4vw, 0.7rem);
+    font-size: clamp(0.5rem, 3.5vw, 0.65rem);
   }
 
   .header__menu svg {
-    width: clamp(18px, 6vw, 22px);
-    height: clamp(18px, 6vw, 22px);
+    width: clamp(16px, 5vw, 20px);
+    height: clamp(16px, 5vw, 20px);
   }
 
   .category-header {
@@ -895,7 +895,7 @@ section {
   .menu-overlay {
     width: 160px;
     margin: 4px;
-    top: 50px; /* Matches header-wrapper height */
+    top: 44px; /* Matches header-wrapper height */
   }
 
   .menu-list {
@@ -908,19 +908,19 @@ section {
   }
 
   .headerbutton {
-    width: 28px;
-    height: 28px;
-    font-size: clamp(4px, 2vw, 5px);
+    width: 24px;
+    height: 24px;
+    font-size: clamp(3px, 2vw, 4px);
     margin-left: 4px;
   }
 
   .headerbutton img {
-    width: 18px; 
-    height: 14px;
+    width: 16px; 
+    height: 12px;
   }
 
   .headerbutton .posttext {
-    font-size: clamp(4px, 2vw, 5px);
+    font-size: clamp(3px, 2vw, 4px);
   }
 
   .footer {
