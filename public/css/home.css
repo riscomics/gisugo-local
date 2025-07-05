@@ -54,15 +54,19 @@ section {
   overflow-x: hidden;
 }
 
-/* Ensure service grid doesn't overflow */
+/* Enhanced Flexbox Service Grid */
 .service-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(1rem, 3vw, 2rem);
+  padding: clamp(0.5rem, 2vw, 1.5rem);
+  max-width: var(--container-max-width);
+  margin: 0 auto;
   width: 100%;
   max-width: 100%;
-  padding: 0.5rem;
-  margin: 0 auto;
   overflow-x: hidden;
 }
-
 
 /* Header Styles */
 .header {
@@ -78,16 +82,17 @@ section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem 0.5rem;
+  padding: clamp(0.25rem, 1vw, 0.5rem);
   box-sizing: border-box;
   flex-wrap: wrap;
 }
 
 .header__logo {
-  width: 68px;
-  height: 68px;
+  width: clamp(50px, 8vw, 68px);
+  height: clamp(50px, 8vw, 68px);
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .header__logo-text {
@@ -106,28 +111,32 @@ section {
 }
 
 .header__title-group {
-  flex-grow: 1;
-  padding-left: 1rem;
+  flex: 1 1 auto;
+  padding-left: clamp(0.5rem, 2vw, 1rem);
+  min-width: 0;
 }
 
 .header__title {
-  font-size: 3rem;
+  font-size: clamp(1.5rem, 6vw, 3rem);
   font-weight: bold;
   color: var(--primary-color);
   line-height: 1.2;
+  word-wrap: break-word;
 }
 
 .header__subtitle {
-  font-size: 1rem;
+  font-size: clamp(0.8rem, 2.5vw, 1rem);
   color: var(--primary-color);
+  line-height: 1.3;
 }
 
 .header__menu {
   background: none;
   border: none;
-  padding: 0px;
+  padding: 0;
   cursor: pointer;
-  color: var(--primary-color); 
+  color: var(--primary-color);
+  flex-shrink: 0;
 }
 
 .header__menu:hover {
@@ -136,6 +145,8 @@ section {
 
 .header__menu svg {
   display: block;
+  width: clamp(30px, 5vw, 40px);
+  height: clamp(30px, 5vw, 40px);
 }
 
 /* Add a wrapper for the header to contain the accent line */
@@ -191,23 +202,15 @@ section {
 .category-header {
   background-color: var(--primary-color);
   color: var(--secondary-color);
-  padding: .5rem;
+  padding: clamp(0.5rem, 2vw, 1rem);
   text-align: center;
-  font-size: 1.50rem;
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
   font-weight: bold;
   margin: 0;
+  line-height: 1.2;
 }
 
-.service-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.3rem;
-  padding: .5rem;
-  max-width: var(--container-max-width);
-  margin: 0 auto;
-}
-
+/* Enhanced Service Card */
 .service-card {
   background-color: transparent;
   border-radius: 8px;
@@ -217,11 +220,13 @@ section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 110px;
+  flex: 1 1 auto;
+  min-width: 90px;
+  max-width: 140px;
   margin: 0;
-  gap: 0.5rem;
+  gap: clamp(0.4rem, 1vw, 0.6rem);
   text-decoration: none;
-  -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .service-card:hover {
@@ -231,12 +236,13 @@ section {
 .service-card__image-container {
   background-color: var(--card-background);
   border-radius: 8px;
-  padding: 0.4rem;
+  padding: clamp(0.3rem, 1vw, 0.5rem);
   width: 100%;
   aspect-ratio: 4/3;
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: background-color 0.2s ease;
 }
 
 .service-card__image-container:hover {
@@ -246,17 +252,19 @@ section {
 .service-card__image {
   width: 100%;
   max-width: 100px;
-  height: 100px;
+  height: clamp(70px, 12vw, 100px);
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 .service-card__title {
   color: var(--secondary-color);
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
   margin: 0;
   line-height: 1.2;
   text-decoration: none;
+  word-wrap: break-word;
 }
 
 /* Remove underlines from any links inside service cards */
@@ -270,7 +278,7 @@ section {
 
 /* Accent Line */
 .accent-line1 {
-  margin-top: 0px;
+  margin-top: 0;
   height: 8px;
   background-color: rgb(149, 149, 328);
   width: 100%;
@@ -280,15 +288,14 @@ section {
 .header-wrapper .accent-line1 {
   display: block;
 }
- 
 
 /* Footer */
 .footer {
   background-color: var(--primary-color);
   color: var(--secondary-color);
   text-align: center;
-  padding: 0.5rem;
-  font-size: 0.75rem;
+  padding: clamp(0.5rem, 2vw, 1rem);
+  font-size: clamp(0.7rem, 2vw, 0.85rem);
 }
 
 .footer a {
@@ -352,13 +359,14 @@ section {
 .menu-list a {
   color: var(--secondary-color);
   text-decoration: none;
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 3vw, 1.1rem);
   font-weight: bold;
   display: block;
-  padding: 0.5rem 1rem;
+  padding: clamp(0.4rem, 1vw, 0.6rem) clamp(0.8rem, 2vw, 1rem);
   transition: all 0.3s ease;
   border-radius: 4px;
-  -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1.3;
 }
 
 .menu-list a:hover {
@@ -366,7 +374,6 @@ section {
   color: var(--primary-color);
   transform: translateX(5px);
 }
-
 
 /* --- Custom Listing Header Styles --- */
 .listheader {
@@ -379,6 +386,7 @@ section {
   justify-content: space-between;
   background-color: #363f4f;
 }
+
 .servicemenu {
   position: relative;
   width: 456px;
@@ -393,73 +401,76 @@ section {
   background: #363f4f;
   border-radius: 4px 4px 0 0;
 }
+
 .servicename {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: 400px;
-  height: 56px;
-  color: #e6d6ae;
-  font-size: 40px;
+  font-size: 1.125rem;
   font-weight: 700;
-  font-family: arial, sans-serif;
-  padding-left: 34px;
-  padding-right: 20px;
-  user-select: none;
+  color: #fff;
+  width: 100%;
+  padding-left: 16px;
+  padding-right: 12px;
+  line-height: 1.3;
 }
+
 .servicename > div:last-child {
-  margin-left: auto;
+  font-size: 1.0625rem;
+  font-weight: 400;
   margin-right: 8px;
-  font-size: 38px;
-  line-height: 1;
 }
+
 .servicemenu-overlay {
-  display: none;
   position: absolute;
+  top: 56px;
   left: 0;
-  top: 66px;
-  width: 480px;
-  max-height: 340px;
+  width: 456px;
+  background-color: #363f4f;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  z-index: 10;
+  display: none;
+  max-height: 300px;
   overflow-y: auto;
-  background: #363f4f;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 300;
-  padding: 18px 0 12px 0;
-  font-size: 2.1rem;
 }
+
 .servicemenu-list {
   list-style: none;
+  padding: 0;
   margin: 0;
-  padding: 0 0 0 10px;
 }
+
 .servicemenu-list li {
-  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .servicemenu-list a {
-  color: #e6d6ae;
-  font-size: 2.1rem;
-  font-weight: 700;
-  font-family: arial, sans-serif;
-  text-decoration: none;
   display: block;
-  padding: 4px 0 4px 8px;
-  border-radius: 4px;
-  transition: background 0.15s;
+  padding: 12px 16px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+  line-height: 1.3;
 }
+
 .servicemenu-list a.active,
 .servicemenu-list a:hover {
-  background: rgba(255,255,255,0.08);
-  text-decoration: underline;
+  background-color: rgba(255, 255, 255, 0.1);
 }
+
 .headerbuttons {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-  width: 298px;
-  margin-right: 30px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-right: 16px;
 }
+
 .headerbutton {
   display: flex;
   flex-direction: column;
@@ -468,24 +479,36 @@ section {
   width: 96px;
   height: 96px;
   color: rgb(188, 206, 212);
-  font-size: 10.5px;
+  font-size: clamp(9px, 2vw, 10.5px);
   cursor: pointer;
   margin-left: 8px;
   user-select: none;
+  transition: transform 0.15s ease;
 }
+
+.headerbutton:hover {
+  transform: scale(1.05);
+}
+
 .headerbutton img {
   width: 64px;
   height: 56px;
   object-fit: contain;
   margin-bottom: 2px;
   transition: transform 0.15s;
+  flex-shrink: 0;
 }
+
 .headerbutton img:hover {
   transform: scale(1.12);
 }
+
 .headerbutton .posttext {
-  font-size: 11px;
+  font-size: clamp(9px, 2vw, 11px);
+  line-height: 1.2;
+  text-align: center;
 }
+
 .borderline {
   width: 100vw;
   left: 0;
@@ -496,49 +519,60 @@ section {
   height: 4px;
   background-color: #ff7bd5;
 }
+
+.accent-line2 {
+  height: 8px;
+  background-color: rgb(149, 149, 328);
+  width: 100%;
+}
+
+/* Enhanced Desktop Styles */
 @media (min-width: 1024px) {
   .header {
-    padding: 0.25rem 1.5rem;
+    padding: clamp(0.25rem, 1vw, 1.5rem);
+    height: 136px;
+    min-height: 136px;
   }
 
   .header__logo {
-    width: 128px;
-    height: 128px;
+    width: clamp(100px, 12vw, 128px);
+    height: clamp(100px, 12vw, 128px);
   }
 
   .header__title {
-    font-size: 3.5rem;
+    font-size: clamp(3rem, 8vw, 3.5rem);
   }
 
   .header__subtitle {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
   }
 
   .header__menu {
-    width: 70px;
-    padding: 0.75rem;
+    padding: clamp(0.5rem, 1vw, 0.75rem);
   }
 
   .header__menu svg {
-    width: 50px;
-    height: 50px;
+    width: clamp(40px, 6vw, 50px);
+    height: clamp(40px, 6vw, 50px);
   }
 
   .service-card {
-    width: 180px;
+    flex: 1 1 auto;
+    min-width: 160px;
+    max-width: 200px;
   }
 
   .service-grid {
-    gap: 2.5rem;
-    padding: 2rem;
+    gap: clamp(2rem, 4vw, 2.5rem);
+    padding: clamp(1.5rem, 3vw, 2rem);
   }
 
   .service-card__title {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.5vw, 1.1rem);
   }
 
   .header-spacer {
-    height: 136px; /* Adjusted for desktop size */
+    height: 144px; /* Adjusted for desktop size */
   }
 
   .video-container {
@@ -548,7 +582,6 @@ section {
     padding-top: 28.125%;
   }
 
-  /* Remove the negative margin styles we added earlier */
   .video-container + .accent-line2 {
     margin-top: 0;
   }
@@ -556,43 +589,60 @@ section {
   .accent-line1 {
     width: 100%;
   }
+
+  .category-header {
+    font-size: clamp(1.5rem, 4vw, 1.75rem);
+  }
+
+  .menu-overlay {
+    width: 280px;
+    margin: 15px;
+  }
 }
 
-/* Media Queries */
-@media (min-width: 768px) { 
+/* Enhanced Tablet Styles */
+@media (min-width: 768px) and (max-width: 1023px) { 
   .header, .listheader, .header-spacer {
     height: 128px;
     min-height: 128px;
   } 
+
   .header__logo {
-    width: 88px;
-    height: 88px;
+    width: clamp(75px, 10vw, 88px);
+    height: clamp(75px, 10vw, 88px);
   }
 
   .header__title {
-    font-size: 3rem;
+    font-size: clamp(2.5rem, 7vw, 3rem);
   }
 
   .header__subtitle {
-    font-size: 1.25rem;
+    font-size: clamp(1.1rem, 3vw, 1.25rem);
   }
 
-  .header__menu {
-    width: 55px;
+  .header__menu svg {
+    width: clamp(35px, 6vw, 45px);
+    height: clamp(35px, 6vw, 45px);
   }
 
   .category-header {
-    font-size: 1.5rem;
+    font-size: clamp(1.4rem, 4vw, 1.5rem);
   }
 
   .service-card {
-    width: 150px;
+    flex: 1 1 auto;
+    min-width: 130px;
+    max-width: 160px;
   }
 
   .service-grid {
-    gap: 2rem;
-    padding: 1.5rem;
+    gap: clamp(1.5rem, 3vw, 2rem);
+    padding: clamp(1rem, 2vw, 1.5rem);
   } 
+
+  .service-card__title {
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
+  }
 
   .video-container {
     margin: 0;
@@ -601,54 +651,379 @@ section {
   .accent-line1 {
     width: 100%;
   }
+
+  .menu-overlay {
+    width: 260px;
+    margin: 12px;
+  }
 }
+
+/* Mobile Responsive Media Queries */
 @media (max-width: 600px) {
   .header, .listheader, .header-spacer {
     height: 75px;
     min-height: 70px;
   }
+
+  .header {
+    padding: clamp(0.25rem, 1vw, 0.5rem);
+  }
+
+  .header__logo {
+    width: clamp(45px, 8vw, 55px);
+    height: clamp(45px, 8vw, 55px);
+  }
+
   .header__title {
-    font-size: 2rem; 
+    font-size: clamp(1.5rem, 6vw, 2rem);
     line-height: 1.1;
   }
+
+  .header__subtitle {
+    font-size: clamp(0.8rem, 3vw, 1rem);
+  }
+
+  .header__menu svg {
+    width: clamp(28px, 5vw, 35px);
+    height: clamp(28px, 5vw, 35px);
+  }
+
+  .category-header {
+    font-size: clamp(1.25rem, 4vw, 1.4rem);
+    padding: clamp(0.5rem, 2vw, 0.75rem);
+  }
+
+  .service-card {
+    flex: 1 1 auto;
+    min-width: 80px;
+    max-width: 110px;
+  }
+
+  .service-grid {
+    gap: clamp(0.8rem, 3vw, 1.2rem);
+    padding: clamp(0.5rem, 2vw, 1rem);
+  }
+
+  .service-card__title {
+    font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+  }
+
+  .service-card__image {
+    height: clamp(60px, 10vw, 80px);
+  }
+
+  .menu-overlay {
+    width: 220px;
+    margin: 8px;
+    top: 75px;
+  }
+
+  .menu-list a {
+    font-size: clamp(0.9rem, 3vw, 1rem);
+    padding: clamp(0.4rem, 1vw, 0.5rem) clamp(0.8rem, 2vw, 1rem);
+  }
+
   .servicemenu {
     width: 220px;
     height: 32px;
     border-width: 1px;
     margin-left: -5px;
   }
+
   .servicename {
-    width: 180px;
-    height: 32px;
-    font-size: 18px;
+    font-size: clamp(0.9rem, 3vw, 1rem);
     padding-left: 8px;
     padding-right: 4px;
   }
+
   .servicename > div:last-child {
-    font-size: 16px;
+    font-size: clamp(0.85rem, 2.5vw, 0.95rem);
     margin-right: 4px;
   }
+
   .servicemenu-overlay {
-    top: 38px;
+    top: 33px;
     width: 220px;
-    font-size: 1.1rem;
   }
+
   .servicemenu-list a {
-    font-size: 1.1rem;
+    font-size: clamp(0.9rem, 3vw, 1rem);
+    padding: 8px 12px;
   }
+
   .headerbuttons {
-    width: 160px;
     margin-right: 4px;
   }
+
   .headerbutton {
     width: 48px;
     height: 48px;
+    font-size: clamp(8px, 2vw, 9px);
   }
+
   .headerbutton img {
     width: 32px; 
     height: 28px;
   }
 
+  .headerbutton .posttext {
+    font-size: clamp(8px, 2vw, 9px);
+  }
+}
+
+/* Smaller Mobile Screens (400px and below) */
+@media (max-width: 400px) {
+  .header, .listheader, .header-spacer {
+    height: 70px;
+    min-height: 65px;
+  }
+
+  .header {
+    padding: clamp(0.2rem, 1vw, 0.4rem);
+  }
+
+  .header__logo {
+    width: clamp(40px, 9vw, 50px);
+    height: clamp(40px, 9vw, 50px);
+  }
+
+  .header__title {
+    font-size: clamp(1.3rem, 7vw, 1.8rem);
+  }
+
+  .header__subtitle {
+    font-size: clamp(0.7rem, 3.5vw, 0.9rem);
+  }
+
+  .header__menu svg {
+    width: clamp(25px, 6vw, 32px);
+    height: clamp(25px, 6vw, 32px);
+  }
+
+  .category-header {
+    font-size: clamp(1.1rem, 5vw, 1.25rem);
+    padding: clamp(0.4rem, 2vw, 0.6rem);
+  }
+
+  .service-card {
+    flex: 1 1 auto;
+    min-width: 70px;
+    max-width: 95px;
+  }
+
+  .service-grid {
+    gap: clamp(0.6rem, 3vw, 1rem);
+    padding: clamp(0.4rem, 2vw, 0.8rem);
+  }
+
+  .service-card__title {
+    font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+  }
+
+  .service-card__image {
+    height: clamp(50px, 12vw, 70px);
+  }
+
+  .menu-overlay {
+    width: 200px;
+    margin: 6px;
+    top: 70px;
+  }
+
+  .menu-list a {
+    font-size: clamp(0.8rem, 3.5vw, 0.9rem);
+    padding: clamp(0.3rem, 1vw, 0.4rem) clamp(0.6rem, 2vw, 0.8rem);
+  }
+
+  .headerbutton {
+    width: 42px;
+    height: 42px;
+    font-size: clamp(7px, 2vw, 8px);
+  }
+
+  .headerbutton img {
+    width: 28px; 
+    height: 24px;
+  }
+
+  .headerbutton .posttext {
+    font-size: clamp(7px, 2vw, 8px);
+  }
+}
+
+/* iPhone 7 and Similar Devices (375px and below) */
+@media (max-width: 375px) {
+  .header, .listheader, .header-spacer {
+    height: 65px;
+    min-height: 60px;
+  }
+
+  .header {
+    padding: clamp(0.2rem, 1vw, 0.35rem);
+  }
+
+  .header__logo {
+    width: clamp(38px, 10vw, 45px);
+    height: clamp(38px, 10vw, 45px);
+  }
+
+  .header__title {
+    font-size: clamp(1.2rem, 8vw, 1.6rem);
+  }
+
+  .header__subtitle {
+    font-size: clamp(0.65rem, 4vw, 0.85rem);
+  }
+
+  .header__menu svg {
+    width: clamp(22px, 6vw, 28px);
+    height: clamp(22px, 6vw, 28px);
+  }
+
+  .category-header {
+    font-size: clamp(1rem, 5.5vw, 1.15rem);
+    padding: clamp(0.35rem, 2vw, 0.5rem);
+  }
+
+  .service-card {
+    flex: 1 1 auto;
+    min-width: 65px;
+    max-width: 85px;
+  }
+
+  .service-grid {
+    gap: clamp(0.5rem, 3vw, 0.8rem);
+    padding: clamp(0.3rem, 2vw, 0.6rem);
+  }
+
+  .service-card__title {
+    font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+  }
+
+  .service-card__image {
+    height: clamp(45px, 12vw, 60px);
+  }
+
+  .menu-overlay {
+    width: 180px;
+    margin: 5px;
+    top: 65px;
+  }
+
+  .menu-list a {
+    font-size: clamp(0.75rem, 4vw, 0.85rem);
+    padding: clamp(0.25rem, 1vw, 0.35rem) clamp(0.5rem, 2vw, 0.7rem);
+  }
+
+  .headerbutton {
+    width: 38px;
+    height: 38px;
+    font-size: clamp(6px, 2vw, 7px);
+  }
+
+  .headerbutton img {
+    width: 24px; 
+    height: 20px;
+  }
+
+  .headerbutton .posttext {
+    font-size: clamp(6px, 2vw, 7px);
+  }
+}
+
+/* Ultra Small Screens (320px and below) */
+@media (max-width: 320px) {
+  .header, .listheader, .header-spacer {
+    height: 60px;
+    min-height: 55px;
+  }
+
+  .header {
+    padding: clamp(0.15rem, 1vw, 0.3rem);
+  }
+
+  .header__logo {
+    width: clamp(32px, 11vw, 40px);
+    height: clamp(32px, 11vw, 40px);
+  }
+
+  .header__title {
+    font-size: clamp(1rem, 9vw, 1.4rem);
+  }
+
+  .header__subtitle {
+    font-size: clamp(0.6rem, 4.5vw, 0.8rem);
+  }
+
+  .header__menu svg {
+    width: clamp(20px, 7vw, 25px);
+    height: clamp(20px, 7vw, 25px);
+  }
+
+  .category-header {
+    font-size: clamp(0.9rem, 6vw, 1rem);
+    padding: clamp(0.3rem, 2vw, 0.4rem);
+  }
+
+  .service-card {
+    flex: 1 1 auto;
+    min-width: 55px;
+    max-width: 75px;
+  }
+
+  .service-grid {
+    gap: clamp(0.4rem, 3vw, 0.6rem);
+    padding: clamp(0.25rem, 2vw, 0.5rem);
+  }
+
+  .service-card__title {
+    font-size: clamp(0.5rem, 2.5vw, 0.65rem);
+    line-height: 1.1;
+  }
+
+  .service-card__image {
+    height: clamp(35px, 12vw, 50px);
+  }
+
+  .service-card__image-container {
+    padding: clamp(0.2rem, 1vw, 0.3rem);
+  }
+
+  .menu-overlay {
+    width: 160px;
+    margin: 4px;
+    top: 60px;
+  }
+
+  .menu-list {
+    padding: 0.5rem;
+  }
+
+  .menu-list a {
+    font-size: clamp(0.65rem, 4vw, 0.75rem);
+    padding: clamp(0.2rem, 1vw, 0.3rem) clamp(0.4rem, 2vw, 0.6rem);
+  }
+
+  .headerbutton {
+    width: 32px;
+    height: 32px;
+    font-size: clamp(5px, 2vw, 6px);
+    margin-left: 4px;
+  }
+
+  .headerbutton img {
+    width: 20px; 
+    height: 16px;
+  }
+
+  .headerbutton .posttext {
+    font-size: clamp(5px, 2vw, 6px);
+  }
+
+  .footer {
+    padding: clamp(0.3rem, 1vw, 0.5rem);
+    font-size: clamp(0.6rem, 2vw, 0.7rem);
+  }
 }
 
 .accent-line2 {
