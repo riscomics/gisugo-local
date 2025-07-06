@@ -1039,10 +1039,10 @@ section {
   }
 
   .video-container {
-    width: 35% !important;
-    max-width: 600px !important;
+    width: 100% !important;
+    max-width: 900px !important;
     margin: 0 auto !important;
-    padding-top: 19.6875% !important;
+    padding-top: 50.625% !important;
   }
 
   .category-header {
