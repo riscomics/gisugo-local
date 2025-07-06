@@ -781,22 +781,22 @@ section {
   }
 
   .service-card {
-    width: clamp(85px, 30vw, 95px);
-    min-width: 85px;
-    max-width: 95px;
+    width: clamp(90px, 32vw, 105px);
+    min-width: 90px;
+    max-width: 105px;
   }
 
   .service-grid {
     gap: clamp(0.5rem, 3vw, 0.8rem);
-    padding: clamp(1.2rem, 3vw, 1.5rem) clamp(0.1rem, 1vw, 0.3rem);
+    padding: clamp(1.2rem, 3vw, 1.5rem) clamp(0.05rem, 0.5vw, 0.2rem);
   }
 
   .service-card__title {
-    font-size: clamp(0.65rem, 2.8vw, 0.8rem);
+    font-size: clamp(0.7rem, 3vw, 0.85rem);
   }
 
   .service-card__image {
-    height: clamp(50px, 14vw, 70px);
+    height: clamp(55px, 16vw, 80px);
   }
 
   .menu-overlay {
@@ -869,23 +869,23 @@ section {
   }
 
   .service-card {
-    width: clamp(75px, 30vw, 82px);
-    min-width: 75px;
-    max-width: 82px;
+    width: clamp(80px, 32vw, 90px);
+    min-width: 80px;
+    max-width: 90px;
   }
 
   .service-grid {
     gap: clamp(0.4rem, 3vw, 0.6rem);
-    padding: clamp(1rem, 2.5vw, 1.2rem) clamp(0.1rem, 1vw, 0.2rem);
+    padding: clamp(1rem, 2.5vw, 1.2rem) clamp(0.05rem, 0.5vw, 0.15rem);
   }
 
   .service-card__title {
-    font-size: clamp(0.55rem, 2.8vw, 0.7rem);
+    font-size: clamp(0.6rem, 3vw, 0.75rem);
     line-height: 1.1;
   }
 
   .service-card__image {
-    height: clamp(40px, 14vw, 55px);
+    height: clamp(45px, 16vw, 60px);
   }
 
   .service-card__image-container {
