@@ -993,9 +993,12 @@ section {
 /* Desktop Media Query - Must come after base styles */
 @media (min-width: 1024px) {
   .header {
-    padding: clamp(0.5rem, 1.5vw, 2rem) !important;
+    padding: clamp(1rem, 2vw, 2rem) !important;
     height: clamp(10rem, 14vh, 11rem) !important;
     min-height: clamp(9.5rem, 13vh, 10.5rem) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
   }
 
   .header-wrapper {
@@ -1040,9 +1043,9 @@ section {
   }
 
   .service-card {
-    width: clamp(180px, 22vw, 200px) !important;
-    min-width: 180px !important;
-    max-width: 200px !important;
+    width: clamp(160px, 18vw, 180px) !important;
+    min-width: 160px !important;
+    max-width: 180px !important;
   }
 
   .service-grid {
