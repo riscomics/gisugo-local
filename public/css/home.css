@@ -580,7 +580,7 @@ section {
 
   .service-grid {
     gap: clamp(0.8rem, 3vw, 1.2rem);
-    padding: clamp(0.2rem, 1vw, 0.6rem);
+    padding: clamp(1rem, 3vw, 1.5rem) clamp(0.2rem, 1vw, 0.6rem);
   }
 
   .service-card__title {
