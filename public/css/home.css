@@ -573,22 +573,22 @@ section {
   }
 
   .service-card {
-    width: clamp(90px, 28vw, 110px);
-    min-width: 90px;
-    max-width: 110px;
+    width: clamp(100px, 30vw, 125px);
+    min-width: 100px;
+    max-width: 125px;
   }
 
   .service-grid {
     gap: clamp(0.8rem, 3vw, 1.2rem);
-    padding: clamp(0.5rem, 2vw, 1rem);
+    padding: clamp(0.2rem, 1vw, 0.6rem);
   }
 
   .service-card__title {
-    font-size: clamp(0.8rem, 3vw, 1rem);
+    font-size: clamp(0.85rem, 3.2vw, 1.1rem);
   }
 
   .service-card__image {
-    height: clamp(70px, 12vw, 90px);
+    height: clamp(75px, 14vw, 100px);
   }
 
   .menu-overlay {
