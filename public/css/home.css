@@ -584,11 +584,11 @@ section {
   }
 
   .service-card__title {
-    font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+    font-size: clamp(0.8rem, 3vw, 1rem);
   }
 
   .service-card__image {
-    height: clamp(60px, 10vw, 80px);
+    height: clamp(70px, 12vw, 90px);
   }
 
   .menu-overlay {
