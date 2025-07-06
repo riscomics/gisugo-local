@@ -434,7 +434,7 @@ section {
   .service-grid {
     gap: clamp(1.5rem, 3vw, 2rem);
     padding: clamp(1rem, 2vw, 1.5rem);
-  } 
+  }
 
   .service-card__title {
     font-size: clamp(0.9rem, 2.5vw, 1rem);
@@ -471,7 +471,7 @@ section {
 
   .header {
     padding: clamp(0.2rem, 1vw, 0.4rem);
-  }
+  } 
 
   .header__logo {
     width: clamp(32px, 6vw, 40px);
@@ -506,7 +506,7 @@ section {
   .service-grid {
     gap: clamp(0.8rem, 3vw, 1.2rem);
     padding: clamp(1rem, 3vw, 1.5rem) clamp(0.2rem, 1vw, 0.6rem);
-  }
+  } 
 
   .service-card__title {
     font-size: clamp(0.85rem, 3.2vw, 1.1rem);
@@ -1040,9 +1040,9 @@ section {
   }
 
   .service-card {
-    width: clamp(110px, 20vw, 140px) !important;
-    min-width: 110px !important;
-    max-width: 140px !important;
+    width: clamp(180px, 22vw, 200px) !important;
+    min-width: 180px !important;
+    max-width: 200px !important;
   }
 
   .service-grid {
