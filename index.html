@@ -230,6 +230,42 @@
     <footer class="footer">
       <p><a href="https://gisugo.com">GISUGO.com</a> is &copy; Copyright Designed by Real Interface Studios LLC</p>
     </footer>
+    
+    <!-- Temporary Debug Tool for Viewport Width -->
+    <div id="vp-debug"></div>
+    
     <script src="public/js/menu.js"></script>
+    
+    <!-- Viewport Debug Script -->
+    <script>
+      function updateViewportWidth() {
+        const el = document.getElementById('vp-debug');
+        if (el) {
+          el.textContent = `Viewport: ${window.innerWidth}px`;
+        }
+      }
+
+      const style = `
+        position:fixed;
+        bottom:0;
+        left:0;
+        background:#000;
+        color:#fff;
+        padding:4px 8px;
+        font-size:12px;
+        opacity:0.6;
+        z-index:9999;
+        font-family:monospace;
+        border-radius: 0 4px 0 0;
+        pointer-events: none;
+      `;
+
+      const debugEl = document.getElementById('vp-debug');
+      if (debugEl) {
+        debugEl.setAttribute('style', style);
+        updateViewportWidth();
+        window.addEventListener('resize', updateViewportWidth);
+      }
+    </script>
   </body>
 </html>  
