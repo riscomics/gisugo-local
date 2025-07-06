@@ -1017,10 +1017,14 @@ section {
 
   .header__title {
     font-size: clamp(3.5rem, 9vw, 4rem) !important;
+    margin: 0 !important;
+    line-height: 1.1 !important;
   }
 
   .header__subtitle {
     font-size: clamp(1.5rem, 3.5vw, 1.75rem) !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
   }
 
   .header__menu {
