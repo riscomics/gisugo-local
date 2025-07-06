@@ -993,12 +993,13 @@ section {
 /* Desktop Media Query - Must come after base styles */
 @media (min-width: 1024px) {
   .header {
-    padding: clamp(1rem, 2vw, 2rem) !important;
+    padding: clamp(1.5rem, 2vw, 2rem) clamp(1rem, 2vw, 2rem) !important;
     height: clamp(10rem, 14vh, 11rem) !important;
     min-height: clamp(9.5rem, 13vh, 10.5rem) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
 
   .header-wrapper {
