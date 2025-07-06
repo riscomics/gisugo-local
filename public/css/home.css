@@ -693,22 +693,22 @@ section {
   }
 
   .service-card {
-    width: clamp(85px, 28vw, 95px);
-    min-width: 85px;
-    max-width: 95px;
+    width: clamp(95px, 30vw, 110px);
+    min-width: 95px;
+    max-width: 110px;
   }
 
   .service-grid {
     gap: clamp(0.6rem, 3vw, 1rem);
-    padding: clamp(0.4rem, 2vw, 0.8rem);
+    padding: clamp(1.1rem, 3vw, 1.4rem) clamp(0.1rem, 1vw, 0.3rem);
   }
 
   .service-card__title {
-    font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+    font-size: clamp(0.75rem, 3vw, 0.9rem);
   }
 
   .service-card__image {
-    height: clamp(50px, 12vw, 70px);
+    height: clamp(60px, 14vw, 85px);
   }
 
   .menu-overlay {
