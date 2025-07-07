@@ -175,10 +175,10 @@ body:has(.profile-header) {
 }
 
 .profile-content {
-  padding: 0.8rem;
+  padding: clamp(0.4rem, 2vw, 0.8rem); /* Responsive padding */
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: clamp(0.8rem, 3vw, 1.5rem); /* Responsive gap */
 }
 
 .profile-photo {
@@ -196,7 +196,7 @@ body:has(.profile-header) {
 .profile-right-column {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: clamp(0.3rem, 1.5vw, 0.5rem); /* Responsive gap */
   flex: 1;
   min-width: 0;
 }
@@ -216,14 +216,14 @@ body:has(.profile-header) {
 .profile-rating-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: clamp(0.4rem, 2vw, 0.75rem); /* Responsive gap */
   width: 100%;
   flex-wrap: nowrap;
 }
 
 .stars-container {
   display: flex;
-  gap: 0.5rem;
+  gap: clamp(0.3rem, 1.5vw, 0.5rem); /* Responsive gap */
   align-items: center;
 }
 
@@ -288,7 +288,7 @@ body:has(.profile-header) {
 
 .social-icons-row {
   display: flex;
-  gap: 1rem;
+  gap: clamp(0.6rem, 2.5vw, 1rem); /* Responsive gap */
 }
 
 .social-icon {
@@ -494,13 +494,13 @@ body:has(.profile-header) {
   }
   
   .reviews-number {
-    font-size: 1.325rem;
+    font-size: clamp(1.1rem, 3.5vw, 1.325rem) !important; /* Responsive reviews number */
   }
   
   .star {
-    width: 23px;
-    height: 23px;
-    font-size: 23px;
+    width: clamp(20px, 5vw, 23px) !important; /* Responsive star width */
+    height: clamp(20px, 5vw, 23px) !important; /* Responsive star height */
+    font-size: clamp(20px, 5vw, 23px) !important; /* Responsive star font size */
   }
   
   .star::before,
@@ -513,8 +513,8 @@ body:has(.profile-header) {
   }
   
   .social-icon img {
-    width: 32px;
-    height: 32px;
+    width: clamp(28px, 6vw, 32px) !important; /* Responsive social icons */
+    height: clamp(28px, 6vw, 32px) !important;
   }
   
   .profile-subheader-borderline {
@@ -611,6 +611,21 @@ body:has(.profile-header) {
   .full-name {
     font-size: clamp(1.1rem, 5vw, 1.25rem) !important; /* Smaller name */
   }
+  
+  .reviews-number {
+    font-size: clamp(1rem, 4vw, 1.1rem) !important; /* Smaller responsive reviews number */
+  }
+  
+  .star {
+    width: clamp(18px, 5.5vw, 20px) !important; /* Smaller responsive star width */
+    height: clamp(18px, 5.5vw, 20px) !important; /* Smaller responsive star height */
+    font-size: clamp(18px, 5.5vw, 20px) !important; /* Smaller responsive star font size */
+  }
+  
+  .social-icon img {
+    width: clamp(26px, 7vw, 28px) !important; /* Smaller responsive social icons */
+    height: clamp(26px, 7vw, 28px) !important;
+  }
 
   /* Fix subheader positioning for smaller screens */
   .profile-subheader {
@@ -669,6 +684,21 @@ body:has(.profile-header) {
   .full-name {
     font-size: clamp(1rem, 5.5vw, 1.15rem) !important; /* iPhone 7 name */
   }
+  
+  .reviews-number {
+    font-size: clamp(0.9rem, 4.5vw, 1rem) !important; /* iPhone 7 responsive reviews number */
+  }
+  
+  .star {
+    width: clamp(16px, 6vw, 18px) !important; /* iPhone 7 responsive star width */
+    height: clamp(16px, 6vw, 18px) !important; /* iPhone 7 responsive star height */
+    font-size: clamp(16px, 6vw, 18px) !important; /* iPhone 7 responsive star font size */
+  }
+  
+  .social-icon img {
+    width: clamp(24px, 8vw, 26px) !important; /* iPhone 7 responsive social icons */
+    height: clamp(24px, 8vw, 26px) !important;
+  }
 
   /* Fix subheader positioning for iPhone 7 sizes */
   .profile-subheader {
@@ -726,6 +756,21 @@ body:has(.profile-header) {
   
   .full-name {
     font-size: clamp(0.9rem, 6vw, 1.05rem) !important; /* Ultra-small name */
+  }
+  
+  .reviews-number {
+    font-size: clamp(0.8rem, 5vw, 0.9rem) !important; /* Ultra-small responsive reviews number */
+  }
+  
+  .star {
+    width: clamp(14px, 6.5vw, 16px) !important; /* Ultra-small responsive star width */
+    height: clamp(14px, 6.5vw, 16px) !important; /* Ultra-small responsive star height */
+    font-size: clamp(14px, 6.5vw, 16px) !important; /* Ultra-small responsive star font size */
+  }
+  
+  .social-icon img {
+    width: clamp(22px, 8.5vw, 24px) !important; /* Ultra-small responsive social icons */
+    height: clamp(22px, 8.5vw, 24px) !important;
   }
 
   /* Fix subheader positioning for ultra-small screens */
