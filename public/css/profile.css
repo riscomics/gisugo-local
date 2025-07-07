@@ -101,9 +101,6 @@ body::-webkit-scrollbar {
   height: 4px;
   width: 100%;
   background: rgb(149, 149, 328);
-  position: fixed;
-  left: 0;
-  z-index: 96;
 }
 
 /* Menu Overlay */
@@ -162,20 +159,23 @@ body::-webkit-scrollbar {
 
 /* Profile Page Body Fix - Override other CSS files */
 body:has(.profile-header) {
-  padding-top: 110px !important; /* Fixed desktop: 106px header + 4px borderline to match jobs page */
+  padding-top: 0 !important; /* TEST: Remove all padding */
+  margin-top: 0 !important;
 }
 
-/* Profile Subheader - Simple Flexbox */
+/* Profile Subheader - Header height top space */
 .profile-subheader {
   background-color: #363f4f;
-  padding: 0;
-  margin-top: 0;
+  padding: clamp(0.4rem, 2vw, 0.8rem);
+  padding-top: calc(110px + clamp(0.4rem, 2vw, 0.8rem));
+  margin: 0;
   position: relative;
   z-index: 1;
 }
 
 .profile-content {
   padding: clamp(0.4rem, 2vw, 0.8rem); /* Responsive padding */
+  margin-top: 65px; /* Small push down from header */
   display: flex;
   align-items: center;
   gap: clamp(0.8rem, 3vw, 1.5rem); /* Responsive gap */
