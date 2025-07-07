@@ -115,7 +115,7 @@ section {
   object-fit: contain;
   flex-shrink: 0;
 }
- 
+
 .service-card__title {
   color: var(--secondary-color);
   font-weight: bold;
