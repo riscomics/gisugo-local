@@ -177,7 +177,7 @@ body:has(.profile-header) {
 /* Targets iOS devices specifically where calc() + clamp() causes issues */
 @media screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) {
   .profile-subheader {
-    padding-top: 116px !important; /* Fixed value for iPhone 7 iOS Safari */
+    padding-top: 85px !important; /* Reduced value for iPhone 7 iOS to fix excessive spacing */
   }
 }
 
@@ -185,7 +185,7 @@ body:has(.profile-header) {
 @media screen and (max-width: 375px) and (-webkit-min-device-pixel-ratio: 2) {
   @supports (-webkit-touch-callout: none) {
     .profile-subheader {
-      padding-top: 116px !important;
+      padding-top: 85px !important;
     }
   }
 }
