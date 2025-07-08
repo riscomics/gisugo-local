@@ -788,6 +788,10 @@ body:has(.profile-header) {
   .profile-subheader {
     padding-top: 60px !important; /* Match header height exactly for iPhone 7 iOS */
   }
+  
+  .profile-content {
+    margin-top: 0px !important; /* Remove excessive margin-top for iPhone 7 iOS */
+  }
 }
 
 /* Additional iOS Safari fix for similar viewport sizes - MUST come after other media queries */
@@ -795,6 +799,10 @@ body:has(.profile-header) {
   @supports (-webkit-touch-callout: none) {
     .profile-subheader {
       padding-top: 60px !important;
+    }
+    
+    .profile-content {
+      margin-top: 0px !important; /* Remove excessive margin-top for iOS */
     }
   }
 }
