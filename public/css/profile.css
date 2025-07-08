@@ -173,6 +173,23 @@ body:has(.profile-header) {
   z-index: 1;
 }
 
+/* iOS Safari fix for iPhone 7 and similar devices */
+/* Targets iOS devices specifically where calc() + clamp() causes issues */
+@media screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) {
+  .profile-subheader {
+    padding-top: 116px !important; /* Fixed value for iPhone 7 iOS Safari */
+  }
+}
+
+/* Additional iOS Safari fix for similar viewport sizes */
+@media screen and (max-width: 375px) and (-webkit-min-device-pixel-ratio: 2) {
+  @supports (-webkit-touch-callout: none) {
+    .profile-subheader {
+      padding-top: 116px !important;
+    }
+  }
+}
+
 .profile-content {
   padding: clamp(0.4rem, 2vw, 0.8rem); /* Responsive padding */
   margin-top: 65px; /* Small push down from header */
