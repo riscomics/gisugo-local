@@ -173,22 +173,7 @@ body:has(.profile-header) {
   z-index: 1;
 }
 
-/* iOS Safari fix for iPhone 7 and similar devices */
-/* Targets iOS devices specifically where calc() + clamp() causes issues */
-@media screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) {
-  .profile-subheader {
-    padding-top: 60px !important; /* Match header height exactly for iPhone 7 iOS */
-  }
-}
 
-/* Additional iOS Safari fix for similar viewport sizes */
-@media screen and (max-width: 375px) and (-webkit-min-device-pixel-ratio: 2) {
-  @supports (-webkit-touch-callout: none) {
-    .profile-subheader {
-      padding-top: 60px !important;
-    }
-  }
-}
 
 .profile-content {
   padding: clamp(0.4rem, 2vw, 0.8rem); /* Responsive padding */
@@ -794,6 +779,23 @@ body:has(.profile-header) {
   .profile-subheader {
     margin-top: -56px; /* Match negative header height */
     padding-top: 60px; /* Match body padding to reduce spacing */
+  }
+}
+
+/* iOS Safari fix for iPhone 7 and similar devices - MUST come after other media queries */
+/* Targets iOS devices specifically where calc() + clamp() causes issues */
+@media screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) {
+  .profile-subheader {
+    padding-top: 60px !important; /* Match header height exactly for iPhone 7 iOS */
+  }
+}
+
+/* Additional iOS Safari fix for similar viewport sizes - MUST come after other media queries */
+@media screen and (max-width: 375px) and (-webkit-min-device-pixel-ratio: 2) {
+  @supports (-webkit-touch-callout: none) {
+    .profile-subheader {
+      padding-top: 60px !important;
+    }
   }
 }
 
