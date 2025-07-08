@@ -310,117 +310,85 @@ body:has(.profile-header) {
   background: rgb(149, 149, 328);
 }
 
-/* Profile Dropdown Menu */
-.profile-dropdown {
-  position: relative;
-  width: 292px;
-  background-color: #363f4f;
-  margin-left: -10px;
-  margin-top: 16px;
-}
-
-.profile-dropdown-trigger {
-  width: 292px;
-  height: 56px;
-  border-style: solid;
-  border-width: 2px;
-  border-color: rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  background: #363f4f;
-  border-radius: 4px 4px 0 0;
-  user-select: none; 
-}
-
-.profile-dropdown-text {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 272px;
-  height: 56px;
-  color: #e6d6ae;
-  font-size: 1.2rem;
-  font-weight: 700;
-  font-family: Arial, sans-serif;
-  padding-left: 19px;
-  padding-right: 10px;
-}
-
-.profile-dropdown-arrow {
-  font-size: 1.2rem;
-  line-height: 1;
-  transition: transform 0.3s ease;
-}
-
-.profile-dropdown-trigger.active .profile-dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.profile-dropdown-overlay {
-  display: none;
-  position: absolute;
+/* Profile Tab Navigation Styles */
+.profile-tabs {
+  position: relative; /* Changed from fixed to relative to flow after subheader */
   left: 0;
-  top: 100%;
-  width: 307px;
-  max-height: 340px;
-  overflow-y: auto;
+  width: 100%;
+  background: #2d3748;
+  border-bottom: 2px solid #4a5568;
+  display: flex;
+  z-index: 98;
+  margin-top: 0; /* No margin needed in relative positioning */
+}
+
+.tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  padding: clamp(12px, 3vw, 16px) clamp(8px, 2vw, 10px); /* Increased padding for better presence */
+  font-size: clamp(0.9rem, 3vw, 1.1rem); /* Larger responsive font size */
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-btn:hover {
+  color: #e6d6ae;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+  color: #e6d6ae;
+  background: rgba(255, 255, 255, 0.08);
+  border-bottom-color: #e6d6ae;
+}
+
+.tab-label {
+  font-size: clamp(0.9rem, 3vw, 1.1rem); /* Larger responsive font size */
+  font-weight: 700; /* Bolder weight for better visibility */
+  text-align: center;
+  line-height: 1.2;
+  width: 100%; /* Fill available space */
+  display: block;
+}
+
+/* Tab Content Styles */
+.tab-content-wrapper {
+  display: none;
+  width: 100%;
+  min-height: calc(100vh - 200px); /* Minimum height for content */
+  overflow: hidden;
   background: #363f4f;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 300;
-  padding: 18px 0 18px 0;
-  border: 1px solid #e6d6ae;
+  position: relative; /* Changed from fixed to relative to flow after tabs */
+  z-index: 1;
+}
+
+.tab-content-wrapper.active {
+  display: block;
+}
+
+.tab-scroll-container {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 0;
+  background: #363f4f;
   /* Hide scrollbar for all browsers */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
   scrollbar-width: none; /* Firefox */
 }
 
-.profile-dropdown-overlay::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
-}
-
-.profile-dropdown-overlay.show {
-  display: block;
-  animation: slideDown 0.35s cubic-bezier(.77,0,.18,1);
-}
-
-@keyframes slideDown {
-  from { 
-    opacity: 0; 
-    transform: translateY(-20px);
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0);
-  }
-}
-
-.profile-dropdown-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 10px;
-}
-
-.profile-dropdown-list li {
-  margin-bottom: 10px;
-}
-
-.profile-dropdown-list a {
-  color: #e6d6ae;
-  font-size: 1.62rem;
-  font-weight: 700;
-  font-family: arial, sans-serif;
-  text-decoration: none;
-  display: block;
-  padding: 4px 0 4px 8px;
-  border-radius: 4px;
-  transition: background 0.15s;
-}
-
-.profile-dropdown-list a:hover,
-.profile-dropdown-list a.active {
-  background: rgba(255,255,255,0.08);
-  text-decoration: underline;
+.tab-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 /* Mobile Styles */ /* Mobile Styles */ /* Mobile Styles */
 /* Mobile Styles */ /* Mobile Styles */ /* Mobile Styles */
@@ -526,40 +494,23 @@ body:has(.profile-header) {
     margin-top: 0;
   }
   
-  /* Profile dropdown mobile styles */
-  .profile-dropdown {
-    width: 225px;
-    margin-left: -5px;
-    margin-top: 16px;
-    background-color: #363f4f;
+  /* Profile tabs mobile styles */
+  .profile-tabs {
+    height: clamp(40px, 8vh, 45px); /* Responsive tab height */
   }
   
-  .profile-dropdown-trigger {
-    width: 225px;
-    height: 40px;
-    border-width: 1px;
+  .tab-btn {
+    padding: clamp(10px, 2.5vw, 14px) clamp(6px, 1.5vw, 8px); /* Increased mobile padding */
+    font-size: clamp(0.8rem, 2.8vw, 0.95rem); /* Larger mobile font */
   }
   
-  .profile-dropdown-text {
-    width: 225px;
-    height: 32px;
-    font-size: 1rem;
-    padding-left: 12px;
-    padding-right: 8px;
+  .tab-label {
+    font-size: clamp(0.8rem, 2.8vw, 0.95rem); /* Larger mobile label font */
+    font-weight: 700;
   }
   
-  .profile-dropdown-arrow {
-    font-size: 0.72rem;
-    margin-right: 10px;
-  }
-  
-  .profile-dropdown-overlay {
-    width: 225px;
-  }
-  
-  .profile-dropdown-list a {
-    font-size: clamp(1rem, 3vw, 1.1rem); /* Responsive dropdown text */
-    padding: clamp(3px, 1vw, 4px) 0 clamp(3px, 1vw, 4px) clamp(6px, 2vw, 8px);
+  .tab-content-wrapper {
+    min-height: calc(100vh - 250px); /* Mobile: reduced height for content */
   }
 }
 
@@ -634,6 +585,15 @@ body:has(.profile-header) {
     margin-top: -64px; /* Match negative header height */
     padding-top: 68px; /* Match body padding to reduce spacing */
   }
+  
+  /* Profile tabs for 400px breakpoint */
+  .profile-tabs {
+    height: clamp(38px, 8vh, 42px);
+  }
+  
+  .tab-content-wrapper {
+    min-height: calc(100vh - 230px); /* 400px: reduced height for content */
+  }
 }
 
 /* iPhone 7 and Similar Devices (375px and below) */
@@ -706,6 +666,15 @@ body:has(.profile-header) {
   .profile-subheader {
     margin-top: -60px; /* Match negative header height */
     padding-top: 64px; /* Match body padding to reduce spacing */
+  }
+  
+  /* Profile tabs for 375px breakpoint (iPhone 7) */
+  .profile-tabs {
+    height: clamp(36px, 8vh, 40px);
+  }
+  
+  .tab-content-wrapper {
+    min-height: calc(100vh - 220px); /* 375px: reduced height for content */
   }
 }
 
@@ -780,6 +749,25 @@ body:has(.profile-header) {
     margin-top: -56px; /* Match negative header height */
     padding-top: 60px; /* Match body padding to reduce spacing */
   }
+  
+  /* Profile tabs for 320px breakpoint (ultra-small) */
+  .profile-tabs {
+    height: clamp(34px, 8vh, 38px);
+  }
+  
+  .tab-btn {
+    padding: clamp(8px, 2vw, 12px) clamp(4px, 1vw, 6px); /* Increased ultra-small padding */
+    font-size: clamp(0.7rem, 2.5vw, 0.85rem); /* Larger ultra-small font */
+  }
+  
+  .tab-label {
+    font-size: clamp(0.7rem, 2.5vw, 0.85rem); /* Larger ultra-small label font */
+    font-weight: 700;
+  }
+  
+  .tab-content-wrapper {
+    min-height: calc(100vh - 210px); /* 320px: reduced height for content */
+  }
 }
 
 /* Tablet Media Query - Reduce excessive spacing */
@@ -847,6 +835,10 @@ body:has(.profile-header) {
 .profile-content-container {
   padding: clamp(0.8rem, 3vw, 1rem); /* Responsive container padding */
   background: #363f4f;
+  min-height: calc(100vh - 200px); /* Ensure content fills available space */
+  max-width: 100%; /* Prevent horizontal overflow */
+  overflow-x: hidden; /* Hide any horizontal overflow */
+  box-sizing: border-box; /* Include padding in width calculations */
 }
 
 .profile-section {
@@ -961,16 +953,17 @@ body:has(.profile-header) {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 594px;
+  max-width: clamp(280px, 100%, 594px); /* Responsive max-width for mobile */
   background: #2a3441;
   border-radius: clamp(6px, 1.5vw, 8px); /* Responsive border radius */
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  margin: 0 auto clamp(12px, 3vw, 16px) auto; /* Responsive margin */
+  margin: 0 auto clamp(8px, 2vw, 16px) auto; /* Reduced responsive margin */
   color: #e6d6ae;
   overflow: hidden;
   border: 1.5px solid rgba(255,255,255,0.08);
-  padding: clamp(10px, 3vw, 12px); /* Responsive padding */
+  padding: clamp(8px, 2.5vw, 12px); /* Reduced responsive padding */
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box; /* Ensure padding is included in width calculations */
 }
 
 .review-job-title {
@@ -1027,8 +1020,8 @@ body:has(.profile-header) {
 }
 
 .review-user-thumbnail {
-  width: clamp(100px, 25vw, 115px); /* Responsive thumbnail width */
-  height: clamp(75px, 20vw, 86px); /* Responsive thumbnail height */
+  width: clamp(80px, 20vw, 115px); /* Reduced responsive thumbnail width for mobile */
+  height: clamp(60px, 15vw, 86px); /* Reduced responsive thumbnail height for mobile */
   border-radius: clamp(6px, 1.5vw, 8px); /* Responsive border radius */
   overflow: hidden;
   flex-shrink: 0;
@@ -1051,6 +1044,39 @@ body:has(.profile-header) {
 }
 
 /* Content Mobile Responsive Enhancements for smaller breakpoints */
+@media (max-width: 600px) {
+  /* Review Cards Mobile Optimization */
+  .reviews-container {
+    padding-right: clamp(2px, 1vw, 4px); /* Reduced right padding for mobile */
+    padding-left: clamp(2px, 1vw, 4px); /* Add small left padding */
+  }
+  
+  .review-card {
+    max-width: 100%; /* Full width on mobile */
+    margin-left: 0; /* Remove auto margin */
+    margin-right: 0; /* Remove auto margin */
+    padding: clamp(6px, 2vw, 10px); /* Smaller padding on mobile */
+  }
+  
+  .review-feedback-section {
+    gap: clamp(6px, 2vw, 8px); /* Smaller gap on mobile */
+  }
+  
+  .review-user-thumbnail {
+    width: clamp(60px, 15vw, 80px); /* Smaller thumbnail for mobile */
+    height: clamp(45px, 12vw, 60px); /* Smaller thumbnail height for mobile */
+  }
+  
+  .review-job-title {
+    font-size: clamp(0.95rem, 3vw, 1.1rem); /* Smaller title font on mobile */
+  }
+  
+  .review-feedback-text {
+    padding: clamp(4px, 1.5vw, 6px); /* Smaller padding on mobile */
+    font-size: clamp(0.8rem, 2.5vw, 0.85rem); /* Smaller text on mobile */
+  }
+}
+
 @media (max-width: 400px) {
   /* User Information Mobile Styles - Single Column Layout */
   .user-info-grid {
@@ -1062,12 +1088,41 @@ body:has(.profile-header) {
   .user-info-education {
     grid-column: 1; /* Reset column span */
   }
+  
+  /* Review Cards Ultra-Mobile Optimization */
+  .review-card {
+    padding: clamp(4px, 1.5vw, 8px); /* Ultra-small padding */
+    margin-bottom: clamp(6px, 1.5vw, 10px); /* Smaller margin */
+  }
+  
+  .review-user-thumbnail {
+    width: clamp(50px, 12vw, 70px); /* Ultra-small thumbnail */
+    height: clamp(38px, 9vw, 53px); /* Ultra-small thumbnail height */
+  }
+  
+  .review-feedback-section {
+    gap: clamp(4px, 1.5vw, 6px); /* Ultra-small gap */
+  }
 }
 
 @media (max-width: 375px) {
   /* iPhone 7 content adjustments */
   .user-info-grid {
     gap: clamp(0.7rem, 4vw, 0.9rem);
+  }
+  
+  /* iPhone 7 Review Cards Optimization */
+  .review-card {
+    padding: clamp(3px, 1.2vw, 6px); /* iPhone 7 optimized padding */
+  }
+  
+  .review-user-thumbnail {
+    width: clamp(45px, 10vw, 65px); /* iPhone 7 thumbnail size */
+    height: clamp(34px, 8vw, 49px); /* iPhone 7 thumbnail height */
+  }
+  
+  .review-job-title {
+    font-size: clamp(0.9rem, 2.8vw, 1rem); /* iPhone 7 title font */
   }
 }
 
@@ -1076,5 +1131,30 @@ body:has(.profile-header) {
   .user-info-grid {
     gap: clamp(0.6rem, 4vw, 0.8rem);
     margin-bottom: clamp(1rem, 5vw, 1.2rem);
+  }
+  
+  /* Ultra-Small Screen Review Cards Optimization */
+  .review-card {
+    padding: clamp(2px, 1vw, 4px); /* Ultra-small padding */
+    margin-bottom: clamp(4px, 1vw, 8px); /* Ultra-small margin */
+  }
+  
+  .review-user-thumbnail {
+    width: clamp(40px, 8vw, 55px); /* Ultra-small thumbnail */
+    height: clamp(30px, 6vw, 41px); /* Ultra-small thumbnail height */
+  }
+  
+  .review-feedback-section {
+    gap: clamp(3px, 1vw, 5px); /* Ultra-small gap */
+  }
+  
+  .review-job-title {
+    font-size: clamp(0.85rem, 2.5vw, 0.95rem); /* Ultra-small title font */
+    padding-bottom: clamp(3px, 1vw, 5px); /* Ultra-small title padding */
+  }
+  
+  .review-feedback-text {
+    padding: clamp(2px, 1vw, 4px); /* Ultra-small text padding */
+    font-size: clamp(0.75rem, 2.2vw, 0.8rem); /* Ultra-small text font */
   }
 }

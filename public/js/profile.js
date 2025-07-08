@@ -21,85 +21,54 @@ if (profileMenuBtn && profileMenuOverlay) {
   });
 }
 
-// Profile Dropdown functionality
-const profileDropdownTrigger = document.getElementById('profileDropdownTrigger');
-const profileDropdownOverlay = document.getElementById('profileDropdownOverlay');
-const selectedProfileOption = document.getElementById('selectedProfileOption');
+// Profile Tab functionality
+const profileTabs = document.querySelectorAll('.tab-btn');
+const tabContentWrappers = document.querySelectorAll('.tab-content-wrapper');
 
-if (profileDropdownTrigger && profileDropdownOverlay) {
-  // Toggle dropdown
-  profileDropdownTrigger.addEventListener('click', function(e) {
-    e.stopPropagation();
-    profileDropdownOverlay.classList.toggle('show');
-    profileDropdownTrigger.classList.toggle('active');
-  });
-
-  // Handle option selection
-  profileDropdownOverlay.addEventListener('click', function(e) {
-    if (e.target.tagName === 'A') {
-      e.preventDefault();
-      const selectedText = e.target.textContent;
-      const selectedValue = e.target.getAttribute('data-option');
-      
-      // Update the dropdown text
-      selectedProfileOption.textContent = selectedText;
-      
-      // Remove active class from all options
-      profileDropdownOverlay.querySelectorAll('a').forEach(link => {
-        link.classList.remove('active');
-      });
-      
-      // Add active class to selected option
-      e.target.classList.add('active');
-      
-      // Close dropdown
-      profileDropdownOverlay.classList.remove('show');
-      profileDropdownTrigger.classList.remove('active');
-      
-      // Handle the selection (you can add specific logic here)
-      handleProfileOptionChange(selectedValue, selectedText);
+// Add click listeners to all tab buttons
+profileTabs.forEach(tab => {
+  tab.addEventListener('click', function(e) {
+    e.preventDefault();
+    const targetTab = this.getAttribute('data-tab');
+    
+    // Remove active class from all tabs and content
+    profileTabs.forEach(t => t.classList.remove('active'));
+    tabContentWrappers.forEach(content => content.classList.remove('active'));
+    
+    // Add active class to clicked tab
+    this.classList.add('active');
+    
+    // Show corresponding content
+    const targetContent = document.getElementById(`${targetTab}-content`);
+    if (targetContent) {
+      targetContent.classList.add('active');
     }
+    
+    // Handle the tab change with specific logic
+    handleProfileTabChange(targetTab);
   });
+});
 
-  // Close dropdown when clicking outside
-  document.addEventListener('click', function(e) {
-    if (!profileDropdownTrigger.contains(e.target) && !profileDropdownOverlay.contains(e.target)) {
-      profileDropdownOverlay.classList.remove('show');
-      profileDropdownTrigger.classList.remove('active');
-    }
-  });
-}
-
-// Handle profile option changes
-function handleProfileOptionChange(value, text) {
-  console.log('Profile option changed to:', value, text);
+// Handle profile tab changes
+function handleProfileTabChange(tabValue) {
+  console.log('Profile tab changed to:', tabValue);
   
-  // Hide all sections first
-  const sections = document.querySelectorAll('.profile-section');
-  sections.forEach(section => {
-    section.style.display = 'none';
-  });
-  
-  // Show the selected section
-  switch(value) {
+  // Load content based on selected tab
+  switch(tabValue) {
     case 'user-info':
-      document.getElementById('userInfoSection').style.display = 'block';
       console.log('Loading user information...');
+      // User info is already populated on page load
       break;
     case 'reviews-customer':
-      document.getElementById('reviewsCustomerSection').style.display = 'block';
       populateCustomerReviews();
       console.log('Loading customer reviews...');
       break;
     case 'reviews-worker':
-      document.getElementById('reviewsWorkerSection').style.display = 'block';
       populateWorkerReviews();
       console.log('Loading worker reviews...');
       break;
     default:
-      // Default to user info
-      document.getElementById('userInfoSection').style.display = 'block';
-      console.log('Unknown option selected');
+      console.log('Unknown tab selected');
   }
 }
 
@@ -235,11 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize star rating system
   initializeStarRating();
   
-  // Set default active option
-  const defaultOption = profileDropdownOverlay?.querySelector('a[data-option="user-info"]');
-  if (defaultOption) {
-    defaultOption.classList.add('active');
-  }
+  console.log('Profile page initialization complete');
 });
 
 // Star Rating System
