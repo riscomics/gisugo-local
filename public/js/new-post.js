@@ -90,7 +90,7 @@ function createBarangayInputFallback(fieldNumber) {
     inputField.style.display = 'flex';
     inputField.style.alignItems = 'center';
     inputField.style.justifyContent = 'space-between';
-    inputField.style.width = isMobile ? '128px' : '210px'; // Mobile/desktop width
+    inputField.style.width = isMobile ? '140px' : '170px'; // BACK TO LARGER WIDTH - barangay fields should be WIDER
     inputField.style.height = isMobile ? '25px' : '32px'; // Mobile/desktop height
     inputField.style.borderStyle = 'solid';
     inputField.style.borderWidth = '1px';
@@ -145,7 +145,7 @@ function createBarangayInputFallback(fieldNumber) {
   // Update styles on window resize
   window.addEventListener('resize', function() {
     const isMobile = window.innerWidth < 600;
-    inputField.style.width = isMobile ? '128px' : '210px';
+    inputField.style.width = isMobile ? '140px' : '170px'; // BACK TO LARGER WIDTH - barangay fields should be WIDER
     inputField.style.height = isMobile ? '25px' : '32px';
     inputField.style.paddingLeft = isMobile ? '10px' : '12px';
     inputField.style.paddingRight = isMobile ? '10px' : '12px';

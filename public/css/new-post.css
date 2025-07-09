@@ -30,24 +30,24 @@ body::-webkit-scrollbar {
   background: #363f4f;
 }
 
-  .new-post-header-title-container {  
-    display: flex;
-    flex-direction: row;
-    width: 100%;
+.new-post-header-title-container {  
+  display: flex;
+  flex-direction: row;
+  width: 100%;
     height: clamp(66px, 20vh, 106px); /* Responsive header height */
-    align-items: center;
-    justify-content: space-between;
-    background-color: #363f4f;
-    position: relative;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #363f4f;
+  position: relative;
     padding-right: clamp(5px, 2vw, 15px); /* Responsive padding */
-  }
+}
 
-  .new-post-header-title {
-    display: flex;
-    text-align: center;
-    color: #fff;
+.new-post-header-title {
+  display: flex;
+  text-align: center;
+  color: #fff;
     font-size: clamp(1.4rem, 5vw, 2.5rem); /* Responsive title font size */
-    font-weight: 800;
+  font-weight: 800;
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
   letter-spacing: 0.01em;
   line-height: 1.5;
@@ -57,37 +57,37 @@ body::-webkit-scrollbar {
   word-wrap: break-word;  
 }
 
-  .new-post-header-btn {
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.new-post-header-btn {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
     width: clamp(40px, 10vw, 88px); /* Responsive button width */
     height: clamp(42px, 18vh, 92px); /* Responsive button height */
-    color: rgb(188, 206, 212);
+  color: rgb(188, 206, 212);
     font-size: clamp(12px, 3vw, 18px); /* Responsive button font size */
-    cursor: pointer;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    transition: transform 0.15s;
-    flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s;
+  flex-shrink: 0;
     margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin */
     margin-left: clamp(0.5%, 1vw, 1%);
-  }
+}
 
 .new-post-header-btn:hover {
   transform: scale(1.1);
 }
 
-  .new-post-header-btn img {
-    width: 100%;
+.new-post-header-btn img {
+  width: 100%;
     height: clamp(30px, 12vh, 55px); /* Responsive image height */
-    object-fit: contain;
+  object-fit: contain;
     margin-bottom: clamp(2px, 1vh, 4px); /* Responsive margin */
-    transition: transform 0.15s;
-  }
+  transition: transform 0.15s;
+}
 
 .new-post-header .new-post-header-btn.back {
   /* Removed justify-content override to use centered positioning */
@@ -294,11 +294,12 @@ body::-webkit-scrollbar {
   justify-content: center;
   align-items: center;
   padding: clamp(8px, 2vw, 15px) clamp(12px, 3vw, 20px); /* Responsive padding */
-  gap: clamp(20px, 5vw, 30px); /* Responsive gap */
+  gap: clamp(10px, 3vw, 30px); /* Responsive gap - smaller minimum */
   height: clamp(55px, 15vh, 68px); /* Responsive height */
-  width: clamp(350px, 90vw, 450px); /* Responsive width */
+  width: clamp(280px, 95vw, 450px); /* Responsive width - smaller minimum, larger vw */
   margin: 0 auto; /* Center the container */
   max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width */
 }
 
 .new-post-sort-menu {
@@ -324,19 +325,21 @@ body::-webkit-scrollbar {
   color: #fff;
   background-color: #363F4F;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 5px;
-  padding: 5px 12px;
-  width: 240px;
-  height: 32px;
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 12px); /* Responsive padding */
+  width: clamp(120px, 30vw, 150px); /* REDUCED width to fit within job sections alignment */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  font-size: clamp(14px, 3.5vw, 18px); /* Responsive font size */
   font-weight: 600;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width */
 }
  
 .new-post-region-menu-overlay {
@@ -344,19 +347,21 @@ body::-webkit-scrollbar {
   position: absolute;
   left: 0;
   top: 100%;
-  width: 170px;
+  width: clamp(120px, 30vw, 150px); /* REDUCED width to match dropdown */
   background: #434a58;
   border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
+  border-radius: clamp(6px, 2vw, 10px); /* Responsive border radius */
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   z-index: 2000;
   padding: 0;
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: 227px;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
   overflow-y: auto;
   scrollbar-width: none;
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width */
 }
 
 .new-post-region-menu-overlay.show {
@@ -413,19 +418,21 @@ body::-webkit-scrollbar {
   position: absolute;
   left: 0;
   top: 100%;
-  width: 210px;
+  width: clamp(120px, 30vw, 150px); /* REDUCED width to match dropdown */
   background: #434a58;
   border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
+  border-radius: clamp(6px, 2vw, 10px); /* Responsive border radius */
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   z-index: 2000;
   padding: 0;
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: 227px;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
   overflow-y: auto;
   scrollbar-width: none;
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width */
 }
 
 .new-post-city-menu-overlay::-webkit-scrollbar {
@@ -491,11 +498,12 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  padding: 12px 20px 8px 20px; /* Reduced top and bottom padding */
-  gap: 30px;
-  height: 78px;
-  width: 450px;
-  margin: auto;
+  padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px) clamp(6px, 1.5vw, 8px) clamp(12px, 3vw, 20px); /* Responsive padding */
+  gap: clamp(15px, 5vw, 30px); /* Responsive gap */
+  height: clamp(68px, 18vh, 78px); /* Responsive height */
+  /* Remove explicit width - let parent container control width */
+  width: 100%; 
+  box-sizing: border-box; /* Include padding in width */
 }
 
 .new-post-extras-item {
@@ -545,19 +553,21 @@ body::-webkit-scrollbar {
   color: #fff;
   background-color: #363F4F;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 5px;
-  padding: 5px 12px;
-  width: 240px;
-  height: 32px;
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 12px); /* Responsive padding */
+  width: clamp(135px, 30vw, 150px); /* INCREASED minimum width to fit "Select Option" text */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  font-size: clamp(14px, 3.5vw, 18px); /* Responsive font size */
   font-weight: 600;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width */
 }
 
 .new-post-extras-menu-overlay {
@@ -565,19 +575,21 @@ body::-webkit-scrollbar {
   position: absolute;
   left: 0;
   top: 100%;
-  width: 210px;
+  width: clamp(135px, 30vw, 150px); /* INCREASED minimum width to fit "Select Option" text */
   background: #434a58;
   border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
+  border-radius: clamp(6px, 2vw, 10px); /* Responsive border radius */
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   z-index: 2000;
   padding: 0;
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: 227px;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
   overflow-y: auto;
   scrollbar-width: none;
+  max-width: 100%; /* Prevent overflow */
+  box-sizing: border-box; /* Include padding in width */
 }
 
 .new-post-extras-menu-overlay::-webkit-scrollbar {
@@ -624,15 +636,16 @@ body::-webkit-scrollbar {
   color: #fff;
   background-color: #363F4F;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 5px;
-  padding: 5px 12px;
-  width: 210px;
-  height: 32px;
-  font-size: 18px;
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 12px); /* Responsive padding */
+  width: clamp(140px, 38vw, 170px); /* KEEP LARGER WIDTH like barangay input field - DO NOT REDUCE */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
+  font-size: clamp(14px, 3.5vw, 18px); /* Responsive font size */
   font-weight: 600;
   font-family: Arial, sans-serif;
   box-sizing: border-box;
   outline: none;
+  max-width: 100%; /* Prevent overflow */
 }
 
 .new-post-extras-input::placeholder {
@@ -1383,8 +1396,8 @@ body::-webkit-scrollbar {
     justify-content: center;
     align-items: center;
     position: relative;
-    margin: 25px auto 0 auto; /* Center with margin for spacing */
-    padding: 16px 0px; /* Added 5px top and bottom margin for mobile */
+    margin: 10px auto 0 auto; /* Reduced spacing from job category */
+    padding: 8px 0px; /* Reduced vertical padding */
     width: 380px;
     max-width: 350px; /* Narrower background on mobile */
   }
@@ -1399,24 +1412,24 @@ body::-webkit-scrollbar {
 
   .new-post-region-menu, .new-post-city-menu {
     padding: 3px 10px;
-    width: 128px;
+    width: clamp(140px, 38vw, 170px); /* LARGER WIDTH - match barangay input fields and extras location dropdowns */
     height: 25px;
     font-size: 15px;
     font-family: Arial, Helvetica, sans-serif;
   }
   
   .new-post-city-menu {
-    width: 128px;
+    width: clamp(140px, 38vw, 170px); /* LARGER WIDTH - match barangay input fields and extras location dropdowns */
   }
 
   /* Mobile overlay adjustments */
   .new-post-region-menu-overlay {
-    width: 145px;
+    width: clamp(140px, 38vw, 170px); /* LARGER WIDTH - match dropdown responsive width */
     font-size: 14px;
   }
 
   .new-post-city-menu-overlay {
-    width: 145px;
+    width: clamp(140px, 38vw, 170px); /* LARGER WIDTH - match dropdown responsive width */
     font-size: 14px;
   }
 
@@ -1427,26 +1440,19 @@ body::-webkit-scrollbar {
 
   /* Extras mobile styles */
   .new-post-extras-header {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    margin: 15px auto 0 auto; /* Center with margin for spacing */
-    padding-top: 8px; /* Reduced top padding */
-    padding-bottom: 8px; /* Reduced bottom padding */
-    padding-left: 0px;
-    padding-right: 0px;
-    width: 380px; /* Match the region/city header width for perfect alignment */
+    /* Keep responsive structure like job details section */
+    width: calc(100% - 20px); 
     max-width: 350px; /* Narrower background on mobile */
+    margin: 5px auto 0 auto; /* Reduced spacing from region/city */
   } 
   .new-post-extras-container {
+    /* Remove fixed width - let parent control width */
+    width: 100%;
     padding: 0px 5px 8px 5px; /* Reduced bottom padding */
     gap: 20px;
-    height: 55px;
-    width: 300px;
+    height: 45px; /* Reduced container height */
     justify-content: center;
-    margin-top: 15px; /* Reduced top margin */
+    margin-top: 8px; /* Reduced top margin */
   }
 
   .new-post-extras-item {
@@ -1459,41 +1465,41 @@ body::-webkit-scrollbar {
   }
 
   .new-post-extras-menu {
-    padding: 3px 10px;
-    width: 128px;
-    height: 25px;
-    font-size: 15px;
+    padding: 3px 10px; /* Match region/city padding */
+    width: clamp(135px, 30vw, 150px); /* INCREASED minimum width to fit "Select Option" text */
+    height: 25px; /* Match region/city height */
+    font-size: 15px; /* Match region/city font size */
     font-family: Arial, Helvetica, sans-serif;
   }
 
   .new-post-extras-item:nth-child(2) .new-post-extras-menu {
-    width: 128px;
+    width: clamp(135px, 30vw, 150px); /* INCREASED minimum width to fit "Select Option" text */
   }
 
   .new-post-extras-menu-overlay {
-    width: 145px;
-    font-size: 14px;
+    width: clamp(135px, 30vw, 150px); /* INCREASED minimum width to fit "Select Option" text */
+    font-size: 14px; /* Match region/city overlay font size */
   }
 
   .new-post-extras-item:nth-child(2) .new-post-extras-menu-overlay {
-    width: 145px;
+    width: clamp(135px, 30vw, 150px); /* INCREASED minimum width to fit "Select Option" text */
   }
 
   .new-post-extras-menu-list li {
-    font-size: 14px;
+    font-size: 14px; /* Match region/city overlay font size */
   }
 
   /* Mobile fallback input */
   .new-post-extras-input {
-    padding: 3px 10px;
-    width: 128px;
-    height: 25px;
-    font-size: 15px;
+    padding: 3px 10px; /* Match region/city padding */
+    width: clamp(140px, 38vw, 170px); /* LARGER WIDTH - match barangay input fields */
+    height: 25px; /* Match region/city height */
+    font-size: 15px; /* Match region/city font size */
     font-family: Arial, Helvetica, sans-serif;
   }
 
   .new-post-extras-item:nth-child(2) .new-post-extras-input {
-    width: 128px;
+    width: clamp(140px, 38vw, 170px); /* Same as barangay input fields */
   }
 
   /* Mobile-specific styling if needed */
@@ -1856,6 +1862,142 @@ body::-webkit-scrollbar {
   }
 
   /* Mobile-specific styling if needed */
+}
+
+/* Ultra Small Screens (360px and below) - Additional constraints for horizontal scrolling */
+@media (max-width: 360px) {
+  .new-post-sortmenus {
+    width: clamp(240px, 98vw, 320px) !important; /* Even smaller for ultra-small screens */
+    gap: clamp(8px, 2vw, 15px) !important; /* Smaller gap */
+    padding: clamp(6px, 1.5vw, 12px) clamp(8px, 2vw, 15px) !important; /* Smaller padding */
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important; /* Ensure centering */
+    box-sizing: border-box !important;
+  }
+  
+  .new-post-region-menu, .new-post-city-menu {
+    width: clamp(130px, 36vw, 160px) !important; /* Larger for better usability */
+    font-size: clamp(12px, 3vw, 16px) !important; /* Smaller font */
+    padding: clamp(3px, 1vw, 5px) clamp(6px, 1.5vw, 10px) !important; /* Smaller padding */
+  }
+  
+  .new-post-region-menu-overlay, .new-post-city-menu-overlay {
+    width: clamp(130px, 36vw, 160px) !important; /* Match dropdown widths */
+    font-size: clamp(12px, 3vw, 15px) !important; /* Smaller font */
+  }
+  
+  .new-post-extras-container {
+    /* Match sortmenus width and centering for proper alignment */
+    width: clamp(200px, 95vw, 300px) !important; /* Match sortmenus width structure */
+    margin: 0 auto !important; /* Center like sortmenus */
+    gap: clamp(8px, 2vw, 15px) !important; /* Smaller gap */
+    padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 15px) !important; /* Smaller padding */
+    height: clamp(50px, 16vh, 60px) !important; /* INCREASED container height as requested */
+  }
+  
+    .new-post-extras-menu {
+    width: clamp(130px, 36vw, 160px) !important; /* Match region/city menu for 360px */
+    font-size: clamp(12px, 3vw, 16px) !important; /* Match region/city font */
+    padding: clamp(3px, 1vw, 5px) clamp(6px, 1.5vw, 10px) !important; /* Match region/city padding */
+  }
+
+  .new-post-extras-item:nth-child(2) .new-post-extras-menu {
+    width: clamp(130px, 36vw, 160px) !important; /* Match region/city menu */
+  }
+
+  .new-post-extras-menu-overlay {
+    width: clamp(130px, 36vw, 160px) !important; /* Match region/city overlay for 360px */
+    font-size: clamp(12px, 3vw, 15px) !important; /* Match region/city overlay font */
+  }
+
+  .new-post-extras-item:nth-child(2) .new-post-extras-menu-overlay {
+    width: clamp(130px, 36vw, 160px) !important; /* Match region/city overlay */
+  }
+
+  .new-post-extras-menu-list li {
+    font-size: clamp(12px, 3vw, 15px) !important; /* Match region/city overlay font */
+  }
+
+  .new-post-extras-input {
+    width: clamp(130px, 36vw, 160px) !important; /* Match region/city menu for 360px */
+    font-size: clamp(12px, 3vw, 16px) !important; /* Match region/city font */
+    padding: clamp(3px, 1vw, 5px) clamp(6px, 1.5vw, 10px) !important; /* Match region/city padding */
+  }
+
+  .new-post-extras-item:nth-child(2) .new-post-extras-input {
+    width: clamp(130px, 36vw, 160px) !important; /* Match region/city menu */
+  }
+}
+
+/* Extreme Small Screens (320px and below) - Maximum constraints */
+@media (max-width: 320px) {
+  .new-post-sortmenus {
+    width: clamp(200px, 99vw, 280px) !important; /* Maximum constraint for smallest screens */
+    gap: clamp(6px, 1.5vw, 12px) !important; /* Minimal gap */
+    padding: clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 12px) !important; /* Minimal padding */
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin: 0 auto !important; /* Ensure centering */
+    box-sizing: border-box !important;
+  }
+  
+  .new-post-region-menu, .new-post-city-menu {
+    width: clamp(115px, 34vw, 145px) !important; /* Larger for better usability */
+    font-size: clamp(11px, 3vw, 14px) !important; /* Minimal font */
+    padding: clamp(2px, 1vw, 4px) clamp(5px, 1.5vw, 8px) !important; /* Minimal padding */
+  }
+  
+  .new-post-region-menu-overlay, .new-post-city-menu-overlay {
+    width: clamp(115px, 34vw, 145px) !important; /* Match dropdown widths */
+    font-size: clamp(11px, 3vw, 13px) !important; /* Minimal font */
+  }
+  
+  .new-post-extras-container {
+    /* Match sortmenus width and centering for proper alignment */
+    width: clamp(200px, 99vw, 280px) !important; /* Match sortmenus width structure */
+    margin: 0 auto !important; /* Center like sortmenus */
+    gap: clamp(6px, 1.5vw, 12px) !important; /* Minimal gap */
+    padding: clamp(4px, 1vw, 8px) clamp(6px, 1.5vw, 12px) !important; /* Minimal padding */
+    height: clamp(45px, 14vh, 55px) !important; /* INCREASED container height as requested */
+  }
+  
+    .new-post-extras-menu {
+    width: clamp(115px, 34vw, 145px) !important; /* Match region/city menu for 320px */
+    font-size: clamp(11px, 3vw, 14px) !important; /* Match region/city font */
+    padding: clamp(2px, 1vw, 4px) clamp(5px, 1.5vw, 8px) !important; /* Match region/city padding */
+  }
+
+  .new-post-extras-item:nth-child(2) .new-post-extras-menu {
+    width: clamp(115px, 34vw, 145px) !important; /* Match region/city menu */
+  }
+
+  .new-post-extras-menu-overlay {
+    width: clamp(115px, 34vw, 145px) !important; /* Match region/city overlay for 320px */
+    font-size: clamp(11px, 3vw, 13px) !important; /* Match region/city overlay font */
+  }
+
+  .new-post-extras-item:nth-child(2) .new-post-extras-menu-overlay {
+    width: clamp(115px, 34vw, 145px) !important; /* Match region/city overlay */
+  }
+
+  .new-post-extras-menu-list li {
+    font-size: clamp(11px, 3vw, 13px) !important; /* Match region/city overlay font */
+  }
+
+  .new-post-extras-input {
+    width: clamp(115px, 34vw, 145px) !important; /* Match region/city menu for 320px */
+    font-size: clamp(11px, 3vw, 14px) !important; /* Match region/city font */
+    padding: clamp(2px, 1vw, 4px) clamp(5px, 1.5vw, 8px) !important; /* Match region/city padding */
+  }
+
+  .new-post-extras-item:nth-child(2) .new-post-extras-input {
+    width: clamp(115px, 34vw, 145px) !important; /* Match region/city menu */
+  }
 }
 
 .new-post-sort-menu > div:last-child {

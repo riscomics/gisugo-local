@@ -28,16 +28,16 @@ const tabContentWrappers = document.querySelectorAll('.tab-content-wrapper');
 // Add click listeners to all tab buttons
 profileTabs.forEach(tab => {
   tab.addEventListener('click', function(e) {
-    e.preventDefault();
+      e.preventDefault();
     const targetTab = this.getAttribute('data-tab');
-    
+      
     // Remove active class from all tabs and content
     profileTabs.forEach(t => t.classList.remove('active'));
     tabContentWrappers.forEach(content => content.classList.remove('active'));
-    
+      
     // Add active class to clicked tab
     this.classList.add('active');
-    
+      
     // Show corresponding content
     const targetContent = document.getElementById(`${targetTab}-content`);
     if (targetContent) {
