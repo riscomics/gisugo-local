@@ -13,7 +13,7 @@ html::-webkit-scrollbar {
 body {
   background: #363F4F;
   margin: 0;
-  padding: 110px 0 0 0; /* Add top padding for fixed header */
+  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
 }
 
 body::-webkit-scrollbar {
@@ -30,24 +30,24 @@ body::-webkit-scrollbar {
   background: #363f4f;
 }
 
-.new-post-header-title-container {  
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  height: 106px;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #363f4f;
-  position: relative;
-  padding-right: 15px;  
-}
+  .new-post-header-title-container {  
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: clamp(66px, 20vh, 106px); /* Responsive header height */
+    align-items: center;
+    justify-content: space-between;
+    background-color: #363f4f;
+    position: relative;
+    padding-right: clamp(5px, 2vw, 15px); /* Responsive padding */
+  }
 
-.new-post-header-title {
-  display: flex;
-  text-align: center;
-  color: #fff;
-  font-size: 2.5rem;
-  font-weight: 800;
+  .new-post-header-title {
+    display: flex;
+    text-align: center;
+    color: #fff;
+    font-size: clamp(1.4rem, 5vw, 2.5rem); /* Responsive title font size */
+    font-weight: 800;
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
   letter-spacing: 0.01em;
   line-height: 1.5;
@@ -57,37 +57,37 @@ body::-webkit-scrollbar {
   word-wrap: break-word;  
 }
 
-.new-post-header-btn {
-  background: none;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 88px;
-  height: 92px; 
-  color: rgb(188, 206, 212);
-  font-size: 18px;  
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s;
-  flex-shrink: 0;
-  margin-right: 1%;
-  margin-left: 1%;
-}
+  .new-post-header-btn {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: clamp(40px, 10vw, 88px); /* Responsive button width */
+    height: clamp(42px, 18vh, 92px); /* Responsive button height */
+    color: rgb(188, 206, 212);
+    font-size: clamp(12px, 3vw, 18px); /* Responsive button font size */
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin */
+    margin-left: clamp(0.5%, 1vw, 1%);
+  }
 
 .new-post-header-btn:hover {
   transform: scale(1.1);
 }
 
-.new-post-header-btn img {
-  width: 100%;
-  height: 55px;
-  object-fit: contain;
-  margin-bottom: 4px;
-  transition: transform 0.15s;
-}
+  .new-post-header-btn img {
+    width: 100%;
+    height: clamp(30px, 12vh, 55px); /* Responsive image height */
+    object-fit: contain;
+    margin-bottom: clamp(2px, 1vh, 4px); /* Responsive margin */
+    transition: transform 0.15s;
+  }
 
 .new-post-header .new-post-header-btn.back {
   /* Removed justify-content override to use centered positioning */
@@ -98,7 +98,7 @@ body::-webkit-scrollbar {
 }
 
 .new-post-header-borderline {
-  height: 4px;
+  height: clamp(2px, 0.5vh, 4px); /* Responsive border height */
   width: 100%;
   background: rgb(149, 149, 328);
   position: fixed;
@@ -135,7 +135,7 @@ body::-webkit-scrollbar {
   width: 100%;
   justify-content: space-around;
   align-items: center;
-  height: 100px;
+  height: clamp(66px, 20vh, 100px); /* Responsive menu height */
   background: #866f67;
   border-bottom: 2px solid #222;
 }
@@ -145,18 +145,18 @@ body::-webkit-scrollbar {
   flex-direction: column;
   align-items: center;
   color: #f5f5f5;
-  font-size: 18px;
+  font-size: clamp(12px, 3vw, 18px); /* Responsive menu item font size */
   font-family: Arial, Helvetica, sans-serif;
-  width: 90px;
+  width: clamp(40px, 10vw, 90px); /* Responsive menu item width */
   cursor: pointer;
   user-select: none;
   text-decoration: none;
 }
 
 .new-post-menu-item img {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 4px;
+  width: clamp(28px, 8vw, 48px); /* Responsive menu item image size */
+  height: clamp(28px, 8vw, 48px);
+  margin-bottom: clamp(2px, 1vh, 4px); /* Responsive margin */
   object-fit: contain;
 }
 
@@ -171,7 +171,7 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: 100px;
+  height: clamp(80px, 20vh, 100px); /* Responsive header height */
   align-items: center;
   justify-content: space-between;
   background-color: #363f4f;
@@ -179,17 +179,17 @@ body::-webkit-scrollbar {
 }
 
 .new-post-servicemenu {
-  width: 378px;
-  height: 59px;
+  width: clamp(300px, 90vw, 378px); /* Responsive menu width */
+  height: clamp(50px, 12vh, 59px); /* Responsive menu height */
   border-style: solid;
   border-width: 1px;
   border-color: rgba(255, 255, 255, 0.3);
-  margin-left: -2px;
+  margin-left: clamp(-2px, -0.5vw, -2px); /* Responsive margin */
   cursor: pointer;
   display: flex;
   align-items: center;
   background: #363F4F;
-  border-radius: 4px;
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
 }
 
 .new-post-servicename {
@@ -197,20 +197,20 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: 378px;
-  height: 59px;
+  width: clamp(300px, 90vw, 378px); /* Responsive width */
+  height: clamp(50px, 12vh, 59px); /* Responsive height */
   color: #e6d6ae;
-  font-size: 28px;
+  font-size: clamp(20px, 5vw, 28px); /* Responsive font size */
   font-weight: 700;
   font-family: arial, sans-serif;
-  padding-left: 20px;
-  padding-right: 15px;
+  padding-left: clamp(15px, 4vw, 20px); /* Responsive left padding */
+  padding-right: clamp(12px, 3vw, 15px); /* Responsive right padding */
   user-select: none;
 }
 
 .new-post-borderline {
   width: 100%;
-  height: 4px;
+  height: clamp(2px, 0.5vh, 4px); /* Responsive border height */
   background-color: rgb(149, 149, 328);
 }
 
@@ -283,12 +283,9 @@ body::-webkit-scrollbar {
 /* EXACT COPY from listing.css - Location Dropdowns */
 .new-post-sort-header {
   position: relative;
-  width: calc(100% - 40px); /* Constrained width with margins */
-  max-width: 700px; /* Increased maximum width for larger screens */
-  margin: 0 auto; /* Center the section */
-  background: #2a3441; /* Darker solid background for panel effect */
-  border-radius: 12px; /* Rounded corners */
-  padding: 0px 0; /* Added 5px top and bottom margin */
+  width: 100%;
+  background: #363f4f;
+  padding: clamp(8px, 2vw, 15px) 0; /* Responsive padding */
 }
 
 .new-post-sortmenus {
@@ -296,11 +293,12 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding-top: 5px;
-  gap: 30px; /* Increased from 25px by 20% */
-  height: 68px;
-  width: 450px; /* Add explicit width to accommodate larger gap and wider city menu */
+  padding: clamp(8px, 2vw, 15px) clamp(12px, 3vw, 20px); /* Responsive padding */
+  gap: clamp(20px, 5vw, 30px); /* Responsive gap */
+  height: clamp(55px, 15vh, 68px); /* Responsive height */
+  width: clamp(350px, 90vw, 450px); /* Responsive width */
   margin: 0 auto; /* Center the container */
+  max-width: 100%; /* Prevent overflow */
 }
 
 .new-post-sort-menu {
@@ -480,12 +478,12 @@ body::-webkit-scrollbar {
 
 .new-post-extras-header {
   position: relative;
-  width: calc(100% - 40px); /* Constrained width with margins */
-  max-width: 700px; /* Increased maximum width for larger screens */
-  margin: 15px auto 0 auto; /* Center the section with top margin for spacing */
+  width: calc(100% - clamp(20px, 5vw, 40px)); /* Responsive width with margins */
+  max-width: clamp(600px, 90vw, 700px); /* Responsive maximum width */
+  margin: clamp(10px, 3vw, 15px) auto 0 auto; /* Responsive margin for spacing */
   background: #2a3441; /* Same darker background to create unified panel */
-  border-radius: 12px; /* Rounded corners */
-  padding: 6px 0; /* Reduced top and bottom padding */
+  border-radius: clamp(8px, 2vw, 12px); /* Responsive rounded corners */
+  padding: clamp(4px, 1vw, 6px) 0; /* Responsive padding */
 }
 
 .new-post-extras-container {
@@ -654,57 +652,57 @@ body::-webkit-scrollbar {
 
 .new-post-job-details-section {
   position: relative;
-  width: calc(100% - 40px);
-  max-width: 700px;
-  margin: 15px auto; /* Center and add margin for spacing */
-  background: #2a3441;
-  border-radius: 12px;
-  padding: 25px 0;
+  width: calc(100% - clamp(20px, 5vw, 40px)); /* Responsive width with margins */
+  max-width: clamp(600px, 90vw, 700px); /* Responsive maximum width */
+  margin: clamp(10px, 3vw, 15px) auto 0 auto; /* Responsive margin for spacing */
+  background: #2a3441; /* Same darker background to create unified panel */
+  border-radius: clamp(8px, 2vw, 12px); /* Responsive rounded corners */
+  padding: clamp(10px, 3vw, 15px); /* Responsive padding */
 }
 
 .new-post-job-details-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 0 10px;
-  overflow: visible;
+  gap: clamp(12px, 3vw, 18px); /* Responsive gap between form items */
+  padding: clamp(8px, 2vw, 12px); /* Responsive padding */
 }
 
 .new-post-job-detail-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  overflow: visible;
+  gap: clamp(6px, 2vw, 8px); /* Responsive gap between label and input */
+  width: 100%;
 }
 
 .new-post-job-detail-label {
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+  color: #e6d6ae;
+  font-size: clamp(14px, 3.5vw, 16px); /* Responsive label font size */
+  font-weight: 600;
   font-family: Arial, sans-serif;
-  margin-bottom: 5px;
+  margin-bottom: clamp(4px, 1vw, 6px); /* Responsive margin */
 }
 
 .new-post-job-detail-input {
-  background: #4a5568;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
+  background: #363f4f;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: clamp(4px, 1vw, 6px); /* Responsive border radius */
+  padding: clamp(8px, 2vw, 12px); /* Responsive padding */
   color: #fff;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: clamp(14px, 3.5vw, 16px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  padding: 12px 16px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .new-post-job-detail-input:focus {
-  border-color: rgba(255, 255, 255, 0.7);
+  border-color: #e6d6ae;
 }
 
 .new-post-job-detail-input::placeholder {
   color: rgba(255, 255, 255, 0.5);
-  font-weight: 400;
+  font-size: clamp(13px, 3vw, 15px); /* Responsive placeholder font size */
 }
 
 /* Job Title Input */
@@ -1032,79 +1030,88 @@ body::-webkit-scrollbar {
 /* Payment Offer Section Styles */
 .new-post-payment-section {
   position: relative;
-  width: calc(100% - 40px);
-  max-width: 700px;
-  margin: 15px auto;
+  width: calc(100% - clamp(20px, 5vw, 40px)); /* Responsive width with margins */
+  max-width: clamp(600px, 90vw, 700px); /* Responsive maximum width */
+  margin: clamp(10px, 3vw, 15px) auto 0 auto; /* Responsive margin for spacing */
   background: #2d3748;
   border: none;
-  border-radius: 8px;
+  border-radius: clamp(6px, 2vw, 8px); /* Responsive border radius */
 }
 
 .new-post-payment-container {
-  padding: 20px;
+  padding: clamp(15px, 4vw, 20px); /* Responsive padding */
 }
 
 .new-post-payment-header {
   color: #fff;
-  font-size: 20px;
+  font-size: clamp(18px, 4vw, 20px); /* Responsive header font size */
   font-weight: 700;
   font-family: Arial, Helvetica, sans-serif;
-  margin-bottom: 16px;
+  margin-bottom: clamp(14px, 3vw, 16px); /* Responsive margin */
   text-transform: uppercase;
 }
 
 .new-post-payment-controls {
   display: flex;
   flex-direction: row;
+  gap: clamp(15px, 4vw, 25px); /* Responsive gap */
   align-items: center;
-  gap: 20px;
+  flex-wrap: wrap; /* Allow wrapping on small screens */
 }
 
 .new-post-payment-type-wrapper {
   position: relative;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .new-post-payment-type-menu {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 140px;
-  height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: #363F4F;
-  border-radius: 5px;
+  background: #363f4f;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: clamp(4px, 1vw, 6px); /* Responsive border radius */
+  padding: clamp(8px, 2vw, 12px); /* Responsive padding */
   color: #fff;
-  padding: 0 12px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: clamp(14px, 3.5vw, 16px); /* Responsive font size */
   font-family: Arial, sans-serif;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: clamp(100px, 25vw, 140px); /* Responsive width */
+  height: clamp(35px, 8vh, 44px); /* Responsive height */
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
 
 .new-post-payment-type-menu:hover {
-  border-color: #fff;
+  border-color: #e6d6ae;
 }
 
 .new-post-payment-type-menu > div:last-child {
-  color: #d3d7e0;
-  font-size: 1.1em;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: clamp(8px, 2vw, 12px); /* Responsive margin */
 }
 
 .new-post-payment-type-overlay {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 140px;
-  background: #363F4F;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 5px;
-  border-top: none;
-  max-height: 120px;
-  overflow-y: auto;
-  z-index: 1000;
   display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  width: clamp(100px, 25vw, 140px); /* Responsive width */
+  background: #434a58;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: clamp(6px, 2vw, 10px); /* Responsive border radius */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 2000;
+  padding: 0;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+  font-size: clamp(14px, 3.5vw, 16px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  max-height: clamp(120px, 30vh, 150px); /* Responsive max height */
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .new-post-payment-type-overlay::-webkit-scrollbar {
@@ -1118,85 +1125,93 @@ body::-webkit-scrollbar {
 .new-post-payment-type-list {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
 }
 
 .new-post-payment-type-list li {
-  padding: 10px 12px;
   color: #fff;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: clamp(14px, 3.5vw, 16px); /* Responsive font size */
   font-family: Arial, sans-serif;
+  font-weight: 700;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.13s;
 }
 
 .new-post-payment-type-list li:last-child {
-  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .new-post-payment-type-list li:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255,255,255,0.08);
 }
 
 .new-post-payment-amount-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: clamp(6px, 2vw, 8px); /* Responsive gap */
+  flex: 1;
 }
 
 .new-post-payment-peso {
-  color: #fff;
-  font-size: 24px;
+  color: #e6d6ae;
+  font-size: clamp(16px, 4vw, 18px); /* Responsive peso symbol size */
   font-weight: 700;
   font-family: Arial, sans-serif;
 }
 
 .new-post-payment-amount-input {
-  width: 110px;
-  height: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: #f5f5f5;
-  border-radius: 5px;
-  color: #333;
-  padding: 0 10px;
-  font-size: 18px;
-  font-weight: 600;
+  background: #363f4f;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: clamp(4px, 1vw, 6px); /* Responsive border radius */
+  padding: clamp(8px, 2vw, 12px); /* Responsive padding */
+  color: #fff;
+  font-size: clamp(14px, 3.5vw, 16px); /* Responsive font size */
   font-family: Arial, sans-serif;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: clamp(80px, 20vw, 120px); /* Responsive width */
+  height: clamp(35px, 8vh, 44px); /* Responsive height */
+  box-sizing: border-box;
+  text-align: center;
 }
 
 .new-post-payment-amount-input:focus {
-  outline: none;
-  border-color: #fff;
+  border-color: #e6d6ae;
 }
 
 .new-post-payment-amount-input::placeholder {
-  color: #999;
-  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: clamp(13px, 3vw, 15px); /* Responsive placeholder font size */
 }
 
 /* Post Job Button Section Styles */
 .new-post-submit-section {
+  position: relative;
+  width: calc(100% - clamp(20px, 5vw, 40px)); /* Responsive width with margins */
+  max-width: clamp(600px, 90vw, 700px); /* Responsive maximum width */
+  margin: clamp(20px, 5vw, 30px) auto; /* Responsive margin for spacing */
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 20px auto;
-  max-width: 800px;
-  padding: 0 15px;
+  padding: clamp(10px, 3vw, 15px); /* Responsive padding */
 }
 
 .new-post-submit-btn {
   background: #f0d0aa;
   border: 2px solid aliceblue;
-  border-radius: 12px;
-  padding: 10px 40px;
+  border-radius: clamp(10px, 3vw, 12px); /* Responsive border radius */
+  padding: clamp(8px, 2.5vw, 10px) clamp(30px, 8vw, 40px); /* Responsive padding */
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   font-family: Arial, Helvetica, sans-serif;
-  min-width: 180px;
+  min-width: clamp(160px, 40vw, 180px); /* Responsive min width */
 }
 
 .new-post-submit-btn:hover {
@@ -1209,7 +1224,7 @@ body::-webkit-scrollbar {
 } 
 
 .new-post-submit-btn span {
-  font-size: 1.5rem;
+  font-size: clamp(1.3rem, 4vw, 1.5rem); /* Responsive span font size */
   font-weight: 700;
   color: #2d3748;
   letter-spacing: 0.2px;
@@ -1218,32 +1233,32 @@ body::-webkit-scrollbar {
 /* Details Description Section - styled like job-details-section */
 .new-post-details-section {
   position: relative;
-  width: calc(100% - 40px);
-  max-width: 700px;
-  margin: 15px auto; /* Center and add margin for spacing */
+  width: calc(100% - clamp(20px, 5vw, 40px)); /* Responsive width with margins */
+  max-width: clamp(600px, 90vw, 700px); /* Responsive maximum width */
+  margin: clamp(10px, 3vw, 15px) auto 0 auto; /* Responsive margin for spacing */
   background: #2d3748;
   border: none;
-  border-radius: 8px;
+  border-radius: clamp(6px, 2vw, 8px); /* Responsive border radius */
 }
 
 .new-post-details-header {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 4vw, 1.1rem); /* Responsive header font size */
   font-weight: 600;
   color: #f5f5f5;
   background: #3d4a5c;
-  padding: 12px 20px;
+  padding: clamp(10px, 3vw, 12px) clamp(15px, 4vw, 20px); /* Responsive padding */
   margin: 0;
-  border-radius: 8px 8px 0 0;
+  border-radius: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 8px) 0 0; /* Responsive border radius */
   text-transform: uppercase;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .new-post-details-text-container {
-  max-height: 126px;
+  max-height: clamp(105px, 25vh, 126px); /* Responsive max height */
   overflow-y: auto;
-  padding: 8px 20px 15px 20px;
+  padding: clamp(6px, 2vw, 8px) clamp(15px, 4vw, 20px) clamp(12px, 3vw, 15px) clamp(15px, 4vw, 20px); /* Responsive padding */
   background: #2d3748;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 clamp(6px, 2vw, 8px) clamp(6px, 2vw, 8px); /* Responsive border radius */
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -1253,8 +1268,8 @@ body::-webkit-scrollbar {
 
 .new-post-details-textarea {
   width: 100%;
-  min-height: 100px;
-  font-size: 1.1rem;
+  min-height: clamp(85px, 20vh, 100px); /* Responsive min height */
+  font-size: clamp(1rem, 3.5vw, 1.1rem); /* Responsive font size */
   line-height: 1.5;
   color: #e2e8f0;
   font-family: Arial, Helvetica, sans-serif;
@@ -1273,7 +1288,9 @@ body::-webkit-scrollbar {
 
 /* Spacer div no longer needed for scrollable layout */
 .new-post-spacer {
-  display: none;
+  height: clamp(60px, 15vh, 100px); /* Responsive spacer height */
+  width: 100%;
+  background: transparent;
 }
 
 /* ========================== MOBILE STYLES ========================== */
