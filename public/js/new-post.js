@@ -606,8 +606,20 @@ function renderCityMenu() {
       maxWidth = Math.max(maxWidth, span.offsetWidth);
       document.body.removeChild(span);
     });
+    
     // Add padding (20px left+right)
-    overlay.style.width = (maxWidth + 28) + 'px';
+    let calculatedWidth = maxWidth + 28;
+    
+    // Constrain width for small viewports (320px-359px range)
+    if (window.innerWidth >= 321 && window.innerWidth <= 359) {
+      const maxAllowedWidth = Math.min(135, window.innerWidth * 0.30); // Match CSS clamp(115px, 30vw, 135px)
+      calculatedWidth = Math.min(calculatedWidth, maxAllowedWidth);
+    } else if (window.innerWidth <= 320) {
+      const maxAllowedWidth = Math.min(145, window.innerWidth * 0.34); // Match CSS clamp(115px, 34vw, 145px)
+      calculatedWidth = Math.min(calculatedWidth, maxAllowedWidth);
+    }
+    
+    overlay.style.width = calculatedWidth + 'px';
   }, 0);
 }
 
