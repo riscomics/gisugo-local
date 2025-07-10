@@ -2606,102 +2606,141 @@ body::-webkit-scrollbar {
 }
 
 /* --- Responsive overrides for job posted success overlay (new-post only) --- */
-@media (max-width: 400px) {
+@media (max-width: 600px) {
   .job-posted-modal {
-    width: 98vw !important;
-    margin: 6px !important;
-    padding: clamp(12px, 4vw, 18px) clamp(8px, 4vw, 16px) !important;
+    width: 92vw !important;
+    margin: 8px !important;
+    padding: clamp(15px, 3vw, 20px) clamp(12px, 3vw, 18px) !important;
     max-width: none !important;
-    max-height: 80vh !important;
+    max-height: 82vh !important;
   }
   .job-posted-title {
-    font-size: clamp(1.1rem, 6vw, 1.35rem) !important;
-    margin-bottom: clamp(10px, 3vw, 14px) !important;
+    font-size: clamp(1.2rem, 5vw, 1.4rem) !important;
+    margin-bottom: clamp(8px, 2vw, 12px) !important;
   }
   .job-posted-subtitle {
-    font-size: clamp(0.95rem, 4vw, 1.1rem) !important;
-    margin-bottom: clamp(12px, 3vw, 16px) !important;
+    font-size: clamp(0.9rem, 3.5vw, 1rem) !important;
+    margin-bottom: clamp(10px, 2.5vw, 15px) !important;
   }
   .job-posted-section-title {
-    font-size: clamp(0.95rem, 4vw, 1.05rem) !important;
-    margin-bottom: clamp(4px, 1vw, 8px) !important;
-    gap: clamp(4px, 2vw, 8px) !important;
+    font-size: clamp(0.9rem, 3.5vw, 1rem) !important;
+    margin-bottom: clamp(3px, 1vw, 6px) !important;
+    gap: clamp(3px, 1.5vw, 6px) !important;
   }
   .job-posted-section-text {
-    font-size: clamp(0.85rem, 3vw, 0.98rem) !important;
-    margin-left: clamp(10px, 4vw, 18px) !important;
+    font-size: clamp(0.8rem, 3vw, 0.9rem) !important;
+    margin-left: clamp(8px, 3vw, 15px) !important;
   }
   .job-posted-section {
-    margin-bottom: clamp(10px, 3vw, 16px) !important;
+    margin-bottom: clamp(8px, 2.5vw, 12px) !important;
   }
   .job-posted-actions {
-    gap: clamp(7px, 2vw, 12px) !important;
+    gap: clamp(6px, 2vw, 10px) !important;
   }
   .job-posted-btn {
-    padding: clamp(8px, 2vw, 12px) clamp(10px, 4vw, 18px) !important;
-    font-size: clamp(0.95rem, 4vw, 1.05rem) !important;
+    padding: clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px) !important;
+    font-size: clamp(0.9rem, 3.5vw, 1rem) !important;
     width: 100% !important;
     min-width: 0 !important;
     border-radius: 8px !important;
   }
 }
-@media (max-width: 375px) {
+@media (max-width: 400px) {
   .job-posted-modal {
-    width: 99vw !important;
-    margin: 2px !important;
-    padding: clamp(10px, 4vw, 14px) clamp(4px, 3vw, 10px) !important;
+    width: 96vw !important;
+    margin: 4px !important;
+    padding: clamp(10px, 3vw, 14px) clamp(6px, 3vw, 12px) !important;
     max-width: none !important;
     max-height: 78vh !important;
   }
   .job-posted-title {
-    font-size: clamp(1rem, 7vw, 1.2rem) !important;
+    font-size: clamp(1rem, 5vw, 1.2rem) !important;
+    margin-bottom: clamp(6px, 2vw, 10px) !important;
   }
   .job-posted-subtitle {
-    font-size: clamp(0.9rem, 4vw, 1rem) !important;
+    font-size: clamp(0.85rem, 3.5vw, 0.95rem) !important;
+    margin-bottom: clamp(8px, 2vw, 12px) !important;
   }
   .job-posted-section-title {
-    font-size: clamp(0.9rem, 4vw, 1rem) !important;
+    font-size: clamp(0.85rem, 3.5vw, 0.95rem) !important;
+    margin-bottom: clamp(2px, 1vw, 5px) !important;
+    gap: clamp(2px, 1.5vw, 5px) !important;
   }
   .job-posted-section-text {
-    font-size: clamp(0.8rem, 3vw, 0.95rem) !important;
-    margin-left: clamp(6px, 2vw, 12px) !important;
+    font-size: clamp(0.75rem, 3vw, 0.85rem) !important;
+    margin-left: clamp(6px, 3vw, 12px) !important;
+  }
+  .job-posted-section {
+    margin-bottom: clamp(6px, 2vw, 10px) !important;
+  }
+  .job-posted-actions {
+    gap: clamp(5px, 1.5vw, 8px) !important;
   }
   .job-posted-btn {
-    font-size: clamp(0.9rem, 4vw, 1rem) !important;
-    padding: clamp(7px, 2vw, 10px) clamp(8px, 3vw, 14px) !important;
+    padding: clamp(6px, 2vw, 8px) clamp(8px, 3vw, 12px) !important;
+    font-size: clamp(0.85rem, 3.5vw, 0.95rem) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 7px !important;
+  }
+}
+@media (max-width: 375px) {
+  .job-posted-modal {
+    width: 98vw !important;
+    margin: 2px !important;
+    padding: clamp(8px, 3vw, 12px) clamp(4px, 2.5vw, 8px) !important;
+    max-width: none !important;
+    max-height: 76vh !important;
+  }
+  .job-posted-title {
+    font-size: clamp(0.9rem, 5.5vw, 1.1rem) !important;
+  }
+  .job-posted-subtitle {
+    font-size: clamp(0.8rem, 3.5vw, 0.9rem) !important;
+  }
+  .job-posted-section-title {
+    font-size: clamp(0.8rem, 3.5vw, 0.9rem) !important;
+  }
+  .job-posted-section-text {
+    font-size: clamp(0.7rem, 3vw, 0.8rem) !important;
+    margin-left: clamp(4px, 2vw, 8px) !important;
+  }
+  .job-posted-btn {
+    font-size: clamp(0.8rem, 3.5vw, 0.9rem) !important;
+    padding: clamp(5px, 1.5vw, 7px) clamp(6px, 2.5vw, 10px) !important;
   }
 }
 @media (max-width: 337px) {
   .job-posted-modal {
     width: 100vw !important;
     margin: 0 !important;
-    padding: clamp(6px, 2vw, 10px) clamp(2px, 2vw, 8px) !important;
+    padding: clamp(5px, 2vw, 8px) clamp(2px, 1.5vw, 6px) !important;
     max-width: none !important;
-    max-height: 75vh !important;
+    max-height: 72vh !important;
   }
   .job-posted-title {
-    font-size: clamp(0.9rem, 7vw, 1.1rem) !important;
-    margin-bottom: clamp(7px, 2vw, 10px) !important;
+    font-size: clamp(0.8rem, 6vw, 1rem) !important;
+    margin-bottom: clamp(4px, 1.5vw, 6px) !important;
   }
   .job-posted-subtitle {
-    font-size: clamp(0.8rem, 4vw, 0.95rem) !important;
-    margin-bottom: clamp(8px, 2vw, 12px) !important;
+    font-size: clamp(0.75rem, 4vw, 0.85rem) !important;
+    margin-bottom: clamp(5px, 1.5vw, 8px) !important;
   }
   .job-posted-section-title {
-    font-size: clamp(0.8rem, 4vw, 0.95rem) !important;
-    margin-bottom: clamp(2px, 1vw, 6px) !important;
-    gap: clamp(2px, 1vw, 6px) !important;
+    font-size: clamp(0.75rem, 4vw, 0.85rem) !important;
+    margin-bottom: clamp(1px, 0.5vw, 3px) !important;
+    gap: clamp(1px, 0.5vw, 3px) !important;
   }
   .job-posted-section-text {
-    font-size: clamp(0.7rem, 3vw, 0.9rem) !important;
-    margin-left: clamp(2px, 1vw, 8px) !important;
+    font-size: clamp(0.65rem, 3vw, 0.75rem) !important;
+    margin-left: clamp(2px, 1vw, 6px) !important;
   }
   .job-posted-section {
-    margin-bottom: clamp(6px, 2vw, 10px) !important;
+    margin-bottom: clamp(4px, 1.5vw, 6px) !important;
   }
   .job-posted-btn {
-    font-size: clamp(0.8rem, 4vw, 0.95rem) !important;
-    padding: clamp(5px, 2vw, 8px) clamp(6px, 2vw, 10px) !important;
-    border-radius: 7px !important;
+    font-size: clamp(0.75rem, 4vw, 0.85rem) !important;
+    padding: clamp(4px, 1.5vw, 6px) clamp(5px, 2vw, 8px) !important;
+    border-radius: 6px !important;
   }
 }
