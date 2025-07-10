@@ -2574,7 +2574,7 @@ body::-webkit-scrollbar {
     max-width: 44vw !important;
     width: 44vw !important;
     min-width: 0 !important;
-    height: clamp(36px, 8vh, 44px) !important; /* Increased height */
+    height: clamp(28px, 6vh, 33px) !important; /* Moderately reduced height */
     box-sizing: border-box !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
