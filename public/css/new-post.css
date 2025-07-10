@@ -2555,7 +2555,7 @@ body::-webkit-scrollbar {
   /* Center and size the region/city dropdowns only */
   .new-post-sort-header {
     margin-top: clamp(18px, 5vw, 28px) !important; /* More space above */
-    margin-bottom: clamp(4px, 1vw, 8px) !important; /* Less space below */
+    margin-bottom: clamp(0px, 0vw, 2px) !important; /* Even less space below */
     max-width: 100vw !important;
     width: 100vw !important;
     padding-top: 0 !important;
