@@ -2598,3 +2598,9 @@ body::-webkit-scrollbar {
     margin-left: clamp(38px, 16vw, 52px) !important;
   }
 }
+
+@media (min-width: 338px) and (max-width: 359px) {
+  .new-post-photo-upload-area {
+    margin-left: clamp(18px, 8vw, 28px) !important;
+  }
+}
