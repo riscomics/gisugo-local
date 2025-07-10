@@ -2554,9 +2554,10 @@ body::-webkit-scrollbar {
 @media (max-width: 337px) {
   /* Center and size the region/city dropdowns only */
   .new-post-sort-header {
+    margin-top: clamp(18px, 5vw, 28px) !important; /* More space above */
+    margin-bottom: clamp(4px, 1vw, 8px) !important; /* Less space below */
     max-width: 100vw !important;
     width: 100vw !important;
-    margin-top: clamp(8px, 2vw, 14px) !important;
     padding-top: 0 !important;
     box-sizing: border-box !important;
   }
@@ -2574,8 +2575,8 @@ body::-webkit-scrollbar {
     width: 44vw !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
   /* Remove all overlay position/z-index/width overrides */
 }
