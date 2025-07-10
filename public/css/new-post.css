@@ -2592,3 +2592,9 @@ body::-webkit-scrollbar {
     padding-right: 10px !important;
   }
 }
+
+@media (max-width: 337px) {
+  .new-post-photo-upload-area {
+    margin-left: clamp(38px, 16vw, 52px) !important;
+  }
+}
