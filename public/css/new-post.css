@@ -2742,3 +2742,11 @@ body::-webkit-scrollbar {
     padding: clamp(5px, 2vw, 8px) clamp(6px, 2vw, 10px) !important;
   }
 }
+
+/* DEBUG: Outline and zero left-side spacing for overlay and modal */
+.job-posted-overlay, .job-posted-modal {
+  outline: 2px solid red !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  border-left: 0 !important;
+}
