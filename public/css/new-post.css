@@ -3041,12 +3041,14 @@ body::-webkit-scrollbar {
     border-radius: 10px;
     border: 2px solid #10b981;
     box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    max-height: none;
-    overflow-y: visible;
+    max-height: 85vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .job-posted-modal::-webkit-scrollbar {
     display: none;
@@ -3069,10 +3071,72 @@ body::-webkit-scrollbar {
   .job-posted-actions {
     flex-direction: column;
     gap: clamp(6px, 2vw, 10px);
+    margin-top: auto;
+    padding-top: clamp(8px, 2vw, 12px);
   }
   .job-posted-btn {
     padding: clamp(8px, 2vw, 12px) clamp(8px, 4vw, 14px);
     font-size: clamp(0.85rem, 3vw, 1rem);
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Ultra Small Mobile (320px and below) - Enable internal scrolling */
+@media (max-width: 320px) {
+  .job-posted-overlay {
+    align-items: flex-start !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    overflow-y: auto !important;
+  }
+  .job-posted-modal {
+    width: calc(100vw - 8px);
+    max-width: 99vw;
+    margin: 0;
+    padding: 12px 8px;
+    box-sizing: border-box;
+    background: #363f4f;
+    border-radius: 8px;
+    border: 2px solid #10b981;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    max-height: 80vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  .job-posted-modal::-webkit-scrollbar {
+    display: none;
+  }
+  .job-posted-title {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .job-posted-subtitle {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+  .job-posted-section-title {
+    font-size: 0.8rem;
+  }
+  .job-posted-section-text {
+    font-size: 0.75rem;
+    margin-left: 8px;
+  }
+  .job-posted-actions {
+    flex-direction: column;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: 8px;
+  }
+  .job-posted-btn {
+    padding: 8px 12px;
+    font-size: 0.8rem;
     min-width: 0;
     width: 100%;
     box-sizing: border-box;
