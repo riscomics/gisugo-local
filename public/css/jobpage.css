@@ -1463,11 +1463,12 @@ body::-webkit-scrollbar {
   }
   
   .job-posted-modal {
-    width: 95%;
-    margin: 10px auto;
-    padding: 25px 20px;
+    width: clamp(220px, 90vw, 340px);
+    min-width: 200px;
+    margin: auto;
+    padding: 16px 8px;
     max-width: none;
-    max-height: 90vh;
+    max-height: 75vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
