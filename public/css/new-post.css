@@ -2727,31 +2727,39 @@ body::-webkit-scrollbar {
 /* Main Mobile Breakpoint (600px and below) */
 @media (max-width: 600px) {
   .job-posted-overlay {
-    align-items: center !important;
+    display: flex !important;
+    align-items: flex-start !important;
     justify-content: center !important;
-    padding: 0 !important;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-    z-index: 999999 !important;
-    position: fixed !important;
+    padding-top: clamp(12px, 4vw, 32px) !important;
+    padding-bottom: clamp(12px, 4vw, 32px) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
-    backdrop-filter: blur(8px);
+    position: fixed !important;
+    z-index: 999999 !important;
+    background: rgba(0,0,0,0.8);
+    overflow-y: auto;
+    box-sizing: border-box;
   }
-
   .job-posted-modal {
     width: min(96vw, 420px);
+    max-width: 98vw;
     margin: 0;
     padding: clamp(14px, 4vw, 28px) clamp(8px, 4vw, 24px);
-    max-width: 98vw;
-    max-height: 90vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
     box-sizing: border-box;
+    background: #363f4f;
+    border-radius: 12px;
+    border: 2px solid #10b981;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    /* Remove modal scrolling and max-height */
+    overflow-y: visible;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .job-posted-title {
@@ -2974,18 +2982,10 @@ body::-webkit-scrollbar {
 @media (max-width: 600px) and (min-width: 401px) {
   .job-posted-overlay {
     display: flex !important;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: center !important;
-    padding: 0 !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    position: fixed !important;
-    z-index: 999999 !important;
-    background: rgba(0,0,0,0.8);
-    overflow-y: auto;
-    box-sizing: border-box;
+    padding-top: clamp(12px, 4vw, 32px) !important;
+    padding-bottom: clamp(12px, 4vw, 32px) !important;
   }
   .job-posted-modal {
     width: calc(100vw - 32px);
@@ -2997,8 +2997,8 @@ body::-webkit-scrollbar {
     border-radius: 12px;
     border: 2px solid #10b981;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    overflow-y: auto;
-    max-height: 90vh;
+    overflow-y: visible;
+    max-height: none;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -3038,19 +3038,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 400px) and (min-width: 321px) {
   .job-posted-overlay {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    position: fixed !important;
-    z-index: 999999 !important;
-    background: rgba(0,0,0,0.8);
-    overflow-y: auto;
-    box-sizing: border-box;
+    align-items: flex-start !important;
+    padding-top: clamp(10px, 4vw, 24px) !important;
+    padding-bottom: clamp(10px, 4vw, 24px) !important;
   }
   .job-posted-modal {
     width: calc(100vw - 12px);
@@ -3062,12 +3052,11 @@ body::-webkit-scrollbar {
     border-radius: 10px;
     border: 2px solid #10b981;
     box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    overflow-y: auto;
-    max-height: 92vh;
+    overflow-y: visible;
+    max-height: none;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    /* Hide scrollbar for all browsers */
     scrollbar-width: none;
   }
   .job-posted-modal::-webkit-scrollbar {
