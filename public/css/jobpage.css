@@ -1447,8 +1447,9 @@ body::-webkit-scrollbar {
   
   /* Job Posted Overlay Mobile Styles */
   .job-posted-overlay {
-    align-items: flex-start;
-    padding: 5vh 0 10vh 0;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -1463,10 +1464,10 @@ body::-webkit-scrollbar {
   
   .job-posted-modal {
     width: 95%;
-    margin: 10px;
+    margin: 10px auto;
     padding: 25px 20px;
     max-width: none;
-    max-height: 85vh;
+    max-height: 90vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
