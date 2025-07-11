@@ -3092,17 +3092,35 @@ function showJobUpdatedOverlay(formData) {
     }
     
     // AGGRESSIVE mobile overlay fix - force visibility on all devices
-    overlay.style.display = 'flex';
-    overlay.style.visibility = 'visible';
-    overlay.style.opacity = '1';
-    overlay.style.zIndex = '999999';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
+    overlay.style.display = 'flex !important';
+    overlay.style.visibility = 'visible !important';
+    overlay.style.opacity = '1 !important';
+    overlay.style.zIndex = '999999 !important';  // Even higher z-index for mobile
+    overlay.style.position = 'fixed !important';
+    overlay.style.top = '0 !important';
+    overlay.style.left = '0 !important';
+    overlay.style.width = '100vw !important';
+    overlay.style.height = '100vh !important';
+    overlay.style.alignItems = 'center !important';
+    overlay.style.justifyContent = 'center !important';
     overlay.style.backdropFilter = 'blur(8px)';
-    overlay.style.background = 'rgba(0, 0, 0, 0.8)';
+    
+    // Apply !important styles programmatically for better mobile compatibility
+    overlay.setAttribute('style', `
+      display: flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      z-index: 999999 !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      align-items: center !important;
+      justify-content: center !important;
+      backdrop-filter: blur(8px) !important;
+      background: rgba(0, 0, 0, 0.8) !important;
+    `);
     
     // Force a reflow to ensure styles are applied
     overlay.offsetHeight;
