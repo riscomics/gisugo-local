@@ -2322,18 +2322,16 @@ function updateLocationExtrasForCityChange() {
 
 function showJobPostedOverlay(formData) {
   const overlay = document.getElementById('jobPostedOverlay');
-  const locationText = document.getElementById('jobPostedLocation');
-  
-  // Update location text
-  locationText.textContent = `Your job is now live and visible to workers in ${formData.city}.`;
-  
-  // Show overlay
+  if (!overlay) return;
   overlay.style.display = 'flex';
-  setTimeout(() => {
-    overlay.classList.add('show');
-  }, 10);
-  
-  // Initialize overlay events
+  overlay.classList.add('show');
+
+  // Force scroll to top for overlay and modal (fixes mobile viewport issue)
+  overlay.scrollTop = 0;
+  const modal = overlay.querySelector('.job-posted-modal');
+  if (modal) modal.scrollTop = 0;
+
+  // ...existing code for populating overlay content and setting up events...
   initializeJobPostedOverlayEvents(formData);
 }
 
