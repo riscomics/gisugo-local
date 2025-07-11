@@ -2323,16 +2323,41 @@ function updateLocationExtrasForCityChange() {
 function showJobPostedOverlay(formData) {
   const overlay = document.getElementById('jobPostedOverlay');
   if (!overlay) return;
-  overlay.style.display = 'flex';
+
+  // Prevent background scroll
+  document.body.style.overflow = 'hidden';
+
+  // Scroll window to top before showing overlay
+  window.scrollTo(0, 0);
+
+  // Show overlay
+  overlay.style.display = 'block';
   overlay.classList.add('show');
 
-  // Force scroll to top for overlay and modal (fixes mobile viewport issue)
+  // Force scroll to top for overlay and modal (fix stubborn mobile browsers)
   overlay.scrollTop = 0;
   const modal = overlay.querySelector('.job-posted-modal');
   if (modal) modal.scrollTop = 0;
 
+  // Repeat after a short delay to defeat browser quirks
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+    overlay.scrollTop = 0;
+    if (modal) modal.scrollTop = 0;
+  }, 50);
+
   // ...existing code for populating overlay content and setting up events...
   initializeJobPostedOverlayEvents(formData);
+}
+
+// Patch closeJobPostedOverlay to restore body scroll
+function closeJobPostedOverlay() {
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+    overlay.classList.remove('show');
+  }
+  document.body.style.overflow = '';
 }
 
 function initializeJobPostedOverlayEvents(formData) {
@@ -2377,16 +2402,6 @@ function initializeJobPostedOverlayEvents(formData) {
       window.location.href = `${formData.category}.html`;
     }
   });
-}
-
-function closeJobPostedOverlay() {
-  const overlay = document.getElementById('jobPostedOverlay');
-  
-  // Remove both class and style display
-  overlay.classList.remove('show');
-  overlay.style.display = 'none';
-  
-  console.log('🔄 Job posted overlay closed');
 }
 
 // ========================== URL PARAMETER HANDLING FOR EDIT/RELIST MODES ==========================

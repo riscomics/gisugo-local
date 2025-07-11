@@ -2727,38 +2727,32 @@ body::-webkit-scrollbar {
 /* Main Mobile Breakpoint (600px and below) */
 @media (max-width: 600px) {
   .job-posted-overlay {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
-    padding-top: clamp(12px, 4vw, 32px) !important;
-    padding-bottom: clamp(12px, 4vw, 32px) !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    position: fixed !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
-    position: fixed !important;
+    min-height: 100vh !important;
+    height: auto !important;
     z-index: 999999 !important;
     background: rgba(0,0,0,0.8);
     overflow-y: auto !important;
     box-sizing: border-box;
+    display: block !important;
+    padding: 0 !important;
   }
   .job-posted-modal {
-    width: min(96vw, 420px);
-    max-width: 98vw;
-    margin: 0;
-    padding: clamp(14px, 4vw, 28px) clamp(8px, 4vw, 24px);
+    position: relative;
+    margin: clamp(12px, 4vw, 32px) auto;
+    width: 96vw;
+    max-width: 420px;
+    max-height: none;
+    overflow: visible;
     box-sizing: border-box;
     background: #363f4f;
     border-radius: 12px;
     border: 2px solid #10b981;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    max-height: none;
-    overflow-y: visible;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    display: block;
     scrollbar-width: none;
   }
   .job-posted-modal::-webkit-scrollbar {
