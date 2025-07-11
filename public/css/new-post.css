@@ -1,3 +1,12 @@
+* {
+  box-sizing: border-box !important;
+}
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
 html {
   overflow-y: auto;
   height: auto;
@@ -2605,7 +2614,7 @@ body::-webkit-scrollbar {
   }
 }
 
-/* === Job Posted Confirmation Overlay (Redesigned, Responsive) === */
+/* === Job Posted Confirmation Overlay (Redesigned, Centered, Dark) === */
 .job-posted-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
@@ -2614,37 +2623,41 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
   transition: opacity 0.3s, visibility 0.3s;
+  /* border: 2px solid red !important; */
+  overflow-x: hidden !important;
 }
 .job-posted-overlay.show {
   opacity: 1;
   visibility: visible;
 }
 .job-posted-modal {
-  background: var(--card-background, #D9D9D9);
+  background: var(--primary-color, #363f4f);
   border-radius: 18px;
   border: 2.5px solid var(--accent-color, rgb(149,149,328));
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  width: 100%;
-  max-width: 370px;
-  margin: 0 auto;
+  max-width: 500px !important;
+  width: 95vw !important;
+  margin: 0 !important;
   padding: 2.2rem 1.2rem 1.2rem 1.2rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   font-family: var(--font-family, Arial, sans-serif);
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
+  /* border: 2px solid lime !important; */
+  /* outline: 2px dashed orange !important; */
 }
 .job-posted-modal::-webkit-scrollbar { display: none; }
 
 .job-posted-title {
   font-size: 1.7rem;
   font-weight: 800;
-  color: var(--primary-color, #363f4f);
+  color: #fff;
   text-align: center;
   margin-bottom: 0.7rem;
   letter-spacing: 0.01em;
@@ -2666,7 +2679,7 @@ body::-webkit-scrollbar {
 .job-posted-section-title {
   font-size: 1.02rem;
   font-weight: 700;
-  color: var(--primary-color, #363f4f);
+  color: var(--secondary-color, #e6d6ae);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -2674,7 +2687,7 @@ body::-webkit-scrollbar {
 }
 .job-posted-section-text {
   font-size: 0.98rem;
-  color: #363f4f;
+  color: #e2e8f0;
   line-height: 1.5;
   margin-left: 1.2em;
 }
@@ -2718,7 +2731,8 @@ body::-webkit-scrollbar {
 /* Responsive Breakpoints */
 @media (max-width: 600px) {
   .job-posted-modal {
-    max-width: 98vw;
+    max-width: 99vw;
+    width: 99vw;
     padding: 1.5rem 0.7rem 0.7rem 0.7rem;
   }
   .job-posted-title { font-size: 1.25rem; }
@@ -2730,6 +2744,7 @@ body::-webkit-scrollbar {
 @media (max-width: 400px) {
   .job-posted-modal {
     max-width: 99vw;
+    width: 99vw;
     padding: 1.1rem 0.3rem 0.3rem 0.3rem;
   }
   .job-posted-title { font-size: 1.08rem; }
@@ -2739,6 +2754,7 @@ body::-webkit-scrollbar {
 @media (max-width: 375px) {
   .job-posted-modal {
     max-width: 100vw;
+    width: 100vw;
     padding: 0.7rem 0.1rem 0.1rem 0.1rem;
   }
   .job-posted-title { font-size: 0.98rem; }
@@ -2748,6 +2764,7 @@ body::-webkit-scrollbar {
 @media (max-width: 337px) {
   .job-posted-modal {
     max-width: 100vw;
+    width: 100vw;
     padding: 0.4rem 0.05rem 0.05rem 0.05rem;
   }
   .job-posted-title { font-size: 0.89rem; }
@@ -2757,6 +2774,7 @@ body::-webkit-scrollbar {
 @media (max-width: 320px) {
   .job-posted-modal {
     max-width: 100vw;
+    width: 100vw;
     padding: 0.2rem 0.01rem 0.01rem 0.01rem;
   }
   .job-posted-title { font-size: 0.82rem; }
