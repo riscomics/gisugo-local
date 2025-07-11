@@ -2660,3 +2660,32 @@ body::-webkit-scrollbar {
   border-left: 0 !important;
   outline: 2px solid lime !important;
 }
+
+/* --- Job Posted Overlay (restored original) --- */
+.job-posted-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.45);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.job-posted-modal {
+  background: #434a58;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+  padding: 32px 24px;
+  max-width: 420px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
