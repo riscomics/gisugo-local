@@ -3289,3 +3289,110 @@ function initializeJobRelistedOverlayEvents(formData) {
     }
   });
 }
+
+// --- JOB DATA VALIDATION AND CLEANUP (ISOLATED TO NEW-POST) ---
+function isValidJob(job) {
+  return (
+    job &&
+    typeof job.jobNumber === 'number' &&
+    job.jobNumber > 0 &&
+    typeof job.jobId === 'string' &&
+    job.jobId.length > 0 &&
+    typeof job.title === 'string' &&
+    job.title.length > 0 &&
+    typeof job.category === 'string' &&
+    job.category.length > 0
+    // Add more required fields as needed
+  );
+}
+
+function cleanUpJobsData() {
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  let cleaned = false;
+  Object.keys(allJobs).forEach(category => {
+    const before = allJobs[category].length;
+    allJobs[category] = allJobs[category].filter(isValidJob);
+    if (allJobs[category].length !== before) cleaned = true;
+  });
+  if (cleaned) {
+    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+    alert('Job data cleaned! Invalid jobs removed.');
+  } else {
+    alert('No invalid jobs found. Data is clean.');
+  }
+}
+
+// Patch getNextJobNumber to skip invalid jobs
+function getNextJobNumber(category) {
+  const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  const categoryJobs = (jobData[category] || []).filter(isValidJob);
+  let maxJobNumber = 0;
+  categoryJobs.forEach(job => {
+    const jobNumber = parseInt(job.jobNumber, 10);
+    if (Number.isInteger(jobNumber) && jobNumber > 0) {
+      if (jobNumber > maxJobNumber) {
+        maxJobNumber = jobNumber;
+      }
+    }
+  });
+  return maxJobNumber + 1;
+}
+
+// Patch storeJobData to validate before saving
+function storeJobData(formData, jobNumber) {
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  if (!allJobs[formData.category]) {
+    allJobs[formData.category] = [];
+  }
+  const jobObject = {
+    jobId: `${formData.category}_job_2025_${jobNumber}`,
+    jobNumber: jobNumber,
+    posterId: 'user_peter_ang_001',
+    posterName: 'Peter J. Ang',
+    title: formData.jobTitle,
+    description: formData.description,
+    category: formData.category,
+    thumbnail: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    jobDate: formData.jobDate,
+    dateNeeded: formData.jobDate,
+    startTime: formData.startTime,
+    endTime: formData.endTime,
+    priceOffer: formData.paymentAmount,
+    paymentAmount: formData.paymentAmount,
+    paymentType: formData.paymentType,
+    region: formData.region,
+    city: formData.city,
+    extras: formData.extras || [],
+    status: 'active',
+    applicationCount: 0,
+    applicationIds: [],
+    datePosted: new Date().toISOString(),
+    jobPageUrl: `${formData.category}.html`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  if (isValidJob(jobObject)) {
+    allJobs[formData.category].push(jobObject);
+    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+  } else {
+    alert('Error: Attempted to save invalid job data. Job not saved.');
+  }
+}
+
+// --- DEBUG PANEL BUTTON FOR CLEANUP ---
+window.addEventListener('DOMContentLoaded', function() {
+  const debugPanel = document.getElementById('debugPanel');
+  if (debugPanel) {
+    const cleanBtn = document.createElement('button');
+    cleanBtn.textContent = 'CLEANUP JOB DATA';
+    cleanBtn.style.background = '#f87171';
+    cleanBtn.style.color = 'white';
+    cleanBtn.style.border = 'none';
+    cleanBtn.style.padding = '8px 16px';
+    cleanBtn.style.borderRadius = '4px';
+    cleanBtn.style.cursor = 'pointer';
+    cleanBtn.style.marginLeft = '10px';
+    cleanBtn.onclick = cleanUpJobsData;
+    debugPanel.querySelector('div').appendChild(cleanBtn);
+  }
+});
