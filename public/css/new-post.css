@@ -2728,12 +2728,9 @@ body::-webkit-scrollbar {
 @media (max-width: 600px) {
   .job-posted-overlay {
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
-    padding-top: clamp(12px, 4vw, 32px) !important;
-    padding-bottom: clamp(12px, 4vw, 32px) !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding: 0 !important;
     top: 0 !important;
     left: 0 !important;
     width: 100vw !important;
@@ -2741,7 +2738,7 @@ body::-webkit-scrollbar {
     position: fixed !important;
     z-index: 999999 !important;
     background: rgba(0,0,0,0.8);
-    overflow-y: auto;
+    overflow-y: hidden !important;
     box-sizing: border-box;
   }
   .job-posted-modal {
@@ -2754,38 +2751,35 @@ body::-webkit-scrollbar {
     border-radius: 12px;
     border: 2px solid #10b981;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    /* Remove modal scrolling and max-height */
-    overflow-y: visible;
-    max-height: none;
+    max-height: 100vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    scrollbar-width: none;
   }
-
+  .job-posted-modal::-webkit-scrollbar {
+    display: none;
+  }
   .job-posted-title {
     font-size: clamp(1.2rem, 5vw, 1.6rem);
     margin-bottom: clamp(10px, 2vw, 18px);
   }
-
   .job-posted-subtitle {
     font-size: clamp(1rem, 4vw, 1.2rem);
     margin-bottom: clamp(10px, 2vw, 18px);
   }
-
   .job-posted-section-title {
     font-size: clamp(0.95rem, 3vw, 1.1rem);
   }
-
   .job-posted-section-text {
     font-size: clamp(0.85rem, 3vw, 1rem);
     margin-left: clamp(10px, 3vw, 20px);
   }
-
   .job-posted-actions {
     flex-direction: column;
     gap: clamp(8px, 2vw, 14px);
   }
-
   .job-posted-btn {
     padding: clamp(10px, 2vw, 16px) clamp(12px, 4vw, 20px);
     font-size: clamp(0.95rem, 3vw, 1.1rem);
@@ -2793,7 +2787,6 @@ body::-webkit-scrollbar {
     width: 100%;
     box-sizing: border-box;
   }
-
   .job-posted-overlay:not(.show) {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -2981,11 +2974,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 600px) and (min-width: 401px) {
   .job-posted-overlay {
-    display: flex !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
-    padding-top: clamp(12px, 4vw, 32px) !important;
-    padding-bottom: clamp(12px, 4vw, 32px) !important;
+    align-items: center !important;
+    padding: 0 !important;
+    overflow-y: hidden !important;
   }
   .job-posted-modal {
     width: calc(100vw - 32px);
@@ -2997,16 +2988,15 @@ body::-webkit-scrollbar {
     border-radius: 12px;
     border: 2px solid #10b981;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    overflow-y: visible;
-    max-height: none;
+    max-height: 100vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    /* Hide scrollbar for all browsers */
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
   }
   .job-posted-modal::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
   }
   .job-posted-title {
     font-size: clamp(1.2rem, 4vw, 1.6rem);
@@ -3038,9 +3028,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 400px) and (min-width: 321px) {
   .job-posted-overlay {
-    align-items: flex-start !important;
-    padding-top: clamp(10px, 4vw, 24px) !important;
-    padding-bottom: clamp(10px, 4vw, 24px) !important;
+    align-items: center !important;
+    padding: 0 !important;
+    overflow-y: hidden !important;
   }
   .job-posted-modal {
     width: calc(100vw - 12px);
@@ -3052,8 +3042,8 @@ body::-webkit-scrollbar {
     border-radius: 10px;
     border: 2px solid #10b981;
     box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    overflow-y: visible;
-    max-height: none;
+    max-height: 100vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
