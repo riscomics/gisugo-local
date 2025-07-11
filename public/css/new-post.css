@@ -2724,9 +2724,10 @@ body::-webkit-scrollbar {
 
 @media (max-width: 600px) {
   .job-posted-overlay {
-    align-items: center;
-    justify-content: center;
-    padding: 0;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -2741,13 +2742,19 @@ body::-webkit-scrollbar {
   .job-posted-modal {
     width: clamp(220px, 90vw, 340px);
     min-width: 200px;
-    margin: auto;
+    margin: 0 auto !important;
     padding: 16px 8px;
     max-width: none;
     max-height: 75vh;
-    overflow-y: auto;
+    overflow-y: scroll;
+    box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+  .job-posted-modal::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
   }
   .job-posted-title {
     font-size: 1.6rem;
