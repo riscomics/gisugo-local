@@ -2977,18 +2977,15 @@ body::-webkit-scrollbar {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: 100vh !important;
-    min-height: 100vh !important;
     padding: 0 !important;
     margin: 0 !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
   }
   .job-posted-modal {
-    margin: 0 auto !important;
-    align-self: center !important;
+    margin: 0 auto;
     max-height: 85vh !important;
-    /* Remove any vertical margin or padding that could push it down */
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    overflow-y: auto !important;
   }
 }
 @media (max-width: 400px) {

@@ -1784,53 +1784,30 @@ function initializePreviewOverlayEvents() {
 
 async function createJobPostWithData(formData) {
   console.log('🚀 createJobPostWithData function called with data:', formData);
-
-  // Failsafe: Ensure gisugoJobs[category] is always an array
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  if (!Array.isArray(allJobs[formData.category])) {
-    console.warn(`Category ${formData.category} was not an array. Resetting to empty array.`);
-    allJobs[formData.category] = [];
-    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-  }
-  console.log('Current jobs for category:', formData.category, allJobs[formData.category]);
-
-  // Always assign jobNumber before any use
-  let jobNumber = getNextJobNumber(formData.category);
-  console.log('Generated jobNumber:', jobNumber);
-  if (typeof jobNumber !== 'number' || isNaN(jobNumber)) {
-    showValidationOverlay('Error: Could not generate a valid job number. Please refresh and try again.');
-    return;
-  }
-  let jobId = `${formData.category}_job_2025_${jobNumber}`;
-  console.log('Generated jobId:', jobId);
-  if (!jobId) {
-    showValidationOverlay('Error: Could not generate a valid job ID. Please refresh and try again.');
-    return;
-  }
-
+  
   const postBtn = document.getElementById('previewPostBtn');
   const previewOverlay = document.getElementById('previewOverlay');
-
+  
   console.log('🔍 Button and overlay elements:', {
     postBtn: !!postBtn,
     previewOverlay: !!previewOverlay,
     postBtnText: postBtn?.textContent,
     postBtnDisabled: postBtn?.disabled
   });
-
+  
   // Determine operation mode from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const editJobId = urlParams.get('edit');
   const relistJobId = urlParams.get('relist');
   const mode = editJobId ? 'edit' : (relistJobId ? 'relist' : 'new');
-
+  
   console.log('🎯 Operation mode determined:', {
     mode,
     editJobId,
     relistJobId,
     urlParams: Array.from(urlParams.entries())
   });
-
+  
   try {
     // Show loading state with mode-specific text
     if (postBtn) {
@@ -1840,6 +1817,7 @@ async function createJobPostWithData(formData) {
       postBtn.disabled = true;
     }
     
+    let jobNumber;
     let jobId;
     
     if (mode === 'edit') {
@@ -2088,16 +2066,27 @@ async function createJobTemplate(formData, jobNumber) {
 }
 
 async function addJobPreviewCard(formData, jobNumber) {
+  // Get existing preview cards from localStorage
   const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  
+  // Initialize category array if it doesn't exist
   if (!previewCards[formData.category]) {
     previewCards[formData.category] = [];
   }
+  
+  // Format date for display
   const date = new Date(formData.jobDate);
   const options = { month: 'short', day: 'numeric' };
   const formattedDate = date.toLocaleDateString('en-US', options);
-  const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
+  
+  // Format time for display
+      const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
+  
+  // Get first two extras for preview
   const extra1 = formData.extras && formData.extras[0] ? formData.extras[0] : '';
   const extra2 = formData.extras && formData.extras[1] ? formData.extras[1] : '';
+  
+  // Create preview card object
   const previewCard = {
     jobNumber: jobNumber,
     title: formData.jobTitle,
@@ -2113,9 +2102,11 @@ async function addJobPreviewCard(formData, jobNumber) {
     city: formData.city,
     createdAt: new Date().toISOString()
   };
+  
+  // Add to category array (insert at beginning for newest first)
   previewCards[formData.category].unshift(previewCard);
-  // Keep only the latest 20 preview cards per category
-  previewCards[formData.category] = previewCards[formData.category].slice(0, 20);
+  
+  // Save back to localStorage
   localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
 }
 
@@ -2287,21 +2278,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Handle URL parameters for EDIT and RELIST modes
   handleUrlParameters();
-  
-  const overlay = document.getElementById('jobPostedOverlay');
-  if (overlay) {
-    overlay.style.display = 'none';
-    overlay.classList.remove('show');
-    overlay.dataset.justPosted = '';
-  }
-});
-
-window.addEventListener('orientationchange', function() {
-  const overlay = document.getElementById('jobPostedOverlay');
-  if (overlay && overlay.dataset.justPosted !== 'true') {
-    overlay.style.display = 'none';
-    overlay.classList.remove('show');
-  }
 });
 
 // Call updateCityMenuLabelFontSize on window resize
@@ -2350,14 +2326,13 @@ function showJobPostedOverlay(formData) {
 
   // Prevent background scroll
   document.body.style.overflow = 'hidden';
-
+  
   // Scroll window to top before showing overlay
   window.scrollTo(0, 0);
-
+  
   // Show overlay
   overlay.style.display = 'block';
-  overlay.classList.add('show');
-  overlay.dataset.justPosted = 'true';
+    overlay.classList.add('show');
 
   // Force scroll to top for overlay and modal (fix stubborn mobile browsers)
   overlay.scrollTop = 0;
@@ -2370,7 +2345,7 @@ function showJobPostedOverlay(formData) {
     overlay.scrollTop = 0;
     if (modal) modal.scrollTop = 0;
   }, 50);
-
+  
   // ...existing code for populating overlay content and setting up events...
   initializeJobPostedOverlayEvents(formData);
 }
@@ -2381,7 +2356,6 @@ function closeJobPostedOverlay() {
   if (overlay) {
     overlay.style.display = 'none';
     overlay.classList.remove('show');
-    overlay.dataset.justPosted = '';
   }
   document.body.style.overflow = '';
 }
@@ -3347,24 +3321,40 @@ function isValidJob(job) {
 
 function cleanUpJobsData() {
   console.log('🧹 Starting job data cleanup...');
+  
   const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
   let cleaned = false;
   let totalJobs = 0;
   let removedJobs = 0;
+  
   Object.keys(allJobs).forEach(category => {
-    if (!Array.isArray(allJobs[category])) allJobs[category] = [];
     const before = allJobs[category].length;
     totalJobs += before;
+    
+    // More lenient filtering - only remove completely corrupted entries
     allJobs[category] = allJobs[category].filter(job => {
-      if (!job || typeof job !== 'object') { removedJobs++; return false; }
-      if ((!job.title || job.title.length === 0) && (!job.jobId || job.jobId.length === 0)) { removedJobs++; return false; }
+      // Keep job if it has basic structure
+      if (!job || typeof job !== 'object') {
+        removedJobs++;
+        return false;
+      }
+      
+      // Keep job if it has at least a title or jobId
+      if ((!job.title || job.title.length === 0) && 
+          (!job.jobId || job.jobId.length === 0)) {
+        removedJobs++;
+        return false;
+      }
+      
       return true;
     });
-    if (!Array.isArray(allJobs[category])) allJobs[category] = [];
-    if (allJobs[category].length !== before) { cleaned = true; console.log(`🧹 Cleaned ${category}: ${before} → ${allJobs[category].length} jobs`); }
+    
+    if (allJobs[category].length !== before) {
+      cleaned = true;
+      console.log(`🧹 Cleaned ${category}: ${before} → ${allJobs[category].length} jobs`);
+    }
   });
-  // Ensure all categories are arrays
-  Object.keys(allJobs).forEach(category => { if (!Array.isArray(allJobs[category])) allJobs[category] = []; });
+  
   if (cleaned) {
     localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
     console.log(`🧹 Cleanup complete: ${removedJobs} corrupted jobs removed from ${totalJobs} total`);
@@ -3375,10 +3365,9 @@ function cleanUpJobsData() {
   }
 }
 
-// PATCH getNextJobNumber to always work with arrays
+// Patch getNextJobNumber to skip invalid jobs
 function getNextJobNumber(category) {
   const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  if (!Array.isArray(jobData[category])) jobData[category] = [];
   const categoryJobs = (jobData[category] || []).filter(isValidJob);
   let maxJobNumber = 0;
   categoryJobs.forEach(job => {
@@ -3392,10 +3381,12 @@ function getNextJobNumber(category) {
   return maxJobNumber + 1;
 }
 
-// PATCH storeJobData to always work with arrays
+// Patch storeJobData to validate before saving
 function storeJobData(formData, jobNumber) {
   const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  if (!Array.isArray(allJobs[formData.category])) allJobs[formData.category] = [];
+  if (!allJobs[formData.category]) {
+    allJobs[formData.category] = [];
+  }
   const jobObject = {
     jobId: `${formData.category}_job_2025_${jobNumber}`,
     jobNumber: jobNumber,
@@ -3903,78 +3894,3 @@ function recoverJobsData() {
     alert('No recoverable job data found. Check console for details.');
   }
 }
-
-function forceHideJobPostedOverlay() {
-  const overlay = document.getElementById('jobPostedOverlay');
-  if (overlay && overlay.dataset.justPosted !== 'true') {
-    overlay.style.display = 'none';
-    overlay.classList.remove('show');
-  }
-}
-
-window.addEventListener('orientationchange', forceHideJobPostedOverlay);
-window.addEventListener('resize', forceHideJobPostedOverlay);
-window.addEventListener('pageshow', forceHideJobPostedOverlay);
-document.addEventListener('visibilitychange', function() {
-  if (!document.hidden) forceHideJobPostedOverlay();
-});
-
-// ... existing code ...
-function cleanUpOrphanedPreviewCards() {
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  let removed = 0;
-  Object.keys(previewCards).forEach(category => {
-    if (!Array.isArray(previewCards[category])) return;
-    previewCards[category] = previewCards[category].filter(card => {
-      const jobs = allJobs[category] || [];
-      // Match by jobNumber (number or string)
-      return jobs.some(job => String(job.jobNumber) === String(card.jobNumber));
-    });
-    removed += previewCards[category].length;
-  });
-  localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-  alert('Orphaned preview cards cleaned up!');
-}
-window.addEventListener('DOMContentLoaded', function() {
-  const debugPanel = document.getElementById('debugPanel');
-  if (debugPanel) {
-    const cleanOrphansBtn = document.createElement('button');
-    cleanOrphansBtn.textContent = 'CLEANUP ORPHANED PREVIEW CARDS';
-    cleanOrphansBtn.style.background = '#fbbf24';
-    cleanOrphansBtn.style.color = 'black';
-    cleanOrphansBtn.style.border = 'none';
-    cleanOrphansBtn.style.padding = '8px 16px';
-    cleanOrphansBtn.style.borderRadius = '4px';
-    cleanOrphansBtn.style.cursor = 'pointer';
-    cleanOrphansBtn.style.marginLeft = '10px';
-    cleanOrphansBtn.onclick = cleanUpOrphanedPreviewCards;
-    debugPanel.querySelector('div').appendChild(cleanOrphansBtn);
-  }
-});
-// ... existing code ...
-
-// ... existing code ...
-function nukeAllLocalJobData() {
-  localStorage.removeItem('gisugoJobs');
-  localStorage.removeItem('jobPreviewCards');
-  // Optionally clear other job-related keys if needed
-  alert('All local job data has been cleared!');
-}
-window.addEventListener('DOMContentLoaded', function() {
-  const debugPanel = document.getElementById('debugPanel');
-  if (debugPanel) {
-    const nukeBtn = document.createElement('button');
-    nukeBtn.textContent = 'NUKE ALL LOCAL DATA';
-    nukeBtn.style.background = '#dc2626';
-    nukeBtn.style.color = 'white';
-    nukeBtn.style.border = 'none';
-    nukeBtn.style.padding = '8px 16px';
-    nukeBtn.style.borderRadius = '4px';
-    nukeBtn.style.cursor = 'pointer';
-    nukeBtn.style.marginLeft = '10px';
-    nukeBtn.onclick = nukeAllLocalJobData;
-    debugPanel.querySelector('div').appendChild(nukeBtn);
-  }
-});
-// ... existing code ...
