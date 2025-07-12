@@ -1784,30 +1784,39 @@ function initializePreviewOverlayEvents() {
 
 async function createJobPostWithData(formData) {
   console.log('🚀 createJobPostWithData function called with data:', formData);
-  
+
+  // Failsafe: Ensure gisugoJobs[category] is always an array
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  if (!Array.isArray(allJobs[formData.category])) {
+    console.warn(`Category ${formData.category} was not an array. Resetting to empty array.`);
+    allJobs[formData.category] = [];
+    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+  }
+  console.log('Current jobs for category:', formData.category, allJobs[formData.category]);
+
   const postBtn = document.getElementById('previewPostBtn');
   const previewOverlay = document.getElementById('previewOverlay');
-  
+
   console.log('🔍 Button and overlay elements:', {
     postBtn: !!postBtn,
     previewOverlay: !!previewOverlay,
     postBtnText: postBtn?.textContent,
     postBtnDisabled: postBtn?.disabled
   });
-  
+
   // Determine operation mode from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const editJobId = urlParams.get('edit');
   const relistJobId = urlParams.get('relist');
   const mode = editJobId ? 'edit' : (relistJobId ? 'relist' : 'new');
-  
+
   console.log('🎯 Operation mode determined:', {
     mode,
     editJobId,
     relistJobId,
     urlParams: Array.from(urlParams.entries())
   });
-  
+
   try {
     // Show loading state with mode-specific text
     if (postBtn) {
