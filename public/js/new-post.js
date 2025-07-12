@@ -3444,12 +3444,36 @@ window.addEventListener('DOMContentLoaded', function() {
 function recoverJobsData() {
   console.log('🔄 Starting job data recovery...');
   
-  // Get all localStorage keys that might contain job data
+  // First, let's see what's currently in localStorage
+  console.log('📊 Current localStorage contents:');
   const allKeys = Object.keys(localStorage);
+  console.log('All localStorage keys:', allKeys);
+  
+  // Show current gisugoJobs data
+  const currentJobs = localStorage.getItem('gisugoJobs');
+  console.log('Current gisugoJobs data:', currentJobs);
+  
+  if (currentJobs) {
+    try {
+      const parsed = JSON.parse(currentJobs);
+      console.log('Parsed gisugoJobs:', parsed);
+      console.log('Categories found:', Object.keys(parsed));
+      Object.keys(parsed).forEach(category => {
+        console.log(`${category}: ${parsed[category].length} jobs`);
+      });
+    } catch (e) {
+      console.log('Error parsing gisugoJobs:', e);
+    }
+  }
+  
+  // Look for any other potential job data
   const jobKeys = allKeys.filter(key => 
     key.includes('job') || 
     key.includes('gisugo') || 
-    key.includes('Jobs')
+    key.includes('Jobs') ||
+    key.includes('Job') ||
+    key.includes('post') ||
+    key.includes('listing')
   );
   
   console.log('🔍 Found potential job data keys:', jobKeys);
@@ -3459,42 +3483,55 @@ function recoverJobsData() {
   
   jobKeys.forEach(key => {
     try {
-      const data = JSON.parse(localStorage.getItem(key));
-      if (data && typeof data === 'object') {
-        // Check if this looks like job data
-        if (Array.isArray(data)) {
-          // Array of jobs
-          const validJobs = data.filter(job => 
-            job && typeof job === 'object' && 
-            (job.title || job.jobId || job.category)
-          );
-          if (validJobs.length > 0) {
-            recoveredJobs[key] = validJobs;
-            totalRecovered += validJobs.length;
-            console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}`);
-          }
-        } else if (typeof data === 'object' && !Array.isArray(data)) {
-          // Object with categories
-          Object.keys(data).forEach(category => {
-            if (Array.isArray(data[category])) {
-              const validJobs = data[category].filter(job => 
-                job && typeof job === 'object' && 
-                (job.title || job.jobId || job.category)
-              );
-              if (validJobs.length > 0) {
-                if (!recoveredJobs[category]) recoveredJobs[category] = [];
-                recoveredJobs[category].push(...validJobs);
-                totalRecovered += validJobs.length;
-                console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}.${category}`);
-              }
+      const data = localStorage.getItem(key);
+      console.log(`🔍 Checking key "${key}":`, data ? data.substring(0, 200) + '...' : 'null');
+      
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed && typeof parsed === 'object') {
+          // Check if this looks like job data
+          if (Array.isArray(parsed)) {
+            // Array of jobs
+            console.log(`📋 Found array in ${key} with ${parsed.length} items`);
+            const validJobs = parsed.filter(job => 
+              job && typeof job === 'object' && 
+              (job.title || job.jobId || job.category)
+            );
+            if (validJobs.length > 0) {
+              recoveredJobs[key] = validJobs;
+              totalRecovered += validJobs.length;
+              console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}`);
             }
-          });
+          } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+            // Object with categories
+            console.log(`📋 Found object in ${key} with keys:`, Object.keys(parsed));
+            Object.keys(parsed).forEach(category => {
+              if (Array.isArray(parsed[category])) {
+                console.log(`📋 Category ${category} has ${parsed[category].length} items`);
+                const validJobs = parsed[category].filter(job => 
+                  job && typeof job === 'object' && 
+                  (job.title || job.jobId || job.category)
+                );
+                if (validJobs.length > 0) {
+                  if (!recoveredJobs[category]) recoveredJobs[category] = [];
+                  recoveredJobs[category].push(...validJobs);
+                  totalRecovered += validJobs.length;
+                  console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}.${category}`);
+                }
+              }
+            });
+          }
         }
       }
     } catch (error) {
       console.log(`⚠️ Could not parse ${key}:`, error.message);
     }
   });
+  
+  console.log('📊 Recovery summary:');
+  console.log('- Total keys checked:', jobKeys.length);
+  console.log('- Jobs recovered:', totalRecovered);
+  console.log('- Recovered data structure:', recoveredJobs);
   
   if (totalRecovered > 0) {
     // Merge with existing data
@@ -3506,10 +3543,10 @@ function recoverJobsData() {
     
     localStorage.setItem('gisugoJobs', JSON.stringify(existingJobs));
     console.log(`🔄 Recovery complete: ${totalRecovered} jobs restored`);
-    alert(`Job data recovered! ${totalRecovered} jobs restored.`);
+    alert(`Job data recovered! ${totalRecovered} jobs restored. Check console for details.`);
   } else {
     console.log('🔄 No recoverable job data found');
-    alert('No recoverable job data found.');
+    alert('No recoverable job data found. Check console for details.');
   }
 }
 
@@ -3540,5 +3577,144 @@ window.addEventListener('DOMContentLoaded', function() {
     recoverBtn.style.marginLeft = '10px';
     recoverBtn.onclick = recoverJobsData;
     debugPanel.querySelector('div').appendChild(recoverBtn);
+  }
+});
+
+// --- MANUAL JOB DATA RESTORATION ---
+function restoreSampleJobs() {
+  console.log('🔧 Restoring sample job data...');
+  
+  const sampleJobs = {
+    "hakot": [
+      {
+        "jobId": "hakot_job_2025_1",
+        "jobNumber": 1,
+        "posterId": "user_peter_ang_001",
+        "posterName": "Peter J. Ang",
+        "title": "Need help moving furniture",
+        "description": "Moving from apartment to new house. Need help with heavy furniture.",
+        "category": "hakot",
+        "thumbnail": "public/mock/mock-hakot-post1.jpg",
+        "jobDate": "2025-01-15",
+        "dateNeeded": "2025-01-15",
+        "startTime": "09:00",
+        "endTime": "17:00",
+        "priceOffer": "1500",
+        "paymentAmount": "1500",
+        "paymentType": "offer",
+        "region": "Metro Manila",
+        "city": "Quezon City",
+        "extras": ["Heavy lifting", "Truck needed"],
+        "status": "active",
+        "applicationCount": 0,
+        "applicationIds": [],
+        "datePosted": "2025-01-10T08:00:00.000Z",
+        "jobPageUrl": "hakot.html",
+        "createdAt": "2025-01-10T08:00:00.000Z",
+        "updatedAt": "2025-01-10T08:00:00.000Z"
+      },
+      {
+        "jobId": "hakot_job_2025_2",
+        "jobNumber": 2,
+        "posterId": "user_peter_ang_001",
+        "posterName": "Peter J. Ang",
+        "title": "Office equipment transport",
+        "description": "Moving office equipment to new location. Need careful handling.",
+        "category": "hakot",
+        "thumbnail": "public/mock/mock-hakot-post2.jpg",
+        "jobDate": "2025-01-20",
+        "dateNeeded": "2025-01-20",
+        "startTime": "10:00",
+        "endTime": "16:00",
+        "priceOffer": "2000",
+        "paymentAmount": "2000",
+        "paymentType": "offer",
+        "region": "Metro Manila",
+        "city": "Makati",
+        "extras": ["Careful handling", "Insurance"],
+        "status": "active",
+        "applicationCount": 0,
+        "applicationIds": [],
+        "datePosted": "2025-01-12T09:00:00.000Z",
+        "jobPageUrl": "hakot.html",
+        "createdAt": "2025-01-12T09:00:00.000Z",
+        "updatedAt": "2025-01-12T09:00:00.000Z"
+      }
+    ],
+    "limpyo": [
+      {
+        "jobId": "limpyo_job_2025_1",
+        "jobNumber": 1,
+        "posterId": "user_peter_ang_001",
+        "posterName": "Peter J. Ang",
+        "title": "Deep cleaning needed",
+        "description": "Need thorough cleaning of 3-bedroom house. Includes kitchen and bathrooms.",
+        "category": "limpyo",
+        "thumbnail": "public/mock/mock-limpyo-post1.jpg",
+        "jobDate": "2025-01-18",
+        "dateNeeded": "2025-01-18",
+        "startTime": "08:00",
+        "endTime": "14:00",
+        "priceOffer": "1200",
+        "paymentAmount": "1200",
+        "paymentType": "offer",
+        "region": "Metro Manila",
+        "city": "Manila",
+        "extras": ["Deep cleaning", "Eco-friendly products"],
+        "status": "active",
+        "applicationCount": 0,
+        "applicationIds": [],
+        "datePosted": "2025-01-14T07:00:00.000Z",
+        "jobPageUrl": "limpyo.html",
+        "createdAt": "2025-01-14T07:00:00.000Z",
+        "updatedAt": "2025-01-14T07:00:00.000Z"
+      }
+    ]
+  };
+  
+  localStorage.setItem('gisugoJobs', JSON.stringify(sampleJobs));
+  console.log('🔧 Sample jobs restored:', sampleJobs);
+  alert('Sample job data restored! Check hakot and limpyo categories.');
+}
+
+// --- DEBUG PANEL BUTTON FOR CLEANUP ---
+window.addEventListener('DOMContentLoaded', function() {
+  const debugPanel = document.getElementById('debugPanel');
+  if (debugPanel) {
+    const cleanBtn = document.createElement('button');
+    cleanBtn.textContent = 'CLEANUP JOB DATA';
+    cleanBtn.style.background = '#f87171';
+    cleanBtn.style.color = 'white';
+    cleanBtn.style.border = 'none';
+    cleanBtn.style.padding = '8px 16px';
+    cleanBtn.style.borderRadius = '4px';
+    cleanBtn.style.cursor = 'pointer';
+    cleanBtn.style.marginLeft = '10px';
+    cleanBtn.onclick = cleanUpJobsData;
+    debugPanel.querySelector('div').appendChild(cleanBtn);
+    
+    const recoverBtn = document.createElement('button');
+    recoverBtn.textContent = 'RECOVER JOBS';
+    recoverBtn.style.background = '#10b981';
+    recoverBtn.style.color = 'white';
+    recoverBtn.style.border = 'none';
+    recoverBtn.style.padding = '8px 16px';
+    recoverBtn.style.borderRadius = '4px';
+    recoverBtn.style.cursor = 'pointer';
+    recoverBtn.style.marginLeft = '10px';
+    recoverBtn.onclick = recoverJobsData;
+    debugPanel.querySelector('div').appendChild(recoverBtn);
+    
+    const restoreBtn = document.createElement('button');
+    restoreBtn.textContent = 'RESTORE SAMPLES';
+    restoreBtn.style.background = '#3b82f6';
+    restoreBtn.style.color = 'white';
+    restoreBtn.style.border = 'none';
+    restoreBtn.style.padding = '8px 16px';
+    restoreBtn.style.borderRadius = '4px';
+    restoreBtn.style.cursor = 'pointer';
+    restoreBtn.style.marginLeft = '10px';
+    restoreBtn.onclick = restoreSampleJobs;
+    debugPanel.querySelector('div').appendChild(restoreBtn);
   }
 });
