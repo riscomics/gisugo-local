@@ -3911,3 +3911,18 @@ function recoverJobsData() {
     alert('No recoverable job data found. Check console for details.');
   }
 }
+
+function forceHideJobPostedOverlay() {
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay && overlay.dataset.justPosted !== 'true') {
+    overlay.style.display = 'none';
+    overlay.classList.remove('show');
+  }
+}
+
+window.addEventListener('orientationchange', forceHideJobPostedOverlay);
+window.addEventListener('resize', forceHideJobPostedOverlay);
+window.addEventListener('pageshow', forceHideJobPostedOverlay);
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) forceHideJobPostedOverlay();
+});
