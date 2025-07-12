@@ -3031,8 +3031,8 @@ body::-webkit-scrollbar {
 @media (max-width: 400px) and (min-width: 321px) {
   .job-posted-overlay {
     align-items: center !important;
-    padding-top: clamp(6px, 2vw, 12px) !important;
-    padding-bottom: clamp(6px, 2vw, 12px) !important;
+    justify-content: center !important;
+    padding: 0 !important;
     overflow-y: auto !important;
   }
   .job-posted-modal {
@@ -3091,8 +3091,8 @@ body::-webkit-scrollbar {
 @media (max-width: 320px) {
   .job-posted-overlay {
     align-items: center !important;
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    justify-content: center !important;
+    padding: 0 !important;
     overflow-y: auto !important;
   }
   .job-posted-modal {
