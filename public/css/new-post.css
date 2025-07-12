@@ -3038,7 +3038,7 @@ body::-webkit-scrollbar {
   .job-posted-modal {
     width: calc(100vw - 12px);
     max-width: 99vw;
-    margin: 0;
+    margin: 0 auto;
     padding: clamp(10px, 3vw, 18px) clamp(6px, 3vw, 14px);
     box-sizing: border-box;
     background: #363f4f;
@@ -3049,7 +3049,7 @@ body::-webkit-scrollbar {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
@@ -3098,7 +3098,7 @@ body::-webkit-scrollbar {
   .job-posted-modal {
     width: calc(100vw - 8px);
     max-width: 99vw;
-    margin: 0;
+    margin: 0 auto;
     padding: 12px 8px;
     box-sizing: border-box;
     background: #363f4f;
@@ -3109,7 +3109,7 @@ body::-webkit-scrollbar {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
