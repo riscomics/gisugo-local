@@ -3338,40 +3338,24 @@ function isValidJob(job) {
 
 function cleanUpJobsData() {
   console.log('🧹 Starting job data cleanup...');
-  
   const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
   let cleaned = false;
   let totalJobs = 0;
   let removedJobs = 0;
-  
   Object.keys(allJobs).forEach(category => {
+    if (!Array.isArray(allJobs[category])) allJobs[category] = [];
     const before = allJobs[category].length;
     totalJobs += before;
-    
-    // More lenient filtering - only remove completely corrupted entries
     allJobs[category] = allJobs[category].filter(job => {
-      // Keep job if it has basic structure
-      if (!job || typeof job !== 'object') {
-        removedJobs++;
-        return false;
-      }
-      
-      // Keep job if it has at least a title or jobId
-      if ((!job.title || job.title.length === 0) && 
-          (!job.jobId || job.jobId.length === 0)) {
-        removedJobs++;
-        return false;
-      }
-      
+      if (!job || typeof job !== 'object') { removedJobs++; return false; }
+      if ((!job.title || job.title.length === 0) && (!job.jobId || job.jobId.length === 0)) { removedJobs++; return false; }
       return true;
     });
-    
-    if (allJobs[category].length !== before) {
-      cleaned = true;
-      console.log(`🧹 Cleaned ${category}: ${before} → ${allJobs[category].length} jobs`);
-    }
+    if (!Array.isArray(allJobs[category])) allJobs[category] = [];
+    if (allJobs[category].length !== before) { cleaned = true; console.log(`🧹 Cleaned ${category}: ${before} → ${allJobs[category].length} jobs`); }
   });
-  
+  // Ensure all categories are arrays
+  Object.keys(allJobs).forEach(category => { if (!Array.isArray(allJobs[category])) allJobs[category] = []; });
   if (cleaned) {
     localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
     console.log(`🧹 Cleanup complete: ${removedJobs} corrupted jobs removed from ${totalJobs} total`);
@@ -3382,9 +3366,10 @@ function cleanUpJobsData() {
   }
 }
 
-// Patch getNextJobNumber to skip invalid jobs
+// PATCH getNextJobNumber to always work with arrays
 function getNextJobNumber(category) {
   const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  if (!Array.isArray(jobData[category])) jobData[category] = [];
   const categoryJobs = (jobData[category] || []).filter(isValidJob);
   let maxJobNumber = 0;
   categoryJobs.forEach(job => {
@@ -3398,12 +3383,10 @@ function getNextJobNumber(category) {
   return maxJobNumber + 1;
 }
 
-// Patch storeJobData to validate before saving
+// PATCH storeJobData to always work with arrays
 function storeJobData(formData, jobNumber) {
   const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  if (!allJobs[formData.category]) {
-    allJobs[formData.category] = [];
-  }
+  if (!Array.isArray(allJobs[formData.category])) allJobs[formData.category] = [];
   const jobObject = {
     jobId: `${formData.category}_job_2025_${jobNumber}`,
     jobNumber: jobNumber,
@@ -3926,3 +3909,38 @@ window.addEventListener('pageshow', forceHideJobPostedOverlay);
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden) forceHideJobPostedOverlay();
 });
+
+// ... existing code ...
+function cleanUpOrphanedPreviewCards() {
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  let removed = 0;
+  Object.keys(previewCards).forEach(category => {
+    if (!Array.isArray(previewCards[category])) return;
+    previewCards[category] = previewCards[category].filter(card => {
+      const jobs = allJobs[category] || [];
+      // Match by jobNumber (number or string)
+      return jobs.some(job => String(job.jobNumber) === String(card.jobNumber));
+    });
+    removed += previewCards[category].length;
+  });
+  localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
+  alert('Orphaned preview cards cleaned up!');
+}
+window.addEventListener('DOMContentLoaded', function() {
+  const debugPanel = document.getElementById('debugPanel');
+  if (debugPanel) {
+    const cleanOrphansBtn = document.createElement('button');
+    cleanOrphansBtn.textContent = 'CLEANUP ORPHANED PREVIEW CARDS';
+    cleanOrphansBtn.style.background = '#fbbf24';
+    cleanOrphansBtn.style.color = 'black';
+    cleanOrphansBtn.style.border = 'none';
+    cleanOrphansBtn.style.padding = '8px 16px';
+    cleanOrphansBtn.style.borderRadius = '4px';
+    cleanOrphansBtn.style.cursor = 'pointer';
+    cleanOrphansBtn.style.marginLeft = '10px';
+    cleanOrphansBtn.onclick = cleanUpOrphanedPreviewCards;
+    debugPanel.querySelector('div').appendChild(cleanOrphansBtn);
+  }
+});
+// ... existing code ...
