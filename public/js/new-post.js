@@ -2278,6 +2278,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Handle URL parameters for EDIT and RELIST modes
   handleUrlParameters();
+  
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+    overlay.classList.remove('show');
+  }
 });
 
 // Call updateCityMenuLabelFontSize on window resize
