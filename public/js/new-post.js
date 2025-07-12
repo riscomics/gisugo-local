@@ -3320,18 +3320,48 @@ function isValidJob(job) {
 }
 
 function cleanUpJobsData() {
+  console.log('🧹 Starting job data cleanup...');
+  
   const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
   let cleaned = false;
+  let totalJobs = 0;
+  let removedJobs = 0;
+  
   Object.keys(allJobs).forEach(category => {
     const before = allJobs[category].length;
-    allJobs[category] = allJobs[category].filter(isValidJob);
-    if (allJobs[category].length !== before) cleaned = true;
+    totalJobs += before;
+    
+    // More lenient filtering - only remove completely corrupted entries
+    allJobs[category] = allJobs[category].filter(job => {
+      // Keep job if it has basic structure
+      if (!job || typeof job !== 'object') {
+        removedJobs++;
+        return false;
+      }
+      
+      // Keep job if it has at least a title or jobId
+      if ((!job.title || job.title.length === 0) && 
+          (!job.jobId || job.jobId.length === 0)) {
+        removedJobs++;
+        return false;
+      }
+      
+      return true;
+    });
+    
+    if (allJobs[category].length !== before) {
+      cleaned = true;
+      console.log(`🧹 Cleaned ${category}: ${before} → ${allJobs[category].length} jobs`);
+    }
   });
+  
   if (cleaned) {
     localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-    alert('Job data cleaned! Invalid jobs removed.');
+    console.log(`🧹 Cleanup complete: ${removedJobs} corrupted jobs removed from ${totalJobs} total`);
+    alert(`Job data cleaned! ${removedJobs} corrupted jobs removed from ${totalJobs} total jobs.`);
   } else {
-    alert('No invalid jobs found. Data is clean.');
+    console.log('🧹 No corrupted jobs found. Data is clean.');
+    alert('No corrupted jobs found. Data is clean.');
   }
 }
 
@@ -3407,5 +3437,108 @@ window.addEventListener('DOMContentLoaded', function() {
     cleanBtn.style.marginLeft = '10px';
     cleanBtn.onclick = cleanUpJobsData;
     debugPanel.querySelector('div').appendChild(cleanBtn);
+  }
+});
+
+// --- JOB DATA RECOVERY FUNCTION ---
+function recoverJobsData() {
+  console.log('🔄 Starting job data recovery...');
+  
+  // Get all localStorage keys that might contain job data
+  const allKeys = Object.keys(localStorage);
+  const jobKeys = allKeys.filter(key => 
+    key.includes('job') || 
+    key.includes('gisugo') || 
+    key.includes('Jobs')
+  );
+  
+  console.log('🔍 Found potential job data keys:', jobKeys);
+  
+  let recoveredJobs = {};
+  let totalRecovered = 0;
+  
+  jobKeys.forEach(key => {
+    try {
+      const data = JSON.parse(localStorage.getItem(key));
+      if (data && typeof data === 'object') {
+        // Check if this looks like job data
+        if (Array.isArray(data)) {
+          // Array of jobs
+          const validJobs = data.filter(job => 
+            job && typeof job === 'object' && 
+            (job.title || job.jobId || job.category)
+          );
+          if (validJobs.length > 0) {
+            recoveredJobs[key] = validJobs;
+            totalRecovered += validJobs.length;
+            console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}`);
+          }
+        } else if (typeof data === 'object' && !Array.isArray(data)) {
+          // Object with categories
+          Object.keys(data).forEach(category => {
+            if (Array.isArray(data[category])) {
+              const validJobs = data[category].filter(job => 
+                job && typeof job === 'object' && 
+                (job.title || job.jobId || job.category)
+              );
+              if (validJobs.length > 0) {
+                if (!recoveredJobs[category]) recoveredJobs[category] = [];
+                recoveredJobs[category].push(...validJobs);
+                totalRecovered += validJobs.length;
+                console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}.${category}`);
+              }
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Could not parse ${key}:`, error.message);
+    }
+  });
+  
+  if (totalRecovered > 0) {
+    // Merge with existing data
+    const existingJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    Object.keys(recoveredJobs).forEach(category => {
+      if (!existingJobs[category]) existingJobs[category] = [];
+      existingJobs[category].push(...recoveredJobs[category]);
+    });
+    
+    localStorage.setItem('gisugoJobs', JSON.stringify(existingJobs));
+    console.log(`🔄 Recovery complete: ${totalRecovered} jobs restored`);
+    alert(`Job data recovered! ${totalRecovered} jobs restored.`);
+  } else {
+    console.log('🔄 No recoverable job data found');
+    alert('No recoverable job data found.');
+  }
+}
+
+// --- DEBUG PANEL BUTTON FOR CLEANUP ---
+window.addEventListener('DOMContentLoaded', function() {
+  const debugPanel = document.getElementById('debugPanel');
+  if (debugPanel) {
+    const cleanBtn = document.createElement('button');
+    cleanBtn.textContent = 'CLEANUP JOB DATA';
+    cleanBtn.style.background = '#f87171';
+    cleanBtn.style.color = 'white';
+    cleanBtn.style.border = 'none';
+    cleanBtn.style.padding = '8px 16px';
+    cleanBtn.style.borderRadius = '4px';
+    cleanBtn.style.cursor = 'pointer';
+    cleanBtn.style.marginLeft = '10px';
+    cleanBtn.onclick = cleanUpJobsData;
+    debugPanel.querySelector('div').appendChild(cleanBtn);
+    
+    const recoverBtn = document.createElement('button');
+    recoverBtn.textContent = 'RECOVER JOBS';
+    recoverBtn.style.background = '#10b981';
+    recoverBtn.style.color = 'white';
+    recoverBtn.style.border = 'none';
+    recoverBtn.style.padding = '8px 16px';
+    recoverBtn.style.borderRadius = '4px';
+    recoverBtn.style.cursor = 'pointer';
+    recoverBtn.style.marginLeft = '10px';
+    recoverBtn.onclick = recoverJobsData;
+    debugPanel.querySelector('div').appendChild(recoverBtn);
   }
 });
