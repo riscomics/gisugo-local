@@ -2088,27 +2088,16 @@ async function createJobTemplate(formData, jobNumber) {
 }
 
 async function addJobPreviewCard(formData, jobNumber) {
-  // Get existing preview cards from localStorage
   const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  
-  // Initialize category array if it doesn't exist
   if (!previewCards[formData.category]) {
     previewCards[formData.category] = [];
   }
-  
-  // Format date for display
   const date = new Date(formData.jobDate);
   const options = { month: 'short', day: 'numeric' };
   const formattedDate = date.toLocaleDateString('en-US', options);
-  
-  // Format time for display
-      const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
-  
-  // Get first two extras for preview
+  const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
   const extra1 = formData.extras && formData.extras[0] ? formData.extras[0] : '';
   const extra2 = formData.extras && formData.extras[1] ? formData.extras[1] : '';
-  
-  // Create preview card object
   const previewCard = {
     jobNumber: jobNumber,
     title: formData.jobTitle,
@@ -2124,11 +2113,9 @@ async function addJobPreviewCard(formData, jobNumber) {
     city: formData.city,
     createdAt: new Date().toISOString()
   };
-  
-  // Add to category array (insert at beginning for newest first)
   previewCards[formData.category].unshift(previewCard);
-  
-  // Save back to localStorage
+  // Keep only the latest 20 preview cards per category
+  previewCards[formData.category] = previewCards[formData.category].slice(0, 20);
   localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
 }
 
@@ -3963,6 +3950,31 @@ window.addEventListener('DOMContentLoaded', function() {
     cleanOrphansBtn.style.marginLeft = '10px';
     cleanOrphansBtn.onclick = cleanUpOrphanedPreviewCards;
     debugPanel.querySelector('div').appendChild(cleanOrphansBtn);
+  }
+});
+// ... existing code ...
+
+// ... existing code ...
+function nukeAllLocalJobData() {
+  localStorage.removeItem('gisugoJobs');
+  localStorage.removeItem('jobPreviewCards');
+  // Optionally clear other job-related keys if needed
+  alert('All local job data has been cleared!');
+}
+window.addEventListener('DOMContentLoaded', function() {
+  const debugPanel = document.getElementById('debugPanel');
+  if (debugPanel) {
+    const nukeBtn = document.createElement('button');
+    nukeBtn.textContent = 'NUKE ALL LOCAL DATA';
+    nukeBtn.style.background = '#dc2626';
+    nukeBtn.style.color = 'white';
+    nukeBtn.style.border = 'none';
+    nukeBtn.style.padding = '8px 16px';
+    nukeBtn.style.borderRadius = '4px';
+    nukeBtn.style.cursor = 'pointer';
+    nukeBtn.style.marginLeft = '10px';
+    nukeBtn.onclick = nukeAllLocalJobData;
+    debugPanel.querySelector('div').appendChild(nukeBtn);
   }
 });
 // ... existing code ...
