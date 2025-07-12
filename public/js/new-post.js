@@ -2278,6 +2278,21 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Handle URL parameters for EDIT and RELIST modes
   handleUrlParameters();
+  
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+    overlay.classList.remove('show');
+    overlay.dataset.justPosted = '';
+  }
+});
+
+window.addEventListener('orientationchange', function() {
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay && overlay.dataset.justPosted !== 'true') {
+    overlay.style.display = 'none';
+    overlay.classList.remove('show');
+  }
 });
 
 // Call updateCityMenuLabelFontSize on window resize
@@ -2333,6 +2348,7 @@ function showJobPostedOverlay(formData) {
   // Show overlay
   overlay.style.display = 'block';
   overlay.classList.add('show');
+  overlay.dataset.justPosted = 'true';
 
   // Force scroll to top for overlay and modal (fix stubborn mobile browsers)
   overlay.scrollTop = 0;
@@ -2356,6 +2372,7 @@ function closeJobPostedOverlay() {
   if (overlay) {
     overlay.style.display = 'none';
     overlay.classList.remove('show');
+    overlay.dataset.justPosted = '';
   }
   document.body.style.overflow = '';
 }
