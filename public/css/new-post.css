@@ -3038,7 +3038,7 @@ body::-webkit-scrollbar {
   .job-posted-modal {
     width: calc(100vw - 12px);
     max-width: 99vw;
-    margin: 0 auto;
+    margin: 0 auto !important;
     padding: clamp(10px, 3vw, 18px) clamp(6px, 3vw, 14px);
     box-sizing: border-box;
     background: #363f4f;
@@ -3098,7 +3098,7 @@ body::-webkit-scrollbar {
   .job-posted-modal {
     width: calc(100vw - 8px);
     max-width: 99vw;
-    margin: 0 auto;
+    margin: 0 auto !important;
     padding: 12px 8px;
     box-sizing: border-box;
     background: #363f4f;
