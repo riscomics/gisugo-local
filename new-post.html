@@ -9,6 +9,16 @@
   
 </head>
 <body>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var overlay = document.getElementById('jobPostedOverlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.remove('show');
+      overlay.removeAttribute('style');
+    }
+  });
+</script>
   
 
   <!-- Header -->

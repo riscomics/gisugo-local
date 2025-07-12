@@ -2278,22 +2278,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Handle URL parameters for EDIT and RELIST modes
   handleUrlParameters();
-  
-  const overlay = document.getElementById('jobPostedOverlay');
-  if (overlay) {
-    overlay.style.display = 'none';
-    overlay.classList.remove('show');
-  }
-
-  // Also hide overlay on orientation change and resize
-  function hideOverlayOnEvent() {
-    if (overlay && !overlay.classList.contains('force-show')) { // allow force-show for posting logic
-      overlay.style.display = 'none';
-      overlay.classList.remove('show');
-    }
-  }
-  window.addEventListener('orientationchange', hideOverlayOnEvent);
-  window.addEventListener('resize', hideOverlayOnEvent);
 });
 
 // Call updateCityMenuLabelFontSize on window resize

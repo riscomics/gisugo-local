@@ -2975,7 +2975,7 @@ body::-webkit-scrollbar {
 @media (max-width: 600px) and (min-width: 401px) {
   .job-posted-overlay {
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -2983,15 +2983,15 @@ body::-webkit-scrollbar {
     min-height: 100vh !important;
   }
   .job-posted-modal {
-    margin: 4vh auto 0 auto !important;
-    max-height: 80vh !important;
+    margin: 0 auto;
+    max-height: 85vh !important;
     overflow-y: auto !important;
   }
 }
 @media (max-width: 400px) {
   .job-posted-overlay {
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
     height: 100vh !important;
     min-height: 100vh !important;
@@ -2999,15 +2999,34 @@ body::-webkit-scrollbar {
     margin: 0 !important;
   }
   .job-posted-modal {
-    margin: 4vh auto 0 auto !important;
-    max-height: 75vh !important;
+    margin: 0 auto !important;
+    max-height: 80vh !important;
     overflow-y: auto !important;
     /* keep width and padding as before */
   }
 }
 @media (max-width: 320px) {
   .job-posted-modal {
-    max-height: 65vh !important;
+    max-height: 75vh !important;
+  }
+}
+
+/* Desktop: Hide overlay unless .show is present */
+@media (min-width: 601px) {
+  .job-posted-overlay {
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+  }
+  .job-posted-overlay.show {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  .new-post-extras-menu {
+    min-width: 180px;
+    width: 180px;
+    max-width: 240px;
   }
 }
 
