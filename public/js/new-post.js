@@ -3926,3 +3926,20 @@ window.addEventListener('pageshow', forceHideJobPostedOverlay);
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden) forceHideJobPostedOverlay();
 });
+
+// ... existing code ...
+function forceRemoveJobPostedOverlay() {
+  const overlay = document.getElementById('jobPostedOverlay');
+  if (overlay && overlay.dataset.justPosted !== 'true') {
+    overlay.parentNode.removeChild(overlay);
+  }
+}
+
+window.addEventListener('orientationchange', forceRemoveJobPostedOverlay);
+window.addEventListener('resize', forceRemoveJobPostedOverlay);
+window.addEventListener('pageshow', forceRemoveJobPostedOverlay);
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) forceRemoveJobPostedOverlay();
+});
+document.addEventListener('DOMContentLoaded', forceRemoveJobPostedOverlay);
+// ... existing code ...
