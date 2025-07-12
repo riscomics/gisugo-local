@@ -2971,9 +2971,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 600px) and (min-width: 401px) {
   .job-posted-overlay {
-    align-items: flex-start !important;
-    padding-top: clamp(12px, 4vw, 32px) !important;
-    padding-bottom: clamp(12px, 4vw, 32px) !important;
+    align-items: center !important;
+    padding-top: clamp(8px, 2vw, 16px) !important;
+    padding-bottom: clamp(8px, 2vw, 16px) !important;
     overflow-y: auto !important;
   }
   .job-posted-modal {
@@ -2986,12 +2986,14 @@ body::-webkit-scrollbar {
     border-radius: 12px;
     border: 2px solid #10b981;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    max-height: none;
-    overflow-y: visible;
+    max-height: 85vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
   .job-posted-modal::-webkit-scrollbar {
     display: none;
@@ -3014,6 +3016,8 @@ body::-webkit-scrollbar {
   .job-posted-actions {
     flex-direction: column;
     gap: clamp(8px, 2vw, 14px);
+    margin-top: auto;
+    padding-top: clamp(8px, 2vw, 12px);
   }
   .job-posted-btn {
     padding: clamp(10px, 2vw, 16px) clamp(12px, 4vw, 20px);
@@ -3026,9 +3030,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 400px) and (min-width: 321px) {
   .job-posted-overlay {
-    align-items: flex-start !important;
-    padding-top: clamp(10px, 4vw, 24px) !important;
-    padding-bottom: clamp(10px, 4vw, 24px) !important;
+    align-items: center !important;
+    padding-top: clamp(6px, 2vw, 12px) !important;
+    padding-bottom: clamp(6px, 2vw, 12px) !important;
     overflow-y: auto !important;
   }
   .job-posted-modal {
@@ -3086,9 +3090,9 @@ body::-webkit-scrollbar {
 /* Ultra Small Mobile (320px and below) - Enable internal scrolling */
 @media (max-width: 320px) {
   .job-posted-overlay {
-    align-items: flex-start !important;
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
+    align-items: center !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
     overflow-y: auto !important;
   }
   .job-posted-modal {
