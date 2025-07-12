@@ -3716,5 +3716,181 @@ window.addEventListener('DOMContentLoaded', function() {
     restoreBtn.style.marginLeft = '10px';
     restoreBtn.onclick = restoreSampleJobs;
     debugPanel.querySelector('div').appendChild(restoreBtn);
+    
+    const removeDuplicatesBtn = document.createElement('button');
+    removeDuplicatesBtn.textContent = 'REMOVE DUPLICATES';
+    removeDuplicatesBtn.style.background = '#f59e0b';
+    removeDuplicatesBtn.style.color = 'white';
+    removeDuplicatesBtn.style.border = 'none';
+    removeDuplicatesBtn.style.padding = '8px 16px';
+    removeDuplicatesBtn.style.borderRadius = '4px';
+    removeDuplicatesBtn.style.cursor = 'pointer';
+    removeDuplicatesBtn.style.marginLeft = '10px';
+    removeDuplicatesBtn.onclick = removeDuplicateJobs;
+    debugPanel.querySelector('div').appendChild(removeDuplicatesBtn);
   }
 });
+
+// --- REMOVE DUPLICATE JOBS ---
+function removeDuplicateJobs() {
+  console.log('🧹 Removing duplicate jobs...');
+  
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  let totalRemoved = 0;
+  
+  Object.keys(allJobs).forEach(category => {
+    const before = allJobs[category].length;
+    
+    // Remove duplicates based on jobId
+    const seen = new Set();
+    allJobs[category] = allJobs[category].filter(job => {
+      if (!job.jobId) return true; // Keep jobs without jobId for now
+      
+      if (seen.has(job.jobId)) {
+        totalRemoved++;
+        return false;
+      }
+      
+      seen.add(job.jobId);
+      return true;
+    });
+    
+    const after = allJobs[category].length;
+    if (before !== after) {
+      console.log(`🧹 Removed ${before - after} duplicates from ${category}`);
+    }
+  });
+  
+  localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+  console.log(`🧹 Duplicate removal complete: ${totalRemoved} duplicates removed`);
+  alert(`Duplicate removal complete! ${totalRemoved} duplicate jobs removed.`);
+}
+
+// --- FIXED JOB DATA RECOVERY FUNCTION ---
+function recoverJobsData() {
+  console.log('🔄 Starting job data recovery...');
+  
+  // First, let's see what's currently in localStorage
+  console.log('📊 Current localStorage contents:');
+  const allKeys = Object.keys(localStorage);
+  console.log('All localStorage keys:', allKeys);
+  
+  // Show current gisugoJobs data
+  const currentJobs = localStorage.getItem('gisugoJobs');
+  console.log('Current gisugoJobs data:', currentJobs);
+  
+  if (currentJobs) {
+    try {
+      const parsed = JSON.parse(currentJobs);
+      console.log('Parsed gisugoJobs:', parsed);
+      console.log('Categories found:', Object.keys(parsed));
+      Object.keys(parsed).forEach(category => {
+        console.log(`${category}: ${parsed[category].length} jobs`);
+      });
+    } catch (e) {
+      console.log('Error parsing gisugoJobs:', e);
+    }
+  }
+  
+  // Get existing job IDs to avoid duplicates
+  const existingJobIds = new Set();
+  if (currentJobs) {
+    try {
+      const parsed = JSON.parse(currentJobs);
+      Object.keys(parsed).forEach(category => {
+        parsed[category].forEach(job => {
+          if (job.jobId) existingJobIds.add(job.jobId);
+        });
+      });
+    } catch (e) {
+      console.log('Error parsing existing jobs:', e);
+    }
+  }
+  
+  console.log('Existing job IDs:', Array.from(existingJobIds));
+  
+  // Look for any other potential job data
+  const jobKeys = allKeys.filter(key => 
+    key.includes('job') || 
+    key.includes('gisugo') || 
+    key.includes('Jobs') ||
+    key.includes('Job') ||
+    key.includes('post') ||
+    key.includes('listing')
+  );
+  
+  console.log('🔍 Found potential job data keys:', jobKeys);
+  
+  let recoveredJobs = {};
+  let totalRecovered = 0;
+  
+  jobKeys.forEach(key => {
+    try {
+      const data = localStorage.getItem(key);
+      console.log(`🔍 Checking key "${key}":`, data ? data.substring(0, 200) + '...' : 'null');
+      
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed && typeof parsed === 'object') {
+          // Check if this looks like job data
+          if (Array.isArray(parsed)) {
+            // Array of jobs
+            console.log(`📋 Found array in ${key} with ${parsed.length} items`);
+            const validJobs = parsed.filter(job => 
+              job && typeof job === 'object' && 
+              (job.title || job.jobId || job.category) &&
+              !existingJobIds.has(job.jobId) // Only recover jobs not already present
+            );
+            if (validJobs.length > 0) {
+              recoveredJobs[key] = validJobs;
+              totalRecovered += validJobs.length;
+              console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}`);
+            }
+          } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+            // Object with categories
+            console.log(`📋 Found object in ${key} with keys:`, Object.keys(parsed));
+            Object.keys(parsed).forEach(category => {
+              if (Array.isArray(parsed[category])) {
+                console.log(`📋 Category ${category} has ${parsed[category].length} items`);
+                const validJobs = parsed[category].filter(job => 
+                  job && typeof job === 'object' && 
+                  (job.title || job.jobId || job.category) &&
+                  !existingJobIds.has(job.jobId) // Only recover jobs not already present
+                );
+                if (validJobs.length > 0) {
+                  if (!recoveredJobs[category]) recoveredJobs[category] = [];
+                  recoveredJobs[category].push(...validJobs);
+                  totalRecovered += validJobs.length;
+                  console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}.${category}`);
+                }
+              }
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ Could not parse ${key}:`, error.message);
+    }
+  });
+  
+  console.log('📊 Recovery summary:');
+  console.log('- Total keys checked:', jobKeys.length);
+  console.log('- Jobs recovered:', totalRecovered);
+  console.log('- Recovered data structure:', recoveredJobs);
+  
+  if (totalRecovered > 0) {
+    // Merge with existing data
+    const existingJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    Object.keys(recoveredJobs).forEach(category => {
+      if (!existingJobs[category]) existingJobs[category] = [];
+      existingJobs[category].push(...recoveredJobs[category]);
+    });
+    
+    localStorage.setItem('gisugoJobs', JSON.stringify(existingJobs));
+    console.log(`🔄 Recovery complete: ${totalRecovered} jobs restored`);
+    alert(`Job data recovered! ${totalRecovered} jobs restored. Check console for details.`);
+  } else {
+    console.log('🔄 No recoverable job data found');
+    alert('No recoverable job data found. Check console for details.');
+  }
+}
