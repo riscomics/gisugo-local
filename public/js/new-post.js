@@ -1794,6 +1794,14 @@ async function createJobPostWithData(formData) {
   }
   console.log('Current jobs for category:', formData.category, allJobs[formData.category]);
 
+  // Always assign jobNumber before any use
+  let jobNumber = getNextJobNumber(formData.category);
+  console.log('Generated jobNumber:', jobNumber);
+  if (typeof jobNumber !== 'number' || isNaN(jobNumber)) {
+    showValidationOverlay('Error: Could not generate a valid job number. Please refresh and try again.');
+    return;
+  }
+
   const postBtn = document.getElementById('previewPostBtn');
   const previewOverlay = document.getElementById('previewOverlay');
 
@@ -1826,7 +1834,6 @@ async function createJobPostWithData(formData) {
       postBtn.disabled = true;
     }
     
-    let jobNumber;
     let jobId;
     
     if (mode === 'edit') {
