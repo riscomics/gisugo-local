@@ -1801,6 +1801,12 @@ async function createJobPostWithData(formData) {
     showValidationOverlay('Error: Could not generate a valid job number. Please refresh and try again.');
     return;
   }
+  let jobId = `${formData.category}_job_2025_${jobNumber}`;
+  console.log('Generated jobId:', jobId);
+  if (!jobId) {
+    showValidationOverlay('Error: Could not generate a valid job ID. Please refresh and try again.');
+    return;
+  }
 
   const postBtn = document.getElementById('previewPostBtn');
   const previewOverlay = document.getElementById('previewOverlay');
