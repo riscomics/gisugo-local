@@ -23,6 +23,150 @@ if (newPostMenuBtn && newPostMenuOverlay) {
   });
 }
 
+// ========================== KEYBOARD HANDLING FOR MESSENGER APP ==========================
+
+// Variables to track keyboard state
+let initialViewportHeight = window.innerHeight;
+let keyboardVisible = false;
+let detailsTextarea = null;
+
+// Function to detect keyboard visibility
+function detectKeyboardVisibility() {
+  const currentViewportHeight = window.innerHeight;
+  const heightDifference = initialViewportHeight - currentViewportHeight;
+  
+  // Consider keyboard visible if viewport height decreased by more than 150px
+  const newKeyboardVisible = heightDifference > 150;
+  
+  if (newKeyboardVisible !== keyboardVisible) {
+    keyboardVisible = newKeyboardVisible;
+    
+    if (keyboardVisible) {
+      console.log('Keyboard appeared');
+      handleKeyboardAppearance();
+    } else {
+      console.log('Keyboard disappeared');
+      handleKeyboardDisappearance();
+    }
+  }
+}
+
+// Function to handle keyboard appearance
+function handleKeyboardAppearance() {
+  if (!detailsTextarea) {
+    detailsTextarea = document.getElementById('jobDetailsTextarea');
+  }
+  
+  if (detailsTextarea && document.activeElement === detailsTextarea) {
+    // Add a small delay to ensure the keyboard is fully visible
+    setTimeout(() => {
+      scrollDetailsIntoView();
+    }, 300);
+  }
+}
+
+// Function to handle keyboard disappearance
+function handleKeyboardDisappearance() {
+  // Reset any keyboard-specific styles if needed
+  if (detailsTextarea) {
+    detailsTextarea.style.scrollMarginBottom = '';
+  }
+}
+
+// Function to scroll Details textarea into view
+function scrollDetailsIntoView() {
+  if (!detailsTextarea) {
+    detailsTextarea = document.getElementById('jobDetailsTextarea');
+  }
+  
+  if (detailsTextarea) {
+    // Get the details section for better positioning
+    const detailsSection = document.querySelector('.new-post-details-section');
+    
+    if (detailsSection) {
+      // Calculate the target scroll position
+      const sectionRect = detailsSection.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const keyboardHeight = initialViewportHeight - viewportHeight;
+      
+      // Calculate how much to scroll to position the section above the keyboard
+      const scrollOffset = sectionRect.top + window.scrollY - 100; // 100px margin from top
+      
+      // Smooth scroll to the target position
+      window.scrollTo({
+        top: scrollOffset,
+        behavior: 'smooth'
+      });
+      
+      // Also scroll the textarea itself into view as a backup
+      setTimeout(() => {
+        detailsTextarea.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }
+}
+
+// Function to initialize keyboard detection
+function initializeKeyboardDetection() {
+  // Set initial viewport height
+  initialViewportHeight = window.innerHeight;
+  
+  // Add event listeners for viewport changes
+  window.addEventListener('resize', detectKeyboardVisibility);
+  window.addEventListener('orientationchange', function() {
+    // Reset initial height on orientation change
+    setTimeout(() => {
+      initialViewportHeight = window.innerHeight;
+      detectKeyboardVisibility();
+    }, 500);
+  });
+  
+  // Add focus event listener to Details textarea
+  detailsTextarea = document.getElementById('jobDetailsTextarea');
+  if (detailsTextarea) {
+    detailsTextarea.addEventListener('focus', function() {
+      // Small delay to allow keyboard to appear
+      setTimeout(() => {
+        detectKeyboardVisibility();
+        if (keyboardVisible) {
+          scrollDetailsIntoView();
+        }
+      }, 200);
+    });
+    
+    // Add input event listener to handle continuous typing
+    detailsTextarea.addEventListener('input', function() {
+      if (keyboardVisible) {
+        // Ensure textarea stays visible while typing
+        setTimeout(() => {
+          scrollDetailsIntoView();
+        }, 100);
+      }
+    });
+  }
+  
+  // Add specific handling for Messenger app browser
+  // Detect if we're in a WebView (like Messenger)
+  const isWebView = /WebView|FBAN|FBAV|Instagram|Line|wv/i.test(navigator.userAgent);
+  
+  if (isWebView) {
+    console.log('Detected WebView (likely Messenger app)');
+    
+    // Add additional viewport handling for WebView
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      // Ensure viewport is properly configured for WebView
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover');
+    }
+    
+    // Add specific CSS class for WebView styling
+    document.body.classList.add('webview-browser');
+  }
+}
+
 // ========================== DYNAMIC EXTRAS CONFIGURATION ==========================
 
 // Define menu types and their options
@@ -3894,3 +4038,27 @@ function recoverJobsData() {
     alert('No recoverable job data found. Check console for details.');
   }
 }
+
+// ========================== INITIALIZATION ==========================
+
+// Initialize all functionality when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize keyboard detection for Messenger app browser
+  initializeKeyboardDetection();
+  
+  // Initialize all other functionality
+  initializeLocationMenus();
+  initializeTimeDropdowns();
+  initializeTimePeriodDropdowns();
+  initializePaymentDropdown();
+  initializePhotoUpload();
+  initializePostJobButton();
+  initializePreviewOverlayEvents();
+  initializePaymentValidation();
+  initializeJobTitleCharacterCounter();
+  initializeMobileKeyboardClose();
+  initializeJobPostedOverlayEvents();
+  
+  // Handle URL parameters for edit/relist modes
+  handleUrlParameters();
+});
