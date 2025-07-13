@@ -53,12 +53,11 @@ function detectKeyboardVisibility() {
 
 // Function to handle keyboard appearance
 function handleKeyboardAppearance() {
+  document.body.classList.add('keyboard-open');
   if (!detailsTextarea) {
     detailsTextarea = document.getElementById('jobDetailsTextarea');
   }
-  
   if (detailsTextarea && document.activeElement === detailsTextarea) {
-    // Add a small delay to ensure the keyboard is fully visible
     setTimeout(() => {
       scrollDetailsIntoView();
     }, 300);
@@ -67,10 +66,7 @@ function handleKeyboardAppearance() {
 
 // Function to handle keyboard disappearance
 function handleKeyboardDisappearance() {
-  // Reset any keyboard-specific styles if needed
-  if (detailsTextarea) {
-    detailsTextarea.style.scrollMarginBottom = '';
-  }
+  document.body.classList.remove('keyboard-open');
 }
 
 // Function to scroll Details textarea into view

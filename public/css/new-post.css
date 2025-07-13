@@ -1252,8 +1252,8 @@ body::-webkit-scrollbar {
   background: #2d3748;
   border: none;
   border-radius: clamp(6px, 2vw, 8px); /* Responsive border radius */
-  /* Add scroll margin for keyboard handling */
-  scroll-margin-bottom: 200px; /* Ensure space above keyboard */
+  margin-bottom: 0;
+  scroll-margin-bottom: 0;
 }
 
 .new-post-details-header {
@@ -1294,8 +1294,7 @@ body::-webkit-scrollbar {
   outline: none;
   resize: vertical;
   box-sizing: border-box;
-  /* Add keyboard handling properties */
-  scroll-margin-bottom: 200px; /* Ensure space above keyboard */
+  scroll-margin-bottom: 0;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
@@ -3145,5 +3144,42 @@ body::-webkit-scrollbar {
   font-family: monospace;
   border-radius: 0 4px 0 0;
   pointer-events: none;
+}
+
+/* Only add margin/scroll-margin when keyboard is open */
+.keyboard-open .new-post-details-section,
+.webview-browser.keyboard-open .new-post-details-section {
+  margin-bottom: 150px !important;
+  scroll-margin-bottom: 350px !important;
+}
+.keyboard-open .new-post-details-textarea,
+.webview-browser.keyboard-open .new-post-details-textarea {
+  scroll-margin-bottom: 350px !important;
+}
+
+/* For 411px devices */
+@media (max-width: 411px) {
+  .keyboard-open .new-post-details-section,
+  .webview-browser.keyboard-open .new-post-details-section {
+    margin-bottom: 180px !important;
+    scroll-margin-bottom: 400px !important;
+  }
+  .keyboard-open .new-post-details-textarea,
+  .webview-browser.keyboard-open .new-post-details-textarea {
+    scroll-margin-bottom: 400px !important;
+  }
+}
+
+/* For 375px devices */
+@media (max-width: 375px) {
+  .keyboard-open .new-post-details-section,
+  .webview-browser.keyboard-open .new-post-details-section {
+    margin-bottom: 120px !important;
+    scroll-margin-bottom: 250px !important;
+  }
+  .keyboard-open .new-post-details-textarea,
+  .webview-browser.keyboard-open .new-post-details-textarea {
+    scroll-margin-bottom: 250px !important;
+  }
 }
 
