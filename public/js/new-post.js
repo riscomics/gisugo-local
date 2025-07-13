@@ -4104,3 +4104,15 @@ if (detailsTextarea && isAndroid()) {
 }
 
 // (Remove all other keyboard detection, .keyboard-open, and margin logic)
+
+// Set default payment rate to 'Per Job' instead of 'Per Hour'
+document.addEventListener('DOMContentLoaded', function() {
+  var paymentTypeLabel = document.getElementById('paymentTypeLabel');
+  if (paymentTypeLabel) {
+    paymentTypeLabel.textContent = 'Per Job';
+  }
+  var paymentTypeMenu = document.getElementById('paymentTypeMenu');
+  if (paymentTypeMenu) {
+    paymentTypeMenu.setAttribute('data-value', 'Per Job');
+  }
+});
