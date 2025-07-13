@@ -3110,7 +3110,7 @@ body::-webkit-scrollbar {
   padding: 18px 0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  font-family: inherit;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
   width: 100%;
   text-align: center;
 }
@@ -3144,6 +3144,7 @@ body::-webkit-scrollbar {
   .hour-picker-item {
     font-size: 1rem;
     padding: 12px 0;
+    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
   }
 }
 
@@ -3170,7 +3171,7 @@ body::-webkit-scrollbar {
   padding: 22px 0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  font-family: inherit;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
   width: 100%;
   text-align: center;
 }
