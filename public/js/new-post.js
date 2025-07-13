@@ -34,26 +34,32 @@ let detailsTextarea = null;
 function detectKeyboardVisibility() {
   const currentViewportHeight = window.innerHeight;
   const heightDifference = initialViewportHeight - currentViewportHeight;
-  
-  // Consider keyboard visible if viewport height decreased by more than 150px
-  const newKeyboardVisible = heightDifference > 150;
-  
+  const detailsTextareaFocused = detailsTextarea && document.activeElement === detailsTextarea;
+
+  // Only consider keyboard visible if textarea is focused and viewport shrank
+  const newKeyboardVisible = detailsTextareaFocused && heightDifference > 150;
+
   if (newKeyboardVisible !== keyboardVisible) {
     keyboardVisible = newKeyboardVisible;
-    
     if (keyboardVisible) {
-      console.log('Keyboard appeared');
+      console.log('[Keyboard] appeared (details focused, height diff:', heightDifference, ')');
       handleKeyboardAppearance();
     } else {
-      console.log('Keyboard disappeared');
+      console.log('[Keyboard] disappeared (details blur or height diff:', heightDifference, ')');
       handleKeyboardDisappearance();
     }
+  } else {
+    // Debug: log when detection runs but state doesn't change
+    console.log('[Keyboard] detect: no change. Focus:', detailsTextareaFocused, 'Height diff:', heightDifference);
   }
 }
 
 // Function to handle keyboard appearance
 function handleKeyboardAppearance() {
-  document.body.classList.add('keyboard-open');
+  if (!document.body.classList.contains('keyboard-open')) {
+    document.body.classList.add('keyboard-open');
+    console.log('[Keyboard] .keyboard-open class added');
+  }
   if (!detailsTextarea) {
     detailsTextarea = document.getElementById('jobDetailsTextarea');
   }
@@ -66,7 +72,10 @@ function handleKeyboardAppearance() {
 
 // Function to handle keyboard disappearance
 function handleKeyboardDisappearance() {
-  document.body.classList.remove('keyboard-open');
+  if (document.body.classList.contains('keyboard-open')) {
+    document.body.classList.remove('keyboard-open');
+    console.log('[Keyboard] .keyboard-open class removed');
+  }
 }
 
 // Function to scroll Details textarea into view
@@ -120,7 +129,7 @@ function initializeKeyboardDetection() {
     }, 500);
   });
   
-  // Add focus event listener to Details textarea
+  // Add focus/blur event listeners to Details textarea
   detailsTextarea = document.getElementById('jobDetailsTextarea');
   if (detailsTextarea) {
     detailsTextarea.addEventListener('focus', function() {
@@ -141,6 +150,12 @@ function initializeKeyboardDetection() {
           scrollDetailsIntoView();
         }, 100);
       }
+    });
+    
+    detailsTextarea.addEventListener('blur', function() {
+      // Remove .keyboard-open immediately on blur
+      keyboardVisible = false;
+      handleKeyboardDisappearance();
     });
   }
   
