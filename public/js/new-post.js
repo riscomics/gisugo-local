@@ -1,5 +1,117 @@
 // ========================== NEW POST PAGE FUNCTIONALITY ==========================
 
+// Keyboard handling for Chrome Android mobile browser
+function initializeKeyboardHandling() {
+  let initialViewportHeight = window.innerHeight;
+  let keyboardVisible = false;
+  let focusedElement = null;
+  
+  // Detect keyboard visibility by monitoring viewport height changes
+  function detectKeyboardVisibility() {
+    const currentViewportHeight = window.innerHeight;
+    const heightDifference = initialViewportHeight - currentViewportHeight;
+    
+    // Keyboard is considered visible if viewport height decreased by more than 150px
+    const newKeyboardVisible = heightDifference > 150;
+    
+    if (newKeyboardVisible !== keyboardVisible) {
+      keyboardVisible = newKeyboardVisible;
+      
+      if (keyboardVisible && focusedElement) {
+        // Keyboard appeared - scroll focused element into view
+        setTimeout(() => {
+          scrollElementIntoView(focusedElement);
+        }, 100); // Small delay to ensure keyboard animation is complete
+      }
+    }
+  }
+  
+  // Scroll element into view with proper positioning
+  function scrollElementIntoView(element) {
+    if (!element) return;
+    
+    const rect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const keyboardHeight = initialViewportHeight - viewportHeight;
+    
+    // Calculate if element is covered by keyboard
+    const elementBottom = rect.bottom;
+    const availableHeight = viewportHeight - keyboardHeight;
+    
+    if (elementBottom > availableHeight) {
+      // Element is covered by keyboard - scroll it into view
+      const scrollAmount = elementBottom - availableHeight + 20; // 20px buffer
+      window.scrollBy({
+        top: scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  }
+  
+  // Track focused elements
+  document.addEventListener('focusin', function(e) {
+    focusedElement = e.target;
+    
+    // If keyboard is already visible, scroll immediately
+    if (keyboardVisible) {
+      setTimeout(() => {
+        scrollElementIntoView(focusedElement);
+      }, 50);
+    }
+  });
+  
+  // Handle input focus events specifically
+  const inputElements = document.querySelectorAll('input, textarea');
+  inputElements.forEach(input => {
+    input.addEventListener('focus', function() {
+      focusedElement = this;
+      
+      // For Chrome Android, also check if we need to scroll on focus
+      setTimeout(() => {
+        if (window.innerHeight < initialViewportHeight) {
+          keyboardVisible = true;
+          scrollElementIntoView(this);
+        }
+      }, 300); // Longer delay for Chrome Android
+    });
+  });
+  
+  // Monitor viewport height changes
+  let resizeTimeout;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(detectKeyboardVisibility, 100);
+  });
+  
+  // Update initial height on orientation change
+  window.addEventListener('orientationchange', function() {
+    setTimeout(() => {
+      initialViewportHeight = window.innerHeight;
+      keyboardVisible = false;
+    }, 500);
+  });
+  
+  // Handle virtual keyboard events (for better Chrome Android support)
+  if ('virtualKeyboard' in navigator) {
+    navigator.virtualKeyboard.addEventListener('geometrychange', function() {
+      const keyboardHeight = navigator.virtualKeyboard.boundingRect.height;
+      keyboardVisible = keyboardHeight > 0;
+      
+      if (keyboardVisible && focusedElement) {
+        setTimeout(() => {
+          scrollElementIntoView(focusedElement);
+        }, 100);
+      }
+    });
+  }
+  
+  // Fallback for older Chrome versions
+  document.addEventListener('touchstart', function() {
+    // Reset keyboard state on touch
+    initialViewportHeight = window.innerHeight;
+  });
+}
+
 // Menu overlay functionality
 const newPostMenuBtn = document.querySelector('.new-post-header-btn.menu');
 const newPostMenuOverlay = document.querySelector('.new-post-menu-overlay');
@@ -2266,6 +2378,7 @@ function initializeMobileKeyboardClose() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+  initializeKeyboardHandling(); // Add keyboard handling for Chrome Android
   initializeLocationMenus();
   initializeTimeDropdowns(); // Add time dropdown initialization
   initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile

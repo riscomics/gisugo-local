@@ -707,6 +707,11 @@ body::-webkit-scrollbar {
   transition: border-color 0.2s ease;
   width: 100%;
   box-sizing: border-box;
+  /* Mobile keyboard improvements */
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Ensure proper font size to prevent zoom on iOS */
+  font-size: 16px;
 }
 
 .new-post-job-detail-input:focus {
@@ -1292,6 +1297,11 @@ body::-webkit-scrollbar {
   outline: none;
   resize: vertical;
   box-sizing: border-box;
+  /* Improve mobile keyboard handling */
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent zoom on iOS */
+  font-size: 16px;
 }
 
 .new-post-details-textarea::placeholder {
@@ -1536,6 +1546,11 @@ body::-webkit-scrollbar {
     padding: 10px 12px;
     outline: none;
     transition: border-color 0.2s;
+    /* Mobile keyboard improvements */
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure proper font size to prevent zoom on iOS */
+    font-size: 16px;
   }
   
   /* Job Title Mobile */
@@ -1854,6 +1869,14 @@ body::-webkit-scrollbar {
     font-size: 1rem;
     line-height: 1.4;
     min-height: 85px;
+    /* Mobile keyboard improvements */
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure proper font size to prevent zoom on iOS */
+    font-size: 16px;
+    /* Improve touch interaction */
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /* Mobile spacer no longer needed */
