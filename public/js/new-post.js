@@ -4089,4 +4089,18 @@ if (detailsTextarea) {
   });
 }
 
+// --- Details textarea scroll into view on focus (Android only) ---
+function isAndroid() {
+  return /android/i.test(navigator.userAgent);
+}
+
+detailsTextarea = document.getElementById('jobDetailsTextarea');
+if (detailsTextarea && isAndroid()) {
+  detailsTextarea.addEventListener('focus', function() {
+    setTimeout(() => {
+      detailsTextarea.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }, 300); // Delay to allow keyboard to open
+  });
+}
+
 // (Remove all other keyboard detection, .keyboard-open, and margin logic)
