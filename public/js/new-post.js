@@ -4007,3 +4007,110 @@ function recoverJobsData() {
     alert('No recoverable job data found. Check console for details.');
   }
 }
+
+// Hour & AM/PM Picker Modal Logic
+function initializeHourAndAmPmPickerModals() {
+  // Job Start Hour
+  const hourFieldStart = document.getElementById('jobTimeStartInput');
+  const hourLabelStart = document.getElementById('jobTimeStartLabel');
+  const modalStart = document.getElementById('hourPickerOverlay');
+  const closeBtnStart = document.getElementById('hourPickerCloseBtn');
+  const hourButtonsStart = modalStart.querySelectorAll('.hour-picker-item');
+
+  // Job End Hour
+  const hourFieldEnd = document.getElementById('jobTimeEndInput');
+  const hourLabelEnd = document.getElementById('jobTimeEndLabel');
+  const modalEnd = document.getElementById('hourPickerOverlayEnd');
+  const closeBtnEnd = document.getElementById('hourPickerCloseBtnEnd');
+  const hourButtonsEnd = modalEnd.querySelectorAll('.hour-picker-item');
+
+  // AM/PM Picker (shared)
+  const ampmModal = document.getElementById('ampmPickerOverlay');
+  const ampmCloseBtn = document.getElementById('ampmPickerCloseBtn');
+  const ampmButtons = ampmModal.querySelectorAll('.ampm-picker-item');
+  let ampmTarget = null; // 'start' or 'end'
+  const ampmFieldStart = document.getElementById('jobTimeStartPeriod');
+  const ampmLabelStart = document.getElementById('jobTimeStartPeriodLabel');
+  const ampmFieldEnd = document.getElementById('jobTimeEndPeriod');
+  const ampmLabelEnd = document.getElementById('jobTimeEndPeriodLabel');
+
+  // --- Job Start Hour ---
+  if (hourFieldStart && modalStart) {
+    hourFieldStart.addEventListener('click', function(e) {
+      e.preventDefault();
+      modalStart.style.display = 'flex';
+    });
+    closeBtnStart.addEventListener('click', function() {
+      modalStart.style.display = 'none';
+    });
+    modalStart.addEventListener('click', function(e) {
+      if (e.target === modalStart) modalStart.style.display = 'none';
+    });
+    hourButtonsStart.forEach(btn => {
+      btn.addEventListener('click', function() {
+        hourLabelStart.textContent = this.textContent;
+        modalStart.style.display = 'none';
+      });
+    });
+  }
+
+  // --- Job End Hour ---
+  if (hourFieldEnd && modalEnd) {
+    hourFieldEnd.addEventListener('click', function(e) {
+      e.preventDefault();
+      modalEnd.style.display = 'flex';
+    });
+    closeBtnEnd.addEventListener('click', function() {
+      modalEnd.style.display = 'none';
+    });
+    modalEnd.addEventListener('click', function(e) {
+      if (e.target === modalEnd) modalEnd.style.display = 'none';
+    });
+    hourButtonsEnd.forEach(btn => {
+      btn.addEventListener('click', function() {
+        hourLabelEnd.textContent = this.textContent;
+        modalEnd.style.display = 'none';
+      });
+    });
+  }
+
+  // --- AM/PM Picker (shared) ---
+  function openAmPmModal(target) {
+    ampmTarget = target;
+    ampmModal.style.display = 'flex';
+  }
+  function closeAmPmModal() {
+    ampmModal.style.display = 'none';
+    ampmTarget = null;
+  }
+  if (ampmFieldStart && ampmModal) {
+    ampmFieldStart.addEventListener('click', function(e) {
+      e.preventDefault();
+      openAmPmModal('start');
+    });
+  }
+  if (ampmFieldEnd && ampmModal) {
+    ampmFieldEnd.addEventListener('click', function(e) {
+      e.preventDefault();
+      openAmPmModal('end');
+    });
+  }
+  ampmCloseBtn.addEventListener('click', closeAmPmModal);
+  ampmModal.addEventListener('click', function(e) {
+    if (e.target === ampmModal) closeAmPmModal();
+  });
+  ampmButtons.forEach(btn => {
+    btn.addEventListener('click', function() {
+      if (ampmTarget === 'start') {
+        ampmLabelStart.textContent = this.textContent;
+      } else if (ampmTarget === 'end') {
+        ampmLabelEnd.textContent = this.textContent;
+      }
+      closeAmPmModal();
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initializeHourAndAmPmPickerModals();
+});

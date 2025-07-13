@@ -628,5 +628,58 @@
       document.getElementById('debugPanel').style.display = 'block';
     }
   </script>
+<!-- Hour Picker Modal Overlay -->
+<div id="hourPickerOverlay" class="hour-picker-overlay" style="display: none;">
+  <div class="hour-picker-modal">
+    <button class="hour-picker-close" id="hourPickerCloseBtn">×</button>
+    <div class="hour-picker-title">Select Hour</div>
+    <div class="hour-picker-list">
+      <button class="hour-picker-item" data-value="1">1</button>
+      <button class="hour-picker-item" data-value="2">2</button>
+      <button class="hour-picker-item" data-value="3">3</button>
+      <button class="hour-picker-item" data-value="4">4</button>
+      <button class="hour-picker-item" data-value="5">5</button>
+      <button class="hour-picker-item" data-value="6">6</button>
+      <button class="hour-picker-item" data-value="7">7</button>
+      <button class="hour-picker-item" data-value="8">8</button>
+      <button class="hour-picker-item" data-value="9">9</button>
+      <button class="hour-picker-item" data-value="10">10</button>
+      <button class="hour-picker-item" data-value="11">11</button>
+      <button class="hour-picker-item" data-value="12">12</button>
+    </div>
+  </div>
+</div>
+<!-- Hour Picker Modal Overlay for Job End -->
+<div id="hourPickerOverlayEnd" class="hour-picker-overlay" style="display: none;">
+  <div class="hour-picker-modal">
+    <button class="hour-picker-close" id="hourPickerCloseBtnEnd">×</button>
+    <div class="hour-picker-title">Select Hour</div>
+    <div class="hour-picker-list">
+      <button class="hour-picker-item" data-value="1">1</button>
+      <button class="hour-picker-item" data-value="2">2</button>
+      <button class="hour-picker-item" data-value="3">3</button>
+      <button class="hour-picker-item" data-value="4">4</button>
+      <button class="hour-picker-item" data-value="5">5</button>
+      <button class="hour-picker-item" data-value="6">6</button>
+      <button class="hour-picker-item" data-value="7">7</button>
+      <button class="hour-picker-item" data-value="8">8</button>
+      <button class="hour-picker-item" data-value="9">9</button>
+      <button class="hour-picker-item" data-value="10">10</button>
+      <button class="hour-picker-item" data-value="11">11</button>
+      <button class="hour-picker-item" data-value="12">12</button>
+    </div>
+  </div>
+</div>
+<!-- AM/PM Picker Modal Overlay (shared for both start/end) -->
+<div id="ampmPickerOverlay" class="hour-picker-overlay" style="display: none;">
+  <div class="hour-picker-modal">
+    <button class="hour-picker-close" id="ampmPickerCloseBtn">×</button>
+    <div class="hour-picker-title">Select AM/PM</div>
+    <div class="ampm-picker-list">
+      <button class="ampm-picker-item" data-value="AM">AM</button>
+      <button class="ampm-picker-item" data-value="PM">PM</button>
+    </div>
+  </div>
+</div>
 </body>
 </html> 
