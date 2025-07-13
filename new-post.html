@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Post - GISUGO</title>
   <link rel="stylesheet" href="public/css/new-post.css?v=26">
   <link rel="stylesheet" href="public/css/jobpage.css">
@@ -313,22 +313,6 @@
   
   <!-- Spacer div to create scrollable height for fixed positioned elements -->
   <div class="new-post-spacer" id="newPostSpacer"></div>
-  
-  <!-- Viewport Debug Tool -->
-  <div id="vp-debug"></div>
-  <script>
-    // Viewport debug tool
-    function updateViewportDebug() {
-      const debug = document.getElementById('vp-debug');
-      if (debug) {
-        debug.textContent = `Viewport: ${window.innerWidth}px`;
-      }
-    }
-    
-    window.addEventListener('resize', updateViewportDebug);
-    window.addEventListener('load', updateViewportDebug);
-    updateViewportDebug();
-  </script>
   
   <!-- Preview Overlay -->
   <div class="new-post-preview-overlay" id="previewOverlay" style="display: none;">
