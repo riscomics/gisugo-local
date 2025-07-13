@@ -33,8 +33,8 @@ let detailsTextarea = null;
 // Function to detect keyboard visibility
 function detectKeyboardVisibility() {
   const currentViewportHeight = window.innerHeight;
-  const heightDifference = initialViewportHeight - currentViewportHeight;
   const detailsTextareaFocused = detailsTextarea && document.activeElement === detailsTextarea;
+  const heightDifference = initialViewportHeight - currentViewportHeight;
 
   // Only consider keyboard visible if textarea is focused and viewport shrank
   const newKeyboardVisible = detailsTextareaFocused && heightDifference > 150;
@@ -51,6 +51,16 @@ function detectKeyboardVisibility() {
   } else {
     // Debug: log when detection runs but state doesn't change
     console.log('[Keyboard] detect: no change. Focus:', detailsTextareaFocused, 'Height diff:', heightDifference);
+  }
+
+  // If textarea is not focused, always remove .keyboard-open and update initialViewportHeight
+  if (!detailsTextareaFocused) {
+    if (document.body.classList.contains('keyboard-open')) {
+      document.body.classList.remove('keyboard-open');
+      console.log('[Keyboard] forcibly removed .keyboard-open (textarea not focused)');
+    }
+    initialViewportHeight = currentViewportHeight;
+    keyboardVisible = false;
   }
 }
 
@@ -116,24 +126,27 @@ function scrollDetailsIntoView() {
 
 // Function to initialize keyboard detection
 function initializeKeyboardDetection() {
-  // Set initial viewport height
-  initialViewportHeight = window.innerHeight;
-  
+  // Set initial viewport height only if textarea is not focused
+  detailsTextarea = document.getElementById('jobDetailsTextarea');
+  if (!detailsTextarea || document.activeElement !== detailsTextarea) {
+    initialViewportHeight = window.innerHeight;
+  }
+
   // Add event listeners for viewport changes
   window.addEventListener('resize', detectKeyboardVisibility);
   window.addEventListener('orientationchange', function() {
-    // Reset initial height on orientation change
     setTimeout(() => {
-      initialViewportHeight = window.innerHeight;
+      if (!detailsTextarea || document.activeElement !== detailsTextarea) {
+        initialViewportHeight = window.innerHeight;
+      }
       detectKeyboardVisibility();
     }, 500);
   });
-  
+
   // Add focus/blur event listeners to Details textarea
-  detailsTextarea = document.getElementById('jobDetailsTextarea');
   if (detailsTextarea) {
     detailsTextarea.addEventListener('focus', function() {
-      // Small delay to allow keyboard to appear
+      // On focus, do NOT update initialViewportHeight (keep the last known good value)
       setTimeout(() => {
         detectKeyboardVisibility();
         if (keyboardVisible) {
@@ -141,39 +154,31 @@ function initializeKeyboardDetection() {
         }
       }, 200);
     });
-    
-    // Add input event listener to handle continuous typing
     detailsTextarea.addEventListener('input', function() {
       if (keyboardVisible) {
-        // Ensure textarea stays visible while typing
         setTimeout(() => {
           scrollDetailsIntoView();
         }, 100);
       }
     });
-    
     detailsTextarea.addEventListener('blur', function() {
       // Remove .keyboard-open immediately on blur
       keyboardVisible = false;
       handleKeyboardDisappearance();
+      // On blur, reset initialViewportHeight to the new window height
+      initialViewportHeight = window.innerHeight;
+      console.log('[Keyboard] blur: reset initialViewportHeight to', initialViewportHeight);
     });
   }
-  
+
   // Add specific handling for Messenger app browser
-  // Detect if we're in a WebView (like Messenger)
   const isWebView = /WebView|FBAN|FBAV|Instagram|Line|wv/i.test(navigator.userAgent);
-  
   if (isWebView) {
     console.log('Detected WebView (likely Messenger app)');
-    
-    // Add additional viewport handling for WebView
     const viewport = document.querySelector('meta[name="viewport"]');
     if (viewport) {
-      // Ensure viewport is properly configured for WebView
       viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover');
     }
-    
-    // Add specific CSS class for WebView styling
     document.body.classList.add('webview-browser');
   }
 }
@@ -4073,3 +4078,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // Handle URL parameters for edit/relist modes
   handleUrlParameters();
 });
+
+// --- Details textarea scroll into view on focus ---
+detailsTextarea = document.getElementById('jobDetailsTextarea');
+if (detailsTextarea) {
+  detailsTextarea.addEventListener('focus', function() {
+    setTimeout(() => {
+      detailsTextarea.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }, 300); // Delay to allow keyboard to open
+  });
+}
+
+// (Remove all other keyboard detection, .keyboard-open, and margin logic)
