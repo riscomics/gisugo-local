@@ -1252,8 +1252,8 @@ body::-webkit-scrollbar {
   background: #2d3748;
   border: none;
   border-radius: clamp(6px, 2vw, 8px); /* Responsive border radius */
-  margin-bottom: 0;
-  scroll-margin-bottom: 0;
+  margin-bottom: 0 !important;
+  scroll-margin-bottom: 0 !important;
 }
 
 .new-post-details-header {
@@ -1294,7 +1294,7 @@ body::-webkit-scrollbar {
   outline: none;
   resize: vertical;
   box-sizing: border-box;
-  scroll-margin-bottom: 0;
+  scroll-margin-bottom: 0 !important;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
@@ -3079,54 +3079,6 @@ body::-webkit-scrollbar {
     min-width: 180px;
     width: 180px;
     max-width: 240px;
-  }
-}
-
-/* WebView-specific styles for Messenger app browser */
-.webview-browser {
-  /* Additional viewport handling for WebView */
-  height: 100vh;
-  height: -webkit-fill-available;
-  overflow-x: hidden;
-}
-
-.webview-browser .new-post-details-section {
-  /* Enhanced keyboard handling for WebView */
-  margin-bottom: 150px; /* Extra space for WebView keyboard */
-  scroll-margin-bottom: 350px; /* Increased scroll margin for WebView */
-}
-
-.webview-browser .new-post-details-textarea {
-  /* Enhanced textarea handling for WebView */
-  scroll-margin-bottom: 350px; /* Increased scroll margin for WebView */
-  /* Ensure proper scrolling behavior */
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  /* Prevent zoom on focus in WebView */
-  font-size: 16px; /* Minimum font size to prevent zoom */
-}
-
-/* Specific WebView handling for 411px devices */
-@media (max-width: 411px) {
-  .webview-browser .new-post-details-section {
-    margin-bottom: 180px; /* Extra space for WebView keyboard on 411px */
-    scroll-margin-bottom: 400px; /* Increased scroll margin for WebView on 411px */
-  }
-  
-  .webview-browser .new-post-details-textarea {
-    scroll-margin-bottom: 400px; /* Increased scroll margin for WebView on 411px */
-  }
-}
-
-/* Specific WebView handling for 375px devices */
-@media (max-width: 375px) {
-  .webview-browser .new-post-details-section {
-    margin-bottom: 120px; /* Standard space for WebView keyboard on iPhone 7 */
-    scroll-margin-bottom: 250px; /* Standard scroll margin for WebView on iPhone 7 */
-  }
-  
-  .webview-browser .new-post-details-textarea {
-    scroll-margin-bottom: 250px; /* Standard scroll margin for WebView on iPhone 7 */
   }
 }
 
