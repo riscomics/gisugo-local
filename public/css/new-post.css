@@ -3098,40 +3098,4 @@ body::-webkit-scrollbar {
   pointer-events: none;
 }
 
-/* Only add margin/scroll-margin when keyboard is open */
-.keyboard-open .new-post-details-section,
-.webview-browser.keyboard-open .new-post-details-section {
-  margin-bottom: 150px !important;
-  scroll-margin-bottom: 350px !important;
-}
-.keyboard-open .new-post-details-textarea,
-.webview-browser.keyboard-open .new-post-details-textarea {
-  scroll-margin-bottom: 350px !important;
-}
-
-/* For 411px devices */
-@media (max-width: 411px) {
-  .keyboard-open .new-post-details-section,
-  .webview-browser.keyboard-open .new-post-details-section {
-    margin-bottom: 180px !important;
-    scroll-margin-bottom: 400px !important;
-  }
-  .keyboard-open .new-post-details-textarea,
-  .webview-browser.keyboard-open .new-post-details-textarea {
-    scroll-margin-bottom: 400px !important;
-  }
-}
-
-/* For 375px devices */
-@media (max-width: 375px) {
-  .keyboard-open .new-post-details-section,
-  .webview-browser.keyboard-open .new-post-details-section {
-    margin-bottom: 120px !important;
-    scroll-margin-bottom: 250px !important;
-  }
-  .keyboard-open .new-post-details-textarea,
-  .webview-browser.keyboard-open .new-post-details-textarea {
-    scroll-margin-bottom: 250px !important;
-  }
-}
 
