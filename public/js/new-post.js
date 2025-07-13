@@ -1173,6 +1173,10 @@ function initializePaymentDropdown() {
     return;
   }
 
+  // Set default to 'Per Job' instead of 'Per Hour'
+  selectedPaymentType = 'Per Job';
+  paymentTypeLabel.textContent = 'Per Job';
+
   // Toggle dropdown on menu click
   paymentTypeMenu.addEventListener('click', function(e) {
     e.stopPropagation();
