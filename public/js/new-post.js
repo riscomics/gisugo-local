@@ -920,13 +920,17 @@ function initializeTimeDropdowns() {
     document.body.appendChild(endTimeOverlay);
   }
   
-  // Function to position overlay relative to button
-  function positionOverlay(button, overlay) {
+  // Function to position overlay relative to button, with direction
+  function positionOverlay(button, overlay, direction = 'down') {
     const rect = button.getBoundingClientRect();
     overlay.style.position = 'fixed';
-    overlay.style.top = (rect.bottom + 2) + 'px';
     overlay.style.left = rect.left + 'px';
     overlay.style.width = rect.width + 'px';
+    if (direction === 'up') {
+      overlay.style.top = (rect.top - overlay.offsetHeight - 2) + 'px';
+    } else {
+      overlay.style.top = (rect.bottom + 2) + 'px';
+    }
   }
   
   // Start time dropdown events
@@ -939,8 +943,8 @@ function initializeTimeDropdowns() {
         endTimeOpen = false;
       }
       
-      // Position and show overlay
-      positionOverlay(startTimeBtn, startTimeOverlay);
+      // Position and show overlay (downwards)
+      positionOverlay(startTimeBtn, startTimeOverlay, 'down');
       startTimeOverlay.classList.toggle('show');
       startTimeOpen = !startTimeOpen;
     });
@@ -973,8 +977,8 @@ function initializeTimeDropdowns() {
         startTimeOpen = false;
       }
       
-      // Position and show overlay
-      positionOverlay(endTimeBtn, endTimeOverlay);
+      // Position and show overlay (upwards)
+      positionOverlay(endTimeBtn, endTimeOverlay, 'up');
       endTimeOverlay.classList.toggle('show');
       endTimeOpen = !endTimeOpen;
     });
@@ -4114,5 +4118,27 @@ document.addEventListener('DOMContentLoaded', function() {
   var paymentTypeMenu = document.getElementById('paymentTypeMenu');
   if (paymentTypeMenu) {
     paymentTypeMenu.setAttribute('data-value', 'Per Job');
+  }
+});
+
+// Add scroll and resize event listeners to close overlays
+window.addEventListener('scroll', function() {
+  if (typeof startTimeOpen !== 'undefined' && startTimeOpen && typeof startTimeOverlay !== 'undefined' && startTimeOverlay) {
+    startTimeOverlay.classList.remove('show');
+    startTimeOpen = false;
+  }
+  if (typeof endTimeOpen !== 'undefined' && endTimeOpen && typeof endTimeOverlay !== 'undefined' && endTimeOverlay) {
+    endTimeOverlay.classList.remove('show');
+    endTimeOpen = false;
+  }
+}, true);
+window.addEventListener('resize', function() {
+  if (typeof startTimeOpen !== 'undefined' && startTimeOpen && typeof startTimeOverlay !== 'undefined' && startTimeOverlay) {
+    startTimeOverlay.classList.remove('show');
+    startTimeOpen = false;
+  }
+  if (typeof endTimeOpen !== 'undefined' && endTimeOpen && typeof endTimeOverlay !== 'undefined' && endTimeOverlay) {
+    endTimeOverlay.classList.remove('show');
+    endTimeOpen = false;
   }
 });
