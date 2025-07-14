@@ -2662,7 +2662,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Ultra Small Screens (337px and below) - Prevent title overflow */
 @media (max-width: 337px) {
   .messages-header-title {
-    font-size: clamp(1.1rem, 3.5vw, 1.4rem) !important; /* Increased from 1rem-1.2rem for better readability */
+    font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Further increased for much better readability */
     letter-spacing: -0.5px; /* Slight letter spacing reduction for better fit */
   }
   
