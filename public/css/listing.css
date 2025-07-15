@@ -925,16 +925,21 @@ body::-webkit-scrollbar {
 /* Ultra Small Screens (320px and below) - Fix header overflow */
 @media (max-width: 320px) {
   .jobcat-servicemenu {
-    width: clamp(120px, 38vw, 150px) !important; /* Much smaller to fit with Post/Search buttons */
+    width: clamp(140px, 44vw, 170px) !important; /* Slightly bigger button for better usability */
     height: 40px !important; /* Reduce height */
   }
   
   .jobcat-servicename {
-    width: clamp(120px, 38vw, 150px) !important; /* Match servicemenu width */
+    width: clamp(140px, 44vw, 170px) !important; /* Match servicemenu width */
     height: 38px !important; /* Match reduced servicemenu height */
     font-size: clamp(14px, 4vw, 18px) !important; /* Smaller font */
     padding-left: 6px !important; /* Reduce padding */
     padding-right: 4px !important; /* Reduce padding */
+  }
+  
+  .jobcat-servicemenu-overlay {
+    width: clamp(140px, 44vw, 170px) !important; /* Match button width exactly */
+    left: -5px !important;
   }
   
   .jobcat-headerbuttons {
@@ -979,6 +984,11 @@ body::-webkit-scrollbar {
     font-size: clamp(16px, 4.5vw, 20px) !important;
     padding-left: 8px !important;
     padding-right: 6px !important;
+  }
+  
+  .jobcat-servicemenu-overlay {
+    width: clamp(180px, 55vw, 200px) !important; /* Match button width exactly */
+    left: -5px !important;
   }
   
   .jobcat-headerbuttons {
