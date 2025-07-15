@@ -516,8 +516,8 @@ body:has(.profile-header) {
 }
 
 /* Smaller Mobile Screens (400px and below) */
-
-
+  
+  
 /* Ultra Small Screens (360px and below) - Prevent title overflow */
 @media (max-width: 360px) {
   .profile-header-title {
@@ -528,7 +528,7 @@ body:has(.profile-header) {
   .profile-header-title-container {
     height: 62px; /* Slightly reduced height for ultra-small screens */
     padding-right: 2px; 
-  } 
+  }
   
   .profile-header-btn {
     width: clamp(36px, 8vw, 40px); /* Slightly smaller buttons for more title space */

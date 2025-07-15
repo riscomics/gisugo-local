@@ -932,7 +932,7 @@ body::-webkit-scrollbar {
   .jobcat-servicename {
     width: clamp(140px, 44vw, 170px) !important; /* Match servicemenu width */
     height: 38px !important; /* Match reduced servicemenu height */
-    font-size: clamp(14px, 4vw, 18px) !important; /* Smaller font */
+    font-size: clamp(17px, 4vw, 21px) !important; /* Increased by 3px equivalent */
     padding-left: 6px !important; /* Reduce padding */
     padding-right: 4px !important; /* Reduce padding */
   }
@@ -940,6 +940,10 @@ body::-webkit-scrollbar {
   .jobcat-servicemenu-overlay {
     width: clamp(140px, 44vw, 170px) !important; /* Match button width exactly */
     left: -5px !important;
+  }
+  
+  .jobcat-servicemenu-overlay a {
+    font-size: clamp(17px, 4vw, 21px) !important; /* Match button fontsize */
   }
   
   .jobcat-headerbuttons {
