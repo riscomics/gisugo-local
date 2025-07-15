@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Jobs Management - GISUGO</title>
-    <link rel="stylesheet" href="public/css/jobs.css?v=2.4">
+    <link rel="stylesheet" href="public/css/jobs.css?v=2.5">
 </head>
 <body>
     <!-- Header -->
@@ -495,5 +495,40 @@
 
     <script src="public/js/shared-menu.js"></script>
     <script src="public/js/jobs.js?v=15"></script>
+    
+    <!-- Temporary Debug Tool for Viewport Width -->
+    <div id="vp-debug"></div>
+    
+    <!-- Viewport Debug Script -->
+    <script>
+      function updateViewportWidth() {
+        const el = document.getElementById('vp-debug');
+        if (el) {
+          el.textContent = `Viewport: ${window.innerWidth}px`;
+        }
+      }
+
+      const style = `
+        position:fixed;
+        bottom:0;
+        left:0;
+        background:#000;
+        color:#fff;
+        padding:4px 8px;
+        font-size:12px;
+        opacity:0.6;
+        z-index:9999;
+        font-family:monospace;
+        border-radius: 0 4px 0 0;
+        pointer-events: none;
+      `;
+
+      const debugEl = document.getElementById('vp-debug');
+      if (debugEl) {
+        debugEl.setAttribute('style', style);
+        updateViewportWidth();
+        window.addEventListener('resize', updateViewportWidth);
+      }
+    </script>
 </body>
 </html> 

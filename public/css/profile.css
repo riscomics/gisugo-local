@@ -597,8 +597,8 @@ body:has(.profile-header) {
   }
 }
 
-/* Ultra Small Screens (337px and below) - Prevent title overflow */
-@media (max-width: 337px) {
+/* Ultra Small Screens (360px and below) - Prevent title overflow */
+@media (max-width: 360px) {
   .profile-header-title {
     font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Further increased for much better readability */
     letter-spacing: -0.5px; /* Slight letter spacing reduction for better fit */
@@ -627,11 +627,7 @@ body:has(.profile-header) {
     padding-right: 3px; 
   } 
   
-  .profile-header-title {
-    font-size: clamp(1.1rem, 5.5vw, 1.3rem); /* iPhone 7 title */
-    padding-left: 3px;
-    padding-right: 3px;
-  }
+  /* Header title sizing handled by base responsive and ultra-small media queries */
    
   .profile-header-btn {
     width: clamp(35px, 10vw, 40px);
