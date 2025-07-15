@@ -263,7 +263,7 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding-top: clamp(20px, 5vw, 30px); /* More conservative padding */
+  padding-top: clamp(8px, 2vw, 12px); /* Reduced top padding for better spacing */
   padding-left: clamp(15px, 4vw, 25px); /* Add left spacing */
   padding-right: clamp(15px, 4vw, 25px); /* Add right spacing */
   gap: clamp(8px, 2vw, 15px); /* Much smaller gap to prevent bleeding */
@@ -326,16 +326,16 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding: clamp(4px, 1vw, 5px) clamp(1px, 0.5vw, 2px); /* Responsive padding */
+    padding: clamp(8px, 2vw, 12px) clamp(1px, 0.5vw, 2px); /* Added top padding for spacing from borderline */
     gap: clamp(4px, 1.5vw, 6px); /* Responsive gap */
-    height: clamp(32px, 10vh, 38px); /* Responsive height */
+    height: clamp(40px, 12vh, 48px); /* Increased height for better spacing */
   }
 
   .region-menu, .city-menu, .pay-menu {
     width: clamp(150px, 40vw, 170px); /* Responsive width for mobile */
-    height: clamp(22px, 6vh, 25px); /* Responsive height */
-    padding: clamp(2px, 0.8vw, 3px) clamp(8px, 2.5vw, 10px); /* Responsive padding */
-    font-size: clamp(13px, 3.5vw, 15px); /* Responsive font size */
+    height: clamp(26px, 7vh, 30px); /* Increased height for better proportions */
+    padding: clamp(3px, 1vw, 4px) clamp(8px, 2.5vw, 10px); /* Increased padding */
+    font-size: clamp(15px, 3.8vw, 17px); /* Increased font size to match overlay */
     font-family: Arial, Helvetica, sans-serif;
   }
 }
@@ -942,7 +942,7 @@ body::-webkit-scrollbar {
   .region-menu, .city-menu, .pay-menu {
     width: clamp(100px, 28vw, 120px) !important; /* Smaller for small screens */
     height: clamp(24px, 5vh, 28px) !important;
-    font-size: clamp(11px, 2.8vw, 14px) !important;
+    font-size: clamp(13px, 3vw, 15px) !important; /* Increased to match overlay font size */
     padding: clamp(2px, 0.8vw, 3px) clamp(6px, 1.5vw, 8px) !important;
   }
   
@@ -957,7 +957,7 @@ body::-webkit-scrollbar {
   .region-menu, .city-menu, .pay-menu {
     width: clamp(90px, 27vw, 110px) !important; /* Optimized for 375px screens */
     height: clamp(22px, 5vh, 26px) !important;
-    font-size: clamp(10px, 2.7vw, 13px) !important;
+    font-size: clamp(12px, 2.8vw, 14px) !important; /* Increased to match overlay font size */
     padding: clamp(2px, 0.7vw, 3px) clamp(5px, 1.3vw, 7px) !important;
   }
   
@@ -969,16 +969,20 @@ body::-webkit-scrollbar {
 
 /* Small Screens (360px and below) */
 @media (max-width: 360px) {
+  .sortmenus {
+    padding-top: clamp(4px, 1vw, 6px) !important; /* Reduced top padding for smaller screens */
+  }
+
   .region-menu, .city-menu, .pay-menu {
     width: clamp(85px, 26vw, 105px) !important; /* Fit well on 360px screens */
     height: clamp(20px, 4.5vh, 24px) !important;
-    font-size: clamp(9px, 2.5vw, 12px) !important;
+    font-size: clamp(11px, 2.6vw, 13px) !important; /* Increased to match overlay font size */
     padding: clamp(1px, 0.6vw, 2px) clamp(4px, 1.2vw, 6px) !important;
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
     width: clamp(85px, 26vw, 105px) !important;
-    font-size: clamp(8px, 2.2vw, 10px) !important;
+    font-size: clamp(11px, 2.6vw, 13px) !important; /* Increased for better readability */
   }
 }
 
@@ -1002,16 +1006,20 @@ body::-webkit-scrollbar {
     left: -5px !important;
   }
 
+  .sortmenus {
+    padding-top: clamp(3px, 0.8vw, 5px) !important; /* Reduced top padding for smallest screens */
+  }
+
   .region-menu, .city-menu, .pay-menu {
     width: clamp(80px, 25vw, 95px) !important; /* Maximum constraint for 320px */
     height: clamp(18px, 4vh, 22px) !important;
-    font-size: clamp(8px, 2.3vw, 11px) !important;
+    font-size: clamp(10px, 2.4vw, 12px) !important; /* Increased to match overlay font size */
     padding: clamp(1px, 0.5vw, 2px) clamp(3px, 1vw, 5px) !important;
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
     width: clamp(80px, 25vw, 95px) !important;
-    font-size: clamp(7px, 2vw, 9px) !important;
+    font-size: clamp(10px, 2.4vw, 12px) !important; /* Increased for better readability */
   }
   
   .jobcat-servicemenu-overlay a {

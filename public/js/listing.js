@@ -180,12 +180,23 @@ document.getElementById('cityMenuLabel').textContent = activeCity;
 document.getElementById('payMenuLabel').textContent = activePay;
 setTimeout(updateCityMenuLabelFontSize, 0);
 
+// Function to close all dropdown overlays
+function closeAllDropdowns() {
+  document.getElementById('regionMenuOverlay').classList.remove('show');
+  document.getElementById('cityMenuOverlay').classList.remove('show');
+  document.getElementById('payMenuOverlay').classList.remove('show');
+  regionMenuOpen = false;
+  cityMenuOpen = false;
+  payMenuOpen = false;
+}
+
 // Region menu overlay logic
 const regionMenuBtn = document.getElementById('locationRegion');
 const regionMenuOverlay = document.getElementById('regionMenuOverlay');
 let regionMenuOpen = false;
 regionMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
+  closeAllDropdowns(); // Close all other dropdowns first
   regionMenuOverlay.classList.toggle('show');
   regionMenuOpen = regionMenuOverlay.classList.contains('show');
 });
@@ -221,6 +232,7 @@ const cityMenuOverlay = document.getElementById('cityMenuOverlay');
 let cityMenuOpen = false;
 cityMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
+  closeAllDropdowns(); // Close all other dropdowns first
   cityMenuOverlay.classList.toggle('show');
   cityMenuOpen = cityMenuOverlay.classList.contains('show');
   if (cityMenuOpen) renderCityMenu();
@@ -250,6 +262,7 @@ const payMenuOverlay = document.getElementById('payMenuOverlay');
 let payMenuOpen = false;
 payMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
+  closeAllDropdowns(); // Close all other dropdowns first
   payMenuOverlay.classList.toggle('show');
   payMenuOpen = payMenuOverlay.classList.contains('show');
 });
