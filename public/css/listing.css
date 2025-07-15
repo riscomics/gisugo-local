@@ -42,7 +42,7 @@ body::-webkit-scrollbar {
 }
 
 .jobcat-servicemenu {
-  width: clamp(120px, 75vw, 378px); /* Responsive menu width - much lower minimum for 320px */
+  width: clamp(120px, 60vw, 238px); /* Reduced from 75vw and lower max for 492px viewport */
   height: clamp(50px, 12vh, 59px); /* Responsive menu height */
   border-style: solid;
   border-width: 1px;
@@ -263,24 +263,26 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: center;
   align-items: center;
-  padding-top: 30px; /* slightly increased for height */
-  gap: 25px;
-  height: 68px; /* 36px * 1.15 = 41.4px */ 
+  padding-top: clamp(20px, 5vw, 30px); /* More conservative padding */
+  padding-left: clamp(15px, 4vw, 25px); /* Add left spacing */
+  padding-right: clamp(15px, 4vw, 25px); /* Add right spacing */
+  gap: clamp(8px, 2vw, 15px); /* Much smaller gap to prevent bleeding */
+  height: clamp(55px, 15vh, 68px); /* More conservative height */
 }
 
 .sort-menu {
   color: #fff;
   background-color: #363f4f;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 5px;
-  padding: 5px 12px;
-  width: 151px;
-  height: 32px;
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(10px, 3vw, 12px); /* Responsive padding */
+  width: clamp(100px, 22vw, 120px); /* Much smaller width with better spacing */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  font-size: clamp(14px, 4vw, 18px); /* Responsive font size */
   font-weight: 600;
   cursor: pointer;
   user-select: none;
@@ -291,15 +293,15 @@ body::-webkit-scrollbar {
   color: #fff;
   background-color: #363f4f;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 5px;
-  padding: 5px 12px;
-  width: 168px;
-  height: 32px;
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(10px, 3vw, 12px); /* Responsive padding */
+  width: clamp(140px, 30vw, 180px); /* Much wider - nearly full screen with small margins */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  font-size: clamp(14px, 4vw, 18px); /* Responsive font size */
   font-weight: 600;
   cursor: pointer;
   user-select: none;
@@ -324,16 +326,16 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding: 5px 2px;
-    gap: 6px;
-    height: 38px; /* 41.4px * 1.15 for mobile, or adjust as needed */
+    padding: clamp(4px, 1vw, 5px) clamp(1px, 0.5vw, 2px); /* Responsive padding */
+    gap: clamp(4px, 1.5vw, 6px); /* Responsive gap */
+    height: clamp(32px, 10vh, 38px); /* Responsive height */
   }
 
   .region-menu, .city-menu, .pay-menu {
-    width: 170px; /* Adjusted for mobile */
-    height: 25px;
-    padding: 3px 10px;
-    font-size: 15px;
+    width: clamp(150px, 40vw, 170px); /* Responsive width for mobile */
+    height: clamp(22px, 6vh, 25px); /* Responsive height */
+    padding: clamp(2px, 0.8vw, 3px) clamp(8px, 2.5vw, 10px); /* Responsive padding */
+    font-size: clamp(13px, 3.5vw, 15px); /* Responsive font size */
     font-family: Arial, Helvetica, sans-serif;
   }
 }
@@ -343,17 +345,17 @@ body::-webkit-scrollbar {
   position: absolute;
   left: 0;
   top: 100%;
-  width: 136px;
+  width: clamp(100px, 22vw, 120px); /* Match smaller dropdown width */
   background: #434a58;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
+  border: clamp(1px, 0.5vw, 2px) solid rgba(255,255,255,0.3); /* Responsive border */
+  border-radius: clamp(8px, 2vw, 10px); /* Responsive border radius */
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   z-index: 2000;
   padding: 0;
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
-  font-size: 16.25px; /* 17.1px * 0.95 = 16.245px */
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: 227px; /* 216px * 1.05 = 226.8px */
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
 }
@@ -371,15 +373,15 @@ body::-webkit-scrollbar {
 .region-menu-list {
   list-style: none;
   margin: 0;
-  padding: 7px 10px 7px 10px;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
 }
 .region-menu-list li {
   color: #fff;
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
   font-weight: 700;
-  padding: 6px 0 6px 0;
-  border-radius: 4px;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -407,17 +409,17 @@ body::-webkit-scrollbar {
   position: absolute;
   left: 0;
   top: 100%;
-  width: 136px;
+  width: clamp(100px, 22vw, 120px); /* Match smaller dropdown width */
   background: #434a58;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
+  border: clamp(1px, 0.5vw, 2px) solid rgba(255,255,255,0.3); /* Responsive border */
+  border-radius: clamp(8px, 2vw, 10px); /* Responsive border radius */
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   z-index: 2000;
   padding: 0;
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: 227px;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -431,15 +433,15 @@ body::-webkit-scrollbar {
 .city-menu-list {
   list-style: none;
   margin: 0;
-  padding: 7px 10px 7px 10px;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
 }
 .city-menu-list li {
   color: #fff;
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
   font-weight: 700;
-  padding: 6px 0 6px 0;
-  border-radius: 4px;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -463,17 +465,17 @@ body::-webkit-scrollbar {
   position: absolute;
   left: 0;
   top: 100%;
-  width: 122px;
+  width: clamp(100px, 22vw, 120px); /* Match smaller dropdown width */
   background: #434a58;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px;
+  border: clamp(1px, 0.5vw, 2px) solid rgba(255,255,255,0.3); /* Responsive border */
+  border-radius: clamp(8px, 2vw, 10px); /* Responsive border radius */
   box-shadow: 0 4px 16px rgba(0,0,0,0.18);
   z-index: 2000;
   padding: 0;
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: 227px;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
   overflow-y: auto;
   scrollbar-width: none;
 }
@@ -487,15 +489,15 @@ body::-webkit-scrollbar {
 .pay-menu-list {
   list-style: none;
   margin: 0;
-  padding: 7px 10px 7px 10px;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
 }
 .pay-menu-list li {
   color: #fff;
-  font-size: 16.25px;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
   font-weight: 700;
-  padding: 6px 0 6px 0;
-  border-radius: 4px;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -882,16 +884,29 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu {
-    width: clamp(120px, 75vw, 238px); /* Now responsive for 320px */
+    width: clamp(120px, 65vw, 238px); /* Restored normal jobcat dropdown */
     height: clamp(38px, 12vh, 49px);
   }
   
   .jobcat-servicename {
-    width: clamp(120px, 75vw, 238px);
+    width: clamp(120px, 65vw, 238px);
     height: 47px;
     font-size: 22px;
     padding-left: 12px;
     padding-right: 8px; 
+  }
+
+  /* Fix the ACTUAL dropdowns user has been asking about */
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(90px, 25vw, 130px) !important; /* Smaller so 3 dropdowns + gaps fit with margins */
+    height: clamp(26px, 6vh, 30px) !important;
+    font-size: clamp(12px, 3vw, 16px) !important;
+    padding: clamp(3px, 1vw, 4px) clamp(8px, 2vw, 10px) !important;
+  }
+
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(90px, 25vw, 130px) !important; /* Match smaller dropdowns */
+    font-size: clamp(11px, 2.5vw, 14px) !important;
   }
   
   .jobcat-headerbuttons {
@@ -922,15 +937,60 @@ body::-webkit-scrollbar {
   }
 }
 
+/* Small Mobile Screens (400px and below) */
+@media (max-width: 400px) {
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(100px, 28vw, 120px) !important; /* Smaller for small screens */
+    height: clamp(24px, 5vh, 28px) !important;
+    font-size: clamp(11px, 2.8vw, 14px) !important;
+    padding: clamp(2px, 0.8vw, 3px) clamp(6px, 1.5vw, 8px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(100px, 28vw, 120px) !important;
+    font-size: clamp(10px, 2.5vw, 12px) !important;
+  }
+}
+
+/* iPhone 7 and similar (375px and below) */
+@media (max-width: 375px) {
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(90px, 27vw, 110px) !important; /* Optimized for 375px screens */
+    height: clamp(22px, 5vh, 26px) !important;
+    font-size: clamp(10px, 2.7vw, 13px) !important;
+    padding: clamp(2px, 0.7vw, 3px) clamp(5px, 1.3vw, 7px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(90px, 27vw, 110px) !important;
+    font-size: clamp(9px, 2.4vw, 11px) !important;
+  }
+}
+
+/* Small Screens (360px and below) */
+@media (max-width: 360px) {
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(85px, 26vw, 105px) !important; /* Fit well on 360px screens */
+    height: clamp(20px, 4.5vh, 24px) !important;
+    font-size: clamp(9px, 2.5vw, 12px) !important;
+    padding: clamp(1px, 0.6vw, 2px) clamp(4px, 1.2vw, 6px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(85px, 26vw, 105px) !important;
+    font-size: clamp(8px, 2.2vw, 10px) !important;
+  }
+}
+
 /* Ultra Small Screens (320px and below) - Fix header overflow */
 @media (max-width: 320px) {
   .jobcat-servicemenu {
-    width: clamp(160px, 50vw, 190px) !important; /* Increased width for better usability */
+    width: clamp(100px, 40vw, 140px) !important; /* Much smaller for 320px */
     height: 40px !important; /* Reduce height */
   }
   
   .jobcat-servicename {
-    width: clamp(160px, 50vw, 190px) !important; /* Match servicemenu width */
+    width: clamp(100px, 40vw, 140px) !important; /* Match servicemenu width */
     height: 38px !important; /* Match reduced servicemenu height */
     font-size: clamp(17px, 4vw, 21px) !important; /* Increased by 3px equivalent */
     padding-left: 6px !important; /* Reduce padding */
@@ -938,8 +998,20 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu-overlay {
-    width: clamp(160px, 50vw, 190px) !important; /* Match increased button width */
+    width: clamp(100px, 40vw, 140px) !important; /* Match smaller button width */
     left: -5px !important;
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(80px, 25vw, 95px) !important; /* Maximum constraint for 320px */
+    height: clamp(18px, 4vh, 22px) !important;
+    font-size: clamp(8px, 2.3vw, 11px) !important;
+    padding: clamp(1px, 0.5vw, 2px) clamp(3px, 1vw, 5px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(80px, 25vw, 95px) !important;
+    font-size: clamp(7px, 2vw, 9px) !important;
   }
   
   .jobcat-servicemenu-overlay a {
