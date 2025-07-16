@@ -937,6 +937,31 @@ body::-webkit-scrollbar {
   }
 }
 
+/* Medium Mobile Screens (401px to 480px) - Optimize 411px viewport */
+@media (max-width: 480px) and (min-width: 401px) {
+  .sortmenus {
+    padding-top: clamp(4px, 1vw, 6px) !important; /* Reduced top padding for tighter spacing */
+    height: clamp(50px, 12vh, 55px) !important; /* Slightly increased height for larger buttons */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(120px, 28vw, 140px) !important; /* Increased width for better proportion */
+    height: clamp(32px, 7vh, 36px) !important; /* Increased height for bigger buttons */
+    font-size: clamp(16px, 3.8vw, 18px) !important; /* Increased font size for dropdown buttons */
+    padding: clamp(4px, 1vw, 5px) clamp(10px, 2.5vw, 12px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(120px, 28vw, 140px) !important; /* Match larger dropdown width */
+    font-size: clamp(15px, 3.5vw, 17px) !important; /* Increased overlay font size for better readability */
+  }
+  
+  .region-menu-list li, .city-menu-list li, .pay-menu-list li {
+    font-size: clamp(15px, 3.5vw, 17px) !important; /* Ensure list items match overlay font size */
+    padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Slightly increased padding for better touch targets */
+  }
+}
+
 /* Small Mobile Screens (400px and below) */
 @media (max-width: 400px) {
   .region-menu, .city-menu, .pay-menu {
