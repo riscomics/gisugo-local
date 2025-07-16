@@ -196,9 +196,16 @@ const regionMenuOverlay = document.getElementById('regionMenuOverlay');
 let regionMenuOpen = false;
 regionMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  closeAllDropdowns(); // Close all other dropdowns first
-  regionMenuOverlay.classList.toggle('show');
-  regionMenuOpen = regionMenuOverlay.classList.contains('show');
+  // If this dropdown is already open, just close it
+  if (regionMenuOpen) {
+    regionMenuOverlay.classList.remove('show');
+    regionMenuOpen = false;
+    return;
+  }
+  // Otherwise close all others and open this one
+  closeAllDropdowns();
+  regionMenuOverlay.classList.add('show');
+  regionMenuOpen = true;
 });
 // Close overlay when clicking outside
 document.addEventListener('click', function(e) {
@@ -232,10 +239,17 @@ const cityMenuOverlay = document.getElementById('cityMenuOverlay');
 let cityMenuOpen = false;
 cityMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  closeAllDropdowns(); // Close all other dropdowns first
-  cityMenuOverlay.classList.toggle('show');
-  cityMenuOpen = cityMenuOverlay.classList.contains('show');
-  if (cityMenuOpen) renderCityMenu();
+  // If this dropdown is already open, just close it
+  if (cityMenuOpen) {
+    cityMenuOverlay.classList.remove('show');
+    cityMenuOpen = false;
+    return;
+  }
+  // Otherwise close all others and open this one
+  closeAllDropdowns();
+  renderCityMenu();
+  cityMenuOverlay.classList.add('show');
+  cityMenuOpen = true;
 });
 // Close overlay when clicking outside
 document.addEventListener('click', function(e) {
@@ -262,9 +276,16 @@ const payMenuOverlay = document.getElementById('payMenuOverlay');
 let payMenuOpen = false;
 payMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  closeAllDropdowns(); // Close all other dropdowns first
-  payMenuOverlay.classList.toggle('show');
-  payMenuOpen = payMenuOverlay.classList.contains('show');
+  // If this dropdown is already open, just close it
+  if (payMenuOpen) {
+    payMenuOverlay.classList.remove('show');
+    payMenuOpen = false;
+    return;
+  }
+  // Otherwise close all others and open this one
+  closeAllDropdowns();
+  payMenuOverlay.classList.add('show');
+  payMenuOpen = true;
 });
 // Close overlay when clicking outside
 document.addEventListener('click', function(e) {

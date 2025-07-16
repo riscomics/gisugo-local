@@ -940,10 +940,13 @@ body::-webkit-scrollbar {
 /* Medium Mobile Screens (401px to 480px) - Optimize 411px viewport */
 @media (max-width: 480px) and (min-width: 401px) {
   .sortmenus {
-    padding-top: clamp(2px, 0.5vw, 4px) !important; /* Further reduced top padding */
+    padding-top: 0 !important; /* Remove top padding for perfect centering */
+    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
     padding-left: clamp(8px, 2vw, 12px) !important; /* Add left margin from edge */
     padding-right: clamp(8px, 2vw, 12px) !important; /* Add right margin from edge */
     height: clamp(42px, 10vh, 46px) !important; /* Reduced height for smaller buttons */
+    align-items: center !important; /* Vertically center the dropdowns */
+    justify-content: center !important; /* Horizontally center with gap distribution */
   }
 
   .region-menu, .city-menu, .pay-menu {
