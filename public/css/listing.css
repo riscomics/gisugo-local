@@ -1073,20 +1073,24 @@ body::-webkit-scrollbar {
   }
 
   .region-menu, .city-menu, .pay-menu {
-    width: clamp(90px, 26vw, 105px) !important; /* Slightly smaller width */
-    height: clamp(24px, 5.5vh, 28px) !important; /* Slightly smaller height */
-    font-size: clamp(13px, 3.2vw, 15px) !important; /* Slightly smaller font size */
-    padding: clamp(3px, 0.7vw, 4px) clamp(5px, 1.6vw, 7px) !important;
+    width: clamp(95px, 28vw, 110px) !important; /* Increased width slightly */
+    height: clamp(22px, 5vh, 26px) !important; /* Reduced height slightly */
+    font-size: clamp(13px, 3.2vw, 15px) !important; /* Keep font size */
+    padding: clamp(2px, 0.6vw, 3px) clamp(5px, 1.6vw, 7px) !important;
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
-    width: clamp(90px, 26vw, 105px) !important; /* Match smaller dropdown width */
-    font-size: clamp(12px, 3vw, 14px) !important; /* Slightly smaller overlay font size */
+    width: clamp(95px, 28vw, 110px) !important; /* Match increased dropdown width */
+    font-size: clamp(12px, 3vw, 14px) !important; /* Keep overlay font size */
   }
   
   .region-menu-list li, .city-menu-list li, .pay-menu-list li {
     font-size: clamp(12px, 3vw, 14px) !important; /* Match overlay font size */
-    padding: clamp(3px, 1vw, 5px) 0 !important; /* Adjusted padding */
+    padding: clamp(3px, 1vw, 5px) 0 !important; /* Keep padding */
+  }
+  
+  .jobcat-header-spacer {
+    height: 50px !important; /* Reduced spacing between second borderline and job cards */
   }
 }
 
