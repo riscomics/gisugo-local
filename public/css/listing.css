@@ -1104,8 +1104,8 @@ body::-webkit-scrollbar {
 /* Job card spacing fix specifically for 360px */
 @media (max-width: 360px) {
   .jobcat-header-spacer {
-    height: -8px !important; /* Negative spacing to pull job cards closer to dropdown area */
-    margin: 0 !important; /* Remove any additional margin */
+    height: 0 !important; /* Remove height */
+    margin: -12px 0 0 0 !important; /* Negative top margin to pull job cards up */
     padding: 0 !important; /* Remove any additional padding */
   }
   
