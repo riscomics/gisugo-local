@@ -971,8 +971,35 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Small Mobile Screens (400px and below) */
-@media (max-width: 400px) {
+/* Small Mobile Screens (384px viewport optimization) */
+@media (max-width: 400px) and (min-width: 376px) {
+  .sortmenus {
+    padding-top: 0 !important; /* Remove top padding for perfect centering */
+    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
+    height: clamp(40px, 10vh, 44px) !important; /* Reduced height for tighter vertical spacing */
+    align-items: center !important; /* Vertically center the dropdowns */
+    justify-content: center !important; /* Horizontally center with gap distribution */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(100px, 28vw, 120px) !important; /* Smaller for small screens */
+    height: clamp(24px, 5vh, 28px) !important;
+    font-size: clamp(13px, 3vw, 15px) !important; /* Increased to match overlay font size */
+    padding: clamp(2px, 0.8vw, 3px) clamp(6px, 1.5vw, 8px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(100px, 28vw, 120px) !important;
+    font-size: clamp(10px, 2.5vw, 12px) !important;
+  }
+  
+  .jobcat-header-spacer {
+    height: 55px !important; /* Reduced spacing between second borderline and job cards */
+  }
+}
+
+/* Small Mobile Screens (375px and below) */
+@media (max-width: 375px) {
   .region-menu, .city-menu, .pay-menu {
     width: clamp(100px, 28vw, 120px) !important; /* Smaller for small screens */
     height: clamp(24px, 5vh, 28px) !important;
