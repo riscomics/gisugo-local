@@ -1064,6 +1064,11 @@ body::-webkit-scrollbar {
 
 /* Small Screens (360px and below) */
 @media (max-width: 360px) {
+  .jobcat-sort-header {
+    top: 70px !important; /* Ensure proper positioning */
+    z-index: 100 !important; /* Higher z-index to prevent content bleeding through */
+  }
+  
   .sortmenus {
     padding-top: clamp(3px, 0.8vw, 4px) !important; /* Minimal top padding for centering */
     padding-bottom: clamp(3px, 0.8vw, 4px) !important; /* Minimal bottom padding for centering */
@@ -1095,7 +1100,7 @@ body::-webkit-scrollbar {
 /* Job card spacing fix specifically for 360px */
 @media (max-width: 360px) {
   .jobcat-header-spacer {
-    height: 20px !important; /* Minimal spacing between second borderline and job cards */
+    height: 15px !important; /* Even more minimal spacing between second borderline and job cards */
     margin: 0 !important; /* Remove any additional margin */
     padding: 0 !important; /* Remove any additional padding */
   }
