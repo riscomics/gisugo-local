@@ -1003,28 +1003,28 @@ body::-webkit-scrollbar {
   .sortmenus {
     padding-top: 0 !important; /* Remove top padding for perfect centering */
     padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    padding-left: clamp(6px, 1.5vw, 10px) !important; /* Add left margin from edge */
-    padding-right: clamp(6px, 1.5vw, 10px) !important; /* Add right margin from edge */
-    height: clamp(42px, 10vh, 46px) !important; /* Slightly increased height for larger buttons */
+    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
+    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
+    height: clamp(36px, 8vh, 40px) !important; /* Reduced height to minimize top spacing */
     align-items: center !important; /* Vertically center the dropdowns */
     justify-content: center !important; /* Horizontally center with gap distribution */
   }
 
   .region-menu, .city-menu, .pay-menu {
-    width: clamp(100px, 29vw, 115px) !important; /* Increased width for better proportion */
-    height: clamp(26px, 6vh, 30px) !important; /* Increased height for bigger buttons */
-    font-size: clamp(14px, 3.2vw, 16px) !important; /* Increased font size for dropdown buttons */
-    padding: clamp(3px, 0.8vw, 4px) clamp(6px, 1.5vw, 8px) !important;
+    width: clamp(110px, 32vw, 125px) !important; /* Significantly increased width */
+    height: clamp(30px, 7vh, 34px) !important; /* Significantly increased height */
+    font-size: clamp(16px, 4vw, 18px) !important; /* Much larger font size for dropdown buttons */
+    padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 10px) !important;
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
-    width: clamp(100px, 29vw, 115px) !important; /* Match larger dropdown width */
-    font-size: clamp(13px, 3vw, 15px) !important; /* Increased overlay font size for better readability */
+    width: clamp(110px, 32vw, 125px) !important; /* Match larger dropdown width */
+    font-size: clamp(15px, 3.8vw, 17px) !important; /* Much larger overlay font size */
   }
   
   .region-menu-list li, .city-menu-list li, .pay-menu-list li {
-    font-size: clamp(13px, 3vw, 15px) !important; /* Ensure list items match overlay font size */
-    padding: clamp(4px, 1.2vw, 6px) 0 !important; /* Slightly increased padding for better touch targets */
+    font-size: clamp(15px, 3.8vw, 17px) !important; /* Ensure list items match overlay font size */
+    padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Increased padding for better touch targets */
   }
   
   /* Keep existing job card spacing - don't change jobcat-header-spacer */
