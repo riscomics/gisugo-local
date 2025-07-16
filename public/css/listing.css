@@ -1065,11 +1065,11 @@ body::-webkit-scrollbar {
 /* Small Screens (360px and below) */
 @media (max-width: 360px) {
   body {
-    padding: 62px 0 0 0 !important; /* Reduced body padding to minimize space above dropdowns */
+    padding: 68px 0 0 0 !important; /* Adjusted body padding to show first borderline */
   }
   
   .jobcat-sort-header {
-    top: 62px !important; /* Adjusted to match reduced body padding */
+    top: 68px !important; /* Adjusted to match body padding */
     z-index: 100 !important; /* Higher z-index to prevent content bleeding through */
   }
   
@@ -1104,9 +1104,13 @@ body::-webkit-scrollbar {
 /* Job card spacing fix specifically for 360px */
 @media (max-width: 360px) {
   .jobcat-header-spacer {
-    height: 8px !important; /* Minimal spacing between second borderline and job cards */
+    height: 2px !important; /* Absolute minimal spacing between second borderline and job cards */
     margin: 0 !important; /* Remove any additional margin */
     padding: 0 !important; /* Remove any additional padding */
+  }
+  
+  .job-preview-card:first-of-type {
+    margin-top: 0 !important; /* Remove any top margin from first job card */
   }
 }
 
