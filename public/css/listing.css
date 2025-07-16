@@ -965,6 +965,10 @@ body::-webkit-scrollbar {
     font-size: clamp(14px, 3.2vw, 15px) !important; /* Match overlay font size */
     padding: clamp(4px, 1.2vw, 5px) 0 !important; /* Reduced padding for tighter list */
   }
+  
+  .jobcat-header-spacer {
+    height: 60px !important; /* Reduced spacing between second borderline and job cards */
+  }
 }
 
 /* Small Mobile Screens (400px and below) */
