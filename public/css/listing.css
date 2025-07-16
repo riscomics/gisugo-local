@@ -1073,20 +1073,20 @@ body::-webkit-scrollbar {
   }
 
   .region-menu, .city-menu, .pay-menu {
-    width: clamp(110px, 32vw, 125px) !important; /* Significantly increased width */
-    height: clamp(30px, 7vh, 34px) !important; /* Significantly increased height */
-    font-size: clamp(16px, 4vw, 18px) !important; /* Much larger font size for dropdown buttons */
-    padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 10px) !important;
+    width: clamp(95px, 28vw, 110px) !important; /* Reduced width for better proportion */
+    height: clamp(26px, 6vh, 30px) !important; /* Reduced height to more reasonable size */
+    font-size: clamp(14px, 3.5vw, 16px) !important; /* Slightly reduced font size */
+    padding: clamp(3px, 0.8vw, 4px) clamp(6px, 1.8vw, 8px) !important;
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
-    width: clamp(110px, 32vw, 125px) !important; /* Match larger dropdown width */
-    font-size: clamp(15px, 3.8vw, 17px) !important; /* Much larger overlay font size */
+    width: clamp(95px, 28vw, 110px) !important; /* Match reduced dropdown width */
+    font-size: clamp(13px, 3.2vw, 15px) !important; /* Reduced overlay font size */
   }
   
   .region-menu-list li, .city-menu-list li, .pay-menu-list li {
-    font-size: clamp(15px, 3.8vw, 17px) !important; /* Ensure list items match overlay font size */
-    padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Increased padding for better touch targets */
+    font-size: clamp(13px, 3.2vw, 15px) !important; /* Match overlay font size */
+    padding: clamp(4px, 1.2vw, 6px) 0 !important; /* Adjusted padding */
   }
 }
 
