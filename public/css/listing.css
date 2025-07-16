@@ -1064,8 +1064,12 @@ body::-webkit-scrollbar {
 
 /* Small Screens (360px and below) */
 @media (max-width: 360px) {
+  body {
+    padding: 62px 0 0 0 !important; /* Reduced body padding to minimize space above dropdowns */
+  }
+  
   .jobcat-sort-header {
-    top: 70px !important; /* Ensure proper positioning */
+    top: 62px !important; /* Adjusted to match reduced body padding */
     z-index: 100 !important; /* Higher z-index to prevent content bleeding through */
   }
   
@@ -1100,7 +1104,7 @@ body::-webkit-scrollbar {
 /* Job card spacing fix specifically for 360px */
 @media (max-width: 360px) {
   .jobcat-header-spacer {
-    height: 15px !important; /* Even more minimal spacing between second borderline and job cards */
+    height: 8px !important; /* Minimal spacing between second borderline and job cards */
     margin: 0 !important; /* Remove any additional margin */
     padding: 0 !important; /* Remove any additional padding */
   }
