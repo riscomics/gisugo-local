@@ -873,6 +873,13 @@ body::-webkit-scrollbar {
   }
 }
 
+/* Override for smaller screens */
+@media (max-width: 360px) {
+  .jobcat-header-spacer {
+    height: 25px !important; /* Minimal spacing for 360px viewport */
+  }
+}
+
 @media (max-width: 600px) {
   body {
     padding: 72px 0 0 0; /* Add top padding for mobile fixed header */
@@ -1067,7 +1074,7 @@ body::-webkit-scrollbar {
     padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
     padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
     padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
-    height: clamp(30px, 7vh, 34px) !important; /* Further reduced height for better vertical centering */
+    height: clamp(34px, 8vh, 38px) !important; /* Increased height for proper button centering */
     align-items: center !important; /* Vertically center the dropdowns */
     justify-content: center !important; /* Horizontally center with gap distribution */
   }
@@ -1090,7 +1097,7 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-header-spacer {
-    height: 40px !important; /* Further reduced spacing between second borderline and job cards */
+    height: 30px !important; /* Minimal spacing between second borderline and job cards */
   }
 }
 
