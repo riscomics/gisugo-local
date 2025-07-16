@@ -1003,21 +1003,28 @@ body::-webkit-scrollbar {
   .sortmenus {
     padding-top: 0 !important; /* Remove top padding for perfect centering */
     padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    height: clamp(38px, 9vh, 42px) !important; /* Reduced height for tighter vertical spacing */
+    padding-left: clamp(6px, 1.5vw, 10px) !important; /* Add left margin from edge */
+    padding-right: clamp(6px, 1.5vw, 10px) !important; /* Add right margin from edge */
+    height: clamp(42px, 10vh, 46px) !important; /* Slightly increased height for larger buttons */
     align-items: center !important; /* Vertically center the dropdowns */
     justify-content: center !important; /* Horizontally center with gap distribution */
   }
 
   .region-menu, .city-menu, .pay-menu {
-    width: clamp(90px, 27vw, 110px) !important; /* Optimized for 375px screens */
-    height: clamp(22px, 5vh, 26px) !important;
-    font-size: clamp(12px, 2.8vw, 14px) !important; /* Increased to match overlay font size */
-    padding: clamp(2px, 0.7vw, 3px) clamp(5px, 1.3vw, 7px) !important;
+    width: clamp(100px, 29vw, 115px) !important; /* Increased width for better proportion */
+    height: clamp(26px, 6vh, 30px) !important; /* Increased height for bigger buttons */
+    font-size: clamp(14px, 3.2vw, 16px) !important; /* Increased font size for dropdown buttons */
+    padding: clamp(3px, 0.8vw, 4px) clamp(6px, 1.5vw, 8px) !important;
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
-    width: clamp(90px, 27vw, 110px) !important;
-    font-size: clamp(9px, 2.4vw, 11px) !important;
+    width: clamp(100px, 29vw, 115px) !important; /* Match larger dropdown width */
+    font-size: clamp(13px, 3vw, 15px) !important; /* Increased overlay font size for better readability */
+  }
+  
+  .region-menu-list li, .city-menu-list li, .pay-menu-list li {
+    font-size: clamp(13px, 3vw, 15px) !important; /* Ensure list items match overlay font size */
+    padding: clamp(4px, 1.2vw, 6px) 0 !important; /* Slightly increased padding for better touch targets */
   }
   
   /* Keep existing job card spacing - don't change jobcat-header-spacer */
