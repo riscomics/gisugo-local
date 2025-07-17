@@ -1114,8 +1114,16 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Ultra Small Screens (320px and below) - Fix header overflow */
+/* Ultra Small Screens (320px and below) - Optimized layout */
 @media (max-width: 320px) {
+  body {
+    padding: 60px 0 0 0 !important; /* Reduced body padding to minimize empty space above dropdowns */
+  }
+  
+  .jobcat-sort-header {
+    top: 60px !important; /* Match reduced body padding */
+  }
+  
   .jobcat-servicemenu {
     width: clamp(100px, 40vw, 140px) !important; /* Much smaller for 320px */
     height: 40px !important; /* Reduce height */
@@ -1135,19 +1143,19 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding-top: clamp(3px, 0.8vw, 5px) !important; /* Reduced top padding for smallest screens */
+    padding: clamp(2px, 0.8vw, 4px) clamp(6px, 2vw, 10px) !important; /* Added left/right edge spacing */
   }
 
   .region-menu, .city-menu, .pay-menu {
-    width: clamp(80px, 25vw, 95px) !important; /* Maximum constraint for 320px */
-    height: clamp(18px, 4vh, 22px) !important;
-    font-size: clamp(10px, 2.4vw, 12px) !important; /* Increased to match overlay font size */
-    padding: clamp(1px, 0.5vw, 2px) clamp(3px, 1vw, 5px) !important;
+    width: clamp(85px, 28vw, 105px) !important; /* Increased size for better usability */
+    height: clamp(22px, 5vh, 26px) !important; /* Increased height */
+    font-size: clamp(11px, 2.8vw, 14px) !important; /* Increased font size */
+    padding: clamp(2px, 0.8vw, 3px) clamp(4px, 1.2vw, 6px) !important; /* Better padding */
   }
   
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
-    width: clamp(80px, 25vw, 95px) !important;
-    font-size: clamp(10px, 2.4vw, 12px) !important; /* Increased for better readability */
+    width: clamp(85px, 28vw, 105px) !important; /* Match increased button width */
+    font-size: clamp(11px, 2.8vw, 14px) !important; /* Increased overlay font size */
   }
   
   .jobcat-servicemenu-overlay a {
@@ -1175,11 +1183,13 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-header-spacer {
-    height: 70px !important; /* Smaller spacer for ultra-small screens */
+    height: 0 !important; /* Remove spacer height */
+    margin: -10px 0 0 0 !important; /* Negative margin to pull job cards closer */
+    padding: 0 !important;
   }
   
-  body {
-    padding: 68px 0 0 0 !important; /* Adjust for smaller header */
+  .job-preview-card:first-of-type {
+    margin-top: 0 !important; /* Remove any top margin from first job card */
   }
 }
 
