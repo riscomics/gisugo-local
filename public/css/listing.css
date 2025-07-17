@@ -867,7 +867,7 @@ body::-webkit-scrollbar {
 /* 400px Breakpoint */
 @media (max-width: 400px) {
   .job-preview-card {
-    width: clamp(320px, 95vw, 380px) !important;
+    width: clamp(340px, 97vw, 390px) !important; /* Increased width to better fill screen */
     height: clamp(85px, 18vh, 100px) !important; /* Override fixed 120px height */
     min-height: clamp(85px, 18vh, 100px) !important; /* Override fixed 96px min-height */
     margin: 0 auto clamp(6px, 1.5vh, 10px) auto !important;
@@ -875,24 +875,28 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-img {
-    width: clamp(75px, 20vw, 90px) !important;
-    min-width: clamp(75px, 20vw, 90px) !important;
+    width: clamp(85px, 22vw, 100px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(85px, 22vw, 100px) !important;
     height: 100% !important; /* Fill full card height */
     margin: 0 !important; /* Remove all margins to be flush */
     border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
   }
   
   .job-preview-content {
     height: 100% !important; /* Fill available height */
     margin-left: clamp(8px, 2vw, 12px) !important;
     margin-right: clamp(4px, 1vw, 8px) !important;
-    padding: clamp(6px, 1.5vh, 10px) clamp(2px, 0.5vw, 4px) !important;
-    justify-content: space-between !important; /* Distribute content evenly */
+    padding: clamp(8px, 2vh, 12px) clamp(2px, 0.5vw, 4px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
   }
   
   .job-preview-title {
     font-size: clamp(0.9rem, 3.8vw, 1.0rem) !important; /* Override any fixed px */
-    margin-bottom: clamp(2px, 0.8vh, 4px) !important;
+    margin-bottom: clamp(4px, 1vh, 6px) !important; /* Increased margin */
     line-height: clamp(1.15, 1.3vh, 1.3) !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-weight: 400 !important; /* Override bold weight */
@@ -900,7 +904,7 @@ body::-webkit-scrollbar {
   
   .job-preview-extras {
     gap: clamp(3px, 0.8vh, 5px) !important;
-    margin-top: clamp(2px, 0.8vh, 4px) !important;
+    margin-top: clamp(3px, 1vh, 5px) !important; /* Increased margin */
   }
   
   .job-preview-extra1, .job-preview-extra2 {
@@ -949,7 +953,7 @@ body::-webkit-scrollbar {
 /* 375px Breakpoint (iPhone 7 and similar) */
 @media (max-width: 375px) {
   .job-preview-card {
-    width: clamp(300px, 92vw, 360px) !important;
+    width: clamp(320px, 95vw, 370px) !important; /* Increased width to better fill screen */
     height: clamp(80px, 16vh, 95px) !important; /* Override fixed heights */
     min-height: clamp(80px, 16vh, 95px) !important;
     margin: 0 auto clamp(5px, 1.2vh, 8px) auto !important;
@@ -957,24 +961,28 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-img {
-    width: clamp(70px, 18vw, 85px) !important;
-    min-width: clamp(70px, 18vw, 85px) !important;
+    width: clamp(80px, 20vw, 95px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(80px, 20vw, 95px) !important;
     height: 100% !important; /* Fill full card height */
     margin: 0 !important; /* Remove all margins to be flush */
     border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
   }
   
   .job-preview-content {
     height: 100% !important; /* Fill available height */
     margin-left: clamp(6px, 1.5vw, 10px) !important;
     margin-right: clamp(3px, 0.8vw, 6px) !important;
-    padding: clamp(5px, 1.2vh, 8px) clamp(1px, 0.3vw, 3px) !important;
-    justify-content: space-between !important; /* Distribute content evenly */
+    padding: clamp(7px, 1.8vh, 10px) clamp(1px, 0.3vw, 3px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
   }
   
   .job-preview-title {
     font-size: clamp(0.85rem, 3.5vw, 0.95rem) !important; /* Override any fixed px */
-    margin-bottom: clamp(1px, 0.5vh, 3px) !important;
+    margin-bottom: clamp(3px, 0.8vh, 5px) !important; /* Increased margin */
     line-height: clamp(1.1, 1.25vh, 1.25) !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-weight: 400 !important; /* Override bold weight */
@@ -982,7 +990,7 @@ body::-webkit-scrollbar {
   
   .job-preview-extras {
     gap: clamp(2px, 0.6vh, 4px) !important;
-    margin-top: clamp(1px, 0.5vh, 3px) !important;
+    margin-top: clamp(2px, 0.8vh, 4px) !important; /* Increased margin */
   }
   
   .job-preview-extra1, .job-preview-extra2 {
@@ -1001,7 +1009,7 @@ body::-webkit-scrollbar {
     height: 100% !important; /* Fill available height */
     margin-right: clamp(3px, 0.8vw, 6px) !important;
     gap: clamp(2px, 0.6vh, 4px) !important;
-    padding: clamp(5px, 1.2vh, 8px) 0 !important;
+    padding: clamp(3px, 0.8vh, 6px) 0 !important; /* Reduced padding */
   }
   
   .job-preview-infobox1, .job-preview-infobox2 {
@@ -1031,7 +1039,7 @@ body::-webkit-scrollbar {
 /* 360px Breakpoint */
 @media (max-width: 360px) {
   .job-preview-card {
-    width: clamp(280px, 90vw, 340px) !important;
+    width: clamp(310px, 93vw, 350px) !important; /* Increased width to better fill screen */
     height: clamp(75px, 14vh, 90px) !important; /* Override fixed heights */
     min-height: clamp(75px, 14vh, 90px) !important;
     margin: 0 auto clamp(4px, 1vh, 7px) auto !important;
@@ -1039,24 +1047,28 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-img {
-    width: clamp(65px, 16vw, 80px) !important;
-    min-width: clamp(65px, 16vw, 80px) !important;
+    width: clamp(75px, 18vw, 90px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(75px, 18vw, 90px) !important;
     height: 100% !important; /* Fill full card height */
     margin: 0 !important; /* Remove all margins to be flush */
     border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
   }
   
   .job-preview-content {
     height: 100% !important; /* Fill available height */
     margin-left: clamp(5px, 1.2vw, 8px) !important;
     margin-right: clamp(2px, 0.5vw, 5px) !important;
-    padding: clamp(4px, 1vh, 7px) clamp(1px, 0.2vw, 2px) !important;
-    justify-content: space-between !important; /* Distribute content evenly */
+    padding: clamp(6px, 1.5vh, 9px) clamp(1px, 0.2vw, 2px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
   }
   
   .job-preview-title {
     font-size: clamp(0.8rem, 3.2vw, 0.9rem) !important; /* Override any fixed px */
-    margin-bottom: clamp(1px, 0.3vh, 2px) !important;
+    margin-bottom: clamp(2px, 0.6vh, 4px) !important; /* Increased margin */
     line-height: clamp(1.05, 1.2vh, 1.2) !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-weight: 400 !important; /* Override bold weight */
@@ -1064,7 +1076,7 @@ body::-webkit-scrollbar {
   
   .job-preview-extras {
     gap: clamp(1px, 0.4vh, 3px) !important;
-    margin-top: clamp(1px, 0.3vh, 2px) !important;
+    margin-top: clamp(2px, 0.6vh, 3px) !important; /* Increased margin */
   }
   
   .job-preview-extra1, .job-preview-extra2 {
@@ -1083,7 +1095,7 @@ body::-webkit-scrollbar {
     height: 100% !important; /* Fill available height */
     margin-right: clamp(2px, 0.5vw, 4px) !important;
     gap: clamp(1px, 0.4vh, 3px) !important;
-    padding: clamp(4px, 1vh, 7px) 0 !important;
+    padding: clamp(2px, 0.6vh, 4px) 0 !important; /* Significantly reduced padding */
   }
   
   .job-preview-infobox1, .job-preview-infobox2 {
@@ -1113,7 +1125,7 @@ body::-webkit-scrollbar {
 /* 320px Breakpoint (Ultra small screens) */
 @media (max-width: 320px) {
   .job-preview-card {
-    width: clamp(260px, 88vw, 310px) !important;
+    width: clamp(290px, 92vw, 315px) !important; /* Increased width to better fill screen */
     height: clamp(70px, 12vh, 85px) !important; /* Override fixed heights */
     min-height: clamp(70px, 12vh, 85px) !important;
     margin: 0 auto clamp(3px, 0.8vh, 6px) auto !important;
@@ -1121,24 +1133,28 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-img {
-    width: clamp(60px, 14vw, 75px) !important;
-    min-width: clamp(60px, 14vw, 75px) !important;
+    width: clamp(70px, 16vw, 85px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(70px, 16vw, 85px) !important;
     height: 100% !important; /* Fill full card height */
     margin: 0 !important; /* Remove all margins to be flush */
     border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
   }
   
   .job-preview-content {
     height: 100% !important; /* Fill available height */
     margin-left: clamp(4px, 1vw, 7px) !important;
     margin-right: clamp(1px, 0.3vw, 4px) !important;
-    padding: clamp(3px, 0.8vh, 6px) clamp(1px, 0.1vw, 2px) !important;
-    justify-content: space-between !important; /* Distribute content evenly */
+    padding: clamp(5px, 1.2vh, 8px) clamp(1px, 0.1vw, 2px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
   }
   
   .job-preview-title {
     font-size: clamp(0.75rem, 3vw, 0.85rem) !important; /* Override any fixed px */
-    margin-bottom: clamp(1px, 0.2vh, 2px) !important;
+    margin-bottom: clamp(2px, 0.5vh, 3px) !important; /* Increased margin */
     line-height: clamp(1.0, 1.1vh, 1.15) !important;
     font-family: Arial, Helvetica, sans-serif !important;
     font-weight: 400 !important; /* Override bold weight */
@@ -1146,7 +1162,7 @@ body::-webkit-scrollbar {
   
   .job-preview-extras {
     gap: clamp(1px, 0.2vh, 2px) !important;
-    margin-top: clamp(1px, 0.2vh, 2px) !important;
+    margin-top: clamp(2px, 0.5vh, 3px) !important; /* Increased margin */
   }
   
   .job-preview-extra1, .job-preview-extra2 {
@@ -1165,7 +1181,7 @@ body::-webkit-scrollbar {
     height: 100% !important; /* Fill available height */
     margin-right: clamp(1px, 0.3vw, 3px) !important;
     gap: clamp(1px, 0.2vh, 2px) !important;
-    padding: clamp(3px, 0.8vh, 6px) 0 !important;
+    padding: clamp(1px, 0.4vh, 3px) 0 !important; /* Significantly reduced padding */
   }
   
   .job-preview-infobox1, .job-preview-infobox2 {
