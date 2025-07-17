@@ -3086,36 +3086,40 @@ body::-webkit-scrollbar {
   background: #232b36;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  padding: 32px 24px 24px 24px;
-  min-width: 180px;
-  max-width: 90vw;
-  min-height: 220px;
+  padding: clamp(18px, 5vw, 32px) clamp(12px, 4vw, 24px) clamp(12px, 4vw, 24px) clamp(12px, 4vw, 24px);
+  width: clamp(280px, 70vw, 360px);
+  min-height: clamp(200px, 35vh, 280px);
+  max-height: 70vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
 }
 .hour-picker-title {
-  font-size: 1.3rem;
+  font-size: clamp(1.1rem, 4vw, 1.3rem);
   color: #ffe6b3;
-  margin-bottom: 18px;
+  margin-bottom: clamp(12px, 3vw, 18px);
   font-weight: bold;
   text-align: center;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 .hour-picker-list {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  max-height: 270px;
-  min-height: 180px;
+  max-height: clamp(220px, 50vh, 300px);
+  min-height: clamp(160px, 30vh, 200px);
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #ffe6b3 #232b36;
-  margin-bottom: 8px;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  margin-bottom: clamp(4px, 1vw, 8px);
   border-radius: 10px;
   background: #232b36;
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.hour-picker-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Webkit browsers */
 }
 .hour-picker-item {
   background: #434a58;
@@ -3123,8 +3127,8 @@ body::-webkit-scrollbar {
   border: none;
   border-bottom: 1px solid #2d3748;
   border-radius: 0;
-  font-size: 1.2rem;
-  padding: 18px 0;
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
+  padding: clamp(12px, 4vw, 18px) 0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -3140,28 +3144,113 @@ body::-webkit-scrollbar {
 }
 .hour-picker-close {
   position: absolute;
-  top: 10px;
-  right: 14px;
+  top: clamp(6px, 2vw, 10px);
+  right: clamp(10px, 3vw, 14px);
   background: none;
   border: none;
   color: #ffe6b3;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   cursor: pointer;
   z-index: 2;
+  font-family: Arial, sans-serif;
 }
 @media (max-width: 400px) {
   .hour-picker-modal {
-    min-width: 0;
     padding: 18px 6px 12px 6px;
+    width: clamp(260px, 85vw, 320px);
   }
   .hour-picker-list {
-    max-height: 180px;
-    min-height: 120px;
+    max-height: clamp(180px, 40vh, 220px);
+    min-height: clamp(140px, 25vh, 160px);
   }
   .hour-picker-item {
     font-size: 1rem;
     padding: 12px 0;
-    font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+  .hour-picker-title {
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+@media (max-width: 375px) {
+  .hour-picker-modal {
+    width: clamp(240px, 90vw, 300px);
+  }
+  .hour-picker-item {
+    font-size: 0.95rem;
+    padding: 11px 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .hour-picker-modal {
+    width: clamp(220px, 95vw, 280px);
+  }
+  .hour-picker-item {
+    font-size: 0.9rem;
+    padding: 10px 0;
+  }
+}
+
+@media (max-width: 320px) {
+  .hour-picker-modal {
+    width: clamp(200px, 98vw, 260px);
+    padding: 16px 4px 10px 4px;
+  }
+  .hour-picker-list {
+    max-height: clamp(160px, 35vh, 180px);
+    min-height: clamp(120px, 20vh, 140px);
+  }
+  .hour-picker-item {
+    font-size: 0.85rem;
+    padding: 9px 0;
+  }
+}
+
+/* AM/PM Picker Responsive Media Queries */
+@media (max-width: 400px) {
+  #ampmPickerOverlay .hour-picker-modal {
+    min-height: clamp(140px, 22vh, 170px);
+  }
+  .ampm-picker-item {
+    font-size: 1.1rem;
+    padding: 16px 0;
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+@media (max-width: 375px) {
+  #ampmPickerOverlay .hour-picker-modal {
+    min-height: clamp(135px, 20vh, 160px);
+  }
+  .ampm-picker-item {
+    font-size: 1.05rem;
+    padding: 15px 0;
+  }
+}
+
+@media (max-width: 360px) {
+  #ampmPickerOverlay .hour-picker-modal {
+    min-height: clamp(130px, 19vh, 150px);
+  }
+  .ampm-picker-item {
+    font-size: 1rem;
+    padding: 14px 0;
+  }
+}
+
+@media (max-width: 320px) {
+  #ampmPickerOverlay .hour-picker-modal {
+    min-height: clamp(120px, 18vh, 140px);
+  }
+  .ampm-picker-list {
+    max-height: clamp(80px, 15vh, 100px);
+    min-height: clamp(70px, 12vh, 80px);
+  }
+  .ampm-picker-item {
+    font-size: 0.95rem;
+    padding: 12px 0;
   }
 }
 
@@ -3170,13 +3259,24 @@ body::-webkit-scrollbar {
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  max-height: 140px;
-  min-height: 80px;
+  max-height: clamp(100px, 18vh, 120px);
+  min-height: clamp(80px, 12vh, 90px);
   overflow-y: auto;
-  margin-bottom: 8px;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  margin-bottom: clamp(4px, 1vw, 8px);
   border-radius: 10px;
   background: #232b36;
   box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.ampm-picker-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Webkit browsers */
+}
+
+/* AM/PM Modal Container - More compact for just 2 options */
+#ampmPickerOverlay .hour-picker-modal {
+  min-height: clamp(160px, 25vh, 200px);
+  max-height: 50vh;
 }
 .ampm-picker-item {
   background: #434a58;
@@ -3184,8 +3284,8 @@ body::-webkit-scrollbar {
   border: none;
   border-bottom: 1px solid #2d3748;
   border-radius: 0;
-  font-size: 1.3rem;
-  padding: 22px 0;
+  font-size: clamp(1.1rem, 4vw, 1.3rem);
+  padding: clamp(16px, 5vw, 22px) 0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
@@ -3454,8 +3554,8 @@ body::-webkit-scrollbar {
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   padding: clamp(18px, 5vw, 32px) clamp(12px, 4vw, 24px) clamp(12px, 4vw, 24px) clamp(12px, 4vw, 24px);
   width: clamp(280px, 70vw, 360px);
-  min-height: clamp(200px, 30vh, 250px);
-  max-height: 60vh;
+  min-height: clamp(160px, 25vh, 200px);
+  max-height: 50vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3476,8 +3576,8 @@ body::-webkit-scrollbar {
   flex-direction: column;
   align-items: stretch;
   width: 100%;
-  max-height: clamp(140px, 25vh, 180px);
-  min-height: clamp(120px, 20vh, 140px);
+  max-height: clamp(100px, 18vh, 120px);
+  min-height: clamp(80px, 12vh, 90px);
   overflow-y: auto;
   scrollbar-width: none; /* Hide scrollbar in Firefox */
   margin-bottom: clamp(4px, 1vw, 8px);
@@ -3537,10 +3637,11 @@ body::-webkit-scrollbar {
   .new-post-payment-picker-modal {
     padding: 18px 6px 12px 6px;
     width: clamp(260px, 85vw, 320px);
+    min-height: clamp(140px, 22vh, 170px);
   }
   .new-post-payment-picker-list {
-    max-height: 140px;
-    min-height: 120px;
+    max-height: clamp(100px, 16vh, 120px);
+    min-height: clamp(80px, 12vh, 90px);
   }
   .new-post-payment-picker-item {
     font-size: 1rem;
@@ -3549,6 +3650,36 @@ body::-webkit-scrollbar {
   }
   .new-post-payment-picker-title {
     font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+@media (max-width: 375px) {
+  .new-post-payment-picker-modal {
+    min-height: clamp(135px, 20vh, 160px);
+  }
+  .new-post-payment-picker-list {
+    max-height: clamp(90px, 15vh, 110px);
+    min-height: clamp(75px, 11vh, 85px);
+  }
+}
+
+@media (max-width: 360px) {
+  .new-post-payment-picker-modal {
+    min-height: clamp(130px, 19vh, 150px);
+  }
+  .new-post-payment-picker-list {
+    max-height: clamp(85px, 14vh, 100px);
+    min-height: clamp(70px, 10vh, 80px);
+  }
+}
+
+@media (max-width: 320px) {
+  .new-post-payment-picker-modal {
+    min-height: clamp(120px, 18vh, 140px);
+  }
+  .new-post-payment-picker-list {
+    max-height: clamp(80px, 13vh, 95px);
+    min-height: clamp(65px, 9vh, 75px);
   }
 }
 
