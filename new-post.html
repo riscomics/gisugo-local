@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Post - GISUGO</title>
-  <link rel="stylesheet" href="public/css/new-post.css?v=32">
+  <link rel="stylesheet" href="public/css/new-post.css?v=33">
   <link rel="stylesheet" href="public/css/jobpage.css">
   
 </head>
@@ -473,7 +473,7 @@
 
   <script src="public/js/shared-menu.js"></script>
   <script src="public/js/jobs.js?v=14"></script>
-  <script src="public/js/new-post.js?v=28"></script>
+  <script src="public/js/new-post.js?v=29"></script>
   
   <script>
     // Debug functions to test overlay and localStorage
@@ -665,6 +665,19 @@
     <div class="new-post-city-picker-title">Select City/Town</div>
     <div class="new-post-city-picker-list" id="newPostCityPickerList">
       <!-- City items will be populated by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<!-- New-Post Payment Type Picker Modal -->
+<div class="new-post-payment-picker-overlay" id="newPostPaymentPickerOverlay">
+  <div class="new-post-payment-picker-modal">
+    <button class="new-post-payment-picker-close" id="newPostPaymentPickerCloseBtn">&times;</button>
+    <div class="new-post-payment-picker-title">Select Payment Type</div>
+    <div class="new-post-payment-picker-list" id="newPostPaymentPickerList">
+      <div class="new-post-payment-picker-item" data-value="Per Job">Per Job</div>
+      <div class="new-post-payment-picker-item" data-value="Per Hour">Per Hour</div>
+      <div class="new-post-payment-picker-item" data-value="Per Day">Per Day</div>
     </div>
   </div>
 </div>

@@ -1030,6 +1030,130 @@ document.addEventListener('DOMContentLoaded', function() {
 
 }); // End DOMContentLoaded for City modal
 
+// Payment Type menu event listeners - UPDATED TO USE CENTERED MODAL
+// Wrap in DOMContentLoaded to ensure elements exist
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentMenuBtn = document.getElementById('paymentTypeMenu');
+  const paymentMenuOverlay = document.getElementById('paymentTypeOverlay');
+  const paymentPickerModal = document.getElementById('newPostPaymentPickerOverlay');
+  const paymentPickerList = document.getElementById('newPostPaymentPickerList');
+  const paymentPickerCloseBtn = document.getElementById('newPostPaymentPickerCloseBtn');
+  let paymentMenuOpen = false;
+
+  // Debug logging
+  console.log('Payment elements found:', {
+    paymentMenuBtn,
+    paymentPickerModal,
+    paymentPickerList,
+    paymentPickerCloseBtn
+  });
+
+  // Get current payment type
+  function getCurrentPaymentType() {
+    const paymentLabel = document.getElementById('paymentTypeLabel');
+    return paymentLabel ? paymentLabel.textContent.trim() : 'Per Job';
+  }
+
+  // Populate payment picker modal
+  function populateNewPostPaymentPicker() {
+    console.log('populateNewPostPaymentPicker called');
+    if (!paymentPickerList) {
+      console.log('ERROR: paymentPickerList not found!');
+      return;
+    }
+    
+    const currentPaymentType = getCurrentPaymentType();
+    console.log('Current payment type:', currentPaymentType);
+    
+    // Update active state for payment items
+    const paymentItems = paymentPickerList.querySelectorAll('.new-post-payment-picker-item');
+    paymentItems.forEach(item => {
+      if (item.textContent.trim() === currentPaymentType) {
+        item.classList.add('active');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+    
+    console.log('Payment picker population complete. Total items:', paymentItems.length);
+  }
+
+  // Payment button click - show modal instead of small dropdown
+  if (paymentMenuBtn && paymentPickerModal) {
+    console.log('Adding click listener to payment button');
+    paymentMenuBtn.addEventListener('click', function(e) {
+      console.log('Payment button clicked!');
+      e.stopPropagation();
+      
+      populateNewPostPaymentPicker();
+      
+      console.log('Payment list populated, now showing modal...');
+      paymentPickerModal.style.display = 'flex';
+      console.log('Payment modal should now be visible');
+    });
+  } else {
+    console.log('Missing elements for payment modal:', { paymentMenuBtn, paymentPickerModal });
+  }
+
+  // Close modal functions
+  function closeNewPostPaymentPicker() {
+    if (paymentPickerModal) {
+      paymentPickerModal.style.display = 'none';
+    }
+  }
+
+  // Close button click
+  if (paymentPickerCloseBtn) {
+    paymentPickerCloseBtn.addEventListener('click', closeNewPostPaymentPicker);
+  }
+
+  // Backdrop click to close
+  if (paymentPickerModal) {
+    paymentPickerModal.addEventListener('click', function(e) {
+      if (e.target === paymentPickerModal) {
+        closeNewPostPaymentPicker();
+      }
+    });
+  }
+
+  // Select payment type from modal
+  if (paymentPickerList) {
+    paymentPickerList.addEventListener('click', function(e) {
+      if (e.target.classList.contains('new-post-payment-picker-item')) {
+        const selectedType = e.target.getAttribute('data-value');
+        console.log('Payment type selected:', selectedType);
+        
+        // Update the payment type label
+        document.getElementById('paymentTypeLabel').textContent = selectedType;
+        
+        closeNewPostPaymentPicker();
+      }
+    });
+  }
+
+  // Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
+  if (paymentMenuBtn && paymentMenuOverlay) {
+    // Close overlay when clicking outside
+    document.addEventListener('click', function(e) {
+      if (paymentMenuOpen && !paymentMenuBtn.contains(e.target) && !paymentMenuOverlay.contains(e.target)) {
+        paymentMenuOverlay.classList.remove('show');
+        paymentMenuOpen = false;
+      }
+    });
+
+    // Select payment type from original dropdown (backup)
+    paymentMenuOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'LI') {
+        const selectedType = e.target.getAttribute('data-value');
+        document.getElementById('paymentTypeLabel').textContent = selectedType;
+        paymentMenuOverlay.classList.remove('show');
+        paymentMenuOpen = false;
+      }
+    });
+  }
+
+}); // End DOMContentLoaded for Payment modal
+
 // City menu event listeners - DISABLED FOR NEW MODAL SYSTEM
 // OLD CODE COMMENTED OUT - New modal system handles City dropdown now
 /*
@@ -1335,7 +1459,9 @@ function initializeTimePeriodDropdowns() {
 
 // ========================== PAYMENT OFFER FUNCTIONALITY ==========================
 
-// Payment type dropdown functionality
+// Payment type dropdown functionality - DISABLED FOR NEW MODAL SYSTEM
+// OLD CODE COMMENTED OUT - New modal system handles Payment dropdown now
+/*
 let selectedPaymentType = "Per Hour";
 
 function initializePaymentDropdown() {
@@ -1378,6 +1504,7 @@ function initializePaymentDropdown() {
     }
   });
 }
+*/
 
 // ========================== PHOTO UPLOAD FUNCTIONALITY ==========================
 
@@ -2605,7 +2732,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeLocationMenus();
   initializeTimeDropdowns(); // Add time dropdown initialization
   initializeTimePeriodDropdowns(); // Add AM/PM dropdown initialization for mobile
-  initializePaymentDropdown(); // Add payment dropdown initialization
+  // initializePaymentDropdown(); // DISABLED - New modal system handles payment dropdown
   initializePhotoUpload(); // Add photo upload initialization
   initializePostJobButton(); // Add post job button initialization
   initializePaymentValidation(); // Add payment amount validation
