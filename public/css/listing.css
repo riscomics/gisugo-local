@@ -254,7 +254,7 @@ body::-webkit-scrollbar {
   top: 72px; /* Height of main header (68px) + borderline (4px) */
   left: 0;
   right: 0;
-  z-index: 99;
+  z-index: 50;
   background: #866f67;
 }
 
@@ -1070,7 +1070,7 @@ body::-webkit-scrollbar {
   
   .jobcat-sort-header {
     top: 68px !important; /* Adjusted to match body padding */
-    z-index: 100 !important; /* Higher z-index to prevent content bleeding through */
+    z-index: 50 !important; /* Reduced z-index to allow jobcat modal to appear above */
   }
   
   .sortmenus {
