@@ -190,23 +190,70 @@ function closeAllDropdowns() {
   payMenuOpen = false;
 }
 
-// Region menu overlay logic
+// Region menu overlay logic - UPDATED TO USE CENTERED MODAL
 const regionMenuBtn = document.getElementById('locationRegion');
 const regionMenuOverlay = document.getElementById('regionMenuOverlay');
+const regionPickerModal = document.getElementById('regionPickerOverlay');
+const regionPickerList = document.getElementById('regionPickerList');
+const regionPickerCloseBtn = document.getElementById('regionPickerCloseBtn');
 let regionMenuOpen = false;
+
+// Populate region picker modal
+function populateRegionPicker() {
+  regionPickerList.innerHTML = '';
+  regions.forEach(region => {
+    const item = document.createElement('div');
+    item.className = 'region-picker-item';
+    if (region === activeRegion) {
+      item.classList.add('active');
+    }
+    item.textContent = region;
+    regionPickerList.appendChild(item);
+  });
+}
+
+// Region button click - show modal instead of small dropdown
 regionMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  // If this dropdown is already open, just close it
-  if (regionMenuOpen) {
-    regionMenuOverlay.classList.remove('show');
-    regionMenuOpen = false;
-    return;
-  }
-  // Otherwise close all others and open this one
   closeAllDropdowns();
-  regionMenuOverlay.classList.add('show');
-  regionMenuOpen = true;
+  populateRegionPicker();
+  regionPickerModal.style.display = 'flex';
 });
+
+// Close modal functions
+function closeRegionPicker() {
+  regionPickerModal.style.display = 'none';
+}
+
+// Close button click
+regionPickerCloseBtn.addEventListener('click', closeRegionPicker);
+
+// Backdrop click to close
+regionPickerModal.addEventListener('click', function(e) {
+  if (e.target === regionPickerModal) {
+    closeRegionPicker();
+  }
+});
+
+// Select region from modal
+regionPickerList.addEventListener('click', function(e) {
+  if (e.target.classList.contains('region-picker-item')) {
+    activeRegion = e.target.textContent.trim();
+    document.getElementById('regionMenuLabel').textContent = activeRegion;
+    // When region changes, reset city to first city in region
+    const cities = citiesByRegion[activeRegion] || [];
+    activeCity = cities[0] || '';
+    document.getElementById('cityMenuLabel').textContent = activeCity;
+    setTimeout(updateCityMenuLabelFontSize, 0);
+    renderRegionMenu();
+    renderCityMenu();
+    closeRegionPicker();
+    // Trigger job filtering and sorting based on selected region
+    filterAndSortJobs();
+  }
+});
+
+// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
 // Close overlay when clicking outside
 document.addEventListener('click', function(e) {
   if (regionMenuOpen && !regionMenuBtn.contains(e.target) && !regionMenuOverlay.contains(e.target)) {
@@ -214,7 +261,7 @@ document.addEventListener('click', function(e) {
     regionMenuOpen = false;
   }
 });
-// Select region
+// Select region from original dropdown (backup)
 regionMenuOverlay.addEventListener('click', function(e) {
   if (e.target.tagName === 'LI') {
     activeRegion = e.target.textContent.replace(/▲/, '').trim();
@@ -233,24 +280,66 @@ regionMenuOverlay.addEventListener('click', function(e) {
   }
 });
 
-// City menu overlay logic
+// City menu overlay logic - UPDATED TO USE CENTERED MODAL
 const cityMenuBtn = document.getElementById('locationCity');
 const cityMenuOverlay = document.getElementById('cityMenuOverlay');
+const cityPickerModal = document.getElementById('cityPickerOverlay');
+const cityPickerList = document.getElementById('cityPickerList');
+const cityPickerCloseBtn = document.getElementById('cityPickerCloseBtn');
 let cityMenuOpen = false;
+
+// Populate city picker modal
+function populateCityPicker() {
+  cityPickerList.innerHTML = '';
+  const cities = citiesByRegion[activeRegion] || [];
+  cities.forEach(city => {
+    const item = document.createElement('div');
+    item.className = 'city-picker-item';
+    if (city === activeCity) {
+      item.classList.add('active');
+    }
+    item.textContent = city;
+    cityPickerList.appendChild(item);
+  });
+}
+
+// City button click - show modal instead of small dropdown
 cityMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  // If this dropdown is already open, just close it
-  if (cityMenuOpen) {
-    cityMenuOverlay.classList.remove('show');
-    cityMenuOpen = false;
-    return;
-  }
-  // Otherwise close all others and open this one
   closeAllDropdowns();
-  renderCityMenu();
-  cityMenuOverlay.classList.add('show');
-  cityMenuOpen = true;
+  populateCityPicker();
+  cityPickerModal.style.display = 'flex';
 });
+
+// Close modal functions
+function closeCityPicker() {
+  cityPickerModal.style.display = 'none';
+}
+
+// Close button click
+cityPickerCloseBtn.addEventListener('click', closeCityPicker);
+
+// Backdrop click to close
+cityPickerModal.addEventListener('click', function(e) {
+  if (e.target === cityPickerModal) {
+    closeCityPicker();
+  }
+});
+
+// Select city from modal
+cityPickerList.addEventListener('click', function(e) {
+  if (e.target.classList.contains('city-picker-item')) {
+    activeCity = e.target.textContent.trim();
+    document.getElementById('cityMenuLabel').textContent = activeCity;
+    setTimeout(updateCityMenuLabelFontSize, 0);
+    renderCityMenu();
+    closeCityPicker();
+    // Trigger job filtering and sorting based on selected city
+    filterAndSortJobs();
+  }
+});
+
+// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
 // Close overlay when clicking outside
 document.addEventListener('click', function(e) {
   if (cityMenuOpen && !cityMenuBtn.contains(e.target) && !cityMenuOverlay.contains(e.target)) {
@@ -258,7 +347,7 @@ document.addEventListener('click', function(e) {
     cityMenuOpen = false;
   }
 });
-// Select city
+// Select city from original dropdown (backup)
 cityMenuOverlay.addEventListener('click', function(e) {
   if (e.target.tagName === 'LI') {
     activeCity = e.target.textContent.replace(/▲/, '').trim();
@@ -270,23 +359,64 @@ cityMenuOverlay.addEventListener('click', function(e) {
   }
 });
 
-// Pay menu overlay logic
+// Pay menu overlay logic - UPDATED TO USE CENTERED MODAL
 const payMenuBtn = document.getElementById('payMenu');
 const payMenuOverlay = document.getElementById('payMenuOverlay');
+const payPickerModal = document.getElementById('payPickerOverlay');
+const payPickerList = document.getElementById('payPickerList');
+const payPickerCloseBtn = document.getElementById('payPickerCloseBtn');
 let payMenuOpen = false;
+
+// Populate pay picker modal
+function populatePayPicker() {
+  payPickerList.innerHTML = '';
+  payTypes.forEach(payType => {
+    const item = document.createElement('div');
+    item.className = 'pay-picker-item';
+    if (payType === activePay) {
+      item.classList.add('active');
+    }
+    item.textContent = payType;
+    payPickerList.appendChild(item);
+  });
+}
+
+// Pay button click - show modal instead of small dropdown
 payMenuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  // If this dropdown is already open, just close it
-  if (payMenuOpen) {
-    payMenuOverlay.classList.remove('show');
-    payMenuOpen = false;
-    return;
-  }
-  // Otherwise close all others and open this one
   closeAllDropdowns();
-  payMenuOverlay.classList.add('show');
-  payMenuOpen = true;
+  populatePayPicker();
+  payPickerModal.style.display = 'flex';
 });
+
+// Close modal functions
+function closePayPicker() {
+  payPickerModal.style.display = 'none';
+}
+
+// Close button click
+payPickerCloseBtn.addEventListener('click', closePayPicker);
+
+// Backdrop click to close
+payPickerModal.addEventListener('click', function(e) {
+  if (e.target === payPickerModal) {
+    closePayPicker();
+  }
+});
+
+// Select pay type from modal
+payPickerList.addEventListener('click', function(e) {
+  if (e.target.classList.contains('pay-picker-item')) {
+    activePay = e.target.textContent.trim();
+    document.getElementById('payMenuLabel').textContent = activePay;
+    renderPayMenu();
+    closePayPicker();
+    // Trigger job filtering and sorting based on selected pay type
+    filterAndSortJobs();
+  }
+});
+
+// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
 // Close overlay when clicking outside
 document.addEventListener('click', function(e) {
   if (payMenuOpen && !payMenuBtn.contains(e.target) && !payMenuOverlay.contains(e.target)) {
@@ -294,7 +424,7 @@ document.addEventListener('click', function(e) {
     payMenuOpen = false;
   }
 });
-// Select pay type
+// Select pay type from original dropdown (backup)
 payMenuOverlay.addEventListener('click', function(e) {
   if (e.target.tagName === 'LI') {
     activePay = e.target.textContent.replace(/▲/, '').trim();
