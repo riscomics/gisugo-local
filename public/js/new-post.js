@@ -771,18 +771,95 @@ function initializeLocationMenus() {
   setTimeout(updateCityMenuLabelFontSize, 0);
 }
 
-// Region menu event listeners
-const regionMenuBtn = document.querySelector('.new-post-region-menu');
-const regionMenuOverlay = document.getElementById('newPostRegionMenuOverlay');
-let regionMenuOpen = false;
+// Region menu event listeners - UPDATED TO USE CENTERED MODAL
+// Wrap in DOMContentLoaded to ensure elements exist
+document.addEventListener('DOMContentLoaded', function() {
+  const regionMenuBtn = document.querySelector('.new-post-region-menu');
+  const regionMenuOverlay = document.getElementById('newPostRegionMenuOverlay');
+  const regionPickerModal = document.getElementById('newPostRegionPickerOverlay');
+  const regionPickerList = document.getElementById('newPostRegionPickerList');
+  const regionPickerCloseBtn = document.getElementById('newPostRegionPickerCloseBtn');
+  let regionMenuOpen = false;
 
-if (regionMenuBtn && regionMenuOverlay) {
-  regionMenuBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    regionMenuOverlay.classList.toggle('show');
-    regionMenuOpen = regionMenuOverlay.classList.contains('show');
+  // Debug logging
+  console.log('Region elements found:', {
+    regionMenuBtn,
+    regionPickerModal,
+    regionPickerList,
+    regionPickerCloseBtn
   });
 
+// Populate region picker modal
+function populateNewPostRegionPicker() {
+  if (!regionPickerList) return;
+  regionPickerList.innerHTML = '';
+  regions.forEach(region => {
+    const item = document.createElement('div');
+    item.className = 'new-post-region-picker-item';
+    if (region === activeRegion) {
+      item.classList.add('active');
+    }
+    item.textContent = region;
+    regionPickerList.appendChild(item);
+  });
+}
+
+// Region button click - show modal instead of small dropdown
+if (regionMenuBtn && regionPickerModal) {
+  console.log('Adding click listener to region button');
+  regionMenuBtn.addEventListener('click', function(e) {
+    console.log('Region button clicked!');
+    e.stopPropagation();
+    populateNewPostRegionPicker();
+    regionPickerModal.style.display = 'flex';
+    console.log('Region modal should now be visible');
+  });
+} else {
+  console.log('Missing elements for region modal:', { regionMenuBtn, regionPickerModal });
+}
+
+// Close modal functions
+function closeNewPostRegionPicker() {
+  if (regionPickerModal) {
+    regionPickerModal.style.display = 'none';
+  }
+}
+
+// Close button click
+if (regionPickerCloseBtn) {
+  regionPickerCloseBtn.addEventListener('click', closeNewPostRegionPicker);
+}
+
+// Backdrop click to close
+if (regionPickerModal) {
+  regionPickerModal.addEventListener('click', function(e) {
+    if (e.target === regionPickerModal) {
+      closeNewPostRegionPicker();
+    }
+  });
+}
+
+// Select region from modal
+if (regionPickerList) {
+  regionPickerList.addEventListener('click', function(e) {
+    if (e.target.classList.contains('new-post-region-picker-item')) {
+      activeRegion = e.target.textContent.trim();
+      document.getElementById('newPostRegionMenuLabel').textContent = activeRegion;
+      
+      // When region changes, reset city to "City/Town" to force user selection
+      activeCity = "City/Town";
+      document.getElementById('newPostCityMenuLabel').textContent = activeCity;
+      setTimeout(updateCityMenuLabelFontSize, 0);
+      
+      renderRegionMenu();
+      renderCityMenu();
+      closeNewPostRegionPicker();
+    }
+  });
+}
+
+// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
+if (regionMenuBtn && regionMenuOverlay) {
   // Close overlay when clicking outside
   document.addEventListener('click', function(e) {
     if (regionMenuOpen && !regionMenuBtn.contains(e.target) && !regionMenuOverlay.contains(e.target)) {
@@ -791,7 +868,7 @@ if (regionMenuBtn && regionMenuOverlay) {
     }
   });
 
-  // Select region
+  // Select region from original dropdown (backup)
   regionMenuOverlay.addEventListener('click', function(e) {
     if (e.target.tagName === 'LI') {
       activeRegion = e.target.textContent.replace(/▲/, '').trim();
@@ -810,7 +887,152 @@ if (regionMenuBtn && regionMenuOverlay) {
   });
 }
 
-// City menu event listeners
+}); // End DOMContentLoaded for Region modal
+
+// City menu event listeners - UPDATED TO USE CENTERED MODAL
+// Wrap in DOMContentLoaded to ensure elements exist
+document.addEventListener('DOMContentLoaded', function() {
+  const cityMenuBtn = document.querySelector('.new-post-city-menu');
+  const cityMenuBtnById = document.getElementById('newPostLocationCity');
+  const cityMenuOverlay = document.getElementById('newPostCityMenuOverlay');
+  const cityPickerModal = document.getElementById('newPostCityPickerOverlay');
+  const cityPickerList = document.getElementById('newPostCityPickerList');
+  const cityPickerCloseBtn = document.getElementById('newPostCityPickerCloseBtn');
+  let cityMenuOpen = false;
+
+  // Debug logging
+  console.log('City elements found:', {
+    cityMenuBtn,
+    cityMenuBtnById,
+    cityPickerModal,
+    cityPickerList,
+    cityPickerCloseBtn
+  });
+
+  // Use the button that was actually found
+  const actualCityBtn = cityMenuBtn || cityMenuBtnById;
+
+  // Populate city picker modal
+  function populateNewPostCityPicker() {
+    console.log('populateNewPostCityPicker called');
+    if (!cityPickerList) {
+      console.log('ERROR: cityPickerList not found!');
+      return;
+    }
+    
+    cityPickerList.innerHTML = '';
+    console.log('Cleared city picker list');
+    
+    // Get cities for current region
+    const regionCities = citiesByRegion[activeRegion] || [];
+    console.log('regionCities array:', regionCities, 'length:', regionCities.length);
+    
+    regionCities.forEach((city, index) => {
+      const item = document.createElement('div');
+      item.className = 'new-post-city-picker-item';
+      if (city === activeCity) {
+        item.classList.add('active');
+      }
+      item.textContent = city;
+      cityPickerList.appendChild(item);
+      console.log(`Added city ${index + 1}:`, city);
+    });
+    
+    console.log('City picker population complete. Total items:', cityPickerList.children.length);
+  }
+
+  // City button click - show modal instead of small dropdown
+  if (actualCityBtn && cityPickerModal) {
+    console.log('Adding click listener to city button');
+    actualCityBtn.addEventListener('click', function(e) {
+      console.log('City button clicked!');
+      e.stopPropagation();
+      
+      console.log('Current activeRegion:', activeRegion);
+      console.log('Available cities object:', citiesByRegion);
+      console.log('Cities for current region:', citiesByRegion[activeRegion]);
+      
+      populateNewPostCityPicker();
+      
+      console.log('City list populated, now showing modal...');
+      cityPickerModal.style.display = 'flex';
+      console.log('Modal display set to flex');
+      console.log('Modal visibility check:', {
+        display: cityPickerModal.style.display,
+        offsetHeight: cityPickerModal.offsetHeight,
+        offsetWidth: cityPickerModal.offsetWidth
+      });
+    });
+  } else {
+    console.log('Missing elements for city modal:', { actualCityBtn, cityPickerModal });
+  }
+
+  // Close modal functions
+  function closeNewPostCityPicker() {
+    if (cityPickerModal) {
+      cityPickerModal.style.display = 'none';
+    }
+  }
+
+  // Close button click
+  if (cityPickerCloseBtn) {
+    cityPickerCloseBtn.addEventListener('click', closeNewPostCityPicker);
+  }
+
+  // Backdrop click to close
+  if (cityPickerModal) {
+    cityPickerModal.addEventListener('click', function(e) {
+      if (e.target === cityPickerModal) {
+        closeNewPostCityPicker();
+      }
+    });
+  }
+
+  // Select city from modal
+  if (cityPickerList) {
+    cityPickerList.addEventListener('click', function(e) {
+      if (e.target.classList.contains('new-post-city-picker-item')) {
+        activeCity = e.target.textContent.trim();
+        document.getElementById('newPostCityMenuLabel').textContent = activeCity;
+        
+        renderCityMenu();
+        closeNewPostCityPicker();
+        setTimeout(updateCityMenuLabelFontSize, 0);
+        
+        // Update location-based extras when city changes
+        updateLocationExtrasForCityChange();
+      }
+    });
+  }
+
+  // Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
+  if (actualCityBtn && cityMenuOverlay) {
+    // Close overlay when clicking outside
+    document.addEventListener('click', function(e) {
+      if (cityMenuOpen && !actualCityBtn.contains(e.target) && !cityMenuOverlay.contains(e.target)) {
+        cityMenuOverlay.classList.remove('show');
+        cityMenuOpen = false;
+      }
+    });
+
+    // Select city from original dropdown (backup)
+    cityMenuOverlay.addEventListener('click', function(e) {
+      if (e.target.tagName === 'LI') {
+        activeCity = e.target.textContent.replace(/▲/, '').trim();
+        document.getElementById('newPostCityMenuLabel').textContent = activeCity;
+        renderCityMenu();
+        cityMenuOverlay.classList.remove('show');
+        cityMenuOpen = false;
+        setTimeout(updateCityMenuLabelFontSize, 0);
+      }
+    });
+  }
+
+}); // End DOMContentLoaded for City modal
+
+// City menu event listeners - DISABLED FOR NEW MODAL SYSTEM
+// OLD CODE COMMENTED OUT - New modal system handles City dropdown now
+/*
 const cityMenuBtn = document.querySelector('.new-post-city-menu');
 const cityMenuOverlay = document.getElementById('newPostCityMenuOverlay');
 let cityMenuOpen = false;
@@ -846,6 +1068,7 @@ if (cityMenuBtn && cityMenuOverlay) {
     }
   });
 }
+*/
 
 // ========================== TIME DROPDOWN FUNCTIONALITY ==========================
 
