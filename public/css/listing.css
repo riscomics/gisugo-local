@@ -1117,11 +1117,11 @@ body::-webkit-scrollbar {
 /* Ultra Small Screens (320px and below) - Optimized layout */
 @media (max-width: 320px) {
   body {
-    padding: 60px 0 0 0 !important; /* Reduced body padding to minimize empty space above dropdowns */
+    padding: 66px 0 0 0 !important; /* Increased to show first borderline */
   }
   
   .jobcat-sort-header {
-    top: 60px !important; /* Match reduced body padding */
+    top: 66px !important; /* Match increased body padding */
   }
   
   .jobcat-servicemenu {
@@ -1149,7 +1149,7 @@ body::-webkit-scrollbar {
   .region-menu, .city-menu, .pay-menu {
     width: clamp(85px, 28vw, 105px) !important; /* Increased size for better usability */
     height: clamp(22px, 5vh, 26px) !important; /* Increased height */
-    font-size: clamp(11px, 2.8vw, 14px) !important; /* Increased font size */
+    font-size: clamp(12px, 3.2vw, 15px) !important; /* Increased font size for better readability */
     padding: clamp(2px, 0.8vw, 3px) clamp(4px, 1.2vw, 6px) !important; /* Better padding */
   }
   
@@ -1184,7 +1184,7 @@ body::-webkit-scrollbar {
   
   .jobcat-header-spacer {
     height: 0 !important; /* Remove spacer height */
-    margin: -10px 0 0 0 !important; /* Negative margin to pull job cards closer */
+    margin: -4px 0 0 0 !important; /* Less aggressive negative margin for more space between dropdowns and job cards */
     padding: 0 !important;
   }
   
