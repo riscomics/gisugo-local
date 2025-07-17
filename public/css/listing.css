@@ -1183,13 +1183,13 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-header-spacer {
-    height: 0 !important; /* Remove spacer height */
-    margin: -4px 0 0 0 !important; /* Less aggressive negative margin for more space between dropdowns and job cards */
+    height: 15px !important; /* Add substantial space between dropdowns and job cards */
+    margin: 0 !important; /* Remove negative margin */
     padding: 0 !important;
   }
   
   .job-preview-card:first-of-type {
-    margin-top: 0 !important; /* Remove any top margin from first job card */
+    margin-top: 8px !important; /* Add additional top margin to first job card */
   }
 }
 
