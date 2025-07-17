@@ -1174,7 +1174,9 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-headerbutton img {
+    width: clamp(28px, 8vh, 35px) !important; /* Constrain width to match height */
     height: clamp(28px, 8vh, 35px) !important; /* Smaller images */
+    object-fit: contain !important; /* Maintain aspect ratio */
   }
   
   .jobcat-listheader {
