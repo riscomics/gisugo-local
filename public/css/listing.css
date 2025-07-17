@@ -1125,12 +1125,12 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu {
-    width: clamp(100px, 40vw, 140px) !important; /* Much smaller for 320px */
+    width: clamp(140px, 50vw, 180px) !important; /* Increased width to prevent text wrapping */
     height: 40px !important; /* Reduce height */
   }
   
   .jobcat-servicename {
-    width: clamp(100px, 40vw, 140px) !important; /* Match servicemenu width */
+    width: clamp(140px, 50vw, 180px) !important; /* Match increased servicemenu width */
     height: 38px !important; /* Match reduced servicemenu height */
     font-size: clamp(17px, 4vw, 21px) !important; /* Increased by 3px equivalent */
     padding-left: 6px !important; /* Reduce padding */
@@ -1138,7 +1138,7 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu-overlay {
-    width: clamp(100px, 40vw, 140px) !important; /* Match smaller button width */
+    width: clamp(140px, 50vw, 180px) !important; /* Match increased button width */
     left: -5px !important;
   }
 
