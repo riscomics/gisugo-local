@@ -1212,8 +1212,7 @@ body::-webkit-scrollbar {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   padding: 32px 24px 24px 24px;
-  min-width: 200px;
-  max-width: 90vw;
+  width: clamp(280px, 80vw, 400px);
   min-height: 280px;
   display: flex;
   flex-direction: column;
@@ -1328,8 +1327,7 @@ body::-webkit-scrollbar {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   padding: 32px 24px 24px 24px;
-  min-width: 240px;
-  max-width: 90vw;
+  width: clamp(300px, 85vw, 450px);
   min-height: 320px;
   max-height: 80vh;
   display: flex;
@@ -1446,8 +1444,7 @@ body::-webkit-scrollbar {
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.25);
   padding: 32px 24px 24px 24px;
-  min-width: 200px;
-  max-width: 90vw;
+  width: clamp(280px, 80vw, 380px);
   min-height: 240px;
   display: flex;
   flex-direction: column;
