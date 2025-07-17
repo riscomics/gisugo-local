@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painter Service - GISUGO</title>
-    <link rel="stylesheet" href="public/css/listing.css">
+    <link rel="stylesheet" href="public/css/listing.css?v=8.7">
   </head>
   <body>
     <div class="jobcat-header">
@@ -113,7 +113,40 @@
 
     <!-- New job postings will appear here dynamically -->
 
+    <!-- Region Picker Modal -->
+    <div class="region-picker-overlay" id="regionPickerOverlay">
+      <div class="region-picker-modal">
+        <button class="region-picker-close" id="regionPickerCloseBtn">&times;</button>
+        <div class="region-picker-title">Select Region</div>
+        <div class="region-picker-list" id="regionPickerList">
+          <!-- Region items will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- City Picker Modal -->
+    <div class="city-picker-overlay" id="cityPickerOverlay">
+      <div class="city-picker-modal">
+        <button class="city-picker-close" id="cityPickerCloseBtn">&times;</button>
+        <div class="city-picker-title">Select City</div>
+        <div class="city-picker-list" id="cityPickerList">
+          <!-- City items will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Pay Picker Modal -->
+    <div class="pay-picker-overlay" id="payPickerOverlay">
+      <div class="pay-picker-modal">
+        <button class="pay-picker-close" id="payPickerCloseBtn">&times;</button>
+        <div class="pay-picker-title">Select Pay Type</div>
+        <div class="pay-picker-list" id="payPickerList">
+          <!-- Pay type items will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
     <script src="public/js/shared-menu.js"></script>
-    <script src="public/js/listing.js?v=3"></script>
+    <script src="public/js/listing.js?v=5.2"></script>
   </body>
 </html> 
