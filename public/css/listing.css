@@ -1418,7 +1418,7 @@ body::-webkit-scrollbar {
     min-height: 180px;
   }
   .city-picker-item {
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     padding: 10px 0;
     font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
   }
