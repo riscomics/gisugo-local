@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Post - GISUGO</title>
-  <link rel="stylesheet" href="public/css/new-post.css?v=36">
+  <link rel="stylesheet" href="public/css/new-post.css?v=39">
   <link rel="stylesheet" href="public/css/jobpage.css">
   
 </head>
@@ -473,7 +473,7 @@
 
   <script src="public/js/shared-menu.js"></script>
   <script src="public/js/jobs.js?v=14"></script>
-  <script src="public/js/new-post.js?v=29"></script>
+  <script src="public/js/new-post.js?v=31"></script>
   
   <script>
     // Debug functions to test overlay and localStorage
@@ -677,6 +677,27 @@
     <div class="new-post-payment-picker-list" id="newPostPaymentPickerList">
       <div class="new-post-payment-picker-item" data-value="Per Job">Per Job</div>
       <div class="new-post-payment-picker-item" data-value="Per Hour">Per Hour</div>
+    </div>
+  </div>
+</div>
+
+<!-- New-Post Extras Picker Modals -->
+<div class="new-post-extras-picker-overlay" id="newPostExtrasPickerOverlay1">
+  <div class="new-post-extras-picker-modal">
+    <button class="new-post-extras-picker-close" id="newPostExtrasPickerCloseBtn1">&times;</button>
+    <div class="new-post-extras-picker-title" id="newPostExtrasPickerTitle1">Select Option</div>
+    <div class="new-post-extras-picker-list" id="newPostExtrasPickerList1">
+      <!-- Options will be populated by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<div class="new-post-extras-picker-overlay" id="newPostExtrasPickerOverlay2">
+  <div class="new-post-extras-picker-modal">
+    <button class="new-post-extras-picker-close" id="newPostExtrasPickerCloseBtn2">&times;</button>
+    <div class="new-post-extras-picker-title" id="newPostExtrasPickerTitle2">Select Option</div>
+    <div class="new-post-extras-picker-list" id="newPostExtrasPickerList2">
+      <!-- Options will be populated by JavaScript -->
     </div>
   </div>
 </div>

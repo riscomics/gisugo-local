@@ -521,7 +521,9 @@ function updateJobDetailsSectionPosition() {
   // - Update spacer heights for scrolling
 }
 
-// Extras dropdown event listeners
+// Extras dropdown event listeners - DISABLED FOR NEW MODAL SYSTEM
+// OLD CODE COMMENTED OUT - New modal system handles Extras dropdowns now
+/*
 for (let i = 1; i <= 2; i++) {
   const extrasMenuBtn = document.getElementById(`newPostExtrasMenu${i}`);
   const extrasMenuOverlay = document.getElementById(`newPostExtrasMenuOverlay${i}`);
@@ -540,6 +542,7 @@ for (let i = 1; i <= 2; i++) {
     });
   }
 }
+*/
 
 // ========================== LOCATION DROPDOWN FUNCTIONALITY ==========================
 
@@ -1153,6 +1156,190 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
 }); // End DOMContentLoaded for Payment modal
+
+// Extras menu event listeners - UPDATED TO USE CENTERED MODAL
+// Wrap in DOMContentLoaded to ensure elements exist
+document.addEventListener('DOMContentLoaded', function() {
+  // Setup modals for both extras fields (1 and 2)
+  for (let fieldNumber = 1; fieldNumber <= 2; fieldNumber++) {
+    const extrasMenuBtn = document.getElementById(`newPostExtrasMenu${fieldNumber}`);
+    const extrasMenuOverlay = document.getElementById(`newPostExtrasMenuOverlay${fieldNumber}`);
+    const extrasPickerModal = document.getElementById(`newPostExtrasPickerOverlay${fieldNumber}`);
+    const extrasPickerList = document.getElementById(`newPostExtrasPickerList${fieldNumber}`);
+    const extrasPickerCloseBtn = document.getElementById(`newPostExtrasPickerCloseBtn${fieldNumber}`);
+    const extrasPickerTitle = document.getElementById(`newPostExtrasPickerTitle${fieldNumber}`);
+
+    // Debug logging
+    console.log(`Extras field ${fieldNumber} elements found:`, {
+      extrasMenuBtn,
+      extrasPickerModal,
+      extrasPickerList,
+      extrasPickerCloseBtn,
+      extrasPickerTitle
+    });
+
+    // Populate extras picker modal - PRESERVING ALL EXISTING LOGIC
+    function populateNewPostExtrasPicker(fieldNumber) {
+      console.log(`populateNewPostExtrasPicker called for field ${fieldNumber}`);
+      const modal = document.getElementById(`newPostExtrasPickerOverlay${fieldNumber}`);
+      const list = document.getElementById(`newPostExtrasPickerList${fieldNumber}`);
+      const title = document.getElementById(`newPostExtrasPickerTitle${fieldNumber}`);
+      
+      if (!list || !title) {
+        console.log(`ERROR: Extras picker elements not found for field ${fieldNumber}`);
+        return;
+      }
+
+      // Get current category and config (SAME LOGIC AS ORIGINAL)
+      const currentCategory = window.selectedJobCategory;
+      if (!currentCategory || !extrasConfig[currentCategory]) {
+        console.log('No category selected or config not found');
+        return;
+      }
+
+      const config = extrasConfig[currentCategory];
+      const fieldConfig = fieldNumber === 1 ? config.field1 : config.field2;
+      
+      if (!fieldConfig) {
+        console.log(`No config found for field ${fieldNumber}`);
+        return;
+      }
+
+      // Update modal title with field label
+      title.textContent = fieldConfig.label;
+
+      // Get options using EXISTING LOGIC from populateExtrasDropdownByType
+      let options = [];
+      const menuType = fieldConfig.menuType;
+      
+      if (menuTypes[menuType]) {
+        if (menuTypes[menuType].getOptions) {
+          // Dynamic options (like location)
+          options = menuTypes[menuType].getOptions();
+          
+          // Handle location fallback for cities without barangay data (PRESERVE EXISTING LOGIC)
+          if (menuType === 'location' && options === null) {
+            console.log(`No barangay data for ${activeCity}, modal not applicable`);
+            return; // Don't show modal, let existing fallback input handle this
+          }
+        } else {
+          // Static options
+          options = menuTypes[menuType].options;
+        }
+      }
+
+      console.log(`Field ${fieldNumber} options:`, options);
+
+      // Clear and populate list
+      list.innerHTML = '';
+      
+      // Get current selection for active highlighting
+      const currentLabel = document.getElementById(`newPostExtrasMenuLabel${fieldNumber}`);
+      const currentValue = currentLabel ? currentLabel.textContent.trim() : '';
+
+      options.forEach(option => {
+        const item = document.createElement('div');
+        item.className = 'new-post-extras-picker-item';
+        item.textContent = option;
+        
+        // Highlight if this is the current selection
+        if (option === currentValue) {
+          item.classList.add('active');
+        }
+        
+        list.appendChild(item);
+        console.log(`Added option: ${option}`);
+      });
+
+      // Add compact class for modals with only 2 options (like Supplies)
+      const modalElement = modal.querySelector('.new-post-extras-picker-modal');
+      if (modalElement) {
+        if (options.length <= 2) {
+          modalElement.classList.add('compact');
+          console.log(`Added compact class for ${options.length} options`);
+        } else {
+          modalElement.classList.remove('compact');
+          console.log(`Removed compact class for ${options.length} options`);
+        }
+      }
+
+      console.log(`Extras picker population complete for field ${fieldNumber}. Total items:`, list.children.length);
+    }
+
+    // Extras button click - show modal instead of small dropdown (ONLY FOR DROPDOWN TYPES)
+    if (extrasMenuBtn && extrasPickerModal) {
+      console.log(`Adding click listener to extras button ${fieldNumber}`);
+      extrasMenuBtn.addEventListener('click', function(e) {
+        console.log(`Extras field ${fieldNumber} button clicked!`);
+        e.stopPropagation();
+        
+        // Check if this field should use modal (only for dropdown types, not text inputs)
+        const currentCategory = window.selectedJobCategory;
+        if (!currentCategory || !extrasConfig[currentCategory]) {
+          console.log('No category selected, ignoring click');
+          return;
+        }
+
+        const config = extrasConfig[currentCategory];
+        const fieldConfig = fieldNumber === 1 ? config.field1 : config.field2;
+        
+        // Check if this is a location field that should use text input fallback
+        if (fieldConfig.menuType === 'location') {
+          const options = menuTypes.location.getOptions();
+          if (options === null) {
+            console.log('Location field needs text input fallback, not showing modal');
+            return; // Let existing text input fallback handle this
+          }
+        }
+        
+        populateNewPostExtrasPicker(fieldNumber);
+        extrasPickerModal.style.display = 'flex';
+        console.log(`Extras modal ${fieldNumber} should now be visible`);
+      });
+    } else {
+      console.log(`Missing elements for extras modal ${fieldNumber}:`, { extrasMenuBtn, extrasPickerModal });
+    }
+
+    // Close modal functions
+    function closeNewPostExtrasPicker(fieldNumber) {
+      const modal = document.getElementById(`newPostExtrasPickerOverlay${fieldNumber}`);
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    // Close button click
+    if (extrasPickerCloseBtn) {
+      extrasPickerCloseBtn.addEventListener('click', () => closeNewPostExtrasPicker(fieldNumber));
+    }
+
+    // Backdrop click to close
+    if (extrasPickerModal) {
+      extrasPickerModal.addEventListener('click', function(e) {
+        if (e.target === extrasPickerModal) {
+          closeNewPostExtrasPicker(fieldNumber);
+        }
+      });
+    }
+
+    // Select option from modal - PRESERVE ALL EXISTING LOGIC
+    if (extrasPickerList) {
+      extrasPickerList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('new-post-extras-picker-item')) {
+          const selectedOption = e.target.textContent.trim();
+          console.log(`Extras field ${fieldNumber} option selected:`, selectedOption);
+          
+          // Update label using EXACT SAME LOGIC as original
+          document.getElementById(`newPostExtrasMenuLabel${fieldNumber}`).textContent = selectedOption;
+          
+          // Close modal
+          closeNewPostExtrasPicker(fieldNumber);
+        }
+      });
+    }
+  }
+
+}); // End DOMContentLoaded for Extras modal
 
 // City menu event listeners - DISABLED FOR NEW MODAL SYSTEM
 // OLD CODE COMMENTED OUT - New modal system handles City dropdown now

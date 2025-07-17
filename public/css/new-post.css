@@ -3683,3 +3683,211 @@ body::-webkit-scrollbar {
   }
 }
 
+/* ===================== NEW-POST EXTRAS PICKER MODAL OVERLAY ===================== */
+
+.new-post-extras-picker-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.55);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.new-post-extras-picker-modal {
+  background: #232b36;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: clamp(18px, 5vw, 32px) clamp(12px, 4vw, 24px) clamp(12px, 4vw, 24px) clamp(12px, 4vw, 24px);
+  width: clamp(280px, 75vw, 380px);
+  min-height: clamp(180px, 28vh, 220px);
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.new-post-extras-picker-title {
+  font-size: clamp(1.1rem, 4vw, 1.3rem);
+  color: #ffe6b3;
+  margin-bottom: clamp(12px, 3vw, 18px);
+  font-weight: bold;
+  text-align: center;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+.new-post-extras-picker-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-height: clamp(160px, 40vh, 240px);
+  min-height: clamp(100px, 20vh, 140px);
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  margin-bottom: clamp(4px, 1vw, 8px);
+  border-radius: 10px;
+  background: #232b36;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.new-post-extras-picker-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Webkit browsers */
+}
+
+.new-post-extras-picker-item {
+  background: #434a58;
+  color: #fff;
+  border: none;
+  border-bottom: 1px solid #2d3748;
+  border-radius: 0;
+  font-size: clamp(0.95rem, 3.2vw, 1.1rem);
+  padding: clamp(11px, 3.5vw, 15px) 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  width: 100%;
+  text-align: center;
+}
+
+.new-post-extras-picker-item:last-child {
+  border-bottom: none;
+}
+
+.new-post-extras-picker-item:hover, .new-post-extras-picker-item:focus {
+  background: #ffe6b3;
+  color: #232b36;
+}
+
+.new-post-extras-picker-item.active {
+  background: #ffe6b3;
+  color: #232b36;
+  font-weight: bold;
+}
+
+.new-post-extras-picker-close {
+  position: absolute;
+  top: clamp(6px, 2vw, 10px);
+  right: clamp(10px, 3vw, 14px);
+  background: none;
+  border: none;
+  color: #ffe6b3;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  cursor: pointer;
+  z-index: 2;
+  font-family: Arial, sans-serif;
+}
+
+@media (max-width: 400px) {
+  .new-post-extras-picker-modal {
+    padding: 18px 6px 12px 6px;
+    width: clamp(260px, 85vw, 320px);
+    min-height: clamp(160px, 25vh, 190px);
+  }
+  .new-post-extras-picker-list {
+    max-height: clamp(140px, 35vh, 180px);
+    min-height: clamp(90px, 18vh, 120px);
+  }
+  .new-post-extras-picker-item {
+    font-size: 0.95rem;
+    padding: 11px 0;
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+  .new-post-extras-picker-title {
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+@media (max-width: 375px) {
+  .new-post-extras-picker-modal {
+    min-height: clamp(150px, 23vh, 175px);
+  }
+  .new-post-extras-picker-list {
+    max-height: clamp(130px, 32vh, 160px);
+    min-height: clamp(80px, 16vh, 100px);
+  }
+}
+
+@media (max-width: 360px) {
+  .new-post-extras-picker-modal {
+    min-height: clamp(145px, 22vh, 165px);
+  }
+  .new-post-extras-picker-list {
+    max-height: clamp(120px, 30vh, 150px);
+    min-height: clamp(75px, 15vh, 95px);
+  }
+}
+
+@media (max-width: 320px) {
+  .new-post-extras-picker-modal {
+    min-height: clamp(135px, 20vh, 155px);
+    padding: 16px 4px 10px 4px;
+  }
+  .new-post-extras-picker-list {
+    max-height: clamp(110px, 25vh, 130px);
+    min-height: clamp(70px, 13vh, 85px);
+  }
+  .new-post-extras-picker-item {
+    font-size: 0.9rem;
+    padding: 10px 0;
+  }
+}
+
+/* ===================== EXTRAS MODAL COMPACT STYLING FOR 2-OPTION LISTS ===================== */
+
+/* When extras modal has only 2 items (like Supplies: PROVIDED/REQUIRED), make it more compact */
+.new-post-extras-picker-modal.compact {
+  min-height: clamp(140px, 20vh, 170px) !important;
+  max-height: 45vh !important;
+}
+
+.new-post-extras-picker-modal.compact .new-post-extras-picker-list {
+  max-height: clamp(80px, 15vh, 100px) !important;
+  min-height: clamp(70px, 10vh, 80px) !important;
+}
+
+@media (max-width: 400px) {
+  .new-post-extras-picker-modal.compact {
+    min-height: clamp(120px, 18vh, 150px) !important;
+  }
+  .new-post-extras-picker-modal.compact .new-post-extras-picker-list {
+    max-height: clamp(80px, 14vh, 100px) !important;
+    min-height: clamp(70px, 10vh, 80px) !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .new-post-extras-picker-modal.compact {
+    min-height: clamp(115px, 17vh, 140px) !important;
+  }
+  .new-post-extras-picker-modal.compact .new-post-extras-picker-list {
+    max-height: clamp(75px, 13vh, 90px) !important;
+    min-height: clamp(65px, 9vh, 75px) !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .new-post-extras-picker-modal.compact {
+    min-height: clamp(110px, 16vh, 130px) !important;
+  }
+  .new-post-extras-picker-modal.compact .new-post-extras-picker-list {
+    max-height: clamp(70px, 12vh, 85px) !important;
+    min-height: clamp(60px, 8vh, 70px) !important;
+  }
+}
+
+@media (max-width: 320px) {
+  .new-post-extras-picker-modal.compact {
+    min-height: clamp(105px, 15vh, 125px) !important;
+    padding: 14px 4px 8px 4px !important;
+  }
+  .new-post-extras-picker-modal.compact .new-post-extras-picker-list {
+    max-height: clamp(65px, 11vh, 80px) !important;
+    min-height: clamp(55px, 7vh, 65px) !important;
+  }
+}
+
