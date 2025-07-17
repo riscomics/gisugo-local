@@ -1094,7 +1094,7 @@ body::-webkit-scrollbar {
     min-width: clamp(55px, 13vw, 65px) !important;
     height: 100% !important; /* Fill available height */
     margin-right: clamp(2px, 0.5vw, 4px) !important;
-    gap: clamp(1px, 0.4vh, 3px) !important;
+    gap: clamp(4px, 1.2vh, 8px) !important; /* Increased gap for better spacing */
     padding: clamp(2px, 0.6vh, 4px) 0 !important; /* Significantly reduced padding */
   }
   
@@ -1180,7 +1180,7 @@ body::-webkit-scrollbar {
     min-width: clamp(50px, 11vw, 60px) !important;
     height: 100% !important; /* Fill available height */
     margin-right: clamp(1px, 0.3vw, 3px) !important;
-    gap: clamp(1px, 0.2vh, 2px) !important;
+    gap: clamp(3px, 1vh, 6px) !important; /* Increased gap for better spacing */
     padding: clamp(1px, 0.4vh, 3px) 0 !important; /* Significantly reduced padding */
   }
   
