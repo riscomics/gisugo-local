@@ -549,26 +549,51 @@ body::-webkit-scrollbar {
   padding: 0 5px 0 0;
 }
 
-/* Alternating background colors for visual variety */
-.job-preview-card.alt-bg-1 {
-  background: #363f4f; /* Default - Blue-gray */
+/* Pay type-based background colors */
+.job-preview-card.pay-per-job {
+  background: #363f4f; /* Blue-gray for Per Job */
 }
 
-.job-preview-card.alt-bg-2 {
-  background: #2c3545; /* Subtle darker blue-gray */
+.job-preview-card.pay-per-job-alt {
+  background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
 }
 
-/* Hover states for alternating backgrounds */
-.job-preview-card.alt-bg-1:hover,
-.job-preview-card.alt-bg-1:focus {
+.job-preview-card.pay-per-hour {
+  background: #3f4f36; /* Green for Per Hour */
+}
+
+.job-preview-card.pay-per-hour-alt {
+  background: #35442d; /* Subtle darker green for consecutive Per Hour */
+}
+
+/* Hover states for pay type backgrounds */
+.job-preview-card.pay-per-job:hover,
+.job-preview-card.pay-per-job:focus {
+  background: #424a5c; /* Lighter blue-gray on hover */
   box-shadow: 0 4px 16px rgba(0,0,0,0.16);
   transform: translateY(-2px) scale(1.01);
   outline: none;
 }
 
-.job-preview-card.alt-bg-2:hover,
-.job-preview-card.alt-bg-2:focus {
-  background: #343d4d; /* Slightly lighter darker blue-gray on hover */
+.job-preview-card.pay-per-job-alt:hover,
+.job-preview-card.pay-per-job-alt:focus {
+  background: #343d4d; /* Lighter darker blue-gray on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card.pay-per-hour:hover,
+.job-preview-card.pay-per-hour:focus {
+  background: #4a5c41; /* Lighter green on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card.pay-per-hour-alt:hover,
+.job-preview-card.pay-per-hour-alt:focus {
+  background: #404f35; /* Lighter darker green on hover */
   box-shadow: 0 4px 16px rgba(0,0,0,0.16);
   transform: translateY(-2px) scale(1.01);
   outline: none;
@@ -871,13 +896,21 @@ body::-webkit-scrollbar {
     border-radius: 8px;
   }
   
-  /* Alternating background colors for 600px breakpoint */
-  .job-preview-card.alt-bg-1 {
-    background: #363f4f; /* Default - Blue-gray */
+  /* Pay type-based background colors for 600px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
   }
   
-  .job-preview-card.alt-bg-2 {
-    background: #2c3545; /* Subtle darker blue-gray */
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
   }
   
   .job-preview-card:hover, .job-preview-card:focus {
@@ -997,13 +1030,21 @@ body::-webkit-scrollbar {
     padding: 0 !important; /* Remove all padding to make image flush */
   }
   
-  /* Alternating background colors for 400px breakpoint */
-  .job-preview-card.alt-bg-1 {
-    background: #363f4f; /* Default - Blue-gray */
+  /* Pay type-based background colors for 400px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
   }
   
-  .job-preview-card.alt-bg-2 {
-    background: #2c3545; /* Subtle darker blue-gray */
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
   }
   
   .job-preview-img {
@@ -1092,13 +1133,21 @@ body::-webkit-scrollbar {
     padding: 0 !important; /* Remove all padding to make image flush */
   }
   
-  /* Alternating background colors for 375px breakpoint */
-  .job-preview-card.alt-bg-1 {
-    background: #363f4f; /* Default - Blue-gray */
+  /* Pay type-based background colors for 375px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
   }
   
-  .job-preview-card.alt-bg-2 {
-    background: #2c3545; /* Subtle darker blue-gray */
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
   }
   
   .job-preview-img {
@@ -1187,13 +1236,21 @@ body::-webkit-scrollbar {
     padding: 0 !important; /* Remove all padding to make image flush */
   }
   
-  /* Alternating background colors for 360px breakpoint */
-  .job-preview-card.alt-bg-1 {
-    background: #363f4f; /* Default - Blue-gray */
+  /* Pay type-based background colors for 360px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
   }
   
-  .job-preview-card.alt-bg-2 {
-    background: #2c3545; /* Subtle darker blue-gray */
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
   }
   
   .job-preview-img {
@@ -1282,13 +1339,21 @@ body::-webkit-scrollbar {
     padding: 0 !important; /* Remove all padding to make image flush */
   }
   
-  /* Alternating background colors for 320px breakpoint */
-  .job-preview-card.alt-bg-1 {
-    background: #363f4f; /* Default - Blue-gray */
+  /* Pay type-based background colors for 320px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
   }
   
-  .job-preview-card.alt-bg-2 {
-    background: #2c3545; /* Subtle darker blue-gray */
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
   }
   
   .job-preview-img {

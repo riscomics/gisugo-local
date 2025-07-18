@@ -604,8 +604,21 @@ function filterAndSortJobs() {
 
   
   // Create and insert filtered job cards in reverse order to get correct display order
-  filteredJobs.reverse().forEach((cardData, index) => {
-    const jobCard = createJobPreviewCard(cardData, index);
+  let previousPayType = null;
+  let consecutiveCount = 0;
+  
+  filteredJobs.reverse().forEach((cardData) => {
+    const currentPayType = cardData.rate || 'Per Hour';
+    
+    // Track consecutive cards of same pay type for subtle variations
+    if (currentPayType === previousPayType) {
+      consecutiveCount++;
+    } else {
+      consecutiveCount = 0;
+      previousPayType = currentPayType;
+    }
+    
+    const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
     headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
   });
   
@@ -729,8 +742,21 @@ function loadJobPreviewCards() {
   });
   
   // Create and insert dynamic job preview cards in reverse order to get correct display order
-  sortedCards.reverse().forEach((cardData, index) => {
-    const jobCard = createJobPreviewCard(cardData, index);
+  let prevPayType = null;
+  let consecCount = 0;
+  
+  sortedCards.reverse().forEach((cardData) => {
+    const currPayType = cardData.rate || 'Per Hour';
+    
+    // Track consecutive cards of same pay type for subtle variations
+    if (currPayType === prevPayType) {
+      consecCount++;
+    } else {
+      consecCount = 0;
+      prevPayType = currPayType;
+    }
+    
+    const jobCard = createJobPreviewCard(cardData, currPayType, consecCount);
     headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
   });
 }
@@ -739,13 +765,21 @@ function loadJobPreviewCards() {
 
 
 
-function createJobPreviewCard(cardData, index = 0) {
+function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount = 0) {
   const cardElement = document.createElement('a');
   cardElement.href = cardData.templateUrl;
   
-  // Add alternating background class (cycles through 2 colors)
-  const altBgClass = index % 2 === 0 ? 'alt-bg-1' : 'alt-bg-2';
-  cardElement.className = `job-preview-card ${altBgClass}`;
+  // Determine background class based on pay type and consecutive count
+  let bgClass;
+  if (payType === 'Per Hour') {
+    // Use green tones for Per Hour jobs
+    bgClass = consecutiveCount % 2 === 0 ? 'pay-per-hour' : 'pay-per-hour-alt';
+  } else {
+    // Use blue-gray tones for Per Job jobs
+    bgClass = consecutiveCount % 2 === 0 ? 'pay-per-job' : 'pay-per-job-alt';
+  }
+  
+  cardElement.className = `job-preview-card ${bgClass}`;
   
   // Parse extras to get labels and values
   const extra1Parts = cardData.extra1 ? cardData.extra1.split(':') : ['', ''];
