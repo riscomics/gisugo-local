@@ -777,12 +777,12 @@ function initializeLocationMenus() {
 // Region menu event listeners - UPDATED TO USE CENTERED MODAL
 // Wrap in DOMContentLoaded to ensure elements exist
 document.addEventListener('DOMContentLoaded', function() {
-  const regionMenuBtn = document.querySelector('.new-post-region-menu');
-  const regionMenuOverlay = document.getElementById('newPostRegionMenuOverlay');
+const regionMenuBtn = document.querySelector('.new-post-region-menu');
+const regionMenuOverlay = document.getElementById('newPostRegionMenuOverlay');
   const regionPickerModal = document.getElementById('newPostRegionPickerOverlay');
   const regionPickerList = document.getElementById('newPostRegionPickerList');
   const regionPickerCloseBtn = document.getElementById('newPostRegionPickerCloseBtn');
-  let regionMenuOpen = false;
+let regionMenuOpen = false;
 
   // Debug logging
   console.log('Region elements found:', {
@@ -895,7 +895,7 @@ if (regionMenuBtn && regionMenuOverlay) {
 // City menu event listeners - UPDATED TO USE CENTERED MODAL
 // Wrap in DOMContentLoaded to ensure elements exist
 document.addEventListener('DOMContentLoaded', function() {
-  const cityMenuBtn = document.querySelector('.new-post-city-menu');
+const cityMenuBtn = document.querySelector('.new-post-city-menu');
   const cityMenuBtnById = document.getElementById('newPostLocationCity');
   const cityMenuOverlay = document.getElementById('newPostCityMenuOverlay');
   const cityPickerModal = document.getElementById('newPostCityPickerOverlay');
