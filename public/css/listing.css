@@ -555,7 +555,7 @@ body::-webkit-scrollbar {
 }
 
 .job-preview-card.alt-bg-2 {
-  background: #3f4f36; /* Green */
+  background: #2c3545; /* Subtle darker blue-gray */
 }
 
 /* Hover states for alternating backgrounds */
@@ -568,7 +568,7 @@ body::-webkit-scrollbar {
 
 .job-preview-card.alt-bg-2:hover,
 .job-preview-card.alt-bg-2:focus {
-  background: #4a5c41; /* Slightly lighter green on hover */
+  background: #343d4d; /* Slightly lighter darker blue-gray on hover */
   box-shadow: 0 4px 16px rgba(0,0,0,0.16);
   transform: translateY(-2px) scale(1.01);
   outline: none;
@@ -877,7 +877,7 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.alt-bg-2 {
-    background: #3f4f36; /* Green */
+    background: #2c3545; /* Subtle darker blue-gray */
   }
   
   .job-preview-card:hover, .job-preview-card:focus {
@@ -1003,7 +1003,7 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.alt-bg-2 {
-    background: #3f4f36; /* Green */
+    background: #2c3545; /* Subtle darker blue-gray */
   }
   
   .job-preview-img {
@@ -1098,7 +1098,7 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.alt-bg-2 {
-    background: #3f4f36; /* Green */
+    background: #2c3545; /* Subtle darker blue-gray */
   }
   
   .job-preview-img {
@@ -1193,7 +1193,7 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.alt-bg-2 {
-    background: #3f4f36; /* Green */
+    background: #2c3545; /* Subtle darker blue-gray */
   }
   
   .job-preview-img {
@@ -1288,7 +1288,7 @@ body::-webkit-scrollbar {
   }
   
   .job-preview-card.alt-bg-2 {
-    background: #3f4f36; /* Green */
+    background: #2c3545; /* Subtle darker blue-gray */
   }
   
   .job-preview-img {
