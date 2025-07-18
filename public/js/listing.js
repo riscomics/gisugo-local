@@ -604,8 +604,8 @@ function filterAndSortJobs() {
 
   
   // Create and insert filtered job cards in reverse order to get correct display order
-  filteredJobs.reverse().forEach(cardData => {
-    const jobCard = createJobPreviewCard(cardData);
+  filteredJobs.reverse().forEach((cardData, index) => {
+    const jobCard = createJobPreviewCard(cardData, index);
     headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
   });
   
@@ -729,8 +729,8 @@ function loadJobPreviewCards() {
   });
   
   // Create and insert dynamic job preview cards in reverse order to get correct display order
-  sortedCards.reverse().forEach(cardData => {
-    const jobCard = createJobPreviewCard(cardData);
+  sortedCards.reverse().forEach((cardData, index) => {
+    const jobCard = createJobPreviewCard(cardData, index);
     headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
   });
 }
@@ -739,10 +739,13 @@ function loadJobPreviewCards() {
 
 
 
-function createJobPreviewCard(cardData) {
+function createJobPreviewCard(cardData, index = 0) {
   const cardElement = document.createElement('a');
   cardElement.href = cardData.templateUrl;
-  cardElement.className = 'job-preview-card';
+  
+  // Add alternating background class (cycles through 2 colors)
+  const altBgClass = index % 2 === 0 ? 'alt-bg-1' : 'alt-bg-2';
+  cardElement.className = `job-preview-card ${altBgClass}`;
   
   // Parse extras to get labels and values
   const extra1Parts = cardData.extra1 ? cardData.extra1.split(':') : ['', ''];

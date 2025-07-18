@@ -548,11 +548,38 @@ body::-webkit-scrollbar {
   border: 1.5px solid rgba(255,255,255,0.08);
   padding: 0 5px 0 0;
 }
+
+/* Alternating background colors for visual variety */
+.job-preview-card.alt-bg-1 {
+  background: #363f4f; /* Default - Blue-gray */
+}
+
+.job-preview-card.alt-bg-2 {
+  background: #4f363f; /* Purple-maroon */
+}
+
+/* Hover states for alternating backgrounds */
+.job-preview-card.alt-bg-1:hover,
+.job-preview-card.alt-bg-1:focus {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card.alt-bg-2:hover,
+.job-preview-card.alt-bg-2:focus {
+  background: #5c414a; /* Slightly lighter purple-maroon on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
 .job-preview-card:hover, .job-preview-card:focus {
   box-shadow: 0 4px 16px rgba(0,0,0,0.16);
   transform: translateY(-2px) scale(1.01);
   outline: none;
 }
+
 .job-preview-img {
   width: 98px;
   min-width: 98px;
@@ -844,6 +871,15 @@ body::-webkit-scrollbar {
     border-radius: 8px;
   }
   
+  /* Alternating background colors for 600px breakpoint */
+  .job-preview-card.alt-bg-1 {
+    background: #363f4f; /* Default - Blue-gray */
+  }
+  
+  .job-preview-card.alt-bg-2 {
+    background: #4f363f; /* Purple-maroon */
+  }
+  
   .job-preview-card:hover, .job-preview-card:focus {
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     transform: none;
@@ -961,6 +997,15 @@ body::-webkit-scrollbar {
     padding: 0 !important; /* Remove all padding to make image flush */
   }
   
+  /* Alternating background colors for 400px breakpoint */
+  .job-preview-card.alt-bg-1 {
+    background: #363f4f; /* Default - Blue-gray */
+  }
+  
+  .job-preview-card.alt-bg-2 {
+    background: #4f363f; /* Purple-maroon */
+  }
+  
   .job-preview-img {
     width: clamp(85px, 22vw, 100px) !important; /* Increased width to reduce cropping */
     min-width: clamp(85px, 22vw, 100px) !important;
@@ -1045,6 +1090,15 @@ body::-webkit-scrollbar {
     min-height: clamp(80px, 16vh, 95px) !important;
     margin: 0 auto clamp(5px, 1.2vh, 8px) auto !important;
     padding: 0 !important; /* Remove all padding to make image flush */
+  }
+  
+  /* Alternating background colors for 375px breakpoint */
+  .job-preview-card.alt-bg-1 {
+    background: #363f4f; /* Default - Blue-gray */
+  }
+  
+  .job-preview-card.alt-bg-2 {
+    background: #4f363f; /* Purple-maroon */
   }
   
   .job-preview-img {
@@ -1133,6 +1187,15 @@ body::-webkit-scrollbar {
     padding: 0 !important; /* Remove all padding to make image flush */
   }
   
+  /* Alternating background colors for 360px breakpoint */
+  .job-preview-card.alt-bg-1 {
+    background: #363f4f; /* Default - Blue-gray */
+  }
+  
+  .job-preview-card.alt-bg-2 {
+    background: #4f363f; /* Purple-maroon */
+  }
+  
   .job-preview-img {
     width: clamp(75px, 18vw, 90px) !important; /* Increased width to reduce cropping */
     min-width: clamp(75px, 18vw, 90px) !important;
@@ -1217,6 +1280,15 @@ body::-webkit-scrollbar {
     min-height: clamp(70px, 12vh, 85px) !important;
     margin: 0 auto clamp(3px, 0.8vh, 6px) auto !important;
     padding: 0 !important; /* Remove all padding to make image flush */
+  }
+  
+  /* Alternating background colors for 320px breakpoint */
+  .job-preview-card.alt-bg-1 {
+    background: #363f4f; /* Default - Blue-gray */
+  }
+  
+  .job-preview-card.alt-bg-2 {
+    background: #4f363f; /* Purple-maroon */
   }
   
   .job-preview-img {
