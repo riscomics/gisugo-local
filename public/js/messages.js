@@ -234,6 +234,17 @@ function trackInterval(callback, delay) {
     return intervalId;
 }
 
+// MEMORY LEAK FIX: Manual timeout/interval cleanup for immediate cancellation
+function clearTrackedTimeout(timeoutId) {
+    clearTimeout(timeoutId);
+    CLEANUP_REGISTRY.intervals.delete(timeoutId);
+}
+
+function clearTrackedInterval(intervalId) {
+    clearInterval(intervalId);
+    CLEANUP_REGISTRY.intervals.delete(intervalId);
+}
+
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize only the core functionality

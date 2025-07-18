@@ -77,10 +77,9 @@ function initializeKeyboardHandling() {
   });
   
   // Monitor viewport height changes
-  let resizeTimeout;
   window.addEventListener('resize', function() {
-    clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(detectKeyboardVisibility, 100);
+    clearTimeout(window.resizeTimeout);
+    window.resizeTimeout = setTimeout(detectKeyboardVisibility, 100);
   });
   
   // Update initial height on orientation change
@@ -4648,6 +4647,49 @@ function initializeHourAndAmPmPickerModals() {
   });
 }
 
+// ===== MEMORY CLEANUP SYSTEM =====
+const NEW_POST_CLEANUP_REGISTRY = {
+  timeouts: new Set(),
+  intervals: new Set(),
+  eventListeners: new Map()
+};
+
+function addCleanupTimeout(timeoutId) {
+  NEW_POST_CLEANUP_REGISTRY.timeouts.add(timeoutId);
+  return timeoutId;
+}
+
+function addCleanupInterval(intervalId) {
+  NEW_POST_CLEANUP_REGISTRY.intervals.add(intervalId);
+  return intervalId;
+}
+
+function executeNewPostCleanup() {
+  // Clear all timeouts
+  NEW_POST_CLEANUP_REGISTRY.timeouts.forEach(timeoutId => {
+    clearTimeout(timeoutId);
+  });
+  NEW_POST_CLEANUP_REGISTRY.timeouts.clear();
+  
+  // Clear all intervals
+  NEW_POST_CLEANUP_REGISTRY.intervals.forEach(intervalId => {
+    clearInterval(intervalId);
+  });
+  NEW_POST_CLEANUP_REGISTRY.intervals.clear();
+  
+  // Clear resize timeout specifically
+  if (window.resizeTimeout) {
+    clearTimeout(window.resizeTimeout);
+    window.resizeTimeout = null;
+  }
+  
+  console.log('🧹 New-post memory cleanup completed');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   initializeHourAndAmPmPickerModals();
+  
+  // Register cleanup on page unload
+  window.addEventListener('beforeunload', executeNewPostCleanup);
+  window.addEventListener('unload', executeNewPostCleanup);
 });
