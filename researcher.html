@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Researcher Service - GISUGO</title>
+    <link rel="stylesheet" href="public/css/listing.css?v=8.7">
+  </head>
+  <body>
+    <div class="jobcat-header">
+      <div class="jobcat-listheader">
+        <div class="jobcat-servicemenu" id="jobcatServiceMenuBtn">
+          <div class="jobcat-servicename">
+            <div>Researcher Jobs</div>
+            <div>&#9660;</div>
+          </div>
+        </div>
+        <div class="jobcat-servicemenu-overlay" id="jobcatServiceMenuOverlay">
+          <ul>
+            <li><a href="hatod.html">Hatod Jobs</a></li>
+            <li><a href="hakot.html">Hakot Jobs</a></li>
+            <li><a href="kompra.html">Kompra Jobs</a></li>
+            <li><a href="luto.html">Luto Jobs</a></li>
+            <li><a href="hugas.html">Hugas Jobs</a></li>
+            <li><a href="laba.html">Laba Jobs</a></li>
+            <li><a href="limpyo.html">Limpyo Jobs</a></li>
+            <li><a href="tindera.html">Tindera Jobs</a></li>
+            <li><a href="bantay.html">Bantay Jobs</a></li>
+            <li><a href="painter.html">Painter Jobs</a></li>
+            <li><a href="carpenter.html">Carpenter Jobs</a></li>
+            <li><a href="plumber.html">Plumber Jobs</a></li>
+            <li><a href="security.html">Security Jobs</a></li>
+            <li><a href="driver.html">Driver Jobs</a></li>
+            <li><a href="tutor.html">Tutor Jobs</a></li>
+            <li><a href="clerical.html">Clerical Jobs</a></li>
+            <li><a href="builder.html">Builder Jobs</a></li>
+            <li><a href="reception.html">Reception Jobs</a></li>
+            <li><a href="creative.html">Creative Jobs</a></li>
+            <li><a href="editor.html">Editor Jobs</a></li>
+            <li><a href="artist.html">Artist Jobs</a></li>
+            <li><a href="petcare.html">Pet Care Jobs</a></li>
+            <li><a href="researcher.html" class="active">Researcher Jobs</a></li>
+            <li><a href="social.html">Social Jobs</a></li>
+            <li><a href="trainer.html">Trainer Jobs</a></li>
+            <li><a href="videographer.html">Videographer Jobs</a></li>
+            <li><a href="musician.html">Musician Jobs</a></li>
+            <li><a href="secretary.html">Secretary Jobs</a></li>
+            <li><a href="staff.html">Staff Jobs</a></li>
+            <li><a href="photographer.html">Photographer Jobs</a></li>
+            <li><a href="nurse.html">Nurse Jobs</a></li>
+            <li><a href="doctor.html">Doctor Jobs</a></li>
+            <li><a href="lawyer.html">Lawyer Jobs</a></li>
+            <li><a href="mechanic.html">Mechanic Jobs</a></li>
+            <li><a href="electrician.html">Electrician Jobs</a></li>
+            <li><a href="tailor.html">Tailor Jobs</a></li>
+            <li><a href="accountant.html">Accountant Jobs</a></li>
+            <li><a href="consultant.html">Consultant Jobs</a></li>
+            <li><a href="engineer.html">Engineer Jobs</a></li>
+            <li><a href="programmer.html">Programmer Jobs</a></li>
+            <li><a href="therapist.html">Therapist Jobs</a></li>
+            <li><a href="marketer.html">Marketer Jobs</a></li>
+          </ul>
+        </div>
+        <div class="jobcat-headerbuttons">
+          <div class="jobcat-headerbutton">
+            <a href="new-post.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+              <div><img src="public/icons/Post.png" alt="Post"></div>
+              <div class="posttext">Post</div>
+            </a>
+          </div>
+          <div class="jobcat-headerbutton">
+            <a href="index.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+              <div><img src="public/icons/Home.png" alt="Home"></div>
+              <div class="hometext">Home</div>
+            </a>
+          </div>
+          <div class="jobcat-headerbutton">
+            <a href="jobs.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+              <div><img src="public/icons/Jobs.png" alt="Jobs"></div>
+              <div class="jobstext">Jobs</div>
+            </a>
+          </div>
+          <div class="jobcat-headerbutton">
+            <a href="messages.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+              <div><img src="public/icons/Messages.png" alt="Messages"></div>
+              <div class="messagestext">Messages</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="jobcat-container">
+      <div class="jobcat-filter-controls">
+        <div class="jobcat-filter-group">
+          <div class="jobcat-filter-wrapper">
+            <select id="payTypeFilter" class="jobcat-filter-select">
+              <option value="all">PAY TYPE</option>
+              <option value="Per Job">Per Job</option>
+              <option value="Per Hour">Per Hour</option>
+            </select>
+          </div>
+          
+          <div class="jobcat-filter-wrapper">
+            <select id="sortByFilter" class="jobcat-filter-select">
+              <option value="date">SORT BY: DATE</option>
+              <option value="salary">SORT BY: SALARY</option>
+              <option value="recent">SORT BY: RECENT</option>
+            </select>
+          </div>
+          
+          <div class="jobcat-filter-wrapper">
+            <select id="regionFilter" class="jobcat-filter-select">
+              <option value="all">REGION</option>
+              <option value="CEBU">CEBU</option>
+              <option value="MANILA">MANILA</option>
+              <option value="DAVAO">DAVAO</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="jobcat-header-spacer"></div>
+      
+      <!-- Job listings will be dynamically inserted here -->
+      
+    </div>
+
+    <script src="public/js/listing.js?v=3.1"></script>
+    <script src="public/js/shared-menu.js?v=1.2"></script>
+  </body>
+</html> 
