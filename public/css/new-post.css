@@ -2343,7 +2343,7 @@ body::-webkit-scrollbar {
   background: #363d4d;
   border-radius: 0 0 12px 12px;
 }
-
+ 
 .new-post-preview-btn {
   flex: 1;
   padding: 12px 20px;
