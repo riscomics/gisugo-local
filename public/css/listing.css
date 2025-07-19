@@ -246,6 +246,28 @@ body::-webkit-scrollbar {
     width: 32px;
     height: 32px;
   }
+
+  /* Modal text wrapping prevention */
+  .jobcat-servicemenu-overlay a {
+    font-size: clamp(0.9rem, 3.5vw, 1.2rem) !important; /* Smaller font to prevent wrapping */
+    padding: clamp(2px, 0.5vw, 3px) 0 clamp(2px, 0.5vw, 3px) clamp(4px, 1vw, 6px) !important;
+    white-space: nowrap !important; /* Prevent text wrapping */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important; /* Add ellipsis for long text */
+    line-height: 1.2 !important; /* Tighter line height */
+  }
+
+  /* Region/City/Pay Modals - Prevent text wrapping */
+  .jobcat-region-menu-overlay li,
+  .jobcat-city-menu-overlay li,
+  .jobcat-pay-menu-overlay li {
+    font-size: clamp(11px, 2.8vw, 14px) !important;
+    padding: clamp(2px, 0.5vw, 3px) clamp(4px, 1vw, 6px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
 }
 
 /* Sort Menu Styles */
@@ -1327,6 +1349,19 @@ body::-webkit-scrollbar {
   .job-preview-infobox2 .job-preview-time {
     font-size: clamp(0.55rem, 2.3vw, 0.65rem) !important;
   }
+
+  /* Modal text wrapping prevention for 400px */
+  .jobcat-servicemenu-overlay a {
+    font-size: clamp(0.8rem, 3vw, 1rem) !important;
+    letter-spacing: -0.3px !important; /* Tighter letter spacing */
+  }
+
+  .jobcat-region-menu-overlay li,
+  .jobcat-city-menu-overlay li,
+  .jobcat-pay-menu-overlay li {
+    font-size: clamp(10px, 2.5vw, 12px) !important;
+    letter-spacing: -0.2px !important;
+  }
 }
 
 /* 320px Breakpoint (Ultra small screens) */
@@ -1514,6 +1549,21 @@ body::-webkit-scrollbar {
   }
   body::-webkit-scrollbar {
     display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* Modal text wrapping prevention for 320px */
+  .jobcat-servicemenu-overlay a {
+    font-size: clamp(0.7rem, 2.8vw, 0.9rem) !important;
+    letter-spacing: -0.4px !important;
+    padding: 1px 0 1px 3px !important;
+  }
+
+  .jobcat-region-menu-overlay li,
+  .jobcat-city-menu-overlay li,
+  .jobcat-pay-menu-overlay li {
+    font-size: clamp(9px, 2.2vw, 11px) !important;
+    letter-spacing: -0.3px !important;
+    padding: 1px 3px !important;
   }
 }
 

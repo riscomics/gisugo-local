@@ -3891,3 +3891,96 @@ body::-webkit-scrollbar {
   }
 }
 
+/* Mobile breakpoint - prevent text wrapping in modals */
+@media (max-width: 600px) {
+  /* Job Category Modal - More aggressive font scaling */
+  .new-post-servicemenu-overlay a {
+    font-size: clamp(0.9rem, 3.5vw, 1.2rem) !important; /* Smaller font to prevent wrapping */
+    padding: clamp(2px, 0.5vw, 3px) 0 clamp(2px, 0.5vw, 3px) clamp(4px, 1vw, 6px) !important;
+    white-space: nowrap !important; /* Prevent text wrapping */
+    overflow: hidden !important;
+    text-overflow: ellipsis !important; /* Add ellipsis for long text */
+    line-height: 1.2 !important; /* Tighter line height */
+  }
+
+  /* Region/City Modals - Prevent text wrapping */
+  .new-post-region-menu-overlay li,
+  .new-post-city-menu-overlay li {
+    font-size: clamp(11px, 2.8vw, 14px) !important;
+    padding: clamp(2px, 0.5vw, 3px) clamp(4px, 1vw, 6px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Payment Type Modal - Prevent text wrapping */
+  .new-post-payment-type-list li {
+    font-size: clamp(11px, 2.8vw, 14px) !important;
+    padding: clamp(2px, 0.5vw, 3px) 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Hour/AM-PM Modals - Prevent text wrapping */
+  .hour-picker-modal li,
+  #ampmPickerOverlay .hour-picker-modal li {
+    font-size: clamp(11px, 2.8vw, 14px) !important;
+    padding: clamp(2px, 0.5vw, 3px) clamp(4px, 1vw, 6px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Extras Modal - Prevent text wrapping */
+  .new-post-extras-menu-list li {
+    font-size: clamp(11px, 2.8vw, 14px) !important;
+    padding: clamp(2px, 0.5vw, 3px) clamp(4px, 1vw, 6px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Smaller mobile screens - even more aggressive text scaling */
+@media (max-width: 400px) {
+  .new-post-servicemenu-overlay a {
+    font-size: clamp(0.8rem, 3vw, 1rem) !important;
+    letter-spacing: -0.3px !important; /* Tighter letter spacing */
+  }
+
+  .new-post-region-menu-overlay li,
+  .new-post-city-menu-overlay li,
+  .new-post-payment-type-list li,
+  .hour-picker-modal li,
+  #ampmPickerOverlay .hour-picker-modal li,
+  .new-post-extras-menu-list li {
+    font-size: clamp(10px, 2.5vw, 12px) !important;
+    letter-spacing: -0.2px !important;
+  }
+}
+
+/* Extra small screens - maximum text compression */
+@media (max-width: 320px) {
+  .new-post-servicemenu-overlay a {
+    font-size: clamp(0.7rem, 2.8vw, 0.9rem) !important;
+    letter-spacing: -0.4px !important;
+    padding: 1px 0 1px 3px !important;
+  }
+
+  .new-post-region-menu-overlay li,
+  .new-post-city-menu-overlay li,
+  .new-post-payment-type-list li,
+  .hour-picker-modal li,
+  #ampmPickerOverlay .hour-picker-modal li,
+  .new-post-extras-menu-list li {
+    font-size: clamp(9px, 2.2vw, 11px) !important;
+    letter-spacing: -0.3px !important;
+    padding: 1px 3px !important;
+  }
+}
+
