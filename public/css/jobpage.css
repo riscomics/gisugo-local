@@ -1020,7 +1020,7 @@ body::-webkit-scrollbar {
 /* Responsive Mobile Styles - 600px and below */
 @media (max-width: 600px) {
   body {
-    padding-top: clamp(70px, 18vw, 75px); /* Responsive header space */
+    padding-top: 72px; /* Match listing.css exactly */
   }
   
   body::-webkit-scrollbar {
@@ -1028,29 +1028,29 @@ body::-webkit-scrollbar {
   }
   
   .job-header-title-container {
-    height: clamp(60px, 16vw, 68px);
-    padding-right: clamp(3px, 1.2vw, 5px); 
+    height: 68px; /* Match listing.css exactly */
+    padding-right: 5px; /* Match listing.css exactly */
   } 
   
   .job-header-title {
-    font-size: clamp(0.9rem, 4vw, 1rem);
+    font-size: 1rem;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     line-height: 1.4;
-    padding-left: clamp(3px, 1.2vw, 5px);
-    padding-right: clamp(3px, 1.2vw, 5px);
+    padding-left: 5px;
+    padding-right: 5px;
   }
    
   .job-header-btn {
-    width: clamp(40px, 10vw, 45px);
-    height: clamp(42px, 11vw, 47px);
-    font-size: clamp(11px, 2.8vw, 12px);
+    width: 45px; /* Match listing.css exactly */
+    height: 45px; /* Match listing.css exactly */
+    font-size: 12px; /* Match listing.css exactly */
     font-family: Arial, Helvetica, sans-serif;
   }
   
   .job-header-btn img {
     width: auto;
-    height: clamp(30px, 8vw, 35px);
-    margin-bottom: clamp(3px, 1vw, 4px);
+    height: 35px; /* Match listing.css exactly */
+    margin-bottom: 4px;
   }
   
   .job-header-btn:hover {
@@ -1058,17 +1058,17 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-menu-items {
-    height: clamp(60px, 16vw, 68px);
+    height: 68px; /* Match listing.css exactly */
   }
   
   .jobcat-menu-item {
-    font-size: clamp(11px, 2.8vw, 12px);
-    width: clamp(40px, 10vw, 45px);
+    font-size: 12px; /* Match listing.css exactly */
+    width: 45px; /* Match listing.css exactly */
   }
   
   .jobcat-menu-item img {
-    width: clamp(28px, 7.5vw, 32px);
-    height: clamp(28px, 7.5vw, 32px);
+    width: 32px;
+    height: 32px;
     /* margin-bottom inherits base 4px to match listing.css */
   }
   
@@ -1426,43 +1426,43 @@ body::-webkit-scrollbar {
 /* Smaller Mobile Screens - 400px and below */
 @media (max-width: 400px) {
   body {
-    padding-top: clamp(65px, 20vw, 70px);
+    padding-top: 72px; /* Keep same as 600px */
   }
   
   .job-header-title-container {
-    height: clamp(55px, 17vw, 60px);
-    padding-right: clamp(2px, 1vw, 3px);
+    height: 68px; /* Keep same as 600px */
+    padding-right: 5px; /* Keep same as 600px */
   }
   
   .job-header-title {
-    font-size: clamp(0.8rem, 4.2vw, 0.9rem);
-    padding-left: clamp(2px, 1vw, 3px);
-    padding-right: clamp(2px, 1vw, 3px);
+    font-size: 1rem; /* Keep same as 600px */
+    padding-left: 5px;
+    padding-right: 5px;
   }
   
   .job-header-btn {
-    width: clamp(35px, 11vw, 40px);
-    height: clamp(37px, 12vw, 42px);
-    font-size: clamp(10px, 3vw, 11px);
+    width: 45px; /* Keep same as 600px */
+    height: 45px; /* Keep same as 600px */
+    font-size: 12px; /* Keep same as 600px */
   }
   
   .job-header-btn img {
-    height: clamp(25px, 8.5vw, 30px);
-    margin-bottom: clamp(2px, 0.8vw, 3px);
+    height: 35px; /* Keep same as 600px */
+    margin-bottom: 4px;
   }
   
   .jobcat-menu-items {
-    height: clamp(55px, 17vw, 60px);
+    height: 68px; /* Keep same as 600px */
   }
   
   .jobcat-menu-item {
-    font-size: clamp(10px, 3vw, 11px);
-    width: clamp(35px, 11vw, 40px);
+    font-size: 12px; /* Keep same as 600px */
+    width: 45px; /* Keep same as 600px */
   }
   
   .jobcat-menu-item img {
-    width: clamp(24px, 8vw, 28px);
-    height: clamp(24px, 8vw, 28px);
+    width: 32px;
+    height: 32px;
   }
   
   /* Content adjustments for smaller screens */
@@ -1574,39 +1574,39 @@ body::-webkit-scrollbar {
 /* iPhone 7 and similar - 375px and below */
 @media (max-width: 375px) {
   body {
-    padding-top: clamp(60px, 21vw, 65px);
+    padding-top: 72px; /* Keep same as larger screens */
   }
   
   .job-header-title-container {
-    height: clamp(50px, 18vw, 55px);
+    height: 68px; /* Keep same as larger screens */
   }
   
   .job-header-title {
-    font-size: clamp(0.75rem, 4.5vw, 0.8rem);
+    font-size: 1rem; /* Keep same as larger screens */
   }
   
   .job-header-btn {
-    width: clamp(32px, 12vw, 35px);
-    height: clamp(34px, 13vw, 37px);
-    font-size: clamp(9px, 3.2vw, 10px);
+    width: 45px; /* Keep same as larger screens */
+    height: 45px; /* Keep same as larger screens */
+    font-size: 12px; /* Keep same as larger screens */
   }
   
   .job-header-btn img {
-    height: clamp(22px, 9vw, 25px);
+    height: 35px; /* Keep same as larger screens */
   }
   
   .jobcat-menu-items {
-    height: clamp(50px, 18vw, 55px);
+    height: 68px; /* Keep same as larger screens */
   }
   
   .jobcat-menu-item {
-    font-size: clamp(9px, 3.2vw, 10px);
-    width: clamp(32px, 12vw, 35px);
+    font-size: 12px; /* Keep same as larger screens */
+    width: 45px; /* Keep same as larger screens */
   }
   
   .jobcat-menu-item img {
-    width: clamp(22px, 8.5vw, 24px);
-    height: clamp(22px, 8.5vw, 24px);
+    width: 32px;
+    height: 32px;
   }
   
   .job-info-label {
@@ -1681,39 +1681,42 @@ body::-webkit-scrollbar {
 /* Extra Small Screens - 320px and below */
 @media (max-width: 320px) {
   body {
-    padding-top: clamp(55px, 22vw, 60px);
+    padding-top: 66px; /* Adjusted for smaller header */
   }
   
   .job-header-title-container {
-    height: clamp(45px, 19vw, 50px);
+    height: 62px !important; /* Match listing.css exactly */
+    padding-right: 2px !important; /* Match listing.css exactly */
   }
   
   .job-header-title {
-    font-size: clamp(0.7rem, 4.8vw, 0.75rem);
+    font-size: clamp(17px, 4vw, 21px) !important; /* Match listing.css exactly */
   }
   
   .job-header-btn {
-    width: clamp(30px, 13vw, 32px);
-    height: clamp(32px, 14vw, 34px);
-    font-size: clamp(8px, 3.5vw, 9px);
+    width: clamp(32px, 9vw, 45px) !important; /* Match listing.css exactly */
+    height: clamp(38px, 10vh, 45px) !important; /* Match listing.css exactly */
+    font-size: clamp(10px, 2.5vw, 12px) !important; /* Match listing.css exactly */
   }
   
   .job-header-btn img {
-    height: clamp(20px, 9.5vw, 22px);
+    width: clamp(28px, 8vh, 35px) !important; /* Match listing.css exactly */
+    height: clamp(28px, 8vh, 35px) !important; /* Match listing.css exactly */
+    object-fit: contain !important; /* Match listing.css exactly */
   }
   
   .jobcat-menu-items {
-    height: clamp(45px, 19vw, 50px);
+    height: 62px !important; /* Match listing.css exactly */
   }
   
   .jobcat-menu-item {
-    font-size: clamp(8px, 3.5vw, 9px);
-    width: clamp(30px, 13vw, 32px);
+    font-size: clamp(10px, 2.5vw, 12px) !important; /* Match listing.css exactly */
+    width: clamp(32px, 9vw, 45px) !important; /* Match listing.css exactly */
   }
   
   .jobcat-menu-item img {
-    width: clamp(20px, 9vw, 22px);
-    height: clamp(20px, 9vw, 22px);
+    width: clamp(28px, 8vh, 35px) !important; /* Match listing.css exactly */
+    height: clamp(28px, 8vh, 35px) !important; /* Match listing.css exactly */
   }
   
   .job-info-section {
