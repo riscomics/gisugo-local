@@ -1038,6 +1038,10 @@ body::-webkit-scrollbar {
     line-height: 1.4;
     padding-left: 5px;
     padding-right: 5px;
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis for long titles */
+    max-width: calc(100% - 90px); /* Account for back/menu buttons */
   }
    
   .job-header-btn {
@@ -1678,12 +1682,16 @@ body::-webkit-scrollbar {
   }
 }
 
-/* 360px to 321px range - Intermediate breakpoint matching listing.css */
+/* 360px to 321px range - Intermediate breakpoint with overflow handling */
 @media (max-width: 360px) and (min-width: 321px) {
   .job-header-title {
-    font-size: clamp(20px, 4.5vw, 24px) !important; /* Match listing.css jobcat-servicename exactly */
-    padding-left: 8px !important; /* Match listing.css exactly */
-    padding-right: 6px !important; /* Match listing.css exactly */
+    font-size: clamp(16px, 4vw, 20px) !important; /* Reduced for longer job titles */
+    padding-left: 8px !important; 
+    padding-right: 6px !important;
+    white-space: nowrap !important; /* Prevent wrapping */
+    overflow: hidden !important; /* Hide overflow */
+    text-overflow: ellipsis !important; /* Add ellipsis for long titles */
+    max-width: calc(100% - 90px) !important; /* Account for back/menu buttons */
   }
 }
 
@@ -1699,9 +1707,13 @@ body::-webkit-scrollbar {
   }
   
   .job-header-title {
-    font-size: clamp(17px, 4vw, 21px) !important; /* Match listing.css jobcat-servicename exactly */
-    padding-left: 6px !important; /* Match listing.css exactly */
-    padding-right: 4px !important; /* Match listing.css exactly */
+    font-size: clamp(14px, 3.5vw, 17px) !important; /* Reduced for longer job titles */
+    padding-left: 6px !important; 
+    padding-right: 4px !important;
+    white-space: nowrap !important; /* Prevent wrapping */
+    overflow: hidden !important; /* Hide overflow */
+    text-overflow: ellipsis !important; /* Add ellipsis for long titles */
+    max-width: calc(100% - 90px) !important; /* Account for back/menu buttons */
   }
   
   .job-header-btn {
