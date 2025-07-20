@@ -1033,7 +1033,7 @@ body::-webkit-scrollbar {
   } 
   
   .job-header-title {
-    font-size: 1rem;
+    font-size: 22px; /* Match listing.css jobcat-servicename at 600px */
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     line-height: 1.4;
     padding-left: 5px;
@@ -1435,7 +1435,7 @@ body::-webkit-scrollbar {
   }
   
   .job-header-title {
-    font-size: 1rem; /* Keep same as 600px */
+    font-size: 22px; /* Keep same as 600px */
     padding-left: 5px;
     padding-right: 5px;
   }
@@ -1582,7 +1582,7 @@ body::-webkit-scrollbar {
   }
   
   .job-header-title {
-    font-size: 1rem; /* Keep same as larger screens */
+    font-size: 22px; /* Keep same as larger screens */
   }
   
   .job-header-btn {
@@ -1678,6 +1678,15 @@ body::-webkit-scrollbar {
   }
 }
 
+/* 360px to 321px range - Intermediate breakpoint matching listing.css */
+@media (max-width: 360px) and (min-width: 321px) {
+  .job-header-title {
+    font-size: clamp(20px, 4.5vw, 24px) !important; /* Match listing.css jobcat-servicename exactly */
+    padding-left: 8px !important; /* Match listing.css exactly */
+    padding-right: 6px !important; /* Match listing.css exactly */
+  }
+}
+
 /* Extra Small Screens - 320px and below */
 @media (max-width: 320px) {
   body {
@@ -1690,7 +1699,9 @@ body::-webkit-scrollbar {
   }
   
   .job-header-title {
-    font-size: clamp(17px, 4vw, 21px) !important; /* Match listing.css exactly */
+    font-size: clamp(17px, 4vw, 21px) !important; /* Match listing.css jobcat-servicename exactly */
+    padding-left: 6px !important; /* Match listing.css exactly */
+    padding-right: 4px !important; /* Match listing.css exactly */
   }
   
   .job-header-btn {
