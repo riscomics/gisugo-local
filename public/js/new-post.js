@@ -1717,7 +1717,7 @@ function processImageWithSmartStorage(file, callback) {
     // Always create cropped version (500×281 for page display)
     const croppedData = createCroppedVersion(img, function(croppedDataURL) {
       if (needsOriginal) {
-        // Create compressed original (1000px max width, maintain aspect ratio)
+                 // Create compressed original (720px max width, maintain aspect ratio)
         createCompressedOriginal(img, function(originalDataURL) {
           // Store both versions
           processedJobPhoto = {
@@ -1795,8 +1795,8 @@ function createCompressedOriginal(img, callback) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   
-  // Calculate dimensions (max 1000px width, maintain aspect ratio)
-  const maxWidth = 1000;
+  // Calculate dimensions (max 720px width, maintain aspect ratio)
+  const maxWidth = 720;
   let newWidth = img.width;
   let newHeight = img.height;
   
@@ -2293,7 +2293,7 @@ function getFormData() {
     if (processedJobPhoto && processedJobPhoto.hasOriginal) {
       // Store both cropped and original versions
       data.photo = processedJobPhoto.cropped;           // For page display (500×281)
-      data.originalPhoto = processedJobPhoto.original;  // For lightbox (1000px max, original ratio)
+             data.originalPhoto = processedJobPhoto.original;  // For lightbox (720px max, original ratio)
       console.log('📝 Photo: DUAL storage (cropped + original for lightbox)');
     } else if (processedJobPhoto && processedJobPhoto.cropped) {
       // Store only cropped version (was close to 16:9)

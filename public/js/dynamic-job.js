@@ -1,5 +1,50 @@
 // ========================== DYNAMIC JOB PAGE FUNCTIONALITY ==========================
 
+// Memory leak prevention - Cleanup registry for event listeners and timers
+const DYNAMIC_JOB_CLEANUP_REGISTRY = {
+  timeouts: new Set(),
+  intervals: new Set(),
+  eventListeners: new Set(),
+  
+  addTimeout: function(timeoutId) {
+    this.timeouts.add(timeoutId);
+  },
+  
+  addInterval: function(intervalId) {
+    this.intervals.add(intervalId);
+  },
+  
+  addEventListener: function(element, event, handler, options) {
+    element.addEventListener(event, handler, options);
+    this.eventListeners.add({ element, event, handler, options });
+  },
+  
+  cleanup: function() {
+    // Clear timeouts
+    this.timeouts.forEach(id => clearTimeout(id));
+    this.timeouts.clear();
+    
+    // Clear intervals
+    this.intervals.forEach(id => clearInterval(id));
+    this.intervals.clear();
+    
+    // Remove event listeners
+    this.eventListeners.forEach(({ element, event, handler, options }) => {
+      if (element && element.removeEventListener) {
+        element.removeEventListener(event, handler, options);
+      }
+    });
+    this.eventListeners.clear();
+    
+    console.log('🧹 Dynamic job page cleanup completed');
+  }
+};
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+  DYNAMIC_JOB_CLEANUP_REGISTRY.cleanup();
+});
+
 // Category configuration for extras
 const extrasConfig = {
   hatod: {
@@ -360,7 +405,8 @@ function initializeApplyJob() {
       applyOverlay.classList.add('show');
       // Focus on message textarea for better UX
       if (messageTextarea) {
-        setTimeout(() => messageTextarea.focus(), 300);
+        const focusTimeout = setTimeout(() => messageTextarea.focus(), 300);
+        DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(focusTimeout);
       }
     });
     
@@ -632,9 +678,10 @@ function initializePhotoLightbox() {
       lightboxOverlay.style.display = 'flex';
       
       // Add show class with slight delay for smooth animation
-      setTimeout(() => {
+      const showTimeout = setTimeout(() => {
         lightboxOverlay.classList.add('show');
       }, 10);
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(showTimeout);
       
       // Prevent body scrolling when lightbox is open
       document.body.style.overflow = 'hidden';
@@ -648,10 +695,11 @@ function initializePhotoLightbox() {
     lightboxOverlay.classList.remove('show');
     
     // Hide overlay after animation completes
-    setTimeout(() => {
+    const hideTimeout = setTimeout(() => {
       lightboxOverlay.style.display = 'none';
       lightboxImage.src = '';
     }, 300);
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(hideTimeout);
     
     // Restore body scrolling
     document.body.style.overflow = '';
@@ -659,23 +707,25 @@ function initializePhotoLightbox() {
     console.log('📸 Photo lightbox closed');
   }
 
-  // Event listeners
-  jobPhoto.addEventListener('click', openLightbox);
-  lightboxClose.addEventListener('click', closeLightbox);
+  // Event listeners with cleanup registry
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(jobPhoto, 'click', openLightbox);
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(lightboxClose, 'click', closeLightbox);
   
   // Close on backdrop click
-  lightboxOverlay.addEventListener('click', function(e) {
+  const backdropHandler = function(e) {
     if (e.target === lightboxOverlay) {
       closeLightbox();
     }
-  });
+  };
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(lightboxOverlay, 'click', backdropHandler);
   
   // Close on Escape key
-  document.addEventListener('keydown', function(e) {
+  const escapeHandler = function(e) {
     if (e.key === 'Escape' && lightboxOverlay.classList.contains('show')) {
       closeLightbox();
     }
-  });
+  };
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', escapeHandler);
 
   console.log('✅ Photo lightbox initialized');
 }
