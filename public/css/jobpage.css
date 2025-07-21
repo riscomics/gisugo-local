@@ -1690,7 +1690,7 @@ body::-webkit-scrollbar {
   }
   
   .job-header-title {
-    font-size: clamp(17px, 4vw, 21px) !important; /* Match listing.css exactly */
+    font-size: clamp(14px, 4.2vw, 16px) !important; /* Reduced to fit 2 lines max at 320px */
   }
   
   .job-header-btn {
