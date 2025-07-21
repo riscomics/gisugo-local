@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitle">Job Details - GISUGO</title>
-  <link rel="stylesheet" href="public/css/jobpage.css?v=4">
+  <link rel="stylesheet" href="public/css/jobpage.css?v=6">
 </head>
 <body>
   <div class="job-header">
@@ -33,6 +33,14 @@
     <img src="" alt="Job Photo" class="job-photo" id="jobPhoto">
   </div>
   <div class="job-photo-borderline" id="jobPhotoBorderline" style="display: none;"></div>
+  
+  <!-- Photo Lightbox Modal -->
+  <div class="photo-lightbox-overlay" id="photoLightboxOverlay">
+    <div class="photo-lightbox-modal">
+      <button class="photo-lightbox-close" id="photoLightboxClose" aria-label="Close lightbox">×</button>
+      <img src="" alt="Job Photo - Full Size" class="photo-lightbox-image" id="photoLightboxImage">
+    </div>
+  </div>
   
   <!-- Job Info Section -->
   <div class="job-info-section" id="jobInfoSection">
@@ -194,7 +202,7 @@
   </div>
   
   <script src="public/js/shared-menu.js"></script>
-  <script src="public/js/dynamic-job.js?v=2"></script>
+  <script src="public/js/dynamic-job.js?v=4"></script>
 
   <!-- Viewport Debug Tool -->
   <div id="vp-debug"></div>

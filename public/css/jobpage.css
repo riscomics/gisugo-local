@@ -1820,3 +1820,122 @@ body::-webkit-scrollbar {
     width: clamp(0.95rem, 5.8vw, 1rem);
   }
 }
+
+/* ===================== PHOTO LIGHTBOX MODAL ===================== */
+
+.photo-lightbox-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.photo-lightbox-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+
+.photo-lightbox-modal {
+  position: relative;
+  max-width: 95vw;
+  max-height: 95vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+}
+
+.photo-lightbox-overlay.show .photo-lightbox-modal {
+  transform: scale(1);
+}
+
+.photo-lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.photo-lightbox-close {
+  position: absolute;
+  top: -45px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+  z-index: 100001;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.photo-lightbox-close:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+}
+
+.photo-lightbox-close:active {
+  transform: scale(0.95);
+}
+
+/* Add cursor pointer to main job photo to indicate it's clickable */
+.job-photo {
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.job-photo:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* Responsive lightbox adjustments */
+@media (max-width: 600px) {
+  .photo-lightbox-close {
+    top: -50px;
+    right: -5px;
+    width: 45px;
+    height: 45px;
+    font-size: 28px;
+  }
+  
+  .photo-lightbox-modal {
+    max-width: 98vw;
+    max-height: 90vh;
+  }
+}
+
+@media (max-width: 400px) {
+  .photo-lightbox-close {
+    top: -55px;
+    right: -10px;
+    width: 50px;
+    height: 50px;
+    font-size: 32px;
+  }
+}

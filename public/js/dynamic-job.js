@@ -585,6 +585,101 @@ function initializeContactDropdown() {
   }
 }
 
+// ========================== PHOTO LIGHTBOX FUNCTIONALITY ==========================
+
+function initializePhotoLightbox() {
+  const jobPhoto = document.getElementById('jobPhoto');
+  const lightboxOverlay = document.getElementById('photoLightboxOverlay');
+  const lightboxImage = document.getElementById('photoLightboxImage');
+  const lightboxClose = document.getElementById('photoLightboxClose');
+
+  if (!jobPhoto || !lightboxOverlay || !lightboxImage || !lightboxClose) {
+    console.log('Photo lightbox elements not found');
+    return;
+  }
+
+  // Function to open lightbox with smart photo selection
+  function openLightbox() {
+    const photoSrc = jobPhoto.src;
+    if (photoSrc && photoSrc !== '') {
+      // Get current job data to check for original photo
+      const { category, jobNumber } = getUrlParameters();
+      const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+      const categoryJobs = jobData[category] || [];
+      let job = categoryJobs.find(j => j.jobNumber == jobNumber);
+      
+      // Find job by jobId pattern if not found by jobNumber
+      if (!job) {
+        job = categoryJobs.find(j => {
+          if (j.jobId) {
+            const extractedNumber = j.jobId.split('_').pop();
+            return extractedNumber == jobNumber;
+          }
+          return false;
+        });
+      }
+      
+      // Use original photo if available, otherwise fallback to cropped version
+      let lightboxSrc = photoSrc; // Default fallback
+      if (job && job.originalPhoto) {
+        lightboxSrc = job.originalPhoto;
+        console.log('📸 Using original aspect ratio photo for lightbox');
+      } else {
+        console.log('📸 Using cropped photo for lightbox (backwards compatibility)');
+      }
+      
+      lightboxImage.src = lightboxSrc;
+      lightboxOverlay.style.display = 'flex';
+      
+      // Add show class with slight delay for smooth animation
+      setTimeout(() => {
+        lightboxOverlay.classList.add('show');
+      }, 10);
+      
+      // Prevent body scrolling when lightbox is open
+      document.body.style.overflow = 'hidden';
+      
+      console.log('📸 Photo lightbox opened');
+    }
+  }
+
+  // Function to close lightbox
+  function closeLightbox() {
+    lightboxOverlay.classList.remove('show');
+    
+    // Hide overlay after animation completes
+    setTimeout(() => {
+      lightboxOverlay.style.display = 'none';
+      lightboxImage.src = '';
+    }, 300);
+    
+    // Restore body scrolling
+    document.body.style.overflow = '';
+    
+    console.log('📸 Photo lightbox closed');
+  }
+
+  // Event listeners
+  jobPhoto.addEventListener('click', openLightbox);
+  lightboxClose.addEventListener('click', closeLightbox);
+  
+  // Close on backdrop click
+  lightboxOverlay.addEventListener('click', function(e) {
+    if (e.target === lightboxOverlay) {
+      closeLightbox();
+    }
+  });
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && lightboxOverlay.classList.contains('show')) {
+      closeLightbox();
+    }
+  });
+
+  console.log('✅ Photo lightbox initialized');
+}
+
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 Dynamic job page loading...');
@@ -595,6 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeCustomerProfileLink();
   initializeContactDropdown();
   initCounterOfferFormatting();
+  initializePhotoLightbox();
   
   console.log('✅ Dynamic job page initialization completed');
 }); 

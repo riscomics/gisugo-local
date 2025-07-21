@@ -1697,51 +1697,55 @@ function initializePaymentDropdown() {
 // Global variable to store processed image data
 let processedJobPhoto = null;
 
-function processImageTo500x281(file, callback) {
+function processImageWithSmartStorage(file, callback) {
   const img = new Image();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
   
   img.onload = function() {
-    // Target dimensions: 500px width, 16:9 ratio (281px height)
-    const targetWidth = 500;
-    const targetHeight = 281;
+    // Calculate aspect ratios
+    const originalRatio = img.width / img.height;
+    const targetRatio = 16/9; // ≈ 1.78
+    const aspectDifference = Math.abs(originalRatio - targetRatio);
+    const needsOriginal = aspectDifference > 0.3;
     
-    // Calculate scaling to maintain aspect ratio while fitting in target dimensions
-    const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
-    const scaledWidth = img.width * scale;
-    const scaledHeight = img.height * scale;
+    console.log(`📐 Photo analysis:`, {
+      dimensions: `${img.width}×${img.height}`,
+      aspectRatio: originalRatio.toFixed(2),
+      difference: aspectDifference.toFixed(2),
+      needsOriginal: needsOriginal
+    });
     
-    // Calculate crop offsets to center the image
-    const offsetX = (scaledWidth - targetWidth) / 2;
-    const offsetY = (scaledHeight - targetHeight) / 2;
-    
-    // Set canvas dimensions
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    
-    // Draw the scaled and cropped image
-    ctx.drawImage(
-      img, 
-      -offsetX, -offsetY, 
-      scaledWidth, scaledHeight
-    );
-    
-    // Convert canvas to blob/data URL
-    canvas.toBlob(function(blob) {
-      const processedDataURL = canvas.toDataURL('image/jpeg', 0.9);
-      
-      // Store processed image data globally for future use
-      processedJobPhoto = {
-        blob: blob,
-        dataURL: processedDataURL,
-        width: targetWidth,
-        height: targetHeight,
-        originalFile: file
-      };
-      
-      callback(processedDataURL);
-    }, 'image/jpeg', 0.9);
+    // Always create cropped version (500×281 for page display)
+    const croppedData = createCroppedVersion(img, function(croppedDataURL) {
+      if (needsOriginal) {
+        // Create compressed original (1000px max width, maintain aspect ratio)
+        createCompressedOriginal(img, function(originalDataURL) {
+          // Store both versions
+          processedJobPhoto = {
+            cropped: croppedDataURL,
+            original: originalDataURL,
+            hasOriginal: true,
+            originalFile: file,
+            aspectRatio: originalRatio,
+            dimensions: `${img.width}×${img.height}`
+          };
+          
+          console.log('📸 Smart storage: DUAL versions created');
+          callback(croppedDataURL); // Preview shows cropped version
+        });
+      } else {
+        // Store only cropped version
+        processedJobPhoto = {
+          cropped: croppedDataURL,
+          hasOriginal: false,
+          originalFile: file,
+          aspectRatio: originalRatio,
+          dimensions: `${img.width}×${img.height}`
+        };
+        
+        console.log('📸 Smart storage: CROP only (close to 16:9)');
+        callback(croppedDataURL); // Preview shows cropped version
+      }
+    });
   };
   
   // Load the image
@@ -1750,6 +1754,73 @@ function processImageTo500x281(file, callback) {
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Helper function to create cropped 16:9 version (500×281)
+function createCroppedVersion(img, callback) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Target dimensions: 500px width, 16:9 ratio (281px height)
+  const targetWidth = 500;
+  const targetHeight = 281;
+  
+  // Calculate scaling to maintain aspect ratio while fitting in target dimensions
+  const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+  const scaledWidth = img.width * scale;
+  const scaledHeight = img.height * scale;
+  
+  // Calculate crop offsets to center the image
+  const offsetX = (scaledWidth - targetWidth) / 2;
+  const offsetY = (scaledHeight - targetHeight) / 2;
+  
+  // Set canvas dimensions
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  
+  // Draw the scaled and cropped image
+  ctx.drawImage(
+    img, 
+    -offsetX, -offsetY, 
+    scaledWidth, scaledHeight
+  );
+  
+  // Convert to data URL with 75% quality
+  const croppedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+  callback(croppedDataURL);
+}
+
+// Helper function to create compressed original (max 1000px width, maintain ratio)
+function createCompressedOriginal(img, callback) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Calculate dimensions (max 1000px width, maintain aspect ratio)
+  const maxWidth = 1000;
+  let newWidth = img.width;
+  let newHeight = img.height;
+  
+  if (img.width > maxWidth) {
+    const scale = maxWidth / img.width;
+    newWidth = maxWidth;
+    newHeight = Math.round(img.height * scale);
+  }
+  
+  // Set canvas dimensions
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  
+  // Draw the resized image (no cropping, maintain original aspect ratio)
+  ctx.drawImage(img, 0, 0, newWidth, newHeight);
+  
+  // Convert to data URL with 75% quality
+  const originalDataURL = canvas.toDataURL('image/jpeg', 0.75);
+  callback(originalDataURL);
+}
+
+// Legacy function name for backwards compatibility
+function processImageTo500x281(file, callback) {
+  processImageWithSmartStorage(file, callback);
 }
 
 function initializePhotoUpload() {
@@ -2216,13 +2287,25 @@ function getFormData() {
       throw new Error('Start and end times are required');
   }
   
-  // Get photo
+  // Get photo (smart storage system)
   const photoPreview = document.getElementById('photoPreviewImage');
   if (photoPreview && photoPreview.src && !photoPreview.src.includes('data:,')) {
-    data.photo = photoPreview.src;
-      console.log('📝 Photo:', 'Image included');
+    if (processedJobPhoto && processedJobPhoto.hasOriginal) {
+      // Store both cropped and original versions
+      data.photo = processedJobPhoto.cropped;           // For page display (500×281)
+      data.originalPhoto = processedJobPhoto.original;  // For lightbox (1000px max, original ratio)
+      console.log('📝 Photo: DUAL storage (cropped + original for lightbox)');
+    } else if (processedJobPhoto && processedJobPhoto.cropped) {
+      // Store only cropped version (was close to 16:9)
+      data.photo = processedJobPhoto.cropped;
+      console.log('📝 Photo: CROP only (close to 16:9 ratio)');
     } else {
-      console.log('📝 Photo:', 'No image');
+      // Fallback for backwards compatibility
+      data.photo = photoPreview.src;
+      console.log('📝 Photo: Legacy format (backwards compatibility)');
+    }
+  } else {
+    console.log('📝 Photo: No image');
   }
   
   // Get extras
@@ -2653,6 +2736,7 @@ function storeJobData(formData, jobNumber) {
     description: formData.description,
     category: formData.category,
     thumbnail: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    originalPhoto: formData.originalPhoto || null, // Smart storage: original aspect ratio for lightbox
     jobDate: formData.jobDate,
     dateNeeded: formData.jobDate,       // Backend field name
     startTime: formData.startTime,
@@ -2744,7 +2828,7 @@ async function addJobPreviewCard(formData, jobNumber) {
     rate: formData.paymentType,
     date: formattedDate,
     time: timeDisplay,
-    photo: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    photo: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`, // Preview always uses cropped version
     templateUrl: `dynamic-job.html?category=${formData.category}&jobNumber=${jobNumber}`,
     region: formData.region,
     city: formData.city,
@@ -3625,6 +3709,7 @@ function updateStoredJobData(formData, jobNumber, jobId) {
       description: formData.description,
       category: formData.category,
       thumbnail: formData.photo || originalJob.thumbnail,  // Keep original if no new photo
+      originalPhoto: formData.originalPhoto || originalJob.originalPhoto || null, // Smart storage: preserve or update original
       jobDate: formData.jobDate,
       dateNeeded: formData.jobDate,       // Backend field name
       startTime: formData.startTime,
@@ -3679,6 +3764,7 @@ function updateStoredJobData(formData, jobNumber, jobId) {
       description: formData.description,
       category: formData.category,
       thumbnail: formData.photo || (originalMockJob ? originalMockJob.thumbnail : ''),
+      originalPhoto: formData.originalPhoto || null, // Smart storage: add original photo capability to mock jobs
       jobDate: formData.jobDate,
       dateNeeded: formData.jobDate,       // Backend field name
       startTime: formData.startTime,
@@ -4045,6 +4131,7 @@ function storeJobData(formData, jobNumber) {
     description: formData.description,
     category: formData.category,
     thumbnail: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
+    originalPhoto: formData.originalPhoto || null, // Smart storage: original aspect ratio for lightbox
     jobDate: formData.jobDate,
     dateNeeded: formData.jobDate,
     startTime: formData.startTime,
