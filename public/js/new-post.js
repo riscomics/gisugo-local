@@ -378,6 +378,80 @@ const extrasConfig = {
   tailor: {
     field1: { label: "Location:", menuType: "location" },
     field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  // SKILLED WORKER categories - LOCATION + SUPPLIES
+  trainer: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  staff: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  petcare: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  photographer: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  videographer: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  musician: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Supplies:", menuType: "supplies" }
+  },
+  // PROFESSIONAL categories - LOCATION + POSITION
+  creative: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  editor: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  artist: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  researcher: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  social: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  secretary: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  accountant: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  consultant: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  engineer: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  programmer: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  therapist: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
+  },
+  marketer: {
+    field1: { label: "Location:", menuType: "location" },
+    field2: { label: "Position:", menuType: "position" }
   }
 };
 
