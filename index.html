@@ -6,7 +6,7 @@
     <meta name="description" content="GISUGO - A marketplace for searching and posting jobs in your local neighborhood">
     <meta name="keywords" content="local service, gig economy, marketplace, jobs, services">
     <title>GISUGO - Local Service Marketplace</title>
-    <link rel="stylesheet" href="/gisugo-local/public/css/home.css?v=1.1">
+    <link rel="stylesheet" href="/gisugo-local/public/css/home.css?v=1.2">
     <!-- Add favicon -->
     <link rel="icon" type="image/png" href="/gisugo-local/public/images/favicon.png">
   </head>
@@ -45,17 +45,28 @@
 
     <div class="header-spacer"></div>
 
-    <!-- Video Section -->
+    <!-- Video Section with Custom Thumbnail -->
     <section class="video-container">
-      <iframe 
-        width="560" 
-        height="315" 
-        src="https://www.youtube.com/embed/yguwDvqkZnw?si=ryfUhOe_Cb90S3qW" 
-        title="How to use GISUGO" 
-        frameborder="0" 
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-        allowfullscreen>
-      </iframe>
+      <div class="video-wrapper">
+        <!-- Custom Thumbnail Overlay -->
+        <div class="video-thumbnail-overlay" onclick="playVideo()">
+          <img src="/gisugo-local/public/images/GISUGO-thumbnail.jpg" alt="Play GISUGO Video" class="custom-thumbnail">
+          <div class="play-button">▶</div>
+        </div>
+        
+        <!-- Hidden YouTube iframe (revealed on click) -->
+        <iframe 
+          id="youtube-player"
+          width="560" 
+          height="315" 
+          src="https://www.youtube.com/embed/yguwDvqkZnw?si=ryfUhOe_Cb90S3qW&autoplay=1" 
+          title="How to use GISUGO" 
+          frameborder="0" 
+          style="display: none;"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen>
+        </iframe>
+      </div>
     </section>
 
     <!-- Accent Line -->
@@ -340,5 +351,19 @@
     </footer>
     
     <script src="public/js/menu.js"></script>
+    
+    <!-- Video Player Script -->
+    <script>
+      function playVideo() {
+        const overlay = document.querySelector('.video-thumbnail-overlay');
+        const iframe = document.getElementById('youtube-player');
+        
+        // Hide the custom thumbnail overlay
+        overlay.style.display = 'none';
+        
+        // Show and play the YouTube video
+        iframe.style.display = 'block';
+      }
+    </script>
   </body>
 </html>  
