@@ -148,7 +148,16 @@ const menuTypes = {
     options: ["PROVIDED", "REQUIRED"]
   },
   subject: {
-    options: ["Math", "Science", "Computer", "Language", "Other"]
+    getOptions: function() {
+      // Get options based on current category
+      const currentCategory = window.selectedJobCategory;
+      if (currentCategory === 'trainer') {
+        return ["Strength", "Cardio", "Sports", "Therapy", "Dancing", "MartialArts", "Yoga", "Other"];
+      } else {
+        // Default tutor subjects
+        return ["Math", "Science", "Computer", "Language", "Other"];
+      }
+    }
   },
   position: {
     options: ["In-Person", "Virtual"]
@@ -379,10 +388,10 @@ const extrasConfig = {
     field1: { label: "Location:", menuType: "location" },
     field2: { label: "Supplies:", menuType: "supplies" }
   },
-  // SKILLED WORKER categories - LOCATION + SUPPLIES
+  // SKILLED WORKER categories - LOCATION + SUBJECT/SUPPLIES
   trainer: {
     field1: { label: "Location:", menuType: "location" },
-    field2: { label: "Supplies:", menuType: "supplies" }
+    field2: { label: "Subject:", menuType: "subject" }
   },
   staff: {
     field1: { label: "Location:", menuType: "location" },
