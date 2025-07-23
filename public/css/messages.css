@@ -1396,9 +1396,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
    
   .messages-header-btn {
-    width: clamp(40px, 8vw, 45px); /* Responsive button width */
-    height: clamp(42px, 12vh, 47px); /* Responsive button height */
-    font-size: clamp(11px, 2.5vw, 12px); /* Responsive font size */
+    width: 45px; /* Fixed button width to match new-post exactly */
+    height: 47px; /* Fixed button height to match new-post exactly */
+    font-size: 12px; /* Fixed button font size to match new-post exactly */
     font-family: Arial, Helvetica, sans-serif;
   }
   
@@ -1714,83 +1714,24 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Small Mobile Screens (400px and below) */
-@media (max-width: 400px) {
-  .messages-header-title-container {
-    height: clamp(62px, 16vh, 66px); /* Slightly smaller for 400px screens */
-    padding-right: clamp(3px, 0.8vw, 5px); /* Tighter padding */
-  }
-  
-  .messages-header-title {
-    font-size: clamp(16px, 4.2vw, 20px); /* Smaller font for 400px screens */
-  }
-  
-  .messages-header-btn {
-    width: clamp(36px, 7vw, 40px); /* Smaller buttons */
-    height: clamp(38px, 10vh, 42px);
-    font-size: clamp(10px, 2.2vw, 11px);
-  }
-  
-  .messages-header-btn img {
-    height: clamp(24px, 7vh, 28px); /* Smaller images */
-  }
-}
+/* Remove intermediate breakpoints - new-post.css only uses 600px and 360px */
 
-/* iPhone 7 and similar (375px and below) */
-@media (max-width: 375px) {
-  .messages-header-title-container {
-    height: clamp(60px, 15vh, 62px); /* Further reduction for 375px */
-    padding-right: clamp(2px, 0.6vw, 3px);
-  }
-  
-  .messages-header-title {
-    font-size: clamp(15px, 4vw, 18px); /* Smaller font for 375px */
-  }
-  
-  .messages-header-btn {
-    width: clamp(34px, 6.5vw, 36px); /* Smaller buttons */
-    height: clamp(36px, 9vh, 38px);
-    font-size: clamp(9px, 2vw, 10px);
-  }
-  
-  .messages-header-btn img {
-    height: clamp(22px, 6vh, 24px); /* Smaller images */
-  }
-}
-
-/* Very small screens (360px and below) */
+/* Ultra Small Screens (360px and below) - Match new-post.css exactly */
 @media (max-width: 360px) {
+  .messages-header-title-container {
+    height: 62px; /* Match new-post: slightly reduced height for ultra-small screens */
+    padding-right: 2px; /* Match new-post */
+  } 
+  
   .messages-header-title {
     font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Match new-post: increased for much better readability */
     letter-spacing: -0.5px; /* Match new-post letter spacing */
   }
   
   .messages-header-btn {
-    width: clamp(32px, 6vw, 34px); /* Even smaller buttons */
-    height: clamp(34px, 8vh, 36px);
-  }
-}
-
-/* Ultra small screens (320px and below) */
-@media (max-width: 320px) {
-  .messages-header-title-container {
-    height: clamp(58px, 14vh, 60px); /* Minimal height for 320px */
-    padding-right: clamp(1px, 0.4vw, 2px);
-  }
-  
-  .messages-header-title {
-    font-size: clamp(13px, 3.6vw, 15px) !important; /* Very small but readable */
-    letter-spacing: -0.4px;
-  }
-  
-  .messages-header-btn {
-    width: clamp(30px, 5.5vw, 32px); /* Minimal button size */
-    height: clamp(32px, 7vh, 34px);
-    font-size: clamp(8px, 1.8vw, 9px);
-  }
-  
-  .messages-header-btn img {
-    height: clamp(20px, 5vh, 22px); /* Minimal image size */
+    width: clamp(36px, 8vw, 40px); /* Match new-post: slightly smaller buttons for more title space */
+    height: clamp(38px, 7vh, 42px); /* Match new-post */
+    font-size: clamp(9px, 2.5vw, 10px); /* Match new-post */
   }
 }
 
