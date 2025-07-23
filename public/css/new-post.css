@@ -1891,7 +1891,7 @@ body::-webkit-scrollbar {
 @media (max-width: 360px) {
   /* Header title overflow prevention */
   .new-post-header-title {
-    font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Further increased for much better readability */
+    font-size: clamp(1.6rem, 4.2vw, 2rem) !important; /* Increased minimum for better readability at 360px-320px */
     letter-spacing: -0.5px; /* Slight letter spacing reduction for better fit */
   }
   
