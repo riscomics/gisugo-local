@@ -2681,22 +2681,5 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Ultra Small Screens (360px and below) - Prevent title overflow */
-@media (max-width: 360px) {
-  .messages-header-title {
-    font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Further increased for much better readability */
-    letter-spacing: -0.5px; /* Slight letter spacing reduction for better fit */
-  }
-  
-  .messages-header-title-container {
-    height: 62px; /* Slightly reduced height for ultra-small screens */
-    padding-right: 2px; 
-  } 
-  
-  .messages-header-btn {
-    width: clamp(36px, 8vw, 40px); /* Slightly smaller buttons for more title space */
-    height: clamp(38px, 7vh, 42px);
-    font-size: clamp(9px, 2.5vw, 10px);
-  }
-}
+/* Duplicate rule removed - using the earlier 360px media query instead */
 
