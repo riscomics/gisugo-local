@@ -1724,7 +1724,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   } 
   
   .messages-header-title {
-    font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Match new-post: increased for much better readability */
+    font-size: clamp(1.6rem, 4.2vw, 2rem) !important; /* Increased minimum for better readability at 360px-320px */
     letter-spacing: -0.5px; /* Match new-post letter spacing */
   }
   
