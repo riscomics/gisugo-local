@@ -1126,14 +1126,14 @@ body:has(.messages-header) {
 
 .read-indicator {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: clamp(10px, 2.5vw, 12px); /* Responsive top positioning */
+  right: clamp(10px, 2.5vw, 12px); /* Responsive right positioning */
   background: #48bb78;
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: clamp(0.65rem, 1.8vw, 0.7rem); /* Responsive font size */
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 12px;
+  padding: clamp(2px, 0.8vw, 3px) clamp(6px, 2vw, 8px); /* Responsive padding */
+  border-radius: clamp(10px, 2.5vw, 12px); /* Responsive border radius */
   font-family: Arial, Helvetica, sans-serif;
   z-index: 1;
   pointer-events: none; /* Allow clicks to pass through to the notification card */
@@ -1241,11 +1241,11 @@ body:has(.messages-header) {
 
 /* Notification Icons */
 .notification-icon {
-  font-size: 1.5rem;
+  font-size: clamp(1.3rem, 3.5vw, 1.5rem); /* Responsive icon font size */
   margin-right: 1rem;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: clamp(35px, 8vw, 40px); /* Responsive width */
+  height: clamp(35px, 8vw, 40px); /* Responsive height */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1328,9 +1328,9 @@ body:has(.messages-header) {
 }
 
 .notification-action-btn {
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: clamp(5px, 1.5vw, 6px) clamp(10px, 3vw, 12px); /* Responsive padding */
+  border-radius: clamp(5px, 1.5vw, 6px); /* Responsive border radius */
+  font-size: clamp(0.75rem, 2vw, 0.8rem); /* Responsive font size */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1669,10 +1669,10 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .notification-icon {
-    font-size: 1.2rem;
-    width: 32px;
-    height: 32px;
-    margin-right: 0.75rem;
+    font-size: clamp(1.1rem, 3vw, 1.2rem); /* Responsive mobile icon font */
+    width: clamp(28px, 7vw, 32px); /* Responsive mobile width */
+    height: clamp(28px, 7vw, 32px); /* Responsive mobile height */
+    margin-right: clamp(0.6rem, 2vw, 0.75rem); /* Responsive mobile margin */
   }
 
   .notification-title {
@@ -1696,8 +1696,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .notification-action-btn {
-    padding: 5px 10px;
-    font-size: 0.75rem;
+    padding: clamp(4px, 1.2vw, 5px) clamp(8px, 2.5vw, 10px); /* Responsive mobile padding */
+    font-size: clamp(0.7rem, 1.8vw, 0.75rem); /* Responsive mobile font size */
   }
 
   /* Mobile Selection Controls */
@@ -1727,9 +1727,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .selection-btn {
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    min-width: 60px;
+    padding: clamp(5px, 1.5vw, 6px) clamp(8px, 2.5vw, 10px); /* Responsive mobile selection padding */
+    font-size: clamp(0.7rem, 1.8vw, 0.75rem); /* Responsive mobile selection font */
+    min-width: clamp(55px, 15vw, 60px); /* Responsive mobile selection min-width */
   }
 
   .tab-content-wrapper.selection-active .tab-scroll-container {
@@ -1743,10 +1743,10 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .read-indicator {
-    top: 8px;
-    right: 8px;
-    font-size: 0.65rem;
-    padding: 2px 6px;
+    top: clamp(6px, 2vw, 8px); /* Responsive mobile top positioning */
+    right: clamp(6px, 2vw, 8px); /* Responsive mobile right positioning */
+    font-size: clamp(0.6rem, 1.6vw, 0.65rem); /* Responsive mobile font size */
+    padding: clamp(1px, 0.5vw, 2px) clamp(4px, 1.5vw, 6px); /* Responsive mobile padding */
   }
 }
 
