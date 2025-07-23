@@ -1390,7 +1390,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   } 
   
   .messages-header-title {
-    font-size: clamp(18px, 4.5vw, 22px); /* Responsive font size */
+    font-size: 1.8rem; /* Match new-post fixed mobile size */
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     line-height: 1.4;
   }
@@ -1761,8 +1761,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Very small screens (360px and below) */
 @media (max-width: 360px) {
   .messages-header-title {
-    font-size: clamp(14px, 3.8vw, 16px) !important; /* Prevent title overflow */
-    letter-spacing: -0.3px; /* Slight letter spacing reduction */
+    font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Match new-post: increased for much better readability */
+    letter-spacing: -0.5px; /* Match new-post letter spacing */
   }
   
   .messages-header-btn {
