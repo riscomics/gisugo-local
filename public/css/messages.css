@@ -171,7 +171,7 @@ body:has(.messages-header) {
 /* Tab Navigation Styles */
 .messages-tabs {
   position: fixed;
-  top: clamp(70px, 20vh, 109px); /* Responsive top positioning */
+  top: calc(clamp(66px, 20vh, 106px) + clamp(2px, 0.5vh, 4px)); /* Header height + borderline height - maintains tight positioning */
   left: 0;
   width: 100%;
   background: #2d3748;
@@ -214,10 +214,10 @@ body:has(.messages-header) {
 /* Independent Tab Content Wrappers - SOLVES SCROLL SHARING ISSUE */
 .tab-content-wrapper {
   position: fixed;
-  top: clamp(120px, 30vh, 162px); /* Responsive positioning below header and tabs */
+  top: calc(clamp(66px, 20vh, 106px) + clamp(2px, 0.5vh, 4px) + clamp(40px, 10vh, 52px)); /* Header + borderline + tabs height */
   left: 0;
   width: 100%;
-  height: calc(100vh - clamp(120px, 30vh, 162px)); /* Responsive height calculation */
+  height: calc(100vh - (clamp(66px, 20vh, 106px) + clamp(2px, 0.5vh, 4px) + clamp(40px, 10vh, 52px))); /* Responsive height calculation */
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1442,7 +1442,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .messages-tabs {
-    top: clamp(70px, 18vh, 75px); /* Responsive mobile top positioning */
+    top: calc(clamp(66px, 18vh, 68px) + clamp(2px, 0.5vh, 4px)); /* Mobile header height + borderline - maintains tight positioning */
   }
 
   .tab-btn {
@@ -1457,8 +1457,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Mobile Independent Tab Wrappers - RESPONSIVE POSITIONING */
   .tab-content-wrapper {
-    top: clamp(115px, 25vh, 125px); /* Responsive mobile positioning */
-    height: calc(100vh - clamp(115px, 25vh, 125px)); /* Responsive mobile height */
+    top: calc(clamp(66px, 18vh, 68px) + clamp(2px, 0.5vh, 4px) + clamp(38px, 8vh, 48px)); /* Mobile header + borderline + tabs */
+    height: calc(100vh - (clamp(66px, 18vh, 68px) + clamp(2px, 0.5vh, 4px) + clamp(38px, 8vh, 48px))); /* Responsive mobile height */
   }
 
   /* Mobile Notification Containers */
@@ -1736,7 +1736,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   
   /* Ultra Small Tabs Responsive */
   .messages-tabs {
-    top: clamp(65px, 16vh, 70px); /* Tighter positioning for ultra-small screens */
+    top: calc(62px + clamp(2px, 0.5vh, 4px)); /* Ultra-small header height + borderline - maintains tight positioning */
   }
   
   .tab-btn {
@@ -1756,8 +1756,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .tab-content-wrapper {
-    top: clamp(105px, 22vh, 115px); /* Adjusted for smaller header/tabs */
-    height: calc(100vh - clamp(105px, 22vh, 115px)); /* Responsive height */
+    top: calc(62px + clamp(2px, 0.5vh, 4px) + clamp(35px, 7vh, 40px)); /* Ultra-small header + borderline + tabs */
+    height: calc(100vh - (62px + clamp(2px, 0.5vh, 4px) + clamp(35px, 7vh, 40px))); /* Responsive height */
   }
 }
 
