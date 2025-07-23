@@ -171,11 +171,11 @@ body:has(.messages-header) {
 /* Tab Navigation Styles */
 .messages-tabs {
   position: fixed;
-  top: 109px;
+  top: clamp(70px, 20vh, 109px); /* Responsive top positioning */
   left: 0;
   width: 100%;
   background: #2d3748;
-  border-bottom: 2px solid #4a5568;
+  border-bottom: clamp(1px, 0.5vh, 2px) solid #4a5568; /* Responsive border */
   display: flex;
   z-index: 999;
 }
@@ -185,19 +185,19 @@ body:has(.messages-header) {
   background: transparent;
   border: none;
   color: #a0aec0;
-  padding: 12px 10px;
-  font-size: 1rem;
+  padding: clamp(8px, 2.5vh, 12px) clamp(6px, 2vw, 10px); /* Responsive padding */
+  font-size: clamp(0.85rem, 2.5vw, 1rem); /* Responsive font size */
   font-weight: 600;
   font-family: Arial, Helvetica, sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
+  border-bottom: clamp(2px, 0.8vh, 3px) solid transparent; /* Responsive border */
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: clamp(0.3px, 0.1vw, 0.5px); /* Responsive letter spacing */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: clamp(2px, 1vh, 4px); /* Responsive gap */
 }
 
 .tab-btn:hover {
@@ -214,10 +214,10 @@ body:has(.messages-header) {
 /* Independent Tab Content Wrappers - SOLVES SCROLL SHARING ISSUE */
 .tab-content-wrapper {
   position: fixed;
-  top: 162px; /* Below header and tabs */
+  top: clamp(120px, 30vh, 162px); /* Responsive positioning below header and tabs */
   left: 0;
   width: 100%;
-  height: calc(100vh - 162px);
+  height: calc(100vh - clamp(120px, 30vh, 162px)); /* Responsive height calculation */
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1004,21 +1004,21 @@ body:has(.messages-header) {
 
 /* Tab label styling */
 .tab-label {
-  font-size: 0.8rem;
+  font-size: clamp(0.7rem, 2vw, 0.8rem); /* Responsive tab label font size */
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: clamp(0.3px, 0.1vw, 0.5px); /* Responsive letter spacing */
 }
 
 /* Notification Count Badge - now positioned below tab labels */
 .notification-count {
   background: #e53e3e;
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: clamp(0.65rem, 1.8vw, 0.7rem); /* Responsive notification count font size */
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 10px;
-  min-width: 18px;
+  padding: clamp(1px, 0.5vh, 2px) clamp(4px, 1.5vw, 6px); /* Responsive padding */
+  border-radius: clamp(8px, 2.5vw, 10px); /* Responsive border radius */
+  min-width: clamp(16px, 4.5vw, 18px); /* Responsive minimum width */
   text-align: center;
   line-height: 1.2;
   margin: 0; /* Remove margin since it's now in flex layout */
@@ -1442,23 +1442,23 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .messages-tabs {
-    top: 72px; /* Mobile: 68px header + 4px border = 72px */
+    top: clamp(70px, 18vh, 75px); /* Responsive mobile top positioning */
   }
 
   .tab-btn {
-    padding: 10px 8px; /* Compact mobile tabs */
-    font-size: 0.85rem;
-    gap: 3px;
+    padding: clamp(8px, 2vh, 10px) clamp(6px, 1.5vw, 8px); /* Responsive mobile padding */
+    font-size: clamp(0.8rem, 2.2vw, 0.85rem); /* Responsive mobile font size */
+    gap: clamp(2px, 0.8vh, 3px); /* Responsive mobile gap */
   }
   
   .tab-label {
-    font-size: 0.8rem;
+    font-size: clamp(0.75rem, 2vw, 0.8rem); /* Responsive mobile tab label */
   }
 
-  /* Mobile Independent Tab Wrappers - FIXED POSITIONING */
+  /* Mobile Independent Tab Wrappers - RESPONSIVE POSITIONING */
   .tab-content-wrapper {
-    top: 120px; /* Mobile: 68px header + 4px border + 38px tabs + 10px gap = 120px */
-    height: calc(100vh - 120px);
+    top: clamp(115px, 25vh, 125px); /* Responsive mobile positioning */
+    height: calc(100vh - clamp(115px, 25vh, 125px)); /* Responsive mobile height */
   }
 
   /* Mobile Notification Containers */
@@ -1622,9 +1622,9 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Notification Mobile Styles */
   .notification-count {
-    font-size: 0.65rem;
-    padding: 1px 4px;
-    min-width: 16px;
+    font-size: clamp(0.6rem, 1.6vw, 0.65rem); /* Responsive mobile notification font */
+    padding: clamp(1px, 0.3vh, 1px) clamp(3px, 1vw, 4px); /* Responsive mobile padding */
+    min-width: clamp(14px, 3.5vw, 16px); /* Responsive mobile min width */
     margin: 0;
   }
 
@@ -1732,6 +1732,32 @@ body:has(.selection-controls[style*="display: flex"]) {
     width: clamp(36px, 8vw, 40px); /* Match new-post: slightly smaller buttons for more title space */
     height: clamp(38px, 7vh, 42px); /* Match new-post */
     font-size: clamp(9px, 2.5vw, 10px); /* Match new-post */
+  }
+  
+  /* Ultra Small Tabs Responsive */
+  .messages-tabs {
+    top: clamp(65px, 16vh, 70px); /* Tighter positioning for ultra-small screens */
+  }
+  
+  .tab-btn {
+    padding: clamp(6px, 1.5vh, 8px) clamp(4px, 1vw, 6px); /* Smaller padding for ultra-small */
+    font-size: clamp(0.7rem, 2vw, 0.8rem); /* Smaller but readable font */
+    gap: clamp(1px, 0.5vh, 2px); /* Tighter gap */
+  }
+  
+  .tab-label {
+    font-size: clamp(0.65rem, 1.8vw, 0.75rem); /* Smaller label font for ultra-small */
+  }
+  
+  .notification-count {
+    font-size: clamp(0.55rem, 1.4vw, 0.6rem); /* Smaller notification count */
+    padding: clamp(1px, 0.2vh, 1px) clamp(2px, 0.8vw, 3px); /* Tighter padding */
+    min-width: clamp(12px, 3vw, 14px); /* Smaller min width */
+  }
+  
+  .tab-content-wrapper {
+    top: clamp(105px, 22vh, 115px); /* Adjusted for smaller header/tabs */
+    height: calc(100vh - clamp(105px, 22vh, 115px)); /* Responsive height */
   }
 }
 
