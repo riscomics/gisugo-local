@@ -1751,27 +1751,28 @@ body:has(.selection-controls[style*="display: flex"]) {
   
   /* ENHANCED MESSAGE THREAD FONTS FOR MOBILE */
   .thread-job-title {
-    font-size: 1.15rem; /* Reasonable job title increase for mobile readability */
+    font-size: 1.2rem; /* Increased job title for mobile readability */
   }
   
   .thread-participant {
-    font-size: 1rem; /* Reasonable participant names for mobile */
+    font-size: 1.05rem; /* Increased participant names for mobile */
   }
   
   .message-sender {
-    font-size: 1rem; /* Reasonable sender names in expanded threads */
+    font-size: 1.05rem; /* Increased sender names in expanded threads */
   }
   
   .message-bubble {
-    font-size: 1.1rem; /* Reasonable message bubble text for mobile */
+    font-size: 1.15rem; /* Increased message bubble text for mobile */
   }
   
   .message-input {
-    font-size: 1.05rem; /* Reasonable input text for mobile typing */
+    font-size: 1.1rem; /* Increased input text for mobile typing */
   }
   
   .message-thread-header {
-    padding: 16px 20px; /* Reasonable container padding for mobile */
+    padding: 18px 22px; /* Increased container padding for mobile - accommodates larger fonts */
+    min-height: 70px; /* Ensure adequate height for larger fonts */
   }
 }
 
@@ -1824,26 +1825,38 @@ body:has(.selection-controls[style*="display: flex"]) {
     max-height: clamp(180px, 65vh, 280px); /* More generous height for 338px-320px viewports */
     padding-bottom: clamp(25px, 7vw, 30px); /* Increased bottom padding for last message visibility */
   }
+  
+  /* Better positioning for expanded threads on mobile (411px-339px) */
+  .message-thread.expanded {
+    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(38px, 8vh, 48px) + 8px) !important; /* Mobile header + borderline + tabs + gap */
+    max-height: calc(100vh - (clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(38px, 8vh, 48px) + 20px)) !important; /* Mobile viewport management */
+  }
 }
 
 /* Ultra-narrow range (338px-320px) - Fix expanded thread positioning and scroll area */
 @media (max-width: 338px) {
-  /* Move expanded thread much higher up on ultra-narrow screens */
+  /* Position expanded thread right below tabs - more precise calculation */
   .message-thread.expanded {
-    top: clamp(100px, 12vh, 120px) !important; /* Much higher positioning for ultra-narrow */
+    top: calc(62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px) + 5px) !important; /* Header + borderline + tabs + small gap */
     width: clamp(96%, 94vw, 98%) !important; /* Slightly wider */
-    max-height: calc(100vh - clamp(100px, 12vh, 120px) - 20px) !important; /* Use remaining viewport height */
+    max-height: calc(100vh - (62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px) + 15px)) !important; /* Use remaining viewport minus small margins */
+  }
+  
+  /* Compress expanded thread header for ultra-narrow */
+  .message-thread.expanded .message-thread-header {
+    padding: 12px 16px !important; /* Compressed header padding */
+    min-height: 50px !important; /* Reduced header height */
   }
   
   /* Compress input container on ultra-narrow screens */
   .message-thread.expanded .message-input-container {
-    padding: clamp(6px, 1.5vw, 8px) !important; /* Minimal input padding */
+    padding: clamp(8px, 2vw, 10px) !important; /* Minimal but usable input padding */
   }
   
-  /* Maximize scroll container space */
+  /* Maximize scroll container space with better calculations */
   .message-thread.expanded .message-scroll-container {
-    max-height: calc(100vh - clamp(100px, 12vh, 120px) - 60px) !important; /* Use almost all remaining space */
-    padding-bottom: clamp(25px, 6vw, 30px) !important; /* Moderate bottom padding */
+    max-height: calc(100vh - (62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px) + 50px + 60px)) !important; /* Full viewport minus header, tabs, thread header, input area */
+    padding-bottom: clamp(15px, 4vw, 20px) !important; /* Reduced bottom padding to maximize space */
   }
 }
 
