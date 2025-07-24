@@ -1483,12 +1483,12 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   .tab-btn {
     padding: clamp(8px, 2vh, 10px) clamp(6px, 1.5vw, 8px); /* Responsive mobile padding */
-    font-size: clamp(0.8rem, 2.2vw, 0.85rem); /* Responsive mobile font size */
+    font-size: 1.1rem !important; /* MUCH larger tab buttons for 411px mobile readability */
     gap: clamp(2px, 0.8vh, 3px); /* Responsive mobile gap */
   }
   
   .tab-label {
-    font-size: clamp(0.75rem, 2vw, 0.8rem); /* Responsive mobile tab label */
+    font-size: 1rem !important; /* MUCH larger tab labels for 411px mobile readability */
   }
 
   /* Mobile Independent Tab Wrappers - RESPONSIVE POSITIONING */
@@ -1676,12 +1676,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .notification-title {
-    font-size: 0.9rem;
+    font-size: 1.4rem !important; /* MASSIVE increase for mobile 411px readability */
     margin-bottom: 0.4rem;
   }
 
   .notification-message {
-    font-size: 0.8rem;
+    font-size: 1.2rem !important; /* MASSIVE increase for mobile 411px readability */
     margin-bottom: 0.6rem;
   }
 
@@ -1692,7 +1692,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   .notification-time,
   .notification-date {
-    font-size: 0.75rem;
+    font-size: 1.05rem !important; /* MUCH larger for mobile 411px readability */
   }
 
   .notification-action-btn {
@@ -1747,6 +1747,31 @@ body:has(.selection-controls[style*="display: flex"]) {
     right: clamp(6px, 2vw, 8px); /* Responsive mobile right positioning */
     font-size: clamp(0.6rem, 1.6vw, 0.65rem); /* Responsive mobile font size */
     padding: clamp(1px, 0.5vw, 2px) clamp(4px, 1.5vw, 6px); /* Responsive mobile padding */
+  }
+  
+  /* ENHANCED MESSAGE THREAD FONTS FOR 411px MOBILE */
+  .thread-job-title {
+    font-size: 1.4rem !important; /* MASSIVE job title increase for mobile readability */
+  }
+  
+  .thread-participant {
+    font-size: 1.2rem !important; /* MUCH larger participant names for mobile */
+  }
+  
+  .message-sender {
+    font-size: 1.2rem !important; /* MUCH larger sender names in expanded threads */
+  }
+  
+  .message-bubble {
+    font-size: 1.3rem !important; /* MASSIVE message bubble text for mobile */
+  }
+  
+  .message-input {
+    font-size: 1.15rem !important; /* Larger input text for mobile typing */
+  }
+  
+  .message-thread-header {
+    padding: 18px 26px !important; /* More generous container padding for mobile */
   }
 }
 
@@ -2770,70 +2795,4 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Duplicate rule removed - using the earlier 360px media query instead */
 
-/* 🔥 ABSOLUTE FINAL OVERRIDE: 411px-320px font improvements - MUST override ALL mobile CSS 🔥 */
-@media screen and (min-width: 320px) and (max-width: 411px) {
-  /* ULTRA-SPECIFIC tab font overrides for mobile browsers */
-  .messages-tabs .tab-btn {
-    font-size: 1.1rem !important; /* MUCH larger tab buttons */
-  }
-  
-  .messages-tabs .tab-btn .tab-label {
-    font-size: 1rem !important; /* MUCH larger tab labels */
-  }
-  
-  /* ULTRA-SPECIFIC notification card overrides - target ALL cards */
-  .notifications-container .notification-item .notification-title {
-    font-size: 1.4rem !important; /* MASSIVE title increase for ALL cards */
-  }
-  
-  .notifications-container .notification-item .notification-message {
-    font-size: 1.2rem !important; /* MASSIVE message text increase for ALL cards */
-  }
-  
-  .notifications-container .notification-item .notification-time {
-    font-size: 1.05rem !important; /* MUCH larger time text for ALL cards */
-  }
-  
-  .notifications-container .notification-item .notification-date {
-    font-size: 1.05rem !important; /* MUCH larger date text for ALL cards */
-  }
-  
-  /* ULTRA-SPECIFIC message thread overrides */
-  .messages-container .message-thread .thread-job-title {
-    font-size: 1.4rem !important; /* MASSIVE job title increase */
-  }
-  
-  .messages-container .message-thread .thread-participant {
-    font-size: 1.2rem !important; /* MUCH larger participant names */
-  }
-  
-  .messages-container .message-thread .message-thread-header {
-    padding: 18px 26px !important; /* Larger container padding */
-  }
-  
-  /* ULTRA-SPECIFIC expanded thread overrides */
-  .messages-container .message-thread .message-sender {
-    font-size: 1.2rem !important; /* MUCH larger sender names */
-  }
-  
-  .messages-container .message-thread .message-bubble {
-    font-size: 1.3rem !important; /* MASSIVE message bubble text */
-  }
-  
-  .messages-container .message-thread .message-input {
-    font-size: 1.15rem !important; /* Larger input text */
-  }
-  
-  /* EXTREME DIAGNOSTIC: Make notification cards BRIGHT GREEN to confirm CSS is working */
-  .notifications-container .notification-item {
-    background: #00ff00 !important; /* BRIGHT GREEN background - impossible to miss */
-    border: 5px solid #ff0000 !important; /* THICK RED border */
-    color: #000000 !important; /* BLACK text for contrast */
-  }
-  
-  /* EXTREME DIAGNOSTIC: Make tabs BRIGHT YELLOW */
-  .messages-tabs .tab-btn {
-    background: #ffff00 !important; /* BRIGHT YELLOW tabs */
-    color: #000000 !important; /* BLACK text */
-  }
-}
+/* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
