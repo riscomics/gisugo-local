@@ -1284,7 +1284,7 @@ body:has(.messages-header) {
 }
 
 .notification-title {
-  font-size: 1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem); /* Responsive title font size for better 411px readability */
   font-weight: 600;
   color: #e6d6ae;
   margin-bottom: 0.5rem;
@@ -1292,7 +1292,7 @@ body:has(.messages-header) {
 }
 
 .notification-message {
-  font-size: 0.9rem;
+  font-size: clamp(0.9rem, 2.2vw, 0.95rem); /* Responsive message font size for better 411px readability */
   color: #a0aec0;
   line-height: 1.4;
   margin-bottom: 0.75rem;
@@ -1311,13 +1311,13 @@ body:has(.messages-header) {
 }
 
 .notification-time {
-  font-size: 0.8rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem); /* Responsive time font size for better 411px readability */
   color: #718096;
   font-weight: 500;
 }
 
 .notification-date {
-  font-size: 0.8rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem); /* Responsive date font size for better 411px readability */
   color: #718096;
 }
 
@@ -1796,8 +1796,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   
   /* Ultra-small EXPANDED THREAD scroll container fix for cut-off issue */
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(200px, 60vh, 300px); /* Specific fix for expanded threads only */
-    padding-bottom: clamp(20px, 5vw, 25px); /* Extra bottom padding for last message visibility in expanded threads */
+    max-height: clamp(180px, 65vh, 280px); /* More generous height for 338px-320px viewports */
+    padding-bottom: clamp(25px, 7vw, 30px); /* Increased bottom padding for last message visibility */
   }
 }
 
