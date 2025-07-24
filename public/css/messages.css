@@ -1801,6 +1801,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
+/* Ultra-narrow range (338px-320px) - More aggressive fix for expanded threads */
+@media (max-width: 338px) {
+  .message-thread.expanded .message-scroll-container {
+    max-height: clamp(180px, 65vh, 280px); /* Even more height allocation for ultra-narrow viewports */
+    padding-bottom: clamp(30px, 8vw, 35px); /* Generous bottom padding for ultra-narrow screens */
+  }
+}
+
 /* Messages Tab Styles */
 .messages-container {
   padding: 20px 0 0 0;
