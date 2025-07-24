@@ -1794,10 +1794,22 @@ body:has(.selection-controls[style*="display: flex"]) {
     height: calc(100vh - (62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px))); /* Responsive height */
   }
   
+  /* Ultra-small expanded thread positioning fix */
+  .message-thread.expanded {
+    top: clamp(120px, 15vh, 130px); /* Lower positioning for ultra-small viewports */
+    width: clamp(96%, 94vw, 98%); /* Slightly wider for more content space */
+  }
+  
   /* Ultra-small message scroll container fix for cut-off issue */
   .message-scroll-container {
-    max-height: clamp(300px, 70vh, 400px); /* Increased height at ultra-small viewports */
-    padding: clamp(8px, 2.5vw, 10px) clamp(8px, 2.5vw, 10px) clamp(15px, 4vw, 20px) clamp(8px, 2.5vw, 10px); /* Extra bottom padding for last message visibility */
+    max-height: clamp(280px, 80vh, 380px); /* Maximum viewport allocation for scrolling */
+    min-height: clamp(250px, 70vh, 300px); /* Ensure minimum scrollable area */
+    padding: clamp(6px, 2vw, 8px) clamp(6px, 2vw, 8px) clamp(25px, 6vw, 30px) clamp(6px, 2vw, 8px); /* Generous bottom padding for last message */
+  }
+  
+  /* Compact input container for ultra-small viewports */
+  .message-input-container {
+    padding: clamp(8px, 2vw, 10px); /* Reduced input container padding */
   }
 }
 
