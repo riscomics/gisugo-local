@@ -1750,60 +1750,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Comprehensive 411px-320px viewport improvements */
-@media (min-width: 320px) and (max-width: 411px) {
-  /* Enhanced tab font sizes - addresses user feedback about small tab text */
-  .tab-btn {
-    font-size: clamp(0.9rem, 2.8vw, 1.05rem) !important; /* Increased from 0.85rem base for better readability */
-  }
-  
-  .tab-label {
-    font-size: clamp(0.85rem, 2.5vw, 0.95rem) !important; /* Increased tab label font size */
-  }
-  
-  /* Enhanced notification card fonts - especially for 411px-360px range */
-  .notification-title {
-    font-size: clamp(1.125rem, 3vw, 1.25rem) !important; /* Larger minimum and better scaling */
-  }
-  
-  .notification-message {
-    font-size: clamp(1.025rem, 2.7vw, 1.1rem) !important; /* Enhanced message text readability */
-  }
-  
-  .notification-time,
-  .notification-date {
-    font-size: clamp(0.925rem, 2.4vw, 1rem) !important; /* Improved meta text size */
-  }
-  
-  /* Enhanced message thread closed form - job titles and container */
-  .thread-job-title {
-    font-size: clamp(1.1rem, 3.2vw, 1.25rem) !important; /* Larger job title in closed threads */
-  }
-  
-  .thread-participant {
-    font-size: clamp(0.95rem, 2.6vw, 1.05rem) !important; /* Larger participant names */
-  }
-  
-  /* Enhanced message thread container height for closed form */
-  .message-thread-header {
-    padding: clamp(12px, 3.5vw, 16px) clamp(18px, 5vw, 22px) !important; /* More generous padding */
-  }
-  
-  /* Enhanced message bubble text in expanded threads */
-  .message-sender {
-    font-size: clamp(0.95rem, 2.7vw, 1.05rem) !important; /* Larger sender names */
-  }
-  
-  .message-bubble {
-    font-size: clamp(1.1rem, 3.1vw, 1.2rem) !important; /* Larger message content text */
-  }
-  
-  /* Enhanced message input font size */
-  .message-input {
-    font-size: clamp(1rem, 2.8vw, 1.1rem) !important; /* Larger input text */
-  }
-}
-
 /* Ultra Small Screens (360px and below) - Match new-post.css exactly */
 @media (max-width: 360px) {
   .messages-header-title-container {
@@ -2823,4 +2769,58 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 /* Duplicate rule removed - using the earlier 360px media query instead */
+
+/* FINAL OVERRIDE: 411px-320px viewport improvements - MUST be last to override 600px mobile styles */
+@media (min-width: 320px) and (max-width: 411px) {
+  /* AGGRESSIVE tab font size increase - override 600px mobile styles */
+  .tab-btn {
+    font-size: 1rem !important; /* Much more noticeable increase for 411px */
+  }
+  
+  .tab-label {
+    font-size: 0.9rem !important; /* Larger tab labels */
+  }
+  
+  /* AGGRESSIVE notification card font increases - especially at 411px */
+  .notification-title {
+    font-size: 1.3rem !important; /* Very noticeable title increase */
+  }
+  
+  .notification-message {
+    font-size: 1.1rem !important; /* Much larger message text */
+  }
+  
+  .notification-time,
+  .notification-date {
+    font-size: 1rem !important; /* Larger meta text */
+  }
+  
+  /* AGGRESSIVE message thread font increases */
+  .thread-job-title {
+    font-size: 1.3rem !important; /* Much larger job titles */
+  }
+  
+  .thread-participant {
+    font-size: 1.1rem !important; /* Larger participant names */
+  }
+  
+  /* Enhanced container padding for closed threads */
+  .message-thread-header {
+    padding: 16px 24px !important; /* More generous fixed padding */
+  }
+  
+  /* AGGRESSIVE expanded thread font increases */
+  .message-sender {
+    font-size: 1.1rem !important; /* Much larger sender names */
+  }
+  
+  .message-bubble {
+    font-size: 1.25rem !important; /* Very noticeable message text increase */
+  }
+  
+  /* Larger input text */
+  .message-input {
+    font-size: 1.1rem !important; /* Bigger input font */
+  }
+}
 
