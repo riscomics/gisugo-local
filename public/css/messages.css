@@ -2824,8 +2824,16 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 1.15rem !important; /* Larger input text */
   }
   
-  /* DIAGNOSTIC: Add visual indicator that mobile CSS is working */
+  /* EXTREME DIAGNOSTIC: Make notification cards BRIGHT GREEN to confirm CSS is working */
   .notifications-container .notification-item {
-    border-left: 3px solid #ff6b6b !important; /* Red border to confirm CSS is active */
+    background: #00ff00 !important; /* BRIGHT GREEN background - impossible to miss */
+    border: 5px solid #ff0000 !important; /* THICK RED border */
+    color: #000000 !important; /* BLACK text for contrast */
+  }
+  
+  /* EXTREME DIAGNOSTIC: Make tabs BRIGHT YELLOW */
+  .messages-tabs .tab-btn {
+    background: #ffff00 !important; /* BRIGHT YELLOW tabs */
+    color: #000000 !important; /* BLACK text */
   }
 }
