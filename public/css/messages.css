@@ -1750,6 +1750,32 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
+/* Medium-small viewport range (411px to 360px) - Enhanced font sizes */
+@media (min-width: 360px) and (max-width: 411px) {
+  /* Notification cards font size boost for better readability */
+  .notification-title {
+    font-size: clamp(1.125rem, 2.8vw, 1.225rem); /* +0.125rem increase for 411px-360px range */
+  }
+  
+  .notification-message {
+    font-size: clamp(1.025rem, 2.5vw, 1.075rem); /* +0.125rem increase for 411px-360px range */
+  }
+  
+  .notification-time,
+  .notification-date {
+    font-size: clamp(0.925rem, 2.3vw, 0.975rem); /* +0.125rem increase for 411px-360px range */
+  }
+  
+  /* Message bubble text in expanded threads */
+  .message-sender {
+    font-size: clamp(0.925rem, 2.5vw, 1.025rem); /* +0.125rem increase for message sender */
+  }
+  
+  .message-bubble {
+    font-size: clamp(1.075rem, 2.9vw, 1.15rem); /* +0.125rem increase for message content */
+  }
+}
+
 /* Ultra Small Screens (360px and below) - Match new-post.css exactly */
 @media (max-width: 360px) {
   .messages-header-title-container {
