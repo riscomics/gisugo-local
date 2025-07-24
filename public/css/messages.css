@@ -1801,12 +1801,13 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Ultra-narrow range (338px-320px) - Maximum aggressive fix for expanded threads */
+/* Ultra-narrow range (338px-320px) - Absolute maximum fix for expanded threads */
 @media (max-width: 338px) {
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(160px, 70vh, 260px); /* Maximum viewport allocation for ultra-narrow screens */
-    padding-bottom: clamp(40px, 10vw, 45px); /* Maximum bottom padding to ensure last message visibility */
-    margin-bottom: clamp(5px, 2vw, 8px); /* Additional margin for extra space */
+    max-height: clamp(140px, 75vh, 240px); /* Absolute maximum viewport allocation (75vh) */
+    padding-bottom: clamp(50px, 12vw, 60px); /* Massive bottom padding for longest chat threads */
+    margin-bottom: clamp(8px, 3vw, 12px); /* Increased margin buffer */
+    overflow-y: auto !important; /* Force scrolling */
   }
 }
 
