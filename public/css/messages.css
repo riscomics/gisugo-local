@@ -2770,57 +2770,62 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Duplicate rule removed - using the earlier 360px media query instead */
 
-/* FINAL OVERRIDE: 411px-320px viewport improvements - MUST be last to override 600px mobile styles */
-@media (min-width: 320px) and (max-width: 411px) {
-  /* AGGRESSIVE tab font size increase - override 600px mobile styles */
-  .tab-btn {
-    font-size: 1rem !important; /* Much more noticeable increase for 411px */
+/* 🔥 ABSOLUTE FINAL OVERRIDE: 411px-320px font improvements - MUST override ALL mobile CSS 🔥 */
+@media screen and (min-width: 320px) and (max-width: 411px) {
+  /* ULTRA-SPECIFIC tab font overrides for mobile browsers */
+  .messages-tabs .tab-btn {
+    font-size: 1.1rem !important; /* MUCH larger tab buttons */
   }
   
-  .tab-label {
-    font-size: 0.9rem !important; /* Larger tab labels */
+  .messages-tabs .tab-btn .tab-label {
+    font-size: 1rem !important; /* MUCH larger tab labels */
   }
   
-  /* AGGRESSIVE notification card font increases - especially at 411px */
-  .notification-title {
-    font-size: 1.3rem !important; /* Very noticeable title increase */
+  /* ULTRA-SPECIFIC notification card overrides - target ALL cards */
+  .notifications-container .notification-item .notification-title {
+    font-size: 1.4rem !important; /* MASSIVE title increase for ALL cards */
   }
   
-  .notification-message {
-    font-size: 1.1rem !important; /* Much larger message text */
+  .notifications-container .notification-item .notification-message {
+    font-size: 1.2rem !important; /* MASSIVE message text increase for ALL cards */
   }
   
-  .notification-time,
-  .notification-date {
-    font-size: 1rem !important; /* Larger meta text */
+  .notifications-container .notification-item .notification-time {
+    font-size: 1.05rem !important; /* MUCH larger time text for ALL cards */
   }
   
-  /* AGGRESSIVE message thread font increases */
-  .thread-job-title {
-    font-size: 1.3rem !important; /* Much larger job titles */
+  .notifications-container .notification-item .notification-date {
+    font-size: 1.05rem !important; /* MUCH larger date text for ALL cards */
   }
   
-  .thread-participant {
-    font-size: 1.1rem !important; /* Larger participant names */
+  /* ULTRA-SPECIFIC message thread overrides */
+  .messages-container .message-thread .thread-job-title {
+    font-size: 1.4rem !important; /* MASSIVE job title increase */
   }
   
-  /* Enhanced container padding for closed threads */
-  .message-thread-header {
-    padding: 16px 24px !important; /* More generous fixed padding */
+  .messages-container .message-thread .thread-participant {
+    font-size: 1.2rem !important; /* MUCH larger participant names */
   }
   
-  /* AGGRESSIVE expanded thread font increases */
-  .message-sender {
-    font-size: 1.1rem !important; /* Much larger sender names */
+  .messages-container .message-thread .message-thread-header {
+    padding: 18px 26px !important; /* Larger container padding */
   }
   
-  .message-bubble {
-    font-size: 1.25rem !important; /* Very noticeable message text increase */
+  /* ULTRA-SPECIFIC expanded thread overrides */
+  .messages-container .message-thread .message-sender {
+    font-size: 1.2rem !important; /* MUCH larger sender names */
   }
   
-  /* Larger input text */
-  .message-input {
-    font-size: 1.1rem !important; /* Bigger input font */
+  .messages-container .message-thread .message-bubble {
+    font-size: 1.3rem !important; /* MASSIVE message bubble text */
+  }
+  
+  .messages-container .message-thread .message-input {
+    font-size: 1.15rem !important; /* Larger input text */
+  }
+  
+  /* DIAGNOSTIC: Add visual indicator that mobile CSS is working */
+  .notifications-container .notification-item {
+    border-left: 3px solid #ff6b6b !important; /* Red border to confirm CSS is active */
   }
 }
-
