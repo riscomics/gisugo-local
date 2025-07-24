@@ -1801,13 +1801,24 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Ultra-narrow range (338px-320px) - Absolute maximum fix for expanded threads */
+/* Ultra-narrow range (338px-320px) - Fix expanded thread positioning and scroll area */
 @media (max-width: 338px) {
+  /* Move expanded thread much higher up on ultra-narrow screens */
+  .message-thread.expanded {
+    top: clamp(100px, 12vh, 120px) !important; /* Much higher positioning for ultra-narrow */
+    width: clamp(96%, 94vw, 98%) !important; /* Slightly wider */
+    max-height: calc(100vh - clamp(100px, 12vh, 120px) - 20px) !important; /* Use remaining viewport height */
+  }
+  
+  /* Compress input container on ultra-narrow screens */
+  .message-thread.expanded .message-input-container {
+    padding: clamp(6px, 1.5vw, 8px) !important; /* Minimal input padding */
+  }
+  
+  /* Maximize scroll container space */
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(140px, 75vh, 240px); /* Absolute maximum viewport allocation (75vh) */
-    padding-bottom: clamp(50px, 12vw, 60px); /* Massive bottom padding for longest chat threads */
-    margin-bottom: clamp(8px, 3vw, 12px); /* Increased margin buffer */
-    overflow-y: auto !important; /* Force scrolling */
+    max-height: calc(100vh - clamp(100px, 12vh, 120px) - 60px) !important; /* Use almost all remaining space */
+    padding-bottom: clamp(25px, 6vw, 30px) !important; /* Moderate bottom padding */
   }
 }
 
