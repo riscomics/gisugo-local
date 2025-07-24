@@ -1483,12 +1483,12 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   .tab-btn {
     padding: clamp(8px, 2vh, 10px) clamp(6px, 1.5vw, 8px); /* Responsive mobile padding */
-    font-size: 1.1rem !important; /* MUCH larger tab buttons for 411px mobile readability */
+    font-size: clamp(0.95rem, 2.5vw, 1.05rem); /* Responsive scaling from 338px to 411px */
     gap: clamp(2px, 0.8vh, 3px); /* Responsive mobile gap */
   }
   
   .tab-label {
-    font-size: 1rem !important; /* MUCH larger tab labels for 411px mobile readability */
+    font-size: clamp(0.85rem, 2.2vw, 0.95rem); /* Responsive scaling to prevent overflow at 320px */
   }
 
   /* Mobile Independent Tab Wrappers - RESPONSIVE POSITIONING */
@@ -1676,12 +1676,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .notification-title {
-    font-size: 1.4rem !important; /* MASSIVE increase for mobile 411px readability */
+    font-size: 1.1rem; /* Reasonable increase for mobile readability */
     margin-bottom: 0.4rem;
   }
 
   .notification-message {
-    font-size: 1.2rem !important; /* MASSIVE increase for mobile 411px readability */
+    font-size: 1rem; /* Reasonable increase for mobile readability */
     margin-bottom: 0.6rem;
   }
 
@@ -1692,7 +1692,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   .notification-time,
   .notification-date {
-    font-size: 1.05rem !important; /* MUCH larger for mobile 411px readability */
+    font-size: 0.9rem; /* Reasonable increase for mobile readability */
   }
 
   .notification-action-btn {
@@ -1749,29 +1749,29 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: clamp(1px, 0.5vw, 2px) clamp(4px, 1.5vw, 6px); /* Responsive mobile padding */
   }
   
-  /* ENHANCED MESSAGE THREAD FONTS FOR 411px MOBILE */
+  /* ENHANCED MESSAGE THREAD FONTS FOR MOBILE */
   .thread-job-title {
-    font-size: 1.4rem !important; /* MASSIVE job title increase for mobile readability */
+    font-size: 1.15rem; /* Reasonable job title increase for mobile readability */
   }
   
   .thread-participant {
-    font-size: 1.2rem !important; /* MUCH larger participant names for mobile */
+    font-size: 1rem; /* Reasonable participant names for mobile */
   }
   
   .message-sender {
-    font-size: 1.2rem !important; /* MUCH larger sender names in expanded threads */
+    font-size: 1rem; /* Reasonable sender names in expanded threads */
   }
   
   .message-bubble {
-    font-size: 1.3rem !important; /* MASSIVE message bubble text for mobile */
+    font-size: 1.1rem; /* Reasonable message bubble text for mobile */
   }
   
   .message-input {
-    font-size: 1.15rem !important; /* Larger input text for mobile typing */
+    font-size: 1.05rem; /* Reasonable input text for mobile typing */
   }
   
   .message-thread-header {
-    padding: 18px 26px !important; /* More generous container padding for mobile */
+    padding: 16px 20px; /* Reasonable container padding for mobile */
   }
 }
 
