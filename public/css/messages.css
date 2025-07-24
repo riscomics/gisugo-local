@@ -1793,6 +1793,12 @@ body:has(.selection-controls[style*="display: flex"]) {
     top: calc(62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px)); /* Ultra-small header + borderline + tabs */
     height: calc(100vh - (62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px))); /* Responsive height */
   }
+  
+  /* Ultra-small message scroll container fix for cut-off issue */
+  .message-scroll-container {
+    max-height: clamp(300px, 70vh, 400px); /* Increased height at ultra-small viewports */
+    padding: clamp(8px, 2.5vw, 10px) clamp(8px, 2.5vw, 10px) clamp(15px, 4vw, 20px) clamp(8px, 2.5vw, 10px); /* Extra bottom padding for last message visibility */
+  }
 }
 
 /* Messages Tab Styles */
@@ -1999,7 +2005,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-scroll-container {
-  max-height: clamp(420px, 50vh, 481px); /* Responsive max height */
+  max-height: clamp(400px, 65vh, 481px); /* Increased viewport height for better small viewport support */
   overflow-y: auto;
   padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
   background: #354048;
@@ -2202,7 +2208,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .message-scroll-container {
-    max-height: clamp(400px, 45vh, 460px); /* Responsive mobile max height */
+    max-height: clamp(350px, 60vh, 460px); /* Increased mobile viewport height for better scrolling */
     padding: clamp(10px, 3vw, 12px); /* Responsive mobile padding */
   }
 
