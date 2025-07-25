@@ -236,13 +236,7 @@ body:has(.messages-header) {
   }
 }
 
-/* Large mobile screens (401px-600px) - Scale modal larger */
-@media (min-width: 401px) and (max-width: 600px) {
-  .avatar-overlay {
-    min-width: 280px; /* Much larger for 401-600px range */
-    max-width: 420px;
-  }
-}
+
 
 
 
@@ -1528,8 +1522,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   /* Avatar overlay positioning */
   .avatar-overlay {
     top: 160px !important; /* Moved higher - was 188px */
-    min-width: 250px; /* Larger for 600px mobile baseline */
-    max-width: 380px;
   }
 
   /* Message thread down arrow icon - mobile version */
@@ -2501,7 +2493,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   z-index: 2200;
-  min-width: 200px;
+  min-width: 320px; /* SIGNIFICANTLY increased from 200px */
+  max-width: 450px; /* Added max-width for larger screens */
   opacity: 0;
   transition: all 0.2s ease-out;
   pointer-events: none;
@@ -2653,8 +2646,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Mobile Avatar Overlay Styles */
 @media (max-width: 600px) {
   .avatar-overlay {
-    min-width: 180px;
-    max-width: 280px;
+    min-width: 260px; /* SIGNIFICANTLY increased from 180px */
+    max-width: 380px; /* SIGNIFICANTLY increased from 280px */
   }
 
   .avatar-overlay-header {
@@ -2678,6 +2671,50 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: 10px 14px;
     font-size: 0.85rem;
     gap: 6px;
+  }
+}
+
+/* Large screens (601px-1024px) - Make overlay much more prominent */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .avatar-overlay {
+    min-width: 380px; /* Even larger for tablet/laptop */
+    max-width: 520px;
+  }
+  
+  .avatar-overlay-header {
+    padding: 18px 24px; /* More generous padding */
+  }
+  
+  .avatar-overlay-name {
+    font-size: 1.3rem; /* Larger name */
+  }
+  
+  .avatar-action-btn {
+    padding: 14px 20px; /* Larger buttons */
+    font-size: 1rem;
+    gap: 10px;
+  }
+}
+
+/* Desktop screens (1025px+) - Maximum size for visibility */
+@media (min-width: 1025px) {
+  .avatar-overlay {
+    min-width: 420px; /* Maximum size for desktop */
+    max-width: 580px;
+  }
+  
+  .avatar-overlay-header {
+    padding: 20px 28px; /* Maximum padding */
+  }
+  
+  .avatar-overlay-name {
+    font-size: 1.4rem; /* Largest name size */
+  }
+  
+  .avatar-action-btn {
+    padding: 16px 24px; /* Largest buttons */
+    font-size: 1.1rem;
+    gap: 12px;
   }
 }
 
@@ -2709,11 +2746,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     margin-top: 5px !important;
   }
   
-  /* Scale modal incrementally */
-  .avatar-overlay {
-    min-width: 240px; /* Increased medium size for 385-400px */
-    max-width: 360px;
-  }
+
 }
 
 /* 384px ONLY */
@@ -2731,8 +2764,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   /* Smaller mobile avatar overlay positioning */
   .avatar-overlay {
     top: 160px !important; /* Moved higher - was 188px */
-    min-width: 220px; /* Further increased for better visibility */
-    max-width: 320px; /* Further increased */
   }
 
   .avatar-overlay-header {
@@ -2784,9 +2815,5 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 11px !important;
   }
   
-  /* Scale modal for smallest screens */
-  .avatar-overlay {
-    min-width: 160px; /* Smallest size for 338px */
-    max-width: 260px;
-  }
+
 }
