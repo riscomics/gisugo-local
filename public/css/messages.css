@@ -1491,10 +1491,10 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: clamp(0.85rem, 2.2vw, 0.95rem); /* Responsive scaling to prevent overflow at 320px */
   }
 
-  /* Mobile Independent Tab Wrappers - RESPONSIVE POSITIONING */
+  /* Mobile Independent Tab Wrappers - FIXED RELIABLE POSITIONING */
   .tab-content-wrapper {
-    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(1px, 0.2vh, 2px) + clamp(38px, 8vh, 48px)); /* Mobile header + borderline + spacing + tabs */
-    height: calc(100vh - (clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(1px, 0.2vh, 2px) + clamp(38px, 8vh, 48px))); /* Responsive mobile height */
+    top: 120px !important; /* Fixed reliable positioning: ~68px header + ~4px border + ~48px tabs */
+    height: calc(100vh - 120px) !important; /* Fixed reliable height calculation */
   }
 
   /* Mobile Notification Containers */
@@ -1815,8 +1815,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .tab-content-wrapper {
-    top: calc(62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px)); /* Ultra-small header + borderline + tabs */
-    height: calc(100vh - (62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px))); /* Responsive height */
+    top: 105px !important; /* Fixed reliable positioning: 62px header + 4px border + 39px tabs */
+    height: calc(100vh - 105px) !important; /* Fixed reliable height calculation */
   }
   
 }
@@ -1835,8 +1835,13 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* 384px-361px: Perfect height, just reduce top padding */
+/* 384px-361px: Fix main container + expanded thread padding */
 @media (max-width: 384px) and (min-width: 361px) {
+  .tab-content-wrapper {
+    top: 118px !important; /* Slightly adjusted for 384px range */
+    height: calc(100vh - 118px) !important; /* Ensure proper fit */
+  }
+  
   .message-thread.expanded .message-scroll-container {
     max-height: 420px !important; /* Fixed height: good baseline */
     padding-bottom: 15px !important; /* Bottom padding for last message visibility */
