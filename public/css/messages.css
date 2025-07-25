@@ -165,7 +165,7 @@ body::-webkit-scrollbar {
 
 /* Messages Page Body Fix - Override other CSS files */
 body:has(.messages-header) {
-  padding-top: 110px !important; /* Desktop: 106px header + 4px borderline */
+  padding-top: 76px !important; /* Simple fixed: header(70px) + borderline(6px) */
 }
 
 /* Tablet/Small Desktop range (601px-1023px) - ensure borderline visibility */
@@ -179,12 +179,12 @@ body:has(.messages-header) {
   }
   
   .messages-tabs {
-    top: calc(clamp(85px, 18vh, 100px) + 8px + 2px) !important; /* Header + border + minimal space */
+    top: 82px !important; /* Simple fixed: header(70px) + borderline(8px) + space(4px) */
   }
   
   .tab-content-wrapper {
-    top: calc(clamp(85px, 18vh, 100px) + 8px + 2px + clamp(45px, 9vh, 50px)) !important; /* Header + border + space + tabs */
-    height: calc(100vh - (clamp(85px, 18vh, 100px) + 8px + 2px + clamp(45px, 9vh, 50px))) !important;
+    top: 128px !important; /* Simple fixed: header(70px) + borderline(8px) + space(4px) + tabs(46px) */
+    height: calc(100vh - 128px) !important;
   }
 }
 
@@ -195,12 +195,12 @@ body:has(.messages-header) {
   }
   
   .messages-tabs {
-    top: calc(106px + 6px + 2px) !important; /* Minimal spacing: 106px header + 6px border + 2px space = 114px */
+    top: 78px !important; /* Simple fixed: header(70px) + borderline(6px) + space(2px) */
   }
   
   .tab-content-wrapper {
-    top: calc(106px + 6px + 2px + 52px) !important; /* Header + border + space + tabs = 166px */
-    height: calc(100vh - 166px) !important;
+    top: 124px !important; /* Simple fixed: header(70px) + borderline(6px) + space(2px) + tabs(46px) */
+    height: calc(100vh - 124px) !important;
   }
 }
 
