@@ -1819,7 +1819,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* 360px ONLY */
 @media (min-width: 339px) and (max-width: 360px) {
   .message-scroll-container {
-    height: 220px !important; /* Increased - was too short */
+    height: 280px !important; /* INCREASED from 220px - was too short for expanded threads */
   }
   
   .message-thread.expanded {
@@ -1827,14 +1827,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .messages-container .message-thread .message-bubble {
-    font-size: 15px !important; /* Increased font size as requested */
+    font-size: 17px !important; /* INCREASED from 15px - text too small in expanded threads */
   }
 }
 
 /* 338px ONLY */  
 @media (min-width: 321px) and (max-width: 338px) {
   .message-scroll-container {
-    height: 150px !important; /* Further reduced for 338px */
+    height: 120px !important; /* REDUCED from 150px - was extending beyond screen bottom */
   }
   
   .message-thread.expanded {
@@ -1889,7 +1889,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Ultra Specific Small Screens (320px and below) */
 @media (max-width: 320px) {
   .message-scroll-container {
-    height: 180px !important; /* Increased - was too short */
+    height: 240px !important; /* INCREASED from 180px - was too short, cutting off chat bubbles */
   }
   
   .message-thread.expanded {
@@ -2722,7 +2722,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* 384px ONLY */
 @media (min-width: 361px) and (max-width: 384px) {
   .message-scroll-container {
-    height: 280px !important; /* Increased - was too short */
+    height: 340px !important; /* INCREASED from 280px - was too short for expanded threads */
   }
   
   .message-thread.expanded {
@@ -2778,4 +2778,3 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Duplicate rule removed - using the earlier 360px media query instead */
 
 /* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
-
