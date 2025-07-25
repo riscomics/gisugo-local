@@ -224,16 +224,45 @@ body:has(.messages-header) {
   }
 }
 
+/* Add margin between expanded header and tabs for larger mobile */
+.message-thread.expanded {
+  margin-top: 10px; /* 10px margin top space between open header and tabs for 411px-401px */
+}
+
 /* Mobile specific - smaller container for smaller screens */
 @media (max-width: 400px) {
   .message-scroll-container {
-    height: 250px; /* Smaller fixed height for mobile */
+    height: 300px; /* Increased from 250px to 300px for 400px-361px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 5px; /* 5px margin top space between open header and tabs for 400px-361px */
   }
 }
 
 @media (max-width: 360px) {
   .message-scroll-container {
-    height: 220px; /* Even smaller for very small screens */
+    height: 245px; /* Increased from 220px to 245px for 360px */
+  }
+  
+  .message-bubble {
+    font-size: clamp(12px, 3.2vw, 14px) !important; /* Reduced by 2px equivalent for 360px and below */
+  }
+}
+
+@media (max-width: 338px) {
+  .message-scroll-container {
+    height: 220px; /* Perfect height for 338px */
+  }
+  
+  .message-bubble {
+    font-size: clamp(11px, 3vw, 13px) !important; /* Reduced by 2px equivalent for 338px and below */
+  }
+}
+
+@media (max-width: 320px) {
+  .message-scroll-container {
+    height: 210px; /* Reduced by 10px for 320px */
   }
 }
 
@@ -2051,7 +2080,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-scroll-container {
-  height: 300px; /* FIXED HEIGHT - simple and predictable */
+  height: 400px; /* Increased from 300px to 400px for 411px-401px */
   overflow-y: auto;
   padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
   background: #354048;
