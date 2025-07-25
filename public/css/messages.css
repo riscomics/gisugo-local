@@ -239,8 +239,8 @@ body:has(.messages-header) {
 /* Large mobile screens (401px-600px) - Scale modal larger */
 @media (min-width: 401px) and (max-width: 600px) {
   .avatar-overlay {
-    min-width: 220px; /* Larger for 401-600px range */
-    max-width: 360px;
+    min-width: 280px; /* Much larger for 401-600px range */
+    max-width: 420px;
   }
 }
 
@@ -1516,9 +1516,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   /* Avatar overlay positioning */
   .avatar-overlay {
     top: 160px !important; /* Moved higher - was 188px */
+    min-width: 250px; /* Larger for 600px mobile baseline */
+    max-width: 380px;
   }
 
-  /* Message thread three dots icon - mobile version */
+  /* Message thread down arrow icon - mobile version */
   .message-thread.expanded .message-thread-header::after {
     font-size: 16px; /* Slightly smaller for mobile */
     bottom: 2px;
@@ -1960,9 +1962,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   position: relative;
 }
 
-/* Three dots menu icon - bright and visible */
+/* Down arrow menu icon - bright and visible */
 .message-thread.expanded .message-thread-header::after {
-  content: '⋯';
+  content: '▼';
   position: absolute;
   bottom: clamp(2px, 1vw, 4px); /* Responsive bottom positioning */
   left: 50%;
@@ -2688,8 +2690,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   
   /* Scale modal incrementally */
   .avatar-overlay {
-    min-width: 200px; /* Medium size for 385-400px */
-    max-width: 320px;
+    min-width: 240px; /* Increased medium size for 385-400px */
+    max-width: 360px;
   }
 }
 
@@ -2708,8 +2710,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   /* Smaller mobile avatar overlay positioning */
   .avatar-overlay {
     top: 160px !important; /* Moved higher - was 188px */
-    min-width: 180px; /* Increased from 160px */
-    max-width: 280px; /* Increased from 240px */
+    min-width: 220px; /* Further increased for better visibility */
+    max-width: 320px; /* Further increased */
   }
 
   .avatar-overlay-header {
@@ -2735,7 +2737,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     gap: 5px;
   }
 
-  /* Smaller mobile message thread three dots icon - only when expanded */
+  /* Smaller mobile message thread down arrow icon - only when expanded */
   .message-thread.expanded .message-thread-header::after {
     font-size: 14px; /* Even smaller for very small screens */
     bottom: 1px;
