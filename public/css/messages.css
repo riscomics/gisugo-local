@@ -1409,66 +1409,67 @@ body:has(.selection-controls[style*="display: flex"]) {
   overflow-x: hidden;
 }
 
-/* Mobile Styles */
+/* CONSOLIDATED MOBILE STYLES (600px and below) */
 @media (max-width: 600px) {
   body {
-    padding-top: clamp(70px, 15vh, 75px); /* Responsive top padding */
+    padding-top: clamp(70px, 15vh, 75px);
     background: #363f4f !important;
   }
   
   body::-webkit-scrollbar {
-    display: none;  /* Chrome, Safari and Opera */
+    display: none;
   }
   
+  /* Header */
   .messages-header-title-container {
-    height: clamp(66px, 18vh, 68px); /* Responsive height */
-    padding-right: clamp(5px, 1vw, 8px); /* Responsive padding */
+    height: clamp(66px, 18vh, 68px);
+    padding-right: clamp(5px, 1vw, 8px);
   } 
   
   .messages-header-title {
-    font-size: 1.8rem; /* Match new-post fixed mobile size */
+    font-size: 1.8rem;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
     line-height: 1.4;
   }
    
   .messages-header-btn {
-    width: 45px; /* Fixed button width to match new-post exactly */
-    height: 47px; /* Fixed button height to match new-post exactly */
-    font-size: 12px; /* Fixed button font size to match new-post exactly */
+    width: 45px;
+    height: 47px;
+    font-size: 12px;
     font-family: Arial, Helvetica, sans-serif;
   }
   
   .messages-header-btn img {
     width: auto;
-    height: clamp(28px, 8vh, 35px); /* Responsive image height */
-    margin-bottom: clamp(2px, 0.5vh, 4px); /* Responsive margin */
+    height: clamp(28px, 8vh, 35px);
+    margin-bottom: clamp(2px, 0.5vh, 4px);
   }
   
   .messages-header-btn:hover {
     transform: scale(1.1);
   }
   
+  /* Menu */
   .messages-menu-items {
-    height: clamp(60px, 15vh, 68px); /* Responsive menu height */
+    height: clamp(60px, 15vh, 68px);
   }
   
   .messages-menu-item {
-    font-size: clamp(11px, 2.5vw, 12px); /* Responsive font size */
-    width: clamp(40px, 8vw, 45px); /* Responsive width */
+    font-size: clamp(11px, 2.5vw, 12px);
+    width: clamp(40px, 8vw, 45px);
   }
   
   .messages-menu-item img {
-    width: clamp(28px, 6vw, 32px); /* Responsive image width */
-    height: clamp(28px, 6vw, 32px); /* Responsive image height */
+    width: clamp(28px, 6vw, 32px);
+    height: clamp(28px, 6vw, 32px);
   }
-}
 
-  /* Mobile avatar overlay positioning */
+  /* Avatar overlay positioning */
   .avatar-overlay {
-    top: 188px !important; /* Mobile: 138px expanded thread + 45px header + 5px gap */
+    top: 188px !important;
   }
 
-  /* Mobile message thread hamburger icon - only when expanded */
+  /* Message thread hamburger icon - only when expanded */
   .message-thread.expanded .message-thread-header::after {
     bottom: 3px;
     width: 12px;
@@ -1477,24 +1478,50 @@ body:has(.selection-controls[style*="display: flex"]) {
     background-position: 0 0, 0 2.5px, 0 5px;
   }
 
+  /* Tabs */
   .messages-tabs {
-    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(1px, 0.2vh, 2px)); /* Mobile header + borderline + minimal spacing */
+    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(1px, 0.2vh, 2px));
   }
 
   .tab-btn {
-    padding: clamp(8px, 2vh, 10px) clamp(6px, 1.5vw, 8px); /* Responsive mobile padding */
-    font-size: clamp(0.95rem, 2.5vw, 1.05rem); /* Responsive scaling from 338px to 411px */
-    gap: clamp(2px, 0.8vh, 3px); /* Responsive mobile gap */
+    padding: clamp(8px, 2vh, 10px) clamp(6px, 1.5vw, 8px);
+    font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+    gap: clamp(2px, 0.8vh, 3px);
   }
   
   .tab-label {
-    font-size: clamp(0.85rem, 2.2vw, 0.95rem); /* Responsive scaling to prevent overflow at 320px */
+    font-size: clamp(0.85rem, 2.2vw, 0.95rem);
   }
 
-  /* Mobile Independent Tab Wrappers - FIXED RELIABLE POSITIONING */
+  /* MAIN CONTAINER FIX - This is the critical fix for scrolling */
   .tab-content-wrapper {
-    top: 120px !important; /* Fixed reliable positioning: ~68px header + ~4px border + ~48px tabs */
-    height: calc(100vh - 120px) !important; /* Fixed reliable height calculation */
+    top: 115px !important; /* Simple fixed calculation */
+    height: calc(100vh - 115px) !important; /* Must fit within viewport */
+  }
+
+  /* Message Thread Fonts - Enhanced for mobile readability */
+  .messages-container .message-thread .thread-job-title {
+    font-size: 1.2rem !important;
+  }
+  
+  .messages-container .message-thread .thread-participant {
+    font-size: 1.05rem !important;
+  }
+  
+  .messages-container .message-thread .message-sender {
+    font-size: 1.05rem !important;
+  }
+  
+  .messages-container .message-thread .message-bubble {
+    font-size: 1.15rem !important;
+  }
+  
+  .messages-container .message-thread .message-input {
+    font-size: 1.1rem !important;
+  }
+  
+  .messages-container .message-thread .message-thread-header {
+    padding: 18px 22px;
   }
 
   /* Mobile Notification Containers */
@@ -1749,30 +1776,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: clamp(1px, 0.5vw, 2px) clamp(4px, 1.5vw, 6px); /* Responsive mobile padding */
   }
   
-  /* ENHANCED MESSAGE THREAD FONTS FOR MOBILE - More specific selectors to override conflicts */
-  .messages-container .message-thread .thread-job-title {
-    font-size: 1.2rem !important; /* Force increased job title for mobile readability */
-  }
-  
-  .messages-container .message-thread .thread-participant {
-    font-size: 1.05rem !important; /* Force increased participant names for mobile */
-  }
-  
-  .messages-container .message-thread .message-sender {
-    font-size: 1.05rem !important; /* Force increased sender names in expanded threads */
-  }
-  
-  .messages-container .message-thread .message-bubble {
-    font-size: 1.15rem !important; /* Force increased message bubble text for mobile */
-  }
-  
-  .messages-container .message-thread .message-input {
-    font-size: 1.1rem !important; /* Force increased input text for mobile typing */
-  }
-  
-  .messages-container .message-thread .message-thread-header {
-    padding: 18px 22px; /* Slightly increased container padding for mobile */
-  }
+
 }
 
 /* Ultra Small Screens (360px and below) - Match new-post.css exactly */
@@ -1821,66 +1825,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   
 }
 
-/* Consolidated viewport-specific fixes - Clean implementation without conflicts */
 
-/* 411px-385px: Increase max height + reduce top padding */
-@media (max-width: 411px) and (min-width: 385px) {
-  .message-thread.expanded .message-scroll-container {
-    max-height: 450px !important; /* Fixed height: increased by 10px equivalent */
-    padding-bottom: 15px !important; /* Bottom padding for last message visibility */
-  }
-  
-  .message-thread.expanded .message-thread-header {
-    padding-top: 8px !important; /* Reduced top padding above title */
-  }
-}
-
-/* 384px-361px: Fix main container + expanded thread padding */
-@media (max-width: 384px) and (min-width: 361px) {
-  .tab-content-wrapper {
-    top: 118px !important; /* Slightly adjusted for 384px range */
-    height: calc(100vh - 118px) !important; /* Ensure proper fit */
-  }
-  
-  .message-thread.expanded .message-scroll-container {
-    max-height: 420px !important; /* Fixed height: good baseline */
-    padding-bottom: 15px !important; /* Bottom padding for last message visibility */
-  }
-  
-  .message-thread.expanded .message-thread-header {
-    padding-top: 8px !important; /* Reduced top padding above title */
-  }
-}
-
-/* 360px-321px: Smaller height + reduce top padding */
-@media (max-width: 360px) and (min-width: 321px) {
-  .message-thread.expanded .message-scroll-container {
-    max-height: 350px !important; /* Fixed height: smaller for tight viewports */
-    padding-bottom: 18px !important; /* Bottom padding for last message visibility */
-  }
-  
-  .message-thread.expanded .message-thread-header {
-    padding-top: 6px !important; /* Further reduced top padding */
-  }
-}
-
-/* 320px and below: Very controlled height + compressed header */
-@media (max-width: 320px) {
-  .message-thread.expanded .message-scroll-container {
-    max-height: 280px !important; /* Fixed height: smallest to prevent overflow */
-    padding-bottom: 20px !important; /* Extra bottom padding for last message visibility */
-  }
-  
-  .message-thread.expanded .message-thread-header {
-    padding: 4px 16px !important; /* Significantly reduced all padding */
-    min-height: 45px !important; /* Reduced header height */
-  }
-  
-  .message-thread.expanded .thread-job-title {
-    font-size: 1rem !important; /* Reduced font size to prevent 3 lines */
-    line-height: 1.3 !important; /* Tighter line height */
-  }
-}
 
 /* Messages Tab Styles */
 .messages-container {
@@ -2261,81 +2206,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-left: 0;
 }
 
-/* Mobile Message Styles */
-@media (max-width: 600px) {
-  .message-thread {
-    width: 100%;
-    margin-bottom: clamp(10px, 3vw, 12px); /* Responsive mobile margin */
-  }
 
-  .message-thread-header {
-    padding: clamp(8px, 2.5vw, 10px) clamp(12px, 4vw, 15px); /* Responsive mobile padding */
-  }
-
-  .thread-job-title {
-    font-size: clamp(0.9rem, 2.5vw, 1rem); /* Responsive mobile font size */
-    padding-right: clamp(12px, 4vw, 15px); /* Responsive mobile padding */
-  }
-
-  .thread-participant {
-    font-size: 0.8rem;
-  }
-
-
-
-  .thread-new-tag {
-    font-size: clamp(0.6rem, 1.6vw, 0.65rem); /* Responsive mobile font size */
-    padding: clamp(1px, 0.5vw, 2px) clamp(4px, 1.5vw, 6px); /* Responsive mobile padding */
-  }
-
-  .message-scroll-container {
-    max-height: clamp(400px, 45vh, 460px); /* Responsive mobile max height */
-    padding: clamp(10px, 3vw, 12px); /* Responsive mobile padding */
-  }
-
-  .message-thread.expanded {
-    top: clamp(130px, 18vh, 138px); /* Responsive mobile top positioning */
-    width: clamp(95%, 93vw, 95%); /* Responsive mobile width */
-  }
-  
-  .message-card {
-    margin-bottom: clamp(10px, 3vw, 12px); /* Responsive mobile margin */
-  }
-
-  .message-avatar {
-    width: clamp(30px, 7vw, 35px); /* Responsive mobile width */
-    height: clamp(30px, 7vw, 35px); /* Responsive mobile height */
-  }
-
-  .message-sender {
-    font-size: clamp(0.75rem, 2vw, 0.8rem); /* Responsive mobile font size */
-  }
-
-  .message-timestamp {
-    font-size: clamp(0.65rem, 1.8vw, 0.7rem); /* Responsive mobile font size */
-  }
-
-  .message-bubble {
-    padding: clamp(8px, 2.5vw, 10px) clamp(12px, 3.5vw, 14px); /* Responsive mobile padding */
-    font-size: clamp(0.9rem, 2.4vw, 0.975rem); /* Responsive mobile font size */
-    max-width: clamp(82%, 84vw, 85%); /* Responsive mobile max width */
-  }
-
-  /* Mobile Application Conversation Thread Styling */
-  .message-thread[data-thread-origin="application"] .message-thread-header {
-    background: #2f3a4f;
-    border-left: 3px solid rgba(66, 153, 225, 0.3);
-  }
-
-  .message-thread[data-thread-origin="application"] .message-thread-header:hover {
-    background: #3a4562;
-  }
-
-  .message-thread[data-thread-origin="application"].expanded .message-thread-header {
-    background: #2f3a4f;
-    border-left: 3px solid rgba(66, 153, 225, 0.4);
-  }
-}
 
 /* Message Input Styles - Now at TOP of thread */
 .message-input-container {
@@ -2427,34 +2298,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   transform: translateY(0);
 }
 
-/* Mobile Message Input */
-@media (max-width: 600px) {
-  .message-input-container {
-    padding: clamp(10px, 3vw, 12px); /* Responsive mobile padding */
-    gap: clamp(6px, 2vw, 8px); /* Responsive mobile gap */
-  }
 
-  .message-input {
-    padding: clamp(5px, 1.5vw, 6px) clamp(12px, 3.5vw, 14px); /* Responsive mobile padding */
-    font-size: clamp(0.8rem, 2.1vw, 0.85rem); /* Responsive mobile font size */
-    height: clamp(16px, 4.5vw, 18px); /* Responsive mobile height */
-  }
-  
-  /* Mobile focus styling - SIMPLE APPROACH */
-  .message-input:focus,
-  .message-input.expanded {
-    height: clamp(35px, 10vw, 40px) !important; /* Responsive mobile expanded height */
-    padding: clamp(8px, 2.5vw, 10px) clamp(12px, 3.5vw, 14px) !important; /* Responsive mobile expanded padding */
-    border-radius: clamp(12px, 3.5vw, 14px) !important; /* Responsive mobile expanded border radius */
-    background-color: #1a202c !important;
-    border-color: #f0d0aa !important;
-  }
-
-  .message-send-btn {
-    padding: clamp(8px, 2.5vw, 10px) clamp(14px, 4vw, 16px); /* Responsive mobile padding */
-    font-size: clamp(0.75rem, 2vw, 0.8rem); /* Responsive mobile font size */
-  }
-}
 
 /* Custom Confirmation Dialog Styles */
 .custom-confirmation-overlay {
