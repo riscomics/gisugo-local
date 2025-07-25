@@ -1831,20 +1831,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* 338px ONLY */  
-@media (min-width: 321px) and (max-width: 338px) {
-  .message-scroll-container {
-    height: 70px !important; /* REDUCED by 50px from 120px - window was still too tall */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 0px !important;
-  }
-  
-  .messages-container .message-thread .message-bubble {
-    font-size: 11px !important;
-  }
-}
+
 
 /* Ultra Small Screens (320px and below) - Match new-post.css exactly */
 @media (max-width: 320px) {
@@ -2778,3 +2765,18 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Duplicate rule removed - using the earlier 360px media query instead */
 
 /* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
+
+/* 338px FINAL OVERRIDE - Must be at end of file for cascade priority */  
+@media (min-width: 321px) and (max-width: 338px) {
+  .message-scroll-container {
+    height: 70px !important; /* FINAL override of max-width: 400px rule (300px) */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 0px !important;
+  }
+  
+  .messages-container .message-thread .message-bubble {
+    font-size: 11px !important;
+  }
+}
