@@ -243,33 +243,50 @@ body:has(.messages-header) {
 /* 360px specific - needs to override 338px and 320px contamination */
 @media (min-width: 339px) and (max-width: 360px) {
   .message-scroll-container {
-    height: 225px; /* Reduced by 20px as requested to prevent 338px contamination */
+    height: 200px; /* Further reduced height for 360px */
   }
   
-  .message-bubble {
-    font-size: clamp(11px, 3vw, 13px) !important; /* Reduced by 3px equivalent total */
+  .message-thread.expanded {
+    margin-top: 2px !important; /* Reduced top margin space between tabs and open thread header */
+  }
+  
+  .message-bubble p, .message-bubble {
+    font-size: 12px !important; /* Reduced message bubble text font size */
   }
 }
 
 /* 338px specific - isolated range */
 @media (min-width: 321px) and (max-width: 338px) {
   .message-scroll-container {
-    height: 220px; /* Perfect height for 338px only */
+    height: 190px; /* Reduced height for 338px */
   }
   
-  .message-bubble {
-    font-size: clamp(10px, 2.8vw, 12px) !important; /* Reduced by 4px equivalent total */
+  .message-thread.expanded {
+    margin-top: 1px !important; /* Reduced top margin space between tabs and open thread header */
+  }
+  
+  .message-bubble p, .message-bubble {
+    font-size: 11px !important; /* Reduced message bubble text font size */
   }
 }
 
 /* 320px specific - isolated */
 @media (max-width: 320px) {
   .message-scroll-container {
-    height: 200px; /* Further reduced for 320px */
+    height: 180px; /* Much more reduced height for 320px */
   }
   
-  .message-bubble {
-    font-size: clamp(10px, 2.8vw, 12px) !important; /* Same as 338px */
+  .message-thread.expanded {
+    margin-top: 0px !important; /* Minimal top margin space */
+  }
+  
+  .message-thread-header h3, .message-thread-header .thread-title {
+    font-size: 14px !important; /* Reduced header title font size to prevent 3 lines */
+    line-height: 1.2 !important;
+  }
+  
+  .message-bubble p, .message-bubble {
+    font-size: 10px !important; /* Smallest message bubble text font size */
   }
 }
 
