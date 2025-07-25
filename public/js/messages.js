@@ -5396,14 +5396,28 @@ function showAvatarOverlay(event, userData) {
         </div>
     `;
     
-    // Add to page
+    // Create backdrop for subtle shadow and click-to-close functionality
+    const backdrop = document.createElement('div');
+    backdrop.className = 'avatar-overlay-backdrop';
+    backdrop.id = 'avatarOverlayBackdrop';
+    
+    // Add backdrop click handler to close modal
+    backdrop.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideAvatarOverlay();
+    });
+    
+    // Add backdrop and overlay to page
+    document.body.appendChild(backdrop);
     document.body.appendChild(overlay);
     
     // Position overlay near the clicked avatar
     positionAvatarOverlay(overlay, event);
     
-    // Show overlay with animation - MEMORY LEAK FIX: Use tracked timeout
+    // Show backdrop and overlay with animation - MEMORY LEAK FIX: Use tracked timeout
     trackTimeout(() => {
+        backdrop.classList.add('show');
         overlay.classList.add('show');
     }, 10);
     
@@ -5719,6 +5733,8 @@ function initializeAvatarOverlayActions(overlay, userData) {
 
 function hideAvatarOverlay() {
     const existingOverlay = document.getElementById('avatarOverlay');
+    const existingBackdrop = document.getElementById('avatarOverlayBackdrop');
+    
     if (existingOverlay) {
         // MEMORY LEAK FIX: Cleanup action button listeners before removing overlay
         if (existingOverlay._abortController) {
@@ -5733,6 +5749,16 @@ function hideAvatarOverlay() {
         trackTimeout(() => {
             if (existingOverlay.parentNode) {
                 existingOverlay.parentNode.removeChild(existingOverlay);
+            }
+        }, 200);
+    }
+    
+    if (existingBackdrop) {
+        existingBackdrop.classList.remove('show');
+        // MEMORY LEAK FIX: Use tracked timeout
+        trackTimeout(() => {
+            if (existingBackdrop.parentNode) {
+                existingBackdrop.parentNode.removeChild(existingBackdrop);
             }
         }, 200);
     }
