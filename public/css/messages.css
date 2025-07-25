@@ -247,13 +247,13 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
-/* Independent Tab Content Wrappers - FIXED CALCULATIONS */
+/* Independent Tab Content Wrappers - REVERTED to original responsive calculations */
 .tab-content-wrapper {
   position: fixed;
-  top: 170px; /* Simple reliable calculation: ~110px header + ~6px border + ~54px tabs */
+  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px) + clamp(40px, 10vh, 52px)); /* Header + borderline + responsive spacing + tabs height */
   left: 0;
   width: 100%;
-  height: calc(100vh - 170px); /* Simple reliable height that fits within viewport */
+  height: calc(100vh - (clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px) + clamp(40px, 10vh, 52px))); /* Responsive height calculation */
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1493,12 +1493,6 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: clamp(0.85rem, 2.2vw, 0.95rem);
   }
 
-  /* MAIN CONTAINER FIX - Use same reliable calculation as desktop */
-  .tab-content-wrapper {
-    top: 120px !important; /* Mobile: ~70px header + ~4px border + ~46px tabs */
-    height: calc(100vh - 120px) !important; /* Reliable mobile height */
-  }
-
   /* Message Thread Fonts - Enhanced for mobile readability */
   .messages-container .message-thread .thread-job-title {
     font-size: 1.2rem !important;
@@ -1536,10 +1530,6 @@ body:has(.selection-controls[style*="display: flex"]) {
   .messages-content {
     margin-top: 25px;
     min-height: calc(100vh - 35px);
-  }
-
-  .messages-container {
-    padding: 15px 0 0 0;
   }
 
   .applications-container {
@@ -1779,14 +1769,6 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 }
 
-/* Specific fix for 384px range - container was too tall, cutting off 5th header */
-@media (max-width: 400px) and (min-width: 361px) {
-  .tab-content-wrapper {
-    top: 115px !important; /* Reduced for 384px range */
-    height: calc(100vh - 115px) !important; /* More space for content */
-  }
-}
-
 /* Ultra Small Screens (360px and below) - Match new-post.css exactly */
 @media (max-width: 360px) {
   .messages-header-title-container {
@@ -1826,18 +1808,15 @@ body:has(.selection-controls[style*="display: flex"]) {
     min-width: clamp(12px, 3vw, 14px); /* Smaller min width */
   }
   
-  .tab-content-wrapper {
-    top: 110px !important; /* Ultra-small: ~62px header + ~4px border + ~44px tabs */
-    height: calc(100vh - 110px) !important; /* Reliable ultra-small height */
   }
-  
-}
 
 
 
-/* Messages Tab Styles */
+/* Messages Tab Styles - Fixed to match working notifications structure */
 .messages-container {
-  padding: 20px 0 0 0;
+  padding: 20px 0 60px 0; /* Added proper bottom padding like notifications */
+  overflow-y: auto; /* Added explicit overflow handling like notifications */
+  -webkit-overflow-scrolling: touch; /* Added smooth scrolling like notifications */
 }
 
 /* Message Thread Styles */
