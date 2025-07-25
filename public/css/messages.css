@@ -240,55 +240,7 @@ body:has(.messages-header) {
   }
 }
 
-/* 360px specific - needs to override 338px and 320px contamination */
-@media (min-width: 339px) and (max-width: 360px) {
-  .message-scroll-container {
-    height: 200px; /* Further reduced height for 360px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 2px !important; /* Reduced top margin space between tabs and open thread header */
-  }
-  
-  .message-bubble p, .message-bubble {
-    font-size: 12px !important; /* Reduced message bubble text font size */
-  }
-}
 
-/* 338px specific - isolated range */
-@media (min-width: 321px) and (max-width: 338px) {
-  .message-scroll-container {
-    height: 190px; /* Reduced height for 338px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 1px !important; /* Reduced top margin space between tabs and open thread header */
-  }
-  
-  .message-bubble p, .message-bubble {
-    font-size: 11px !important; /* Reduced message bubble text font size */
-  }
-}
-
-/* 320px specific - isolated */
-@media (max-width: 320px) {
-  .message-scroll-container {
-    height: 180px; /* Much more reduced height for 320px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 0px !important; /* Minimal top margin space */
-  }
-  
-  .message-thread-header h3, .message-thread-header .thread-title {
-    font-size: 14px !important; /* Reduced header title font size to prevent 3 lines */
-    line-height: 1.2 !important;
-  }
-  
-  .message-bubble p, .message-bubble {
-    font-size: 10px !important; /* Smallest message bubble text font size */
-  }
-}
 
 /* Tab Navigation Styles */
 .messages-tabs {
@@ -2748,3 +2700,73 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Duplicate rule removed - using the earlier 360px media query instead */
 
 /* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
+
+/* ===== VIEWPORT-SPECIFIC OVERRIDES - PLACED AT END TO ENSURE THEY APPLY ===== */
+
+/* Add margin between expanded header and tabs for larger mobile */
+.message-thread.expanded {
+  margin-top: 10px !important; /* 10px margin top space between open header and tabs for 411px-401px */
+}
+
+/* Mobile specific - smaller container for smaller screens */
+@media (max-width: 400px) {
+  .message-scroll-container {
+    height: 300px !important; /* Increased from 250px to 300px for 400px-361px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 5px !important; /* 5px margin top space between open header and tabs for 400px-361px */
+  }
+}
+
+/* 360px specific - needs to override 338px and 320px contamination */
+@media (min-width: 339px) and (max-width: 360px) {
+  .message-scroll-container {
+    height: 200px !important; /* Further reduced height for 360px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 2px !important; /* Reduced top margin space between tabs and open thread header */
+  }
+  
+  .message-bubble {
+    font-size: 12px !important; /* Reduced message bubble text font size */
+  }
+}
+
+/* 338px specific - isolated range */
+@media (min-width: 321px) and (max-width: 338px) {
+  .message-scroll-container {
+    height: 190px !important; /* Reduced height for 338px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 1px !important; /* Reduced top margin space between tabs and open thread header */
+  }
+  
+  .message-bubble {
+    font-size: 11px !important; /* Reduced message bubble text font size */
+  }
+}
+
+/* 320px specific - isolated */
+@media (max-width: 320px) {
+  .message-scroll-container {
+    height: 180px !important; /* Much more reduced height for 320px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 0px !important; /* Minimal top margin space */
+  }
+  
+  .message-thread-header h3, 
+  .message-thread-header .thread-title,
+  .thread-job-title {
+    font-size: 14px !important; /* Reduced header title font size to prevent 3 lines */
+    line-height: 1.2 !important;
+  }
+  
+  .message-bubble {
+    font-size: 10px !important; /* Smallest message bubble text font size */
+  }
+}
