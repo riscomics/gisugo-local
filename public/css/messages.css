@@ -207,7 +207,7 @@ body:has(.messages-header) {
 /* Tab Navigation Styles */
 .messages-tabs {
   position: fixed;
-  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px)); /* Header + borderline + responsive spacing (no gap on mobile) */
+  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px)); /* Header + borderline (removed excessive spacing) */
   left: 0;
   width: 100%;
   background: #2d3748;
@@ -247,13 +247,13 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
-/* Independent Tab Content Wrappers - REVERTED to original responsive calculations */
+/* Independent Tab Content Wrappers - FIXED to remove excessive spacing */
 .tab-content-wrapper {
   position: fixed;
-  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px) + clamp(40px, 10vh, 52px)); /* Header + borderline + responsive spacing + tabs height */
+  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(40px, 10vh, 52px)); /* Header + borderline + tabs height (removed excessive spacing) */
   left: 0;
   width: 100%;
-  height: calc(100vh - (clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px) + clamp(40px, 10vh, 52px))); /* Responsive height calculation */
+  height: calc(100vh - (clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(40px, 10vh, 52px))); /* Fixed height calculation */
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1480,7 +1480,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Tabs */
   .messages-tabs {
-    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px) + clamp(1px, 0.2vh, 2px));
+    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px)); /* Removed minimal spacing for consistency */
   }
 
   .tab-btn {
