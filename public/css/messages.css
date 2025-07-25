@@ -1816,10 +1816,10 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 }
 
-/* 360px to 339px ONLY */
+/* 360px ONLY */
 @media (min-width: 339px) and (max-width: 360px) {
   .message-scroll-container {
-    height: 200px !important;
+    height: 220px !important; /* Increased - was too short */
   }
   
   .message-thread.expanded {
@@ -1827,14 +1827,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .messages-container .message-thread .message-bubble {
-    font-size: 14px !important; /* Increased from 12px to 14px as requested */
+    font-size: 15px !important; /* Increased font size as requested */
   }
 }
 
-/* 338px to 321px ONLY */
+/* 338px ONLY */  
 @media (min-width: 321px) and (max-width: 338px) {
   .message-scroll-container {
-    height: 190px !important;
+    height: 170px !important; /* Reduced - was too tall */
   }
   
   .message-thread.expanded {
@@ -1889,7 +1889,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Ultra Specific Small Screens (320px and below) */
 @media (max-width: 320px) {
   .message-scroll-container {
-    height: 160px !important; /* Much smaller height for 320px */
+    height: 180px !important; /* Increased - was too short */
   }
   
   .message-thread.expanded {
@@ -2719,15 +2719,16 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* 384px to 339px ONLY - Smaller Mobile Screens */
-@media (min-width: 339px) and (max-width: 384px) {
+/* 384px ONLY */
+@media (min-width: 361px) and (max-width: 384px) {
   .message-scroll-container {
-    height: 260px !important; /* Increased by 10px as requested */
+    height: 280px !important; /* Increased - was too short */
   }
   
   .message-thread.expanded {
     margin-top: 3px !important;
   }
+}
   
   /* Smaller mobile header adjustments for positioning calculations */
   .messages-header-title-container {
