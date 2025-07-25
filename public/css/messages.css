@@ -1990,9 +1990,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   transform: translateX(-50%) scale(1.1); /* Slight scale on hover */
 }
 
-/* Hide X button in expanded headers to save space for title */
-.message-thread.expanded .expand-icon {
-  display: none; /* Remove X button - close via overlay instead */
+/* COMPLETELY remove X button container from expanded headers */
+.message-thread.expanded .thread-status {
+  display: none !important; /* Remove entire status container - no layout space taken */
 }
 
 /* Enhanced styling for expanded thread header */
@@ -2040,7 +2040,25 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 .thread-info {
   flex: 1;
-  width: 100%; /* Can now span full width since thread-status is absolute */
+  width: 100%; /* Can now span full width */
+  /* Removed padding-right - no floating elements in expanded state */
+}
+
+/* Only apply absolute positioning and padding to CLOSED threads */
+.message-thread:not(.expanded) .thread-status {
+  position: absolute; /* Remove from layout flow */
+  top: 50%; /* Center vertically */
+  right: clamp(12px, 3vw, 16px); /* Position from right edge */
+  transform: translateY(-50%); /* Perfect vertical centering */
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 2vw, 8px); /* Slightly tighter gap */
+  z-index: 10; /* Float above title content */
+  pointer-events: auto; /* Keep clickable */
+}
+
+/* For closed threads, add padding to reserve space for floating status */
+.message-thread:not(.expanded) .thread-info {
   padding-right: clamp(60px, 15vw, 80px); /* Reserve space for floating elements */
 }
 
@@ -2064,21 +2082,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   display: none;
 }
 
-
-
-
-
-.thread-status {
-  position: absolute; /* Remove from layout flow */
-  top: 50%; /* Center vertically */
-  right: clamp(12px, 3vw, 16px); /* Position from right edge */
-  transform: translateY(-50%); /* Perfect vertical centering */
-  display: flex;
-  align-items: center;
-  gap: clamp(6px, 2vw, 8px); /* Slightly tighter gap */
-  z-index: 10; /* Float above title content */
-  pointer-events: auto; /* Keep clickable */
-}
+/* Removed duplicate thread-status rule - using message-thread:not(.expanded) rule above */
 
 .thread-new-tag {
   background: #e53e3e;
@@ -2483,7 +2487,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Message Avatar Overlay Styles */
 .avatar-overlay {
   position: fixed !important;
-  top: 240px !important; /* Position just below expanded thread header (185px + 50px header + 5px gap) */
+  top: 220px !important; /* Moved up to accommodate larger height */
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
@@ -2495,6 +2499,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   z-index: 2200;
   min-width: 320px; /* SIGNIFICANTLY increased from 200px */
   max-width: 450px; /* Added max-width for larger screens */
+  min-height: 420px; /* ADDED - force minimum HEIGHT */
+  max-height: 600px; /* ADDED - maximum height for larger screens */
   opacity: 0;
   transition: all 0.2s ease-out;
   pointer-events: none;
@@ -2508,7 +2514,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .avatar-overlay-header {
-  padding: 15px 20px;
+  padding: 20px 24px; /* INCREASED from 15px 20px - make header taller */
   border-bottom: 1px solid #4a5568;
   text-align: center;
 }
@@ -2528,17 +2534,17 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .avatar-overlay-actions {
-  padding: 10px;
+  padding: 16px; /* INCREASED from 10px - more internal spacing */
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px; /* INCREASED from 8px - more space between buttons */
 }
 
 .avatar-action-btn {
-  padding: 12px 16px;
+  padding: 16px 20px; /* INCREASED from 12px 16px - make buttons taller */
   border: 2px solid transparent;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 1rem; /* INCREASED from 0.9rem */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2547,8 +2553,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px; /* INCREASED from 8px */
   text-decoration: none;
+  min-height: 48px; /* ADDED - ensure minimum button height */
 }
 
 .avatar-action-btn.profile {
@@ -2648,6 +2655,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   .avatar-overlay {
     min-width: 260px; /* SIGNIFICANTLY increased from 180px */
     max-width: 380px; /* SIGNIFICANTLY increased from 280px */
+    min-height: 380px; /* ADDED - mobile minimum HEIGHT */
+    max-height: 520px; /* ADDED - mobile maximum height */
+    top: 200px !important; /* Higher position for mobile */
   }
 
   .avatar-overlay-header {
@@ -2679,6 +2689,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   .avatar-overlay {
     min-width: 380px; /* Even larger for tablet/laptop */
     max-width: 520px;
+    min-height: 480px; /* ADDED - larger minimum HEIGHT */
+    max-height: 660px; /* ADDED - larger maximum height */
   }
   
   .avatar-overlay-header {
@@ -2701,6 +2713,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   .avatar-overlay {
     min-width: 420px; /* Maximum size for desktop */
     max-width: 580px;
+    min-height: 520px; /* ADDED - maximum minimum HEIGHT */
+    max-height: 720px; /* ADDED - maximum height for desktop */
   }
   
   .avatar-overlay-header {
