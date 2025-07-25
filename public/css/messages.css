@@ -236,6 +236,14 @@ body:has(.messages-header) {
   }
 }
 
+/* Large mobile screens (401px-600px) - Scale modal larger */
+@media (min-width: 401px) and (max-width: 600px) {
+  .avatar-overlay {
+    min-width: 220px; /* Larger for 401-600px range */
+    max-width: 360px;
+  }
+}
+
 
 
 /* Tab Navigation Styles */
@@ -1880,7 +1888,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .messages-container .message-thread .message-bubble {
-    font-size: 13px !important; /* Increased from 10px to 13px as requested */
+    font-size: 15px !important; /* Increased by 2px from 13px - better readability */
+  }
+  
+  /* Reduce spacing between tabs and closed threads for 320px */
+  .messages-container {
+    padding-top: 10px !important; /* Reduced from 20px - tighter spacing */
   }
 }
 
@@ -1957,13 +1970,13 @@ body:has(.selection-controls[style*="display: flex"]) {
   bottom: clamp(3px, 1vw, 4px); /* Responsive bottom positioning */
   left: 50%;
   transform: translateX(-50%);
-  width: clamp(12px, 3.5vw, 14px); /* Responsive width */
-  height: clamp(6px, 2vw, 8px); /* Responsive height */
+  width: clamp(18px, 5vw, 22px); /* Increased size - more obvious */
+  height: clamp(10px, 3vw, 12px); /* Increased size - more obvious */
   background-image: 
     linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px),
     linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px),
     linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px);
-  background-size: clamp(12px, 3.5vw, 14px) clamp(1px, 0.4vw, 1.5px); /* Responsive background size */
+  background-size: clamp(18px, 5vw, 22px) clamp(1.5px, 0.6vw, 2px); /* Increased background size to match */
   background-position: 0 0, 0 clamp(2px, 0.8vw, 3px), 0 clamp(5px, 1.5vw, 6px);
   background-repeat: no-repeat;
   border-radius: 1px;
@@ -2679,6 +2692,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   .message-thread.expanded {
     margin-top: 5px !important;
   }
+  
+  /* Scale modal incrementally */
+  .avatar-overlay {
+    min-width: 200px; /* Medium size for 385-400px */
+    max-width: 320px;
+  }
 }
 
 /* 384px ONLY */
@@ -2696,8 +2715,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   /* Smaller mobile avatar overlay positioning */
   .avatar-overlay {
     top: 160px !important; /* Moved higher - was 188px */
-    min-width: 160px;
-    max-width: 240px;
+    min-width: 180px; /* Increased from 160px */
+    max-width: 280px; /* Increased from 240px */
   }
 
   .avatar-overlay-header {
@@ -2750,5 +2769,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   
   .messages-container .message-thread .message-bubble {
     font-size: 11px !important;
+  }
+  
+  /* Scale modal for smallest screens */
+  .avatar-overlay {
+    min-width: 160px; /* Smallest size for 338px */
+    max-width: 260px;
   }
 }
