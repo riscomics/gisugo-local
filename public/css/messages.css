@@ -226,7 +226,7 @@ body:has(.messages-header) {
 
 /* Add margin between expanded header and tabs for larger mobile */
 .message-thread.expanded {
-  margin-top: 10px; /* 10px margin top space between open header and tabs for 411px-401px */
+  margin-top: 10px !important; /* 10px margin top space between open header and tabs for 411px-401px */
 }
 
 /* Mobile specific - smaller container for smaller screens */
@@ -236,33 +236,40 @@ body:has(.messages-header) {
   }
   
   .message-thread.expanded {
-    margin-top: 5px; /* 5px margin top space between open header and tabs for 400px-361px */
+    margin-top: 5px !important; /* 5px margin top space between open header and tabs for 400px-361px */
   }
 }
 
-@media (max-width: 360px) {
+/* 360px specific - needs to override 338px and 320px contamination */
+@media (min-width: 339px) and (max-width: 360px) {
   .message-scroll-container {
-    height: 245px; /* Increased from 220px to 245px for 360px */
+    height: 225px; /* Reduced by 20px as requested to prevent 338px contamination */
   }
   
   .message-bubble {
-    font-size: clamp(12px, 3.2vw, 14px) !important; /* Reduced by 2px equivalent for 360px and below */
+    font-size: clamp(11px, 3vw, 13px) !important; /* Reduced by 3px equivalent total */
   }
 }
 
-@media (max-width: 338px) {
+/* 338px specific - isolated range */
+@media (min-width: 321px) and (max-width: 338px) {
   .message-scroll-container {
-    height: 220px; /* Perfect height for 338px */
+    height: 220px; /* Perfect height for 338px only */
   }
   
   .message-bubble {
-    font-size: clamp(11px, 3vw, 13px) !important; /* Reduced by 2px equivalent for 338px and below */
+    font-size: clamp(10px, 2.8vw, 12px) !important; /* Reduced by 4px equivalent total */
   }
 }
 
+/* 320px specific - isolated */
 @media (max-width: 320px) {
   .message-scroll-container {
-    height: 210px; /* Reduced by 10px for 320px */
+    height: 200px; /* Further reduced for 320px */
+  }
+  
+  .message-bubble {
+    font-size: clamp(10px, 2.8vw, 12px) !important; /* Same as 338px */
   }
 }
 
