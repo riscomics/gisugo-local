@@ -207,7 +207,7 @@ body:has(.messages-header) {
 /* Tab Navigation Styles */
 .messages-tabs {
   position: fixed;
-  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px)); /* Header + borderline (removed excessive spacing) */
+  top: 74px; /* Simple fixed value: header(70px) + borderline(4px) */
   left: 0;
   width: 100%;
   background: #2d3748;
@@ -247,13 +247,13 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
-/* Independent Tab Content Wrappers - FIXED to remove excessive spacing */
+/* Independent Tab Content Wrappers - SIMPLIFIED with fixed positioning */
 .tab-content-wrapper {
   position: fixed;
-  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(40px, 10vh, 52px)); /* Header + borderline + tabs height (removed excessive spacing) */
+  top: 120px; /* Simple fixed value: header(70px) + borderline(4px) + tabs(46px) */
   left: 0;
   width: 100%;
-  height: calc(100vh - (clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(40px, 10vh, 52px))); /* Fixed height calculation */
+  height: calc(100vh - 120px); /* Simple fixed calculation */
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
