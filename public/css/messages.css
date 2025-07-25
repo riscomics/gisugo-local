@@ -1819,70 +1819,60 @@ body:has(.selection-controls[style*="display: flex"]) {
     height: calc(100vh - (62px + clamp(3px, 1vh, 4px) + clamp(35px, 7vh, 40px))); /* Responsive height */
   }
   
-  /* Ultra-small EXPANDED THREAD scroll container fix for cut-off issue */
-  .message-thread.expanded .message-scroll-container {
-    max-height: clamp(180px, 65vh, 280px); /* More generous height for 338px-320px viewports */
-    padding-bottom: clamp(25px, 7vw, 30px); /* Increased bottom padding for last message visibility */
-  }
-  
-
 }
 
-/* Viewport-specific adjustments for expanded thread scroll areas and header padding */
+/* Consolidated viewport-specific fixes - Clean implementation without conflicts */
 
-/* 411px viewport: Increase max height + reduce top padding */
+/* 411px-385px: Increase max height + reduce top padding */
 @media (max-width: 411px) and (min-width: 385px) {
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(440px, 52vh, 500px) !important; /* Increased by ~10px equivalent */
+    max-height: 450px !important; /* Fixed height: increased by 10px equivalent */
+    padding-bottom: 15px !important; /* Bottom padding for last message visibility */
   }
   
   .message-thread.expanded .message-thread-header {
-    padding-top: clamp(8px, 2vw, 10px) !important; /* Reduced top padding above title */
+    padding-top: 8px !important; /* Reduced top padding above title */
   }
 }
 
-/* 384px viewport: Perfect height, just reduce top padding */
+/* 384px-361px: Perfect height, just reduce top padding */
 @media (max-width: 384px) and (min-width: 361px) {
-  .message-thread.expanded .message-thread-header {
-    padding-top: clamp(8px, 2vw, 10px) !important; /* Reduced top padding above title */
-  }
-}
-
-/* 360px viewport: Decrease max height + reduce top padding */
-@media (max-width: 360px) and (min-width: 339px) {
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(380px, 48vh, 420px) !important; /* Decreased by ~10px equivalent */
+    max-height: 420px !important; /* Fixed height: good baseline */
+    padding-bottom: 15px !important; /* Bottom padding for last message visibility */
   }
   
   .message-thread.expanded .message-thread-header {
-    padding-top: clamp(6px, 1.5vw, 8px) !important; /* Further reduced top padding */
+    padding-top: 8px !important; /* Reduced top padding above title */
   }
 }
 
-/* 338px viewport: Decrease max height more + reduce top padding */
-@media (max-width: 338px) and (min-width: 321px) {
+/* 360px-321px: Smaller height + reduce top padding */
+@media (max-width: 360px) and (min-width: 321px) {
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(340px, 45vh, 380px) !important; /* Decreased by ~20px equivalent */
+    max-height: 350px !important; /* Fixed height: smaller for tight viewports */
+    padding-bottom: 18px !important; /* Bottom padding for last message visibility */
   }
   
   .message-thread.expanded .message-thread-header {
-    padding-top: clamp(6px, 1.5vw, 8px) !important; /* Further reduced top padding */
+    padding-top: 6px !important; /* Further reduced top padding */
   }
 }
 
-/* 320px viewport: Increase max height + compress header + reduce all paddings */
+/* 320px and below: Very controlled height + compressed header */
 @media (max-width: 320px) {
   .message-thread.expanded .message-scroll-container {
-    max-height: clamp(360px, 47vh, 400px) !important; /* Increased by ~5px equivalent */
+    max-height: 280px !important; /* Fixed height: smallest to prevent overflow */
+    padding-bottom: 20px !important; /* Extra bottom padding for last message visibility */
   }
   
   .message-thread.expanded .message-thread-header {
-    padding: clamp(4px, 1vw, 6px) clamp(12px, 3vw, 16px) !important; /* Significantly reduced top/bottom padding */
-    min-height: clamp(45px, 12vw, 55px) !important; /* Reduced header height */
+    padding: 4px 16px !important; /* Significantly reduced all padding */
+    min-height: 45px !important; /* Reduced header height */
   }
   
   .message-thread.expanded .thread-job-title {
-    font-size: clamp(0.95rem, 2.5vw, 1.1rem) !important; /* Reduced font size to prevent 3 lines */
+    font-size: 1rem !important; /* Reduced font size to prevent 3 lines */
     line-height: 1.3 !important; /* Tighter line height */
   }
 }
