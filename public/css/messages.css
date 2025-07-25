@@ -390,14 +390,14 @@ body:has(.messages-header) {
 }
 
 .expand-icon {
-  font-size: 1.2rem;
+  font-size: 1rem; /* Smaller to save space */
   color: #f0d0aa;
   transition: transform 0.3s ease;
-  width: 20px;
+  width: 16px; /* Reduced width */
   text-align: center;
   background: rgba(45, 55, 72, 0.8); /* Subtle background for floating visibility */
   border-radius: 50%; /* Circular background */
-  padding: clamp(2px, 1vw, 4px); /* Small padding around icon */
+  padding: clamp(1px, 0.8vw, 3px); /* Smaller padding */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
   cursor: pointer;
 }
@@ -2038,28 +2038,25 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: #1a202c;
 }
 
+/* Removed duplicate - using unified rule above */
+
+/* FORCE absolute positioning for ALL thread-status (closed threads only) */
+.thread-status {
+  position: absolute !important; /* Force absolute positioning */
+  top: 50% !important; /* Center vertically */
+  right: clamp(8px, 2vw, 12px) !important; /* Position from right edge - closer to edge */
+  transform: translateY(-50%) !important; /* Perfect vertical centering */
+  display: flex !important;
+  align-items: center !important;
+  gap: clamp(4px, 1.5vw, 6px) !important; /* Tighter gap to use less space */
+  z-index: 15 !important; /* Higher z-index to float above */
+  pointer-events: auto !important; /* Keep clickable */
+}
+
+/* Make thread-info span full width in closed threads */
 .thread-info {
-  flex: 1;
-  width: 100%; /* Can now span full width */
-  /* Removed padding-right - no floating elements in expanded state */
-}
-
-/* Only apply absolute positioning and padding to CLOSED threads */
-.message-thread:not(.expanded) .thread-status {
-  position: absolute; /* Remove from layout flow */
-  top: 50%; /* Center vertically */
-  right: clamp(12px, 3vw, 16px); /* Position from right edge */
-  transform: translateY(-50%); /* Perfect vertical centering */
-  display: flex;
-  align-items: center;
-  gap: clamp(6px, 2vw, 8px); /* Slightly tighter gap */
-  z-index: 10; /* Float above title content */
-  pointer-events: auto; /* Keep clickable */
-}
-
-/* For closed threads, add padding to reserve space for floating status */
-.message-thread:not(.expanded) .thread-info {
-  padding-right: clamp(60px, 15vw, 80px); /* Reserve space for floating elements */
+  width: 100% !important; /* Full width - no padding needed since status is floating */
+  position: relative !important; /* Ensure it's positioned context for absolute children */
 }
 
 .thread-job-title {
@@ -2087,12 +2084,12 @@ body:has(.selection-controls[style*="display: flex"]) {
 .thread-new-tag {
   background: #e53e3e;
   color: #ffffff;
-  font-size: clamp(0.65rem, 1.8vw, 0.7rem); /* Responsive font size */
+  font-size: clamp(0.6rem, 1.6vw, 0.65rem); /* Slightly smaller to save space */
   font-weight: 700;
-  padding: clamp(2px, 0.8vw, 3px) clamp(6px, 2vw, 8px); /* Responsive padding */
-  border-radius: clamp(10px, 3vw, 12px); /* Responsive border radius */
+  padding: clamp(1px, 0.6vw, 2px) clamp(4px, 1.5vw, 6px); /* Tighter padding */
+  border-radius: clamp(8px, 2.5vw, 10px); /* Smaller radius */
   text-transform: uppercase;
-  letter-spacing: clamp(0.3px, 0.1vw, 0.5px); /* Responsive letter spacing */
+  letter-spacing: clamp(0.2px, 0.08vw, 0.4px); /* Tighter letter spacing */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Subtle shadow for floating visibility */
 }
 
@@ -2487,7 +2484,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Message Avatar Overlay Styles */
 .avatar-overlay {
   position: fixed !important;
-  top: 220px !important; /* Moved up to accommodate larger height */
+  top: 240px !important; /* Back to original position */
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
@@ -2497,10 +2494,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   z-index: 2200;
-  min-width: 320px; /* SIGNIFICANTLY increased from 200px */
-  max-width: 450px; /* Added max-width for larger screens */
-  min-height: 420px; /* ADDED - force minimum HEIGHT */
-  max-height: 600px; /* ADDED - maximum height for larger screens */
+  min-width: 200px; /* Back to original - only increase for specific range */
   opacity: 0;
   transition: all 0.2s ease-out;
   pointer-events: none;
@@ -2514,7 +2508,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .avatar-overlay-header {
-  padding: 20px 24px; /* INCREASED from 15px 20px - make header taller */
+  padding: 15px 20px; /* Back to original proportions */
   border-bottom: 1px solid #4a5568;
   text-align: center;
 }
@@ -2534,17 +2528,17 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .avatar-overlay-actions {
-  padding: 16px; /* INCREASED from 10px - more internal spacing */
+  padding: 10px; /* Back to original */
   display: flex;
   flex-direction: column;
-  gap: 12px; /* INCREASED from 8px - more space between buttons */
+  gap: 8px; /* Back to original */
 }
 
 .avatar-action-btn {
-  padding: 16px 20px; /* INCREASED from 12px 16px - make buttons taller */
+  padding: 12px 16px; /* Back to original proportions */
   border: 2px solid transparent;
   border-radius: 8px;
-  font-size: 1rem; /* INCREASED from 0.9rem */
+  font-size: 0.9rem; /* Back to original */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -2553,9 +2547,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px; /* INCREASED from 8px */
+  gap: 8px; /* Back to original */
   text-decoration: none;
-  min-height: 48px; /* ADDED - ensure minimum button height */
 }
 
 .avatar-action-btn.profile {
@@ -2650,14 +2643,19 @@ body:has(.selection-controls[style*="display: flex"]) {
   transform: translateY(0);
 }
 
-/* Mobile Avatar Overlay Styles */
-@media (max-width: 600px) {
+/* Only increase modal size for 338px-600px range as requested */
+@media (min-width: 338px) and (max-width: 600px) {
   .avatar-overlay {
-    min-width: 260px; /* SIGNIFICANTLY increased from 180px */
-    max-width: 380px; /* SIGNIFICANTLY increased from 280px */
-    min-height: 380px; /* ADDED - mobile minimum HEIGHT */
-    max-height: 520px; /* ADDED - mobile maximum height */
-    top: 200px !important; /* Higher position for mobile */
+    min-width: 280px; /* Increased for specific range only */
+    max-width: 420px; 
+  }
+}
+
+/* Mobile Avatar Overlay Styles for small screens */
+@media (max-width: 337px) {
+  .avatar-overlay {
+    min-width: 180px;
+    max-width: 280px;
   }
 
   .avatar-overlay-header {
@@ -2684,53 +2682,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Large screens (601px-1024px) - Make overlay much more prominent */
-@media (min-width: 601px) and (max-width: 1024px) {
-  .avatar-overlay {
-    min-width: 380px; /* Even larger for tablet/laptop */
-    max-width: 520px;
-    min-height: 480px; /* ADDED - larger minimum HEIGHT */
-    max-height: 660px; /* ADDED - larger maximum height */
-  }
-  
-  .avatar-overlay-header {
-    padding: 18px 24px; /* More generous padding */
-  }
-  
-  .avatar-overlay-name {
-    font-size: 1.3rem; /* Larger name */
-  }
-  
-  .avatar-action-btn {
-    padding: 14px 20px; /* Larger buttons */
-    font-size: 1rem;
-    gap: 10px;
-  }
-}
-
-/* Desktop screens (1025px+) - Maximum size for visibility */
-@media (min-width: 1025px) {
-  .avatar-overlay {
-    min-width: 420px; /* Maximum size for desktop */
-    max-width: 580px;
-    min-height: 520px; /* ADDED - maximum minimum HEIGHT */
-    max-height: 720px; /* ADDED - maximum height for desktop */
-  }
-  
-  .avatar-overlay-header {
-    padding: 20px 28px; /* Maximum padding */
-  }
-  
-  .avatar-overlay-name {
-    font-size: 1.4rem; /* Largest name size */
-  }
-  
-  .avatar-action-btn {
-    padding: 16px 24px; /* Largest buttons */
-    font-size: 1.1rem;
-    gap: 12px;
-  }
-}
+/* Removed excessive size increases for larger screens - user only wanted 338px-600px */
 
 /* Application Conversation Thread Styling - Subtle difference for user clarity */
 .message-thread[data-thread-origin="application"] .message-thread-header {
