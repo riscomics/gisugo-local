@@ -1454,13 +1454,13 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: #363f4f !important;
   }
   
-  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS */
+  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 411px to 401px only */
   .message-thread.expanded {
-    margin-top: 10px !important; /* 10px margin top space between open header and tabs for 411px-401px */
+    margin-top: 10px !important;
   }
   
   .message-scroll-container {
-    height: 400px !important; /* Increased height for 411px-401px */
+    height: 400px !important;
   }
   
   body::-webkit-scrollbar {
@@ -1816,19 +1816,33 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 }
 
-/* Ultra Small Screens (360px and below) - Match new-post.css exactly */
-@media (max-width: 360px) {
-  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 360px and below */
+/* 360px to 339px ONLY */
+@media (min-width: 339px) and (max-width: 360px) {
   .message-scroll-container {
-    height: 200px !important; /* Further reduced height for 360px */
+    height: 200px !important;
   }
   
   .message-thread.expanded {
-    margin-top: 2px !important; /* Reduced margin top space for 360px */
+    margin-top: 0px !important;
   }
   
-  .message-bubble {
-    font-size: 12px !important; /* Reduced message bubble text font size for 360px */
+  .messages-container .message-thread .message-bubble {
+    font-size: 12px !important; /* NOW it will actually override the mobile 18.4px */
+  }
+}
+
+/* Ultra Small Screens (338px and below) - Match new-post.css exactly */
+@media (max-width: 338px) {
+  .message-scroll-container {
+    height: 190px !important;
+  }
+  
+  .message-thread.expanded {
+    margin-top: 0px !important;
+  }
+  
+  .messages-container .message-thread .message-bubble {
+    font-size: 11px !important; /* NOW it will actually override the mobile 18.4px */
   }
   
   .messages-header-title-container {
@@ -1869,38 +1883,23 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Very Specific Small Screens (338px and below) */
-@media (max-width: 338px) {
-  .message-scroll-container {
-    height: 190px !important; /* Reduced height for 338px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 1px !important; /* Reduced margin top space for 338px */
-  }
-  
-  .message-bubble {
-    font-size: 11px !important; /* Reduced message bubble text font size for 338px */
-  }
-}
-
 /* Ultra Specific Small Screens (320px and below) */
 @media (max-width: 320px) {
   .message-scroll-container {
-    height: 180px !important; /* Much reduced height for 320px */
+    height: 160px !important; /* Much smaller height for 320px */
   }
   
   .message-thread.expanded {
-    margin-top: 0px !important; /* Minimal margin top space for 320px */
+    margin-top: 0px !important;
   }
   
   .thread-job-title {
-    font-size: 14px !important; /* Reduced header title font size to prevent 3 lines at 320px */
+    font-size: 14px !important;
     line-height: 1.2 !important;
   }
   
-  .message-bubble {
-    font-size: 10px !important; /* Smallest message bubble text font size for 320px */
+  .messages-container .message-thread .message-bubble {
+    font-size: 10px !important; /* NOW it will actually override the mobile 18.4px */
   }
 }
 
@@ -2706,15 +2705,25 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-left: 3px solid rgba(66, 153, 225, 0.2); /* Dimmed blue accent */
 }
 
-/* Smaller Mobile Screens (400px and below) */
-@media (max-width: 400px) {
-  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 400px-361px */
+/* 400px to 385px ONLY */
+@media (min-width: 385px) and (max-width: 400px) {
   .message-scroll-container {
-    height: 300px !important; /* Reduced height for 400px-361px */
+    height: 300px !important;
   }
   
   .message-thread.expanded {
-    margin-top: 5px !important; /* Reduced margin top space for 400px-361px */
+    margin-top: 5px !important;
+  }
+}
+
+/* 384px and below - Smaller Mobile Screens */
+@media (max-width: 384px) {
+  .message-scroll-container {
+    height: 250px !important;
+  }
+  
+  .message-thread.expanded {
+    margin-top: 3px !important;
   }
   
   /* Smaller mobile header adjustments for positioning calculations */
