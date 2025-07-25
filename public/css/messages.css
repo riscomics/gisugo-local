@@ -1454,6 +1454,15 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: #363f4f !important;
   }
   
+  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS */
+  .message-thread.expanded {
+    margin-top: 10px !important; /* 10px margin top space between open header and tabs for 411px-401px */
+  }
+  
+  .message-scroll-container {
+    height: 400px !important; /* Increased height for 411px-401px */
+  }
+  
   body::-webkit-scrollbar {
     display: none;
   }
@@ -1809,6 +1818,19 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Ultra Small Screens (360px and below) - Match new-post.css exactly */
 @media (max-width: 360px) {
+  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 360px and below */
+  .message-scroll-container {
+    height: 200px !important; /* Further reduced height for 360px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 2px !important; /* Reduced margin top space for 360px */
+  }
+  
+  .message-bubble {
+    font-size: 12px !important; /* Reduced message bubble text font size for 360px */
+  }
+  
   .messages-header-title-container {
     height: 62px; /* Match new-post: slightly reduced height for ultra-small screens */
     padding-right: 2px; /* Match new-post */
@@ -1845,8 +1867,42 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: clamp(1px, 0.2vh, 1px) clamp(2px, 0.8vw, 3px); /* Tighter padding */
     min-width: clamp(12px, 3vw, 14px); /* Smaller min width */
   }
-  
+}
+
+/* Very Specific Small Screens (338px and below) */
+@media (max-width: 338px) {
+  .message-scroll-container {
+    height: 190px !important; /* Reduced height for 338px */
   }
+  
+  .message-thread.expanded {
+    margin-top: 1px !important; /* Reduced margin top space for 338px */
+  }
+  
+  .message-bubble {
+    font-size: 11px !important; /* Reduced message bubble text font size for 338px */
+  }
+}
+
+/* Ultra Specific Small Screens (320px and below) */
+@media (max-width: 320px) {
+  .message-scroll-container {
+    height: 180px !important; /* Much reduced height for 320px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 0px !important; /* Minimal margin top space for 320px */
+  }
+  
+  .thread-job-title {
+    font-size: 14px !important; /* Reduced header title font size to prevent 3 lines at 320px */
+    line-height: 1.2 !important;
+  }
+  
+  .message-bubble {
+    font-size: 10px !important; /* Smallest message bubble text font size for 320px */
+  }
+}
 
 
 
@@ -2652,6 +2708,15 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Smaller Mobile Screens (400px and below) */
 @media (max-width: 400px) {
+  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 400px-361px */
+  .message-scroll-container {
+    height: 300px !important; /* Reduced height for 400px-361px */
+  }
+  
+  .message-thread.expanded {
+    margin-top: 5px !important; /* Reduced margin top space for 400px-361px */
+  }
+  
   /* Smaller mobile header adjustments for positioning calculations */
   .messages-header-title-container {
     height: 66px;
@@ -2701,72 +2766,3 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
 
-/* ===== VIEWPORT-SPECIFIC OVERRIDES - PLACED AT END TO ENSURE THEY APPLY ===== */
-
-/* Add margin between expanded header and tabs for larger mobile */
-.message-thread.expanded {
-  margin-top: 10px !important; /* 10px margin top space between open header and tabs for 411px-401px */
-}
-
-/* Mobile specific - smaller container for smaller screens */
-@media (max-width: 400px) {
-  .message-scroll-container {
-    height: 300px !important; /* Increased from 250px to 300px for 400px-361px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 5px !important; /* 5px margin top space between open header and tabs for 400px-361px */
-  }
-}
-
-/* 360px specific - needs to override 338px and 320px contamination */
-@media (min-width: 339px) and (max-width: 360px) {
-  .message-scroll-container {
-    height: 200px !important; /* Further reduced height for 360px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 2px !important; /* Reduced top margin space between tabs and open thread header */
-  }
-  
-  .message-bubble {
-    font-size: 12px !important; /* Reduced message bubble text font size */
-  }
-}
-
-/* 338px specific - isolated range */
-@media (min-width: 321px) and (max-width: 338px) {
-  .message-scroll-container {
-    height: 190px !important; /* Reduced height for 338px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 1px !important; /* Reduced top margin space between tabs and open thread header */
-  }
-  
-  .message-bubble {
-    font-size: 11px !important; /* Reduced message bubble text font size */
-  }
-}
-
-/* 320px specific - isolated */
-@media (max-width: 320px) {
-  .message-scroll-container {
-    height: 180px !important; /* Much more reduced height for 320px */
-  }
-  
-  .message-thread.expanded {
-    margin-top: 0px !important; /* Minimal top margin space */
-  }
-  
-  .message-thread-header h3, 
-  .message-thread-header .thread-title,
-  .thread-job-title {
-    font-size: 14px !important; /* Reduced header title font size to prevent 3 lines */
-    line-height: 1.2 !important;
-  }
-  
-  .message-bubble {
-    font-size: 10px !important; /* Smallest message bubble text font size */
-  }
-}
