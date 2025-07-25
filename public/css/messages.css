@@ -1834,7 +1834,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* 338px ONLY */  
 @media (min-width: 321px) and (max-width: 338px) {
   .message-scroll-container {
-    height: 170px !important; /* Reduced - was too tall */
+    height: 150px !important; /* Further reduced for 338px */
   }
   
   .message-thread.expanded {
