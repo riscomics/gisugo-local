@@ -1827,12 +1827,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .messages-container .message-thread .message-bubble {
-    font-size: 12px !important; /* NOW it will actually override the mobile 18.4px */
+    font-size: 14px !important; /* Increased from 12px to 14px as requested */
   }
 }
 
-/* Ultra Small Screens (338px and below) - Match new-post.css exactly */
-@media (max-width: 338px) {
+/* 338px to 321px ONLY */
+@media (min-width: 321px) and (max-width: 338px) {
   .message-scroll-container {
     height: 190px !important;
   }
@@ -1842,9 +1842,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .messages-container .message-thread .message-bubble {
-    font-size: 11px !important; /* NOW it will actually override the mobile 18.4px */
+    font-size: 11px !important;
   }
-  
+}
+
+/* Ultra Small Screens (320px and below) - Match new-post.css exactly */
+@media (max-width: 320px) {
   .messages-header-title-container {
     height: 62px; /* Match new-post: slightly reduced height for ultra-small screens */
     padding-right: 2px; /* Match new-post */
@@ -1894,12 +1897,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .thread-job-title {
-    font-size: 14px !important;
+    font-size: 12px !important; /* Reduced by 2px from 14px to prevent 3 lines */
     line-height: 1.2 !important;
   }
   
   .messages-container .message-thread .message-bubble {
-    font-size: 10px !important; /* NOW it will actually override the mobile 18.4px */
+    font-size: 13px !important; /* Increased from 10px to 13px as requested */
   }
 }
 
@@ -2716,10 +2719,10 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* 384px and below - Smaller Mobile Screens */
-@media (max-width: 384px) {
+/* 384px to 339px ONLY - Smaller Mobile Screens */
+@media (min-width: 339px) and (max-width: 384px) {
   .message-scroll-container {
-    height: 250px !important;
+    height: 260px !important; /* Increased by 10px as requested */
   }
   
   .message-thread.expanded {
