@@ -224,11 +224,16 @@ body:has(.messages-header) {
   }
 }
 
-/* Mobile specific - ensure scroll container fits available space */
+/* Mobile specific - smaller container for smaller screens */
 @media (max-width: 400px) {
   .message-scroll-container {
-    height: calc(100vh - var(--thread-top) - 120px); /* Smaller mobile: less space needed for header/input */
-    min-height: 150px; /* Smaller minimum for mobile */
+    height: 250px; /* Smaller fixed height for mobile */
+  }
+}
+
+@media (max-width: 360px) {
+  .message-scroll-container {
+    height: 220px; /* Even smaller for very small screens */
   }
 }
 
@@ -2046,8 +2051,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-scroll-container {
-  height: calc(100vh - var(--thread-top) - 140px); /* SIMPLE: viewport - thread top - space for header/input */
-  min-height: 200px; /* Minimum usable height */
+  height: 300px; /* FIXED HEIGHT - simple and predictable */
   overflow-y: auto;
   padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
   background: #354048;
