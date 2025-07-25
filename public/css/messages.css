@@ -1518,13 +1518,10 @@ body:has(.selection-controls[style*="display: flex"]) {
     top: 160px !important; /* Moved higher - was 188px */
   }
 
-  /* Message thread hamburger icon - only when expanded */
+  /* Message thread three dots icon - mobile version */
   .message-thread.expanded .message-thread-header::after {
-    bottom: 3px;
-    width: 12px;
-    height: 6px;
-    background-size: 12px 1px;
-    background-position: 0 0, 0 2.5px, 0 5px;
+    font-size: 16px; /* Slightly smaller for mobile */
+    bottom: 2px;
   }
 
   /* Tabs */
@@ -1821,7 +1818,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* 360px ONLY */
 @media (min-width: 339px) and (max-width: 360px) {
   .message-thread.expanded {
-    margin-top: 0px !important;
+    margin-top: 8px !important; /* Added space between tabs and expanded thread */
   }
   
   .thread-job-title {
@@ -1963,32 +1960,28 @@ body:has(.selection-controls[style*="display: flex"]) {
   position: relative;
 }
 
-/* Small hamburger icon at center bottom of message thread headers - only when expanded */
+/* Three dots menu icon - bright and visible */
 .message-thread.expanded .message-thread-header::after {
-  content: '';
+  content: '⋯';
   position: absolute;
-  bottom: clamp(3px, 1vw, 4px); /* Responsive bottom positioning */
+  bottom: clamp(2px, 1vw, 4px); /* Responsive bottom positioning */
   left: 50%;
   transform: translateX(-50%);
-  width: clamp(18px, 5vw, 22px); /* Increased size - more obvious */
-  height: clamp(10px, 3vw, 12px); /* Increased size - more obvious */
-  background-image: 
-    linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px),
-    linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px),
-    linear-gradient(to right, rgba(188, 206, 212, 0.4) 0px, rgba(188, 206, 212, 0.4) 14px);
-  background-size: clamp(18px, 5vw, 22px) clamp(1.5px, 0.6vw, 2px); /* Increased background size to match */
-  background-position: 0 0, 0 clamp(2px, 0.8vw, 3px), 0 clamp(5px, 1.5vw, 6px);
-  background-repeat: no-repeat;
-  border-radius: 1px;
+  font-size: clamp(18px, 5vw, 24px); /* Large, visible dots */
+  color: #f0d0aa; /* Bright cream color - very visible */
+  font-weight: bold;
+  line-height: 1;
+  text-align: center;
+  cursor: pointer;
   transition: all 0.2s ease;
   z-index: 12;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); /* Subtle shadow for visibility */
 }
 
 .message-thread.expanded .message-thread-header:hover::after {
-  background-image: 
-    linear-gradient(to right, rgba(188, 206, 212, 0.7) 0px, rgba(188, 206, 212, 0.7) 14px),
-    linear-gradient(to right, rgba(188, 206, 212, 0.7) 0px, rgba(188, 206, 212, 0.7) 14px),
-    linear-gradient(to right, rgba(188, 206, 212, 0.7) 0px, rgba(188, 206, 212, 0.7) 14px);
+  color: #ffffff; /* Bright white on hover */
+  text-shadow: 0 0 6px rgba(240, 208, 170, 0.8); /* Glowing effect on hover */
+  transform: translateX(-50%) scale(1.1); /* Slight scale on hover */
 }
 
 /* Hide X button in expanded headers to save space for title */
@@ -2742,13 +2735,10 @@ body:has(.selection-controls[style*="display: flex"]) {
     gap: 5px;
   }
 
-  /* Smaller mobile message thread hamburger icon - only when expanded */
+  /* Smaller mobile message thread three dots icon - only when expanded */
   .message-thread.expanded .message-thread-header::after {
-    bottom: 2px;
-    width: 10px;
-    height: 5px;
-    background-size: 10px 0.8px;
-    background-position: 0 0, 0 2px, 0 4px;
+    font-size: 14px; /* Even smaller for very small screens */
+    bottom: 1px;
   }
 }
 
