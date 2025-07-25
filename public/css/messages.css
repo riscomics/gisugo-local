@@ -1556,7 +1556,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .messages-container .message-thread .message-thread-header {
-    padding: 18px 22px;
+    padding: 12px 22px 18px 22px; /* Reduced top: 12px, preserve bottom: 18px for hamburger */
   }
 
   /* Mobile Notification Containers */
@@ -1911,7 +1911,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(10px, 3vw, 12px) clamp(16px, 5vw, 20px); /* Responsive padding */
+  padding: clamp(6px, 2vw, 8px) clamp(16px, 5vw, 20px) clamp(10px, 3vw, 12px) clamp(16px, 5vw, 20px); /* Reduced top, preserve bottom for hamburger */
   cursor: pointer;
   background: #2d3748;
   border-radius: clamp(6px, 2vw, 8px); /* Responsive border radius */
