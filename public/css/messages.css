@@ -2766,10 +2766,12 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
 
-/* 338px FINAL OVERRIDE - Must be at end of file for cascade priority */  
-@media (min-width: 321px) and (max-width: 338px) {
-  .message-scroll-container {
-    height: 70px !important; /* FINAL override of max-width: 400px rule (300px) */
+/* 338px FINAL OVERRIDE - Force Chrome compliance */  
+@media screen and (min-width: 321px) and (max-width: 338px) {
+  .messages-container .message-thread.expanded .message-scroll-container {
+    height: 70px !important; /* FORCE Chrome to apply 70px instead of 300px */
+    max-height: 70px !important; /* Additional constraint */
+    min-height: 70px !important; /* Lock height exactly */
   }
   
   .message-thread.expanded {
