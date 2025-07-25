@@ -247,13 +247,13 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
-/* Independent Tab Content Wrappers - SOLVES SCROLL SHARING ISSUE */
+/* Independent Tab Content Wrappers - FIXED CALCULATIONS */
 .tab-content-wrapper {
   position: fixed;
-  top: calc(clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px) + clamp(40px, 10vh, 52px)); /* Header + borderline + responsive spacing + tabs height */
+  top: 170px; /* Simple reliable calculation: ~110px header + ~6px border + ~54px tabs */
   left: 0;
   width: 100%;
-  height: calc(100vh - (clamp(66px, 20vh, 106px) + clamp(4px, 1vh, 6px) + clamp(0px, 1vh, 15px) + clamp(40px, 10vh, 52px))); /* Responsive height calculation */
+  height: calc(100vh - 170px); /* Simple reliable height that fits within viewport */
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1493,10 +1493,10 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: clamp(0.85rem, 2.2vw, 0.95rem);
   }
 
-  /* MAIN CONTAINER FIX - This is the critical fix for scrolling */
+  /* MAIN CONTAINER FIX - Use same reliable calculation as desktop */
   .tab-content-wrapper {
-    top: 115px !important; /* Simple fixed calculation */
-    height: calc(100vh - 115px) !important; /* Must fit within viewport */
+    top: 125px !important; /* Mobile: ~70px header + ~4px border + ~51px tabs */
+    height: calc(100vh - 125px) !important; /* Reliable mobile height */
   }
 
   /* Message Thread Fonts - Enhanced for mobile readability */
@@ -1819,8 +1819,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .tab-content-wrapper {
-    top: 105px !important; /* Fixed reliable positioning: 62px header + 4px border + 39px tabs */
-    height: calc(100vh - 105px) !important; /* Fixed reliable height calculation */
+    top: 110px !important; /* Ultra-small: ~62px header + ~4px border + ~44px tabs */
+    height: calc(100vh - 110px) !important; /* Reliable ultra-small height */
   }
   
 }
@@ -1837,8 +1837,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   margin: 0 auto clamp(12px, 3.5vw, 15px) auto; /* Responsive bottom margin */
   background: #2d3748;
   border-radius: clamp(6px, 2vw, 8px); /* Responsive border radius */
-  max-width: clamp(550px, 85vw, 625px); /* Responsive max width */
-  width: 90%;
+  max-width: 625px; /* Fixed max width for desktop */
+  width: 95%; /* Use more width - reduces side gaps */
 }
 
 .message-thread.expanded {
