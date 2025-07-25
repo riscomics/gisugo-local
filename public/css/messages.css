@@ -1495,8 +1495,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* MAIN CONTAINER FIX - Use same reliable calculation as desktop */
   .tab-content-wrapper {
-    top: 125px !important; /* Mobile: ~70px header + ~4px border + ~51px tabs */
-    height: calc(100vh - 125px) !important; /* Reliable mobile height */
+    top: 120px !important; /* Mobile: ~70px header + ~4px border + ~46px tabs */
+    height: calc(100vh - 120px) !important; /* Reliable mobile height */
   }
 
   /* Message Thread Fonts - Enhanced for mobile readability */
@@ -1777,6 +1777,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
 
+}
+
+/* Specific fix for 384px range - container was too tall, cutting off 5th header */
+@media (max-width: 400px) and (min-width: 361px) {
+  .tab-content-wrapper {
+    top: 115px !important; /* Reduced for 384px range */
+    height: calc(100vh - 115px) !important; /* More space for content */
+  }
 }
 
 /* Ultra Small Screens (360px and below) - Match new-post.css exactly */
