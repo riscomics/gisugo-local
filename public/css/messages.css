@@ -186,6 +186,10 @@ body:has(.messages-header) {
     top: 128px !important; /* Simple fixed: header(70px) + borderline(8px) + space(4px) + tabs(46px) */
     height: calc(100vh - 128px) !important;
   }
+  
+  .message-thread.expanded {
+    top: 138px !important; /* Tablet: content start(128px) + margin(10px) */
+  }
 }
 
 /* Desktop-specific overrides to ensure visibility */
@@ -201,6 +205,10 @@ body:has(.messages-header) {
   .tab-content-wrapper {
     top: 124px !important; /* Simple fixed: header(70px) + borderline(6px) + space(2px) + tabs(46px) */
     height: calc(100vh - 124px) !important;
+  }
+  
+  .message-thread.expanded {
+    top: 134px !important; /* Desktop: content start(124px) + margin(10px) */
   }
 }
 
@@ -1850,10 +1858,10 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: #3d4856;
 }
 
-/* Move entire expanded thread to top */
+/* Move entire expanded thread to top - FIXED positioning to eliminate excessive spacing */
 .message-thread.expanded {
   position: fixed;
-  top: clamp(175px, 20vh, 185px); /* Responsive top positioning */
+  top: 130px; /* Simple fixed: just below content area start (120px + 10px margin) */
   left: 50%;
   transform: translateX(-50%);
   width: clamp(92%, 90vw, 90%); /* Responsive width */
@@ -2018,7 +2026,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-scroll-container {
-  max-height: clamp(420px, 50vh, 481px); /* Responsive max height */
+  max-height: calc(100vh - 220px); /* Dynamic height: full viewport minus header/tabs/input areas */
   overflow-y: auto;
   padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
   background: #354048;
