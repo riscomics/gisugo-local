@@ -395,10 +395,6 @@ body:has(.messages-header) {
   transition: transform 0.3s ease;
   width: 16px; /* Reduced width */
   text-align: center;
-  background: rgba(45, 55, 72, 0.8); /* Subtle background for floating visibility */
-  border-radius: 50%; /* Circular background */
-  padding: clamp(1px, 0.8vw, 3px); /* Smaller padding */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
   cursor: pointer;
 }
 
