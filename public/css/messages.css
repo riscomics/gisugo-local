@@ -1,5 +1,9 @@
 /* GISUGO Messages Styles */
 
+:root {
+  --thread-top: 130px; /* Base expanded thread top position */
+}
+
 html {
   overflow-y: auto;
   height: auto;
@@ -170,6 +174,10 @@ body:has(.messages-header) {
 
 /* Tablet/Small Desktop range (601px-1023px) - ensure borderline visibility */
 @media (min-width: 601px) and (max-width: 1023px) {
+  :root {
+    --thread-top: 138px; /* Tablet expanded thread top position */
+  }
+  
   .messages-header-title {
     font-size: 2.2rem !important; /* Fixed size for tablet range to prevent shrinking */
   }
@@ -194,6 +202,10 @@ body:has(.messages-header) {
 
 /* Desktop-specific overrides to ensure visibility */
 @media (min-width: 1024px) {
+  :root {
+    --thread-top: 134px; /* Desktop expanded thread top position */
+  }
+  
   .messages-header-borderline {
     height: 6px !important; /* Force thick borderline on desktop */
   }
@@ -209,6 +221,14 @@ body:has(.messages-header) {
   
   .message-thread.expanded {
     top: 134px !important; /* Desktop: content start(124px) + margin(10px) */
+  }
+}
+
+/* Mobile specific - ensure scroll container fits available space */
+@media (max-width: 400px) {
+  .message-scroll-container {
+    height: calc(100vh - var(--thread-top) - 120px); /* Smaller mobile: less space needed for header/input */
+    min-height: 150px; /* Smaller minimum for mobile */
   }
 }
 
@@ -2026,7 +2046,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .message-scroll-container {
-  max-height: calc(100vh - 220px); /* Dynamic height: full viewport minus header/tabs/input areas */
+  height: calc(100vh - var(--thread-top) - 140px); /* SIMPLE: viewport - thread top - space for header/input */
+  min-height: 200px; /* Minimum usable height */
   overflow-y: auto;
   padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
   background: #354048;
