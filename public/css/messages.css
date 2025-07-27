@@ -175,7 +175,7 @@ body:has(.messages-header) {
 /* Tablet/Small Desktop range (601px-1023px) - ensure borderline visibility */
 @media (min-width: 601px) and (max-width: 1023px) {
   :root {
-    --thread-top: 144px; /* Tablet expanded thread top position */
+    --thread-top: 158px; /* Tablet expanded thread top position */
   }
   
   .messages-header {
@@ -201,7 +201,7 @@ body:has(.messages-header) {
   }
   
   .message-thread.expanded {
-    top: 148px !important; /* Tablet: content start(138px) + margin(10px) */
+    top: 158px !important; /* Tablet: content start(138px) + margin(20px) - increased spacing */
   }
   
   body {
@@ -301,7 +301,7 @@ body:has(.messages-header) {
 /* Desktop-specific overrides to ensure visibility */
 @media (min-width: 1024px) {
   :root {
-    --thread-top: 148px; /* Desktop expanded thread top position */
+    --thread-top: 158px; /* Desktop expanded thread top position */
   }
   
   .messages-header {
@@ -323,7 +323,7 @@ body:has(.messages-header) {
   }
   
   .message-thread.expanded {
-    top: 148px !important; /* Desktop: content start(138px) + margin(10px) */
+    top: 158px !important; /* Desktop: content start(138px) + margin(20px) - increased spacing */
   }
   
   body {
