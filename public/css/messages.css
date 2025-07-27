@@ -175,7 +175,11 @@ body:has(.messages-header) {
 /* Tablet/Small Desktop range (601px-1023px) - ensure borderline visibility */
 @media (min-width: 601px) and (max-width: 1023px) {
   :root {
-    --thread-top: 138px; /* Tablet expanded thread top position */
+    --thread-top: 144px; /* Tablet expanded thread top position */
+  }
+  
+  .messages-header {
+    top: 8px !important; /* Add top margin for tablet breathing room */
   }
   
   .messages-header-title {
@@ -183,44 +187,224 @@ body:has(.messages-header) {
   }
   
   .messages-header-borderline {
-    height: 8px !important; /* Thicker borderline for better tablet visibility */
+    height: 6px !important; /* Borderline for tablet visibility */
+    top: 84px !important; /* Position with gap below header (70px + 8px top margin + 6px gap) */
   }
   
   .messages-tabs {
-    top: 82px !important; /* Simple fixed: header(70px) + borderline(8px) + space(4px) */
+    top: 92px !important; /* Fixed: header(70px) + top margin(8px) + gap(6px) + borderline(6px) + space(2px) */
   }
   
   .tab-content-wrapper {
-    top: 128px !important; /* Simple fixed: header(70px) + borderline(8px) + space(4px) + tabs(46px) */
-    height: calc(100vh - 128px) !important;
+    top: 138px !important; /* Fixed: header(70px) + top margin(8px) + gap(6px) + borderline(6px) + space(2px) + tabs(46px) */
+    height: calc(100vh - 138px) !important;
   }
   
   .message-thread.expanded {
-    top: 138px !important; /* Tablet: content start(128px) + margin(10px) */
+    top: 148px !important; /* Tablet: content start(138px) + margin(10px) */
+  }
+  
+  body {
+    padding-top: clamp(84px, 18vh, 124px) !important; /* Increased top padding for tablet header with margin and gap */
+  }
+
+  /* Tablet Tab Content Spacing - Add top spacing for all tabs */
+  .notifications-container {
+    padding-top: clamp(22px, 3.5vh, 28px) !important; /* Increased tablet top spacing from tabs */
+  }
+
+  .messages-container {
+    padding-top: clamp(22px, 3.5vh, 28px) !important; /* Increased tablet top spacing from tabs */
+  }
+
+  /* Applications Tab Tablet Styles - Balanced spacing for 601-1023px range */
+  .applications-container {
+    padding: clamp(22px, 3.5vh, 28px) 0 clamp(100px, 15vh, 130px) 0 !important; /* Increased tablet spacing - force precedence */
+  }
+
+  .job-listing {
+    max-width: clamp(500px, 75vw, 580px); /* Optimal width for tablet viewing */
+    margin-bottom: clamp(12px, 2.5vh, 16px);
+  }
+
+  .job-header {
+    padding: clamp(18px, 3vh, 22px);
+  }
+
+  .job-title {
+    font-size: clamp(1.05rem, 2.2vw, 1.15rem); /* Larger for tablet readability */
+  }
+
+  .application-count {
+    font-size: clamp(1rem, 2.2vw, 1.1rem);
+    margin-left: clamp(25px, 3.5vw, 35px);
+    margin-right: clamp(12px, 2vw, 18px);
+  }
+
+  .expand-icon {
+    font-size: clamp(1rem, 2vw, 1.05rem);
+    width: clamp(15px, 2.5vw, 18px);
+  }
+
+  .applications-list {
+    max-height: clamp(450px, 65vh, 550px); /* Larger height for tablet screens */
+    padding: clamp(10px, 2vh, 12px) clamp(6px, 1.2vw, 8px);
+  }
+
+  .application-card {
+    max-width: clamp(450px, 70vw, 540px);
+    margin-bottom: clamp(14px, 3vh, 18px);
+    padding: clamp(12px, 2.5vh, 16px);
+  }
+
+  .application-job-title {
+    font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+    margin-bottom: clamp(12px, 2.5vh, 15px);
+    padding-bottom: clamp(8px, 1.5vh, 10px);
+  }
+
+  .price-offer {
+    font-size: clamp(1rem, 2.2vw, 1.1rem);
+  }
+
+  .application-header {
+    gap: clamp(12px, 2.5vw, 16px);
+    margin-bottom: clamp(12px, 2.5vh, 15px);
+  }
+
+  .application-left {
+    gap: clamp(8px, 1.8vh, 10px);
+  }
+
+  .applicant-photo {
+    width: clamp(105px, 18vw, 125px);
+    height: clamp(79px, 13.5vw, 94px);
+  }
+
+  .application-message {
+    font-size: clamp(0.95rem, 2.2vw, 1rem);
+    padding: clamp(12px, 2.5vh, 16px);
+  }
+
+  .application-message strong {
+    font-size: clamp(0.9rem, 2vw, 0.95rem);
+    margin-bottom: clamp(8px, 1.8vh, 10px);
   }
 }
 
 /* Desktop-specific overrides to ensure visibility */
 @media (min-width: 1024px) {
   :root {
-    --thread-top: 134px; /* Desktop expanded thread top position */
+    --thread-top: 148px; /* Desktop expanded thread top position */
+  }
+  
+  .messages-header {
+    top: 10px !important; /* Add top margin for desktop breathing room */
   }
   
   .messages-header-borderline {
-    height: 6px !important; /* Force thick borderline on desktop */
+    height: 4px !important; /* Thinner borderline to prevent covering header buttons */
+    top: 86px !important; /* Position with 6px gap below header (70px + 10px top margin + 6px gap) */
   }
   
   .messages-tabs {
-    top: 78px !important; /* Simple fixed: header(70px) + borderline(6px) + space(2px) */
+    top: 92px !important; /* Fixed: header(70px) + top margin(10px) + gap(6px) + borderline(4px) + space(2px) */
   }
   
   .tab-content-wrapper {
-    top: 124px !important; /* Simple fixed: header(70px) + borderline(6px) + space(2px) + tabs(46px) */
-    height: calc(100vh - 124px) !important;
+    top: 138px !important; /* Fixed: header(70px) + top margin(10px) + gap(6px) + borderline(4px) + space(2px) + tabs(46px) */
+    height: calc(100vh - 138px) !important;
   }
   
   .message-thread.expanded {
-    top: 134px !important; /* Desktop: content start(124px) + margin(10px) */
+    top: 148px !important; /* Desktop: content start(138px) + margin(10px) */
+  }
+  
+  body {
+    padding-top: clamp(86px, 20vh, 126px) !important; /* Increased top padding for desktop header with margin and gap */
+  }
+
+  /* Desktop Tab Content Spacing - Add top spacing for all tabs */
+  .notifications-container {
+    padding-top: clamp(24px, 3.5vh, 30px) !important; /* Increased desktop top spacing from tabs */
+  }
+
+  .messages-container {
+    padding-top: clamp(24px, 3.5vh, 30px) !important; /* Increased desktop top spacing from tabs */
+  }
+
+  /* Applications Tab Desktop Styles - Minimal spacing for 1024px+ screens */
+  .applications-container {
+    padding: clamp(24px, 3.5vh, 30px) 0 clamp(120px, 18vh, 150px) 0 !important; /* Increased desktop spacing - force precedence */
+  }
+
+  .job-listing {
+    max-width: clamp(580px, 85vw, 650px); /* Larger desktop width for better use of space */
+    margin-bottom: clamp(15px, 2.5vh, 20px);
+  }
+
+  .job-header {
+    padding: clamp(20px, 3vh, 25px);
+  }
+
+  .job-title {
+    font-size: clamp(1.1rem, 2vw, 1.2rem); /* Desktop typography */
+  }
+
+  .application-count {
+    font-size: clamp(1.1rem, 2vw, 1.2rem);
+    margin-left: clamp(30px, 3vw, 40px);
+    margin-right: clamp(15px, 2vw, 20px);
+  }
+
+  .expand-icon {
+    font-size: clamp(1rem, 1.8vw, 1.1rem);
+    width: clamp(16px, 2vw, 20px);
+  }
+
+  .applications-list {
+    max-height: clamp(500px, 70vh, 600px); /* Optimal height for desktop screens */
+    padding: clamp(12px, 2vh, 15px) clamp(8px, 1vw, 10px);
+  }
+
+  .application-card {
+    max-width: clamp(540px, 75vw, 600px);
+    margin-bottom: clamp(16px, 3vh, 20px);
+    padding: clamp(15px, 2.5vh, 18px);
+  }
+
+  .application-job-title {
+    font-size: clamp(1.15rem, 2.2vw, 1.3rem);
+    margin-bottom: clamp(14px, 2.5vh, 18px);
+    padding-bottom: clamp(10px, 1.8vh, 12px);
+  }
+
+  .price-offer {
+    font-size: clamp(1.05rem, 2vw, 1.15rem);
+  }
+
+  .application-header {
+    gap: clamp(14px, 2.5vw, 18px);
+    margin-bottom: clamp(14px, 2.5vh, 18px);
+  }
+
+  .application-left {
+    gap: clamp(9px, 1.8vh, 12px);
+  }
+
+  .applicant-photo {
+    width: clamp(115px, 16vw, 135px);
+    height: clamp(86px, 12vw, 101px);
+  }
+
+  .application-message {
+    font-size: clamp(0.95rem, 2vw, 1.05rem);
+    padding: clamp(14px, 2.5vh, 18px);
+  }
+
+  .application-message strong {
+    font-size: clamp(0.9rem, 1.8vw, 1rem);
+    margin-bottom: clamp(9px, 2vh, 12px);
   }
 }
 
@@ -325,9 +509,6 @@ body:has(.messages-header) {
 }
 
 /* Applications Tab Styles */
-.applications-container {
-  padding: 0;
-}
 
 .tab-content {
   display: none;
@@ -339,33 +520,33 @@ body:has(.messages-header) {
 }
 
 .content-placeholder {
-  padding: 40px 20px;
+  padding: clamp(20px, 5vh, 40px) clamp(10px, 4vw, 20px);
   text-align: center;
   color: #a0aec0;
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
 }
 
 /* Applications Tab Styles */
 .applications-container {
-  padding: 20px 0 100px 0; /* Top padding for spacing from tabs, extra bottom padding for last job expansion */
+  padding: clamp(16px, 3vh, 20px) 0 clamp(80px, 15vh, 120px) 0; /* Increased responsive top padding, extra bottom padding for scrolling like notifications */
 }
 
 .job-listing {
-  margin: 0 auto 10px auto;
+  margin: 0 auto clamp(8px, 2vh, 12px) auto;
   background: #2d3748;
-  border-radius: 8px;
-  max-width: 625px;
-  width: 90%;
+  border-radius: clamp(6px, 1.5vw, 8px);
+  max-width: clamp(300px, 90vw, 625px);
+  width: clamp(85%, 90vw, 90%);
 }
 
 .job-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
+  padding: clamp(15px, 3vh, 20px);
   cursor: pointer;
   background: #2d3748;
-  border-radius: 8px; /* All 4 rounded corners */
+  border-radius: clamp(6px, 1.5vw, 8px); /* All 4 rounded corners */
   transition: background 0.2s ease;
 }
 
@@ -374,7 +555,7 @@ body:has(.messages-header) {
 }
 
 .job-title {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   font-weight: 600;
   color: #e6d6ae;
   flex: 1;
@@ -382,18 +563,18 @@ body:has(.messages-header) {
 }
 
 .application-count {
-  font-size: 1.15rem;
+  font-size: clamp(0.9rem, 2.5vw, 1.15rem);
   color: #a0aec0;
-  margin-left: 30px;
-  margin-right: 15px;
+  margin-left: clamp(15px, 4vw, 30px);
+  margin-right: clamp(10px, 2.5vw, 15px);
   font-weight: 500;
 }
 
 .expand-icon {
-  font-size: 1rem; /* Smaller to save space */
+  font-size: clamp(0.9rem, 2vw, 1rem); /* Responsive sizing for better mobile usability */
   color: #f0d0aa;
   transition: transform 0.3s ease;
-  width: 16px; /* Reduced width */
+  width: clamp(14px, 3vw, 16px); /* Responsive width */
   text-align: center;
   cursor: pointer;
 }
@@ -411,10 +592,10 @@ body:has(.messages-header) {
 
 .applications-list {
   background: transparent;
-  padding: 10px 5px;
+  padding: clamp(8px, 2vh, 10px) clamp(4px, 1vw, 5px);
   margin-top: 0;
   /* Scrollable container for application cards */
-  max-height: 500px; /* Height of roughly 3 application cards (increased by 100px total) */
+  max-height: clamp(350px, 60vh, 500px); /* Responsive height scaling with viewport */
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -431,16 +612,16 @@ body:has(.messages-header) {
 .application-card {
   display: flex;
   flex-direction: column;
-  width: calc(100% - 10px);
-  max-width: 584px;
+  width: calc(100% - clamp(8px, 2vw, 10px));
+  max-width: clamp(280px, 85vw, 584px);
   background: #354048;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-  margin: 0 auto 16px auto;
+  border-radius: clamp(6px, 1.5vw, 8px);
+  box-shadow: 0 clamp(1px, 0.5vh, 2px) clamp(6px, 2vh, 8px) rgba(0,0,0,0.12);
+  margin: 0 auto clamp(12px, 3vh, 16px) auto;
   color: #f0e6d2;
   overflow: hidden;
-  border: 1.5px solid rgba(255,255,255,0.12);
-  padding: 12px;
+  border: clamp(1px, 0.3vw, 1.5px) solid rgba(255,255,255,0.12);
+  padding: clamp(10px, 2.5vh, 12px);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -453,14 +634,14 @@ body:has(.messages-header) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 1.2rem;
+  font-size: clamp(1.05rem, 2.8vw, 1.2rem);
   font-weight: 600;
   color: #f3f3f3;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin-bottom: clamp(10px, 2.5vh, 12px);
+  padding-bottom: clamp(6px, 1.5vh, 8px);
   line-height: 1.3;
   width: 100%;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: clamp(0.5px, 0.2vw, 1px) solid rgba(255,255,255,0.1);
 }
 
 .applicant-name {
@@ -468,7 +649,7 @@ body:has(.messages-header) {
 }
 
 .price-offer {
-  font-size: 1.025rem;
+  font-size: clamp(0.95rem, 2.4vw, 1.025rem);
   font-weight: 600;
   color: #f0d0aa;
   text-align: right;
@@ -479,48 +660,48 @@ body:has(.messages-header) {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: clamp(10px, 2.5vw, 12px);
+  margin-bottom: clamp(10px, 2.5vh, 12px);
 }
 
 .application-left {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: clamp(6px, 1.5vh, 8px);
   flex: 1;
 }
 
 .application-date {
   color: #d4dae0;
-  font-size: 0.85rem;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
 }
 
 .application-time {
   color: #c2cad4;
-  font-size: 0.8rem;
-  margin-top: 2px;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  margin-top: clamp(1px, 0.5vh, 2px);
 }
 
 .application-rating {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: clamp(0.4rem, 1vw, 0.5rem);
 }
 
 .stars {
   display: flex;
-  gap: 2px;
+  gap: clamp(1px, 0.4vw, 2px);
 }
 
 .review-count {
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
   color: #a0aec0;
   font-weight: 500;
   white-space: nowrap;
 }
 
 .star {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 2.5vw, 1.1rem);
   color: #4a5568;
 }
 
@@ -531,9 +712,9 @@ body:has(.messages-header) {
 
 
 .applicant-photo {
-  width: 115px;
-  height: 86px;
-  border-radius: 8px;
+  width: clamp(90px, 20vw, 115px);
+  height: clamp(68px, 15vw, 86px);
+  border-radius: clamp(6px, 1.5vw, 8px);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -546,19 +727,19 @@ body:has(.messages-header) {
 
 .application-message {
   color: #d4dae0;
-  font-size: 0.95rem;
+  font-size: clamp(0.9rem, 2.2vw, 0.95rem);
   line-height: 1.4;
   background: #2d3748;
-  padding: 12px;
-  border-radius: 4px;
+  padding: clamp(10px, 2.5vh, 12px);
+  border-radius: clamp(3px, 0.8vw, 4px);
 }
 
 .application-message strong {
   color: #f0d0aa;
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
   font-weight: 600;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: clamp(6px, 1.5vh, 8px);
   letter-spacing: 0.5px;
   font-style: normal;
 }
@@ -1568,7 +1749,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Mobile Notification Containers */
   .notifications-container {
-    padding: 0 0 60px 0; /* More bottom padding for mobile scrolling */
+    padding: clamp(16px, 3vh, 20px) 0 60px 0; /* Increased top spacing from tabs + bottom padding for mobile scrolling */
   }
 
   #notifications-content {
@@ -1580,66 +1761,70 @@ body:has(.selection-controls[style*="display: flex"]) {
     min-height: calc(100vh - 35px);
   }
 
+  .messages-container {
+    padding-top: clamp(16px, 3vh, 20px) !important; /* Increased mobile top spacing from tabs */
+  }
+
   .applications-container {
-    padding: 15px 0 100px 0;
+    padding: clamp(16px, 3vh, 20px) 0 clamp(80px, 12vh, 100px) 0 !important; /* Increased mobile spacing - force precedence */
   }
 
   .job-header {
-    padding: 15px;
+    padding: clamp(12px, 2.5vh, 15px);
   }
 
   .job-title {
-    font-size: 1rem;
+    font-size: clamp(0.95rem, 2.2vw, 1rem);
   }
 
   .application-count {
-    font-size: 0.8rem;
-    margin-right: 10px;
+    font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+    margin-right: clamp(8px, 2vw, 10px);
   }
 
   .expand-icon {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 2.4vw, 1.1rem);
   }
 
   .application-card {
-    margin-bottom: 12px;
-    padding: 10px;
+    margin-bottom: clamp(10px, 2.5vh, 12px);
+    padding: clamp(8px, 2vh, 10px);
     max-width: 100%;
     width: 100%;
     box-sizing: border-box;
   }
 
   .application-job-title {
-    font-size: 1.05rem;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
+    font-size: clamp(1rem, 2.4vw, 1.05rem);
+    margin-bottom: clamp(8px, 2vh, 10px);
+    padding-bottom: clamp(5px, 1.2vh, 6px);
   }
 
   .application-header {
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: clamp(8px, 2vw, 10px);
+    margin-bottom: clamp(8px, 2vh, 10px);
   }
 
   .application-left {
-    gap: 6px;
+    gap: clamp(5px, 1.2vh, 6px);
   }
 
   .review-count {
-    font-size: 0.75rem;
+    font-size: clamp(0.7rem, 1.6vw, 0.75rem);
   }
 
   .applicant-photo {
-    width: 86px;
-    height: 65px;
+    width: clamp(75px, 18vw, 86px);
+    height: clamp(56px, 13vw, 65px);
   }
 
   .application-message {
-    font-size: 0.9rem;
-    padding: 10px;
+    font-size: clamp(0.85rem, 2vw, 0.9rem);
+    padding: clamp(8px, 2vh, 10px);
   }
 
   .applications-list {
-    max-height: 450px; /* Increased by 100px total for mobile (was 350px) */
+    max-height: clamp(350px, 55vh, 450px); /* Responsive height for mobile */
   }
 
   .application-action-modal {
