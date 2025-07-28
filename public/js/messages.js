@@ -421,8 +421,26 @@ function updatePageTitle(activeTab) {
     titleElement.textContent = titles[activeTab] || 'MESSAGES';
 }
 
+// MEMORY LEAK FIX: Cleanup job listing event listeners before reinitializing
+function cleanupJobListingListeners() {
+    const jobHeaders = document.querySelectorAll('.job-header');
+    
+    jobHeaders.forEach(header => {
+        // Clone and replace node to remove ALL event listeners
+        if (header && header.parentNode) {
+            const newHeader = header.cloneNode(true);
+            header.parentNode.replaceChild(newHeader, header);
+        }
+    });
+    
+    console.log('🧹 Cleaned up job listing event listeners');
+}
+
 // Job Listings Management
 function initializeJobListings() {
+    // CRITICAL FIX: Clean up existing event listeners before re-initializing
+    cleanupJobListingListeners();
+    
     const jobHeaders = document.querySelectorAll('.job-header');
     
     jobHeaders.forEach(header => {
@@ -995,6 +1013,16 @@ function initializeApplicationActions() {
 // CRITICAL BUG FIX: Clean up existing event listeners from shared modal buttons
 // This prevents the double-click bug when navigating between tabs
 function cleanupApplicationActionListeners() {
+    // Clean up application card listeners first
+    const applicationCards = document.querySelectorAll('.application-card');
+    applicationCards.forEach(card => {
+        if (card && card.parentNode) {
+            const newCard = card.cloneNode(true);
+            card.parentNode.replaceChild(newCard, card);
+        }
+    });
+    
+    // Clean up action button listeners
     const hireJobBtn = document.getElementById('hireJobBtn');
     const rejectJobBtn = document.getElementById('rejectJobBtn');
     const profileBtn = document.getElementById('profileBtn');
@@ -1028,6 +1056,8 @@ function cleanupApplicationActionListeners() {
         const newOverlay = actionOverlay.cloneNode(true);
         actionOverlay.parentNode.replaceChild(newOverlay, actionOverlay);
     }
+    
+    console.log('🧹 Cleaned up application cards and action button event listeners');
 }
 
 function updateActionStars(rating) {
