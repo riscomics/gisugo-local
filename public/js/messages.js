@@ -4770,6 +4770,63 @@ function generateJobListingHTML(jobData) {
     `;
 }
 
+/*
+🔥 FIREBASE MIGRATION INSTRUCTIONS - CRITICAL REFACTOR NEEDED 🔥
+
+CURRENT STATE: Mock data with full DOM regeneration
+TARGET STATE: Real-time Firebase with granular updates
+
+🚨 BEFORE IMPLEMENTING FIREBASE, REFACTOR THIS ARCHITECTURE:
+
+1. **REPLACE FULL REGENERATION WITH GRANULAR UPDATES:**
+   Current: container.innerHTML = generateApplicationsContent() // Destroys all state
+   Needed: Individual card add/remove functions that preserve user state
+
+2. **IMPLEMENT REAL-TIME LISTENER PATTERN:**
+   onSnapshot(collection('applications'), (snapshot) => {
+     snapshot.docChanges().forEach((change) => {
+       if (change.type === 'added') addApplicationCard(change.doc.data());
+       if (change.type === 'removed') removeApplicationCard(change.doc.id);
+       if (change.type === 'modified') updateApplicationCard(change.doc.data());
+     });
+     updatePlaceholderVisibility(); // Check if placeholder should show
+   });
+
+3. **PRESERVE USER STATE DURING UPDATES:**
+   - Save scroll position before updates
+   - Maintain expanded job states
+   - Preserve selection states
+   - Restore after granular updates
+
+4. **IMPLEMENT OPTIMISTIC UI:**
+   - Update UI immediately on user actions (HIRE/REJECT)
+   - Show loading states during Firebase operations
+   - Rollback on Firebase errors with user feedback
+
+5. **CRITICAL PLACEHOLDER CONSIDERATIONS:**
+   - Placeholder must persist through real-time updates
+   - Only show/hide based on actual application count
+   - Handle race conditions between user actions and incoming data
+
+6. **PERFORMANCE OPTIMIZATIONS:**
+   - Implement virtual scrolling for large datasets
+   - Use document references instead of full data transfer
+   - Batch multiple Firebase operations
+   - Add proper cleanup for real-time listeners
+
+7. **ERROR HANDLING & OFFLINE SUPPORT:**
+   - Handle network failures gracefully
+   - Implement retry mechanisms
+   - Show appropriate offline indicators
+   - Cache data for offline viewing
+
+🎯 START HERE: Replace generateApplicationsContent() with granular functions
+📋 MAINTAIN: Current placeholder logic but adapt for real-time updates
+⚡ PRIORITY: State preservation and optimistic UI patterns
+
+DO NOT proceed with Firebase integration until this architecture is refactored!
+*/
+
 // Applications Content Generation - NOW DATA-DRIVEN
 function generateApplicationsContent() {
     // Generate placeholder HTML
