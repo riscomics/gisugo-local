@@ -2076,6 +2076,11 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: clamp(1px, 0.2vh, 1px) clamp(2px, 0.8vw, 3px); /* Tighter padding */
     min-width: clamp(12px, 3vw, 14px); /* Smaller min width */
   }
+
+  /* Ultra Small Tab Content Positioning */
+  .tab-content-wrapper {
+    top: calc(62px + clamp(3px, 1vh, 4px) + 46px) !important; /* Ultra-small header + borderline + tabs */
+  }
 }
 
 /* Ultra Specific Small Screens (320px and below) */
@@ -2093,9 +2098,17 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 15px !important; /* Increased by 2px from 13px - better readability */
   }
   
-  /* Reduce spacing between tabs and closed threads for 320px */
+  /* Reduce spacing between tabs and all content for 320px */
+  .notifications-container {
+    padding-top: 10px !important; /* Reduced spacing for ultra-small screens */
+  }
+
   .messages-container {
     padding-top: 10px !important; /* Reduced from 20px - tighter spacing */
+  }
+
+  .applications-container {
+    padding-top: 10px !important; /* Reduced spacing for ultra-small screens */
   }
 }
 
