@@ -538,6 +538,22 @@ body:has(.messages-header) {
   font-size: clamp(1rem, 2.5vw, 1.1rem);
 }
 
+/* Applications Tab Placeholder Specific Styling */
+#applications-placeholder {
+  padding: clamp(30px, 8vh, 60px) clamp(15px, 4vw, 25px);
+  line-height: 1.6;
+}
+
+#applications-placeholder span {
+  font-size: clamp(0.85rem, 2.2vw, 0.95rem) !important;
+  color: #8a92a5 !important;
+  margin-top: clamp(8px, 2vh, 12px) !important;
+  display: block !important;
+  max-width: clamp(280px, 80vw, 400px);
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
 /* Applications Tab Styles */
 .applications-container {
   padding: clamp(16px, 3vh, 20px) 0 clamp(80px, 15vh, 120px) 0; /* Increased responsive top padding, extra bottom padding for scrolling like notifications */

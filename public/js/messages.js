@@ -3018,6 +3018,7 @@ function updateApplicationsCount() {
     // Count all remaining application cards
     const applicationCards = document.querySelectorAll('.application-card');
     const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
+    const applicationsPlaceholder = document.getElementById('applications-placeholder');
     
     if (applicationsCountElement) {
         const remainingCount = applicationCards.length;
@@ -3026,8 +3027,17 @@ function updateApplicationsCount() {
         // Hide badge if count is 0
         if (remainingCount === 0) {
             applicationsCountElement.style.display = 'none';
+            // Show placeholder when no applications remain
+            if (applicationsPlaceholder) {
+                applicationsPlaceholder.style.display = 'block';
+                console.log('✅ Applications placeholder now visible - no applications remaining');
+            }
         } else {
             applicationsCountElement.style.display = 'inline-block';
+            // Hide placeholder when applications are present
+            if (applicationsPlaceholder) {
+                applicationsPlaceholder.style.display = 'none';
+            }
         }
     }
 }
@@ -3056,6 +3066,8 @@ function updateAllTabCounts() {
     
     // Applications count - total application cards from mock data
     const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
+    const applicationsPlaceholder = document.getElementById('applications-placeholder');
+    
     if (applicationsCountElement) {
         let totalApplications = 0;
         MOCK_APPLICATIONS.forEach(jobData => {
@@ -3065,8 +3077,16 @@ function updateAllTabCounts() {
         
         if (totalApplications === 0) {
             applicationsCountElement.style.display = 'none';
+            // Show placeholder when no applications exist
+            if (applicationsPlaceholder) {
+                applicationsPlaceholder.style.display = 'block';
+            }
         } else {
             applicationsCountElement.style.display = 'inline-block';
+            // Hide placeholder when applications exist
+            if (applicationsPlaceholder) {
+                applicationsPlaceholder.style.display = 'none';
+            }
         }
     }
     
@@ -4752,13 +4772,36 @@ function generateJobListingHTML(jobData) {
 
 // Applications Content Generation - NOW DATA-DRIVEN
 function generateApplicationsContent() {
-    return MOCK_APPLICATIONS.map(jobData => generateJobListingHTML(jobData)).join('');
+    // Generate placeholder HTML
+    const placeholderHTML = `
+        <!-- Applications Placeholder - Shows when no applications present -->
+        <div class="content-placeholder" id="applications-placeholder" style="display: none;">
+            📋<br>
+            No job applications yet<br>
+            <span style="font-size: 0.9em; color: #8a92a5; margin-top: 8px; display: block;">Applications from job seekers will appear here when you post job listings</span>
+        </div>
+    `;
+    
+    // Generate job listings HTML
+    const jobListingsHTML = MOCK_APPLICATIONS.map(jobData => generateJobListingHTML(jobData)).join('');
+    
+    // Return placeholder + job listings
+    return placeholderHTML + jobListingsHTML;
 }
 
 function loadApplicationsTab() {
     const container = document.querySelector('#applications-content .applications-container');
     if (container) {
         container.innerHTML = generateApplicationsContent();
+        
+        // DEBUG: Verify placeholder was added to DOM
+        const placeholder = document.getElementById('applications-placeholder');
+        console.log('🐛 Placeholder after content generation:', !!placeholder);
+        if (placeholder) {
+            console.log('✅ Placeholder successfully added to DOM');
+        } else {
+            console.log('❌ Placeholder missing from DOM after generation');
+        }
         
         // Initialize event handlers for the dynamically loaded content
         initializeJobListings();
