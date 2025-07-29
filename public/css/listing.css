@@ -134,7 +134,7 @@ body::-webkit-scrollbar {
   position: absolute;
   left: -5px;
   top: 100%;
-  width: 240px;
+  width: clamp(220px, 65vw, 240px) !important; /* Increased width for better text fitting */
   max-height: 420px;
   overflow-y: auto;
   background: #363f4f;
@@ -173,7 +173,7 @@ body::-webkit-scrollbar {
 }
 .jobcat-servicemenu-overlay a {
   color: #e6d6ae;
-  font-size: 1.62rem;
+  /* font-size: 1.62rem; */ /* Removed - controlled by JavaScript auto-resize */
   font-weight: 700;
   font-family: arial, sans-serif;
   text-decoration: none;
@@ -247,14 +247,14 @@ body::-webkit-scrollbar {
     height: 32px;
   }
 
-  /* Modal text wrapping prevention - much larger text */
+  /* Modal text - controlled by JavaScript auto-resize */
   .jobcat-servicemenu-overlay a {
-    font-size: clamp(1.35rem, 5vw, 1.8rem) !important; /* Much larger font */
+    /* font-size: clamp(1.35rem, 5vw, 1.8rem) !important; */ /* Removed - controlled by JavaScript */
     padding: clamp(4px, 1vw, 6px) 0 clamp(4px, 1vw, 6px) clamp(8px, 2vw, 12px) !important;
-    white-space: nowrap !important; /* Prevent text wrapping */
-    overflow: hidden !important;
-    text-overflow: ellipsis !important; /* Add ellipsis for long text */
-    line-height: 1.4 !important; /* Better line height */
+    /* white-space: nowrap !important; */ /* Removed - allow text to wrap if needed */
+    /* overflow: hidden !important; */ /* Removed - no truncation */
+    /* text-overflow: ellipsis !important; */ /* Removed - no ellipsis */
+    line-height: 1.2 !important; /* Controlled by JavaScript */
   }
 
   /* Region/City/Pay Modals - Much larger text */
@@ -1551,9 +1551,9 @@ body::-webkit-scrollbar {
     display: none;  /* Chrome, Safari and Opera */
   }
 
-  /* Modal text wrapping prevention for 320px - large readable text */
+  /* Modal text wrapping prevention for 320px - controlled by JavaScript auto-resize */
   .jobcat-servicemenu-overlay a {
-    font-size: clamp(1.15rem, 4.5vw, 1.4rem) !important;
+    /* font-size: clamp(1.15rem, 4.5vw, 1.4rem) !important; */ /* Removed - controlled by JavaScript */
     letter-spacing: 0px !important;
     padding: clamp(3px, 0.8vw, 4px) 0 clamp(3px, 0.8vw, 4px) clamp(6px, 1.5vw, 8px) !important;
   }
@@ -1766,7 +1766,7 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu-overlay {
-    width: clamp(140px, 50vw, 180px) !important; /* Match increased button width */
+    width: clamp(200px, 60vw, 220px) !important; /* Increased width for better text fitting */
     left: -5px !important;
   }
 
@@ -1787,7 +1787,7 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu-overlay a {
-    font-size: clamp(17px, 4vw, 21px) !important; /* Match button fontsize */
+    /* font-size: clamp(17px, 4vw, 21px) !important; */ /* Removed - controlled by JavaScript auto-resize */
   }
   
   .jobcat-headerbuttons {
@@ -2187,12 +2187,12 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-servicemenu-overlay {
-    width: clamp(180px, 55vw, 200px) !important; /* Match button width exactly */
+    width: clamp(220px, 65vw, 240px) !important; /* Increased width for better text fitting */
     left: -5px !important;
   }
   
   .jobcat-servicemenu-overlay a {
-    font-size: clamp(20px, 4.5vw, 24px) !important; /* Match button fontsize */
+    /* font-size: clamp(20px, 4.5vw, 24px) !important; */ /* Removed - controlled by JavaScript auto-resize */
   }
   
   .jobcat-headerbuttons {

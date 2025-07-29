@@ -4,6 +4,13 @@ const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
 
 serviceMenuBtn.addEventListener('click', () => {
   serviceMenuOverlay.classList.toggle('show');
+  
+  // Auto-resize text when overlay is shown
+  setTimeout(() => {
+    if (serviceMenuOverlay.classList.contains('show')) {
+      autoResizeJobcatOverlay();
+    }
+  }, 50);
 });
 
 // Close service menu when clicking outside
@@ -825,4 +832,129 @@ document.addEventListener('DOMContentLoaded', function() {
     filterAndSortJobs();
     truncateBarangayNames();
   }, 100);
+  
+  // Initialize jobcat overlay auto-resize
+  initJobcatOverlayAutoResize();
 });
+
+// Auto-fit resizing function for jobcat overlay text
+function autoResizeJobcatOverlay() {
+    const overlay = document.querySelector('.jobcat-servicemenu-overlay');
+    if (!overlay) return;
+    
+    const links = overlay.querySelectorAll('a');
+    if (links.length === 0) return;
+    
+    // Get overlay dimensions
+    const overlayRect = overlay.getBoundingClientRect();
+    const overlayWidth = overlayRect.width;
+    const overlayHeight = overlayRect.height;
+    
+    // Calculate available width based on viewport size
+    const paddingBuffer = window.innerWidth <= 360 ? 25 : 40;
+    const availableWidth = overlayWidth - paddingBuffer; 
+    const availableHeightPerItem = (overlayHeight - 36) / links.length;
+    
+    // Set minimum font sizes based on viewport - much more aggressive for larger screens
+    let minFontSize;
+    let maxFontSize;
+    
+    if (window.innerWidth <= 320) {
+        minFontSize = 10;
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 16);
+    } else if (window.innerWidth <= 360) {
+        minFontSize = 12;
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 18);
+    } else if (window.innerWidth <= 480) {
+        minFontSize = 22; // Much larger minimum for 361-480px
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 26);
+    } else if (window.innerWidth <= 600) {
+        minFontSize = 24; // Even larger for 481-600px
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 28);
+    } else {
+        minFontSize = 26; // Large readable text for desktop
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 30);
+    }
+    
+    let optimalFontSize = minFontSize;
+    
+    // Binary search for optimal font size, but don't go below minimum
+    let minSize = minFontSize;
+    let maxSize = maxFontSize;
+    
+    while (maxSize - minSize > 0.3) {
+        const testSize = (minSize + maxSize) / 2;
+        
+        // Test if this size fits for all links
+        let allFit = true;
+        
+        for (let link of links) {
+            // Create temporary element to measure text width
+            const tempSpan = document.createElement('span');
+            tempSpan.style.cssText = `
+                position: absolute;
+                visibility: hidden;
+                white-space: nowrap;
+                font-size: ${testSize}px;
+                font-weight: 700;
+                font-family: arial, sans-serif;
+                padding: 4px 0 4px 8px;
+            `;
+            tempSpan.textContent = link.textContent;
+            document.body.appendChild(tempSpan);
+            
+            const textWidth = tempSpan.getBoundingClientRect().width;
+            document.body.removeChild(tempSpan);
+            
+            if (textWidth > availableWidth) {
+                allFit = false;
+                break;
+            }
+        }
+        
+        if (allFit) {
+            optimalFontSize = testSize;
+            minSize = testSize;
+        } else {
+            maxSize = testSize;
+        }
+    }
+    
+    // Ensure we never go below the minimum readable size
+    optimalFontSize = Math.max(optimalFontSize, minFontSize);
+    
+    // Apply the optimal font size and ensure no truncation
+    links.forEach(link => {
+        link.style.fontSize = `${optimalFontSize}px`;
+        link.style.lineHeight = '1.2';
+        // Ensure no truncation occurs
+        link.style.whiteSpace = 'normal'; // Allow wrapping if needed
+        link.style.overflow = 'visible'; // No hidden overflow
+        link.style.textOverflow = 'unset'; // No ellipsis
+        link.style.wordBreak = 'break-word'; // Break long words if necessary
+        link.style.maxWidth = 'none'; // Remove any width constraints
+    });
+    
+    console.log(`Auto-resized jobcat overlay text to ${optimalFontSize}px for viewport ${window.innerWidth}px (min: ${minFontSize}px, available width: ${availableWidth}px)`);
+}
+
+// Debounced resize handler
+let resizeTimeout;
+function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        autoResizeJobcatOverlay();
+    }, 150);
+}
+
+// Initialize auto-resize when overlay is shown
+function initJobcatOverlayAutoResize() {
+    // Listen for window resize
+    window.addEventListener('resize', handleResize);
+    
+    // Initial resize if overlay is already visible
+    const overlay = document.querySelector('.jobcat-servicemenu-overlay');
+    if (overlay && overlay.classList.contains('show')) {
+        autoResizeJobcatOverlay();
+    }
+}
