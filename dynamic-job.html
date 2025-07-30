@@ -201,39 +201,8 @@
     </div>
   </div>
   
-  <!-- Viewport Debug Tool -->
-  <div id="vp-debug"></div>
-  
   <script src="public/js/shared-menu.js"></script>
   <script src="public/js/dynamic-job.js?v=5"></script>
-
-  <script>
-  // Viewport Debug Tool
-  (function() {
-      const vpDebug = document.getElementById('vp-debug');
-      vpDebug.style.cssText = `
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          background: #000;
-          color: #fff;
-          padding: 4px 8px;
-          font-size: 12px;
-          opacity: 0.6;
-          z-index: 9999;
-          font-family: monospace;
-          border-radius: 0 4px 0 0;
-          pointer-events: none;
-      `;
-      
-      function updateViewport() {
-          vpDebug.textContent = 'Viewport: ' + window.innerWidth + 'px';
-      }
-      
-      updateViewport();
-      window.addEventListener('resize', updateViewport);
-  })();
-  </script>
 
 </body>
 </html> 
