@@ -851,7 +851,7 @@ function autoResizeJobcatOverlay() {
     const overlayHeight = overlayRect.height;
     
     // Calculate available width based on viewport size
-    const paddingBuffer = window.innerWidth <= 360 ? 25 : 40;
+    const paddingBuffer = window.innerWidth <= 360 ? 25 : 30; // Reduced buffer for larger screens
     const availableWidth = overlayWidth - paddingBuffer; 
     const availableHeightPerItem = (overlayHeight - 36) / links.length;
     
@@ -865,15 +865,18 @@ function autoResizeJobcatOverlay() {
     } else if (window.innerWidth <= 360) {
         minFontSize = 12;
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 18);
-    } else if (window.innerWidth <= 480) {
-        minFontSize = 22; // Much larger minimum for 361-480px
-        maxFontSize = Math.min(availableHeightPerItem * 0.8, 26);
-    } else if (window.innerWidth <= 600) {
-        minFontSize = 24; // Even larger for 481-600px
+    } else if (window.innerWidth <= 412) {
+        minFontSize = 26; // Much larger for 361-412px range specifically
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 28);
-    } else {
-        minFontSize = 26; // Large readable text for desktop
+    } else if (window.innerWidth <= 480) {
+        minFontSize = 24; // Still large for 413-480px
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 28);
+    } else if (window.innerWidth <= 600) {
+        minFontSize = 26; // Even larger for 481-600px
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 30);
+    } else {
+        minFontSize = 28; // Large readable text for desktop
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 32);
     }
     
     let optimalFontSize = minFontSize;
