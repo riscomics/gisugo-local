@@ -835,6 +835,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize jobcat overlay auto-resize
   initJobcatOverlayAutoResize();
+  
+  // Initialize jobcat button auto-resize
+  initJobcatButtonAutoResize();
 });
 
 // Auto-fit resizing function for jobcat overlay text
@@ -959,5 +962,107 @@ function initJobcatOverlayAutoResize() {
     const overlay = document.querySelector('.jobcat-servicemenu-overlay');
     if (overlay && overlay.classList.contains('show')) {
         autoResizeJobcatOverlay();
+    }
+}
+
+// Auto-fit resizing function for jobcat dropdown button text
+function autoResizeJobcatButton() {
+    const serviceNameDiv = document.querySelector('.jobcat-servicename div:first-child');
+    if (!serviceNameDiv) return;
+    
+    const serviceMenu = document.querySelector('.jobcat-servicemenu');
+    if (!serviceMenu) return;
+    
+    // Get button dimensions
+    const buttonRect = serviceMenu.getBoundingClientRect();
+    const buttonWidth = buttonRect.width;
+    
+    // Calculate available width (accounting for dropdown arrow and padding)
+    const arrowWidth = 20; // Space for dropdown arrow
+    const paddingBuffer = 16; // Left/right padding
+    const availableWidth = buttonWidth - arrowWidth - paddingBuffer;
+    
+    // Set minimum font sizes based on viewport
+    let minFontSize;
+    let maxFontSize;
+    
+    if (window.innerWidth <= 320) {
+        minFontSize = 16;
+        maxFontSize = 24;
+    } else if (window.innerWidth <= 360) {
+        minFontSize = 18;
+        maxFontSize = 26;
+    } else if (window.innerWidth <= 480) {
+        minFontSize = 20;
+        maxFontSize = 28;
+    } else {
+        minFontSize = 22;
+        maxFontSize = 32;
+    }
+    
+    let optimalFontSize = minFontSize;
+    
+    // Binary search for optimal font size
+    let minSize = minFontSize;
+    let maxSize = maxFontSize;
+    
+    while (maxSize - minSize > 0.3) {
+        const testSize = (minSize + maxSize) / 2;
+        
+        // Create temporary element to measure text width
+        const tempSpan = document.createElement('span');
+        tempSpan.style.cssText = `
+            position: absolute;
+            visibility: hidden;
+            white-space: nowrap;
+            font-size: ${testSize}px;
+            font-weight: bold;
+            font-family: Arial, Helvetica, sans-serif;
+        `;
+        tempSpan.textContent = serviceNameDiv.textContent;
+        document.body.appendChild(tempSpan);
+        
+        const textWidth = tempSpan.getBoundingClientRect().width;
+        document.body.removeChild(tempSpan);
+        
+        if (textWidth <= availableWidth) {
+            optimalFontSize = testSize;
+            minSize = testSize;
+        } else {
+            maxSize = testSize;
+        }
+    }
+    
+    // Ensure we never go below the minimum readable size
+    optimalFontSize = Math.max(optimalFontSize, minFontSize);
+    
+    // Apply the optimal font size
+    serviceNameDiv.style.setProperty('font-size', `${optimalFontSize}px`, 'important');
+    serviceNameDiv.style.setProperty('white-space', 'nowrap', 'important');
+    serviceNameDiv.style.setProperty('overflow', 'hidden', 'important');
+    
+    console.log(`Auto-resized jobcat button text to ${optimalFontSize}px for "${serviceNameDiv.textContent}" at viewport ${window.innerWidth}px`);
+}
+
+// Initialize jobcat button auto-resize
+function initJobcatButtonAutoResize() {
+    // Resize on window resize
+    window.addEventListener('resize', () => {
+        clearTimeout(window.buttonResizeTimeout);
+        window.buttonResizeTimeout = setTimeout(() => {
+            autoResizeJobcatButton();
+        }, 150);
+    });
+    
+    // Resize when button text changes (when different job categories are selected)
+    const observer = new MutationObserver(() => {
+        setTimeout(autoResizeJobcatButton, 50);
+    });
+    
+    const serviceNameDiv = document.querySelector('.jobcat-servicename div:first-child');
+    if (serviceNameDiv) {
+        observer.observe(serviceNameDiv, { childList: true, subtree: true, characterData: true });
+        // Initial resize
+        setTimeout(autoResizeJobcatButton, 100);
     }
 }
