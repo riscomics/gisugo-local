@@ -1243,6 +1243,13 @@ body:has(.jobs-header) {
   }
 }
 
+/* Tablet/Small Desktop range (601px-1023px) - ensure header title doesn't shrink */
+@media (min-width: 601px) and (max-width: 1023px) {
+  .jobs-header-title {
+    font-size: 2.2rem !important; /* Fixed size for tablet range to prevent shrinking */
+  }
+}
+
 /* Mobile responsive rain */
 @media (max-width: 600px) {
   .rain-drop {
