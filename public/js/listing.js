@@ -863,8 +863,8 @@ function autoResizeJobcatOverlay() {
         minFontSize = 10;
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 16);
     } else if (window.innerWidth <= 360) {
-        minFontSize = 12;
-        maxFontSize = Math.min(availableHeightPerItem * 0.8, 18);
+        minFontSize = 22; // Increased to bridge the gap with 361px+ range
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 24);
     } else if (window.innerWidth <= 412) {
         minFontSize = 26; // Much larger for 361-412px range specifically
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 28);
