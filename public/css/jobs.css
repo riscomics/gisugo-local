@@ -2359,23 +2359,24 @@ body:has(.jobs-header) {
   }
 }
 
-/* Ultra Small Screens (360px and below) - Prevent title overflow */
-@media (max-width: 360px) {
-  .jobs-header-title {
-    font-size: clamp(1.3rem, 3.5vw, 1.6rem) !important; /* Further increased for much better readability */
-    letter-spacing: -0.5px; /* Slight letter spacing reduction for better fit */
-  }
+/* 384px ONLY */
+@media (min-width: 361px) and (max-width: 384px) {
+  /* No specific header styles needed - handled by base responsive styles */
+}
   
-  .jobs-header-title-container {
-    height: 62px; /* Slightly reduced height for ultra-small screens */
-    padding-right: 2px; 
-  } 
-  
-  .jobs-header-btn {
-    width: clamp(36px, 8vw, 40px); /* Slightly smaller buttons for more title space */
-    height: clamp(38px, 7vh, 42px);
-    font-size: clamp(9px, 2.5vw, 10px);
-  }
+/* Smaller mobile header adjustments for positioning calculations */
+.jobs-header-title-container {
+  height: 66px;
+}
+
+/* 360px ONLY */
+@media (min-width: 339px) and (max-width: 360px) {
+  /* No specific header styles needed - covered by base styles */
+}
+
+/* 338px ONLY */  
+@media (min-width: 321px) and (max-width: 338px) {
+  /* No specific header styles needed - covered by base styles */
 }
 
 @media (max-width: 400px) {
@@ -2624,21 +2625,20 @@ body:has(.jobs-header) {
   } 
   
   .jobs-header-title {
-    font-size: 1.3rem;
-    padding-left: 2px;
-    padding-right: 2px;
+    font-size: clamp(1.6rem, 4.2vw, 2rem) !important; /* Increased minimum for better readability at 360px-320px */
+    letter-spacing: -0.5px; /* Match new-post letter spacing */
   }
    
   .jobs-header-btn {
-    width: 38px;
-    height: 40px;
-    font-size: 9px;
+    width: clamp(36px, 8vw, 40px); /* Match new-post: slightly smaller buttons for more title space */
+    height: clamp(38px, 7vh, 42px); /* Match new-post */
+    font-size: clamp(9px, 2.5vw, 10px); /* Match new-post */
   }
   
   .jobs-header-btn img {
     width: auto;
-    height: 28px;
-    margin-bottom: 2px;
+    height: clamp(25px, 6vh, 28px); /* Responsive height for ultra-small screens */
+    margin-bottom: clamp(1px, 0.5vh, 2px); /* Responsive margin */
   }
   
   .jobs-menu-items {
