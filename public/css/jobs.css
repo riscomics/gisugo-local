@@ -15,7 +15,7 @@ html::-webkit-scrollbar {
 body {
   background: #363f4f !important;
   margin: 0;
-  padding: 110px 0 0 0; /* Add top padding for fixed header */
+  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -37,12 +37,12 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: clamp(66px, 20vh, 106px); /* Responsive header height to match new-post standard */
+  height: clamp(66px, 20vh, 106px); /* Responsive header height to match hatod standard */
   align-items: center;
   justify-content: space-between;
   background-color: #363f4f;
   position: relative;
-  padding-right: clamp(5px, 2vw, 15px); /* Responsive padding to match new-post standard */
+  padding-right: clamp(5px, 2vw, 15px); /* Responsive padding to match hatod standard */
 }
 
 .jobs-header-title {
@@ -67,17 +67,17 @@ body::-webkit-scrollbar {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: clamp(40px, 10vw, 88px); /* Responsive button width to match new-post standard */
-  height: clamp(42px, 18vh, 92px); /* Responsive button height to match new-post standard */
+  width: clamp(40px, 10vw, 88px); /* Responsive button width to match hatod standard */
+  height: clamp(42px, 18vh, 92px); /* Responsive button height to match hatod standard */
   color: rgb(188, 206, 212);
-  font-size: clamp(12px, 3vw, 18px); /* Responsive button font size to match new-post standard */
+  font-size: clamp(12px, 3vw, 18px); /* Responsive button font size to match hatod standard */
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s;
   flex-shrink: 0;
-  margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin to match new-post standard */
-  margin-left: clamp(0.5%, 1vw, 1%); /* Responsive margin to match new-post standard */
+  margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin to match hatod standard */
+  margin-left: clamp(0.5%, 1vw, 1%); /* Responsive margin to match hatod standard */
 }
 
 .jobs-header-btn:hover {
@@ -86,9 +86,9 @@ body::-webkit-scrollbar {
 
 .jobs-header-btn img {
   width: 100%;
-  height: 55px;
+  height: clamp(30px, 12vh, 55px); /* Responsive image height to match hatod standard */
   object-fit: contain;
-  margin-bottom: 4px;
+  margin-bottom: clamp(2px, 1vh, 4px); /* Responsive margin to match hatod standard */
   transition: transform 0.15s;
 }
 
@@ -101,9 +101,9 @@ body::-webkit-scrollbar {
 }
 
 .jobs-header-borderline {
-  height: 4px;
+  height: clamp(4px, 1vh, 6px); /* Much thicker for desktop visibility */
   width: 100%;
-  background: rgb(149, 149, 328);
+  background: rgb(149, 149, 228); /* Fixed invalid RGB value - was 328, now 228 */
   position: fixed;
   left: 0;
   z-index: 96;
