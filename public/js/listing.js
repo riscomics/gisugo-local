@@ -863,8 +863,8 @@ function autoResizeJobcatOverlay() {
         minFontSize = 10;
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 16);
     } else if (window.innerWidth <= 360) {
-        minFontSize = 22; // Increased to bridge the gap with 361px+ range
-        maxFontSize = Math.min(availableHeightPerItem * 0.8, 24);
+        minFontSize = 25; // Match the size that works well at 361px+
+        maxFontSize = Math.min(availableHeightPerItem * 0.8, 27);
     } else if (window.innerWidth <= 412) {
         minFontSize = 26; // Much larger for 361-412px range specifically
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 28);
@@ -928,14 +928,14 @@ function autoResizeJobcatOverlay() {
     
     // Apply the optimal font size and ensure no truncation
     links.forEach(link => {
-        link.style.fontSize = `${optimalFontSize}px`;
-        link.style.lineHeight = '1.2';
+        link.style.setProperty('font-size', `${optimalFontSize}px`, 'important');
+        link.style.setProperty('line-height', '1.2', 'important');
         // Ensure no truncation occurs
-        link.style.whiteSpace = 'normal'; // Allow wrapping if needed
-        link.style.overflow = 'visible'; // No hidden overflow
-        link.style.textOverflow = 'unset'; // No ellipsis
-        link.style.wordBreak = 'break-word'; // Break long words if necessary
-        link.style.maxWidth = 'none'; // Remove any width constraints
+        link.style.setProperty('white-space', 'normal', 'important'); // Allow wrapping if needed
+        link.style.setProperty('overflow', 'visible', 'important'); // No hidden overflow
+        link.style.setProperty('text-overflow', 'unset', 'important'); // No ellipsis
+        link.style.setProperty('word-break', 'break-word', 'important'); // Break long words if necessary
+        link.style.setProperty('max-width', 'none', 'important'); // Remove any width constraints
     });
     
     console.log(`Auto-resized jobcat overlay text to ${optimalFontSize}px for viewport ${window.innerWidth}px (min: ${minFontSize}px, available width: ${availableWidth}px)`);
