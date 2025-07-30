@@ -1554,6 +1554,7 @@ body::-webkit-scrollbar {
   /* Modal text wrapping prevention for 320px - controlled by JavaScript auto-resize */
   .jobcat-servicemenu-overlay a {
     /* font-size: clamp(1.15rem, 4.5vw, 1.4rem) !important; */ /* Removed - controlled by JavaScript */
+    font-size: 1.4rem !important; /* Fallback for browsers that don't execute JavaScript properly */
     letter-spacing: 0px !important;
     padding: clamp(3px, 0.8vw, 4px) 0 clamp(3px, 0.8vw, 4px) clamp(6px, 1.5vw, 8px) !important;
   }

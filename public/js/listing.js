@@ -860,7 +860,7 @@ function autoResizeJobcatOverlay() {
     let maxFontSize;
     
     if (window.innerWidth <= 320) {
-        minFontSize = 23; // Increased to match 321px+ range
+        minFontSize = 23; // Back to what worked fine in Chrome/Samsung
         maxFontSize = Math.min(availableHeightPerItem * 0.8, 25);
     } else if (window.innerWidth <= 360) {
         minFontSize = 25; // Match the size that works well at 361px+
