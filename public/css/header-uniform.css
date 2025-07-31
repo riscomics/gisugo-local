@@ -266,6 +266,13 @@ html body:has(.uniform-header) {
   }
 }
 
+/* Narrow Small Mobile (321px - 338px) - REDUCED TITLE FONT SIZE */
+@media (min-width: 321px) and (max-width: 338px) {
+  :root {
+    --header-title-font-size: clamp(1.534rem, 3.61vw, 1.986rem); /* 10% total reduction from base small mobile */
+  }
+}
+
 /* Mobile Screens (401px - 600px) */
 @media (min-width: 401px) and (max-width: 600px) {
   :root {

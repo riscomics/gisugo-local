@@ -16,10 +16,11 @@ html::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
 
+/* BODY STYLES - UPDATED FOR UNIFORM HEADER SYSTEM */
 body {
   background: #363f4f !important;
   margin: 0;
-  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
+  /* Removed fixed padding - uniform header system handles this automatically */
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -178,26 +179,16 @@ body:has(.messages-header) {
     --thread-top: 158px; /* Tablet expanded thread top position */
   }
   
-  .messages-header {
-    top: 8px !important; /* Add top margin for tablet breathing room */
-  }
-  
-  .messages-header-title {
-    font-size: 2.2rem !important; /* Fixed size for tablet range to prevent shrinking */
-  }
-  
-  .messages-header-borderline {
-    height: 6px !important; /* Borderline for tablet visibility */
-    top: 84px !important; /* Position with gap below header (70px + 8px top margin + 6px gap) */
-  }
+  /* OLD HEADER RULES REMOVED - Using uniform header system now */
   
   .messages-tabs {
-    top: 92px !important; /* Fixed: header(70px) + top margin(8px) + gap(6px) + borderline(6px) + space(2px) */
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 15px); /* Increased gap to show borderline */
+    margin-top: -10px; /* Golden Rule applied - reduce gap between borderline and tabs */
   }
   
   .tab-content-wrapper {
-    top: 138px !important; /* Fixed: header(70px) + top margin(8px) + gap(6px) + borderline(6px) + space(2px) + tabs(46px) */
-    height: calc(100vh - 138px) !important;
+    top: 160px !important; /* Increased from 138px to give cards more space above tabs */
+    height: calc(100vh - 160px) !important;
   }
   
   .message-thread.expanded {
@@ -304,22 +295,16 @@ body:has(.messages-header) {
     --thread-top: 158px; /* Desktop expanded thread top position */
   }
   
-  .messages-header {
-    top: 10px !important; /* Add top margin for desktop breathing room */
-  }
-  
-  .messages-header-borderline {
-    height: 4px !important; /* Thinner borderline to prevent covering header buttons */
-    top: 86px !important; /* Position with 6px gap below header (70px + 10px top margin + 6px gap) */
-  }
+  /* OLD HEADER RULES REMOVED - Using uniform header system now */
   
   .messages-tabs {
-    top: 92px !important; /* Fixed: header(70px) + top margin(10px) + gap(6px) + borderline(4px) + space(2px) */
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 20px); /* Larger gap for desktop to show borderline */
+    margin-top: -9px; /* POSITIVE margin to push tabs away from borderline */    
   }
   
   .tab-content-wrapper {
-    top: 138px !important; /* Fixed: header(70px) + top margin(10px) + gap(6px) + borderline(4px) + space(2px) + tabs(46px) */
-    height: calc(100vh - 138px) !important;
+    top: 170px !important; /* Increased from 138px to give cards more space above tabs */
+    height: calc(100vh - 170px) !important;
   }
   
   .message-thread.expanded {
@@ -436,10 +421,10 @@ body:has(.messages-header) {
 
 
 
-/* Tab Navigation Styles */
+/* Tab Navigation Styles - UPDATED FOR UNIFORM HEADER SYSTEM */
 .messages-tabs {
   position: fixed;
-  top: 74px; /* Simple fixed value: header(70px) + borderline(4px) */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* Clear uniform header */
   left: 0;
   width: 100%;
   background: #2d3748;
@@ -3032,7 +3017,6 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 14px; /* Even smaller for very small screens */
     bottom: 1px;
   }
-}
 
 /* Duplicate rule removed - using the earlier 360px media query instead */
 
