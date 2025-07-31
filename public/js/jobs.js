@@ -831,10 +831,11 @@ window.addEventListener('beforeunload', executeAllCleanups);
 document.addEventListener('DOMContentLoaded', async function() {
     // Only run jobs page initialization on jobs.html (check for jobs-specific elements)
     const jobsTabsContainer = document.querySelector('.jobs-tabs');
-    const jobsHeader = document.querySelector('.jobs-header');
+    const uniformHeader = document.querySelector('.uniform-header');
+    const isJobsPage = document.body.classList.contains('page-jobs');
     
     // Only initialize if we're on the actual jobs page
-    if (jobsTabsContainer && jobsHeader) {
+    if (jobsTabsContainer && uniformHeader && isJobsPage) {
         console.log('🎯 Jobs page detected - initializing jobs functionality');
         
         // Check for refresh parameter from MODIFY/RELIST success overlays

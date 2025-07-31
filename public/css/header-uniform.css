@@ -269,7 +269,14 @@ html body:has(.uniform-header) {
 /* Narrow Small Mobile (321px - 338px) - REDUCED TITLE FONT SIZE */
 @media (min-width: 321px) and (max-width: 338px) {
   :root {
-    --header-title-font-size: clamp(1.534rem, 3.61vw, 1.986rem); /* 10% total reduction from base small mobile */
+    --header-title-font-size: clamp(1.457rem, 3.43vw, 1.887rem); /* Additional 5% reduction from previous values */
+  }
+}
+
+/* Small Mobile Range (339px - 360px) - 5% FONT SIZE REDUCTION */
+@media (min-width: 339px) and (max-width: 360px) {
+  :root {
+    --header-title-font-size: clamp(1.615rem, 3.8vw, 2.09rem); /* 5% reduction from base small mobile */
   }
 }
 

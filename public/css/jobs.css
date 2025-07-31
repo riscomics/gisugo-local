@@ -12,10 +12,11 @@ html::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
 
+/* BODY STYLES - UPDATED FOR UNIFORM HEADER SYSTEM */
 body {
   background: #363f4f !important;
   margin: 0;
-  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
+  /* Removed fixed padding - uniform header system handles this automatically */
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -168,10 +169,10 @@ body:has(.jobs-header) {
   padding-top: 110px !important; /* Desktop: 106px header + 4px borderline */
 }
 
-/* Tab Navigation Styles */
+/* Tab Navigation Styles - UPDATED FOR UNIFORM HEADER SYSTEM */
 .jobs-tabs {
   position: fixed;
-  top: 109px;
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* Clear uniform header */
   left: 0;
   width: 100%;
   background: #2d3748;
@@ -211,13 +212,13 @@ body:has(.jobs-header) {
   background: #3d4856;
 }
 
-/* Independent Tab Content Wrappers - SOLVES SCROLL SHARING ISSUE */
+/* Independent Tab Content Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM */
 .tab-content-wrapper {
   position: fixed;
-  top: 162px; /* Below header and tabs */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px); /* Below uniform header and tabs */
   left: 0;
   width: 100%;
-  height: calc(100vh - 162px);
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px));
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1248,6 +1249,19 @@ body:has(.jobs-header) {
   .jobs-header-title {
     font-size: 2.2rem !important; /* Fixed size for tablet range to prevent shrinking */
   }
+  
+  /* GOLDEN RULE: Remove gap between borderline and tabs */
+  .jobs-tabs {
+    margin-top: -10px; /* Bring tabs closer to borderline */
+  }
+}
+
+/* Desktop range (1024px+) */
+@media (min-width: 1024px) {
+  /* GOLDEN RULE: Remove gap between borderline and tabs */
+  .jobs-tabs {
+    margin-top: -10px; /* Bring tabs closer to borderline */
+  }
 }
 
 /* Mobile responsive rain */
@@ -1408,7 +1422,8 @@ body:has(.jobs-header) {
   }
 
   .jobs-tabs {
-    top: 72px; /* Mobile: 68px header + 4px border = 72px */
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* Mobile: uniform header + normal gap */
+    margin-top: -10px; /* GOLDEN RULE: Reduce gap between borderline and tabs */
   }
 
   .tab-btn {
@@ -1421,10 +1436,11 @@ body:has(.jobs-header) {
     font-size: 0.8rem;
   }
 
-  /* Mobile Independent Tab Wrappers - FIXED POSITIONING */
+  /* Mobile Independent Tab Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM */
   .tab-content-wrapper {
-    top: 120px; /* Mobile: 68px header + 4px border + 38px tabs + 10px gap = 120px */
-    height: calc(100vh - 120px);
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px); /* Mobile: uniform header + tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px));
+    margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
   /* Mobile Tab Containers */
@@ -1740,7 +1756,8 @@ body:has(.jobs-header) {
   }
 
   .jobs-tabs {
-    top: 68px; /* Adjusted for smaller header */
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* 375px: uniform header + normal gap */
+    margin-top: -10px; /* GOLDEN RULE: Reduce gap between borderline and tabs */
   }
 
   .tab-btn {
@@ -1754,8 +1771,9 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: 112px; /* Adjusted for smaller header + tabs */
-    height: calc(100vh - 112px);
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px); /* 375px: uniform header + tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px));
+    margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
   /* iPhone 7 Listings Container */
@@ -2033,7 +2051,8 @@ body:has(.jobs-header) {
   }
 
   .jobs-tabs {
-    top: 70px; /* Adjusted for smaller header */
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* 400px: uniform header + normal gap */
+    margin-top: -10px; /* GOLDEN RULE: Reduce gap between borderline and tabs */
   }
 
   .tab-btn {
@@ -2047,8 +2066,9 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: 116px; /* Adjusted for smaller header + tabs */
-    height: calc(100vh - 116px);
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px); /* 400px: uniform header + tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px));
+    margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
   /* Smaller Mobile Listing Card Styles */
@@ -2656,7 +2676,8 @@ body:has(.jobs-header) {
   }
 
   .jobs-tabs {
-    top: 66px;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* 320px: uniform header + normal gap */
+    margin-top: -10px; /* GOLDEN RULE: Reduce gap between borderline and tabs */
   }
 
   .tab-btn {
@@ -2670,8 +2691,9 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: 108px;
-    height: calc(100vh - 108px);
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px); /* 320px: uniform header + tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 52px));
+    margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
   /* 320px Listing Card Styles */
@@ -2789,11 +2811,11 @@ body:has(.jobs-header) {
 
   /* 320px Hiring Card Styles */
   .hiring-container {
-    padding: 25px 0 50px 0;
+    padding: 15px 0 50px 0; /* Standardized to match listings container */
   }
 
   .previous-container {
-    padding: 25px 0 50px 0;
+    padding: 15px 0 50px 0; /* Standardized to match listings container */
   }
 
   .hiring-card {

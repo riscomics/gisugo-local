@@ -168,32 +168,6 @@
     <script src="public/js/shared-menu.js"></script>
     <script src="public/js/messages.js?v=11.0"></script>
 
-    <!-- VIEWPORT DEBUGGING TOOL -->
-    <div id="vp-debug"></div>
-    <script>
-        function updateViewportWidth() {
-            const el = document.getElementById('vp-debug');
-            el.textContent = `Viewport: ${window.innerWidth}px`;
-        }
 
-        const style = `
-            position:fixed;
-            bottom:0;
-            left:0;
-            background:#000;
-            color:#fff;
-            padding:4px 8px;
-            font-size:12px;
-            opacity:0.6;
-            z-index:9999;
-            font-family:monospace;
-        `;
-
-        const debugEl = document.getElementById('vp-debug');
-        if (debugEl) debugEl.setAttribute('style', style);
-
-        updateViewportWidth();
-        window.addEventListener('resize', updateViewportWidth);
-    </script>
 </body>
 </html> 
