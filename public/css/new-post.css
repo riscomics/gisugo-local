@@ -166,7 +166,7 @@ body::-webkit-scrollbar {
   position: relative;
   width: 100%;
   background: #363f4f;
-  margin-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* Clear uniform header */
+  margin-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + -105px); /* Clear uniform header */
 }
 
 .new-post-listheader {
@@ -288,6 +288,8 @@ body::-webkit-scrollbar {
   width: 100%;
   background: #363f4f;
   padding: clamp(8px, 2vw, 15px) 0; /* Responsive padding */
+  margin-top: -15px;
+  margin-bottom: -20px;
 }
 
 .new-post-sortmenus {
@@ -1408,7 +1410,7 @@ body::-webkit-scrollbar {
     justify-content: center;
     align-items: center;
     position: relative;
-    margin: 10px auto 0 auto; /* Reduced spacing from job category */
+    margin: 15px auto 0 auto; /* Reduced spacing from job category */
     padding: 8px 0px; /* Reduced vertical padding */
     width: 380px;
     max-width: 350px; /* Narrower background on mobile */
