@@ -220,6 +220,21 @@ html body:has(.uniform-header) {
     --header-borderline-height: 4px !important;
     --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
+
+  /* Ultra Small Menu Adjustments - Fix "too massive" overlay */
+  .uniform-menu-items {
+    height: clamp(52px, 13vh, 60px); /* Reduced more from 58px-66px */
+  }
+  
+  .uniform-menu-item {
+    font-size: clamp(9px, 2.5vw, 10px);
+    width: clamp(35px, 8vw, 38px);
+  }
+  
+  .uniform-menu-item img {
+    width: clamp(24px, 6vw, 28px);
+    height: clamp(24px, 6vw, 28px);
+  }
 }
 
 /* Small Mobile Screens (321px - 400px) - INCREASED BUTTON SIZES */
@@ -233,6 +248,21 @@ html body:has(.uniform-header) {
     --header-btn-font-size: clamp(11px, 3vw, 13px); /* Increased from 10px to 11px */
     --header-btn-img-height: clamp(30px, 9vh, 37px); /* Increased from 28px to 30px */
     --header-borderline-position: var(--header-height); /* Directly adjacent to header */
+  }
+
+  /* Small Mobile Menu Adjustments - Fix "too massive" overlay */
+  .uniform-menu-items {
+    height: clamp(58px, 15vh, 65px); /* Reduced slightly from 62px-70px */
+  }
+  
+  .uniform-menu-item {
+    font-size: clamp(10px, 2.8vw, 11px);
+    width: clamp(38px, 9vw, 42px);
+  }
+  
+  .uniform-menu-item img {
+    width: clamp(26px, 7vw, 30px);
+    height: clamp(26px, 7vw, 30px);
   }
 }
 
@@ -274,6 +304,11 @@ html body:has(.uniform-header) {
     --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
 
+  /* Tablet Menu Adjustments - Minimal increase */
+  .uniform-menu-items {
+    height: clamp(100px, 15vh, 105px); /* Minimal increase from base 100px */
+  }
+
   /* NO TOP MARGIN - Header starts at top: 0 to prevent gaps */
   /* NO BODY PADDING RULES - Each page handles its own content spacing */
 }
@@ -285,6 +320,11 @@ html body:has(.uniform-header) {
     --header-title-font-size: clamp(1.3rem, 4vw, 2.8rem); /* Increased size for desktop */
     --header-borderline-height: 4px !important; /* Thinner for desktop */
     --header-borderline-position: var(--header-height); /* Directly adjacent to header */
+  }
+
+  /* Desktop Menu Adjustments - Reduced height */
+  .uniform-menu-items {
+    height: clamp(98px, 14vh, 102px); /* Slightly reduced from base 100px */
   }
 
   /* NO TOP MARGIN - Header starts at top: 0 to prevent gaps */

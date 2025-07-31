@@ -583,6 +583,11 @@ body::-webkit-scrollbar {
     margin-right: calc(-50vw + 50%) !important;
   }
   
+  /* Reduce gap between 2nd borderline and tabs */
+  .profile-tabs {
+    margin-top: -4px; /* Reduce spacing for tablet */
+  }
+  
   /* Tablet Review Container - Moderate height increase */
   .reviews-container {
     max-height: min(75vh, 700px); /* Moderate height increase for tablets */
@@ -606,6 +611,11 @@ body::-webkit-scrollbar {
     width: 100vw !important; /* Full width on desktop */
     margin-left: calc(-50vw + 50%) !important; /* Center and extend to edges */
     margin-right: calc(-50vw + 50%) !important;
+  }
+  
+  /* Reduce gap between 2nd borderline and tabs */
+  .profile-tabs {
+    margin-top: -6px; /* Reduce spacing for desktop */
   }
   
   /* Desktop Review Container - Utilize full height */
