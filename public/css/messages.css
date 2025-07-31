@@ -2072,6 +2072,11 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: clamp(9px, 2.5vw, 10px); /* Match new-post */
   }
   
+  .messages-header-borderline {
+    height: 4px !important; /* Ensure borderline is visible at 320px */
+    top: 62px !important; /* Position directly below reduced header height */
+  }
+  
   /* Ultra Small Tabs Responsive */
   .messages-tabs {
     top: calc(62px + clamp(3px, 1vh, 4px)); /* Ultra-small header height + borderline - tight positioning */
