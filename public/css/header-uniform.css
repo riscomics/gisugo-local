@@ -218,7 +218,7 @@ html body:has(.uniform-header) {
     --header-btn-height: clamp(38px, 7vh, 42px);
     --header-btn-font-size: clamp(9px, 2.5vw, 10px);
     --header-borderline-height: 4px !important;
-    --header-borderline-position: 62px !important;
+    --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
 }
 
@@ -232,7 +232,7 @@ html body:has(.uniform-header) {
     --header-btn-height: clamp(44px, 17vh, 49px); /* Increased from 40px to 44px */
     --header-btn-font-size: clamp(11px, 3vw, 13px); /* Increased from 10px to 11px */
     --header-btn-img-height: clamp(30px, 9vh, 37px); /* Increased from 28px to 30px */
-    --header-borderline-position: calc(var(--header-height) + clamp(3px, 1vh, 4px));
+    --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
 }
 
@@ -246,7 +246,7 @@ html body:has(.uniform-header) {
     --header-btn-height: 47px;
     --header-btn-font-size: 12px;
     --header-btn-img-height: clamp(28px, 8vh, 35px);
-    --header-borderline-position: calc(var(--header-height) + clamp(3px, 1vh, 4px));
+    --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
 
   /* Mobile Menu Adjustments */
@@ -271,13 +271,10 @@ html body:has(.uniform-header) {
     --header-height: clamp(66px, 20vh, 106px);
     --header-title-font-size: 2.5rem !important; /* Increased size for tablet */
     --header-borderline-height: 6px !important;
-    --header-borderline-position: calc(8px + var(--header-height) + 6px); /* Top margin + header + gap */
+    --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
 
-  .uniform-header {
-    top: 8px !important; /* Add top margin for tablet breathing room */
-  }
-
+  /* NO TOP MARGIN - Header starts at top: 0 to prevent gaps */
   /* NO BODY PADDING RULES - Each page handles its own content spacing */
 }
 
@@ -287,13 +284,10 @@ html body:has(.uniform-header) {
     --header-height: clamp(66px, 20vh, 106px);
     --header-title-font-size: clamp(1.3rem, 4vw, 2.8rem); /* Increased size for desktop */
     --header-borderline-height: 4px !important; /* Thinner for desktop */
-    --header-borderline-position: calc(10px + var(--header-height) + 6px); /* Top margin + header + gap */
+    --header-borderline-position: var(--header-height); /* Directly adjacent to header */
   }
 
-  .uniform-header {
-    top: 10px !important; /* Add top margin for desktop breathing room */
-  }
-
+  /* NO TOP MARGIN - Header starts at top: 0 to prevent gaps */
   /* NO BODY PADDING RULES - Each page handles its own content spacing */
 }
 
