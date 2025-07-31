@@ -10,10 +10,11 @@ html::-webkit-scrollbar {
   display: none;  /* Safari and Chrome */
 }
 
+/* BODY STYLES - UPDATED FOR UNIFORM HEADER SYSTEM */
 body {
   background: #363F4F;
   margin: 0;
-  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
+  /* Removed fixed padding - uniform header system handles this automatically */
 }
 
 body::-webkit-scrollbar {
@@ -160,11 +161,12 @@ body::-webkit-scrollbar {
   object-fit: contain;
 }
 
-/* EXACT COPY from listing.css jobcat styles */
+/* EXACT COPY from listing.css jobcat styles - UPDATED FOR UNIFORM HEADER SYSTEM */
 .new-post-category-header {
   position: relative;
   width: 100%;
   background: #363f4f;
+  margin-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* Clear uniform header */
 }
 
 .new-post-listheader {
