@@ -368,7 +368,7 @@ html body:has(.uniform-header) {
 }
 
 .page-contacts .uniform-header-title::before {
-  content: "CONTACTS";
+  content: "CONTACT US";
 }
 
 .page-post .uniform-header-title::before {

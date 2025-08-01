@@ -4,47 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Us - GISUGO</title>
+    <link rel="stylesheet" href="public/css/header-uniform.css">
     <link rel="stylesheet" href="public/css/contacts.css">
 </head>
-<body>
-    <!-- Header Section -->
-    <header class="contacts-header">
-        <div class="contacts-header-title-container">
-            <button class="contacts-header-btn back" onclick="goBack()">
+<body class="page-contacts">
+    <!-- Uniform Header System -->
+    <header class="uniform-header">
+        <div class="uniform-header-title-container">
+            <button class="uniform-header-btn back" onclick="goBack()">
                 <img src="public/icons/back.png" alt="Back">
                 <span>BACK</span>
             </button>
             
-            <h1 class="contacts-header-title">CONTACT US</h1>
+            <h1 class="uniform-header-title"></h1>
             
-            <button class="contacts-header-btn menu" onclick="toggleMenu()">
+            <button class="uniform-header-btn menu" id="uniformMenuBtn">
                 <img src="public/icons/menu.png" alt="Menu">
                 <span>MENU</span>
             </button>
         </div>
-        <div class="contacts-header-borderline"></div>
     </header>
+    <div class="uniform-header-borderline"></div>
 
-    <!-- Menu Overlay -->
-    <div class="contacts-menu-overlay" id="menuOverlay">
-        <div class="contacts-menu-items">
-            <a href="index.html" class="contacts-menu-item">
+    <!-- Uniform Menu Overlay -->
+    <div class="uniform-menu-overlay" id="uniformMenuOverlay">
+        <div class="uniform-menu-items">
+            <a href="index.html" class="uniform-menu-item">
                 <img src="public/icons/Home.png" alt="Home">
                 <span>HOME</span>
             </a>
-            <a href="jobs.html" class="contacts-menu-item">
+            <a href="jobs.html" class="uniform-menu-item">
                 <img src="public/icons/Jobs.png" alt="Jobs">
                 <span>JOBS</span>
             </a>
-            <a href="new-post.html" class="contacts-menu-item">
+            <a href="new-post.html" class="uniform-menu-item">
                 <img src="public/icons/Post.png" alt="Post">
                 <span>POST</span>
             </a>
-            <a href="messages.html" class="contacts-menu-item">
+            <a href="messages.html" class="uniform-menu-item">
                 <img src="public/icons/Messages.png" alt="Messages">
                 <span>MESSAGES</span>
             </a>
-            <a href="profile.html" class="contacts-menu-item">
+            <a href="profile.html" class="uniform-menu-item">
                 <img src="public/icons/Profile.png" alt="Profile">
                 <span>PROFILE</span>
             </a>
@@ -262,6 +263,44 @@
         </div>
     </div>
 
+    <script src="public/js/header-uniform.js"></script>
     <script src="public/js/contacts.js"></script>
+    
+    <script>
+        // Initialize uniform header system
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeUniformHeader();
+        });
+    </script>
+
+    <!-- VIEWPORT DEBUG TOOL -->
+    <div id="vp-debug"></div>
+    <script>
+    // Viewport Debug Tool
+    (function() {
+        const vpDebug = document.getElementById('vp-debug');
+        vpDebug.style.cssText = `
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            background: #000;
+            color: #fff;
+            padding: 4px 8px;
+            font-size: 12px;
+            opacity: 0.6;
+            z-index: 9999;
+            font-family: monospace;
+            border-radius: 0 4px 0 0;
+            pointer-events: none;
+        `;
+        
+        function updateViewport() {
+            vpDebug.textContent = 'Viewport: ' + window.innerWidth + 'px';
+        }
+        
+        updateViewport();
+        window.addEventListener('resize', updateViewport);
+    })();
+    </script>
 </body>
 </html> 
