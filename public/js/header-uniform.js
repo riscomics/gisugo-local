@@ -219,9 +219,9 @@ function initializeMenuItems(menuOverlay) {
     // Default menu items if no shared-menu.js is found
     const defaultMenuItems = [
         { href: 'index.html', img: 'public/icons/Home.png', text: 'Home' },
-        { href: 'jobs.html', img: 'public/icons/Jobs.png', text: 'Jobs' },
-        { href: 'messages.html', img: 'public/icons/Messages.png', text: 'Messages' },
         { href: 'new-post.html', img: 'public/icons/Post.png', text: 'Post' },
+        { href: 'messages.html', img: 'public/icons/Messages.png', text: 'Messages' },
+        { href: 'jobs.html', img: 'public/icons/Jobs.png', text: 'Jobs' },
         { href: 'profile.html', img: 'public/icons/Profile.png', text: 'Profile' }
     ];
 

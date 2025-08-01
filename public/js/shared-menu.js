@@ -9,14 +9,14 @@ const MENU_ITEMS = [
     link: 'index.html'
   },
   {
+    icon: 'public/icons/Post.png',
+    text: 'Post',
+    link: 'new-post.html'
+  },
+  {
     icon: 'public/icons/Messages.png',
     text: 'Messages',
     link: 'messages.html'
-  },
-  {
-    icon: 'public/icons/Profile.png',
-    text: 'Profile',
-    link: 'profile.html'
   },
   {
     icon: 'public/icons/Jobs.png',
@@ -24,9 +24,9 @@ const MENU_ITEMS = [
     link: 'jobs.html'
   },
   {
-    icon: 'public/icons/Post.png',
-    text: 'Post',
-    link: 'new-post.html'
+    icon: 'public/icons/Profile.png',
+    text: 'Profile',
+    link: 'profile.html'
   }
 ];
 
