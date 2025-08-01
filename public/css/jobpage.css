@@ -1939,3 +1939,13 @@ body::-webkit-scrollbar {
     font-size: 32px;
   }
 }
+
+/* Tablet and Desktop viewport styles (601px and above) */
+@media (min-width: 601px) {
+  /* Only target the photo container with homepage background */
+  .job-photo-container {
+    background: #856f67; /* Homepage background color */
+    box-shadow: 0 0 0 100vw #856f67;
+    clip-path: inset(0 -100vw 0 -100vw);
+  }
+}
