@@ -131,6 +131,39 @@ body::-webkit-scrollbar {
   box-sizing: border-box;
 }
 
+/* Hero Video Styles - Responsive YouTube Videos */
+.hero-video {
+  width: 100%;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  display: block;
+}
+
+/* Landscape Video - Default (for screens > 412px) */
+.hero-video-landscape {
+  height: calc(100vw * 0.5625); /* 16:9 aspect ratio */
+  max-height: 400px; /* Prevent it from getting too tall */
+}
+
+/* Portrait Video - Hidden by default */
+.hero-video-portrait {
+  display: none;
+  height: calc(100vw * 1.777); /* 9:16 aspect ratio */
+  max-height: 600px; /* Prevent it from getting too tall */
+}
+
+/* Media Query for Mobile/Portrait (412px and below) */
+@media (max-width: 412px) {
+  .hero-video-landscape {
+    display: none;
+  }
+  
+  .hero-video-portrait {
+    display: block;
+  }
+}
+
 /* Hero Signup Section */
 .hero-signup {
   background: rgba(240, 230, 210, 0.15);
