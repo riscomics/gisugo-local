@@ -116,10 +116,52 @@ body::-webkit-scrollbar {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Hero Image inside signup container - Full Width */
-.hero-signup .image-container {
+/* Banner Container in Hero Section */
+.hero-signup .banner-container {
   margin: -2.5rem -1.875rem 1.5rem -1.875rem;
   width: calc(100% + 3.75rem);
+}
+
+/* Hero Banner Styles */
+.hero-banner {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 1.25rem 1.25rem 0 0;
+  box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+}
+
+/* Horizontal Banner - Default (for screens > 412px) */
+.hero-banner-horizontal {
+  display: block;
+}
+
+/* Vertical Banner - Hidden by default */
+.hero-banner-vertical {
+  display: none;
+}
+
+/* Media Query for Mobile/Portrait (412px and below) */
+@media (max-width: 412px) {
+  .hero-banner-horizontal {
+    display: none;
+  }
+  
+  .hero-banner-vertical {
+    display: block;
+  }
+  
+  .hero-signup .banner-container {
+    margin: -1.5rem -1.25rem 1.25rem -1.25rem;
+    width: calc(100% + 2.5rem);
+  }
+}
+
+/* Video Container in Value Section */
+.value-section .video-container {
+  margin-top: 2rem;
+  width: 100%;
 }
 
 .hero-thumbnail {
@@ -134,7 +176,7 @@ body::-webkit-scrollbar {
 /* Hero Video Styles - Responsive YouTube Videos */
 .hero-video {
   width: 100%;
-  border-radius: 1.25rem 1.25rem 0 0;
+  border-radius: 1rem;
   box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
   display: block;
