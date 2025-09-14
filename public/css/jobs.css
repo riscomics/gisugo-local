@@ -210,36 +210,31 @@ body:has(.jobs-header) {
   background: linear-gradient(135deg, #d4c29a 0%, #c4b28a 100%);
 }
 
+/* Active role tab - blue color for any active role */
 .role-tab-btn.active {
-  box-shadow: 0 6px 20px rgba(230, 214, 174, 0.6);
-  transform: scale(1.02);
-}
-
-/* Customer tab active state - represents current functionality */
-.role-tab-btn.active[data-role="customer"] {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: #ffffff;
   border-color: rgba(59, 130, 246, 0.5);
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  transform: scale(1.02);
 }
 
-.role-tab-btn.active[data-role="customer"]:hover {
+.role-tab-btn.active:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   box-shadow: 0 8px 25px rgba(59, 130, 246, 0.8);
 }
 
-/* Worker tab active state - for future functionality */
-.role-tab-btn.active[data-role="worker"] {
+/* Inactive role tabs - muted gray color */
+.role-tab-btn:not(.active) {
   background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
   color: #e5e7eb;
   border-color: rgba(107, 114, 128, 0.5);
-  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
-  opacity: 0.7; /* Slightly faded to indicate coming soon */
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.3);
 }
 
-.role-tab-btn.active[data-role="worker"]:hover {
+.role-tab-btn:not(.active):hover {
   background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.6);
+  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.5);
 }
 
 .role-tab-text {
@@ -342,7 +337,9 @@ body:has(.jobs-header) {
 /* Tab Container Styles */
 .listings-container,
 .hiring-container,
-.previous-container {
+.previous-container,
+.accepted-container,
+.worker-completed-container {
   padding: 25px 0 40px 0;
 }
 

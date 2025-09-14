@@ -926,11 +926,57 @@ function switchToRole(roleType) {
         activeRoleBtn.classList.add('active');
     }
     
-    // For now, just log the role switch - functionality will be expanded later
     console.log(`🔄 Switched to ${roleType} role`);
     
-    // You can add additional role-specific logic here in the future
-    // For example: filtering content, showing different data, etc.
+    // Show/hide appropriate tab sets and content
+    if (roleType === 'customer') {
+        // Show customer tabs and content
+        document.querySelector('.customer-tabs').style.display = 'flex';
+        document.querySelector('.worker-tabs').style.display = 'none';
+        
+        // Hide all content first
+        document.querySelectorAll('.tab-content-wrapper').forEach(wrapper => {
+            wrapper.style.display = 'none';
+            wrapper.classList.remove('active');
+        });
+        
+        // Show customer content (default to listings)
+        const listingsContent = document.getElementById('listings-content');
+        if (listingsContent) {
+            listingsContent.style.display = 'block';
+            listingsContent.classList.add('active');
+        }
+        
+        // Activate listings tab
+        document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('listingsTab')?.classList.add('active');
+        
+        console.log('✅ Customer role activated - showing Listings/Hiring/Completed tabs');
+        
+    } else if (roleType === 'worker') {
+        // Show worker tabs and content
+        document.querySelector('.customer-tabs').style.display = 'none';
+        document.querySelector('.worker-tabs').style.display = 'flex';
+        
+        // Hide all content first
+        document.querySelectorAll('.tab-content-wrapper').forEach(wrapper => {
+            wrapper.style.display = 'none';
+            wrapper.classList.remove('active');
+        });
+        
+        // Show worker content (default to accepted)
+        const acceptedContent = document.getElementById('accepted-content');
+        if (acceptedContent) {
+            acceptedContent.style.display = 'block';
+            acceptedContent.classList.add('active');
+        }
+        
+        // Activate accepted tab
+        document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('acceptedTab')?.classList.add('active');
+        
+        console.log('✅ Worker role activated - showing Gigs Accepted/Gigs Completed tabs');
+    }
 }
 
 function initializeTabs() {
@@ -940,9 +986,115 @@ function initializeTabs() {
         button.addEventListener('click', async function(e) {
             e.preventDefault();
             const tabType = this.getAttribute('data-tab');
-            await switchToTab(tabType);
+            
+            // Determine if this is a customer or worker tab
+            const isCustomerTab = this.closest('.customer-tabs');
+            const isWorkerTab = this.closest('.worker-tabs');
+            
+            if (isCustomerTab) {
+                await switchToCustomerTab(tabType);
+            } else if (isWorkerTab) {
+                await switchToWorkerTab(tabType);
+            }
         });
     });
+}
+
+async function switchToCustomerTab(tabType) {
+    // Update customer tab states
+    document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeTabBtn = document.querySelector(`.customer-tabs [data-tab="${tabType}"]`);
+    if (activeTabBtn) {
+        activeTabBtn.classList.add('active');
+    }
+    
+    // Update customer content visibility
+    document.querySelectorAll('.customer-content').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    const activeWrapper = document.getElementById(`${tabType}-content`);
+    if (activeWrapper) {
+        activeWrapper.style.display = 'block';
+        activeWrapper.classList.add('active');
+    }
+    
+    console.log(`🔄 Switched to customer tab: ${tabType}`);
+    
+    // Load content based on tab type (existing functionality)
+    if (tabType === 'listings') {
+        await initializeListingsTab();
+    } else if (tabType === 'hiring') {
+        await initializeHiringTab();
+    } else if (tabType === 'previous') {
+        await initializePreviousTab();
+    }
+}
+
+async function switchToWorkerTab(tabType) {
+    // Update worker tab states
+    document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeTabBtn = document.querySelector(`.worker-tabs [data-tab="${tabType}"]`);
+    if (activeTabBtn) {
+        activeTabBtn.classList.add('active');
+    }
+    
+    // Update worker content visibility
+    document.querySelectorAll('.worker-content').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    const activeWrapper = document.getElementById(`${tabType}-content`);
+    if (activeWrapper) {
+        activeWrapper.style.display = 'block';
+        activeWrapper.classList.add('active');
+    }
+    
+    console.log(`🔄 Switched to worker tab: ${tabType}`);
+    
+    // Load worker content (placeholder for now)
+    if (tabType === 'accepted') {
+        await initializeAcceptedTab();
+    } else if (tabType === 'worker-completed') {
+        await initializeWorkerCompletedTab();
+    }
+}
+
+// Placeholder functions for worker tab content
+async function initializeAcceptedTab() {
+    console.log('📋 Initializing accepted gigs tab - coming soon');
+    const container = document.querySelector('.accepted-container');
+    if (container) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">Gigs Accepted</div>
+                <div class="empty-state-message">Your accepted gigs will appear here</div>
+            </div>
+        `;
+    }
+}
+
+async function initializeWorkerCompletedTab() {
+    console.log('📋 Initializing worker completed gigs tab - coming soon');
+    const container = document.querySelector('.worker-completed-container');
+    if (container) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">✅</div>
+                <div class="empty-state-title">Gigs Completed</div>
+                <div class="empty-state-message">Your completed gigs will appear here</div>
+            </div>
+        `;
+    }
 }
 
 async function switchToTab(tabType) {

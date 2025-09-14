@@ -42,8 +42,8 @@
         </button>
     </div>
 
-    <!-- Tab Navigation -->
-    <div class="jobs-tabs">
+    <!-- Customer Tab Navigation -->
+    <div class="jobs-tabs customer-tabs">
         <button class="tab-btn active" data-tab="listings" id="listingsTab">
             <span class="tab-label">LISTINGS</span>
             <span class="notification-count">4</span>
@@ -58,9 +58,23 @@
         </button>
     </div>
 
+    <!-- Worker Tab Navigation -->
+    <div class="jobs-tabs worker-tabs" style="display: none;">
+        <button class="tab-btn active" data-tab="accepted" id="acceptedTab">
+            <span class="tab-label">GIGS ACCEPTED</span>
+            <span class="notification-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="worker-completed" id="workerCompletedTab">
+            <span class="tab-label">GIGS COMPLETED</span>
+            <span class="notification-count">0</span>
+        </button>
+    </div>
+
     <!-- Independent Tab Content Areas -->
+    
+    <!-- CUSTOMER ROLE CONTENT AREAS -->
     <!-- Listings Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper active" id="listings-content">
+    <div class="tab-content-wrapper customer-content active" id="listings-content">
         <div class="tab-scroll-container">
             <div class="listings-container">
                 <!-- Listings content will be loaded dynamically when tab is active -->
@@ -69,7 +83,7 @@
     </div>
 
     <!-- Hiring Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper" id="hiring-content">
+    <div class="tab-content-wrapper customer-content" id="hiring-content">
         <div class="tab-scroll-container">
             <div class="hiring-container">
                 <!-- Hiring content will be loaded dynamically when tab is active -->
@@ -78,10 +92,29 @@
     </div>
             
     <!-- Previous Jobs Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper" id="previous-content">
+    <div class="tab-content-wrapper customer-content" id="previous-content">
         <div class="tab-scroll-container">
             <div class="previous-container">
                 <!-- Previous jobs content will be loaded dynamically when tab is active -->
+            </div>
+        </div>
+    </div>
+
+    <!-- WORKER ROLE CONTENT AREAS -->
+    <!-- Accepted Gigs Tab Content - Independent Scroll Container -->
+    <div class="tab-content-wrapper worker-content" id="accepted-content" style="display: none;">
+        <div class="tab-scroll-container">
+            <div class="accepted-container">
+                <!-- Accepted gigs content will be loaded dynamically when tab is active -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Worker Completed Gigs Tab Content - Independent Scroll Container -->
+    <div class="tab-content-wrapper worker-content" id="worker-completed-content" style="display: none;">
+        <div class="tab-scroll-container">
+            <div class="worker-completed-container">
+                <!-- Worker completed gigs content will be loaded dynamically when tab is active -->
             </div>
         </div>
     </div>
@@ -512,12 +545,9 @@
         </div>
     </div>
 
-    <script src="public/js/shared-menu.js"></script>
-    <script src="public/js/jobs.js?v=15"></script>
-
     <!-- UNIFORM HEADER SYSTEM -->
     <script src="public/js/header-uniform.js?v=1.0"></script>
     <script src="public/js/shared-menu.js"></script>
-    <script src="public/js/jobs.js?v=2.9"></script>
+    <script src="public/js/jobs.js?v=15"></script>
 </body>
 </html> 
