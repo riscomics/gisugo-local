@@ -34,16 +34,16 @@
 
     <!-- Role Tab Navigation - New Top Level -->
     <div class="role-tabs">
-        <button class="role-tab-btn" data-role="worker" id="workerRoleTab">
+        <button class="role-tab-btn active" data-role="worker" id="workerRoleTab">
             <span class="role-tab-text">WORKER</span>
         </button>
-        <button class="role-tab-btn active" data-role="customer" id="customerRoleTab">
+        <button class="role-tab-btn" data-role="customer" id="customerRoleTab">
             <span class="role-tab-text">CUSTOMER</span>
         </button>
     </div>
 
     <!-- Customer Tab Navigation -->
-    <div class="jobs-tabs customer-tabs">
+    <div class="jobs-tabs customer-tabs" style="display: none;">
         <button class="tab-btn active" data-tab="listings" id="listingsTab">
             <span class="tab-label">LISTINGS</span>
             <span class="notification-count">4</span>
@@ -59,7 +59,7 @@
     </div>
 
     <!-- Worker Tab Navigation -->
-    <div class="jobs-tabs worker-tabs" style="display: none;">
+    <div class="jobs-tabs worker-tabs">
         <button class="tab-btn active" data-tab="accepted" id="acceptedTab">
             <span class="tab-label">GIGS ACCEPTED</span>
             <span class="notification-count">0</span>
@@ -74,7 +74,7 @@
     
     <!-- CUSTOMER ROLE CONTENT AREAS -->
     <!-- Listings Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper customer-content active" id="listings-content">
+    <div class="tab-content-wrapper customer-content" id="listings-content" style="display: none;">
         <div class="tab-scroll-container">
             <div class="listings-container">
                 <!-- Listings content will be loaded dynamically when tab is active -->
@@ -83,7 +83,7 @@
     </div>
 
     <!-- Hiring Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper customer-content" id="hiring-content">
+    <div class="tab-content-wrapper customer-content" id="hiring-content" style="display: none;">
         <div class="tab-scroll-container">
             <div class="hiring-container">
                 <!-- Hiring content will be loaded dynamically when tab is active -->
@@ -92,7 +92,7 @@
     </div>
             
     <!-- Previous Jobs Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper customer-content" id="previous-content">
+    <div class="tab-content-wrapper customer-content" id="previous-content" style="display: none;">
         <div class="tab-scroll-container">
             <div class="previous-container">
                 <!-- Previous jobs content will be loaded dynamically when tab is active -->
@@ -102,10 +102,15 @@
 
     <!-- WORKER ROLE CONTENT AREAS -->
     <!-- Accepted Gigs Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper worker-content" id="accepted-content" style="display: none;">
+    <div class="tab-content-wrapper worker-content active" id="accepted-content">
         <div class="tab-scroll-container">
             <div class="accepted-container">
                 <!-- Accepted gigs content will be loaded dynamically when tab is active -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-title">Gigs Accepted</div>
+                    <div class="empty-state-message">Your accepted gigs will appear here</div>
+                </div>
             </div>
         </div>
     </div>
@@ -115,6 +120,11 @@
         <div class="tab-scroll-container">
             <div class="worker-completed-container">
                 <!-- Worker completed gigs content will be loaded dynamically when tab is active -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">✅</div>
+                    <div class="empty-state-title">Gigs Completed</div>
+                    <div class="empty-state-message">Your completed gigs will appear here</div>
+                </div>
             </div>
         </div>
     </div>
