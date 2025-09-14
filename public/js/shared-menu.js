@@ -20,7 +20,7 @@ const MENU_ITEMS = [
   },
   {
     icon: 'public/icons/Jobs.png',
-    text: 'Jobs',
+    text: 'Gigs',
     link: 'jobs.html'
   },
   {

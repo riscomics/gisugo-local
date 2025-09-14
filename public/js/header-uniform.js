@@ -221,7 +221,7 @@ function initializeMenuItems(menuOverlay) {
         { href: 'index.html', img: 'public/icons/Home.png', text: 'Home' },
         { href: 'new-post.html', img: 'public/icons/Post.png', text: 'Post' },
         { href: 'messages.html', img: 'public/icons/Messages.png', text: 'Messages' },
-        { href: 'jobs.html', img: 'public/icons/Jobs.png', text: 'Jobs' },
+        { href: 'jobs.html', img: 'public/icons/Jobs.png', text: 'Gigs' },
         { href: 'profile.html', img: 'public/icons/Profile.png', text: 'Profile' }
     ];
 
