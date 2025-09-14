@@ -857,6 +857,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
         
     initializeMenu();
+    initializeRoleTabs();
     initializeTabs();
         
         // Initialize the preferred tab (listings by default, can be overridden by tab parameter)
@@ -900,6 +901,36 @@ function initializeMenu() {
         };
         addDocumentListener('keydown', escapeHandler);
     }
+}
+
+function initializeRoleTabs() {
+    const roleButtons = document.querySelectorAll('.role-tab-btn');
+    
+    roleButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const roleType = this.getAttribute('data-role');
+            switchToRole(roleType);
+        });
+    });
+}
+
+function switchToRole(roleType) {
+    // Update role button states
+    document.querySelectorAll('.role-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeRoleBtn = document.querySelector(`[data-role="${roleType}"]`);
+    if (activeRoleBtn) {
+        activeRoleBtn.classList.add('active');
+    }
+    
+    // For now, just log the role switch - functionality will be expanded later
+    console.log(`🔄 Switched to ${roleType} role`);
+    
+    // You can add additional role-specific logic here in the future
+    // For example: filtering content, showing different data, etc.
 }
 
 function initializeTabs() {

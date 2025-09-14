@@ -360,7 +360,7 @@ html body:has(.uniform-header) {
 }
 
 .page-jobs .uniform-header-title::before {
-  content: "JOBS MANAGER";
+  content: "GIGS MANAGER";
 }
 
 .page-forum .uniform-header-title::before {
