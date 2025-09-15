@@ -467,17 +467,17 @@ body:has(.jobs-header) {
   overflow: hidden;
 }
 
-/* Worker Perspective - Jobs where I was hired (Dark Green theme) */
+/* Worker Perspective - Jobs where I was hired (Deep Teal theme) */
 .hiring-card.worker {
-  background: linear-gradient(135deg, #1a2e05 0%, #365314 100%);
-  border-color: rgba(101, 163, 13, 0.2);
+  background: linear-gradient(135deg, #134e4a 0%, #0f766e 100%);
+  border-color: rgba(20, 184, 166, 0.2);
 }
 
 .hiring-card.worker:hover {
-  background: linear-gradient(135deg, #365314 0%, #4d7c0f 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(101, 163, 13, 0.3);
-  border-color: rgba(101, 163, 13, 0.4);
+  box-shadow: 0 6px 24px rgba(20, 184, 166, 0.3);
+  border-color: rgba(20, 184, 166, 0.4);
 }
 
 /* Customer Perspective - Jobs where I hired someone (Blue theme) */
@@ -642,7 +642,7 @@ body:has(.jobs-header) {
 }
 
 .hiring-role-caption.worker {
-  color: #a3e635;
+  color: #14b8a6;
 }
 
 .hiring-user-thumbnail {
@@ -661,11 +661,11 @@ body:has(.jobs-header) {
 
 /* Role-based styling for captions and thumbnails */
 .hiring-card.worker .hiring-role-caption {
-  color: #a3e635;
+  color: #14b8a6;
 }
 
 .hiring-card.worker .hiring-user-thumbnail {
-  border-color: rgba(101, 163, 13, 0.5);
+  border-color: rgba(20, 184, 166, 0.5);
 }
 
 .hiring-card.customer .hiring-role-caption {
@@ -3659,17 +3659,17 @@ body:has(.jobs-header) {
 
 /* Removed old completed status indicator overlay - now using badge in photo area */
 
-/* Worker Perspective - Jobs I worked on (Dark Green theme) */
+/* Worker Perspective - Jobs I worked on (Deep Teal theme) */
 .completed-card.worker {
-  background: linear-gradient(135deg, #1a2e05 0%, #365314 100%);
-  border-color: rgba(101, 163, 13, 0.2);
+  background: linear-gradient(135deg, #134e4a 0%, #0f766e 100%);
+  border-color: rgba(20, 184, 166, 0.2);
 }
 
 .completed-card.worker:hover {
-  background: linear-gradient(135deg, #365314 0%, #4d7c0f 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(101, 163, 13, 0.3);
-  border-color: rgba(101, 163, 13, 0.4);
+  box-shadow: 0 6px 24px rgba(20, 184, 166, 0.3);
+  border-color: rgba(20, 184, 166, 0.4);
 }
 
 /* Customer Perspective - Jobs I posted and completed (Blue theme) */
