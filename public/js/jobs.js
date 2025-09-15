@@ -925,6 +925,13 @@ function initializeRoleTabs() {
 }
 
 async function switchToRole(roleType) {
+    // Track role switch timestamp for contamination detection
+    window.lastRoleSwitch = Date.now();
+    
+    // NUCLEAR CLEANUP: Clear all overlay handlers when switching roles to prevent contamination
+    executeCleanupsByType('hiring');
+    executeCleanupsByType('accepted-overlay');
+    
     // Update role button states
     document.querySelectorAll('.role-tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -1089,14 +1096,24 @@ async function initializeAcceptedTab() {
     const container = document.querySelector('.accepted-container');
     if (!container) return;
     
-    // Check if already loaded
+    // Only force reload if we detect potential contamination from role switching
     if (container.hasAttribute('data-loaded')) {
-        console.log('✅ Accepted gigs tab already loaded');
-        return;
+        // Check if we need to force reload due to potential contamination
+        const lastRoleSwitch = window.lastRoleSwitch || 0;
+        const tabLastLoaded = parseInt(container.getAttribute('data-loaded-time') || '0');
+        
+        if (lastRoleSwitch > tabLastLoaded) {
+            console.log('🔄 Force reloading accepted tab due to role switch contamination');
+            container.removeAttribute('data-loaded');
+        } else {
+            console.log('✅ Accepted gigs tab already loaded and clean');
+            return;
+        }
     }
     
     await loadAcceptedContent();
     container.setAttribute('data-loaded', 'true');
+    container.setAttribute('data-loaded-time', Date.now().toString());
 }
 
 async function loadAcceptedContent() {
@@ -1155,13 +1172,37 @@ function showEmptyAcceptedState() {
 }
 
 function attachAcceptedCardHandlers() {
-    // Cleanup any existing handlers first
+    // NUCLEAR CLEANUP: Remove all possible card handlers to prevent duplicates
     executeCleanupsByType('accepted-cards');
+    executeCleanupsByType('hiring-cards'); // Also clean customer card handlers
     
     // Add click handlers for accepted gig cards
     const acceptedCards = document.querySelectorAll('.accepted-container .hiring-card');
+    
+    // Remove any existing click listeners directly from cards (brute force)
     acceptedCards.forEach(card => {
+        card.replaceWith(card.cloneNode(true));
+    });
+    
+    // Re-select cards after cloning to ensure clean slate
+    const cleanAcceptedCards = document.querySelectorAll('.accepted-container .hiring-card');
+    cleanAcceptedCards.forEach(card => {
         const clickHandler = (e) => {
+            // CRITICAL FIX: Don't intercept button clicks inside overlays
+            const clickedElement = e.target;
+            const isButton = clickedElement.tagName === 'BUTTON' || clickedElement.closest('button');
+            const isInOverlay = clickedElement.closest('.listing-options-overlay');
+            
+            if (isButton) {
+                console.log('🔘 Button click detected in accepted card - allowing button handler to process');
+                return; // Let button handlers handle this
+            }
+            
+            if (isInOverlay) {
+                console.log('🔘 Click inside overlay from accepted card - allowing event to propagate');
+                return; // Don't interfere with overlay interactions
+            }
+            
             e.preventDefault();
             e.stopPropagation();
             
@@ -1176,13 +1217,14 @@ function attachAcceptedCardHandlers() {
         card.addEventListener('click', clickHandler);
         
         // Track for cleanup
-        registerCleanup('accepted-cards', `card-${Array.from(acceptedCards).indexOf(card)}`, () => {
+        registerCleanup('accepted-cards', `card-${Array.from(cleanAcceptedCards).indexOf(card)}`, () => {
             card.removeEventListener('click', clickHandler);
         });
     });
     
-    console.log(`✅ Added handlers to ${acceptedCards.length} accepted gig cards`);
+    console.log(`✅ Added handlers to ${cleanAcceptedCards.length} accepted gig cards`);
 }
+
 
 async function initializeWorkerCompletedTab() {
     console.log('📋 Initializing worker completed gigs tab');
@@ -1262,6 +1304,23 @@ function attachWorkerCompletedCardHandlers() {
     const workerCompletedCards = document.querySelectorAll('.worker-completed-container .completed-card');
     workerCompletedCards.forEach(card => {
         const clickHandler = (e) => {
+            // CRITICAL FIX: Don't intercept button clicks inside overlays
+            // Check if the clicked element is a button or inside a button
+            const clickedElement = e.target;
+            const isButton = clickedElement.tagName === 'BUTTON' || clickedElement.closest('button');
+            const isInOverlay = clickedElement.closest('.listing-options-overlay');
+            
+            
+            if (isButton) {
+                console.log('🔘 Button click detected - allowing button handler to process');
+                return; // Let button handlers handle this, regardless of location
+            }
+            
+            if (isInOverlay) {
+                console.log('🔘 Click inside overlay but not on button - allowing event to propagate');
+                return; // Don't interfere with overlay interactions
+            }
+            
             e.preventDefault();
             e.stopPropagation();
             
@@ -1854,6 +1913,21 @@ function initializeHiringOverlayHandlers() {
     const overlay = document.getElementById('hiringOptionsOverlay');
     if (!overlay || overlay.dataset.handlersInitialized) return;
     
+    // Determine cleanup type based on current role and tab context
+    const currentRole = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role');
+    const currentWorkerTab = document.querySelector('.worker-tabs .tab-btn.active')?.getAttribute('data-tab');
+    
+    console.log(`🔍 DEBUG hiring overlay context: role=${currentRole}, workerTab=${currentWorkerTab}`);
+    
+    // Only use accepted-overlay cleanup type if we're specifically in worker role AND accepted tab
+    // Otherwise, default to 'hiring' for all other contexts (including customer role)
+    const cleanupType = (currentRole === 'worker' && currentWorkerTab === 'accepted') ? 'accepted-overlay' : 'hiring';
+    
+    // CONSISTENCY FIX: Store cleanup type to prevent potential future issues
+    overlay.dataset.registeredCleanupType = cleanupType;
+    
+    console.log(`🔧 Initializing overlay handlers with cleanup type: ${cleanupType}`);
+    
     const completeBtn = document.getElementById('completeJobBtn');
     const relistBtn = document.getElementById('relistJobBtn');
     const resignBtn = document.getElementById('resignJobBtn');
@@ -1867,7 +1941,7 @@ function initializeHiringOverlayHandlers() {
             handleCompleteJob(jobData);
         };
         completeBtn.addEventListener('click', completeHandler);
-        registerCleanup('hiring', 'completeBtn', () => {
+        registerCleanup(cleanupType, 'completeBtn', () => {
             completeBtn.removeEventListener('click', completeHandler);
         });
     }
@@ -1880,7 +1954,7 @@ function initializeHiringOverlayHandlers() {
             handleRelistJob(jobData);
         };
         relistBtn.addEventListener('click', relistHandler);
-        registerCleanup('hiring', 'relistBtn', () => {
+        registerCleanup(cleanupType, 'relistBtn', () => {
             relistBtn.removeEventListener('click', relistHandler);
         });
     }
@@ -1893,7 +1967,7 @@ function initializeHiringOverlayHandlers() {
             handleResignJob(jobData);
         };
         resignBtn.addEventListener('click', resignHandler);
-        registerCleanup('hiring', 'resignBtn', () => {
+        registerCleanup(cleanupType, 'resignBtn', () => {
             resignBtn.removeEventListener('click', resignHandler);
         });
     }
@@ -1905,19 +1979,28 @@ function initializeHiringOverlayHandlers() {
             hideHiringOptionsOverlay();
         };
         cancelBtn.addEventListener('click', cancelHandler);
-        registerCleanup('hiring', 'cancelBtn', () => {
+        registerCleanup(cleanupType, 'cancelBtn', () => {
             cancelBtn.removeEventListener('click', cancelHandler);
         });
     }
     
     // Background click handler
     const backgroundHandler = function(e) {
+        // Close if clicking on overlay background
         if (e.target === overlay) {
             hideHiringOptionsOverlay();
+            return;
+        }
+        
+        // CONSISTENCY FIX: Also close if clicking on cancel button (for consistency with previous overlay)
+        if (e.target && e.target.id === 'cancelHiringBtn') {
+            console.log(`🔘 DEBUG Cancel button click detected in hiring background handler - calling hideHiringOptionsOverlay()`);
+            hideHiringOptionsOverlay();
+            return;
         }
     };
     overlay.addEventListener('click', backgroundHandler);
-    registerCleanup('hiring', 'overlayBackground', () => {
+    registerCleanup(cleanupType, 'overlayBackground', () => {
         overlay.removeEventListener('click', backgroundHandler);
     });
     
@@ -1946,13 +2029,20 @@ function hideHiringOptionsOverlay() {
     const overlay = document.getElementById('hiringOptionsOverlay');
     overlay.classList.remove('show');
     
-    // Clear handlers initialization flag to allow re-initialization
+    // CONSISTENCY FIX: Use stored cleanup type instead of re-detecting context
+    const registeredCleanupType = overlay.dataset.registeredCleanupType;
+    const fallbackCleanupType = 'hiring'; // Safe fallback if no stored type
+    const cleanupType = registeredCleanupType || fallbackCleanupType;
+    
+    console.log(`🔍 DEBUG hide overlay cleanup: stored=${registeredCleanupType}, using=${cleanupType}`);
+    
+    executeCleanupsByType(cleanupType);
+    
+    // Clear handlers initialization flag and stored cleanup type to allow re-initialization
     delete overlay.dataset.handlersInitialized;
+    delete overlay.dataset.registeredCleanupType;
     
-    // Clean up all hiring overlay handlers
-    executeCleanupsByType('hiring');
-    
-    console.log('👥 Hiring overlay hidden and handlers cleaned up');
+    console.log(`👥 Hiring overlay hidden and ${cleanupType} handlers cleaned up`);
 }
 
 async function handleCompleteJob(jobData) {
@@ -3929,10 +4019,21 @@ function initializePreviousOverlayHandlers() {
     const overlay = document.getElementById('previousOptionsOverlay');
     if (!overlay || overlay.dataset.handlersInitialized) return;
 
+    // Determine cleanup type based on current role and tab context (same logic as hiring overlay)
+    const currentRole = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role');
+    const currentWorkerTab = document.querySelector('.worker-tabs .tab-btn.active')?.getAttribute('data-tab');
+    const cleanupType = (currentRole === 'worker' && currentWorkerTab === 'worker-completed') ? 'worker-completed-overlay' : 'previous';
+    
+    // CRITICAL FIX: Store the cleanup type in overlay dataset to prevent mismatch during role switches
+    overlay.dataset.registeredCleanupType = cleanupType;
+    
+    console.log(`🔧 Initializing previous overlay handlers with cleanup type: ${cleanupType}`);
+
     const relistBtn = document.getElementById('relistCompletedJobBtn');
     const feedbackBtn = document.getElementById('leaveFeedbackBtn');
     const disputeBtn = document.getElementById('reportDisputeBtn');
     const cancelBtn = document.getElementById('cancelPreviousBtn');
+    
 
     // Relist completed job handler (customer)
     if (relistBtn) {
@@ -3942,7 +4043,7 @@ function initializePreviousOverlayHandlers() {
             handleRelistCompletedJob(jobData);
         };
         relistBtn.addEventListener('click', relistHandler);
-        registerCleanup('previous', 'relistBtn', () => {
+        registerCleanup(cleanupType, 'relistBtn', () => {
             relistBtn.removeEventListener('click', relistHandler);
         });
     }
@@ -3955,7 +4056,7 @@ function initializePreviousOverlayHandlers() {
             handleLeaveFeedback(jobData);
         };
         feedbackBtn.addEventListener('click', feedbackHandler);
-        registerCleanup('previous', 'feedbackBtn', () => {
+        registerCleanup(cleanupType, 'feedbackBtn', () => {
             feedbackBtn.removeEventListener('click', feedbackHandler);
         });
     }
@@ -3968,7 +4069,7 @@ function initializePreviousOverlayHandlers() {
             handleReportDispute(jobData);
         };
         disputeBtn.addEventListener('click', disputeHandler);
-        registerCleanup('previous', 'disputeBtn', () => {
+        registerCleanup(cleanupType, 'disputeBtn', () => {
             disputeBtn.removeEventListener('click', disputeHandler);
         });
     }
@@ -3980,19 +4081,28 @@ function initializePreviousOverlayHandlers() {
             hidePreviousOptionsOverlay();
         };
         cancelBtn.addEventListener('click', cancelHandler);
-        registerCleanup('previous', 'cancelBtn', () => {
+        registerCleanup(cleanupType, 'cancelBtn', () => {
             cancelBtn.removeEventListener('click', cancelHandler);
         });
     }
 
     // Background click handler
     const backgroundHandler = function(e) {
+        
+        // Close if clicking on overlay background
         if (e.target === overlay) {
             hidePreviousOptionsOverlay();
+            return;
+        }
+        
+        // CRITICAL FIX: Also close if clicking on cancel button (since button handler isn't firing)
+        if (e.target && e.target.id === 'cancelPreviousBtn') {
+            hidePreviousOptionsOverlay();
+            return;
         }
     };
     overlay.addEventListener('click', backgroundHandler);
-    registerCleanup('previous', 'overlayBackground', () => {
+    registerCleanup(cleanupType, 'overlayBackground', () => {
         overlay.removeEventListener('click', backgroundHandler);
     });
 
@@ -4075,15 +4185,28 @@ function getPreviousJobDataFromOverlay() {
 
 function hidePreviousOptionsOverlay() {
     const overlay = document.getElementById('previousOptionsOverlay');
+    
+    if (!overlay) {
+        console.log(`❌ Previous overlay element not found!`);
+        return;
+    }
+    
     overlay.classList.remove('show');
     
-    // Clear handlers initialization flag to allow re-initialization
+    // CRITICAL FIX: Use the stored cleanup type instead of re-detecting context
+    // This prevents cleanup type mismatch when role changes between registration and cleanup
+    const registeredCleanupType = overlay.dataset.registeredCleanupType;
+    const fallbackCleanupType = 'previous'; // Safe fallback if no stored type
+    const cleanupType = registeredCleanupType || fallbackCleanupType;
+    
+    
+    executeCleanupsByType(cleanupType);
+    
+    // Clear handlers initialization flag and stored cleanup type to allow re-initialization
     delete overlay.dataset.handlersInitialized;
+    delete overlay.dataset.registeredCleanupType;
     
-    // Clean up all previous overlay handlers
-    executeCleanupsByType('previous');
-    
-    console.log('🔧 Previous overlay hidden and handlers cleaned up');
+    console.log(`🔧 Previous overlay hidden and ${cleanupType} handlers cleaned up`);
 }
 
 function handleRelistCompletedJob(jobData) {
@@ -5180,6 +5303,12 @@ async function submitCustomerFeedback() {
         
         hideCustomerFeedbackOverlay();
         showFeedbackSubmittedSuccess(customerName);
+        
+        // Reload worker completed content to show updated feedback
+        await loadWorkerCompletedContent();
+        
+        // Also update tab counts in case anything changed
+        await updateTabCounts();
         
     } catch (error) {
         console.error('❌ Error submitting customer feedback:', error);
