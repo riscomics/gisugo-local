@@ -860,12 +860,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     initializeRoleTabs();
     initializeTabs();
         
-        // Initialize the preferred tab (listings by default, can be overridden by tab parameter)
-        await initializeActiveTab(preferredTab);
+        // Initialize the default role properly based on HTML state
+        const defaultActiveRole = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role') || 'customer';
+        console.log(`🎯 Default active role detected: ${defaultActiveRole}`);
         
-        // If preferred tab is not listings, switch to it
-        if (preferredTab !== 'listings') {
-            await switchToTab(preferredTab);
+        if (defaultActiveRole === 'worker') {
+            // Worker role is default - activate worker role and its default tab
+            await switchToRole('worker');
+        } else {
+            // Customer role is default - initialize customer tabs normally
+            await initializeActiveTab(preferredTab);
+            
+            // If preferred tab is not listings, switch to it
+            if (preferredTab !== 'listings') {
+                await switchToTab(preferredTab);
+            }
         }
         
     // Update tab counts based on actual data
@@ -907,15 +916,15 @@ function initializeRoleTabs() {
     const roleButtons = document.querySelectorAll('.role-tab-btn');
     
     roleButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', async function(e) {
             e.preventDefault();
             const roleType = this.getAttribute('data-role');
-            switchToRole(roleType);
+            await switchToRole(roleType);
         });
     });
 }
 
-function switchToRole(roleType) {
+async function switchToRole(roleType) {
     // Update role button states
     document.querySelectorAll('.role-tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -951,6 +960,9 @@ function switchToRole(roleType) {
         document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('listingsTab')?.classList.add('active');
         
+        // Initialize the default listings tab content
+        await initializeListingsTab();
+        
         console.log('✅ Customer role activated - showing Listings/Hiring/Completed tabs');
         
     } else if (roleType === 'worker') {
@@ -974,6 +986,9 @@ function switchToRole(roleType) {
         // Activate accepted tab
         document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('acceptedTab')?.classList.add('active');
+        
+        // Initialize the default accepted tab content
+        await initializeAcceptedTab();
         
         console.log('✅ Worker role activated - showing Gigs Accepted/Gigs Completed tabs');
     }
@@ -1060,7 +1075,7 @@ async function switchToWorkerTab(tabType) {
     
     console.log(`🔄 Switched to worker tab: ${tabType}`);
     
-    // Load worker content (placeholder for now)
+    // Load worker content
     if (tabType === 'accepted') {
         await initializeAcceptedTab();
     } else if (tabType === 'worker-completed') {
@@ -1068,33 +1083,205 @@ async function switchToWorkerTab(tabType) {
     }
 }
 
-// Placeholder functions for worker tab content
+// Worker tab content functions
 async function initializeAcceptedTab() {
-    console.log('📋 Initializing accepted gigs tab - coming soon');
+    console.log('📋 Initializing accepted gigs tab');
     const container = document.querySelector('.accepted-container');
-    if (container) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
-                <div class="empty-state-title">Gigs Accepted</div>
-                <div class="empty-state-message">Your accepted gigs will appear here</div>
-            </div>
-        `;
+    if (!container) return;
+    
+    // Check if already loaded
+    if (container.hasAttribute('data-loaded')) {
+        console.log('✅ Accepted gigs tab already loaded');
+        return;
+    }
+    
+    await loadAcceptedContent();
+    container.setAttribute('data-loaded', 'true');
+}
+
+async function loadAcceptedContent() {
+    const container = document.querySelector('.accepted-container');
+    if (!container) return;
+    
+    try {
+        // Get all hired jobs and filter for worker perspective (where current user is the worker)
+        const allHiredJobs = await JobsDataService.getAllHiredJobs();
+        const workerJobs = allHiredJobs.filter(job => job.role === 'worker');
+        
+        console.log(`🎯 Found ${workerJobs.length} worker perspective jobs for accepted gigs`);
+        
+        if (workerJobs.length === 0) {
+            showEmptyAcceptedState();
+            return;
+        }
+        
+        // Generate HTML for worker perspective cards using the existing hiring card template
+        const cardsHTML = await generateMockAcceptedJobs(workerJobs);
+        container.innerHTML = cardsHTML;
+        
+        // Attach event listeners for worker perspective cards
+        attachAcceptedCardHandlers();
+        
+        console.log('✅ Accepted gigs content loaded successfully');
+        
+    } catch (error) {
+        console.error('❌ Error loading accepted gigs content:', error);
+        showEmptyAcceptedState();
     }
 }
 
-async function initializeWorkerCompletedTab() {
-    console.log('📋 Initializing worker completed gigs tab - coming soon');
-    const container = document.querySelector('.worker-completed-container');
-    if (container) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">✅</div>
-                <div class="empty-state-title">Gigs Completed</div>
-                <div class="empty-state-message">Your completed gigs will appear here</div>
+async function generateMockAcceptedJobs(acceptedJobs) {
+    // Reuse the existing hiring card generation logic
+    return acceptedJobs.map(job => generateHiringCardHTML(job)).join('');
+}
+
+function showEmptyAcceptedState() {
+    const container = document.querySelector('.accepted-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-title">No Accepted Gigs Yet</div>
+            <div class="empty-state-message">
+                Jobs you've been hired to work on will appear here.
+                Check available job listings to find work opportunities.
             </div>
-        `;
+            <a href="jobs.html" class="empty-state-btn">
+                FIND WORK
+            </a>
+        </div>
+    `;
+}
+
+function attachAcceptedCardHandlers() {
+    // Cleanup any existing handlers first
+    executeCleanupsByType('accepted-cards');
+    
+    // Add click handlers for accepted gig cards
+    const acceptedCards = document.querySelectorAll('.accepted-container .hiring-card');
+    acceptedCards.forEach(card => {
+        const clickHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Get job data from card attributes (use hiring data extractor since these are hiring cards)
+            const jobData = extractHiringJobDataFromCard(card);
+            console.log('🎯 Accepted gig card clicked:', jobData);
+            
+            // Show hiring options overlay with worker-specific options
+            showHiringOptionsOverlay(jobData);
+        };
+        
+        card.addEventListener('click', clickHandler);
+        
+        // Track for cleanup
+        registerCleanup('accepted-cards', `card-${Array.from(acceptedCards).indexOf(card)}`, () => {
+            card.removeEventListener('click', clickHandler);
+        });
+    });
+    
+    console.log(`✅ Added handlers to ${acceptedCards.length} accepted gig cards`);
+}
+
+async function initializeWorkerCompletedTab() {
+    console.log('📋 Initializing worker completed gigs tab');
+    const container = document.querySelector('.worker-completed-container');
+    if (!container) return;
+    
+    // Check if already loaded
+    if (container.hasAttribute('data-loaded')) {
+        console.log('✅ Worker completed gigs tab already loaded');
+        return;
     }
+    
+    await loadWorkerCompletedContent();
+    container.setAttribute('data-loaded', 'true');
+}
+
+async function loadWorkerCompletedContent() {
+    const container = document.querySelector('.worker-completed-container');
+    if (!container) return;
+    
+    try {
+        // Get all completed jobs and filter for worker perspective (where current user was the worker)
+        const allCompletedJobs = await getCompletedJobs();
+        const workerCompletedJobs = allCompletedJobs.filter(job => job.role === 'worker');
+        
+        console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
+        
+        if (workerCompletedJobs.length === 0) {
+            showEmptyWorkerCompletedState();
+            return;
+        }
+        
+        // Generate HTML for worker perspective completed cards using the existing completed card template
+        const cardsHTML = await generateMockWorkerCompletedJobs(workerCompletedJobs);
+        container.innerHTML = cardsHTML;
+        
+        // Attach event listeners for worker perspective completed cards
+        attachWorkerCompletedCardHandlers();
+        
+        console.log('✅ Worker completed gigs content loaded successfully');
+        
+    } catch (error) {
+        console.error('❌ Error loading worker completed gigs content:', error);
+        showEmptyWorkerCompletedState();
+    }
+}
+
+async function generateMockWorkerCompletedJobs(workerCompletedJobs) {
+    // Reuse the existing completed card generation logic
+    return workerCompletedJobs.map(job => generateCompletedCardHTML(job)).join('');
+}
+
+function showEmptyWorkerCompletedState() {
+    const container = document.querySelector('.worker-completed-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <div class="empty-state-title">No Completed Gigs Yet</div>
+            <div class="empty-state-message">
+                Jobs you've completed as a worker will appear here.
+                Check available job listings to find work opportunities.
+            </div>
+            <a href="jobs.html" class="empty-state-btn">
+                FIND WORK
+            </a>
+        </div>
+    `;
+}
+
+function attachWorkerCompletedCardHandlers() {
+    // Cleanup any existing handlers first
+    executeCleanupsByType('worker-completed-cards');
+    
+    // Add click handlers for worker completed gig cards
+    const workerCompletedCards = document.querySelectorAll('.worker-completed-container .completed-card');
+    workerCompletedCards.forEach(card => {
+        const clickHandler = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Get job data from card attributes (use completed data extractor)
+            const jobData = extractCompletedJobDataFromCard(card);
+            console.log('🎯 Worker completed gig card clicked:', jobData);
+            
+            // Show previous options overlay with worker-specific options
+            showPreviousOptionsOverlay(jobData);
+        };
+        
+        card.addEventListener('click', clickHandler);
+        
+        // Track for cleanup
+        registerCleanup('worker-completed-cards', `card-${Array.from(workerCompletedCards).indexOf(card)}`, () => {
+            card.removeEventListener('click', clickHandler);
+        });
+    });
+    
+    console.log(`✅ Added handlers to ${workerCompletedCards.length} worker completed gig cards`);
 }
 
 async function switchToTab(tabType) {
@@ -1126,6 +1313,16 @@ async function switchToTab(tabType) {
                 executeCleanupsByType('previous-cards');
                 executeCleanupsByType('previous-overlay');
                 executeCleanupsByType('previous-feedback-overlay');
+                break;
+            case 'accepted':
+                executeCleanupsByType('accepted');
+                executeCleanupsByType('accepted-cards');
+                executeCleanupsByType('accepted-overlay');
+                break;
+            case 'worker-completed':
+                executeCleanupsByType('worker-completed');
+                executeCleanupsByType('worker-completed-cards');
+                executeCleanupsByType('worker-completed-overlay');
                 break;
         }
     }
@@ -1462,20 +1659,24 @@ async function loadHiringContent() {
     if (!container) return;
     
     try {
-        const hiredJobs = await JobsDataService.getAllHiredJobs();
+        // Get all hired jobs and filter for customer perspective only (where current user is the customer)
+        const allHiredJobs = await JobsDataService.getAllHiredJobs();
+        const customerJobs = allHiredJobs.filter(job => job.role === 'customer');
         
-        if (!hiredJobs || hiredJobs.length === 0) {
+        console.log(`👥 Found ${customerJobs.length} customer perspective jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
+        
+        if (customerJobs.length === 0) {
             showEmptyHiringState();
             return;
         }
         
-        const hiringHTML = await generateMockHiredJobs(hiredJobs);
+        const hiringHTML = await generateMockHiredJobs(customerJobs);
         container.innerHTML = hiringHTML;
         
         // Initialize event handlers for hiring cards
         initializeHiringCardHandlers();
         
-        console.log(`👥 Loaded ${hiredJobs.length} hired jobs`);
+        console.log(`👥 Loaded ${customerJobs.length} customer hired jobs`);
         
     } catch (error) {
         console.error('❌ Error loading hiring content:', error);
@@ -2892,13 +3093,16 @@ async function loadPreviousContent() {
     if (!container) return;
     
     try {
-        // Get completed jobs data
-        const completedJobs = await getCompletedJobs();
+        // Get all completed jobs and filter for customer perspective only (where current user was the customer)
+        const allCompletedJobs = await getCompletedJobs();
+        const customerCompletedJobs = allCompletedJobs.filter(job => job.role === 'customer');
         
-        if (completedJobs.length === 0) {
+        console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
+        
+        if (customerCompletedJobs.length === 0) {
             showEmptyPreviousState();
         } else {
-            await generateMockCompletedJobs(completedJobs);
+            await generateMockCompletedJobs(customerCompletedJobs);
             initializeCompletedCardHandlers();
             checkTruncatedFeedback();
             
@@ -2906,7 +3110,7 @@ async function loadPreviousContent() {
             createFeedbackExpandedOverlay();
         }
         
-        console.log(`📜 Previous tab loaded with ${completedJobs.length} completed jobs`);
+        console.log(`📜 Previous tab loaded with ${customerCompletedJobs.length} customer completed jobs`);
         
     } catch (error) {
         console.error('❌ Error loading previous jobs:', error);
@@ -4494,17 +4698,27 @@ async function updateTabCounts() {
         
         // Get data directly from their respective arrays
         const listingsJobs = await JobsDataService.getAllJobs();
-        const hiringJobs = await JobsDataService.getAllHiredJobs();
+        const allHiredJobs = await JobsDataService.getAllHiredJobs();
         const completedJobs = await getCompletedJobs();
+        
+        // Separate hired jobs by perspective
+        const customerHiringJobs = allHiredJobs.filter(job => job.role === 'customer');
+        const workerAcceptedJobs = allHiredJobs.filter(job => job.role === 'worker');
+        
+        // Separate completed jobs by perspective
+        const customerCompletedJobs = completedJobs.filter(job => job.role === 'customer');
+        const workerCompletedJobs = completedJobs.filter(job => job.role === 'worker');
         
         // Count actual jobs in each data set
         const counts = {
-            listings: listingsJobs.length,    // Active/paused jobs posted by user
-            hiring: hiringJobs.length,        // Jobs with hired workers (status: 'hired')
-            previous: completedJobs.length    // Completed jobs involving current user
+            listings: listingsJobs.length,              // Active/paused jobs posted by user
+            hiring: customerHiringJobs.length,          // Jobs where user hired workers (customer perspective)
+            previous: customerCompletedJobs.length,     // Completed jobs where user was customer
+            accepted: workerAcceptedJobs.length,        // Jobs where user was hired (worker perspective)
+            workerCompleted: workerCompletedJobs.length // Jobs where user worked and completed
         };
         
-        // Update the notification badges in DOM
+        // Update customer tab notification badges
         const listingsCount = document.querySelector('#listingsTab .notification-count');
         const hiringCount = document.querySelector('#hiringTab .notification-count');
         const previousCount = document.querySelector('#previousTab .notification-count');
@@ -4519,7 +4733,18 @@ async function updateTabCounts() {
             previousCount.textContent = counts.previous;
         }
         
-        console.log(`📊 Tab counts updated: Listings(${counts.listings}), Hiring(${counts.hiring}), Previous(${counts.previous})`);
+        // Update worker tab notification badges
+        const acceptedCount = document.querySelector('#acceptedTab .notification-count');
+        const workerCompletedCount = document.querySelector('#workerCompletedTab .notification-count');
+        
+        if (acceptedCount) {
+            acceptedCount.textContent = counts.accepted;
+        }
+        if (workerCompletedCount) {
+            workerCompletedCount.textContent = counts.workerCompleted;
+        }
+        
+        console.log(`📊 Tab counts updated: Listings(${counts.listings}), Hiring(${counts.hiring}), Previous(${counts.previous}), Accepted(${counts.accepted}), WorkerCompleted(${counts.workerCompleted})`);
         
     } catch (error) {
         console.error('❌ Error updating tab counts:', error);
