@@ -1,3 +1,68 @@
+// Account Button and Overlay functionality
+const accountBtn = document.getElementById('accountBtn');
+const accountOverlay = document.getElementById('accountOverlay');
+const accountCloseBtn = document.getElementById('accountCloseBtn');
+
+if (accountBtn && accountOverlay && accountCloseBtn) {
+  // Open account overlay
+  accountBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    accountOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  });
+
+  // Close account overlay via close button
+  accountCloseBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    accountOverlay.classList.remove('active');
+    document.body.style.overflow = ''; // Restore scrolling
+  });
+
+  // Close account overlay via background click
+  accountOverlay.addEventListener('click', function(e) {
+    if (e.target === accountOverlay) {
+      accountOverlay.classList.remove('active');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  });
+
+  // Close account overlay via Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && accountOverlay.classList.contains('active')) {
+      accountOverlay.classList.remove('active');
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+  });
+
+  // Handle account option clicks
+  const accountOptions = document.querySelectorAll('.account-option.clickable');
+  accountOptions.forEach(option => {
+    option.addEventListener('click', function() {
+      const action = this.getAttribute('data-action');
+      handleAccountAction(action);
+    });
+  });
+}
+
+function handleAccountAction(action) {
+  switch(action) {
+    case 'edit-profile':
+      console.log('Edit Profile clicked');
+      // TODO: Navigate to edit profile page
+      break;
+    case 'privacy-settings':
+      console.log('Privacy Settings clicked');
+      // TODO: Open privacy settings
+      break;
+    case 'notification-settings':
+      console.log('Notification Settings clicked');
+      // TODO: Open notification settings
+      break;
+    default:
+      console.log('Unknown action:', action);
+  }
+}
+
 // Mobile Menu Overlay functionality
 const profileMenuBtn = document.querySelector('.profile-menu-btn');
 const profileMenuOverlay = document.getElementById('profileMenuOverlay');
