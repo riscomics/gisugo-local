@@ -16,6 +16,7 @@ if (accountBtn && accountOverlay && accountCloseBtn) {
     e.stopPropagation();
     accountOverlay.classList.remove('active');
     document.body.style.overflow = ''; // Restore scrolling
+    justCompletedEligiblePurchase = false; // Reset flag when closing
   });
 
   // Close account overlay via background click
@@ -23,6 +24,7 @@ if (accountBtn && accountOverlay && accountCloseBtn) {
     if (e.target === accountOverlay) {
       accountOverlay.classList.remove('active');
       document.body.style.overflow = ''; // Restore scrolling
+      justCompletedEligiblePurchase = false; // Reset flag when closing
     }
   });
 
@@ -31,6 +33,7 @@ if (accountBtn && accountOverlay && accountCloseBtn) {
     if (e.key === 'Escape' && accountOverlay.classList.contains('active')) {
       accountOverlay.classList.remove('active');
       document.body.style.overflow = ''; // Restore scrolling
+      justCompletedEligiblePurchase = false; // Reset flag when closing
     }
   });
 
@@ -57,6 +60,19 @@ function handleAccountAction(action) {
     case 'notification-settings':
       console.log('Notification Settings clicked');
       // TODO: Open notification settings
+      break;
+    case 'upgrade-explanation':
+      console.log('Upgrade Status clicked - opening explanation overlay');
+      openExplanationOverlay();
+      break;
+    case 'submit-id':
+      console.log('Submit ID clicked - opening verification overlay');
+      // Mark ID as submitted in backend (mock)
+      if (window.currentUserProfile && window.currentUserProfile.verification) {
+        window.currentUserProfile.verification.idSubmitted = true;
+      }
+      justCompletedEligiblePurchase = false; // Reset flag after use
+      openVerificationOverlay();
       break;
     default:
       console.log('Unknown action:', action);
@@ -175,6 +191,7 @@ function updateBadgeVisibility(userProfile) {
 function updateAccountOverlayVerificationStatus(userProfile) {
   const businessVerifiedOption = document.querySelector('.account-option');
   const businessStatus = document.querySelector('.account-option-status.active');
+  const submitIdOption = document.getElementById('submitIdOption');
   
   if (businessVerifiedOption && userProfile?.verification) {
     // Update business verification status
@@ -189,6 +206,21 @@ function updateAccountOverlayVerificationStatus(userProfile) {
         businessStatusElement.textContent = 'Available';
         businessStatusElement.className = 'account-option-status inactive';
       }
+    }
+  }
+  
+  // Show/hide Submit ID option based on real backend logic
+  if (submitIdOption && userProfile?.verification) {
+    // Backend Logic: Show if user purchased P250/P500 but hasn't submitted ID yet
+    const canSubmitId = userProfile.verification.eligibleForSubmission && 
+                        !userProfile.verification.idSubmitted;
+    
+    if (canSubmitId) {
+      submitIdOption.style.display = 'block';
+      console.log('💳 Submit ID option shown - user eligible and hasn\'t submitted yet');
+    } else {
+      submitIdOption.style.display = 'none';
+      console.log('💳 Submit ID option hidden - not eligible or already submitted');
     }
   }
 }
@@ -355,11 +387,15 @@ function handleGCoinsPurchase(packageData) {
       if (packageData.verification === 'pro') {
         window.currentUserProfile.verification.proVerified = true;
         window.currentUserProfile.verification.verificationDate = new Date().toISOString();
+        window.currentUserProfile.verification.eligibleForSubmission = true; // Can submit ID
         verificationMessage = ' 🆔 BONUS: Your account has been upgraded to Pro Verified status!';
+        justCompletedEligiblePurchase = true; // Flag for Submit ID visibility
       } else if (packageData.verification === 'business') {
         window.currentUserProfile.verification.businessVerified = true;
         window.currentUserProfile.verification.verificationDate = new Date().toISOString();
+        window.currentUserProfile.verification.eligibleForSubmission = true; // Can submit ID
         verificationMessage = ' 🏢 BONUS: Your account has been upgraded to Business Verified status!';
+        justCompletedEligiblePurchase = true; // Flag for Submit ID visibility
       }
       
       // Update displays
@@ -434,7 +470,20 @@ const verificationSubmitBtn = document.getElementById('verificationSubmitBtn');
 function closePurchaseSuccessOverlay() {
   if (purchaseSuccessOverlay) {
     purchaseSuccessOverlay.classList.remove('active');
-    document.body.style.overflow = '';
+    
+    // Smooth transition to Account Settings overlay with updated info
+    setTimeout(() => {
+      if (accountOverlay) {
+        accountOverlay.classList.add('active');
+        // Refresh the account overlay with latest user data
+        if (window.currentUserProfile) {
+          updateGCoinsDisplay(window.currentUserProfile);
+          updateAccountOverlayVerificationStatus(window.currentUserProfile);
+        }
+        console.log('💰 Transitioned to Account Settings with updated info');
+      }
+    }, 100);
+    
     console.log('💰 Purchase success overlay closed');
   }
 }
@@ -533,6 +582,248 @@ if (verificationCloseBtn) {
 if (verificationCancelBtn) {
   verificationCancelBtn.addEventListener('click', closeVerificationOverlay);
 }
+
+// ===== EXPLANATION OVERLAY FUNCTIONALITY =====
+
+// Get explanation overlay elements
+const explanationOverlay = document.getElementById('explanationOverlay');
+const explanationCloseBtn = document.getElementById('explanationCloseBtn');
+const explanationCancelBtn = document.getElementById('explanationCancelBtn');
+const explanationPurchaseBtn = document.getElementById('explanationPurchaseBtn');
+const copyCodeBtn = document.getElementById('copyCodeBtn');
+const facebookShareBtn = document.getElementById('facebookShareBtn');
+const smsShareBtn = document.getElementById('smsShareBtn');
+const linkShareBtn = document.getElementById('linkShareBtn');
+const userReferralCode = document.getElementById('userReferralCode');
+const explanationGCoinsBalance = document.getElementById('explanationGCoinsBalance');
+
+// Open explanation overlay
+function openExplanationOverlay() {
+  if (explanationOverlay) {
+    // Update G-Coins balance display
+    if (explanationGCoinsBalance && window.currentUserProfile) {
+      explanationGCoinsBalance.textContent = window.currentUserProfile.wallet.gCoinsBalance;
+    }
+    
+    // Update referral code and progress
+    updateReferralDisplay();
+    
+    explanationOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    console.log('📋 Explanation overlay opened');
+  }
+}
+
+// Close explanation overlay
+function closeExplanationOverlay() {
+  if (explanationOverlay) {
+    explanationOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    console.log('📋 Explanation overlay closed');
+  }
+}
+
+// Close buttons
+if (explanationCloseBtn) {
+  explanationCloseBtn.addEventListener('click', closeExplanationOverlay);
+}
+
+if (explanationCancelBtn) {
+  explanationCancelBtn.addEventListener('click', closeExplanationOverlay);
+}
+
+// Purchase button - redirect to G-Coins overlay
+if (explanationPurchaseBtn) {
+  explanationPurchaseBtn.addEventListener('click', function() {
+    closeExplanationOverlay();
+    // Open G-Coins overlay after a brief delay
+    setTimeout(() => {
+      if (gCoinsTopUpBtn) {
+        gCoinsTopUpBtn.click();
+      }
+    }, 200);
+  });
+}
+
+// Background click to close
+if (explanationOverlay) {
+  explanationOverlay.addEventListener('click', function(e) {
+    if (e.target === explanationOverlay) {
+      closeExplanationOverlay();
+    }
+  });
+}
+
+// Escape key to close
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && explanationOverlay && explanationOverlay.classList.contains('active')) {
+    closeExplanationOverlay();
+  }
+});
+
+// ===== REFERRAL SYSTEM FUNCTIONALITY =====
+
+// Generate user referral code
+function generateReferralCode(userId) {
+  // Format: GISUGO-{userId}-REFER
+  return `GISUGO-${userId || 'USER123'}-REFER`;
+}
+
+// Update referral display with current user data
+function updateReferralDisplay() {
+  if (!window.currentUserProfile) return;
+  
+  const userProfile = window.currentUserProfile;
+  const referralData = userProfile.referral || {
+    signupCount: 3, // Mock data: 3 signups so far
+    proEligible: false,
+    businessEligible: false,
+    referralCode: generateReferralCode(userProfile.userId || 'USER123')
+  };
+  
+  // Update referral code display
+  if (userReferralCode) {
+    userReferralCode.textContent = referralData.referralCode;
+  }
+  
+  // Update progress bars
+  const proProgressBar = document.querySelector('.pro-progress');
+  const businessProgressBar = document.querySelector('.business-progress');
+  const proProgressLabel = document.querySelector('.referral-option:first-child .progress-label');
+  const businessProgressLabel = document.querySelector('.referral-option:last-child .progress-label');
+  
+  // Pro progress (10 signups needed)
+  const proProgress = Math.min((referralData.signupCount / 10) * 100, 100);
+  if (proProgressBar) {
+    proProgressBar.style.width = `${proProgress}%`;
+  }
+  if (proProgressLabel) {
+    proProgressLabel.textContent = `${referralData.signupCount} / 10 signups`;
+  }
+  
+  // Business progress (20 signups needed)
+  const businessProgress = Math.min((referralData.signupCount / 20) * 100, 100);
+  if (businessProgressBar) {
+    businessProgressBar.style.width = `${businessProgress}%`;
+  }
+  if (businessProgressLabel) {
+    businessProgressLabel.textContent = `${referralData.signupCount} / 20 signups`;
+  }
+}
+
+// Copy referral code to clipboard
+if (copyCodeBtn) {
+  copyCodeBtn.addEventListener('click', async function() {
+    const codeText = userReferralCode ? userReferralCode.textContent : '';
+    
+    try {
+      await navigator.clipboard.writeText(codeText);
+      copyCodeBtn.textContent = '✅';
+      setTimeout(() => {
+        copyCodeBtn.textContent = '📋';
+      }, 2000);
+      console.log('Referral code copied to clipboard');
+    } catch (err) {
+      console.error('Failed to copy referral code:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = codeText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      
+      copyCodeBtn.textContent = '✅';
+      setTimeout(() => {
+        copyCodeBtn.textContent = '📋';
+      }, 2000);
+    }
+  });
+}
+
+// Social sharing functionality
+if (facebookShareBtn) {
+  facebookShareBtn.addEventListener('click', function() {
+    const referralCode = userReferralCode ? userReferralCode.textContent : '';
+    const shareText = `Join me on GISUGO.com and help each other find work! Use my referral code: ${referralCode}`;
+    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://gisugo.com')}&quote=${encodeURIComponent(shareText)}`;
+    
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+    console.log('Facebook share clicked');
+  });
+}
+
+if (smsShareBtn) {
+  smsShareBtn.addEventListener('click', function() {
+    const referralCode = userReferralCode ? userReferralCode.textContent : '';
+    const shareText = `Join me on GISUGO.com and help each other find work! Use my referral code: ${referralCode}. Visit: https://gisugo.com`;
+    const smsUrl = `sms:?body=${encodeURIComponent(shareText)}`;
+    
+    window.location.href = smsUrl;
+    console.log('SMS share clicked');
+  });
+}
+
+if (linkShareBtn) {
+  linkShareBtn.addEventListener('click', async function() {
+    const referralCode = userReferralCode ? userReferralCode.textContent : '';
+    const shareLink = `https://gisugo.com?ref=${encodeURIComponent(referralCode)}`;
+    
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      linkShareBtn.innerHTML = '<span class="share-icon">✅</span><span>Copied!</span>';
+      setTimeout(() => {
+        linkShareBtn.innerHTML = '<span class="share-icon">🔗</span><span>Copy Link</span>';
+      }, 2000);
+      console.log('Referral link copied to clipboard');
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  });
+}
+
+// Purchase option click handlers (PRO ID and BUSINESS ID)
+document.addEventListener('click', function(e) {
+  const purchaseOption = e.target.closest('[data-purchase]');
+  if (purchaseOption) {
+    const purchaseType = purchaseOption.getAttribute('data-purchase');
+    console.log(`${purchaseType.toUpperCase()} ID option clicked`);
+    
+    // Close explanation overlay
+    closeExplanationOverlay();
+    
+    // Open G-Coins overlay and pre-select the appropriate package
+    setTimeout(() => {
+      if (gCoinsTopUpBtn) {
+        gCoinsTopUpBtn.click();
+        
+        // Pre-select the appropriate package after overlay opens
+        setTimeout(() => {
+          const targetPackage = purchaseType === 'pro' ? 
+            document.querySelector('[data-amount="250"]') : 
+            document.querySelector('[data-amount="500"]');
+          
+          if (targetPackage) {
+            // Remove any existing selection
+            document.querySelectorAll('.gcoins-package').forEach(pkg => {
+              pkg.classList.remove('selected');
+            });
+            
+            // Select the target package
+            targetPackage.classList.add('selected');
+            selectedPackage = {
+              amount: parseInt(targetPackage.getAttribute('data-amount')),
+              coins: parseInt(targetPackage.getAttribute('data-coins')),
+              verification: targetPackage.getAttribute('data-verification')
+            };
+            
+            console.log(`Pre-selected ${purchaseType} package:`, selectedPackage);
+          }
+        }, 300);
+      }
+    }, 200);
+  }
+});
 
 // ID File upload functionality
 if (uploadAreaId && idFileInput) {
@@ -750,6 +1041,9 @@ function handleProfileTabChange(tabValue) {
   }
 }
 
+// Track if user just completed an eligible purchase (for Submit ID visibility)
+let justCompletedEligiblePurchase = false;
+
 // Sample user profile data (in the future this will come from Firebase)
 // These field names match the create account form structure for backend integration
 const sampleUserProfile = {
@@ -777,7 +1071,9 @@ const sampleUserProfile = {
   verification: {
     businessVerified: true, // Set to true for this user to show Business Verified badge
     proVerified: false, // Set to false to show Pro Verified as available upgrade
-    verificationDate: "2025-04-20T14:30:00Z" // When verification was completed
+    verificationDate: "2025-04-20T14:30:00Z", // When verification was completed
+    idSubmitted: false, // Whether user has uploaded ID documents (for mock: false = can still submit)
+    eligibleForSubmission: false // Whether user purchased P250/P500 but hasn't submitted ID yet
   },
   
   // G-Coins Wallet System (from backend wallet service)
@@ -786,6 +1082,22 @@ const sampleUserProfile = {
     lastTopUp: "2025-09-10T16:45:00Z", // Last top-up timestamp
     totalSpent: 35, // Total G-Coins spent (lifetime)
     totalPurchased: 50 // Total G-Coins purchased (lifetime)
+  },
+  
+  // Referral System (from backend referral tracking service)
+  referral: {
+    referralCode: "GISUGO-PETER001-REFER", // Auto-generated unique referral code
+    signupCount: 3, // Current number of successful signups from referrals
+    proEligible: false, // Will be true when signupCount >= 10
+    businessEligible: false, // Will be true when signupCount >= 20
+    totalEarned: 0, // Total PHP value earned from referrals (only at milestones)
+    gCoinsEarned: 0, // Total G-Coins earned from referrals (25 at 10 signups, 50 at 20 signups)
+    lastReferralDate: "2025-09-15T12:20:00Z", // Most recent successful referral
+    referralHistory: [
+      { date: "2025-09-15T12:20:00Z", userId: "ref-user-003", verified: true },
+      { date: "2025-09-10T08:15:00Z", userId: "ref-user-002", verified: true },
+      { date: "2025-09-05T16:30:00Z", userId: "ref-user-001", verified: true }
+    ]
   }
 };
 
@@ -969,7 +1281,9 @@ document.addEventListener('DOMContentLoaded', function() {
  *          verificationDate: timestamp,
  *          status: string ('none', 'pending', 'approved', 'rejected'),
  *          pendingRequestId: string,
- *          submittedAt: timestamp
+ *          submittedAt: timestamp,
+ *          idSubmitted: boolean,
+ *          eligibleForSubmission: boolean
  *        }
  *      - wallet: {
  *          gCoinsBalance: number,
@@ -1032,12 +1346,61 @@ document.addEventListener('DOMContentLoaded', function() {
  *    - sendVerificationEmails: Email confirmation and status updates
  *    - cleanupExpiredDocuments: Remove old ID files from storage
  * 
- * 7. SECURITY RULES
+ * 7. REFERRAL SYSTEM BACKEND REQUIREMENTS
+ *    
+ *    /referrals/{referralId}
+ *      - referralCode: string (unique, indexed for fast lookup)
+ *      - referredBy: string (userId of referrer)
+ *      - referredUser: string (userId of new signup)
+ *      - signupDate: timestamp
+ *      - verified: boolean (email/phone verification completed)
+ *      - socialLoginProvider: string ('facebook', 'google', 'instagram')
+ *      - rewardEarned: number (PHP value earned by referrer)
+ *      - gCoinsAwarded: number (G-Coins awarded to referrer)
+ *      - status: string ('pending', 'verified', 'rejected', 'expired')
+ *    
+ *    /referral_tracking/{userId}
+ *      - totalReferrals: number
+ *      - verifiedReferrals: number
+ *      - totalEarned: number (PHP)
+ *      - gCoinsEarned: number
+ *      - proEligible: boolean (>= 10 verified referrals)
+ *      - businessEligible: boolean (>= 20 verified referrals)
+ *      - lastReferralDate: timestamp
+ *      - referralCode: string (user's unique code)
+ *      - rewardsClaimHistory: array of claim records
+ *    
+ *    /referral_codes/{code} (for fast code lookup)
+ *      - userId: string
+ *      - createdAt: timestamp
+ *      - active: boolean
+ *    
+ * 8. REFERRAL CLOUD FUNCTIONS REQUIRED
+ *    - processNewSignup: Validate referral codes, check for abuse
+ *    - updateReferralProgress: Award G-Coins and verification eligibility
+ *    - validateSocialLogin: Prevent fake accounts with duplicate social IDs
+ *    - processReferralRewards: Calculate and distribute rewards
+ *    - checkVerificationEligibility: Update user verification status
+ *    - preventReferralAbuse: Rate limiting, IP checking, device fingerprinting
+ *    
+ * 9. REFERRAL SYSTEM VALIDATION RULES
+ *    - Only one referral reward per unique social media account
+ *    - Referred user must complete email/phone verification
+ *    - Referred user must remain active for 30 days to qualify
+ *    - Maximum 20 referrals per referrer (stops at Business level)
+ *    - G-Coins awarded in batches: 25 G-Coins at 10 signups, 50 G-Coins total at 20 signups
+ *    - Each signup worth ₱25, total rewards capped at ₱1,250 (₱250 Pro + ₱500 Business + ₱500 G-Coins)
+ *    - Verification badges awarded automatically when thresholds met
+ *    
+ * 10. SECURITY RULES
  *    - Users can only read/write their own profile data
  *    - Wallet transactions require server-side verification
  *    - Verification status changes require admin approval
  *    - ID documents in Storage accessible only to admins and document owner
  *    - Verification requests readable only by user and admins
+ *    - Referral data readable only by referrer and admin
+ *    - Referral code creation requires authentication
+ *    - Signup attribution validated server-side only
  */
 
 // ===== PRODUCTION FIREBASE FUNCTIONS =====

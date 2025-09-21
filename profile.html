@@ -206,16 +206,21 @@
             </div>
             <div class="account-option-status active">Active</div>
           </div>
-          <div class="account-option verification-upgrade-option">
+          <div class="account-option verification-upgrade-option clickable pulsating-glow" id="upgradeStatusOption" data-action="upgrade-explanation">
             <div class="account-option-icon">⭐</div>
             <div class="account-option-info">
               <div class="account-option-name">Upgrade Status</div>
-              <div class="account-option-desc">Submit your government-issued ID to be Pro or Business Verified!</div>
+              <div class="account-option-desc">Learn how to get Pro or Business Verified!</div>
             </div>
-            <button class="get-verified-btn pulsating" id="getVerifiedBtn">
-              <span>GET</span>
-              <span>VERIFIED</span>
-            </button>
+            <div class="account-option-arrow">›</div>
+          </div>
+          <div class="account-option clickable submit-id-option" id="submitIdOption" data-action="submit-id" style="display: none;">
+            <div class="account-option-icon">📄</div>
+            <div class="account-option-info">
+              <div class="account-option-name">Submit ID for Verification</div>
+              <div class="account-option-desc">Upload your ID documents to complete verification</div>
+            </div>
+            <div class="account-option-arrow">›</div>
           </div>
         </div>
         
@@ -452,6 +457,152 @@
         <button class="verification-cancel-btn" id="verificationCancelBtn">Cancel</button>
         <button class="verification-submit-id-btn" id="verificationSubmitIdBtn" disabled>
           Submit for Review
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upgrade Explanation Overlay -->
+  <div class="explanation-overlay" id="explanationOverlay">
+    <div class="explanation-container">
+      <div class="explanation-overlay-header">
+        <div class="explanation-overlay-title">Get Verified Status</div>
+        <button class="explanation-close-btn" id="explanationCloseBtn" aria-label="Close">
+          ×
+        </button>
+      </div>
+      <div class="explanation-overlay-content">
+        <div class="explanation-intro">
+          <div class="explanation-intro-text">
+            Be Trusted in our Community!
+          </div>
+        </div>
+        
+        <!-- Purchase Options -->
+        <div class="explanation-section">
+          <div class="explanation-section-title">💳 Purchase Verification Eligibility</div>
+          <div class="explanation-purchase-options">
+            <div class="explanation-option pro-option clickable" data-purchase="pro">
+              <div class="option-header">
+                <div class="option-badge pro-badge">PRO ID</div>
+                <div class="option-price">₱250</div>
+              </div>
+              <div class="option-benefits">
+                <div class="option-benefit">✓ 25 G-Coins included</div>
+                <div class="option-benefit">✓ Pro Verified badge</div>
+                <div class="option-benefit">✓ Priority support</div>
+                <div class="option-benefit">✓ Enhanced profile visibility</div>
+              </div>
+              <div class="option-note">After purchase, you can submit your ID for verification</div>
+            </div>
+            
+            <div class="explanation-option business-option clickable" data-purchase="business">
+              <div class="option-header">
+                <div class="option-badge business-badge">BUSINESS ID</div>
+                <div class="option-price">₱500</div>
+              </div>
+              <div class="option-benefits">
+                <div class="option-benefit">✓ 100 G-Coins included</div>
+                <div class="option-benefit">✓ Business Verified badge</div>
+                <div class="option-benefit">✓ Premium business features</div>
+                <div class="option-benefit">✓ Top search priority</div>
+              </div>
+              <div class="option-note">After purchase, you can submit your business ID for verification</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Referral Options -->
+        <div class="explanation-section">
+          <div class="explanation-section-title">🎁 Refer Friends & Get Free Verification</div>
+          <div class="explanation-referral-options">
+            <div class="referral-option">
+              <div class="referral-header">
+                <div class="referral-badge pro-referral">Free Pro Verified</div>
+                <div class="referral-target">Refer 10 Friends</div>
+              </div>
+              <div class="referral-benefits">
+                <div class="referral-benefit">✓ Free Pro Verified status</div>
+                <div class="referral-benefit">✓ 25 G-Coins bonus</div>
+                <div class="referral-benefit">✓ ₱625 value earned</div>
+              </div>
+              <div class="referral-progress">
+                <div class="progress-text">Current Progress:</div>
+                <div class="progress-bar">
+                  <div class="progress-fill pro-progress" style="width: 30%;"></div>
+                  <div class="progress-label">3 / 10 signups</div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="referral-option">
+              <div class="referral-header">
+                <div class="referral-badge business-referral">Free Business Verified</div>
+                <div class="referral-target">Refer 20 Friends</div>
+              </div>
+              <div class="referral-benefits">
+                <div class="referral-benefit">✓ Free Business Verified status</div>
+                <div class="referral-benefit">✓ 50 G-Coins bonus</div>
+                <div class="referral-benefit">✓ ₱1,250 value earned</div>
+              </div>
+              <div class="referral-progress">
+                <div class="progress-text">Current Progress:</div>
+                <div class="progress-bar">
+                  <div class="progress-fill business-progress" style="width: 15%;"></div>
+                  <div class="progress-label">3 / 20 signups</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="referral-share-section">
+            <div class="referral-code-section">
+              <div class="referral-code-label">Your Referral Code:</div>
+              <div class="referral-code-display">
+                <span class="referral-code" id="userReferralCode">GISUGO-USER123-REFER</span>
+                <button class="copy-code-btn" id="copyCodeBtn" title="Copy to clipboard">📋</button>
+              </div>
+            </div>
+            
+            <div class="share-buttons">
+              <button class="share-btn facebook-share" id="facebookShareBtn">
+                <span class="share-icon">📘</span>
+                <span>Facebook</span>
+              </button>
+              <button class="share-btn sms-share" id="smsShareBtn">
+                <span class="share-icon">💬</span>
+                <span>SMS</span>
+              </button>
+              <button class="share-btn link-share" id="linkShareBtn">
+                <span class="share-icon">🔗</span>
+                <span>Copy Link</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Current G-Coins Balance -->
+        <div class="explanation-section">
+          <div class="explanation-balance">
+            <div class="balance-icon">
+              <div class="gcoins-coin">
+                <span class="gcoins-letter">G</span>
+              </div>
+            </div>
+            <div class="balance-info">
+              <div class="balance-amount" id="explanationGCoinsBalance">15</div>
+              <div class="balance-label">Current G-Coins Balance</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="explanation-overlay-actions">
+        <button class="explanation-purchase-btn" id="explanationPurchaseBtn">
+          Purchase G-Coins
+        </button>
+        <button class="explanation-cancel-btn" id="explanationCancelBtn">
+          Maybe Later
         </button>
       </div>
     </div>
