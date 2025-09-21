@@ -72,12 +72,16 @@ function isUserLoggedIn() {
     return true;
   }
   
-  // Fallback to mock check for development
+  // Fallback to mock check for development AND demo purposes
   // In development, we'll simulate a logged-in user
   const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   if (isDevelopment) {
     return true; // Mock logged-in state for development
   }
+  
+  // TEMPORARY: For live demo purposes, simulate logged-in user
+  // TODO: Remove this when real authentication is implemented
+  return true; // Allow Account button to show on live site for demo
   
   // Check session storage or other auth methods
   const sessionUser = sessionStorage.getItem('currentUserId');
@@ -92,6 +96,10 @@ function isOwnProfile() {
   if (isDevelopment) {
     return true; // Mock own profile for development
   }
+  
+  // TEMPORARY: For live demo purposes, simulate own profile
+  // TODO: Replace with real user ID comparison when authentication is implemented
+  return true; // Allow Account button to show on live site for demo
   
   // Production logic would be:
   // const currentUserId = getCurrentUserId();
