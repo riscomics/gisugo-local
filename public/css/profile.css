@@ -897,23 +897,45 @@ body::-webkit-scrollbar {
   padding: clamp(1rem, 4vw, 1.25rem);
   display: flex;
   align-items: center;
-  gap: clamp(0.75rem, 3vw, 1rem);
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  min-height: auto;
+  flex-wrap: nowrap;
 }
 
 .submit-id-option .account-option-icon {
   flex-shrink: 0;
-  order: 1;
+  width: clamp(1.2rem, 4vw, 1.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .submit-id-option .account-option-info {
   flex: 1;
-  order: 2;
+  min-width: 0; /* Allows text to truncate if needed */
+}
+
+.submit-id-option .account-option-name {
+  font-size: clamp(0.9rem, 3vw, 1rem);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.submit-id-option .account-option-desc {
+  font-size: clamp(0.75rem, 2.5vw, 0.85rem);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: clamp(0.15rem, 1vw, 0.25rem);
 }
 
 .submit-id-option .account-option-arrow {
   flex-shrink: 0;
-  order: 3;
-  margin-left: auto;
+  width: clamp(1rem, 3vw, 1.2rem);
+  text-align: center;
 }
 
 /* Get Verified Button in Account Settings */
@@ -1925,7 +1947,15 @@ body::-webkit-scrollbar {
   /* Submit ID Option Mobile */
   .submit-id-option {
     padding: clamp(0.75rem, 3vw, 1rem);
-    gap: clamp(0.5rem, 2vw, 0.75rem);
+    gap: clamp(0.4rem, 1.5vw, 0.6rem);
+  }
+  
+  .submit-id-option .account-option-name {
+    font-size: clamp(0.85rem, 2.8vw, 0.95rem);
+  }
+  
+  .submit-id-option .account-option-desc {
+    font-size: clamp(0.7rem, 2.2vw, 0.8rem);
   }
   
   /* Purchase Success Overlay Mobile */
