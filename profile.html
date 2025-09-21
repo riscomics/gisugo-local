@@ -170,10 +170,14 @@
       </div>
       <div class="account-content">
         <div class="account-section">
-          <div class="account-section-title">G-Coins Wallet</div>
+          <div class="account-section-title">GISUGO Coins Wallet</div>
           <div class="gcoins-balance-card">
-            <div class="gcoins-header">
-              <div class="gcoins-icon">🪙</div>
+        <div class="gcoins-header">
+          <div class="gcoins-icon">
+            <div class="gcoins-coin">
+              <span class="gcoins-letter">G</span>
+            </div>
+          </div>
               <div class="gcoins-balance-info">
                 <div class="gcoins-balance-amount" id="gCoinsBalance">15</div>
                 <div class="gcoins-balance-label">G-Coins Available</div>
@@ -202,13 +206,16 @@
             </div>
             <div class="account-option-status active">Active</div>
           </div>
-          <div class="account-option">
+          <div class="account-option verification-upgrade-option">
             <div class="account-option-icon">⭐</div>
             <div class="account-option-info">
-              <div class="account-option-name">Pro Verified</div>
-              <div class="account-option-desc">Upgrade to Pro verification</div>
+              <div class="account-option-name">Upgrade Status</div>
+              <div class="account-option-desc">Submit your government-issued ID to be Pro or Business Verified!</div>
             </div>
-            <div class="account-option-status inactive">Available</div>
+            <button class="get-verified-btn pulsating" id="getVerifiedBtn">
+              <span>GET</span>
+              <span>VERIFIED</span>
+            </button>
           </div>
         </div>
         
@@ -313,6 +320,138 @@
         <button class="gcoins-cancel-btn" id="gCoinsCancelBtn">Cancel</button>
         <button class="gcoins-purchase-btn" id="gCoinsPurchaseBtn" disabled>
           Select Package to Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- G-Coins Purchase Success Overlay -->
+  <div class="purchase-success-overlay" id="purchaseSuccessOverlay">
+    <div class="purchase-success-container">
+      <div class="purchase-success-header">
+        <div class="purchase-success-icon">🎉</div>
+        <div class="purchase-success-title">Purchase Successful!</div>
+      </div>
+      <div class="purchase-success-content">
+        <div class="purchase-success-message" id="purchaseSuccessMessage">
+          You've successfully purchased G-Coins!
+        </div>
+        <div class="purchase-success-balance">
+          <div class="success-balance-label">New Balance:</div>
+          <div class="success-balance-amount" id="successBalanceAmount">0 G-Coins</div>
+        </div>
+        <div class="verification-upgrade-section" id="verificationUpgradeSection" style="display: none;">
+          <div class="verification-upgrade-message" id="verificationUpgradeMessage">
+            Your account is now eligible to be upgraded to Verified status!
+          </div>
+          <div class="verification-upgrade-instruction">
+            Click on Submit ID if you have not already.
+          </div>
+          <button class="verification-submit-btn" id="verificationSubmitBtn">
+            <span class="submit-icon">🆔</span>
+            <span>Submit ID for Verification</span>
+          </button>
+        </div>
+      </div>
+      <div class="purchase-success-actions">
+        <button class="purchase-success-close-btn" id="purchaseSuccessCloseBtn">
+          Continue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ID Verification Submission Overlay -->
+  <div class="verification-overlay" id="verificationOverlay">
+    <div class="verification-container">
+      <div class="verification-overlay-header">
+        <div class="verification-overlay-title">Submit ID for Verification</div>
+        <button class="verification-close-btn" id="verificationCloseBtn" aria-label="Close">
+          ×
+        </button>
+      </div>
+      <div class="verification-overlay-content">
+        <div class="verification-info">
+          <div class="verification-info-title">Get Verified in 3 Easy Steps:</div>
+          <div class="verification-steps">
+            <div class="verification-step">
+              <div class="step-number">1</div>
+              <div class="step-text">Upload a clear photo of your government-issued ID</div>
+            </div>
+            <div class="verification-step">
+              <div class="step-number">2</div>
+              <div class="step-text">Our team reviews your submission within 24-48 hours</div>
+            </div>
+            <div class="verification-step">
+              <div class="step-number">3</div>
+              <div class="step-text">Get your verified badge and unlock premium features</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="verification-upload-section">
+          <div class="upload-steps">
+            <div class="upload-step">
+              <div class="upload-step-title">Step 1: Upload your Government ID</div>
+              <div class="upload-area" id="uploadAreaId">
+                <div class="upload-icon">🆔</div>
+                <div class="upload-text">
+                  <div class="upload-primary">Click to upload your ID photo</div>
+                  <div class="upload-secondary">JPG, PNG files up to 5MB</div>
+                </div>
+                <input type="file" id="idFileInput" accept="image/*" style="display: none;">
+              </div>
+            </div>
+            
+            <div class="upload-step">
+              <div class="upload-step-title">Step 2: Upload a Selfie with your ID</div>
+              <div class="upload-area" id="uploadAreaSelfie">
+                <div class="upload-icon">
+                  <img src="public/images/Selfie-ID.jpg" alt="Selfie with ID example" class="selfie-example-img">
+                </div>
+                <div class="upload-text">
+                  <div class="upload-primary">Click to upload selfie holding your ID</div>
+                  <div class="upload-secondary">Clear photo of you holding the ID next to your face</div>
+                </div>
+                <input type="file" id="selfieFileInput" accept="image/*" style="display: none;">
+              </div>
+            </div>
+          </div>
+          
+          <div class="verification-requirements">
+            <div class="requirements-title">Accepted Philippine Government IDs:</div>
+            <ul class="requirements-list id-types">
+              <li>Driver's License</li>
+              <li>Passport</li>
+              <li>UMID (Unified Multi-Purpose ID)</li>
+              <li>SSS ID</li>
+              <li>PhilHealth ID</li>
+              <li>TIN ID</li>
+              <li>Postal ID</li>
+              <li>Voter's ID</li>
+              <li>Senior Citizen ID</li>
+              <li>PWD ID</li>
+              <li>Professional Regulation Commission (PRC) ID</li>
+              <li>Overseas Filipino Worker (OFW) ID</li>
+            </ul>
+            
+            <div class="requirements-title">Photo Requirements:</div>
+            <ul class="requirements-list photo-requirements">
+              <li><strong>ID Photo:</strong> Clear, readable image with all text visible</li>
+              <li><strong>Selfie:</strong> You holding the ID next to your face, both clearly visible</li>
+              <li>ID must be current and not expired</li>
+              <li>Photos must be well-lit and in focus</li>
+              <li>Full ID must be visible in both photos</li>
+              <li>Your face must be clearly visible in the selfie</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="verification-overlay-actions">
+        <button class="verification-cancel-btn" id="verificationCancelBtn">Cancel</button>
+        <button class="verification-submit-id-btn" id="verificationSubmitIdBtn" disabled>
+          Submit for Review
         </button>
       </div>
     </div>

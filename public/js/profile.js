@@ -367,14 +367,10 @@ function handleGCoinsPurchase(packageData) {
       updateBadgeVisibility(window.currentUserProfile);
       updateAccountOverlayVerificationStatus(window.currentUserProfile);
       
-      // Show success message with verification upgrade if applicable
-      let successMessage = `🎉 Success! You've purchased ${packageData.coins} G-Coins for ₱${packageData.amount}. Your new balance is ${window.currentUserProfile.wallet.gCoinsBalance} G-Coins.`;
-      if (verificationMessage) {
-        successMessage += verificationMessage;
-      }
-      alert(successMessage);
+      // Show custom success overlay instead of browser alert
+      showPurchaseSuccessOverlay(packageData, window.currentUserProfile.wallet.gCoinsBalance, verificationMessage);
       
-      // Close overlay
+      // Close G-Coins overlay
       closeGCoinsOverlay();
     }
     
@@ -384,6 +380,300 @@ function handleGCoinsPurchase(packageData) {
       gCoinsPurchaseBtn.textContent = 'Select Package to Continue';
     }
   }, 2000); // 2 second delay to simulate payment processing
+}
+
+// ===== PURCHASE SUCCESS OVERLAY FUNCTIONALITY =====
+
+// Show custom purchase success overlay
+function showPurchaseSuccessOverlay(packageData, newBalance, verificationMessage) {
+  const purchaseSuccessOverlay = document.getElementById('purchaseSuccessOverlay');
+  const purchaseSuccessMessage = document.getElementById('purchaseSuccessMessage');
+  const successBalanceAmount = document.getElementById('successBalanceAmount');
+  const verificationUpgradeSection = document.getElementById('verificationUpgradeSection');
+  const verificationUpgradeMessage = document.getElementById('verificationUpgradeMessage');
+  
+  if (purchaseSuccessOverlay) {
+    // Update purchase message
+    if (purchaseSuccessMessage) {
+      purchaseSuccessMessage.textContent = `You've successfully purchased ${packageData.coins} G-Coins for ₱${packageData.amount}!`;
+    }
+    
+    // Update balance display
+    if (successBalanceAmount) {
+      successBalanceAmount.textContent = `${newBalance} G-Coins`;
+    }
+    
+    // Show verification upgrade section if applicable
+    if (verificationUpgradeSection && verificationMessage) {
+      if (verificationUpgradeMessage) {
+        if (packageData.verification === 'pro') {
+          verificationUpgradeMessage.textContent = 'Your account is now eligible to be upgraded to Pro Verified status!';
+        } else if (packageData.verification === 'business') {
+          verificationUpgradeMessage.textContent = 'Your account is now eligible to be upgraded to Business Verified status!';
+        }
+      }
+      verificationUpgradeSection.style.display = 'block';
+    } else if (verificationUpgradeSection) {
+      verificationUpgradeSection.style.display = 'none';
+    }
+    
+    // Show overlay
+    purchaseSuccessOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    console.log('💰 Purchase success overlay displayed');
+  }
+}
+
+// Purchase Success Overlay functionality
+const purchaseSuccessCloseBtn = document.getElementById('purchaseSuccessCloseBtn');
+const purchaseSuccessOverlay = document.getElementById('purchaseSuccessOverlay');
+const verificationSubmitBtn = document.getElementById('verificationSubmitBtn');
+
+// Close purchase success overlay
+function closePurchaseSuccessOverlay() {
+  if (purchaseSuccessOverlay) {
+    purchaseSuccessOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    console.log('💰 Purchase success overlay closed');
+  }
+}
+
+if (purchaseSuccessCloseBtn) {
+  purchaseSuccessCloseBtn.addEventListener('click', closePurchaseSuccessOverlay);
+}
+
+// Handle verification submit button in success overlay
+if (verificationSubmitBtn) {
+  verificationSubmitBtn.addEventListener('click', function() {
+    closePurchaseSuccessOverlay();
+    openVerificationOverlay();
+  });
+}
+
+// Handle Get Verified button in Account Settings
+const getVerifiedBtn = document.getElementById('getVerifiedBtn');
+if (getVerifiedBtn) {
+  getVerifiedBtn.addEventListener('click', function() {
+    // Close account overlay first
+    if (accountOverlay) {
+      accountOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+    // Open verification overlay
+    openVerificationOverlay();
+  });
+}
+
+// ===== ID VERIFICATION OVERLAY FUNCTIONALITY =====
+
+const verificationOverlay = document.getElementById('verificationOverlay');
+const verificationCloseBtn = document.getElementById('verificationCloseBtn');
+const verificationCancelBtn = document.getElementById('verificationCancelBtn');
+const uploadAreaId = document.getElementById('uploadAreaId');
+const uploadAreaSelfie = document.getElementById('uploadAreaSelfie');
+const idFileInput = document.getElementById('idFileInput');
+const selfieFileInput = document.getElementById('selfieFileInput');
+const verificationSubmitIdBtn = document.getElementById('verificationSubmitIdBtn');
+
+let selectedIdFile = null;
+let selectedSelfieFile = null;
+
+// Open verification overlay
+function openVerificationOverlay() {
+  if (verificationOverlay) {
+    verificationOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    console.log('🆔 Verification overlay opened');
+  }
+}
+
+// Close verification overlay
+function closeVerificationOverlay() {
+  if (verificationOverlay) {
+    verificationOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    selectedIdFile = null;
+    selectedSelfieFile = null;
+    updateVerificationSubmitButton();
+    
+    // Reset ID upload area
+    if (uploadAreaId) {
+      uploadAreaId.innerHTML = `
+        <div class="upload-icon">🆔</div>
+        <div class="upload-text">
+          <div class="upload-primary">Click to upload your ID photo</div>
+          <div class="upload-secondary">JPG, PNG files up to 5MB</div>
+        </div>
+      `;
+    }
+    
+    // Reset selfie upload area
+    if (uploadAreaSelfie) {
+      uploadAreaSelfie.innerHTML = `
+        <div class="upload-icon">
+          <img src="public/images/Selfie-ID.jpg" alt="Selfie with ID example" class="selfie-example-img">
+        </div>
+        <div class="upload-text">
+          <div class="upload-primary">Click to upload selfie holding your ID</div>
+          <div class="upload-secondary">Clear photo of you holding the ID next to your face</div>
+        </div>
+      `;
+    }
+    
+    console.log('🆔 Verification overlay closed');
+  }
+}
+
+// Close buttons
+if (verificationCloseBtn) {
+  verificationCloseBtn.addEventListener('click', closeVerificationOverlay);
+}
+
+if (verificationCancelBtn) {
+  verificationCancelBtn.addEventListener('click', closeVerificationOverlay);
+}
+
+// ID File upload functionality
+if (uploadAreaId && idFileInput) {
+  uploadAreaId.addEventListener('click', function() {
+    idFileInput.click();
+  });
+  
+  idFileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert('ID file size must be less than 5MB');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file for your ID');
+        return;
+      }
+      
+      selectedIdFile = file;
+      
+      // Update upload area to show selected file
+      uploadAreaId.innerHTML = `
+        <div class="upload-icon">✅</div>
+        <div class="upload-text">
+          <div class="upload-primary">ID Selected: ${file.name}</div>
+          <div class="upload-secondary">Click to change file</div>
+        </div>
+      `;
+      
+      updateVerificationSubmitButton();
+      console.log('🆔 ID file selected:', file.name);
+    }
+  });
+}
+
+// Selfie File upload functionality
+if (uploadAreaSelfie && selfieFileInput) {
+  uploadAreaSelfie.addEventListener('click', function() {
+    selfieFileInput.click();
+  });
+  
+  selfieFileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert('Selfie file size must be less than 5MB');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file for your selfie');
+        return;
+      }
+      
+      selectedSelfieFile = file;
+      
+      // Update upload area to show selected file
+      uploadAreaSelfie.innerHTML = `
+        <div class="upload-icon">✅</div>
+        <div class="upload-text">
+          <div class="upload-primary">Selfie Selected: ${file.name}</div>
+          <div class="upload-secondary">Click to change file</div>
+        </div>
+      `;
+      
+      updateVerificationSubmitButton();
+      console.log('🤳 Selfie file selected:', file.name);
+    }
+  });
+}
+
+// Update submit button based on file selection
+function updateVerificationSubmitButton() {
+  if (verificationSubmitIdBtn) {
+    if (selectedIdFile && selectedSelfieFile) {
+      verificationSubmitIdBtn.disabled = false;
+      verificationSubmitIdBtn.textContent = 'Submit for Review';
+    } else if (selectedIdFile && !selectedSelfieFile) {
+      verificationSubmitIdBtn.disabled = true;
+      verificationSubmitIdBtn.textContent = 'Upload Selfie to Continue';
+    } else if (!selectedIdFile && selectedSelfieFile) {
+      verificationSubmitIdBtn.disabled = true;
+      verificationSubmitIdBtn.textContent = 'Upload ID to Continue';
+    } else {
+      verificationSubmitIdBtn.disabled = true;
+      verificationSubmitIdBtn.textContent = 'Upload Both Files to Continue';
+    }
+  }
+}
+
+// Handle ID submission
+if (verificationSubmitIdBtn) {
+  verificationSubmitIdBtn.addEventListener('click', function() {
+    if (selectedIdFile && selectedSelfieFile) {
+      handleIdSubmission(selectedIdFile, selectedSelfieFile);
+    }
+  });
+}
+
+// Handle ID submission (mock implementation with Firebase prep)
+function handleIdSubmission(idFile, selfieFile) {
+  console.log('🆔 Processing ID submission:');
+  console.log('- ID file:', idFile.name);
+  console.log('- Selfie file:', selfieFile.name);
+  
+  // TODO: FIREBASE INTEGRATION POINTS
+  // 1. Upload file to Firebase Storage
+  // 2. Create verification request document in Firestore
+  // 3. Send notification to admin panel
+  // 4. Update user verification status to 'pending'
+  
+  // Show loading state
+  if (verificationSubmitIdBtn) {
+    verificationSubmitIdBtn.disabled = true;
+    verificationSubmitIdBtn.textContent = 'Uploading...';
+  }
+  
+  // Simulate upload process
+  setTimeout(() => {
+    // Mock successful submission
+    console.log('🆔 ID submission successful');
+    
+    // In production, this would call Firebase functions
+    // await submitIdForVerification(getCurrentUserId(), file);
+    
+    // Show success message
+    alert('🎉 Your ID and selfie have been submitted for verification! You\'ll receive an email confirmation within 24-48 hours.');
+    
+    // Close overlay
+    closeVerificationOverlay();
+    
+    // Reset button
+    if (verificationSubmitIdBtn) {
+      verificationSubmitIdBtn.disabled = false;
+      verificationSubmitIdBtn.textContent = 'Submit for Review';
+    }
+  }, 3000); // 3 second delay to simulate upload
 }
 
 // Mobile Menu Overlay functionality
@@ -676,7 +966,10 @@ document.addEventListener('DOMContentLoaded', function() {
  *      - verification: {
  *          businessVerified: boolean,
  *          proVerified: boolean,
- *          verificationDate: timestamp
+ *          verificationDate: timestamp,
+ *          status: string ('none', 'pending', 'approved', 'rejected'),
+ *          pendingRequestId: string,
+ *          submittedAt: timestamp
  *        }
  *      - wallet: {
  *          gCoinsBalance: number,
@@ -699,15 +992,52 @@ document.addEventListener('DOMContentLoaded', function() {
  *    - Add webhook handlers for payment confirmation
  *    - Implement transaction logging and reconciliation
  * 
- * 4. VERIFICATION SYSTEM
- *    - Create admin panel for manual verification approval
- *    - Add document upload for ID verification
- *    - Implement automated verification workflows
  * 
- * 5. SECURITY RULES
+ *    /verification_requests/{requestId}
+ *      - userId: string
+ *      - fileUrl: string (Firebase Storage URL)
+ *      - fileName: string
+ *      - fileSize: number
+ *      - status: string ('pending', 'approved', 'rejected')
+ *      - submittedAt: timestamp
+ *      - reviewedAt: timestamp
+ *      - reviewedBy: string (admin userId)
+ *      - rejectionReason: string
+ *      - verificationType: string ('id_verification', 'business_verification')
+ * 
+ *    /admin_notifications/{notificationId}
+ *      - type: string ('verification_request', 'payment_received', etc.)
+ *      - userId: string
+ *      - requestId: string
+ *      - message: string
+ *      - createdAt: timestamp
+ *      - read: boolean
+ * 
+ * 4. FIREBASE STORAGE STRUCTURE
+ *    /verification_ids/{userId}/{timestamp}_{filename}
+ *      - Store uploaded ID documents securely
+ *      - Implement proper access controls (admin-only read)
+ *      - Set up automatic deletion after verification completion
+ * 
+ * 5. VERIFICATION SYSTEM WORKFLOW
+ *    - Create admin panel for manual verification approval
+ *    - Add document upload for ID verification (✅ IMPLEMENTED)
+ *    - Implement automated verification workflows
+ *    - Set up email notifications for status updates
+ *    - Add appeal process for rejected verifications
+ * 
+ * 6. CLOUD FUNCTIONS REQUIRED
+ *    - onVerificationSubmitted: Trigger admin notifications
+ *    - processVerificationApproval: Update user verification status
+ *    - sendVerificationEmails: Email confirmation and status updates
+ *    - cleanupExpiredDocuments: Remove old ID files from storage
+ * 
+ * 7. SECURITY RULES
  *    - Users can only read/write their own profile data
  *    - Wallet transactions require server-side verification
  *    - Verification status changes require admin approval
+ *    - ID documents in Storage accessible only to admins and document owner
+ *    - Verification requests readable only by user and admins
  */
 
 // ===== PRODUCTION FIREBASE FUNCTIONS =====
@@ -782,18 +1112,106 @@ async function updateVerificationInFirebase(userId, verificationType) {
   }
 }
 
+// Production function to submit ID for verification
+async function submitIdForVerification(userId, file) {
+  try {
+    // 1. Upload file to Firebase Storage
+    const storageRef = firebase.storage().ref();
+    const idRef = storageRef.child(`verification_ids/${userId}/${Date.now()}_${file.name}`);
+    
+    console.log('Uploading ID file to Firebase Storage...');
+    const uploadTask = await idRef.put(file);
+    const downloadUrl = await uploadTask.ref.getDownloadURL();
+    
+    // 2. Create verification request document
+    const verificationData = {
+      userId: userId,
+      fileUrl: downloadUrl,
+      fileName: file.name,
+      fileSize: file.size,
+      status: 'pending', // pending, approved, rejected
+      submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      reviewedAt: null,
+      reviewedBy: null,
+      rejectionReason: null,
+      verificationType: 'id_verification' // or 'business_verification'
+    };
+    
+    const verificationRef = await firebase.firestore()
+      .collection('verification_requests')
+      .add(verificationData);
+    
+    // 3. Update user status to indicate pending verification
+    await firebase.firestore().collection('users').doc(userId).update({
+      'verification.status': 'pending',
+      'verification.pendingRequestId': verificationRef.id,
+      'verification.submittedAt': firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // 4. Send notification to admin (Cloud Function trigger)
+    // This would be handled by a Firebase Cloud Function
+    await firebase.firestore().collection('admin_notifications').add({
+      type: 'verification_request',
+      userId: userId,
+      requestId: verificationRef.id,
+      message: `New verification request from user ${userId}`,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      read: false
+    });
+    
+    console.log('ID verification request submitted successfully');
+    return verificationRef.id;
+    
+  } catch (error) {
+    console.error('Error submitting ID for verification:', error);
+    throw error;
+  }
+}
+
+// Production function to check verification status
+async function checkVerificationStatus(userId) {
+  try {
+    const userDoc = await firebase.firestore().collection('users').doc(userId).get();
+    
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      return {
+        status: userData.verification?.status || 'none',
+        businessVerified: userData.verification?.businessVerified || false,
+        proVerified: userData.verification?.proVerified || false,
+        pendingRequestId: userData.verification?.pendingRequestId || null
+      };
+    }
+    
+    return { status: 'none', businessVerified: false, proVerified: false };
+  } catch (error) {
+    console.error('Error checking verification status:', error);
+    throw error;
+  }
+}
+
 // ===== CLEANUP AND MEMORY MANAGEMENT =====
 
 // Cleanup function for profile page
 function cleanupProfilePage() {
   // Remove event listeners to prevent memory leaks
-  const elementsToCleanup = [
-    { element: accountBtn, events: ['click'] },
-    { element: gCoinsTopUpBtn, events: ['click'] },
-    { element: gCoinsCloseBtn, events: ['click'] },
-    { element: gCoinsCancelBtn, events: ['click'] },
-    { element: gCoinsPurchaseBtn, events: ['click'] }
-  ];
+    const elementsToCleanup = [
+      { element: accountBtn, events: ['click'] },
+      { element: gCoinsTopUpBtn, events: ['click'] },
+      { element: gCoinsCloseBtn, events: ['click'] },
+      { element: gCoinsCancelBtn, events: ['click'] },
+      { element: gCoinsPurchaseBtn, events: ['click'] },
+      { element: purchaseSuccessCloseBtn, events: ['click'] },
+      { element: verificationSubmitBtn, events: ['click'] },
+      { element: getVerifiedBtn, events: ['click'] },
+      { element: verificationCloseBtn, events: ['click'] },
+      { element: verificationCancelBtn, events: ['click'] },
+      { element: verificationSubmitIdBtn, events: ['click'] },
+      { element: uploadAreaId, events: ['click'] },
+      { element: uploadAreaSelfie, events: ['click'] },
+      { element: idFileInput, events: ['change'] },
+      { element: selfieFileInput, events: ['change'] }
+    ];
   
   elementsToCleanup.forEach(({ element, events }) => {
     if (element) {
@@ -806,6 +1224,8 @@ function cleanupProfilePage() {
   // Clear global references
   window.currentUserProfile = null;
   selectedPackage = null;
+  selectedIdFile = null;
+  selectedSelfieFile = null;
   
   // Clear any active overlays
   if (accountOverlay && accountOverlay.classList.contains('active')) {
@@ -815,6 +1235,16 @@ function cleanupProfilePage() {
   
   if (gCoinsOverlay && gCoinsOverlay.classList.contains('active')) {
     gCoinsOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  if (purchaseSuccessOverlay && purchaseSuccessOverlay.classList.contains('active')) {
+    purchaseSuccessOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  if (verificationOverlay && verificationOverlay.classList.contains('active')) {
+    verificationOverlay.classList.remove('active');
     document.body.style.overflow = '';
   }
   
