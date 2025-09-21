@@ -1192,61 +1192,27 @@ async function checkVerificationStatus(userId) {
 
 // ===== CLEANUP AND MEMORY MANAGEMENT =====
 
-// Cleanup function for profile page
+// Simple cleanup function appropriate for traditional websites
 function cleanupProfilePage() {
-  // Remove event listeners to prevent memory leaks
-    const elementsToCleanup = [
-      { element: accountBtn, events: ['click'] },
-      { element: gCoinsTopUpBtn, events: ['click'] },
-      { element: gCoinsCloseBtn, events: ['click'] },
-      { element: gCoinsCancelBtn, events: ['click'] },
-      { element: gCoinsPurchaseBtn, events: ['click'] },
-      { element: purchaseSuccessCloseBtn, events: ['click'] },
-      { element: verificationSubmitBtn, events: ['click'] },
-      { element: getVerifiedBtn, events: ['click'] },
-      { element: verificationCloseBtn, events: ['click'] },
-      { element: verificationCancelBtn, events: ['click'] },
-      { element: verificationSubmitIdBtn, events: ['click'] },
-      { element: uploadAreaId, events: ['click'] },
-      { element: uploadAreaSelfie, events: ['click'] },
-      { element: idFileInput, events: ['change'] },
-      { element: selfieFileInput, events: ['change'] }
-    ];
+  console.log('🧹 Starting profile page cleanup...');
   
-  elementsToCleanup.forEach(({ element, events }) => {
-    if (element) {
-      events.forEach(eventType => {
-        element.removeEventListener(eventType, () => {});
-      });
-    }
-  });
-  
-  // Clear global references
+  // Clear global references (important for Firebase integration)
   window.currentUserProfile = null;
   selectedPackage = null;
   selectedIdFile = null;
   selectedSelfieFile = null;
   
-  // Clear any active overlays
-  if (accountOverlay && accountOverlay.classList.contains('active')) {
-    accountOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-  }
+  // Ensure overlays are closed and body scrolling is restored
+  document.body.style.overflow = '';
   
-  if (gCoinsOverlay && gCoinsOverlay.classList.contains('active')) {
-    gCoinsOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-  
-  if (purchaseSuccessOverlay && purchaseSuccessOverlay.classList.contains('active')) {
-    purchaseSuccessOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-  }
-  
-  if (verificationOverlay && verificationOverlay.classList.contains('active')) {
-    verificationOverlay.classList.remove('active');
-    document.body.style.overflow = '';
-  }
+  // Close any active overlays
+  const overlays = ['accountOverlay', 'gCoinsOverlay', 'purchaseSuccessOverlay', 'verificationOverlay'];
+  overlays.forEach(overlayId => {
+    const overlay = document.getElementById(overlayId);
+    if (overlay && overlay.classList.contains('active')) {
+      overlay.classList.remove('active');
+    }
+  });
   
   console.log('🧹 Profile page cleanup completed');
 }
