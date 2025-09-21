@@ -63,6 +63,321 @@ function handleAccountAction(action) {
   }
 }
 
+// ===== USER AUTHENTICATION & VERIFICATION LOGIC =====
+
+// Check if user is currently logged in
+function isUserLoggedIn() {
+  // Check Firebase Auth first (for production)
+  if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+    return true;
+  }
+  
+  // Fallback to mock check for development
+  // In development, we'll simulate a logged-in user
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isDevelopment) {
+    return true; // Mock logged-in state for development
+  }
+  
+  // Check session storage or other auth methods
+  const sessionUser = sessionStorage.getItem('currentUserId');
+  return sessionUser !== null && sessionUser !== 'undefined';
+}
+
+// Check if current user is viewing their own profile
+function isOwnProfile() {
+  // In production, compare current authenticated user ID with profile user ID
+  // For now, we'll assume user is viewing their own profile for development
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isDevelopment) {
+    return true; // Mock own profile for development
+  }
+  
+  // Production logic would be:
+  // const currentUserId = getCurrentUserId();
+  // const profileUserId = getProfileUserId(); // Get from URL params or page data
+  // return currentUserId === profileUserId;
+  
+  return false;
+}
+
+// Check if user has any verification status
+function hasVerificationStatus(userProfile) {
+  if (!userProfile || !userProfile.verification) {
+    return false;
+  }
+  
+  return userProfile.verification.businessVerified || userProfile.verification.proVerified;
+}
+
+// Get current user ID (enhanced from existing logic)
+function getCurrentUserId() {
+  // Check Firebase Auth first
+  if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+    return firebase.auth().currentUser.uid;
+  }
+  
+  // Fallback to mock user for development
+  return 'peter-j-ang-001';
+}
+
+// Update badge and account button visibility based on auth and verification status
+function updateBadgeVisibility(userProfile) {
+  const businessVerifiedBadge = document.getElementById('businessVerifiedBadge');
+  const newUserBadge = document.getElementById('newUserBadge');
+  const accountBtn = document.getElementById('accountBtn');
+  
+  console.log('🔍 Updating badge visibility...');
+  console.log('User logged in:', isUserLoggedIn());
+  console.log('Own profile:', isOwnProfile());
+  console.log('Has verification:', hasVerificationStatus(userProfile));
+  
+  // Account button logic: Only show when user is logged in AND viewing their own profile
+  if (accountBtn) {
+    const shouldShowAccountBtn = isUserLoggedIn() && isOwnProfile();
+    accountBtn.style.display = shouldShowAccountBtn ? 'inline-flex' : 'none';
+    console.log('Account button visibility:', shouldShowAccountBtn ? 'visible' : 'hidden');
+  }
+  
+  // Badge visibility logic
+  const hasVerification = hasVerificationStatus(userProfile);
+  
+  // Business Verified badge: Show when user has business verification
+  if (businessVerifiedBadge) {
+    const shouldShowBusinessBadge = userProfile?.verification?.businessVerified === true;
+    businessVerifiedBadge.style.display = shouldShowBusinessBadge ? 'inline-flex' : 'none';
+    console.log('Business Verified badge visibility:', shouldShowBusinessBadge ? 'visible' : 'hidden');
+  }
+  
+  // New User badge: Show when user has NO verification (not business verified AND not pro verified)
+  if (newUserBadge) {
+    const shouldShowNewUserBadge = !hasVerification;
+    newUserBadge.style.display = shouldShowNewUserBadge ? 'inline-flex' : 'none';
+    console.log('New User badge visibility:', shouldShowNewUserBadge ? 'visible' : 'hidden');
+  }
+  
+  // Update account overlay verification status
+  updateAccountOverlayVerificationStatus(userProfile);
+  
+  // Update G-Coins display
+  updateGCoinsDisplay(userProfile);
+}
+
+// Update the verification status display in account overlay
+function updateAccountOverlayVerificationStatus(userProfile) {
+  const businessVerifiedOption = document.querySelector('.account-option');
+  const businessStatus = document.querySelector('.account-option-status.active');
+  
+  if (businessVerifiedOption && userProfile?.verification) {
+    // Update business verification status
+    const isBusinessVerified = userProfile.verification.businessVerified;
+    const businessStatusElement = businessVerifiedOption.querySelector('.account-option-status');
+    
+    if (businessStatusElement) {
+      if (isBusinessVerified) {
+        businessStatusElement.textContent = 'Active';
+        businessStatusElement.className = 'account-option-status active';
+      } else {
+        businessStatusElement.textContent = 'Available';
+        businessStatusElement.className = 'account-option-status inactive';
+      }
+    }
+  }
+}
+
+// ===== G-COINS WALLET SYSTEM =====
+
+// Update G-Coins display in account overlay
+function updateGCoinsDisplay(userProfile) {
+  const gCoinsBalance = document.getElementById('gCoinsBalance');
+  const gCoinsCurrentBalance = document.getElementById('gCoinsCurrentBalance');
+  
+  if (userProfile?.wallet?.gCoinsBalance !== undefined) {
+    const balance = userProfile.wallet.gCoinsBalance;
+    
+    // Update main balance display
+    if (gCoinsBalance) {
+      gCoinsBalance.textContent = balance;
+    }
+    
+    // Update current balance in top-up overlay
+    if (gCoinsCurrentBalance) {
+      gCoinsCurrentBalance.textContent = `${balance} G-Coins`;
+    }
+    
+    console.log(`💰 G-Coins balance updated: ${balance}`);
+  }
+}
+
+// G-Coins Top-Up Overlay functionality
+const gCoinsTopUpBtn = document.getElementById('gCoinsTopUpBtn');
+const gCoinsOverlay = document.getElementById('gCoinsOverlay');
+const gCoinsCloseBtn = document.getElementById('gCoinsCloseBtn');
+const gCoinsCancelBtn = document.getElementById('gCoinsCancelBtn');
+const gCoinsPurchaseBtn = document.getElementById('gCoinsPurchaseBtn');
+
+let selectedPackage = null;
+
+if (gCoinsTopUpBtn && gCoinsOverlay) {
+  // Open G-Coins overlay
+  gCoinsTopUpBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    gCoinsOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    console.log('💰 G-Coins top-up overlay opened');
+  });
+
+  // Close overlay functions
+  function closeGCoinsOverlay() {
+    gCoinsOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    selectedPackage = null;
+    updatePurchaseButton();
+    // Clear any selected packages
+    document.querySelectorAll('.gcoins-package').forEach(pkg => {
+      pkg.classList.remove('selected');
+    });
+    console.log('💰 G-Coins overlay closed');
+  }
+
+  // Close via close button
+  if (gCoinsCloseBtn) {
+    gCoinsCloseBtn.addEventListener('click', closeGCoinsOverlay);
+  }
+
+  // Close via cancel button
+  if (gCoinsCancelBtn) {
+    gCoinsCancelBtn.addEventListener('click', closeGCoinsOverlay);
+  }
+
+  // Close via background click
+  gCoinsOverlay.addEventListener('click', function(e) {
+    if (e.target === gCoinsOverlay) {
+      closeGCoinsOverlay();
+    }
+  });
+
+  // Close via Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && gCoinsOverlay.classList.contains('active')) {
+      closeGCoinsOverlay();
+    }
+  });
+}
+
+// Package selection functionality
+const gCoinsPackages = document.querySelectorAll('.gcoins-package');
+gCoinsPackages.forEach(package => {
+  package.addEventListener('click', function() {
+    // Remove selected class from all packages
+    gCoinsPackages.forEach(pkg => pkg.classList.remove('selected'));
+    
+    // Add selected class to clicked package
+    this.classList.add('selected');
+    
+    // Store selected package data
+    selectedPackage = {
+      amount: parseInt(this.getAttribute('data-amount')),
+      coins: parseInt(this.getAttribute('data-coins')),
+      verification: this.getAttribute('data-verification') || null
+    };
+    
+    console.log(`💰 Package selected: ₱${selectedPackage.amount} for ${selectedPackage.coins} G-Coins${selectedPackage.verification ? ` + ${selectedPackage.verification} verification` : ''}`);
+    
+    // Update purchase button
+    updatePurchaseButton();
+  });
+});
+
+// Update purchase button based on selection
+function updatePurchaseButton() {
+  if (gCoinsPurchaseBtn) {
+    if (selectedPackage) {
+      gCoinsPurchaseBtn.disabled = false;
+      gCoinsPurchaseBtn.textContent = `Purchase ₱${selectedPackage.amount} Package`;
+    } else {
+      gCoinsPurchaseBtn.disabled = true;
+      gCoinsPurchaseBtn.textContent = 'Select Package to Continue';
+    }
+  }
+}
+
+// Purchase button functionality
+if (gCoinsPurchaseBtn) {
+  gCoinsPurchaseBtn.addEventListener('click', function() {
+    if (selectedPackage) {
+      handleGCoinsPurchase(selectedPackage);
+    }
+  });
+}
+
+// Handle G-Coins purchase (mock implementation)
+function handleGCoinsPurchase(packageData) {
+  console.log(`💰 Processing purchase: ₱${packageData.amount} for ${packageData.coins} G-Coins`);
+  
+  // TODO: PRODUCTION INTEGRATION POINTS
+  // 1. Replace with real payment processor API (GCash, PayMaya, Credit Card)
+  // 2. Add Firebase transaction logging
+  // 3. Implement server-side verification status updates
+  // 4. Add proper error handling for failed payments
+  // 5. Integrate with backend wallet service
+  
+  // In production, this would integrate with payment processor
+  // For now, we'll simulate the purchase process
+  
+  // Show loading state
+  if (gCoinsPurchaseBtn) {
+    gCoinsPurchaseBtn.disabled = true;
+    gCoinsPurchaseBtn.textContent = 'Processing Payment...';
+  }
+  
+  // Simulate payment processing delay
+  setTimeout(() => {
+    // Mock successful purchase
+    console.log('💰 Payment successful! Adding G-Coins to account...');
+    
+    // Update user's G-Coins balance (mock)
+    if (window.currentUserProfile && window.currentUserProfile.wallet) {
+      window.currentUserProfile.wallet.gCoinsBalance += packageData.coins;
+      window.currentUserProfile.wallet.totalPurchased += packageData.coins;
+      window.currentUserProfile.wallet.lastTopUp = new Date().toISOString();
+      
+      // Handle verification upgrades
+      let verificationMessage = '';
+      if (packageData.verification === 'pro') {
+        window.currentUserProfile.verification.proVerified = true;
+        window.currentUserProfile.verification.verificationDate = new Date().toISOString();
+        verificationMessage = ' 🆔 BONUS: Your account has been upgraded to Pro Verified status!';
+      } else if (packageData.verification === 'business') {
+        window.currentUserProfile.verification.businessVerified = true;
+        window.currentUserProfile.verification.verificationDate = new Date().toISOString();
+        verificationMessage = ' 🏢 BONUS: Your account has been upgraded to Business Verified status!';
+      }
+      
+      // Update displays
+      updateGCoinsDisplay(window.currentUserProfile);
+      updateBadgeVisibility(window.currentUserProfile);
+      updateAccountOverlayVerificationStatus(window.currentUserProfile);
+      
+      // Show success message with verification upgrade if applicable
+      let successMessage = `🎉 Success! You've purchased ${packageData.coins} G-Coins for ₱${packageData.amount}. Your new balance is ${window.currentUserProfile.wallet.gCoinsBalance} G-Coins.`;
+      if (verificationMessage) {
+        successMessage += verificationMessage;
+      }
+      alert(successMessage);
+      
+      // Close overlay
+      closeGCoinsOverlay();
+    }
+    
+    // Reset button
+    if (gCoinsPurchaseBtn) {
+      gCoinsPurchaseBtn.disabled = false;
+      gCoinsPurchaseBtn.textContent = 'Select Package to Continue';
+    }
+  }, 2000); // 2 second delay to simulate payment processing
+}
+
 // Mobile Menu Overlay functionality
 const profileMenuBtn = document.querySelector('.profile-menu-btn');
 const profileMenuOverlay = document.getElementById('profileMenuOverlay');
@@ -158,6 +473,56 @@ const sampleUserProfile = {
     facebook: "public/icons/FB.png",
     instagram: "public/icons/IG.png", 
     linkedin: "public/icons/IN.png"
+  },
+  
+  // Verification Status (from backend verification system)
+  verification: {
+    businessVerified: true, // Set to true for this user to show Business Verified badge
+    proVerified: false, // Set to false to show Pro Verified as available upgrade
+    verificationDate: "2025-04-20T14:30:00Z" // When verification was completed
+  },
+  
+  // G-Coins Wallet System (from backend wallet service)
+  wallet: {
+    gCoinsBalance: 15, // Current G-Coins balance (realistic for new pricing)
+    lastTopUp: "2025-09-10T16:45:00Z", // Last top-up timestamp
+    totalSpent: 35, // Total G-Coins spent (lifetime)
+    totalPurchased: 50 // Total G-Coins purchased (lifetime)
+  }
+};
+
+// Sample new user profile for testing (no verification)
+const sampleNewUserProfile = {
+  fullName: "Maria Santos",
+  profilePhoto: "public/users/Peter-J-Ang-User-01.jpg", // Using same photo for demo
+  dateOfBirth: "1995-08-22",
+  educationLevel: "High School",
+  userSummary: "Hi there! I'm Maria, new to the platform and excited to start providing quality services. I'm reliable, hardworking, and ready to build great relationships with clients.",
+  
+  userId: "maria-santos-002",
+  accountCreated: "2025-09-15T09:00:00Z", // Recent account
+  rating: 0, // No ratings yet
+  reviewCount: 0, // No reviews yet
+  
+  socialMedia: {
+    facebook: "public/icons/FB.png",
+    instagram: "public/icons/IG.png", 
+    linkedin: "public/icons/IN.png"
+  },
+  
+  // No verification status - will show "New User" badge
+  verification: {
+    businessVerified: false,
+    proVerified: false,
+    verificationDate: null
+  },
+  
+  // G-Coins Wallet System - New user with low balance
+  wallet: {
+    gCoinsBalance: 1, // Very low balance for new user (realistic with new pricing)
+    lastTopUp: "2025-09-16T11:20:00Z", // Recent first top-up
+    totalSpent: 4, // Minimal spending
+    totalPurchased: 5 // Small initial purchase (1 P100 package)
   }
 };
 
@@ -183,7 +548,10 @@ function formatRegistrationDate(accountCreated) {
 }
 
 // Load user profile data (backend ready)
+// To test NEW USER badge: change sampleUserProfile to sampleNewUserProfile
 function loadUserProfile(userProfile = sampleUserProfile) {
+  // Store reference for G-Coins purchase system
+  window.currentUserProfile = userProfile;
   // Update user name (updated field name)
   const nameElement = document.querySelector('.full-name');
   if (nameElement && userProfile.fullName) {
@@ -225,6 +593,9 @@ function loadUserProfile(userProfile = sampleUserProfile) {
   
   // Update user information section
   populateUserInformation(userProfile);
+  
+  // Update badge and account button visibility
+  updateBadgeVisibility(userProfile);
   
   console.log(`Profile loaded for: ${userProfile.fullName}`);
 }
@@ -271,6 +642,191 @@ document.addEventListener('DOMContentLoaded', function() {
   
   console.log('Profile page initialization complete');
 });
+
+// ===== FIREBASE BACKEND INTEGRATION DOCUMENTATION =====
+/*
+ * FIREBASE INTEGRATION CHECKLIST FOR PRODUCTION:
+ * 
+ * 1. USER AUTHENTICATION
+ *    - Replace isUserLoggedIn() mock logic with firebase.auth().onAuthStateChanged()
+ *    - Update getCurrentUserId() to use firebase.auth().currentUser.uid
+ *    - Add proper error handling for authentication failures
+ * 
+ * 2. FIRESTORE DATA STRUCTURE
+ *    Required Collections:
+ *    
+ *    /users/{userId}
+ *      - fullName: string
+ *      - profilePhoto: string (URL)
+ *      - dateOfBirth: timestamp
+ *      - educationLevel: string
+ *      - userSummary: string
+ *      - accountCreated: timestamp
+ *      - rating: number
+ *      - reviewCount: number
+ *      - socialMedia: {facebook: string, instagram: string, linkedin: string}
+ *      - verification: {
+ *          businessVerified: boolean,
+ *          proVerified: boolean,
+ *          verificationDate: timestamp
+ *        }
+ *      - wallet: {
+ *          gCoinsBalance: number,
+ *          lastTopUp: timestamp,
+ *          totalSpent: number,
+ *          totalPurchased: number
+ *        }
+ * 
+ *    /transactions/{transactionId}
+ *      - userId: string
+ *      - amount: number (PHP)
+ *      - coins: number
+ *      - verification: string | null ('pro', 'business', null)
+ *      - timestamp: timestamp
+ *      - paymentMethod: string
+ *      - status: string ('pending', 'completed', 'failed')
+ * 
+ * 3. PAYMENT INTEGRATION
+ *    - Integrate with Philippine payment gateways (GCash, PayMaya, Credit Card)
+ *    - Add webhook handlers for payment confirmation
+ *    - Implement transaction logging and reconciliation
+ * 
+ * 4. VERIFICATION SYSTEM
+ *    - Create admin panel for manual verification approval
+ *    - Add document upload for ID verification
+ *    - Implement automated verification workflows
+ * 
+ * 5. SECURITY RULES
+ *    - Users can only read/write their own profile data
+ *    - Wallet transactions require server-side verification
+ *    - Verification status changes require admin approval
+ */
+
+// ===== PRODUCTION FIREBASE FUNCTIONS =====
+
+// Production function to load user profile from Firebase
+async function loadUserProfileFromFirebase(userId) {
+  try {
+    const userDoc = await firebase.firestore().collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      const userData = userDoc.data();
+      loadUserProfile(userData);
+    } else {
+      console.error('User profile not found');
+      // Handle new user creation flow
+    }
+  } catch (error) {
+    console.error('Error loading user profile:', error);
+    // Handle error state
+  }
+}
+
+// Production function to update G-Coins balance in Firebase
+async function updateGCoinsInFirebase(userId, newBalance, transactionData) {
+  try {
+    const batch = firebase.firestore().batch();
+    
+    // Update user wallet
+    const userRef = firebase.firestore().collection('users').doc(userId);
+    batch.update(userRef, {
+      'wallet.gCoinsBalance': newBalance,
+      'wallet.lastTopUp': firebase.firestore.FieldValue.serverTimestamp(),
+      'wallet.totalPurchased': firebase.firestore.FieldValue.increment(transactionData.coins)
+    });
+    
+    // Log transaction
+    const transactionRef = firebase.firestore().collection('transactions').doc();
+    batch.set(transactionRef, {
+      userId: userId,
+      amount: transactionData.amount,
+      coins: transactionData.coins,
+      verification: transactionData.verification,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      status: 'completed'
+    });
+    
+    await batch.commit();
+    console.log('G-Coins balance updated successfully');
+  } catch (error) {
+    console.error('Error updating G-Coins balance:', error);
+    throw error;
+  }
+}
+
+// Production function to update verification status in Firebase
+async function updateVerificationInFirebase(userId, verificationType) {
+  try {
+    const updateData = {
+      'verification.verificationDate': firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (verificationType === 'pro') {
+      updateData['verification.proVerified'] = true;
+    } else if (verificationType === 'business') {
+      updateData['verification.businessVerified'] = true;
+    }
+    
+    await firebase.firestore().collection('users').doc(userId).update(updateData);
+    console.log('Verification status updated successfully');
+  } catch (error) {
+    console.error('Error updating verification status:', error);
+    throw error;
+  }
+}
+
+// ===== CLEANUP AND MEMORY MANAGEMENT =====
+
+// Cleanup function for profile page
+function cleanupProfilePage() {
+  // Remove event listeners to prevent memory leaks
+  const elementsToCleanup = [
+    { element: accountBtn, events: ['click'] },
+    { element: gCoinsTopUpBtn, events: ['click'] },
+    { element: gCoinsCloseBtn, events: ['click'] },
+    { element: gCoinsCancelBtn, events: ['click'] },
+    { element: gCoinsPurchaseBtn, events: ['click'] }
+  ];
+  
+  elementsToCleanup.forEach(({ element, events }) => {
+    if (element) {
+      events.forEach(eventType => {
+        element.removeEventListener(eventType, () => {});
+      });
+    }
+  });
+  
+  // Clear global references
+  window.currentUserProfile = null;
+  selectedPackage = null;
+  
+  // Clear any active overlays
+  if (accountOverlay && accountOverlay.classList.contains('active')) {
+    accountOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  if (gCoinsOverlay && gCoinsOverlay.classList.contains('active')) {
+    gCoinsOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  
+  console.log('🧹 Profile page cleanup completed');
+}
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', cleanupProfilePage);
+
+// Production initialization (currently commented for development)
+/*
+firebase.auth().onAuthStateChanged((user) => {
+  if (user) {
+    loadUserProfileFromFirebase(user.uid);
+  } else {
+    // Redirect to login page
+    window.location.href = '/login.html';
+  }
+});
+*/
 
 // Star Rating System
 function renderStars(container, rating) {

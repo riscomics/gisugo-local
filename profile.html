@@ -51,8 +51,11 @@
           <div class="social-icon"><img src="public/icons/IN.png" alt="LinkedIn"></div>
         </div>
         <div class="verification-badge-row">
-          <div class="verification-badge business-verified">
+          <div class="verification-badge business-verified" id="businessVerifiedBadge">
             <span class="verification-badge-text">BUSINESS VERIFIED</span>
+          </div>
+          <div class="verification-badge new-user" id="newUserBadge" style="display: none;">
+            <span class="verification-badge-text">NEW USER</span>
           </div>
           <button class="account-btn" id="accountBtn" aria-label="Account Settings">
             <img src="public/icons/user.png" alt="Account" class="account-icon">
@@ -167,6 +170,29 @@
       </div>
       <div class="account-content">
         <div class="account-section">
+          <div class="account-section-title">G-Coins Wallet</div>
+          <div class="gcoins-balance-card">
+            <div class="gcoins-header">
+              <div class="gcoins-icon">🪙</div>
+              <div class="gcoins-balance-info">
+                <div class="gcoins-balance-amount" id="gCoinsBalance">15</div>
+                <div class="gcoins-balance-label">G-Coins Available</div>
+              </div>
+              <button class="gcoins-topup-btn" id="gCoinsTopUpBtn">
+                <span>+</span>
+                <span>Add More</span>
+              </button>
+            </div>
+            <div class="gcoins-explanation">
+              <div class="gcoins-explanation-text">
+                G-Coins are used to post gigs on the platform. Each gig post costs 1 G-Coin. 
+                Purchase P100, P250, or P500 worth of G-Coins to keep posting your services.
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="account-section">
           <div class="account-section-title">Profile Verification</div>
           <div class="account-option">
             <div class="account-option-icon">✅</div>
@@ -213,6 +239,81 @@
             <div class="account-option-arrow">›</div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- G-Coins Top-Up Overlay -->
+  <div class="gcoins-overlay" id="gCoinsOverlay">
+    <div class="gcoins-container">
+      <div class="gcoins-overlay-header">
+        <div class="gcoins-overlay-title">Add G-Coins</div>
+        <button class="gcoins-close-btn" id="gCoinsCloseBtn" aria-label="Close">
+          ×
+        </button>
+      </div>
+      <div class="gcoins-overlay-content">
+        <div class="gcoins-current-balance">
+          <div class="gcoins-current-label">Current Balance:</div>
+          <div class="gcoins-current-amount" id="gCoinsCurrentBalance">15 G-Coins</div>
+        </div>
+        
+        <div class="gcoins-packages">
+          <div class="gcoins-package-title">Choose a Package:</div>
+          
+          <div class="gcoins-package" data-amount="100" data-coins="5">
+            <div class="gcoins-package-header">
+              <div class="gcoins-package-price">₱100</div>
+              <div class="gcoins-package-coins">5 G-Coins</div>
+            </div>
+            <div class="gcoins-package-desc">Perfect for trying out the platform</div>
+            <div class="gcoins-package-value">₱20.00 per G-Coin</div>
+          </div>
+          
+          <div class="gcoins-package popular" data-amount="250" data-coins="25" data-verification="pro">
+            <div class="gcoins-package-badge">Most Popular</div>
+            <div class="gcoins-package-header">
+              <div class="gcoins-package-price">₱250</div>
+              <div class="gcoins-package-coins">25 G-Coins</div>
+            </div>
+            <div class="gcoins-package-desc">Great value + FREE Pro Verified upgrade</div>
+            <div class="gcoins-package-value">₱10.00 per G-Coin</div>
+            <div class="gcoins-package-bonus">🆔 Includes FREE ID verification for Pro Verified status</div>
+          </div>
+          
+          <div class="gcoins-package premium" data-amount="500" data-coins="100" data-verification="business">
+            <div class="gcoins-package-badge">Best Value</div>
+            <div class="gcoins-package-header">
+              <div class="gcoins-package-price">₱500</div>
+              <div class="gcoins-package-coins">100 G-Coins</div>
+            </div>
+            <div class="gcoins-package-desc">Maximum value + FREE Business Verified upgrade</div>
+            <div class="gcoins-package-value">₱5.00 per G-Coin</div>
+            <div class="gcoins-package-bonus">🏢 Includes FREE business verification for Business Verified status</div>
+          </div>
+        </div>
+        
+        <div class="gcoins-purchase-info">
+          <div class="gcoins-info-item">
+            <div class="gcoins-info-icon">💰</div>
+            <div class="gcoins-info-text">Secure payment via GCash, PayMaya, or Credit Card</div>
+          </div>
+          <div class="gcoins-info-item">
+            <div class="gcoins-info-icon">⚡</div>
+            <div class="gcoins-info-text">G-Coins are added instantly to your account</div>
+          </div>
+          <div class="gcoins-info-item">
+            <div class="gcoins-info-icon">🔄</div>
+            <div class="gcoins-info-text">G-Coins never expire and carry forward</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="gcoins-overlay-actions">
+        <button class="gcoins-cancel-btn" id="gCoinsCancelBtn">Cancel</button>
+        <button class="gcoins-purchase-btn" id="gCoinsPurchaseBtn" disabled>
+          Select Package to Continue
+        </button>
       </div>
     </div>
   </div>
