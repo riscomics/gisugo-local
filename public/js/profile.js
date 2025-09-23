@@ -45,6 +45,15 @@ if (accountBtn && accountOverlay && accountCloseBtn) {
       handleAccountAction(action);
     });
   });
+
+  // Handle submit ID button click (separate from account options)
+  const submitIdBtn = document.getElementById('submitIdOption');
+  if (submitIdBtn) {
+    submitIdBtn.addEventListener('click', function() {
+      const action = this.getAttribute('data-action');
+      handleAccountAction(action);
+    });
+  }
 }
 
 function handleAccountAction(action) {

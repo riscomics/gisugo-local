@@ -892,50 +892,59 @@ body::-webkit-scrollbar {
   margin-bottom: clamp(1rem, 3vw, 1.25rem);
 }
 
-/* Submit ID Option Styling */
-.submit-id-option {
+/* Submit ID Button Styling */
+.submit-id-btn {
+  width: 100%;
+  background: rgba(230, 214, 174, 0.08);
+  border: 1px solid rgba(230, 214, 174, 0.2);
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.submit-id-btn:hover {
+  background: rgba(230, 214, 174, 0.12);
+  border-color: rgba(230, 214, 174, 0.3);
+  transform: translateY(-1px);
+}
+
+.submit-id-content {
+  display: flex;
+  align-items: center;
   padding: clamp(1rem, 4vw, 1.25rem);
-  display: flex;
-  align-items: center;
-  gap: clamp(0.5rem, 2vw, 0.75rem);
-  min-height: auto;
-  flex-wrap: nowrap;
+  gap: clamp(0.75rem, 3vw, 1rem);
 }
 
-.submit-id-option .account-option-icon {
+.submit-id-icon {
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
   flex-shrink: 0;
-  width: clamp(1.2rem, 4vw, 1.5rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.submit-id-option .account-option-info {
+.submit-id-text {
   flex: 1;
-  min-width: 0; /* Allows text to truncate if needed */
+  text-align: left;
 }
 
-.submit-id-option .account-option-name {
+.submit-id-title {
   font-size: clamp(0.9rem, 3vw, 1rem);
+  font-weight: 600;
+  color: #e6d6ae;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.submit-id-option .account-option-desc {
+.submit-id-desc {
   font-size: clamp(0.75rem, 2.5vw, 0.85rem);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: rgba(230, 214, 174, 0.7);
   margin-top: clamp(0.15rem, 1vw, 0.25rem);
+  line-height: 1.2;
 }
 
-.submit-id-option .account-option-arrow {
+.submit-id-arrow {
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  color: rgba(230, 214, 174, 0.6);
   flex-shrink: 0;
-  width: clamp(1rem, 3vw, 1.2rem);
-  text-align: center;
 }
 
 /* Get Verified Button in Account Settings */
@@ -1944,17 +1953,17 @@ body::-webkit-scrollbar {
     min-height: clamp(1.6rem, 6vw, 2rem);
   }
   
-  /* Submit ID Option Mobile */
-  .submit-id-option {
-    padding: clamp(0.75rem, 3vw, 1rem);
-    gap: clamp(0.4rem, 1.5vw, 0.6rem);
+  /* Submit ID Button Mobile */
+  .submit-id-content {
+    padding: clamp(0.8rem, 3vw, 1rem);
+    gap: clamp(0.6rem, 2.5vw, 0.8rem);
   }
   
-  .submit-id-option .account-option-name {
+  .submit-id-title {
     font-size: clamp(0.85rem, 2.8vw, 0.95rem);
   }
   
-  .submit-id-option .account-option-desc {
+  .submit-id-desc {
     font-size: clamp(0.7rem, 2.2vw, 0.8rem);
   }
   
