@@ -1593,6 +1593,33 @@ body::-webkit-scrollbar {
   margin-bottom: clamp(2rem, 6vw, 2.5rem);
 }
 
+/* OR Separator */
+.explanation-or-separator {
+  display: flex;
+  align-items: center;
+  margin: clamp(1.5rem, 4vw, 2rem) 0;
+  gap: clamp(0.75rem, 3vw, 1rem);
+}
+
+.or-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(230, 214, 174, 0.3) 50%, transparent 100%);
+}
+
+.or-text {
+  font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+  font-weight: 600;
+  color: rgba(230, 214, 174, 0.6);
+  letter-spacing: 0.1em;
+  padding: clamp(0.25rem, 1vw, 0.4rem) clamp(0.5rem, 2vw, 0.75rem);
+  background: rgba(230, 214, 174, 0.05);
+  border: 1px solid rgba(230, 214, 174, 0.2);
+  border-radius: clamp(12px, 3vw, 16px);
+  text-align: center;
+  min-width: clamp(2rem, 6vw, 2.5rem);
+}
+
 .explanation-section:last-child {
   margin-bottom: 0;
 }
@@ -1951,6 +1978,18 @@ body::-webkit-scrollbar {
     padding: clamp(0.25rem, 2.5vw, 0.4rem) clamp(0.4rem, 2.5vw, 0.6rem);
     font-size: clamp(0.55rem, 2.5vw, 0.65rem);
     min-height: clamp(1.6rem, 6vw, 2rem);
+  }
+  
+  /* OR Separator Mobile */
+  .explanation-or-separator {
+    margin: clamp(1rem, 3vw, 1.5rem) 0;
+    gap: clamp(0.5rem, 2vw, 0.75rem);
+  }
+  
+  .or-text {
+    font-size: clamp(0.65rem, 2.2vw, 0.8rem);
+    padding: clamp(0.2rem, 0.8vw, 0.3rem) clamp(0.4rem, 1.5vw, 0.6rem);
+    min-width: clamp(1.8rem, 5vw, 2.2rem);
   }
   
   /* Submit ID Button Mobile */
