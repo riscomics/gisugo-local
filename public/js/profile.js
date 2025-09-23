@@ -1408,12 +1408,26 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
     registeredSinceElement.textContent = formatRegistrationDate(userProfile.accountCreated);
   }
 
+  // Update education level
+  const educationLevelElement = document.getElementById('educationLevel');
+  if (educationLevelElement && userProfile.educationLevel) {
+    educationLevelElement.textContent = userProfile.educationLevel;
+  }
+  
+  // Update user summary (About Me)
+  const userSummaryElement = document.getElementById('userSummary');
+  if (userSummaryElement && userProfile.userSummary) {
+    userSummaryElement.textContent = userProfile.userSummary;
+  }
+
   // Load reviews for this user profile
   loadUserReviews();
   
   console.log('Profile loaded successfully with verification state:', {
     business: userProfile.verification?.businessVerified,
-    pro: userProfile.verification?.proVerified
+    pro: userProfile.verification?.proVerified,
+    education: userProfile.educationLevel,
+    summary: userProfile.userSummary ? 'loaded' : 'missing'
   });
 }
 
@@ -1599,8 +1613,6 @@ function populateUserInformation(userProfile) {
   if (userSummaryElement && userProfile.userSummary) {
     userSummaryElement.textContent = userProfile.userSummary;
   }
-  
-  console.log('User information populated');
 }
 
 // Initialize when page loads
