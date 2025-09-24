@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GISUGO Admin Dashboard</title>
+    <link rel="stylesheet" href="public/css/admin-dashboard.css">
+</head>
+<body class="admin-dashboard">
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="admin-header-container">
+            <div class="admin-logo">
+                <img src="public/images/Gisugo-emblem.png" alt="GISUGO" class="logo-img">
+                <span class="logo-text">GISUGO ADMIN</span>
+            </div>
+            
+            <div class="admin-header-center">
+                <div class="admin-search">
+                    <input type="text" placeholder="Search users, jobs, transactions..." class="search-input">
+                    <button class="search-btn">
+                        <img src="public/icons/search.png" alt="Search">
+                    </button>
+                </div>
+            </div>
+            
+            <div class="admin-header-right">
+                <div class="admin-profile">
+                    <img src="public/users/Peter-J-Ang-User-01.jpg" alt="Peter J. Ang" class="admin-avatar">
+                    <span class="admin-name">Peter J. Ang</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Container -->
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <nav class="admin-sidebar" id="adminSidebar">
+            <!-- Sidebar Toggle Button -->
+            <div class="sidebar-header">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <span class="toggle-icon">☰</span>
+                </button>
+            </div>
+            
+            <div class="sidebar-menu">
+                <!-- Overview Section -->
+                <div class="menu-item active" data-section="overview">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">Overview</span>
+                </div>
+
+                <!-- User Management Section -->
+                <div class="menu-item" data-section="users">
+                    <span class="menu-icon">👫</span>
+                    <span class="menu-text">User Management</span>
+                </div>
+
+                <!-- Messages Management Section -->
+                <div class="menu-item" data-section="messages">
+                    <span class="menu-icon">💬</span>
+                    <span class="menu-text">Messages</span>
+                    <span class="menu-notification-badge">12</span>
+                </div>
+
+                <!-- Chats Management Section -->
+                <div class="menu-item" data-section="chats">
+                    <span class="menu-icon">💭</span>
+                    <span class="menu-text">Chats</span>
+                </div>
+
+                <!-- Financial Management Section -->
+                <div class="menu-item" data-section="finance">
+                    <span class="menu-icon">💰</span>
+                    <span class="menu-text">Financial</span>
+                </div>
+
+                <!-- Analytics Section -->
+                <div class="menu-item" data-section="analytics">
+                    <span class="menu-icon">📈</span>
+                    <span class="menu-text">Analytics</span>
+                </div>
+
+                <!-- Content Moderation Section -->
+                <div class="menu-item" data-section="moderation">
+                    <span class="menu-icon">🛡️</span>
+                    <span class="menu-text">Moderation</span>
+                </div>
+
+                <!-- System Settings Section -->
+                <div class="menu-item" data-section="settings">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-text">Settings</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="admin-main">
+            <!-- Content sections will be dynamically shown/hidden -->
+            
+            <!-- Overview Section (Default Active) -->
+            <section id="overview" class="content-section active">
+                <div class="section-header">
+                    <h1 class="section-title">Dashboard Overview</h1>
+                    <p class="section-subtitle">Welcome to GISUGO Admin Dashboard</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-content">
+                            <div class="stat-number">1,234</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">🆔</div>
+                        <div class="stat-content">
+                            <div class="stat-number">15</div>
+                            <div class="stat-label">Pending Verifications</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-content">
+                            <div class="stat-number">₱45,690</div>
+                            <div class="stat-label">Monthly Revenue</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">🚨</div>
+                        <div class="stat-content">
+                            <div class="stat-number">8</div>
+                            <div class="stat-label">Content Reports</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3 class="card-title">Recent Activity</h3>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon">🆔</div>
+                                <div class="activity-content">
+                                    <div class="activity-text">New verification request from Maria Santos</div>
+                                    <div class="activity-time">2 minutes ago</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">💰</div>
+                                <div class="activity-content">
+                                    <div class="activity-text">G-Coins purchase: ₱500 by Juan Dela Cruz</div>
+                                    <div class="activity-time">15 minutes ago</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">🚨</div>
+                                <div class="activity-content">
+                                    <div class="activity-text">Job post reported: Inappropriate content</div>
+                                    <div class="activity-time">1 hour ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card">
+                        <h3 class="card-title">Priority Actions</h3>
+                        <div class="priority-list">
+                            <div class="priority-item urgent">
+                                <div class="priority-badge">URGENT</div>
+                                <div class="priority-text">15 ID verifications pending review</div>
+                                <button class="priority-btn">Review</button>
+                            </div>
+                            <div class="priority-item warning">
+                                <div class="priority-badge">REVIEW</div>
+                                <div class="priority-text">8 content reports require attention</div>
+                                <button class="priority-btn">Check</button>
+                            </div>
+                            <div class="priority-item info">
+                                <div class="priority-badge">INFO</div>
+                                <div class="priority-text">Monthly analytics report ready</div>
+                                <button class="priority-btn">View</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- User Management Section -->
+            <section id="users" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">User Management</h1>
+                    <p class="section-subtitle">Manage users, verifications, and account actions</p>
+                </div>
+                
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">👥</div>
+                    <h3>User Management Features</h3>
+                    <ul>
+                        <li>ID Verification Queue</li>
+                        <li>User Search & Profiles</li>
+                        <li>Account Actions (Suspend/Ban)</li>
+                        <li>Behavior Analytics</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Messages Management Section -->
+            <section id="messages" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Messages & Communication</h1>
+                    <p class="section-subtitle">Manage customer inquiries and monitor user conversations</p>
+                </div>
+
+                <div class="messages-layout">
+                    <!-- Left Panel: Customer Support Inbox -->
+                    <div class="messages-left-panel">
+                        <div class="panel-header">
+                            <div class="inbox-controls">
+                                <div class="inbox-tabs">
+                                    <button class="inbox-tab-btn active" id="newInboxBtn" data-inbox="new">
+                                        New <span class="tab-count" id="newCount">12</span>
+                                    </button>
+                                <button class="inbox-tab-btn" id="oldInboxBtn" data-inbox="old">
+                                    Old Messages
+                                </button>
+                                </div>
+                                <div class="inbox-search">
+                                    <input type="text" placeholder="Search messages..." class="search-input-small" id="messagesSearchInput">
+                                    <button class="search-btn-small" id="messagesSearchBtn">🔍</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Topic Filter -->
+                        <div class="topic-filter">
+                            <select class="topic-dropdown" id="topicFilter">
+                                <option value="all">All Topics</option>
+                                <option value="general">General Inquiry</option>
+                                <option value="website-issues">Website Issues</option>
+                                <option value="complaints-disputes">Complaints & Disputes</option>
+                                <option value="feature-request">Feature Request</option>
+                                <option value="bug-report">Bug Report</option>
+                                <option value="account-issues">Account Issues</option>
+                                <option value="safety-security">Safety & Security</option>
+                                <option value="payment-billing">Payment & Billing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Scrollable Messages Container -->
+                        <div class="messages-list-container">
+                            <!-- Messages List -->
+                            <div class="customer-messages-list" id="customerMessagesList">
+                            <!-- Sample Customer Messages -->
+                            <div class="customer-message-item unread" data-message-id="msg_001" data-topic="account-issues">
+                                <div class="message-topic account-issues">Account Issues</div>
+                                <div class="message-content-area">
+                                    <div class="message-header">
+                                        <div class="message-sender">
+                                            <img src="public/users/User-02.jpg" alt="Maria Santos" class="sender-avatar">
+                                            <div class="sender-info">
+                                                <div class="sender-name">Maria Santos</div>
+                                                <div class="sender-email">maria.santos@email.com</div>
+                                            </div>
+                                        </div>
+                                        <div class="message-meta">
+                                            <div class="message-time">2 hours ago</div>
+                                            <div class="message-attachment" title="Has photo attachment">🖼️</div>
+                                        </div>
+                                    </div>
+                                    <div class="message-preview">
+                                        <div class="message-subject">Cannot access my G-Coins wallet</div>
+                                        <div class="message-excerpt">Hi, I've been trying to access my G-Coins wallet for the past 2 days but it keeps showing an error...</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="customer-message-item" data-message-id="msg_002" data-topic="complaints-disputes">
+                                <div class="message-topic complaints-disputes">Complaints & Disputes</div>
+                                <div class="message-content-area">
+                                    <div class="message-header">
+                                        <div class="message-sender">
+                                            <img src="public/users/User-03.jpg" alt="Juan Dela Cruz" class="sender-avatar">
+                                            <div class="sender-info">
+                                                <div class="sender-name">Juan Dela Cruz</div>
+                                                <div class="sender-email">juan.delacruz@email.com</div>
+                                            </div>
+                                        </div>
+                                        <div class="message-meta">
+                                            <div class="message-time">5 hours ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="message-preview">
+                                        <div class="message-subject">Worker didn't show up for scheduled job</div>
+                                        <div class="message-excerpt">I hired someone for cleaning but they never showed up. I tried contacting them multiple times...</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="customer-message-item unread" data-message-id="msg_003" data-topic="feature-request">
+                                <div class="message-topic feature-request">Feature Request</div>
+                                <div class="message-content-area">
+                                    <div class="message-header">
+                                        <div class="message-sender">
+                                            <img src="public/users/User-04.jpg" alt="Ana Rodriguez" class="sender-avatar">
+                                            <div class="sender-info">
+                                                <div class="sender-name">Ana Rodriguez</div>
+                                                <div class="sender-email">ana.rodriguez@email.com</div>
+                                            </div>
+                                        </div>
+                                        <div class="message-meta">
+                                            <div class="message-time">1 day ago</div>
+                                        </div>
+                                    </div>
+                                    <div class="message-preview">
+                                        <div class="message-subject">Suggestion: Add rating system for customers</div>
+                                        <div class="message-excerpt">It would be great if workers could also rate customers to help build trust on both sides...</div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="messages-pagination">
+                                <div class="loading-indicator" id="messagesLoading">Loading more messages...</div>
+                                <button class="load-more-btn" id="loadMoreMessagesBtn">Load More Messages</button>
+                                <div class="messages-stats" id="messagesStats">Showing 20 of 156 messages</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Message Detail & Reply -->
+                    <div class="messages-right-panel">
+                        <div class="message-detail" id="messageDetail">
+                            <div class="no-message-selected">
+                                <div class="no-message-icon">💬</div>
+                                <h4>Select a message to view details</h4>
+                                <p>Choose a customer inquiry from the left to read and respond</p>
+                            </div>
+                        </div>
+
+                        <!-- Message Detail Content (hidden initially) -->
+                        <div class="message-content" id="messageContent" style="display: none;">
+                            <!-- Fixed Header -->
+                            <div class="message-detail-header">
+                                <div class="detail-sender">
+                                    <img src="public/users/User-02.jpg" alt="Sender" class="detail-avatar" id="detailAvatar">
+                                    <div class="detail-sender-info">
+                                        <div class="detail-sender-name" id="detailSenderName">Maria Santos</div>
+                                        <div class="detail-sender-email" id="detailSenderEmail">maria.santos@email.com</div>
+                                        <div class="detail-message-time" id="detailMessageTime">2 hours ago</div>
+                                    </div>
+                                </div>
+                                <div class="detail-topic-section">
+                                    <div class="detail-topic" id="detailTopic">Account Issues</div>
+                                    <div class="detail-actions">
+                                        <button class="detail-reply-btn" id="openReplyBtn">Reply</button>
+                                        <button class="detail-close-btn" id="closeMessageBtn">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Scrollable Content -->
+                            <div class="message-content-inner">
+                                <div class="message-detail-body">
+                                <div class="detail-subject" id="detailSubject">Cannot access my G-Coins wallet</div>
+                                <div class="detail-message-text" id="detailMessageText">
+                                    Hi GISUGO Support Team,<br><br>
+                                    I hope this message finds you well. I am writing to report a critical issue that I've been experiencing with my G-Coins wallet for the past 2 days, and I'm quite frustrated with the situation.<br><br>
+                                    
+                                    <strong>THE PROBLEM:</strong><br>
+                                    Every time I try to access my G-Coins wallet through the app or website, I keep getting an error message that says "Connection timeout - Unable to load wallet data". This happens consistently regardless of what I try to do.<br><br>
+                                    
+                                    <strong>WHAT I'VE ALREADY TRIED:</strong><br>
+                                    1. Refreshed the page multiple times (at least 20+ times)<br>
+                                    2. Cleared my entire browser cache and cookies<br>
+                                    3. Tried using different browsers (Chrome, Firefox, Safari)<br>
+                                    4. Logged out and logged back in several times<br>
+                                    5. Restarted my phone and computer<br>
+                                    6. Checked my internet connection (it's working fine for everything else)<br>
+                                    7. Tried accessing the wallet at different times of the day<br>
+                                    8. Updated my app to the latest version<br>
+                                    9. Disabled all browser extensions<br>
+                                    10. Tried using incognito/private browsing mode<br><br>
+                                    
+                                    <strong>URGENT SITUATION:</strong><br>
+                                    This is becoming quite urgent because I have several pending transactions that I need to complete:<br><br>
+                                    - I hired Ana Rodriguez for a deep cleaning service of my 3-bedroom house<br>
+                                    - She's supposed to come tomorrow morning at 9 AM<br>
+                                    - I promised to pay her ₱800 through G-Coins as agreed<br>
+                                    - I also have a plumber (Miguel Torres) scheduled for Thursday who expects G-Coins payment<br>
+                                    - My current G-Coins balance should be ₱2,450 from my recent top-up<br><br>
+                                    
+                                    <strong>IMPACT ON MY TRUST:</strong><br>
+                                    As a long-time GISUGO user (member since 2022), I've always trusted your platform for my household service needs. This wallet issue is really affecting my ability to hire workers and is making me look unreliable to the service providers I've booked.<br><br>
+                                    
+                                    <strong>TECHNICAL DETAILS:</strong><br>
+                                    - Device: iPhone 13 Pro (iOS 17.2)<br>
+                                    - App Version: GISUGO v3.4.2<br>
+                                    - Browser: Safari 17.2 (also tried Chrome 119)<br>
+                                    - Internet: Globe Fiber 100 Mbps (stable connection)<br>
+                                    - Location: Quezon City, Philippines<br><br>
+                                    
+                                    <strong>ADDITIONAL CONCERNS:</strong><br>
+                                    I'm also worried about the security of my funds. Is my ₱2,450 balance safe? Are other users experiencing this issue? Could this be a broader system problem?<br><br>
+                                    
+                                    I've attached a screenshot showing the exact error message I'm seeing. You'll notice that the wallet section just shows a loading spinner that eventually times out.<br><br>
+                                    
+                                    <strong>REQUESTED ACTIONS:</strong><br>
+                                    1. Please investigate what's causing this wallet access issue<br>
+                                    2. Confirm that my G-Coins balance (₱2,450) is secure<br>
+                                    3. Provide an estimated timeline for when this will be resolved<br>
+                                    4. If possible, manually process my payment to Ana Rodriguez (₱800) for tomorrow's cleaning<br>
+                                    5. Consider providing compensation for the inconvenience this has caused<br><br>
+                                    
+                                    I really hope you can resolve this quickly. I've been recommending GISUGO to friends and family, but issues like this make it difficult to maintain confidence in the platform.<br><br>
+                                    
+                                    Please respond as soon as possible. I'm available at this email or my mobile number +63 917 123 4567.<br><br>
+                                    
+                                    Thank you for your immediate attention to this matter.<br><br>
+                                    
+                                    Frustrated but hopeful,<br>
+                                    Maria Santos<br>
+                                    GISUGO User ID: MS789456<br>
+                                    Account created: March 15, 2022<br><br>
+                                    
+                                    P.S. - I've also noticed that the "Transaction History" button in the wallet section has been grayed out for the past week. Is this related to the same issue?
+                                </div>
+                                
+                                <div class="detail-attachment" id="detailAttachment" style="display: block;">
+                                    <div class="attachment-label">Attachment:</div>
+                                    <div class="attachment-file">
+                                        <img src="" alt="Attachment" class="attachment-preview" id="attachmentPreview">
+                                        <div class="attachment-name" id="attachmentName">screenshot.jpg</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Chats Management Section -->
+            <section id="chats" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">User Conversations</h1>
+                    <p class="section-subtitle">Monitor and manage user-to-user chat conversations</p>
+                </div>
+
+                <div class="chats-layout">
+                    <!-- Left Panel: Conversation Threads -->
+                    <div class="chats-left-panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">Conversation Threads</h3>
+                            <div class="threads-stats">
+                                <span class="active-count">5 active</span>
+                            </div>
+                        </div>
+
+                        <!-- Thread Search -->
+                        <div class="thread-search">
+                            <input 
+                                type="text" 
+                                class="thread-search-input" 
+                                id="chatsThreadSearchInput"
+                                placeholder="Search by job title or user name..."
+                            >
+                            <button class="thread-search-btn" id="chatsThreadSearchBtn">🔍</button>
+                        </div>
+
+                        <!-- Filter Options -->
+                        <div class="thread-filters">
+                            <select class="thread-filter-dropdown" id="chatsThreadStatusFilter">
+                                <option value="all">All Conversations</option>
+                                <option value="active">Active Jobs</option>
+                                <option value="completed">Completed Jobs</option>
+                                <option value="disputed">Disputed</option>
+                                <option value="blocked">Blocked Users</option>
+                            </select>
+                        </div>
+
+                        <!-- Conversation Threads List -->
+                        <div class="conversation-threads">
+                            <!-- Sample Conversation Threads -->
+                            <div class="conversation-thread" data-thread-id="thread_001" data-job-title="Deep Clean My 3-Bedroom House">
+                                <div class="thread-header">
+                                    <div class="thread-title">Deep Clean My 3-Bedroom House</div>
+                                    <div class="thread-status active">Active</div>
+                                </div>
+                                <div class="thread-participants">
+                                    <div class="participant customer">
+                                        <img src="public/users/User-02.jpg" alt="Peter Ang" class="participant-avatar">
+                                        <span class="participant-name">Peter Ang</span>
+                                        <span class="participant-role">Customer</span>
+                                    </div>
+                                    <div class="conversation-arrow">↔</div>
+                                    <div class="participant worker">
+                                        <img src="public/users/User-03.jpg" alt="Ana Rodriguez" class="participant-avatar">
+                                        <span class="participant-name">Ana Rodriguez</span>
+                                        <span class="participant-role">Worker</span>
+                                    </div>
+                                </div>
+                                <div class="thread-meta">
+                                    <span class="thread-date">Started 3 days ago</span>
+                                    <span class="message-count">8 messages</span>
+                                </div>
+                                <div class="thread-actions">
+                                    <button class="thread-action-btn view" title="View Conversation">👁️</button>
+                                    <button class="thread-action-btn flag" title="Flag for Review">🚨</button>
+                                </div>
+                            </div>
+
+                            <div class="conversation-thread disputed" data-thread-id="thread_002" data-job-title="Plumbing repair - kitchen sink leak">
+                                <div class="thread-header">
+                                    <div class="thread-title">Plumbing repair - kitchen sink leak</div>
+                                    <div class="thread-status disputed">Disputed</div>
+                                </div>
+                                <div class="thread-participants">
+                                    <div class="participant customer">
+                                        <img src="public/users/User-04.jpg" alt="Maria Santos" class="participant-avatar">
+                                        <span class="participant-name">Maria Santos</span>
+                                        <span class="participant-role">Customer</span>
+                                    </div>
+                                    <div class="conversation-arrow">⚠️</div>
+                                    <div class="participant worker">
+                                        <img src="public/users/User-05.jpg" alt="Miguel Torres" class="participant-avatar">
+                                        <span class="participant-name">Miguel Torres</span>
+                                        <span class="participant-role">Worker</span>
+                                    </div>
+                                </div>
+                                <div class="thread-meta">
+                                    <span class="thread-date">Started 1 week ago</span>
+                                    <span class="message-count">15 messages</span>
+                                </div>
+                                <div class="thread-actions">
+                                    <button class="thread-action-btn view" title="View Conversation">👁️</button>
+                                    <button class="thread-action-btn priority" title="High Priority">🔥</button>
+                                </div>
+                            </div>
+
+                            <div class="conversation-thread" data-thread-id="thread_003" data-job-title="Garden maintenance and lawn mowing">
+                                <div class="thread-header">
+                                    <div class="thread-title">Garden maintenance and lawn mowing</div>
+                                    <div class="thread-status completed">Completed</div>
+                                </div>
+                                <div class="thread-participants">
+                                    <div class="participant customer">
+                                        <img src="public/users/User-06.jpg" alt="Carlos Mendoza" class="participant-avatar">
+                                        <span class="participant-name">Carlos Mendoza</span>
+                                        <span class="participant-role">Customer</span>
+                                    </div>
+                                    <div class="conversation-arrow">✓</div>
+                                    <div class="participant worker">
+                                        <img src="public/users/User-07.jpg" alt="Luis Fernandez" class="participant-avatar">
+                                        <span class="participant-name">Luis Fernandez</span>
+                                        <span class="participant-role">Worker</span>
+                                    </div>
+                                </div>
+                                <div class="thread-meta">
+                                    <span class="thread-date">Completed 2 days ago</span>
+                                    <span class="message-count">12 messages</span>
+                                </div>
+                                <div class="thread-actions">
+                                    <button class="thread-action-btn view" title="View Conversation">👁️</button>
+                                    <button class="thread-action-btn archive" title="Archive">📁</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Chat Bubbles View -->
+                    <div class="chats-right-panel">
+                        <div class="chat-detail" id="chatDetail">
+                            <div class="no-chat-selected">
+                                <div class="no-chat-icon">💭</div>
+                                <h4>Select a conversation to view chat</h4>
+                                <p>Choose a conversation thread from the left to see the full chat history</p>
+                            </div>
+                        </div>
+
+                        <!-- Chat Content (hidden initially) -->
+                        <div class="chat-content" id="chatContent" style="display: none;">
+                            <div class="chat-header">
+                                <div class="chat-participants">
+                                    <div class="chat-participant">
+                                        <img src="public/users/User-02.jpg" alt="Customer" class="chat-avatar" id="chatCustomerAvatar">
+                                        <span class="chat-name" id="chatCustomerName">Peter Ang</span>
+                                        <span class="chat-role">Customer</span>
+                                    </div>
+                                    <div class="chat-vs">vs</div>
+                                    <div class="chat-participant">
+                                        <img src="public/users/User-03.jpg" alt="Worker" class="chat-avatar" id="chatWorkerAvatar">
+                                        <span class="chat-name" id="chatWorkerName">Ana Rodriguez</span>
+                                        <span class="chat-role">Worker</span>
+                                    </div>
+                                </div>
+                                <div class="chat-job-title" id="chatJobTitle">Deep Clean My 3-Bedroom House</div>
+                            </div>
+
+                            <!-- Chat Bubbles Container -->
+                            <div class="chat-bubbles-container" id="chatBubblesContainer">
+                                <!-- Chat bubbles will be populated here -->
+                            </div>
+
+                            <!-- Admin Controls -->
+                            <div class="chat-admin-controls">
+                                <div class="chat-status-info">
+                                    <span class="chat-status-label">Status:</span>
+                                    <span class="chat-status-badge active" id="chatStatusBadge">Active</span>
+                                </div>
+                                <div class="chat-actions">
+                                    <button class="chat-action-btn" id="flagChatBtn">Flag for Review</button>
+                                    <button class="chat-action-btn" id="archiveChatBtn">Archive</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Financial Management Section -->
+            <section id="finance" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Financial Management</h1>
+                    <p class="section-subtitle">Monitor G-Coins, transactions, and revenue</p>
+                </div>
+                
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">💰</div>
+                    <h3>Financial Features</h3>
+                    <ul>
+                        <li>G-Coins Transaction Monitoring</li>
+                        <li>Payment Gateway Status</li>
+                        <li>Revenue Analytics</li>
+                        <li>Refunds & Disputes</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section id="analytics" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Platform Analytics</h1>
+                    <p class="section-subtitle">Insights and metrics across the platform</p>
+                </div>
+                
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">📊</div>
+                    <h3>Analytics Features</h3>
+                    <ul>
+                        <li>User Growth Metrics</li>
+                        <li>Job Market Health</li>
+                        <li>Regional Performance</li>
+                        <li>Engagement Statistics</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Content Moderation Section -->
+            <section id="moderation" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Content Moderation</h1>
+                    <p class="section-subtitle">Review and moderate platform content</p>
+                </div>
+                
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">🛡️</div>
+                    <h3>Moderation Features</h3>
+                    <ul>
+                        <li>Reported Content Queue</li>
+                        <li>Job Post Reviews</li>
+                        <li>Message Monitoring</li>
+                        <li>Profile Audits</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- System Settings Section -->
+            <section id="settings" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">System Settings</h1>
+                    <p class="section-subtitle">Configure platform settings and features</p>
+                </div>
+                
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">⚙️</div>
+                    <h3>Settings Features</h3>
+                    <ul>
+                        <li>Platform Configuration</li>
+                        <li>Notification Templates</li>
+                        <li>Feature Flags</li>
+                        <li>API Management</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Floating Reply Modal -->
+    <div class="reply-overlay" id="replyOverlay">
+        <div class="reply-modal">
+            <div class="reply-modal-header">
+                <h3 class="reply-modal-title">Reply to Customer Inquiry</h3>
+                <button class="reply-modal-close" id="closeReplyModal">×</button>
+            </div>
+            <div class="reply-modal-body">
+                <div class="reply-form-group">
+                    <label class="reply-form-label">Your Response:</label>
+                    <textarea 
+                        class="reply-form-textarea" 
+                        id="floatingReplyTextarea" 
+                        placeholder="Type your response to the customer inquiry..."></textarea>
+                </div>
+                <div class="reply-attachment-upload">
+                    <label for="floatingReplyAttachment" class="reply-upload-btn">
+                        <span>📷</span>
+                        <span>Add Photo</span>
+                    </label>
+                    <input type="file" id="floatingReplyAttachment" accept="image/*" style="display: none;">
+                </div>
+            </div>
+            <div class="reply-modal-footer">
+                <button class="reply-modal-btn cancel" id="cancelReplyBtn">Cancel</button>
+                <button class="reply-modal-btn send" id="sendFloatingReplyBtn">Send Reply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Basic JavaScript for Navigation -->
+    <script src="public/js/admin-dashboard.js"></script>
+</body>
+</html>
