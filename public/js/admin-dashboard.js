@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize inbox search
     initializeInboxSearch();
+    
+    // Initialize message overlay system
+    initializeMessageOverlay();
 });
 
 // ===== SIDEBAR TOGGLE SYSTEM =====
@@ -424,6 +427,19 @@ function initializeCustomerMessages() {
 
 function loadMessageDetails(messageElement) {
     const messageId = messageElement.getAttribute('data-message-id');
+    
+    console.log(`🖱️ Loading message ${messageId} at ${window.innerWidth}px`);
+    
+    // Check screen size and use appropriate method
+    if (window.innerWidth <= 887) {
+        // Use overlay for mobile/tablet (887px and below)
+        console.log('📱 Using overlay mode');
+        showMessageOverlay(messageId);
+        return;
+    }
+    
+    // Continue with desktop panel mode (888px and above)
+    console.log('🖥️ Using panel mode');
     const topic = messageElement.getAttribute('data-topic');
     
     // Extract message data
@@ -1753,6 +1769,184 @@ function updateSearchFeedback(query, resultCount) {
         console.log(`🔍 No messages found for "${query}"`);
     }
 }
+
+// ===== MESSAGE OVERLAY SYSTEM =====
+function initializeMessageOverlay() {
+    const overlay = document.getElementById('messageDetailOverlay');
+    const overlayCloseBtn = document.getElementById('overlayCloseBtn');
+    const overlayReplyBtn = document.getElementById('overlayReplyBtn');
+    const overlayArchiveBtn = document.getElementById('overlayArchiveBtn');
+    
+    // Ensure overlay starts hidden
+    if (overlay) {
+        overlay.style.display = 'none';
+        console.log('✅ Message overlay initialized and hidden');
+    }
+    
+    // Close overlay when clicking close button
+    if (overlayCloseBtn) {
+        overlayCloseBtn.addEventListener('click', hideMessageOverlay);
+    }
+    
+    // Close overlay when clicking outside content
+    if (overlay) {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                hideMessageOverlay();
+            }
+        });
+    }
+    
+    // Use event delegation for overlay buttons since they're added dynamically
+    document.addEventListener('click', (e) => {
+        
+        // Reply button in overlay
+        if (e.target.id === 'overlayReplyBtn') {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🖱️ Overlay Reply button clicked');
+            const replyOverlay = document.getElementById('replyOverlay');
+            if (replyOverlay) {
+                replyOverlay.classList.add('show');
+                document.getElementById('floatingReplyTextarea')?.focus();
+                console.log('📤 Reply modal opened from overlay');
+            } else {
+                console.error('❌ Reply overlay not found');
+            }
+        }
+        
+        // Archive button in overlay
+        if (e.target.id === 'overlayArchiveBtn') {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🖱️ Overlay Close button clicked');
+            const overlay = document.getElementById('messageDetailOverlay');
+            const currentMessageId = overlay?.dataset.messageId;
+            if (currentMessageId) {
+                closeCurrentMessage(); // Use the existing function
+                hideMessageOverlay();
+                console.log('📁 Message moved to Old inbox from overlay');
+            } else {
+                console.error('❌ No message ID found for overlay');
+            }
+        }
+    });
+    
+    console.log('✅ Overlay system ready - existing handlers will route correctly');
+}
+
+function showMessageOverlay(messageId) {
+    console.log(`🔍 showMessageOverlay called with messageId: ${messageId}`);
+    
+    const overlay = document.getElementById('messageDetailOverlay');
+    const overlayBody = overlay.querySelector('.overlay-body');
+    
+    console.log('🔍 Overlay element found:', !!overlay);
+    console.log('🔍 Overlay body found:', !!overlayBody);
+    
+    if (!overlay || !overlayBody) {
+        console.error('❌ Overlay elements not found', {overlay, overlayBody});
+        return;
+    }
+    
+    console.log(`📱 Showing overlay for message ${messageId} at ${window.innerWidth}px`);
+    
+    // Set message ID
+    overlay.dataset.messageId = messageId;
+    
+    // Populate overlay content
+    const messageContent = generateMessageDetailContent(messageId);
+    console.log('🔍 Generated content length:', messageContent.length);
+    overlayBody.innerHTML = messageContent;
+    
+    // Show overlay
+    overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    document.body.style.overflow = 'hidden';
+    
+    console.log('✅ Overlay should now be visible');
+}
+
+function hideMessageOverlay() {
+    const overlay = document.getElementById('messageDetailOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+        overlay.dataset.messageId = '';
+    }
+}
+
+
+function generateMessageDetailContent(messageId) {
+    // Find the message element in the DOM to extract data (same as desktop version)
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    
+    if (!messageElement) {
+        return '<p>Message not found</p>';
+    }
+    
+    // Extract data from DOM elements (same way as desktop)
+    const senderName = messageElement.querySelector('.sender-name')?.textContent || 'Unknown Sender';
+    const senderEmail = messageElement.querySelector('.sender-email')?.textContent || 'unknown@email.com';
+    const subject = messageElement.querySelector('.message-subject')?.textContent || 'No Subject';
+    const timestamp = messageElement.querySelector('.message-time')?.textContent || '';
+    const hasAttachment = messageElement.querySelector('.message-attachment') !== null;
+    const fullContent = getFullMessageContent(messageId);
+    
+    return `
+        <div class="message-detail-header">
+            <div class="header-main">
+                <div class="sender-info">
+                    <img src="public/users/User-02.jpg" alt="User Avatar" class="detail-avatar">
+                    <div class="sender-details">
+                        <h3 class="detail-sender-name">${senderName}</h3>
+                        <p class="detail-sender-email">${senderEmail}</p>
+                    </div>
+                </div>
+                <div class="message-timestamp-attachment">
+                    <span class="detail-timestamp">${timestamp}</span>
+                    ${hasAttachment ? '<span class="detail-attachment-icon" title="Has photo attachment">🖼️</span>' : ''}
+                </div>
+            </div>
+            <h2 class="detail-subject">${subject}</h2>
+        </div>
+        
+        <div class="message-detail-body">
+            <div class="message-content-inner">
+                <p>${fullContent}</p>
+                ${hasAttachment ? `
+                    <div class="detail-attachment">
+                        <h4>Attachment:</h4>
+                        <div class="attachment-item">
+                            <span class="attachment-icon">🖼️</span>
+                            <span class="attachment-name">selfie-id-verification.jpg</span>
+                            <button class="attachment-download">Download</button>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Handle resize to switch between overlay/panel views
+window.addEventListener('resize', () => {
+    const overlay = document.getElementById('messageDetailOverlay');
+    
+    if (window.innerWidth >= 888 && overlay && overlay.style.display === 'flex') {
+        const messageId = overlay.dataset.messageId;
+        hideMessageOverlay();
+        
+        // Find the message element and trigger normal panel view
+        if (messageId) {
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                messageElement.click();
+            }
+        }
+    }
+});
 
 // ===== INITIALIZATION COMPLETE =====
 console.log('✅ Admin Dashboard JavaScript loaded successfully');

@@ -7,13 +7,33 @@
     box-sizing: border-box;
 }
 
+/* Hide scrollbars completely for the entire page */
+html, body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+    display: none;
+    width: 0px;
+    background: transparent;
+}
+
 body.admin-dashboard {
     font-family: Arial, Helvetica, sans-serif;
     background-color: #2d3748;
     color: #e6d6ae;
     line-height: 1.6;
-    height: 100vh; /* Full viewport height */
-    overflow: hidden; /* Prevent all page scrolling */
+    /* Hide main scrollbar but keep functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Hide scrollbar for WebKit browsers (Chrome, Safari) */
+body.admin-dashboard::-webkit-scrollbar {
+    display: none;
 }
 
 /* ===== ADMIN HEADER ===== */
@@ -183,6 +203,8 @@ body.admin-dashboard {
     height: 36px;
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, 0.3);
+    object-fit: cover;
+    object-position: center;
 }
 
 .admin-name {
@@ -195,8 +217,7 @@ body.admin-dashboard {
 .admin-layout {
     display: flex;
     margin-top: 70px;
-    height: calc(100vh - 70px); /* Exact height, no overflow */
-    overflow: hidden; /* Prevent layout overflow */
+    min-height: calc(100vh - 70px);
 }
 
 /* ===== SIDEBAR NAVIGATION ===== */
@@ -330,9 +351,7 @@ body.admin-dashboard {
     margin-left: 280px;
     padding: 2rem;
     background: #2d3748;
-    height: 100%; /* Full container height */
-    overflow: hidden; /* No main content scrolling */
-    box-sizing: border-box; /* Include padding in height */
+    box-sizing: border-box;
     transition: margin-left 0.3s ease;
 }
 
@@ -623,8 +642,93 @@ body.admin-dashboard {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
     gap: 1.5rem;
-    height: calc(100vh - 200px);
     width: 100%;
+}
+
+/* ===== DESKTOP: 888px and above ===== */
+@media (min-width: 888px) {
+    .messages-layout, .chats-layout {
+        height: calc(100vh - 250px);
+        overflow: hidden;
+    }
+    
+    #messages .section-header, #chats .section-header {
+        margin-bottom: 1rem;
+    }
+    
+    #messages.content-section, #chats.content-section {
+        padding-bottom: 0;
+    }
+    
+    /* Hide overlay for desktop */
+    .message-detail-overlay {
+        display: none !important;
+    }
+}
+
+/* ===== TABLETS & MOBILE: 887px and below ===== */
+@media (max-width: 887px) {
+    /* Full-width inbox layout */
+    .messages-layout, .chats-layout {
+        display: block;
+        height: auto;
+        overflow: visible;
+    }
+    
+    /* Hide right panels - use overlay instead */
+    .messages-right-panel, .chats-right-panel {
+        display: none;
+    }
+    
+    /* Make left panels full width */
+    .messages-left-panel, .chats-left-panel {
+        width: 100%;
+        max-width: none;
+        max-height: calc(100vh - 200px);
+    }
+    
+    /* Adjust sections for mobile */
+    #messages.content-section, #chats.content-section {
+        padding-bottom: 1rem;
+    }
+    
+    /* Sidebar adjustments */
+    .admin-sidebar {
+        width: 70px;
+    }
+    
+    .admin-sidebar .menu-text {
+        display: none;
+    }
+    
+    .admin-main {
+        margin-left: 70px;
+    }
+    
+    .sidebar-header .logo-text {
+        display: none;
+    }
+    
+    /* Stack inbox controls vertically */
+    .messages-left-panel .inbox-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .messages-left-panel .inbox-tabs {
+        justify-content: center;
+    }
+    
+    .messages-left-panel .inbox-search {
+        width: 100%;
+    }
+    
+    .messages-left-panel .search-input-small {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+    }
 }
 
 /* Two-Panel Layout for Chats */
@@ -632,53 +736,10 @@ body.admin-dashboard {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
     gap: 1.5rem;
-    height: calc(100vh - 200px);
 }
+
 
 /* Panel Headers */
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background: #1a202c;
-    border-radius: 8px 8px 0 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.panel-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #e6d6ae;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-.inbox-stats .unread-count {
-    background: #ff4757;
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.monitor-note {
-    font-size: 0.8rem;
-    color: #a0aec0;
-    font-style: italic;
-}
-
-/* ===== LEFT PANEL: Customer Support Inbox ===== */
-.messages-left-panel {
-    background: #363f4f;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-/* ===== INBOX TABS IN HEADER ===== */
 .panel-header {
     display: flex;
     justify-content: space-between;
@@ -784,6 +845,31 @@ body.admin-dashboard {
     background: rgba(255, 255, 255, 0.3);
 }
 
+.panel-title {
+    color: #e6d6ae;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.monitor-note {
+    font-size: 0.8rem;
+    color: #a0aec0;
+    font-style: italic;
+}
+
+/* ===== LEFT PANEL: Customer Support Inbox ===== */
+.messages-left-panel {
+    background: #363f4f;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Original width restored for desktop */
+}
+
 .topic-filter {
     padding: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -809,7 +895,7 @@ body.admin-dashboard {
 .messages-list-container {
     flex: 1; /* Take remaining space */
     overflow-y: auto; /* Enable vertical scroll */
-    max-height: calc(100vh - 400px); /* Constrain height */
+    max-height: calc(100vh - 450px); /* Reduced height - less screen overflow */
     padding: 0;
 }
 
@@ -1035,6 +1121,7 @@ body.admin-dashboard {
     border: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Prevent container overflow */
 }
 
 .message-detail {
@@ -1079,7 +1166,7 @@ body.admin-dashboard {
     overflow-y: auto; /* Enable scrolling */
     padding: 1.5rem;
     color: #e6d6ae;
-    max-height: calc(100vh - 360px); /* Even SMALLER - more room for complete attachment */
+    max-height: calc(100vh - 410px); /* Reduced height - prevent page overflow */
     min-height: 0; /* Allow flex shrinking */
 }
 
@@ -1183,14 +1270,19 @@ body.admin-dashboard {
     background: #10b981;
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 6px;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.3s ease;
     font-family: Arial, Helvetica, sans-serif;
-    margin-top: 0.5rem;
+    height: 38px;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .detail-reply-btn:hover {
@@ -1208,13 +1300,19 @@ body.admin-dashboard {
     background: #718096;
     color: white;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
     border-radius: 6px;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.3s ease;
     font-family: Arial, Helvetica, sans-serif;
+    height: 38px;
+    min-width: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .detail-close-btn:hover {
@@ -1272,226 +1370,6 @@ body.admin-dashboard {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-/* ===== ADMIN CHAT BUBBLES ===== */
-.admin-chat-container {
-    max-height: 400px;
-    overflow-y: auto;
-    margin: 1rem 0;
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 8px;
-}
-
-.admin-message-bubble {
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    border-radius: 8px;
-    border-left: 3px solid;
-}
-
-.admin-message-bubble.customer-message {
-    background: rgba(16, 185, 129, 0.1);
-    border-left-color: #10b981;
-}
-
-.admin-message-bubble.worker-message {
-    background: rgba(59, 130, 246, 0.1);
-    border-left-color: #3b82f6;
-}
-
-.message-sender-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
-}
-
-.message-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sender-name {
-    font-weight: 600;
-    color: #e6d6ae;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-.sender-role {
-    color: #a0aec0;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.8rem;
-}
-
-.message-time {
-    color: #a0aec0;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.75rem;
-    margin-left: auto;
-}
-
-.message-content {
-    color: #e6d6ae;
-    line-height: 1.4;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.9rem;
-}
-
-/* Admin Reply Section */
-.admin-reply-section {
-    background: #2d3748;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1.5rem;
-}
-
-.reply-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.reply-header h4 {
-    color: #e6d6ae;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-.status-badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-badge.pending {
-    background: #ffa502;
-    color: white;
-}
-
-.status-badge.resolved {
-    background: #10b981;
-    color: white;
-}
-
-.reply-textarea {
-    width: 100%;
-    min-height: 120px;
-    padding: 1rem;
-    background: #363f4f;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    color: #e6d6ae;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    resize: vertical;
-    margin-bottom: 1rem;
-}
-
-.reply-textarea:focus {
-    outline: none;
-    border-color: #10b981;
-}
-
-.reply-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.reply-attachments {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.attachment-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    background: #4a5568;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    color: #e6d6ae;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-.attachment-btn:hover {
-    background: #2d3748;
-}
-
-.attachment-preview-area {
-    position: relative;
-    display: inline-block;
-}
-
-.reply-attachment-img {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.remove-attachment {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #ff4757;
-    color: white;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-}
-
-.reply-buttons {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.reply-btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    font-family: Arial, Helvetica, sans-serif;
-}
-
-.reply-btn.primary {
-    background: #10b981;
-    color: white;
-}
-
-.reply-btn.primary:hover {
-    background: #059669;
-}
-
-.reply-btn.secondary {
-    background: #4a5568;
-    color: #e6d6ae;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.reply-btn.secondary:hover {
-    background: #2d3748;
-}
-
 /* ===== FLOATING REPLY OVERLAY ===== */
 .reply-overlay {
     position: fixed;
@@ -1499,11 +1377,15 @@ body.admin-dashboard {
     left: 0;
     right: 0;
     bottom: 0;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.7);
     display: none;
-    z-index: 1000;
+    z-index: 10001; /* Higher than message overlay (10000) */
     align-items: center;
     justify-content: center;
+    margin: 0;
+    padding: 0;
 }
 
 .reply-overlay.show {
@@ -1520,7 +1402,7 @@ body.admin-dashboard {
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     position: relative;
-    left: -300px; /* Move further left to avoid covering message details */
+    margin: 0 auto; /* Center the modal */
 }
 
 .reply-modal-header {
@@ -1655,16 +1537,6 @@ body.admin-dashboard {
 
 .reply-modal-btn.send:hover {
     background: #0d9668;
-}
-
-/* ===== MESSAGES RIGHT PANEL: Message Detail & Reply ===== */
-.messages-right-panel {
-    background: #363f4f;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    flex-direction: column;
-    height: 100%;
 }
 
 /* ===== CHATS LEFT PANEL: Conversation Threads ===== */
@@ -2101,171 +1973,41 @@ body.admin-dashboard {
     border-bottom-right-radius: 4px;
 }
 
-/* ===== MESSAGES RESPONSIVE DESIGN ===== */
+/* ===== RESPONSIVE DESIGN - GISUGO STANDARD BREAKPOINTS ===== */
 
-/* Tablet View for Messages (800px and below) */
-@media (max-width: 800px) {
-    .messages-layout {
-        grid-template-columns: 1fr 1.5fr;
-        gap: 1rem;
-    }
-    
-    .messages-right-panel {
-        display: none;
-    }
+/* Fluid Scaling from 1012px to 601px using clamp() */
+.section-title {
+    font-size: clamp(1.75rem, 4vw, 2rem); /* Scales from 1.75rem to 2rem */
 }
 
-/* Mobile View for Messages (600px and below) */
-@media (max-width: 600px) {
-    .messages-layout {
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-        height: calc(100vh - 180px);
-    }
-    
-    .messages-left-panel,
-    .messages-center-panel {
-        display: block;
-    }
-    
-    .messages-right-panel {
-        display: none;
-    }
-    
-    .customer-message-item {
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .message-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .message-meta {
-        align-items: flex-start;
-        flex-direction: row;
-        gap: 1rem;
-    }
-    
-    .sender-avatar {
-        width: 32px;
-        height: 32px;
-    }
-    
-    .sender-name {
-        font-size: 0.9rem;
-    }
-    
-    .sender-email {
-        font-size: 0.75rem;
-    }
-    
-    .reply-actions {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-    }
-    
-    .reply-buttons {
-        justify-content: space-between;
-    }
-    
-    .panel-title {
-        font-size: 1rem;
-    }
+.section-subtitle {
+    font-size: clamp(1rem, 2.2vw, 1.1rem); /* Scales from 1rem to 1.1rem */
 }
 
-/* Small Mobile View (400px and below) */
-@media (max-width: 400px) {
-    .messages-layout {
-        height: calc(100vh - 160px);
-    }
-    
-    .customer-message-item {
-        padding: 0.5rem;
-    }
-    
-    .message-excerpt {
-        -webkit-line-clamp: 1;
-    }
-    
-    .detail-sender {
-        gap: 0.75rem;
-    }
-    
-    .detail-avatar {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .detail-sender-name {
-        font-size: 1rem;
-    }
-    
-    .detail-subject {
-        font-size: 1.1rem;
-    }
-    
-    .reply-textarea {
-        min-height: 100px;
-    }
-    
-    .reply-btn {
-        padding: 0.6rem 1rem;
-        font-size: 0.9rem;
-    }
+.section-header {
+    margin-bottom: clamp(1.5rem, 3.5vw, 2rem); /* Scales from 1.5rem to 2rem */
 }
 
-/* Extra Small Mobile View (320px and below) */
-@media (max-width: 320px) {
-    .panel-header {
-        padding: 0.75rem;
-    }
-    
-    .topic-filter,
-    .thread-search {
-        padding: 0.75rem;
-    }
-    
-    .customer-messages-list {
-        padding: 0.25rem;
-    }
-    
-    .message-content {
-        padding: 1rem;
-    }
-    
-    .admin-reply-section {
-        padding: 1rem;
-    }
-    
-    .inbox-stats .unread-count {
-        padding: 0.2rem 0.4rem;
-        font-size: 0.7rem;
-    }
-    
-    .message-topic {
-        font-size: 0.65rem;
-        padding: 0.15rem 0.4rem;
-    }
-    
-    .reply-attachments {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.75rem;
-    }
-    
-    .attachment-btn {
-        justify-content: center;
-    }
+.panel-title {
+    font-size: clamp(1rem, 2.2vw, 1.1rem); /* Scales from 1rem to 1.1rem */
 }
 
-/* ===== RESPONSIVE DESIGN ===== */
+/* INBOX PANEL SPECIFIC SCALING - More aggressive scaling for testing */
+.messages-left-panel .panel-header {
+    padding: clamp(0.75rem, 2.5vw, 1.2rem); /* Scales from 0.75rem to 1.2rem */
+}
 
-/* Tablet View (800px and below) - Auto-collapse sidebar */
-@media (max-width: 800px) {
+/* INBOX HEADER LAYOUT ADJUSTMENTS - Stack when tight */
+.messages-left-panel .inbox-controls {
+    flex-direction: row; /* Default row layout */
+    gap: clamp(0.5rem, 2vw, 1rem); /* Shrinking gap */
+}
+
+/* LAYOUT BREAKPOINTS - Proper responsive behavior */
+
+/* Auto-collapse sidebar at 1350px */
+/* ===== LARGE TABLETS: 1350px and below (but still desktop 888px+) ===== */
+@media (max-width: 1350px) and (min-width: 888px) {
     .admin-sidebar {
         width: 70px;
     }
@@ -2278,61 +2020,213 @@ body.admin-dashboard {
         margin-left: 70px;
     }
     
-    .sidebar-toggle {
-        display: none; /* Hide toggle button on tablet since it's auto-collapsed */
+    .sidebar-header .logo-text {
+        display: none;
+    }
+    
+    /* Stack inbox controls vertically */
+    .messages-left-panel .inbox-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .messages-left-panel .inbox-tabs {
+        justify-content: center;
+    }
+    
+    .messages-left-panel .inbox-search {
+        width: 100%;
+    }
+    
+    .messages-left-panel .search-input-small {
+        flex: 1;
+        width: auto;
+        min-width: 0;
     }
 }
 
-/* Tablet View (600px and below) */
+
+.messages-layout,
+.chats-layout {
+    gap: clamp(1.25rem, 3vw, 1.5rem); /* Scales from 1.25rem to 1.5rem */
+}
+
+/* INBOX MESSAGE ITEMS - Dramatic scaling for visibility */
+.messages-left-panel .customer-message-item {
+    margin-bottom: clamp(0.4rem, 2vw, 1rem); /* More dramatic scaling */
+    padding: clamp(0.5rem, 2.5vw, 1.2rem); /* Scale the entire message item */
+}
+
+.message-content-area {
+    padding: clamp(0.875rem, 2vw, 1rem); /* Scales from 0.875rem to 1rem */
+}
+
+/* INBOX TEXT SCALING - More dramatic for testing */
+.messages-left-panel .sender-name {
+    font-size: clamp(0.7rem, 2.5vw, 1.1rem); /* Dramatic font scaling */
+}
+
+.sender-email {
+    font-size: clamp(0.75rem, 1.6vw, 0.8rem); /* Scales from 0.75rem to 0.8rem */
+}
+
+/* INBOX MESSAGE SUBJECT - Dramatic scaling */
+.messages-left-panel .message-subject {
+    font-size: clamp(0.7rem, 2.2vw, 1rem); /* More dramatic scaling */
+}
+
+.message-excerpt {
+    font-size: clamp(0.75rem, 1.6vw, 0.8rem); /* Scales from 0.75rem to 0.8rem */
+}
+
+.message-detail-header {
+    padding: clamp(1.25rem, 3vw, 1.5rem); /* Scales from 1.25rem to 1.5rem */
+}
+
+.detail-sender-name {
+    font-size: clamp(1rem, 2.2vw, 1.1rem); /* Scales from 1rem to 1.1rem */
+}
+
+.detail-sender-email {
+    font-size: clamp(0.85rem, 1.8vw, 0.9rem); /* Scales from 0.85rem to 0.9rem */
+}
+
+.detail-subject {
+    font-size: clamp(1.125rem, 2.5vw, 1.25rem); /* Scales from 1.125rem to 1.25rem */
+    margin-bottom: clamp(1.25rem, 3vw, 1.5rem); /* Scales from 1.25rem to 1.5rem */
+}
+
+.message-content-inner {
+    padding: clamp(1.25rem, 3vw, 1.5rem); /* Scales from 1.25rem to 1.5rem */
+}
+
+/* INBOX TAB BUTTONS - More visible scaling */
+.messages-left-panel .inbox-tab-btn {
+    padding: clamp(0.4rem, 1.5vw, 0.8rem) clamp(0.6rem, 3vw, 1.4rem); /* More dramatic scaling */
+    font-size: clamp(0.7rem, 2vw, 1rem); /* More dramatic font scaling */
+    min-width: clamp(60px, 12vw, 100px); /* Width scales dramatically */
+}
+
+/* Search input already defined above - no duplicate needed */
+
+.topic-dropdown {
+    padding: clamp(0.625rem, 1.5vw, 0.75rem); /* Scales from 0.625rem to 0.75rem */
+    font-size: clamp(0.85rem, 1.8vw, 0.9rem); /* Scales from 0.85rem to 0.9rem */
+}
+
+.sender-avatar {
+    width: clamp(36px, 8vw, 40px); /* Scales from 36px to 40px */
+    height: clamp(36px, 8vw, 40px);
+}
+
+.detail-avatar {
+    width: clamp(45px, 10vw, 50px); /* Scales from 45px to 50px */
+    height: clamp(45px, 10vw, 50px);
+}
+
+.chat-header {
+    padding: clamp(1.25rem, 3vw, 1.5rem); /* Scales from 1.25rem to 1.5rem */
+}
+
+.chat-job-title {
+    font-size: clamp(1rem, 2.2vw, 1.1rem); /* Scales from 1rem to 1.1rem */
+}
+
+.bubble-content {
+    padding: clamp(0.625rem, 1.5vw, 0.75rem) clamp(0.875rem, 2vw, 1rem); /* Scales padding */
+}
+
+.detail-reply-btn,
+.detail-close-btn {
+    padding: clamp(0.55rem, 1.2vw, 0.6rem) clamp(1rem, 2.4vw, 1.2rem); /* Scales padding */
+    font-size: clamp(0.8rem, 1.7vw, 0.85rem); /* Scales from 0.8rem to 0.85rem */
+    height: clamp(36px, 7.6vw, 38px); /* Scales from 36px to 38px */
+    min-width: clamp(75px, 16vw, 80px); /* Scales from 75px to 80px */
+}
+
+/* ===== SMALL MOBILE: 600px and below ===== */
 @media (max-width: 600px) {
-    .admin-header-container {
-        padding: 0 1rem;
+    /* Full-width inbox layout (overlay system already active from 888px breakpoint) */
+    .messages-layout,
+    .chats-layout {
+        display: block;
+        gap: 0.75rem;
+        height: auto;
     }
     
-    .admin-header-center {
-        margin: 0 1rem;
+    /* Additional mobile-specific adjustments */
+    
+    /* Header adjustments */
+    .admin-header-container {
+        padding: 0 1rem;
     }
     
     .admin-name {
         display: none;
     }
     
-    .admin-sidebar {
-        width: 70px;
-        padding: 0;
+    .admin-avatar {
+        width: 32px;
+        height: 32px;
     }
     
-    .menu-text {
-        display: none;
+    /* Message items */
+    .customer-message-item {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
     }
     
-    .menu-item {
-        padding: 1rem;
-        justify-content: center;
+    .message-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
     
-    .admin-main {
-        margin-left: 70px;
-        padding: 1.5rem;
+    /* Relocate timestamp and attachment in mobile too */
+    .messages-left-panel .message-meta {
+        flex-direction: row; /* Row layout for timestamp and attachment */
+        align-items: center;
+        justify-content: flex-start;
+        gap: 1rem; /* Space between items */
+        width: 100%;
+        margin-top: 0.25rem;
     }
     
-    .section-title {
-        font-size: 1.5rem;
+    .messages-left-panel .message-time {
+        font-size: 0.7rem;
+        color: #a0aec0;
     }
     
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+    .messages-left-panel .message-attachment {
+        font-size: 0.7rem;
+        color: #10b981;
+        margin-top: 0; /* Remove margin since we're in a row */
     }
     
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
+    .sender-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .panel-title {
+        font-size: 1rem;
+    }
+    
+    /* Compact controls */
+    .search-input-small {
+        width: 120px;
+    }
+    
+    .inbox-tab-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
     }
 }
 
-/* Mobile View (400px and below) */
+/* Phone Optimizations (400px and below) */
 @media (max-width: 400px) {
+    /* Hide sidebar completely */
     .admin-sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
@@ -2347,72 +2241,219 @@ body.admin-dashboard {
         padding: 1rem;
     }
     
-    .search-input {
-        font-size: 0.9rem;
+    /* Compact header */
+    .admin-header-container {
+        padding: 0 0.75rem;
     }
     
-    .stat-card {
-        padding: 1rem;
+    /* Compact messages */
+    .customer-message-item {
+        padding: 0.5rem;
     }
     
-    .stat-icon {
-        font-size: 2rem;
-        width: 50px;
-        height: 50px;
+    .message-excerpt {
+        -webkit-line-clamp: 1;
     }
     
-    .stat-number {
+    .detail-avatar {
+        width: 36px;
+        height: 36px;
+    }
+    
+    /* Section adjustments */
+    .section-title {
         font-size: 1.5rem;
     }
     
-    .dashboard-card {
-        padding: 1rem;
+    .section-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    /* Very compact controls */
+    .search-input-small {
+        width: 100px;
+        font-size: 0.75rem;
+    }
+    
+    .inbox-tab-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+        min-width: 60px;
     }
 }
 
-/* Extra Small Mobile (375px and below) */
+/* iPhone 7 and Similar (375px and below) */
 @media (max-width: 375px) {
     .admin-header-container {
         padding: 0 0.75rem;
     }
     
-    .admin-header-center {
-        margin: 0 0.5rem;
+    .admin-main {
+        padding: 0.75rem;
     }
     
-    .search-input {
-        height: 38px;
-        font-size: 0.85rem;
+    .section-header {
+        margin-bottom: 1rem;
+    }
+    
+    /* Very compact tabs */
+    .inbox-tab-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.7rem;
+        min-width: 55px;
+    }
+    
+    .search-input-small {
+        width: 90px;
+    }
+}
+
+/* Ultra Small Screens (320px and below) */
+@media (max-width: 320px) {
+    .admin-main {
+        padding: 0.75rem;
+    }
+    
+    .panel-header {
+        padding: 0.75rem;
+    }
+    
+    .customer-message-item {
+        padding: 0.5rem;
     }
     
     .section-title {
         font-size: 1.25rem;
     }
     
-    .stats-grid {
-        gap: 0.75rem;
+    .section-subtitle {
+        font-size: 0.85rem;
+    }
+    
+    /* Extremely compact controls */
+    .inbox-controls {
+        gap: 0.5rem;
+    }
+    
+    .inbox-tab-btn {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.65rem;
+        min-width: 50px;
+    }
+    
+    .search-input-small {
+        width: 80px;
+        font-size: 0.7rem;
     }
 }
 
-/* Tiny Mobile (320px and below) */
-@media (max-width: 320px) {
-    .admin-main {
-        padding: 0.75rem;
-    }
-    
-    .section-header {
-        margin-bottom: 1.5rem;
-    }
-    
-    .stats-grid {
-        margin-bottom: 1.5rem;
-    }
-    
-    .stat-card {
-        padding: 0.75rem;
-    }
-    
-    .dashboard-card {
-        padding: 0.75rem;
-    }
+/* ===== VIEWPORT DEBUG TOOL ===== */
+/* ===== MESSAGE DETAIL OVERLAY (888px and below) ===== */
+.message-detail-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000; /* Increased z-index */
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
 }
+
+/* Overlay visible state */
+.message-detail-overlay[style*="flex"] {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.overlay-content {
+    background: #1a202c;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: #2d3748;
+    border-radius: 12px 12px 0 0;
+}
+
+.overlay-header h3 {
+    color: #f7fafc;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.overlay-close-btn {
+    background: #718096;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: background 0.3s ease;
+}
+
+.overlay-close-btn:hover {
+    background: #4a5568;
+}
+
+.overlay-body {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    max-height: calc(90vh - 160px);
+}
+
+.overlay-footer {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: #2d3748;
+    border-radius: 0 0 12px 12px;
+}
+
+.overlay-footer .detail-reply-btn,
+.overlay-footer .detail-close-btn {
+    flex: 1;
+    height: 44px;
+    font-size: 0.9rem;
+}
+
+#vp-debug {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    background: #000;
+    color: #fff;
+    padding: 4px 8px;
+    font-size: 12px;
+    opacity: 0.6;
+    z-index: 9999;
+    font-family: monospace;
+    border-radius: 0 4px 0 0;
+    pointer-events: none;
+    font-weight: bold;
+}
+
+/* ===== END OF ADMIN DASHBOARD CSS ===== */

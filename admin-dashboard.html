@@ -448,6 +448,23 @@
                 </div>
             </section>
 
+            <!-- Message Detail Overlay (for screens 888px and below) -->
+            <div id="messageDetailOverlay" class="message-detail-overlay">
+                <div class="overlay-content">
+                    <div class="overlay-header">
+                        <button class="overlay-close-btn" id="overlayCloseBtn">✕</button>
+                        <h3>Message Details</h3>
+                    </div>
+                    <div class="overlay-body">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                    <div class="overlay-footer">
+                        <button class="detail-reply-btn" id="overlayReplyBtn">Reply</button>
+                        <button class="detail-close-btn" id="overlayArchiveBtn">Close</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Chats Management Section -->
             <section id="chats" class="content-section">
                 <div class="section-header">
@@ -734,7 +751,28 @@
         </div>
     </div>
 
+    <!-- VIEWPORT DEBUG TOOL -->
+    <div id="vp-debug"></div>
+
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
+    
+    <!-- VIEWPORT DEBUG SCRIPT -->
+    <script>
+    (function() {
+        const vpDebug = document.getElementById('vp-debug');
+        
+        function updateViewport() {
+            const width = window.innerWidth;
+            vpDebug.textContent = `Viewport: ${width}px`;
+        }
+        
+        // Initial update
+        updateViewport();
+        
+        // Update on resize
+        window.addEventListener('resize', updateViewport);
+    })();
+    </script>
 </body>
 </html>
