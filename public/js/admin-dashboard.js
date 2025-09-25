@@ -1628,7 +1628,7 @@ function closeCurrentMessage() {
         activeMessage.classList.remove('selected');
         
         console.log('📧 Message closed and moved to old inbox:', messageId);
-        alert('Message moved to Old inbox.');
+        showToast('Message moved to Old inbox');
     }
 }
 
@@ -1947,6 +1947,44 @@ window.addEventListener('resize', () => {
         }
     }
 });
+
+// ===== TOAST NOTIFICATION SYSTEM =====
+function showToast(message, type = 'success', duration = 1500) {
+    const toast = document.getElementById('toastNotification');
+    const toastMessage = document.getElementById('toastMessage');
+    const toastIcon = toast.querySelector('.toast-icon');
+    
+    if (!toast || !toastMessage) return;
+    
+    // Set message and icon based on type
+    toastMessage.textContent = message;
+    
+    switch(type) {
+        case 'success':
+            toastIcon.textContent = '✅';
+            toast.style.background = '#10b981';
+            break;
+        case 'error':
+            toastIcon.textContent = '❌';
+            toast.style.background = '#ef4444';
+            break;
+        case 'info':
+            toastIcon.textContent = 'ℹ️';
+            toast.style.background = '#3b82f6';
+            break;
+        default:
+            toastIcon.textContent = '✅';
+            toast.style.background = '#10b981';
+    }
+    
+    // Show toast
+    toast.classList.add('show');
+    
+    // Hide after duration
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, duration);
+}
 
 // ===== INITIALIZATION COMPLETE =====
 console.log('✅ Admin Dashboard JavaScript loaded successfully');

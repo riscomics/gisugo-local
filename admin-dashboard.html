@@ -17,7 +17,7 @@
             
             <div class="admin-header-center">
                 <div class="admin-search">
-                    <input type="text" placeholder="Search users, jobs, transactions..." class="search-input">
+                    <input type="text" placeholder="Search..." class="search-input">
                     <button class="search-btn">
                         <img src="public/icons/search.png" alt="Search">
                     </button>
@@ -752,7 +752,13 @@
     </div>
 
     <!-- VIEWPORT DEBUG TOOL -->
-    <div id="vp-debug"></div>
+            <div id="vp-debug"></div>
+            
+            <!-- Toast Notification -->
+            <div id="toastNotification" class="toast-notification">
+                <span class="toast-icon">✅</span>
+                <span class="toast-message" id="toastMessage">Message moved to Old inbox</span>
+            </div>
 
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
