@@ -5237,18 +5237,26 @@ function handleSendContactMessage() {
 
 function hideContactMessageOverlay() {
     const overlay = document.getElementById('contactMessageOverlay');
+    if (!overlay) return;
+    
     overlay.classList.remove('show');
     
-    // Clear handlers initialization flag
+    // Clear handlers initialization flag to prevent memory leaks
     delete overlay.dataset.contactHandlersInitialized;
+    
+    console.log('💬 Contact message overlay hidden and handlers cleaned up');
 }
 
 function hideApplicationActionOverlay() {
     const overlay = document.getElementById('applicationActionOverlay');
+    if (!overlay) return;
+    
     overlay.classList.remove('show');
     
-    // Clear handlers initialization flag
+    // Clear handlers initialization flag to prevent memory leaks
     delete overlay.dataset.actionHandlersInitialized;
+    
+    console.log('👤 Application action overlay hidden and handlers cleaned up');
 }
 
 function showConfirmation(icon, title, message) {
@@ -5344,10 +5352,14 @@ function hideConfirmationOverlay() {
 
 function hideApplicationsOverlay() {
     const overlay = document.getElementById('applicationsOverlay');
+    if (!overlay) return;
+    
     overlay.classList.remove('show');
     
-    // Clear handlers initialization flag
+    // Clear handlers initialization flag to prevent memory leaks
     delete overlay.dataset.handlersInitialized;
+    
+    console.log('📋 Applications overlay hidden and handlers cleaned up');
 }
 
 // Hire Confirmation Overlay Functions
@@ -5496,6 +5508,18 @@ function initializeHireConfirmationHandlers() {
     });
 
     overlay.dataset.hireHandlersInitialized = 'true';
+}
+
+function hideHireConfirmationOverlay() {
+    const overlay = document.getElementById('hireConfirmationOverlay');
+    if (!overlay) return;
+    
+    overlay.classList.remove('show');
+    
+    // Clean up event handlers to prevent memory leaks
+    delete overlay.dataset.hireHandlersInitialized;
+    
+    console.log('🔒 Hire confirmation overlay hidden and handlers cleaned up');
 }
 
 function processHireConfirmation(workerData) {
