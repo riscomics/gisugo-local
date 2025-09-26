@@ -911,6 +911,14 @@ body:has(.jobs-header) {
   background: #dc2626;
 }
 
+.listing-option-btn.applications {
+  background: #8b5cf6;
+}
+
+.listing-option-btn.applications:hover {
+  background: #7c3aed;
+}
+
 .listing-option-btn.cancel {
   background: #6b7280;
   margin-top: 8px;
@@ -918,6 +926,594 @@ body:has(.jobs-header) {
 
 .listing-option-btn.cancel:hover {
   background: #4b5563;
+}
+
+/* Applications Overlay */
+.applications-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.applications-overlay.show {
+  display: flex;
+}
+
+.applications-container {
+  background: #2d3748;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  height: 80vh;
+  max-height: 600px;
+  border: 2px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.applications-header {
+  padding: 24px;
+  border-bottom: 1px solid #4a5568;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.applications-header-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.applications-title {
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.applications-subtitle {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.applications-close-btn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.applications-close-btn:hover {
+  background: #4a5568;
+  color: #fff;
+}
+
+.applications-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 20px;
+  /* Hide scrollbar for all browsers */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.applications-scroll-container::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+.applications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Application Card Styles - Based on messages.css */
+.application-card {
+  display: flex;
+  flex-direction: column;
+  width: calc(100% - 8px);
+  max-width: 400px;
+  background: #354048;
+  border-radius: clamp(6px, 1.5vw, 8px);
+  box-shadow: 0 clamp(1px, 0.5vh, 2px) clamp(6px, 2vh, 8px) rgba(0,0,0,0.12);
+  margin: 0 auto clamp(12px, 3vh, 16px) auto;
+  color: #f0e6d2;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: clamp(10px, 2.5vh, 12px);
+  box-sizing: border-box;
+}
+
+.application-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+}
+
+.application-job-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: clamp(1.05rem, 2.8vw, 1.2rem);
+  font-weight: 600;
+  color: #f3f3f3;
+  margin-bottom: clamp(10px, 2.5vh, 12px);
+  padding-bottom: clamp(6px, 1.5vh, 8px);
+  line-height: 1.3;
+  width: 100%;
+  border-bottom: 1px solid #4a5568;
+}
+
+.applicant-name {
+  flex: 1;
+}
+
+.price-offer {
+  font-size: clamp(0.95rem, 2.4vw, 1.025rem);
+  font-weight: 600;
+  color: #f0d0aa;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.application-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: clamp(10px, 2.5vw, 12px);
+  margin-bottom: clamp(10px, 2.5vh, 12px);
+}
+
+.application-left {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.5vh, 8px);
+  flex: 1;
+}
+
+.application-date {
+  color: #d4dae0;
+  font-size: clamp(0.8rem, 2vw, 0.85rem);
+}
+
+.application-time {
+  color: #c2cad4;
+  font-size: clamp(0.75rem, 1.8vw, 0.8rem);
+  margin-top: clamp(1px, 0.5vh, 2px);
+}
+
+.application-rating {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.4rem, 1vw, 0.5rem);
+}
+
+.stars {
+  display: flex;
+  gap: clamp(1px, 0.4vw, 2px);
+}
+
+.star {
+  color: #fbbf24;
+  font-size: clamp(0.85rem, 1.8vw, 0.9rem);
+}
+
+.star.filled {
+  color: #fbbf24;
+}
+
+.review-count {
+  color: #9CA3AF;
+  font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+}
+
+.applicant-photo {
+  width: clamp(90px, 20vw, 115px);
+  height: clamp(68px, 15vw, 86px);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.applicant-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.application-message {
+  color: #d4dae0;
+  font-size: clamp(0.9rem, 2.2vw, 0.95rem);
+  line-height: 1.4;
+  background: #2d3748;
+  padding: clamp(10px, 2.5vh, 12px);
+  border-radius: clamp(3px, 0.8vw, 4px);
+}
+
+.application-message strong {
+  color: #f0d0aa;
+  font-size: clamp(0.85rem, 2vw, 0.9rem);
+  font-weight: 600;
+  display: block;
+  margin-bottom: clamp(6px, 1.5vh, 8px);
+  letter-spacing: 0.5px;
+  font-style: normal;
+}
+
+/* Application Action Overlay Styles (from messages.css) */
+.application-action-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;  
+}
+
+.application-action-overlay.show {
+  display: flex;
+}
+
+.application-action-modal {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 300px;
+  width: 90%;
+  text-align: center;
+  border: 2px solid #4a5568;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+} 
+
+.application-action-profile {
+  margin-bottom: 25px;
+}
+
+.action-profile-name {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.action-profile-photo {
+  width: 120px;
+  height: 90px;
+  margin: 0 auto 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #4a5568;
+}
+
+.action-profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.action-profile-rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.action-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.action-star {
+  color: #fbbf24;
+  font-size: 1.125rem;
+}
+
+.action-star.filled {
+  color: #fbbf24;
+}
+
+.action-review-count {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+}
+
+.profile-contact-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.profile-btn, .contact-btn {
+  flex: 1;
+  background: #4a5568;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-btn:hover, .contact-btn:hover {
+  background: #2d3748;
+  transform: translateY(-1px);
+}
+
+.action-divider {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  margin: 20px 0;
+  font-weight: 600;
+}
+
+.application-action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.hire-job-btn, .reject-job-btn {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hire-job-btn {
+  background: #10b981;
+}
+
+.hire-job-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.reject-job-btn {
+  background: #ef4444;
+}
+
+.reject-job-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Contact Message Overlay Styles (from messages.css) */
+.contact-message-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2100;
+}
+
+.contact-message-overlay.show {
+  display: flex;
+}
+
+.contact-message-modal {
+  background: #2d3748;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  border: 2px solid #4a5568;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  animation: contactSlideIn 0.3s ease-out;
+}
+
+@keyframes contactSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.contact-message-header {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #4a5568;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.contact-user-info {
+  flex: 1;
+}
+
+.contact-user-name {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.contact-user-subtitle {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+}
+
+.contact-close-btn {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.contact-close-btn:hover {
+  background: #4a5568;
+  color: #fff;
+}
+
+.contact-message-content {
+  padding: 24px;
+}
+
+.contact-message-input {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  color: #fff;
+  padding: 12px;
+  font-size: 0.875rem;
+  font-family: Arial, Helvetica, sans-serif;
+  resize: vertical;
+  margin-bottom: 16px;
+}
+
+.contact-message-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.contact-message-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.contact-cancel-btn, .contact-send-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.contact-cancel-btn {
+  background: #6b7280;
+  color: #fff;
+}
+
+.contact-cancel-btn:hover {
+  background: #4b5563;
+}
+
+.contact-send-btn {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.contact-send-btn:hover {
+  background: #2563eb;
+}
+
+/* Confirmation Overlay Styles (from messages.css) */
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2200;
+}
+
+.confirmation-overlay.show {
+  display: flex;
+}
+
+.confirmation-modal {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  border: 2px solid #4a5568;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.confirmation-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.confirmation-title {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.confirmation-message {
+  color: #9CA3AF;
+  font-size: 0.875rem;
+  margin-bottom: 24px;
+  line-height: 1.4;
+}
+
+.confirmation-btn {
+  background: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  padding: 12px 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirmation-btn:hover {
+  background: #2563eb;
 }
 
 /* Delete Confirmation Overlay */

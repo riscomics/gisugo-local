@@ -144,6 +144,9 @@
                 <div class="listing-options-subtitle" id="listingOptionsSubtitle">Choose an action for this job posting</div>
             </div>
             <div class="listing-options-actions">
+                <button class="listing-option-btn applications" id="viewApplicationsBtn">
+                    VIEW APPLICATIONS
+                </button>
                 <button class="listing-option-btn view" id="viewJobBtn">
                     VIEW JOB POST
                 </button>
@@ -432,6 +435,104 @@
                     DELETE PERMANENTLY
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Applications Overlay -->
+    <div class="applications-overlay" id="applicationsOverlay">
+        <div class="applications-container">
+            <div class="applications-header">
+                <div class="applications-header-text">
+                    <div class="applications-title" id="applicationsTitle">Applications</div>
+                    <div class="applications-subtitle" id="applicationsSubtitle">Review applications for this job</div>
+                </div>
+                <button class="applications-close-btn" id="applicationsCloseBtn">×</button>
+            </div>
+            <div class="applications-scroll-container">
+                <div class="applications-list" id="applicationsList">
+                    <!-- Applications will be loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Action Overlay -->
+    <div class="application-action-overlay" id="applicationActionOverlay" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="">
+        <div class="application-action-modal">
+            <div class="application-action-profile">
+                <div class="action-profile-name" id="actionProfileName">
+                    User Name
+                </div>
+                <div class="action-profile-photo">
+                    <img src="" alt="" id="actionProfileImage">
+                </div>
+                <div class="action-profile-rating" id="actionProfileRating">
+                    <div class="action-stars">
+                        <span class="action-star">★</span>
+                        <span class="action-star">★</span>
+                        <span class="action-star">★</span>
+                        <span class="action-star">★</span>
+                        <span class="action-star">★</span>
+                    </div>
+                    <div class="action-review-count" id="actionReviewCount">(0)</div>
+                </div>
+            </div>
+            <div class="profile-contact-buttons">
+                <button class="profile-btn" id="profileBtn" data-action="view_profile" data-user-id="" data-user-name="">
+                    <span>PROFILE</span>
+                </button>
+                <button class="contact-btn" id="contactBtn" data-action="contact_user" data-user-id="" data-user-name="">
+                    <span>CONTACT</span>
+                </button>
+            </div>
+            <div class="action-divider">OR</div>
+            <div class="application-action-buttons">
+                <button class="hire-job-btn" id="hireJobBtn" data-action="hire" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="">
+                    <span>HIRE</span>
+                </button>
+                <button class="reject-job-btn" id="rejectJobBtn" data-action="reject" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="">
+                    <span>REJECT</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Message Overlay -->
+    <div class="contact-message-overlay" id="contactMessageOverlay" data-user-id="" data-user-name="" data-application-id="">
+        <div class="contact-message-modal">
+            <div class="contact-message-header">
+                <div class="contact-user-info">
+                    <div class="contact-user-name" id="contactUserName">Contact User</div>
+                    <div class="contact-user-subtitle">Send a message</div>
+                </div>
+                <button class="contact-close-btn" id="contactCloseBtn">×</button>
+            </div>
+            <div class="contact-message-content">
+                <textarea 
+                    class="contact-message-input" 
+                    id="contactMessageInput" 
+                    placeholder="Write your message. Suggestion: Ask for a phone number so you may call them directly."
+                    maxlength="500"
+                    rows="6"
+                    data-user-id=""
+                    data-user-name=""
+                    data-application-id=""
+                ></textarea>
+                <div class="contact-message-actions">
+                    <button class="contact-cancel-btn" id="contactCancelBtn">Cancel</button>
+                    <button class="contact-send-btn" id="contactSendBtn" data-action="send_contact_message">Send Message</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Overlay -->
+    <div class="confirmation-overlay" id="confirmationOverlay">
+        <div class="confirmation-modal">
+            <div class="confirmation-icon" id="confirmationIcon">✓</div>
+            <div class="confirmation-title" id="confirmationTitle">Action Completed</div>
+            <div class="confirmation-message" id="confirmationMessage">The action has been completed successfully.</div>
+            <button class="confirmation-btn" id="confirmationBtn">OK</button>
         </div>
     </div>
 

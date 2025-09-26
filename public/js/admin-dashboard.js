@@ -400,22 +400,25 @@ function initializeAdminMessages() {
 
 // ===== CUSTOMER MESSAGES FUNCTIONALITY =====
 function initializeCustomerMessages() {
-    const messageItems = document.querySelectorAll('.customer-message-item');
+    const messagesList = document.getElementById('customerMessagesList');
     const topicFilter = document.getElementById('topicFilter');
     
-    // Handle message selection
-    messageItems.forEach(item => {
-        item.addEventListener('click', function() {
-            // Remove selection from all items
-            messageItems.forEach(msg => msg.classList.remove('selected'));
-            
-            // Select clicked item
-            this.classList.add('selected');
-            
-            // Load message details
-            loadMessageDetails(this);
+    // Use event delegation for message items (handles dynamically loaded messages)
+    if (messagesList) {
+        messagesList.addEventListener('click', function(e) {
+            const messageItem = e.target.closest('.customer-message-item');
+            if (messageItem) {
+                // Remove selection from all items
+                document.querySelectorAll('.customer-message-item').forEach(msg => msg.classList.remove('selected'));
+                
+                // Select clicked item
+                messageItem.classList.add('selected');
+                
+                // Load message details
+                loadMessageDetails(messageItem);
+            }
         });
-    });
+    }
     
     // Handle topic filtering
     if (topicFilter) {
@@ -484,7 +487,16 @@ function populateMessageDetail(data) {
     
     // Update subject and content
     document.getElementById('detailSubject').textContent = data.subject;
-    document.getElementById('detailMessageText').innerHTML = data.content;
+    
+    // Get the message ID from the selected message to show reply thread
+    const activeMessage = document.querySelector('.customer-message-item.selected');
+    const messageId = activeMessage ? activeMessage.getAttribute('data-message-id') : null;
+    
+    // Combine original content with reply thread
+    const replyThreadHTML = messageId ? generateReplyThreadHTML(messageId) : '';
+    const fullContent = data.content + replyThreadHTML;
+    
+    document.getElementById('detailMessageText').innerHTML = fullContent;
     
     // Handle attachment
     const attachmentElement = document.getElementById('detailAttachment');
@@ -554,6 +566,50 @@ function getTopicDisplayName(topic) {
     };
     
     return topicNames[topic] || topic;
+}
+
+function generateReplyThreadHTML(messageId) {
+    const messageState = messageStates[messageId];
+    
+    if (!messageState || !messageState.replies || messageState.replies.length === 0) {
+        return ''; // No replies to show
+    }
+    
+    let threadHTML = '<div class="reply-thread"><h4 class="thread-title">Conversation History</h4>';
+    
+    messageState.replies.forEach(reply => {
+        const replyDate = new Date(reply.timestamp);
+        const formattedDate = replyDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        threadHTML += `
+            <div class="reply-item ${reply.type}">
+                <div class="reply-header">
+                    <div class="reply-author">
+                        <div class="reply-author-avatar">
+                            <img src="public/icons/user.png" alt="${reply.author}" class="author-avatar">
+                        </div>
+                        <div class="reply-author-info">
+                            <span class="author-name">${reply.author}</span>
+                            <span class="reply-time">${formattedDate}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="reply-content">
+                    ${reply.content.replace(/\n/g, '<br>')}
+                </div>
+            </div>
+        `;
+    });
+    
+    threadHTML += '</div>';
+    return threadHTML;
 }
 
 function getFullMessageContent(messageId) {
@@ -1047,7 +1103,10 @@ function sendAdminReply() {
     });
     
     // Would send to backend here
-    alert('Reply sent successfully!\n\nThe customer will receive an email notification with your response.');
+    showToast('Reply sent successfully!', 'success', 2000);
+    
+    // Update message status with reply content
+    handleReplySuccess(replyText);
     
     // Clear the form
     textarea.value = '';
@@ -1362,7 +1421,7 @@ function initializeReplyModal() {
             
             if (replyText) {
                 console.log('📤 Sending reply:', replyText);
-                alert('Reply sent successfully!');
+                showToast('Reply sent successfully!', 'success', 2000);
                 closeModal();
                 
                 // Update message status
@@ -1373,7 +1432,7 @@ function initializeReplyModal() {
                 }
                 
                 // Mark as replied but keep in thread
-                handleReplySuccess();
+                handleReplySuccess(replyText);
             } else {
                 alert('Please enter a reply message.');
             }
@@ -1486,6 +1545,16 @@ function appendMessagesToList(messages) {
     const messagesList = document.getElementById('customerMessagesList');
     
     messages.forEach(msg => {
+        // Initialize message state for new messages
+        if (!messageStates[msg.id]) {
+            messageStates[msg.id] = {
+                status: 'new', // New messages default to 'new' status
+                isReplied: false,
+                isRead: false
+            };
+            console.log('📧 Initialized state for new message:', msg.id);
+        }
+        
         const topicClass = msg.topic.replace(/[^a-z-]/gi, '');
         const topicName = msg.topic.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         
@@ -1596,7 +1665,18 @@ function filterMessagesByInboxType(type) {
     
     messages.forEach(message => {
         const messageId = message.getAttribute('data-message-id');
-        const messageState = messageStates[messageId];
+        let messageState = messageStates[messageId];
+        
+        // Create default state if it doesn't exist (for dynamically loaded messages)
+        if (!messageState) {
+            messageStates[messageId] = {
+                status: 'new', // Default to 'new' for dynamically loaded messages
+                isReplied: false,
+                isRead: false
+            };
+            messageState = messageStates[messageId];
+            console.log('📧 Created default state for message:', messageId);
+        }
         
         if (type === 'new') {
             // Show new/unread messages
@@ -1612,31 +1692,71 @@ function closeCurrentMessage() {
     const activeMessage = document.querySelector('.customer-message-item.selected');
     if (activeMessage) {
         const messageId = activeMessage.getAttribute('data-message-id');
-        
-        // Move to old inbox
-        messageStates[messageId].status = 'old';
-        
-        // Hide message detail
-        document.getElementById('messageDetail').style.display = 'block';
-        document.getElementById('messageContent').style.display = 'none';
-        
-        // Refresh current view
-        filterMessagesByInboxType(currentInboxType);
-        updateInboxCount();
+        closeMessageDirectly(messageId);
         
         // Remove selection
         activeMessage.classList.remove('selected');
-        
-        console.log('📧 Message closed and moved to old inbox:', messageId);
+    }
+}
+
+function closeMessageDirectly(messageId) {
+    console.log('📧 Closing message directly:', messageId);
+    
+    // Ensure message state exists
+    if (!messageStates[messageId]) {
+        messageStates[messageId] = {
+            status: 'new',
+            isReplied: false,
+            isRead: false
+        };
+    }
+    
+    const wasAlreadyOld = messageStates[messageId].status === 'old';
+    
+    // Move to old inbox (or keep it there if already old)
+    messageStates[messageId].status = 'old';
+    
+    // Hide message detail panels (for desktop view)
+    const messageDetail = document.getElementById('messageDetail');
+    const messageContent = document.getElementById('messageContent');
+    if (messageDetail) messageDetail.style.display = 'block';
+    if (messageContent) messageContent.style.display = 'none';
+    
+    // Refresh current view
+    filterMessagesByInboxType(currentInboxType);
+    updateInboxCount();
+    
+    // Show appropriate toast based on action
+    if (wasAlreadyOld) {
+        console.log('📧 Message closed (was already in old inbox):', messageId);
+        showToast('Message closed', 'info', 1000);
+    } else {
+        console.log('📧 Message moved to old inbox:', messageId);
         showToast('Message moved to Old inbox');
     }
 }
 
-function markMessageAsReplied(messageId) {
+function markMessageAsReplied(messageId, replyContent = '') {
     if (messageStates[messageId]) {
         // Admin reply becomes part of the thread - message stays in current inbox
         messageStates[messageId].isReplied = true;
         messageStates[messageId].lastActivity = 'admin_reply';
+        messageStates[messageId].lastReplyTime = new Date().toISOString();
+        
+        // Store reply content for threading (in real app, this would go to backend)
+        if (!messageStates[messageId].replies) {
+            messageStates[messageId].replies = [];
+        }
+        
+        if (replyContent) {
+            messageStates[messageId].replies.push({
+                type: 'admin_reply',
+                content: replyContent,
+                timestamp: new Date().toISOString(),
+                author: 'Admin'
+            });
+            console.log('📧 Admin reply added to thread:', messageId, '- Reply stored');
+        }
         
         // Don't move to old - keep in current location for threaded conversation
         console.log('📧 Admin replied to message - thread continues:', messageId);
@@ -1685,11 +1805,11 @@ function formatCount(count) {
 }
 
 // Update the existing reply success handler
-function handleReplySuccess() {
+function handleReplySuccess(replyContent = '') {
     const activeMessage = document.querySelector('.customer-message-item.selected');
     if (activeMessage) {
         const messageId = activeMessage.getAttribute('data-message-id');
-        markMessageAsReplied(messageId);
+        markMessageAsReplied(messageId, replyContent);
     }
 }
 
@@ -1783,10 +1903,8 @@ function initializeMessageOverlay() {
         console.log('✅ Message overlay initialized and hidden');
     }
     
-    // Close overlay when clicking close button
-    if (overlayCloseBtn) {
-        overlayCloseBtn.addEventListener('click', hideMessageOverlay);
-    }
+    // Close overlay will be handled by global event delegation below
+    // (Removed direct binding to prevent conflicts)
     
     // Close overlay when clicking outside content
     if (overlay) {
@@ -1799,6 +1917,14 @@ function initializeMessageOverlay() {
     
     // Use event delegation for overlay buttons since they're added dynamically
     document.addEventListener('click', (e) => {
+        
+        // Close button in overlay (X button)
+        if (e.target.id === 'overlayCloseBtn') {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🖱️ Overlay X button clicked');
+            hideMessageOverlay();
+        }
         
         // Reply button in overlay
         if (e.target.id === 'overlayReplyBtn') {
@@ -1815,19 +1941,31 @@ function initializeMessageOverlay() {
             }
         }
         
-        // Archive button in overlay
+        // Archive button in overlay (Close button that moves to Old)
         if (e.target.id === 'overlayArchiveBtn') {
             e.preventDefault();
             e.stopPropagation();
-            console.log('🖱️ Overlay Close button clicked');
+            console.log('🖱️ Overlay Archive/Close button clicked');
             const overlay = document.getElementById('messageDetailOverlay');
             const currentMessageId = overlay?.dataset.messageId;
+            console.log('📋 Current message ID:', currentMessageId);
             if (currentMessageId) {
-                closeCurrentMessage(); // Use the existing function
+                // Try to close using the existing function first
+                const activeMessage = document.querySelector('.customer-message-item.selected');
+                if (activeMessage) {
+                    console.log('✅ Found selected message, using closeCurrentMessage()');
+                    closeCurrentMessage();
+                } else {
+                    // Fallback: close using the overlay's message ID directly
+                    console.log('⚠️ No selected message found, using direct close method');
+                    closeMessageDirectly(currentMessageId);
+                }
                 hideMessageOverlay();
-                console.log('📁 Message moved to Old inbox from overlay');
+                console.log('📁 Message closed from overlay');
             } else {
                 console.error('❌ No message ID found for overlay');
+                // Still hide the overlay
+                hideMessageOverlay();
             }
         }
     });
@@ -1889,16 +2027,18 @@ function generateMessageDetailContent(messageId) {
     // Extract data from DOM elements (same way as desktop)
     const senderName = messageElement.querySelector('.sender-name')?.textContent || 'Unknown Sender';
     const senderEmail = messageElement.querySelector('.sender-email')?.textContent || 'unknown@email.com';
+    const senderAvatar = messageElement.querySelector('.sender-avatar')?.src || 'public/users/User-02.jpg';
     const subject = messageElement.querySelector('.message-subject')?.textContent || 'No Subject';
     const timestamp = messageElement.querySelector('.message-time')?.textContent || '';
     const hasAttachment = messageElement.querySelector('.message-attachment') !== null;
     const fullContent = getFullMessageContent(messageId);
+    const replyThreadHTML = generateReplyThreadHTML(messageId);
     
     return `
         <div class="message-detail-header">
             <div class="header-main">
                 <div class="sender-info">
-                    <img src="public/users/User-02.jpg" alt="User Avatar" class="detail-avatar">
+                    <img src="${senderAvatar}" alt="User Avatar" class="detail-avatar">
                     <div class="sender-details">
                         <h3 class="detail-sender-name">${senderName}</h3>
                         <p class="detail-sender-email">${senderEmail}</p>
@@ -1915,6 +2055,7 @@ function generateMessageDetailContent(messageId) {
         <div class="message-detail-body">
             <div class="message-content-inner">
                 <p>${fullContent}</p>
+                ${replyThreadHTML}
                 ${hasAttachment ? `
                     <div class="detail-attachment">
                         <h4>Attachment:</h4>

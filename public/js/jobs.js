@@ -19,6 +19,235 @@ let MOCK_COMPLETED_DATA = null; // ADD: Missing completed data tracking
 // Current user ID for testing different perspectives
 const CURRENT_USER_ID = 'user_peter_ang_001';
 
+// Applications Data - Moved from messages.js for integration
+const MOCK_APPLICATIONS = [
+    {
+        jobId: 'job_2024_001_limpyo', // Match existing job in listings
+        jobTitle: 'House Cleaning - General cleaning, 3-bedroom apartment',
+        employerUid: 'user_currentUserUid', // Job owner
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-18T10:00:00Z'),
+        updatedAt: new Date('2025-12-22T14:45:00Z'),
+        
+        // Denormalized for better Firestore performance
+        applications: [
+            {
+                applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+                applicantUid: 'user_mR8nT4kX2qJ5wP9sC7',
+                jobId: 'job_2024_001_limpyo',
+                status: 'pending',
+                
+                // Firestore timestamp format
+                appliedAt: new Date('2025-12-20T14:45:00Z'),
+                updatedAt: new Date('2025-12-20T14:45:00Z'),
+                
+                // Denormalized user data for faster reads
+                applicantProfile: {
+                    displayName: 'Mario Santos',
+                    photoURL: 'public/users/User-02.jpg', // Fixed local path
+                    averageRating: 5.0,
+                    totalReviews: 50,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T12:00:00Z')
+                },
+                
+                // Application-specific data
+                pricing: {
+                    offeredAmount: 550,
+                    originalAmount: 600,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi Sir! Please hire me for this job, I have 10 years experience in professional cleaning of offices and hotels. I won\'t let you down!',
+                
+                // Worker qualifications (denormalized for quick access)
+                qualifications: {
+                    experience: '10 years',
+                    specializations: ['professional cleaning', 'offices', 'hotels'],
+                    availability: 'immediate',
+                    equipment: 'own equipment',
+                    languages: ['English', 'Filipino']
+                },
+                
+                // For display formatting
+                displayData: {
+                    appliedDate: '2025-12-20',
+                    appliedTime: '2:45 PM',
+                    formattedPrice: '₱550 Per Job'
+                },
+                
+                // Firestore metadata
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_kT3nH7mR8qX2bS9jL6',
+                applicantUid: 'user_qX5nK8mT3jR7wS2nC9',
+                jobId: 'job_2024_001_limpyo',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T10:15:00Z'),
+                updatedAt: new Date('2025-12-21T10:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Ana Rodriguez',
+                    photoURL: 'public/users/User-03.jpg', // Fixed local path - matches message thread
+                    averageRating: 4.0,
+                    totalReviews: 32,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T09:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 600,
+                    originalAmount: 600,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I\'m available for your cleaning job. I specialize in deep cleaning and have excellent references.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['deep cleaning', 'residential'],
+                    availability: 'flexible',
+                    references: 'available upon request',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '10:15 AM',
+                    formattedPrice: '₱600 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_2024_002_kompra',
+        jobTitle: 'Shopping & Errands - Weekly grocery shopping',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2, // Reduced for Firebase demo
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-19T08:00:00Z'),
+        updatedAt: new Date('2025-12-22T11:00:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_nR6mK3qT8jX2wS7nL9',
+                applicantUid: 'user_bM9nR4kX8qT2jW5sP3',
+                jobId: 'job_2024_002_kompra',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T08:30:00Z'),
+                updatedAt: new Date('2025-12-22T08:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Miguel Torres',
+                    photoURL: 'public/users/User-06.jpg', // Fixed local path
+                    averageRating: 5.0,
+                    totalReviews: 67,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T08:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 800,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'I can fix your sink today! 8 years experience in plumbing repairs. I have all necessary tools and parts.',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['plumbing repairs', 'sink', 'pipes'],
+                    availability: 'today',
+                    equipment: 'complete plumbing toolkit',
+                    certifications: ['licensed plumber'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '8:30 AM',
+                    formattedPrice: '₱800 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_lP4nX7mR9qK2jT8sW5',
+                applicantUid: 'user_sW6nM3rT8qJ2kX9nL4',
+                jobId: 'job_2024_002_kompra',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T11:00:00Z'),
+                updatedAt: new Date('2025-12-22T11:00:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carlos Mendoza',
+                    photoURL: 'public/users/User-07.jpg', // Fixed local path
+                    averageRating: 4.0,
+                    totalReviews: 28,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T10:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 750,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Licensed plumber available today. Quick and reliable service with 1-year warranty on repairs.',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['licensed plumbing', 'repairs'],
+                    availability: 'today',
+                    warranty: '1-year warranty',
+                    certifications: ['government licensed'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '11:00 AM',
+                    formattedPrice: '₱750 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    }
+];
+
 // ===== DATA ACCESS LAYER (Firebase-Ready) =====
 // This layer abstracts data access to make Firebase transition seamless
 // ===== GLOBAL DATA SERVICE FOR CROSS-FILE ACCESS =====
@@ -1653,6 +1882,7 @@ async function showListingOptionsOverlay(jobData) {
     overlay.setAttribute('data-category', jobData.category);
     overlay.setAttribute('data-job-page-url', jobData.jobPageUrl);
     overlay.setAttribute('data-current-status', currentStatus);
+    overlay.setAttribute('data-title', jobData.title);
     
     // Show overlay
     overlay.classList.add('show');
@@ -4282,6 +4512,7 @@ function initializeOptionsOverlayHandlers() {
     const viewBtn = document.getElementById('viewJobBtn');
     const modifyBtn = document.getElementById('modifyJobBtn');
     const pauseBtn = document.getElementById('pauseJobBtn');
+    const viewApplicationsBtn = document.getElementById('viewApplicationsBtn');
     const deleteBtn = document.getElementById('deleteJobBtn');
     const cancelBtn = document.getElementById('cancelOptionsBtn');
 
@@ -4321,6 +4552,19 @@ function initializeOptionsOverlayHandlers() {
         pauseBtn.addEventListener('click', pauseHandler);
         registerCleanup('listings', 'pauseBtn', () => {
             pauseBtn.removeEventListener('click', pauseHandler);
+        });
+    }
+
+    // View applications handler
+    if (viewApplicationsBtn) {
+        const applicationsHandler = function(e) {
+            e.preventDefault();
+            const jobData = getJobDataFromOverlay();
+            showApplicationsOverlay(jobData);
+        };
+        viewApplicationsBtn.addEventListener('click', applicationsHandler);
+        registerCleanup('listings', 'viewApplicationsBtn', () => {
+            viewApplicationsBtn.removeEventListener('click', applicationsHandler);
         });
     }
 
@@ -4379,7 +4623,8 @@ function getJobDataFromOverlay() {
         posterId: overlay.getAttribute('data-poster-id'),
         category: overlay.getAttribute('data-category'),
         jobPageUrl: overlay.getAttribute('data-job-page-url'),
-        currentStatus: overlay.getAttribute('data-current-status')
+        currentStatus: overlay.getAttribute('data-current-status'),
+        title: overlay.getAttribute('data-title')
     };
 }
 
@@ -4394,6 +4639,149 @@ function hideListingOptionsOverlay() {
     executeCleanupsByType('listings');
     
     console.log('🔧 Options overlay hidden and handlers cleaned up');
+}
+
+// ========================== APPLICATIONS OVERLAY HANDLERS ==========================
+
+async function showApplicationsOverlay(jobData) {
+    console.log(`📋 Opening applications overlay for job: ${jobData.jobId}`);
+    
+    const overlay = document.getElementById('applicationsOverlay');
+    const title = document.getElementById('applicationsTitle');
+    const subtitle = document.getElementById('applicationsSubtitle');
+    const applicationsList = document.getElementById('applicationsList');
+    
+    if (!overlay || !applicationsList) {
+        console.error('Applications overlay elements not found');
+        return;
+    }
+    
+    // Update overlay content
+    title.textContent = 'Applications for:';
+    subtitle.textContent = jobData.title;
+    
+    // Get applications for this job
+    const jobApplications = getApplicationsForJob(jobData.jobId);
+    
+    if (jobApplications && jobApplications.length > 0) {
+        // Generate applications HTML
+        const applicationsHTML = jobApplications.map(app => 
+            generateApplicationCardHTML(app, jobData.title)
+        ).join('');
+        
+        applicationsList.innerHTML = applicationsHTML;
+        
+        // Initialize application card event listeners
+        initializeApplicationCardHandlers();
+    } else {
+        // Show empty state
+        applicationsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div class="empty-state-title">No Applications Yet</div>
+                <div class="empty-state-message">This job hasn't received any applications yet.</div>
+            </div>
+        `;
+    }
+    
+    // Store job data for handlers
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-job-title', jobData.title);
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    // Initialize close button handler
+    initializeApplicationsOverlayHandlers();
+}
+
+function getApplicationsForJob(jobId) {
+    const jobData = MOCK_APPLICATIONS.find(job => job.jobId === jobId);
+    return jobData ? jobData.applications : [];
+}
+
+function generateApplicationCardHTML(application, jobTitle) {
+    const stars = Array.from({length: 5}, (_, i) => 
+        `<span class="star ${i < application.applicantProfile.averageRating ? 'filled' : ''}">★</span>`
+    ).join('');
+
+    return `
+        <div class="application-card" 
+             data-application-id="${application.applicationId}" 
+             data-user-id="${application.applicantUid}" 
+             data-job-title="${jobTitle}"
+             data-user-name="${application.applicantProfile.displayName}"
+             data-user-photo="${application.applicantProfile.photoURL}"
+             data-user-rating="${application.applicantProfile.averageRating}"
+             data-review-count="${application.applicantProfile.totalReviews}"
+             data-price-offer="${application.pricing.offeredAmount}"
+             data-price-type="${application.pricing.paymentType}"
+             data-is-counter-offer="${application.pricing.isCounterOffer}"
+             data-status="${application.status}"
+             data-timestamp="${application.appliedAt.toISOString()}">
+            <div class="application-job-title">
+                <span class="applicant-name" data-user-name="${application.applicantProfile.displayName}">${application.applicantProfile.displayName}</span>
+                <span class="price-offer">${application.displayData.formattedPrice}</span>
+            </div>
+            <div class="application-header">
+                <div class="application-left">
+                    <div class="application-date">${application.displayData.appliedDate}</div>
+                    <div class="application-time">${application.displayData.appliedTime}</div>
+                    <div class="application-rating" data-user-rating="${application.applicantProfile.averageRating}" data-review-count="${application.applicantProfile.totalReviews}">
+                        <div class="stars">${stars}</div>
+                        <span class="review-count">(${application.applicantProfile.totalReviews})</span>
+                    </div>
+                </div>
+                <div class="applicant-photo">
+                    <img src="${application.applicantProfile.photoURL}" alt="${application.applicantProfile.displayName}" data-user-photo="${application.applicantProfile.photoURL}">
+                </div>
+            </div>
+            <div class="application-message">
+                <strong>MESSAGE:</strong>
+                ${application.applicationMessage}
+            </div>
+        </div>
+    `;
+}
+
+function initializeApplicationsOverlayHandlers() {
+    const overlay = document.getElementById('applicationsOverlay');
+    if (!overlay || overlay.dataset.handlersInitialized) return;
+    
+    const closeBtn = document.getElementById('applicationsCloseBtn');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideApplicationsOverlay);
+    }
+    
+    // Close on backdrop click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            hideApplicationsOverlay();
+        }
+    });
+    
+    overlay.dataset.handlersInitialized = 'true';
+}
+
+function initializeApplicationCardHandlers() {
+    const applicationCards = document.querySelectorAll('#applicationsList .application-card');
+    
+    applicationCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('📋 Application card clicked - placeholder functionality');
+            // TODO: Implement application action overlay - this will be added next
+        });
+    });
+}
+
+function hideApplicationsOverlay() {
+    const overlay = document.getElementById('applicationsOverlay');
+    overlay.classList.remove('show');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.handlersInitialized;
 }
 
 function handleViewJob(jobData) {

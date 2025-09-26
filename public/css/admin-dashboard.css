@@ -3172,6 +3172,134 @@ body.admin-dashboard::-webkit-scrollbar {
     white-space: nowrap;
 }
 
+/* ===== REPLY THREAD STYLING ===== */
+.reply-thread {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e5e7eb;
+}
+
+.thread-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.thread-title::before {
+    content: "💬";
+    font-size: 1rem;
+}
+
+.reply-item {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+    background: #f8fafc;
+}
+
+.reply-item.admin_reply {
+    border-left-color: #10b981;
+    background: #f0fdf4;
+}
+
+.reply-header {
+    margin-bottom: 0.75rem;
+}
+
+.reply-author {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reply-author-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.author-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.reply-author-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.author-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+}
+
+.reply-time {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.reply-content {
+    line-height: 1.6;
+    color: #374151;
+    font-size: 0.875rem;
+}
+
+.reply-content p {
+    margin-bottom: 0.5rem;
+}
+
+.reply-content p:last-child {
+    margin-bottom: 0;
+}
+
+/* Mobile reply thread adjustments */
+@media (max-width: 600px) {
+    .reply-thread {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+    }
+    
+    .thread-title {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .reply-item {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .reply-author-avatar {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .author-name {
+        font-size: 0.8rem;
+    }
+    
+    .reply-time {
+        font-size: 0.7rem;
+    }
+    
+    .reply-content {
+        font-size: 0.8rem;
+    }
+}
+
 #vp-debug {
     position: fixed;
     bottom: 0;
