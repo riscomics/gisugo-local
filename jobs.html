@@ -526,6 +526,100 @@
         </div>
     </div>
 
+    <!-- Hire Confirmation Overlay (Enhanced with Legal Disclaimers) -->
+    <div id="hireConfirmationOverlay" class="hire-confirmation-overlay">
+        <div class="hire-confirmation-container">
+            <div class="hire-confirmation-header">
+                <div class="hire-confirmation-title-section">
+                    <div class="hire-confirmation-icon">⚖️</div>
+                    <div class="hire-confirmation-title">Confirm Hiring Decision</div>
+                </div>
+                <button id="hireConfirmationCloseBtn" class="hire-confirmation-close-btn">&times;</button>
+            </div>
+            
+            <div class="hire-confirmation-content">
+                <!-- Worker Status Section -->
+                <div class="worker-status-section">
+                    <div class="worker-status-header">
+                        <div class="worker-status-title">Worker Account Status</div>
+                    </div>
+                    <div id="workerStatusInfo" class="worker-status-info">
+                        <div class="status-info-header">
+                            <span id="statusFriendlyIcon" class="friendly-icon">🌱</span>
+                            <span id="statusInfoTitle" class="info-title">New Community Member</span>
+                        </div>
+                        <div id="statusInfoContent" class="status-info-content">
+                            This user is new to our platform and hasn't completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legal Disclaimer Section -->
+                <div class="legal-disclaimer-section">
+                    <div class="disclaimer-header">
+                        <span class="disclaimer-icon">⚖️</span>
+                        <span class="disclaimer-title">Legal Disclaimer & Terms</span>
+                    </div>
+                    <div class="disclaimer-content">
+                        <p><strong>IMPORTANT:</strong> By proceeding with this hiring decision, you acknowledge and agree to the following:</p>
+                        
+                        <div class="disclaimer-points">
+                            <div class="disclaimer-point">
+                                <span class="point-number">1.</span>
+                                <span class="point-text"><strong>Independent Transaction:</strong> This is a direct transaction between you (Customer) and the Worker. GISUGO acts solely as a platform facilitator.</span>
+                            </div>
+                            
+                            <div class="disclaimer-point">
+                                <span class="point-number">2.</span>
+                                <span class="point-text"><strong>Liability Limitation:</strong> GISUGO is not liable for work quality, damages, injuries, or disputes arising from this transaction.</span>
+                            </div>
+                            
+                            <div class="disclaimer-point">
+                                <span class="point-number">3.</span>
+                                <span class="point-text"><strong>Background Verification:</strong> Workers undergo basic verification, but you are responsible for additional due diligence.</span>
+                            </div>
+                            
+                            <div class="disclaimer-point">
+                                <span class="point-number">4.</span>
+                                <span class="point-text"><strong>Payment Responsibility:</strong> You agree to pay the worker according to agreed terms. GISUGO does not guarantee payment recovery.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="safety-recommendations">
+                            <div class="safety-header">
+                                <span class="safety-icon">🛡️</span>
+                                <span class="safety-title">Safety Recommendations</span>
+                            </div>
+                            <ul class="safety-list">
+                                <li>Review the worker's profile and ratings thoroughly</li>
+                                <li>Meet in safe, public locations when possible</li>
+                                <li>Verify worker's identity before work begins</li>
+                                <li>Keep valuable items secure during service</li>
+                                <li>Trust your instincts - cancel if something feels wrong</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="hire-confirmation-footer">
+                <div class="confirmation-warning">
+                    <span class="final-warning-icon">⚠️</span>
+                    <span class="final-warning-text">All other applicants will be rejected.</span>
+                </div>
+                <div class="hire-confirmation-buttons">
+                    <button id="cancelHireBtn" class="cancel-hire-btn">
+                        <span>Cancel</span>
+                    </button>
+                    <button id="confirmHireBtn" class="confirm-hire-btn">
+                        <span>I Understand - Hire Worker</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Confirmation Overlay -->
     <div class="confirmation-overlay" id="confirmationOverlay">
         <div class="confirmation-modal">

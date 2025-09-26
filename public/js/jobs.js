@@ -2000,8 +2000,11 @@ function generateHiringCardHTML(job) {
         userName = job.posterName;
     }
     
+    // Add highlighting class for newly hired jobs
+    const highlightClass = job.isNewlyHired ? ' newly-hired-highlight' : '';
+    
     return `
-        <div class="hiring-card ${roleClass}" 
+        <div class="hiring-card ${roleClass}${highlightClass}" 
              data-job-id="${job.jobId}"
              data-poster-id="${job.posterId}"
              data-category="${job.category}"
@@ -3758,8 +3761,37 @@ function generateStarRatingHTML(rating) {
 }
 
 function formatTime(timeString) {
+    // Handle undefined or null values
+    if (!timeString) {
+        return 'TBD';
+    }
     // Remove :00 from times like "8:00 AM" -> "8 AM" and "12:00 PM" -> "12 PM"
     return timeString.replace(':00', '');
+}
+
+function formatPriceWithPeso(price) {
+    // Handle undefined, null, or empty values
+    if (!price && price !== 0) {
+        return null;
+    }
+    
+    // If it's already formatted with peso symbol, return as is
+    if (typeof price === 'string' && price.includes('₱')) {
+        return price;
+    }
+    
+    // If it's a number, format it with peso symbol
+    if (typeof price === 'number') {
+        return `₱${price}`;
+    }
+    
+    // If it's a string number, format it
+    if (typeof price === 'string' && !isNaN(price)) {
+        return `₱${price}`;
+    }
+    
+    // Fallback: return as is
+    return price;
 }
 
 function formatCompletedDate(dateString) {
@@ -4664,10 +4696,12 @@ async function showApplicationsOverlay(jobData) {
     const jobApplications = getApplicationsForJob(jobData.jobId);
     
     if (jobApplications && jobApplications.length > 0) {
-        // Generate applications HTML
-        const applicationsHTML = jobApplications.map(app => 
-            generateApplicationCardHTML(app, jobData.title)
-        ).join('');
+        // Generate applications HTML  
+        const applicationsHTML = jobApplications.map(app => {
+            // Ensure application has the correct jobId
+            app.jobId = jobData.jobId;
+            return generateApplicationCardHTML(app, jobData.title);
+        }).join('');
         
         applicationsList.innerHTML = applicationsHTML;
         
@@ -4709,6 +4743,7 @@ function generateApplicationCardHTML(application, jobTitle) {
         <div class="application-card" 
              data-application-id="${application.applicationId}" 
              data-user-id="${application.applicantUid}" 
+             data-job-id="${application.jobId}"
              data-job-title="${jobTitle}"
              data-user-name="${application.applicantProfile.displayName}"
              data-user-photo="${application.applicantProfile.photoURL}"
@@ -4768,12 +4803,543 @@ function initializeApplicationCardHandlers() {
     const applicationCards = document.querySelectorAll('#applicationsList .application-card');
     
     applicationCards.forEach(card => {
-        card.addEventListener('click', (e) => {
-            e.preventDefault();
-            console.log('📋 Application card clicked - placeholder functionality');
-            // TODO: Implement application action overlay - this will be added next
+        card.addEventListener('click', function(e) {
+            // Prevent event bubbling
+            e.stopPropagation();
+            
+            // Get applicant data from the card
+            const userName = this.getAttribute('data-user-name');
+            const userId = this.getAttribute('data-user-id');
+            const userPhoto = this.getAttribute('data-user-photo');
+            const userRating = parseFloat(this.getAttribute('data-user-rating'));
+            const reviewCount = parseInt(this.getAttribute('data-review-count'));
+            const applicationId = this.getAttribute('data-application-id');
+            const jobTitle = this.getAttribute('data-job-title');
+            const jobId = this.getAttribute('data-job-id');
+            
+            console.log(`Opening application action overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
+            console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
+            
+            showApplicationActionOverlay(this);
         });
     });
+}
+
+function updateActionStars(rating) {
+    const stars = document.querySelectorAll('.action-star');
+    console.log(`Found ${stars.length} stars, updating to ${rating} rating`);
+    
+    // First, remove all filled classes to reset
+    stars.forEach(star => {
+        star.classList.remove('filled');
+    });
+    
+    // Add filled class to stars up to the rating
+    for (let i = 0; i < Math.floor(rating); i++) {
+        if (stars[i]) {
+            stars[i].classList.add('filled');
+        }
+    }
+    
+    console.log(`Updated ${Math.floor(rating)} stars with filled class`);
+}
+
+function showApplicationActionOverlay(applicationCard) {
+    const overlay = document.getElementById('applicationActionOverlay');
+    const profileName = document.getElementById('actionProfileName');
+    const profileImage = document.getElementById('actionProfileImage');
+    const profileRating = document.getElementById('actionProfileRating');
+    const reviewCount = document.getElementById('actionReviewCount');
+    
+    // Extract data from the application card
+    const applicationId = applicationCard.getAttribute('data-application-id');
+    const userId = applicationCard.getAttribute('data-user-id');
+    const userName = applicationCard.getAttribute('data-user-name');
+    const userPhoto = applicationCard.getAttribute('data-user-photo');
+    const userRating = parseFloat(applicationCard.getAttribute('data-user-rating'));
+    const userReviewCount = applicationCard.getAttribute('data-review-count');
+    const jobTitle = applicationCard.getAttribute('data-job-title');
+    const jobId = applicationCard.getAttribute('data-job-id');
+    
+    console.log(`Opening overlay for ${userName} with ${userRating} star rating (${userReviewCount} reviews)`);
+    console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
+    
+    // Update overlay content
+    profileName.textContent = userName;
+    profileImage.src = userPhoto;
+    profileImage.alt = userName;
+    reviewCount.textContent = `(${userReviewCount})`;
+    
+    // Update rating stars
+    updateActionStars(userRating);
+    
+    // Store data in overlay for button handlers
+    overlay.setAttribute('data-application-id', applicationId);
+    overlay.setAttribute('data-user-id', userId);
+    overlay.setAttribute('data-user-name', userName);
+    overlay.setAttribute('data-job-title', jobTitle);
+    overlay.setAttribute('data-job-id', jobId);
+    
+    // Update button data attributes
+    const profileBtn = document.getElementById('profileBtn');
+    const contactBtn = document.getElementById('contactBtn');
+    const hireBtn = document.getElementById('hireJobBtn');
+    const rejectBtn = document.getElementById('rejectJobBtn');
+    
+    if (profileBtn) {
+        profileBtn.setAttribute('data-user-id', userId);
+        profileBtn.setAttribute('data-user-name', userName);
+    }
+    
+    if (contactBtn) {
+        contactBtn.setAttribute('data-user-id', userId);
+        contactBtn.setAttribute('data-user-name', userName);
+        contactBtn.setAttribute('data-application-id', applicationId);
+    }
+    
+    if (hireBtn) {
+        hireBtn.setAttribute('data-application-id', applicationId);
+        hireBtn.setAttribute('data-user-id', userId);
+        hireBtn.setAttribute('data-user-name', userName);
+        hireBtn.setAttribute('data-job-id', jobId);
+        hireBtn.setAttribute('data-job-title', jobTitle);
+        hireBtn.setAttribute('data-user-rating', userRating);
+        hireBtn.setAttribute('data-user-photo', userPhoto);
+        // Add price information from application card
+        const priceOffer = applicationCard.getAttribute('data-price-offer');
+        const priceType = applicationCard.getAttribute('data-price-type');
+        hireBtn.setAttribute('data-price-offer', priceOffer || '');
+        hireBtn.setAttribute('data-price-type', priceType || '');
+    }
+    
+    if (rejectBtn) {
+        rejectBtn.setAttribute('data-application-id', applicationId);
+        rejectBtn.setAttribute('data-user-id', userId);
+        rejectBtn.setAttribute('data-user-name', userName);
+        rejectBtn.setAttribute('data-job-id', jobId);
+        rejectBtn.setAttribute('data-job-title', jobTitle);
+    }
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    // Initialize action handlers
+    initializeApplicationActionHandlers();
+    
+    // Double-check stars are updated after overlay is shown
+    setTimeout(() => {
+        updateActionStars(userRating);
+    }, 50);
+}
+
+function initializeApplicationActionHandlers() {
+    const overlay = document.getElementById('applicationActionOverlay');
+    if (!overlay) {
+        console.error('❌ Application action overlay not found!');
+        return;
+    }
+    
+    // Always clean up and re-initialize to prevent duplicate handlers
+    if (overlay.dataset.actionHandlersInitialized) {
+        console.log('🔄 Cleaning up existing handlers...');
+        delete overlay.dataset.actionHandlersInitialized;
+    }
+    
+    const profileBtn = document.getElementById('profileBtn');
+    const contactBtn = document.getElementById('contactBtn');
+    const hireBtn = document.getElementById('hireJobBtn');
+    const rejectBtn = document.getElementById('rejectJobBtn');
+    
+    // Handle profile button click
+    if (profileBtn) {
+        console.log('✅ Profile button found, adding event listener');
+        profileBtn.addEventListener('click', function() {
+            console.log('🔍 Profile button clicked!');
+            const userName = this.getAttribute('data-user-name');
+            const userId = this.getAttribute('data-user-id');
+            
+            if (userName) {
+                // Convert user name to URL-friendly format
+                const urlUserId = userName.toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9-]/g, '');
+                
+                console.log(`🔍 View profile for: ${userName} (${userId})`);
+                hideApplicationActionOverlay();
+                showConfirmation('🔍', 'Opening Profile', `Opening profile for ${userName}...`);
+                
+                // Navigate to profile page
+                setTimeout(() => {
+                    window.location.href = `profile.html?userId=${urlUserId}`;
+                }, 1000);
+            }
+        });
+    }
+    
+    // Handle contact button click
+    if (contactBtn) {
+        console.log('✅ Contact button found, adding event listener');
+        contactBtn.addEventListener('click', function() {
+            console.log('💬 Contact button clicked!');
+            const userName = this.getAttribute('data-user-name');
+            const userId = this.getAttribute('data-user-id');
+            const applicationId = this.getAttribute('data-application-id');
+            
+            console.log('Contact button data:', { userName, userId, applicationId });
+            
+            if (userName && userId) {
+                console.log(`Opening contact message for ${userName}`);
+                
+                // Close the current overlay
+                hideApplicationActionOverlay();
+                
+                // Show contact message overlay
+                showContactMessageOverlay(userId, userName, applicationId);
+            } else {
+                console.error('Missing contact button data attributes:', { userName, userId });
+            }
+        });
+    }
+    
+    // Handle hire button click
+    if (hireBtn) {
+        console.log('✅ Hire button found, adding event listener');
+        hireBtn.addEventListener('click', function() {
+            console.log('✅ Hire button clicked!');
+            const applicationId = this.getAttribute('data-application-id');
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            const jobId = this.getAttribute('data-job-id');
+            const jobTitle = this.getAttribute('data-job-title');
+            const userRating = this.getAttribute('data-user-rating');
+            const userPhoto = this.getAttribute('data-user-photo');
+            const priceOffer = this.getAttribute('data-price-offer');
+            const priceType = this.getAttribute('data-price-type');
+            
+            // Validate data before proceeding
+            if (!applicationId || !userId || !userName) {
+                console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
+                return;
+            }
+            
+            console.log('HIRE ACTION:', {
+                applicationId,
+                userId,
+                userName,
+                jobId,
+                jobTitle,
+                userRating,
+                userPhoto,
+                priceOffer,
+                priceType
+            });
+            
+            // Debug: Check if price data is being captured
+            console.log('🔍 PRICE DEBUG - Hire button price data:', {
+                priceOffer: priceOffer,
+                priceType: priceType,
+                priceOfferType: typeof priceOffer,
+                priceOfferLength: priceOffer?.length
+            });
+            
+            // Hide current action overlay
+            hideApplicationActionOverlay();
+            
+            // Show hire confirmation overlay with worker details
+            showHireConfirmationOverlay({
+                applicationId,
+                userId,
+                userName,
+                jobId,
+                jobTitle,
+                userRating: parseFloat(userRating) || 0,
+                userPhoto: userPhoto,
+                priceOffer: priceOffer,
+                priceType: priceType
+            });
+        });
+    }
+    
+    // Handle reject button click
+    if (rejectBtn) {
+        console.log('✅ Reject button found, adding event listener');
+        rejectBtn.addEventListener('click', function() {
+            console.log('❌ Reject button clicked!');
+            const applicationId = this.getAttribute('data-application-id');
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            const jobId = this.getAttribute('data-job-id');
+            const jobTitle = this.getAttribute('data-job-title');
+            
+            // Validate data before proceeding
+            if (!applicationId || !userId || !userName) {
+                console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes');
+                return;
+            }
+            
+            console.log('REJECT ACTION:', {
+                applicationId,
+                userId,
+                userName,
+                jobId,
+                jobTitle
+            });
+            
+            // Close action overlay first
+            hideApplicationActionOverlay();
+            
+            // Show confirmation with reject-specific styling  
+            showConfirmation(
+                '❌',
+                'Application Rejected',
+                `${userName}'s application has been rejected. They will be notified appropriately.`
+            );
+            
+            // Remove the application card from UI after confirmation
+            setTimeout(() => {
+                const applicationCard = document.querySelector(`#applicationsList [data-application-id="${applicationId}"]`);
+                if (applicationCard) {
+                    applicationCard.style.transition = 'all 0.3s ease';
+                    applicationCard.style.opacity = '0';
+                    applicationCard.style.transform = 'translateX(100%)';
+                    
+                    setTimeout(() => {
+                        applicationCard.remove();
+                        
+                        // Check if no applications left and show empty state
+                        const remainingCards = document.querySelectorAll('#applicationsList .application-card');
+                        if (remainingCards.length === 0) {
+                            const applicationsList = document.getElementById('applicationsList');
+                            applicationsList.innerHTML = `
+                                <div class="empty-state">
+                                    <div class="empty-state-icon">📋</div>
+                                    <div class="empty-state-title">No Applications Yet</div>
+                                    <div class="empty-state-message">This job hasn't received any applications yet.</div>
+                                </div>
+                            `;
+                        }
+                    }, 300);
+                }
+            }, 500);
+        });
+    }
+    
+    // Close on backdrop click
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            hideApplicationActionOverlay();
+        }
+    });
+    
+    // Close with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideApplicationActionOverlay();
+        }
+    });
+    
+    overlay.dataset.actionHandlersInitialized = 'true';
+}
+
+function showContactMessageOverlay(userId, userName, applicationId = null) {
+    const overlay = document.getElementById('contactMessageOverlay');
+    const userNameElement = document.getElementById('contactUserName');
+    const messageInput = document.getElementById('contactMessageInput');
+    const sendBtn = document.getElementById('contactSendBtn');
+    const cancelBtn = document.getElementById('contactCancelBtn');
+    const closeBtn = document.getElementById('contactCloseBtn');
+    
+    if (!overlay) return;
+    
+    // Set user information
+    userNameElement.textContent = `Contact ${userName}`;
+    
+    // Set data attributes
+    overlay.setAttribute('data-user-id', userId);
+    overlay.setAttribute('data-user-name', userName);
+    if (applicationId) {
+        overlay.setAttribute('data-application-id', applicationId);
+    }
+    
+    messageInput.setAttribute('data-user-id', userId);
+    messageInput.setAttribute('data-user-name', userName);
+    if (applicationId) {
+        messageInput.setAttribute('data-application-id', applicationId);
+    }
+    
+    // Clear previous message
+    messageInput.value = '';
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    // Initialize handlers if not already done
+    if (!overlay.dataset.contactHandlersInitialized) {
+        console.log('🔧 Initializing contact overlay handlers');
+        if (sendBtn) {
+            console.log('✅ Send button found, adding event listener');
+            sendBtn.addEventListener('click', handleSendContactMessage);
+        } else {
+            console.error('❌ Send button not found!');
+        }
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', hideContactMessageOverlay);
+        }
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', hideContactMessageOverlay);
+        }
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                hideContactMessageOverlay();
+            }
+        });
+        
+        overlay.dataset.contactHandlersInitialized = 'true';
+    }
+    
+    // Focus on message input
+    setTimeout(() => messageInput.focus(), 100);
+}
+
+function handleSendContactMessage() {
+    console.log('📤 handleSendContactMessage called');
+    
+    const overlay = document.getElementById('contactMessageOverlay');
+    const messageInput = document.getElementById('contactMessageInput');
+    
+    if (!overlay || !messageInput) {
+        console.error('❌ Contact overlay or input not found', { overlay, messageInput });
+        return;
+    }
+    
+    const userId = overlay.getAttribute('data-user-id');
+    const userName = overlay.getAttribute('data-user-name');
+    const applicationId = overlay.getAttribute('data-application-id');
+    const message = messageInput.value.trim();
+    
+    console.log('📤 Contact data:', { userId, userName, applicationId, message });
+    
+    if (!message) {
+        console.log('⚠️ No message entered, focusing input');
+        messageInput.focus();
+        return;
+    }
+    
+    console.log(`📤 Sending message to ${userName}:`, message);
+    
+    // TODO: Send message to backend
+    showConfirmation('📤', 'Message Sent', `Your message has been sent to ${userName}`);
+    hideContactMessageOverlay();
+}
+
+function hideContactMessageOverlay() {
+    const overlay = document.getElementById('contactMessageOverlay');
+    overlay.classList.remove('show');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.contactHandlersInitialized;
+}
+
+function hideApplicationActionOverlay() {
+    const overlay = document.getElementById('applicationActionOverlay');
+    overlay.classList.remove('show');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.actionHandlersInitialized;
+}
+
+function showConfirmation(icon, title, message) {
+    const overlay = document.getElementById('confirmationOverlay');
+    const iconElement = document.getElementById('confirmationIcon');
+    const titleElement = document.getElementById('confirmationTitle');
+    const messageElement = document.getElementById('confirmationMessage');
+    const okBtn = document.getElementById('confirmationBtn');
+    
+    if (!overlay) return;
+    
+    iconElement.textContent = icon;
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+    
+    overlay.classList.add('show');
+    
+    // Initialize handler if not already done
+    if (!overlay.dataset.confirmationHandlersInitialized) {
+        if (okBtn) {
+            okBtn.addEventListener('click', hideConfirmationOverlay);
+        }
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                hideConfirmationOverlay();
+            }
+        });
+        
+        overlay.dataset.confirmationHandlersInitialized = 'true';
+    }
+}
+
+function showConfirmationWithCallback(icon, title, message, callback) {
+    const overlay = document.getElementById('confirmationOverlay');
+    const iconElement = document.getElementById('confirmationIcon');
+    const titleElement = document.getElementById('confirmationTitle');
+    const messageElement = document.getElementById('confirmationMessage');
+    const okBtn = document.getElementById('confirmationBtn');
+    
+    if (!overlay) return;
+    
+    iconElement.textContent = icon;
+    titleElement.textContent = title;
+    messageElement.textContent = message;
+    
+    overlay.classList.add('show');
+    
+    // Store the callback for this specific confirmation
+    overlay.dataset.confirmationCallback = 'pending';
+    
+    // Clear any existing handlers
+    if (overlay.dataset.confirmationHandlersInitialized) {
+        delete overlay.dataset.confirmationHandlersInitialized;
+    }
+    
+    // Set up new handlers with callback
+    const handleOkClick = () => {
+        console.log('🔗 Confirmation OK clicked, executing callback...');
+        hideConfirmationOverlay();
+        if (callback) {
+            callback();
+        }
+        // Clean up this specific handler
+        if (okBtn) {
+            okBtn.removeEventListener('click', handleOkClick);
+        }
+        overlay.removeEventListener('click', handleBackdropClick);
+    };
+    
+    const handleBackdropClick = (e) => {
+        if (e.target === overlay) {
+            handleOkClick();
+        }
+    };
+    
+    if (okBtn) {
+        okBtn.addEventListener('click', handleOkClick);
+    }
+    
+    overlay.addEventListener('click', handleBackdropClick);
+    
+    overlay.dataset.confirmationHandlersInitialized = 'true';
+}
+
+function hideConfirmationOverlay() {
+    const overlay = document.getElementById('confirmationOverlay');
+    overlay.classList.remove('show');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.confirmationHandlersInitialized;
 }
 
 function hideApplicationsOverlay() {
@@ -4782,6 +5348,473 @@ function hideApplicationsOverlay() {
     
     // Clear handlers initialization flag
     delete overlay.dataset.handlersInitialized;
+}
+
+// Hire Confirmation Overlay Functions
+function showHireConfirmationOverlay(workerData) {
+    console.log('🚀 showHireConfirmationOverlay called with:', workerData);
+    
+    const overlay = document.getElementById('hireConfirmationOverlay');
+    if (!overlay) {
+        console.error('❌ Hire confirmation overlay not found!');
+        return;
+    }
+
+    // Update worker status based on rating (simulate account status determination)
+    const workerStatus = determineWorkerStatus(workerData.userRating);
+    updateWorkerStatusDisplay(workerStatus);
+
+    // Store worker data for confirmation action
+    overlay.dataset.applicationId = workerData.applicationId;
+    overlay.dataset.userId = workerData.userId;
+    overlay.dataset.userName = workerData.userName;
+    overlay.dataset.jobId = workerData.jobId;
+    overlay.dataset.jobTitle = workerData.jobTitle;
+    overlay.dataset.userRating = workerData.userRating;
+    overlay.dataset.userPhoto = workerData.userPhoto || '';
+    overlay.dataset.priceOffer = workerData.priceOffer || '';
+    overlay.dataset.priceType = workerData.priceType || '';
+
+    // Show overlay
+    overlay.classList.add('show');
+    
+    // Initialize event handlers
+    initializeHireConfirmationHandlers();
+}
+
+function determineWorkerStatus(rating) {
+    // Simulate account status determination based on rating
+    if (rating >= 4.5) {
+        return {
+            type: 'business',
+            text: 'Business Account',
+            icon: '🏢',
+            friendlyIcon: '💼',
+            infoTitle: 'Verified Business Account',
+            infoContent: 'This user has achieved Business verification status through our comprehensive verification process. They have demonstrated exceptional service quality and maintain professional business standards on GISUGO.'
+        };
+    } else if (rating >= 3.5) {
+        return {
+            type: 'pro',
+            text: 'Pro Member',
+            icon: '⭐',
+            friendlyIcon: '✨',
+            infoTitle: 'Pro Verified Member',
+            infoContent: 'This user has achieved Pro verification status through our verification process. They have demonstrated good service quality and reliability. Pro members undergo additional verification steps for enhanced trust.'
+        };
+    } else {
+        return {
+            type: 'new-member',
+            text: 'New Member',
+            icon: '🌱',
+            friendlyIcon: '🌱',
+            infoTitle: 'New Community Member',
+            infoContent: 'This user is new to our platform and hasn\'t completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.'
+        };
+    }
+}
+
+function updateWorkerStatusDisplay(status) {
+    const info = document.getElementById('workerStatusInfo');
+    const friendlyIcon = document.getElementById('statusFriendlyIcon');
+    const infoTitle = document.getElementById('statusInfoTitle');
+    const infoContent = document.getElementById('statusInfoContent');
+
+    // Update info section
+    friendlyIcon.textContent = status.friendlyIcon;
+    infoTitle.textContent = status.infoTitle;
+    infoContent.textContent = status.infoContent;
+
+    // Style info section based on type
+    if (status.type === 'business') {
+        info.style.background = 'rgba(251, 191, 36, 0.08)';
+        info.style.borderColor = 'rgba(251, 191, 36, 0.2)';
+        infoTitle.style.color = '#fbbf24';
+    } else if (status.type === 'pro') {
+        info.style.background = 'rgba(16, 185, 129, 0.08)';
+        info.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+        infoTitle.style.color = '#10b981';
+    } else {
+        info.style.background = 'rgba(230, 214, 174, 0.08)';
+        info.style.borderColor = 'rgba(230, 214, 174, 0.2)';
+        infoTitle.style.color = '#e6d6ae';
+    }
+}
+
+function initializeHireConfirmationHandlers() {
+    const overlay = document.getElementById('hireConfirmationOverlay');
+    if (!overlay || overlay.dataset.hireHandlersInitialized) return;
+
+    const closeBtn = document.getElementById('hireConfirmationCloseBtn');
+    const cancelBtn = document.getElementById('cancelHireBtn');
+    const confirmBtn = document.getElementById('confirmHireBtn');
+
+    console.log('🔧 Initializing hire confirmation handlers');
+
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideHireConfirmationOverlay);
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideHireConfirmationOverlay);
+    }
+
+    // Confirm hire button
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            console.log('✅ Final hire confirmation clicked!');
+            const workerData = {
+                applicationId: overlay.dataset.applicationId,
+                userId: overlay.dataset.userId,
+                userName: overlay.dataset.userName,
+                jobId: overlay.dataset.jobId,
+                jobTitle: overlay.dataset.jobTitle,
+                userRating: overlay.dataset.userRating,
+                userPhoto: overlay.dataset.userPhoto,
+                priceOffer: overlay.dataset.priceOffer,
+                priceType: overlay.dataset.priceType
+            };
+            
+            processHireConfirmation(workerData);
+        });
+    }
+
+    // Backdrop click
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            hideHireConfirmationOverlay();
+        }
+    });
+
+    // Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideHireConfirmationOverlay();
+        }
+    });
+
+    overlay.dataset.hireHandlersInitialized = 'true';
+}
+
+function processHireConfirmation(workerData) {
+    console.log('🎉 Processing hire confirmation for:', workerData);
+    
+    // Hide hire confirmation overlay
+    hideHireConfirmationOverlay();
+    
+    // Show success confirmation and wait for user to close it
+    showConfirmationWithCallback(
+        '✅',
+        'Worker Hired Successfully!',
+        `You have hired ${workerData.userName} for the job. All other applications will be automatically rejected. You can coordinate work details through messages.`,
+        async () => {
+            // This callback runs AFTER user clicks OK on success overlay
+            console.log('✅ User closed success overlay, starting hire process...');
+            
+            try {
+                // Close all overlays first
+                closeAllOverlaysAfterHire();
+                
+                // Add to hiring data immediately (before removing from listings)
+                const jobCard = document.querySelector(`[data-job-id="${workerData.jobId}"]`);
+                if (jobCard) {
+                    const jobData = extractJobDataFromCard(jobCard);
+                    if (jobData) {
+                        jobData.hiredWorker = workerData.userName;
+                        jobData.hiredWorkerPhoto = workerData.userPhoto; // Add worker photo
+                        jobData.agreedPrice = workerData.priceOffer; // Add agreed price
+                        jobData.priceType = workerData.priceType; // Add price type
+                        addToHiringData(jobData);
+                        console.log('✅ Job data added to hiring before removal');
+                    }
+                }
+                
+                // Remove the hired application and auto-reject all others
+                autoRejectOtherApplications(workerData.applicationId);
+                removeApplicationCard(workerData.applicationId);
+                
+                // Move job listing from Listings to Hiring tab with better timing
+                setTimeout(async () => {
+                    await moveJobListingToHiringWithData(workerData.jobId, workerData.userName);
+                }, 500);
+                
+            } catch (error) {
+                console.error('❌ Error in hire process:', error);
+            }
+        }
+    );
+    
+    // TODO: Send hire notification to backend
+    console.log(`📤 Send hire notification to ${workerData.userName} (${workerData.userId}) for job ${workerData.jobId}`);
+}
+
+function autoRejectOtherApplications(hiredApplicationId) {
+    console.log('🔄 Auto-rejecting all other applications except:', hiredApplicationId);
+    
+    const applicationCards = document.querySelectorAll('#applicationsList .application-card');
+    let rejectedCount = 0;
+    
+    applicationCards.forEach((card, index) => {
+        const applicationId = card.getAttribute('data-application-id');
+        
+        if (applicationId !== hiredApplicationId) {
+            // Stagger the rejection animations
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                card.style.transform = 'translateX(-100%)';
+                card.style.opacity = '0';
+                
+                setTimeout(() => {
+                    card.remove();
+                }, 600);
+            }, index * 150); // Stagger by 150ms each
+            
+            rejectedCount++;
+        }
+    });
+    
+    console.log(`📤 Auto-rejected ${rejectedCount} applications`);
+    
+    // TODO: Send auto-rejection notifications to backend
+    // This would be where we batch-send rejection notifications to all other applicants
+}
+
+function removeApplicationCard(applicationId) {
+    setTimeout(() => {
+        const applicationCard = document.querySelector(`#applicationsList [data-application-id="${applicationId}"]`);
+        if (applicationCard) {
+            applicationCard.style.transition = 'all 0.4s ease';
+            applicationCard.style.opacity = '0';
+            applicationCard.style.transform = 'translateY(-20px) scale(0.95)';
+            
+            setTimeout(() => {
+                applicationCard.remove();
+                
+                // Show empty state after all animations complete
+                setTimeout(() => {
+                    const remainingCards = document.querySelectorAll('#applicationsList .application-card');
+                    if (remainingCards.length === 0) {
+                        const applicationsList = document.getElementById('applicationsList');
+                        applicationsList.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📋</div>
+                                <div class="empty-state-title">No Applications Yet</div>
+                                <div class="empty-state-message">This job hasn't received any applications yet.</div>
+                            </div>
+                        `;
+                    }
+                }, 1000);
+            }, 400);
+        }
+    }, 2000); // Wait for auto-rejection animations to complete
+}
+
+function hideHireConfirmationOverlay() {
+    const overlay = document.getElementById('hireConfirmationOverlay');
+    if (!overlay) return;
+    
+    overlay.classList.remove('show');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.hireHandlersInitialized;
+}
+
+function closeAllOverlaysAfterHire() {
+    console.log('🔒 Closing all overlays after hire confirmation');
+    
+    // Close applications overlay
+    const applicationsOverlay = document.getElementById('applicationsOverlay');
+    if (applicationsOverlay) {
+        applicationsOverlay.classList.remove('show');
+        delete applicationsOverlay.dataset.handlersInitialized;
+    }
+    
+    // Close listing options overlay  
+    const listingOptionsOverlay = document.getElementById('listingOptionsOverlay');
+    if (listingOptionsOverlay) {
+        listingOptionsOverlay.classList.remove('show');
+        delete listingOptionsOverlay.dataset.handlersInitialized;
+    }
+    
+    // Note: Confirmation overlay will be closed by user clicking OK
+    // This triggers the callback which continues the hire process
+}
+
+async function moveJobListingToHiringWithData(jobId, workerName) {
+    console.log(`📋 Moving job ${jobId} from Listings to Hiring tab (hired: ${workerName})`);
+    
+    try {
+        // Find the job card in the listings
+        const jobCard = document.querySelector(`[data-job-id="${jobId}"]`);
+        if (!jobCard) {
+            console.log('ℹ️ Job card already removed or not found, proceeding with tab switch');
+            // Job data should already be in hiring, just switch tabs
+            await switchToHiringTab();
+            return;
+        }
+        
+        // Remove from listings with animation
+        jobCard.style.transition = 'all 0.5s ease';
+        jobCard.style.transform = 'scale(0.9)';
+        jobCard.style.opacity = '0.5';
+        
+        setTimeout(async () => {
+            jobCard.remove();
+            console.log(`✅ Job card removed from Listings: ${jobId}`);
+            
+            // Auto-switch to Hiring tab to show the moved job
+            setTimeout(async () => {
+                await switchToHiringTab();
+            }, 500);
+            
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Error moving job to hiring:', error);
+        // Fallback: just switch to hiring tab
+        await switchToHiringTab();
+    }
+}
+
+// Keep the old function for backward compatibility
+function moveJobListingToHiring(jobId, workerName) {
+    return moveJobListingToHiringWithData(jobId, workerName);
+}
+
+function extractJobDataFromCard(jobCard) {
+    try {
+        return {
+            jobId: jobCard.getAttribute('data-job-id'),
+            title: jobCard.querySelector('.listing-title')?.textContent || 
+                   jobCard.querySelector('.job-title')?.textContent || 'Unknown Job',
+            description: jobCard.querySelector('.listing-description')?.textContent || 
+                        jobCard.querySelector('.job-description')?.textContent || '',
+            category: jobCard.getAttribute('data-category') || 'unknown',
+            location: jobCard.querySelector('.listing-location')?.textContent || 
+                     jobCard.querySelector('.job-location')?.textContent || '',
+            datePosted: jobCard.getAttribute('data-date-posted') || new Date().toISOString(),
+            salary: jobCard.querySelector('.listing-salary')?.textContent || 
+                   jobCard.querySelector('.job-salary')?.textContent || '',
+            thumbnail: jobCard.querySelector('.listing-thumbnail img')?.src || 
+                      jobCard.querySelector('.job-image img')?.src || ''
+        };
+    } catch (error) {
+        console.error('❌ Error extracting job data:', error);
+        return null;
+    }
+}
+
+function addToHiringData(jobData) {
+    // Add to mock hiring data (in real app, this would be sent to backend)
+    if (!MOCK_HIRING_DATA) {
+        MOCK_HIRING_DATA = [];
+    }
+    
+    // Format data to match hiring tab expectations
+    const hiringJob = {
+        jobId: jobData.jobId,
+        title: jobData.title,
+        description: jobData.description,
+        category: jobData.category,
+        location: jobData.location,
+        datePosted: jobData.datePosted,
+        salary: jobData.agreedPrice || jobData.salary, // Use agreed price from application, fallback to original
+        priceOffer: formatPriceWithPeso(jobData.agreedPrice) || jobData.salary, // Add priceOffer field for hiring card display
+        thumbnail: jobData.thumbnail,
+        hiredWorker: jobData.hiredWorker,
+        hiredWorkerName: jobData.hiredWorker || 'Unknown Worker', // Fix for toUpperCase error
+        hiredWorkerThumbnail: jobData.hiredWorkerPhoto || 'public/users/User-01.jpg', // Use actual worker photo
+        status: 'hired',
+        role: 'customer', // Current user is the customer who hired someone
+        hiringStatus: 'active',
+        dateHired: new Date().toISOString(),
+        hiredDate: new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }),
+        // Additional required fields for hiring tab
+        posterId: 'user_peter_ang_001', // Current user as poster
+        posterName: 'Peter J. Ang',
+        // Required time fields to fix formatTime error
+        jobDate: new Date().toISOString().split('T')[0], // Today's date as YYYY-MM-DD
+        startTime: '9:00 AM', // Default start time
+        endTime: '5:00 PM', // Default end time
+        // Additional fields for consistency
+        hiredWorkerId: 'user_hired_worker_001'
+    };
+    
+    // Add new hired job to the beginning of the array (top of list)
+    MOCK_HIRING_DATA.unshift(hiringJob);
+    
+    // Mark this job as newly hired for highlighting
+    hiringJob.isNewlyHired = true;
+    
+    // Debug: Check price data in hiring job
+    console.log('🔍 PRICE DEBUG - Final hiring job data:', {
+        originalSalary: jobData.salary,
+        agreedPrice: jobData.agreedPrice,
+        finalSalary: hiringJob.salary,
+        priceType: jobData.priceType
+    });
+    
+    console.log('✅ Added to hiring data:', jobData.title, hiringJob);
+}
+
+async function switchToHiringTab() {
+    console.log('🔄 Auto-switching to Hiring tab');
+    
+    try {
+        // Find and click the Hiring tab
+        const hiringTab = document.querySelector('[data-tab="hiring"]');
+        if (hiringTab && !hiringTab.classList.contains('active')) {
+            console.log('📌 Clicking Hiring tab...');
+            hiringTab.click();
+            
+            // Wait a moment for tab switch, then force refresh hiring content
+            setTimeout(async () => {
+                console.log('🔄 Loading hiring content...');
+                try {
+                    await loadHiringContent();
+                    console.log('✅ Hiring content loaded successfully');
+                    
+                    // Auto-remove highlighting from newly hired jobs after 5 seconds
+                    setTimeout(() => {
+                        const highlightedCards = document.querySelectorAll('.hiring-card.newly-hired-highlight');
+                        highlightedCards.forEach(card => {
+                            card.classList.remove('newly-hired-highlight');
+                            // Also remove the flag from the data
+                            const jobId = card.getAttribute('data-job-id');
+                            const jobData = MOCK_HIRING_DATA.find(job => job.jobId === jobId);
+                            if (jobData) {
+                                jobData.isNewlyHired = false;
+                            }
+                        });
+                        if (highlightedCards.length > 0) {
+                            console.log('🎨 Removed highlighting from newly hired jobs');
+                        }
+                    }, 5000);
+                } catch (loadError) {
+                    console.error('❌ Error loading hiring content:', loadError);
+                }
+            }, 300);
+        } else if (hiringTab && hiringTab.classList.contains('active')) {
+            console.log('📌 Already on Hiring tab, just refreshing content...');
+            // Already on hiring tab, just refresh
+            try {
+                await loadHiringContent();
+                console.log('✅ Hiring content refreshed successfully');
+            } catch (loadError) {
+                console.error('❌ Error refreshing hiring content:', loadError);
+            }
+        } else {
+            console.error('❌ Hiring tab not found');
+        }
+    } catch (error) {
+        console.error('❌ Error switching to hiring tab:', error);
+    }
 }
 
 function handleViewJob(jobData) {

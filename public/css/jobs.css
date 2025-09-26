@@ -498,6 +498,55 @@ body:has(.jobs-header) {
   box-shadow: 0 3px 12px rgba(0,0,0,0.2);
 }
 
+/* Newly Hired Job Highlighting */
+.hiring-card.newly-hired-highlight {
+  position: relative;
+  animation: newHireGlow 3s ease-in-out;
+  border: 2px solid #10b981 !important;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4) !important;
+}
+
+.hiring-card.newly-hired-highlight::before {
+  content: "NEW";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 10;
+  animation: newBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes newHireGlow {
+  0% {
+    border-color: #10b981;
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    border-color: #34d399;
+    box-shadow: 0 12px 40px rgba(16, 185, 129, 0.8);
+  }
+  100% {
+    border-color: #10b981;
+    box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
+  }
+}
+
+@keyframes newBadgePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
 /* Hiring Card Content Structure - Redesigned Layout */
 .hiring-title {
   font-size: 1.25rem;
@@ -1253,21 +1302,59 @@ body:has(.jobs-header) {
 
 .profile-btn, .contact-btn {
   flex: 1;
-  background: #4a5568;
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  padding: 12px 16px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: Arial, Helvetica, sans-serif;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: Arial, Helvetica, sans-serif;
+  border: 2px solid;
 }
 
-.profile-btn:hover, .contact-btn:hover {
-  background: #2d3748;
-  transform: translateY(-1px);
+.profile-btn {
+  background: #4299e1;
+  border-color: #63b3ed;
+}
+
+.profile-btn:hover {
+  background: #3182ce;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.profile-btn:active {
+  transform: translateY(0);
+}
+
+.profile-btn span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.contact-btn {
+  background: #48bb78;
+  border-color: #68d391;
+}
+
+.contact-btn:hover {
+  background: #38a169;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.contact-btn:active {
+  transform: translateY(0);
+}
+
+.contact-btn span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
 }
 
 .action-divider {
@@ -1284,33 +1371,472 @@ body:has(.jobs-header) {
 
 .hire-job-btn, .reject-job-btn {
   flex: 1;
-  border: none;
-  border-radius: 8px;
-  color: #fff;
-  padding: 12px 16px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  font-family: Arial, Helvetica, sans-serif;
+  border-radius: 12px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: Arial, Helvetica, sans-serif;
+  border: 2px solid;
 }
 
 .hire-job-btn {
-  background: #10b981;
+  background: #f0d0aa;
+  border-color: aliceblue;
 }
 
 .hire-job-btn:hover {
-  background: #059669;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hire-job-btn:active {
+  transform: translateY(0);
+}
+
+.hire-job-btn span {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2d3748;
+  letter-spacing: 0.5px;
 }
 
 .reject-job-btn {
-  background: #ef4444;
+  background: transparent;
+  border-color: #e53e3e;
 }
 
 .reject-job-btn:hover {
-  background: #dc2626;
+  background: #e53e3e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+}
+
+.reject-job-btn:active {
+  transform: translateY(0);
+}
+
+.reject-job-btn span {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e53e3e;
+  letter-spacing: 0.5px;
+  transition: color 0.2s ease;
+}
+
+.reject-job-btn:hover span {
+  color: #ffffff;
+}
+
+/* Hire Confirmation Overlay Styles (Enhanced with Legal Disclaimers) */
+.hire-confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 10001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 2rem);
+  box-sizing: border-box;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hire-confirmation-overlay.show {
+  display: flex;
+  opacity: 1;
+  visibility: visible;
+}
+
+.hire-confirmation-container {
+  background: linear-gradient(135deg, #363f4f 0%, #2a3441 100%);
+  border: 2px solid rgba(230, 214, 174, 0.3);
+  border-radius: clamp(16px, 4vw, 24px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 80px rgba(230, 214, 174, 0.1);
+  max-width: clamp(400px, 90vw, 600px);
+  max-height: 90vh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.7) translateY(50px);
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.hire-confirmation-overlay.show .hire-confirmation-container {
+  transform: scale(1) translateY(0);
+}
+
+.hire-confirmation-header {
+  position: relative;
+  background: linear-gradient(135deg, rgba(230, 214, 174, 0.15) 0%, rgba(230, 214, 174, 0.1) 50%, rgba(230, 214, 174, 0.05) 100%);
+  border-bottom: 1px solid rgba(230, 214, 174, 0.2);
+  padding: clamp(1.5rem, 5vw, 2rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hire-confirmation-title-section {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.75rem, 3vw, 1rem);
+}
+
+.hire-confirmation-icon {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.hire-confirmation-title {
+  font-size: clamp(1.3rem, 4vw, 1.6rem);
+  font-weight: 700;
+  color: #e6d6ae;
+  font-family: Arial, Helvetica, sans-serif;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.hire-confirmation-close-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  cursor: pointer;
+  padding: clamp(0.25rem, 1vw, 0.5rem);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hire-confirmation-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e6d6ae;
+  transform: scale(1.1);
+}
+
+.hire-confirmation-content {
+  padding: clamp(1rem, 4vw, 1.5rem);
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vw, 2rem);
+}
+
+.hire-confirmation-content::-webkit-scrollbar {
+  display: none;
+}
+
+/* Worker Status Section */
+.worker-status-section {
+  background: rgba(230, 214, 174, 0.05);
+  border: 1px solid rgba(230, 214, 174, 0.15);
+  border-radius: clamp(12px, 3vw, 16px);
+  padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.worker-status-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.worker-status-icon {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+}
+
+.worker-status-title {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 600;
+  color: #e6d6ae;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.worker-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 2vw, 0.75rem) clamp(0.75rem, 3vw, 1rem);
+  border-radius: clamp(12px, 3vw, 16px);
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: clamp(0.75rem, 3vw, 1rem);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.worker-status-badge.new-member {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: #e5e7eb;
+  border: 2px solid rgba(107, 114, 128, 0.5);
+}
+
+.worker-status-badge.pro {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border: 2px solid #10b981;
+}
+
+.worker-status-badge.business {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #1f2937;
+  border: 2px solid rgba(251, 191, 36, 0.5);
+}
+
+.worker-status-info {
+  background: rgba(230, 214, 174, 0.08);
+  border: 1px solid rgba(230, 214, 174, 0.2);
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: clamp(0.75rem, 3vw, 1rem);
+}
+
+.status-info-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.friendly-icon {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+.info-title {
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 600;
+  color: #e6d6ae;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.status-info-content {
+  font-size: clamp(0.8rem, 2.3vw, 0.9rem);
+  line-height: 1.6;
+  color: #f0f0f0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Legal Disclaimer Section */
+.legal-disclaimer-section {
+  background: rgba(230, 214, 174, 0.05);
+  border: 1px solid rgba(230, 214, 174, 0.15);
+  border-radius: clamp(12px, 3vw, 16px);
+  padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.disclaimer-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.disclaimer-icon {
+  font-size: clamp(1.2rem, 3vw, 1.5rem);
+}
+
+.disclaimer-title {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 600;
+  color: #e6d6ae;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.disclaimer-content p {
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  color: #f0f0f0;
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+.disclaimer-content strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.disclaimer-points {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 3vw, 1rem);
+  margin-bottom: clamp(1.5rem, 4vw, 2rem);
+}
+
+.disclaimer-point {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.point-number {
+  background: linear-gradient(135deg, #e6d6ae 0%, #d4c499 100%);
+  color: #1a202c;
+  width: clamp(1.5rem, 4vw, 2rem);
+  height: clamp(1.5rem, 4vw, 2rem);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.point-text {
+  font-size: clamp(0.85rem, 2.3vw, 0.95rem);
+  color: #f0f0f0;
+  line-height: 1.6;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.point-text strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Safety Recommendations */
+.safety-recommendations {
+  background: rgba(72, 187, 120, 0.08);
+  border: 1px solid rgba(72, 187, 120, 0.2);
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: clamp(1rem, 3vw, 1.25rem);
+  margin-top: clamp(1rem, 3vw, 1.25rem);
+}
+
+.safety-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  margin-bottom: clamp(0.75rem, 3vw, 1rem);
+}
+
+.safety-icon {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+.safety-title {
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 600;
+  color: #6ee7b7;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.safety-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.safety-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  font-size: clamp(0.8rem, 2.3vw, 0.9rem);
+  color: #f0fdf4;
+  line-height: 1.5;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.safety-list li::before {
+  content: "🛡️";
+  font-size: clamp(0.8rem, 2.5vw, 1rem);
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+
+/* Footer Section */
+.hire-confirmation-footer {
+  background: #1a202c;
+  border-top: 1px solid rgba(230, 214, 174, 0.2);
+  padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.confirmation-warning {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  padding: clamp(0.75rem, 3vw, 1rem);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: clamp(8px, 2vw, 12px);
+}
+
+.final-warning-icon {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  color: #fca5a5;
+}
+
+.final-warning-text {
+  font-size: clamp(0.85rem, 2.3vw, 0.95rem);
+  color: #fca5a5;
+  font-weight: 500;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.hire-confirmation-buttons {
+  display: flex;
+  gap: clamp(0.75rem, 3vw, 1rem);
+}
+
+.cancel-hire-btn {
+  flex: 1;
+  background: transparent;
+  border: 2px solid #6b7280;
+  color: #e5e7eb;
+  padding: clamp(0.75rem, 3vw, 1rem);
+  border-radius: clamp(8px, 2vw, 12px);
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cancel-hire-btn:hover {
+  border-color: #a0aec0;
+  background: rgba(255, 255, 255, 0.05);
   transform: translateY(-1px);
+}
+
+.confirm-hire-btn {
+  flex: 2;
+  background: linear-gradient(135deg, #f0d0aa 0%, #e6c499 100%);
+  border: 2px solid #e6d6ae;
+  color: #2d3748;
+  padding: clamp(0.75rem, 3vw, 1rem);
+  border-radius: clamp(8px, 2vw, 12px);
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: Arial, Helvetica, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.confirm-hire-btn:hover {
+  background: linear-gradient(135deg, #e6c499 0%, #d4c499 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(240, 208, 170, 0.4);
 }
 
 /* Contact Message Overlay Styles (from messages.css) */
