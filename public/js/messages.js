@@ -4877,34 +4877,12 @@ function generateApplicationsContent() {
 }
 
 function loadApplicationsTab() {
-    const container = document.querySelector('#applications-content .applications-container');
-    if (container) {
-        container.innerHTML = generateApplicationsContent();
-        
-        // DEBUG: Verify placeholder was added to DOM
-        const placeholder = document.getElementById('applications-placeholder');
-        console.log('🐛 Placeholder after content generation:', !!placeholder);
-        if (placeholder) {
-            console.log('✅ Placeholder successfully added to DOM');
-        } else {
-            console.log('❌ Placeholder missing from DOM after generation');
-        }
-        
-        // Initialize event handlers for the dynamically loaded content
-        initializeJobListings();
-        initializeApplicationActions();
-        
-        // CRITICAL FIX: Re-initialize confirmation overlay after cleanup
-        // This ensures the overlay works properly after button cleanup
-        initializeConfirmationOverlay();
-        
-        // Update applications count badge
-        updateApplicationsCount();
-        
-        console.log('Applications tab content loaded independently with cleaned event listeners');
-    } else {
-        console.error('Applications container not found');
-    }
+    // UPDATED: This tab now shows the new Messages UI (inbox/details layout)
+    // The content is now static HTML, so no dynamic loading needed
+    console.log('📧 Messages tab loaded - using static HTML content');
+    
+    // The new Messages UI is already in the HTML, so we don't need to generate content
+    // Future: This is where we'll add JavaScript for message functionality
 }
 
 // INPUT FOCUS ELEGANCE: Dim surrounding content when input is focused

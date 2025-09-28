@@ -39,11 +39,11 @@
              <span class="notification-count">8</span>
          </button>
         <button class="tab-btn" data-tab="messages" id="messagesTab">
-            <span class="tab-label">MESSAGES</span>
+            <span class="tab-label">CHATS</span>
             <span class="notification-count">2</span>
         </button>
         <button class="tab-btn" data-tab="applications" id="applicationsTab">
-            <span class="tab-label">APPLICATIONS</span>
+            <span class="tab-label">MESSAGES</span>
             <span class="notification-count">6</span>
             </button>
     </div>
@@ -67,11 +67,91 @@
         </div>
             </div>
             
-    <!-- Applications Tab Content - Independent Scroll Container -->
+    <!-- Messages Tab Content - Independent Scroll Container -->
     <div class="tab-content-wrapper" id="applications-content">
         <div class="tab-scroll-container">
             <div class="applications-container">
-                <!-- Applications content will be loaded dynamically when tab is active -->
+                <!-- New Messages UI - User Perspective (Similar to Admin Dashboard) -->
+                <div class="user-messages-layout">
+                    <!-- Left Panel: User Message Inbox -->
+                    <div class="user-messages-left-panel">
+                        <div class="panel-header">
+                            <div class="inbox-controls">
+                                <div class="inbox-tabs">
+                                    <button class="inbox-tab-btn active" id="userNewInboxBtn" data-inbox="new">
+                                        New <span class="tab-count" id="userNewCount">3</span>
+                                    </button>
+                                    <button class="inbox-tab-btn" id="userOldInboxBtn" data-inbox="old">
+                                        Read Messages
+                                    </button>
+                                </div>
+                                <div class="inbox-search">
+                                    <input type="text" placeholder="Search messages..." class="search-input-small" id="userMessagesSearchInput">
+                                    <button class="search-btn-small" id="userMessagesSearchBtn">🔍</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message Type Filter -->
+                        <div class="message-type-filter">
+                            <select class="type-dropdown" id="messageTypeFilter">
+                                <option value="all">All Messages</option>
+                                <option value="support">Support Responses</option>
+                                <option value="system">System Updates</option>
+                                <option value="notifications">Important Notices</option>
+                                <option value="updates">Platform Updates</option>
+                                <option value="promotions">Promotions</option>
+                            </select>
+                        </div>
+
+                        <!-- Scrollable Messages Container -->
+                        <div class="user-messages-list-container">
+                            <!-- User Messages List -->
+                            <div class="user-messages-list" id="userMessagesList">
+                                <!-- Coming Soon Placeholder for now -->
+                                <div class="messages-placeholder">
+                                    <div class="placeholder-icon">📧</div>
+                                    <h3>Messages from GISUGO</h3>
+                                    <p>Admin communications and system notifications will appear here</p>
+                                    <small>This feature is coming soon</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Message Detail & Reply -->
+                    <div class="user-messages-right-panel">
+                        <div class="user-message-detail" id="userMessageDetail">
+                            <div class="no-message-selected">
+                                <div class="no-message-icon">💬</div>
+                                <h4>Select a message to view details</h4>
+                                <p>Choose a message from the left to read and respond</p>
+                            </div>
+                        </div>
+
+                        <!-- Message Detail Content (hidden initially) -->
+                        <div class="user-message-content" id="userMessageContent" style="display: none;">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Detail Overlay (for mobile screens) -->
+                <div id="userMessageDetailOverlay" class="user-message-detail-overlay" style="display: none;">
+                    <div class="overlay-content">
+                        <div class="overlay-header">
+                            <button class="overlay-close-btn" id="userOverlayCloseBtn">✕</button>
+                            <h3>Message Details</h3>
+                        </div>
+                        <div class="overlay-body">
+                            <!-- Content will be populated by JavaScript -->
+                        </div>
+                        <div class="overlay-footer">
+                            <button class="user-detail-reply-btn" id="userOverlayReplyBtn">Reply</button>
+                            <button class="user-detail-close-btn" id="userOverlayMarkReadBtn">Mark as Read</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
