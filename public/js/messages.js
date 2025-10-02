@@ -36,7 +36,7 @@
 
 ✅ REAL-TIME LISTENERS MAPPED:
 - /notifications/{recipientUid} - Live notification updates
-- /applications/{applicationId} - Application status changes
+- /applications/{applicationId} - REMOVED (applications moved to jobs.html)
 - /jobs/{jobId} - Job status and assignment updates
 - /contracts/{contractId} - Contract creation and updates
 
@@ -72,11 +72,11 @@ This modular tab system provides comprehensive data structures for backend integ
    - Actions: send_message, expand_thread, keyboard_handling
    - Required Endpoints: GET /messages, POST /messages, PUT /messages/{threadId}/read
 
-3. APPLICATIONS TAB:
-   - Data: MOCK_APPLICATIONS array (line ~2450)
-   - Structure: job listings with nested application arrays
-   - Actions: hire_applicant, reject_applicant, contact_user, view_profile
-   - Required Endpoints: GET /applications, PUT /applications/{id}/hire, PUT /applications/{id}/reject
+3. MESSAGES TAB (formerly Applications):
+   - Data: Static HTML for admin communications (no mock data)
+   - Structure: Inbox/details layout for admin messages and broadcasts
+   - Actions: read_message, reply_to_admin, mark_read
+   - Required Endpoints: GET /admin-messages, POST /admin-messages/reply
 
 4. BACKEND DATA PAYLOADS:
    - All action handlers prepare complete backend payload objects
@@ -104,7 +104,7 @@ This modular tab system is optimized for Firebase (Firestore + Authentication):
    /messages/{threadId} - Message thread documents with subcollection
    /messages/{threadId}/messages/{messageId} - Individual messages
    /jobs/{jobId} - Job documents
-   /applications/{applicationId} - Application documents
+   /applications/{applicationId} - REMOVED (applications moved to jobs.html)
    /users/{uid} - User profile documents
 
 2. FIREBASE AUTHENTICATION:
@@ -245,20 +245,156 @@ function clearTrackedInterval(intervalId) {
     CLEANUP_REGISTRY.intervals.delete(intervalId);
 }
 
+// Role-specific tab initialization functions
+async function initializeWorkerAlertsTab() {
+    console.log('📋 Initializing worker alerts tab');
+    // Load worker-specific notifications
+    loadWorkerNotifications();
+}
+
+async function initializeWorkerChatsTab() {
+    console.log('💬 Initializing worker chats tab');
+    // Load worker-specific chats
+    loadWorkerChats();
+}
+
+async function initializeWorkerMessagesTab() {
+    console.log('📧 Initializing worker messages tab');
+    // Load worker admin messages (placeholder)
+    console.log('Worker admin messages loaded (placeholder)');
+}
+
+async function initializeCustomerAlertsTab() {
+    console.log('📋 Initializing customer alerts tab');
+    // Load customer-specific notifications
+    loadCustomerNotifications();
+}
+
+async function initializeCustomerInterviewsTab() {
+    console.log('🎯 Initializing customer interviews tab');
+    // Load customer interview chats
+    loadCustomerInterviews();
+}
+
+async function initializeCustomerMessagesTab() {
+    console.log('📧 Initializing customer messages tab');
+    // Load customer admin messages (placeholder)
+    console.log('Customer admin messages loaded (placeholder)');
+}
+
+// Load segregated notifications based on role
+function loadWorkerNotifications() {
+    const container = document.querySelector('#worker-alerts-content .notifications-container');
+    if (container) {
+        // Filter notifications for worker role
+        const workerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
+            notif.notificationType === 'interview_request'
+        );
+        
+        const content = workerNotifications.map(notification => generateNotificationHTML(notification)).join('');
+        container.innerHTML = content;
+        
+        // Initialize event handlers
+        initializeNotifications();
+        
+        // Update count
+        const countElement = document.querySelector('#workerAlertsTab .notification-count');
+        if (countElement) {
+            countElement.textContent = workerNotifications.length;
+        }
+        
+        console.log('Worker notifications loaded:', workerNotifications.length);
+    }
+}
+
+function loadCustomerNotifications() {
+    const container = document.querySelector('#customer-alerts-content .notifications-container');
+    if (container) {
+        // Filter notifications for customer role
+        const customerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
+            notif.notificationType !== 'interview_request'
+        );
+        
+        const content = customerNotifications.map(notification => generateNotificationHTML(notification)).join('');
+        container.innerHTML = content;
+        
+        // Initialize event handlers
+        initializeNotifications();
+        
+        // Update count
+        const countElement = document.querySelector('#customerAlertsTab .notification-count');
+        if (countElement) {
+            countElement.textContent = customerNotifications.length;
+        }
+        
+        console.log('Customer notifications loaded:', customerNotifications.length);
+    }
+}
+
+// Load segregated chats based on role
+function loadWorkerChats() {
+    const container = document.querySelector('#worker-chats-content .messages-container');
+    if (container) {
+        // Filter chats for worker role
+        const workerChats = MOCK_MESSAGES.filter(thread => 
+            thread.currentUserRole === 'worker'
+        );
+        
+        const content = workerChats.map(thread => generateMessageThreadHTML(thread)).join('');
+        container.innerHTML = content;
+        
+        // Initialize event handlers
+        initializeMessages();
+        
+        // Update count
+        const countElement = document.querySelector('#workerChatsTab .notification-count');
+        if (countElement) {
+            const newCount = workerChats.filter(thread => thread.isNew).length;
+            countElement.textContent = newCount;
+        }
+        
+        console.log('Worker chats loaded:', workerChats.length);
+    }
+}
+
+function loadCustomerInterviews() {
+    const container = document.querySelector('#customer-interviews-content .messages-container');
+    if (container) {
+        // Filter chats for customer role
+        const customerChats = MOCK_MESSAGES.filter(thread => 
+            thread.currentUserRole === 'customer'
+        );
+        
+        const content = customerChats.map(thread => generateMessageThreadHTML(thread)).join('');
+        container.innerHTML = content;
+        
+        // Initialize event handlers
+        initializeMessages();
+        
+        // Update count
+        const countElement = document.querySelector('#customerInterviewsTab .notification-count');
+        if (countElement) {
+            const newCount = customerChats.filter(thread => thread.isNew).length;
+            countElement.textContent = newCount;
+        }
+        
+        console.log('Customer interviews loaded:', customerChats.length);
+    }
+}
+
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize only the core functionality
+    console.log('🚀 Role-based messages system initializing...');
+    
+    // Initialize core systems
+    initializeRoles();
     initializeTabs();
     initializeMenu(); 
     initializeConfirmationOverlay();
     initializeContactMessageOverlay();
     
-    // MODULAR APPROACH: Only load the initially active tab (notifications)
-    // Other tabs will load their content only when clicked
-    initializeActiveTab('notifications');
-    
-    // CRITICAL FIX: Update all tab counts on page load to show correct numbers
-    updateAllTabCounts();
+    // Initialize default role (worker) and tab (worker-alerts)
+    initializeWorkerAlertsTab();
     
     // SAFETY CLEANUP: Ensure no lingering mobile input adjustments on page load
     cleanupMobileInputVisibility();
@@ -328,84 +464,187 @@ function initializeMenu() {
     }
 }
 
-// Tab Management - UPDATED FOR INDEPENDENT SCROLL CONTAINERS
-function initializeTabs() {
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    const tabWrappers = document.querySelectorAll('.tab-content-wrapper');
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const targetTab = this.getAttribute('data-tab');
+// Role Management - NEW TOP LEVEL ROLE SWITCHING
+function initializeRoles() {
+    const roleButtons = document.querySelectorAll('.role-tab-btn');
+    
+    roleButtons.forEach(button => {
+        button.addEventListener('click', async function() {
+            const roleType = this.getAttribute('data-role');
             
-            // CLEANUP: Close all message threads when switching tabs
-            // This prevents the bug where clicking Messages tab while thread is open causes empty content
-            closeAllMessageThreads();
-            
-            // CLEANUP: Cancel any active selections when switching tabs
-            cancelSelection();
-            
-            // CRITICAL FIX: Clean up avatar overlay when switching tabs
-            // This prevents stuck overlays from persisting across tab switches
-            hideAvatarOverlay();
-            
-            // MEMORY LEAK FIX: Clean up all avatar listeners when switching tabs
-            const activeTabContent = document.querySelector('.tab-content-wrapper.active');
-            if (activeTabContent) {
-                cleanupAvatarOverlays(activeTabContent);
-            }
-            
-            // CRITICAL BUG FIX: Close any open action overlays when switching tabs
-            // This prevents the double-click bug by ensuring clean state
-            closeActionOverlay();
-            
-            // Clear any lingering data attributes from shared buttons
-            // This prevents contaminated data from previous tab interactions
-            const hireBtn = document.getElementById('hireJobBtn');
-            const rejectBtn = document.getElementById('rejectJobBtn');
-            if (hireBtn) {
-                ['data-application-id', 'data-user-id', 'data-user-name', 'data-job-id', 'data-job-title'].forEach(attr => {
-                    hireBtn.removeAttribute(attr);
-                });
-            }
-            if (rejectBtn) {
-                ['data-application-id', 'data-user-id', 'data-user-name', 'data-job-id', 'data-job-title'].forEach(attr => {
-                    rejectBtn.removeAttribute(attr);
-                });
-            }
-            
-            // NUCLEAR OPTION: Force reset if normal cleanup fails
-            setTimeout(() => {
-                if (document.getElementById('avatarOverlay')) {
-                    console.log('🚨 Normal cleanup failed, using force reset');
-                    window.forceResetAvatarOverlay();
-                }
-            }, 250);
-            
-            // Remove active class from all tabs and wrappers
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabWrappers.forEach(wrapper => {
-                wrapper.classList.remove('active');
-                // No need to set display: none since CSS handles it
-            });
-            
-            // Add active class to clicked tab
+            // Update role button states
+            roleButtons.forEach(btn => btn.classList.remove('active'));
             this.classList.add('active');
             
-            // Show corresponding wrapper with independent scroll
-            const targetWrapper = document.getElementById(targetTab + '-content');
-            if (targetWrapper) {
-                targetWrapper.classList.add('active');
-            }
-
-            // MODULAR APPROACH: Initialize only the newly active tab's content
-            initializeActiveTab(targetTab);
-
-            // Update page title based on active tab
-            updatePageTitle(targetTab);
-            
-            console.log(`Switched to independent tab: ${targetTab} - each tab now has separate scroll position`);
+            // Switch to the selected role
+            await switchToRole(roleType);
         });
     });
+}
+
+async function switchToRole(roleType) {
+    console.log(`🔄 Switching to role: ${roleType}`);
+    
+    if (roleType === 'customer') {
+        // Show customer tabs and content
+        document.querySelector('.worker-tabs').style.display = 'none';
+        document.querySelector('.customer-tabs').style.display = 'flex';
+        
+        // Hide all content first
+        document.querySelectorAll('.tab-content-wrapper').forEach(wrapper => {
+            wrapper.style.display = 'none';
+            wrapper.classList.remove('active');
+        });
+        
+        // Show customer content (default to alerts)
+        const customerAlertsContent = document.getElementById('customer-alerts-content');
+        if (customerAlertsContent) {
+            customerAlertsContent.style.display = 'block';
+            customerAlertsContent.classList.add('active');
+        }
+        
+        // Activate customer alerts tab
+        document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('customerAlertsTab')?.classList.add('active');
+        
+        // Initialize the default customer alerts tab content
+        await initializeCustomerAlertsTab();
+        
+    } else if (roleType === 'worker') {
+        // Show worker tabs and content
+        document.querySelector('.customer-tabs').style.display = 'none';
+        document.querySelector('.worker-tabs').style.display = 'flex';
+        
+        // Hide all content first
+        document.querySelectorAll('.tab-content-wrapper').forEach(wrapper => {
+            wrapper.style.display = 'none';
+            wrapper.classList.remove('active');
+        });
+        
+        // Show worker content (default to alerts)
+        const workerAlertsContent = document.getElementById('worker-alerts-content');
+        if (workerAlertsContent) {
+            workerAlertsContent.style.display = 'block';
+            workerAlertsContent.classList.add('active');
+        }
+        
+        // Activate worker alerts tab
+        document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('workerAlertsTab')?.classList.add('active');
+        
+        // Initialize the default worker alerts tab content
+        await initializeWorkerAlertsTab();
+    }
+}
+
+// Tab Management - UPDATED FOR ROLE-BASED TABS
+function initializeTabs() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const tabType = this.getAttribute('data-tab');
+            
+            // Determine if this is a customer or worker tab
+            const isCustomerTab = this.closest('.customer-tabs');
+            const isWorkerTab = this.closest('.worker-tabs');
+            
+            if (isCustomerTab) {
+                await switchToCustomerTab(tabType);
+            } else if (isWorkerTab) {
+                await switchToWorkerTab(tabType);
+            }
+        });
+    });
+}
+
+async function switchToCustomerTab(tabType) {
+    // CLEANUP: Close all message threads when switching tabs
+    closeAllMessageThreads();
+    
+    // CLEANUP: Cancel any active selections when switching tabs
+    cancelSelection();
+    
+    // CLEANUP: Hide avatar overlay when switching tabs
+    hideAvatarOverlay();
+    
+    // Update customer tab states
+    document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeTabBtn = document.querySelector(`.customer-tabs [data-tab="${tabType}"]`);
+    if (activeTabBtn) {
+        activeTabBtn.classList.add('active');
+    }
+    
+    // Update customer content visibility
+    document.querySelectorAll('.customer-content').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    const activeWrapper = document.getElementById(`${tabType}-content`);
+    if (activeWrapper) {
+        activeWrapper.style.display = 'block';
+        activeWrapper.classList.add('active');
+    }
+    
+    console.log(`🔄 Switched to customer tab: ${tabType}`);
+    
+    // Load customer content
+    if (tabType === 'customer-alerts') {
+        await initializeCustomerAlertsTab();
+    } else if (tabType === 'customer-interviews') {
+        await initializeCustomerInterviewsTab();
+    } else if (tabType === 'customer-messages') {
+        await initializeCustomerMessagesTab();
+    }
+}
+
+async function switchToWorkerTab(tabType) {
+    // CLEANUP: Close all message threads when switching tabs
+    closeAllMessageThreads();
+    
+    // CLEANUP: Cancel any active selections when switching tabs
+    cancelSelection();
+    
+    // CLEANUP: Hide avatar overlay when switching tabs
+    hideAvatarOverlay();
+    
+    // Update worker tab states
+    document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeTabBtn = document.querySelector(`.worker-tabs [data-tab="${tabType}"]`);
+    if (activeTabBtn) {
+        activeTabBtn.classList.add('active');
+    }
+    
+    // Update worker content visibility
+    document.querySelectorAll('.worker-content').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    const activeWrapper = document.getElementById(`${tabType}-content`);
+    if (activeWrapper) {
+        activeWrapper.style.display = 'block';
+        activeWrapper.classList.add('active');
+    }
+    
+    console.log(`🔄 Switched to worker tab: ${tabType}`);
+    
+    // Load worker content
+    if (tabType === 'worker-alerts') {
+        await initializeWorkerAlertsTab();
+    } else if (tabType === 'worker-chats') {
+        await initializeWorkerChatsTab();
+    } else if (tabType === 'worker-messages') {
+        await initializeWorkerMessagesTab();
+    }
 }
 
 function updatePageTitle(activeTab) {
@@ -565,7 +804,7 @@ function initializeApplicationActions() {
             const userPhoto = this.getAttribute('data-user-photo'); // Get from card data attribute
             const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
             const reviewCount = parseInt(this.querySelector('[data-review-count]').getAttribute('data-review-count'));
-            const applicationId = this.getAttribute('data-application-id');
+            // REMOVED: applicationId - applications moved to jobs.html
             const jobTitle = this.getAttribute('data-job-title'); // Get job title
             
             // Find the job ID from the parent job listing
@@ -585,7 +824,7 @@ function initializeApplicationActions() {
             actionReviewCount.textContent = `(${reviewCount})`;
             
             // Store application data for hire button
-            hireJobBtn.setAttribute('data-application-id', applicationId);
+            // REMOVED: applicationId - applications moved to jobs.html
             hireJobBtn.setAttribute('data-user-id', userId);
             hireJobBtn.setAttribute('data-user-name', userName);
             hireJobBtn.setAttribute('data-job-id', jobId);
@@ -594,13 +833,13 @@ function initializeApplicationActions() {
             // Store application data for reject button
             const rejectJobBtn = document.getElementById('rejectJobBtn');
             if (rejectJobBtn) {
-                rejectJobBtn.setAttribute('data-application-id', applicationId);
+                // REMOVED: applicationId - applications moved to jobs.html
                 rejectJobBtn.setAttribute('data-user-id', userId);
                 rejectJobBtn.setAttribute('data-user-name', userName);
                 rejectJobBtn.setAttribute('data-job-id', jobId);
                 rejectJobBtn.setAttribute('data-job-title', jobTitle);
                 console.log('=== SETTING REJECT BUTTON DATA ===');
-                console.log('Application ID set to:', applicationId);
+                // REMOVED: Application ID console.log - applications moved to jobs.html
                 console.log('User ID set to:', userId);
                 console.log('User Name set to:', userName);
                 console.log('Job ID set to:', jobId);
@@ -614,7 +853,7 @@ function initializeApplicationActions() {
             if (contactBtn) {
                 contactBtn.setAttribute('data-user-id', userId);
                 contactBtn.setAttribute('data-user-name', userName);
-                contactBtn.setAttribute('data-application-id', applicationId);
+                // REMOVED: applicationId - applications moved to jobs.html
             }
             
             // Show overlay
@@ -658,9 +897,9 @@ function initializeApplicationActions() {
             console.log('Contact button clicked');
             const userName = this.getAttribute('data-user-name');
             const userId = this.getAttribute('data-user-id');
-            const applicationId = this.getAttribute('data-application-id');
+            // REMOVED: applicationId - applications moved to jobs.html
             
-            console.log('Contact button data:', { userName, userId, applicationId });
+            console.log('Contact button data:', { userName, userId });
             
             if (userName && userId) {
                 console.log(`Opening contact message for ${userName}`);
@@ -669,7 +908,7 @@ function initializeApplicationActions() {
                 closeActionOverlay();
                 
                 // Show contact message overlay
-                showContactMessageOverlay(userId, userName, applicationId);
+                showContactMessageOverlay(userId, userName, null); // REMOVED: applicationId parameter
             } else {
                 console.error('Missing contact button data attributes:', { userName, userId });
             }
@@ -679,139 +918,22 @@ function initializeApplicationActions() {
     // Handle hire button click
     if (hireJobBtn) {
         hireJobBtn.addEventListener('click', function() {
-            const applicationId = this.getAttribute('data-application-id');
+            // REMOVED: applicationId - applications moved to jobs.html
             const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
             const jobId = this.getAttribute('data-job-id');
             const jobTitle = this.getAttribute('data-job-title');
             
             // CRITICAL FIX: Validate data before proceeding
-            if (!applicationId || !userId || !userName) {
+            if (!userId || !userName) {
                 console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
                 return;
             }
             
-            console.log('FIREBASE HIRE ACTION - Firestore Batch Operation Ready:', {
-                // Cloud Function trigger data
-                cloudFunction: 'processApplicationHire',
-                
-                // Firestore batch operations
-                firestoreOperations: {
-                    // Update application document
-                    updateApplication: {
-                        collection: 'applications',
-                        documentId: applicationId,
-                        data: {
-                            status: 'hired',
-                            hiredAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            hiredBy: 'firebase.auth().currentUser.uid',
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
-                        }
-                    },
-                    
-                    // Create contract document
-                    createContract: {
-                        collection: 'contracts',
-                        documentId: 'contract_' + applicationId,
-                        data: {
-                            applicationId: applicationId,
-                            jobId: jobId,
-                            workerUid: userId,
-                            employerUid: 'firebase.auth().currentUser.uid',
-                            status: 'pending_confirmation',
-                            agreedPrice: 'application.pricing.offeredAmount',
-                            currency: 'PHP',
-                            createdAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            metadata: {
-                                source: 'application_hire',
-                                version: '1.0'
-                            }
-                        }
-                    },
-                    
-                    // Update job document
-                    updateJob: {
-                        collection: 'jobs',
-                        documentId: jobId,
-                        data: {
-                            status: 'in_progress',
-                            assignedWorkerUid: userId,
-                            assignedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
-                        }
-                    },
-                    
-                    // Create notification for worker
-                    createNotification: {
-                        collection: 'notifications',
-                        documentId: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                        data: {
-                            recipientUid: userId,
-                            senderUid: 'firebase.auth().currentUser.uid',
-                            notificationType: 'application_accepted',
-                            title: 'Application Accepted!',
-                            message: `Congratulations! Your application for "${jobTitle}" has been accepted.`,
-                            read: false,
-                            priority: 'high',
-                            category: 'application',
-                            relatedDocuments: {
-                                applicationId: applicationId,
-                    jobId: jobId,
-                                contractId: 'contract_' + applicationId
-                            },
-                            createdAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            metadata: {
-                                source: 'system',
-                                businessLogic: 'application_hire',
-                                indexed: true
-                            }
-                        }
-                    }
-                },
-                
-                // Cloud Functions triggers
-                cloudFunctionTriggers: {
-                    sendPushNotification: {
-                        recipientUid: userId,
-                        title: 'Application Accepted!',
-                        body: `Your application for "${jobTitle}" has been accepted.`,
-                        data: {
-                            action: 'open_contract',
-                            contractId: 'contract_' + applicationId
-                        }
-                    },
-                    
-                    sendEmail: {
-                        to: 'user.email.from.auth',
-                        template: 'application_accepted',
-                        data: {
-                            workerName: userName,
-                            jobTitle: jobTitle,
-                            contractId: 'contract_' + applicationId
-                        }
-                    },
-                    
-                    updateAnalytics: {
-                        event: 'application_hired',
-                        parameters: {
-                            job_id: jobId,
-                            worker_uid: userId,
-                            employer_uid: 'firebase.auth().currentUser.uid',
-                            hire_source: 'mobile_app'
-                        }
-                    }
-                },
-                
-                // Real-time listeners to update
-                realtimeUpdates: [
-                    '/applications/{applicationId}',
-                    '/jobs/{jobId}',
-                    '/notifications/{recipientUid}',
-                    '/contracts/{contractId}'
-                ]
-            });
+            // REMOVED: Firebase hire action logging - hire/reject functionality moved to jobs.html
+            console.log('REMOVED: Firebase hire action - functionality moved to jobs.html');
+            
+            // REMOVED: Firestore batch operations block - hire/reject functionality moved to jobs.html
             
             // Close action overlay first
             closeActionOverlay();
@@ -823,14 +945,10 @@ function initializeApplicationActions() {
                 `You have hired ${userName} for the job. They will be notified and you can coordinate the work details through messages.`
             );
             
-            // Remove the entire job listing when hired (since job is now filled)
+            // REMOVED: Job listing removal logic - applications moved to jobs.html
             setTimeout(() => {
-                // CRITICAL FIX: Scope selector to Applications tab only
-                // This prevents finding message threads with same application-id
-                const applicationsContainer = document.querySelector('#applications-content .applications-container');
-                const applicationCard = applicationsContainer ? 
-                    applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`) : 
-                    null;
+                // REMOVED: Application card DOM manipulation - applications moved to jobs.html
+                const applicationCard = null;
                 
                 if (applicationCard) {
                     // Find the parent job listing
@@ -856,115 +974,22 @@ function initializeApplicationActions() {
     const rejectJobBtn = document.getElementById('rejectJobBtn');
     if (rejectJobBtn) {
         rejectJobBtn.addEventListener('click', function() {
-            const applicationId = this.getAttribute('data-application-id');
+            // REMOVED: applicationId - applications moved to jobs.html
             const userId = this.getAttribute('data-user-id');
             const userName = this.getAttribute('data-user-name');
             const jobId = this.getAttribute('data-job-id');
             const jobTitle = this.getAttribute('data-job-title');
             
             // CRITICAL FIX: Validate data before proceeding
-            if (!applicationId || !userId || !userName) {
+            if (!userId || !userName) {
                 console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes');
                 return;
             }
             
-            console.log('FIREBASE REJECT ACTION - Firestore Batch Operation Ready:', {
-                // Cloud Function trigger data
-                cloudFunction: 'processApplicationReject',
-                
-                // Firestore batch operations
-                firestoreOperations: {
-                    // Update application document
-                    updateApplication: {
-                        collection: 'applications',
-                        documentId: applicationId,
-                        data: {
-                            status: 'rejected',
-                            rejectedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            rejectedBy: 'firebase.auth().currentUser.uid',
-                            rejectionReason: 'employer_choice',
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
-                        }
-                    },
-                    
-                    // Create notification for worker
-                    createNotification: {
-                        collection: 'notifications',
-                        documentId: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-                        data: {
-                            recipientUid: userId,
-                            senderUid: 'firebase.auth().currentUser.uid',
-                            notificationType: 'application_rejected',
-                            title: 'Application Update',
-                            message: `Thank you for your interest in "${jobTitle}". The employer has chosen to proceed with another applicant.`,
-                            read: false,
-                            priority: 'medium',
-                            category: 'application',
-                            relatedDocuments: {
-                     applicationId: applicationId,
-                                jobId: jobId
-                            },
-                            createdAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()',
-                            metadata: {
-                                source: 'system',
-                                businessLogic: 'application_rejection',
-                                indexed: true
-                            }
-                        }
-                    },
-                    
-                    // Update analytics document
-                    updateAnalytics: {
-                        collection: 'analytics',
-                        documentId: 'daily_' + new Date().toISOString().split('T')[0],
-                        data: {
-                            applications_rejected: 'firebase.firestore.FieldValue.increment(1)',
-                            rejection_reasons: {
-                                employer_choice: 'firebase.firestore.FieldValue.increment(1)'
-                            },
-                            updatedAt: 'firebase.firestore.FieldValue.serverTimestamp()'
-                        },
-                        merge: true // Merge with existing document
-                    }
-                },
-                
-                // Cloud Functions triggers
-                cloudFunctionTriggers: {
-                    sendPushNotification: {
-                        recipientUid: userId,
-                        title: 'Application Update',
-                        body: 'Thank you for your interest. The employer has proceeded with another applicant.',
-                        data: {
-                            action: 'view_jobs',
-                            category: 'similar_jobs'
-                        }
-                    },
-                    
-                    updateRecommendations: {
-                        workerUid: userId,
-                        action: 'suggest_similar_jobs',
-                        excludeJobId: jobId
-                    },
-                    
-                    updateAnalytics: {
-                        event: 'application_rejected',
-                        parameters: {
-                            job_id: jobId,
-                            worker_uid: userId,
-                            employer_uid: 'firebase.auth().currentUser.uid',
-                            rejection_stage: 'application_review'
-                        }
-                    }
-                },
-                
-                // Real-time listeners to update
-                realtimeUpdates: [
-                    '/applications/{applicationId}',
-                    '/notifications/{recipientUid}',
-                    '/analytics/daily_{date}'
-                ]
-            });
+            // REMOVED: Firebase reject action logging - hire/reject functionality moved to jobs.html
+            console.log('REMOVED: Firebase reject action - functionality moved to jobs.html');
+            
+            // REMOVED: Firestore batch operations block - hire/reject functionality moved to jobs.html
             
             // Close action overlay first
             closeActionOverlay();
@@ -978,12 +1003,8 @@ function initializeApplicationActions() {
             
             // Remove the application card from UI after confirmation
             setTimeout(() => {
-                // CRITICAL FIX: Scope selector to Applications tab only
-                // This prevents finding message threads with same application-id
-                const applicationsContainer = document.querySelector('#applications-content .applications-container');
-                const applicationCard = applicationsContainer ? 
-                    applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`) : 
-                    null;
+                // REMOVED: Application card DOM manipulation - applications moved to jobs.html
+                const applicationCard = null;
                 if (applicationCard) {
                     applicationCard.style.transition = 'all 0.3s ease';
                     applicationCard.style.opacity = '0';
@@ -1279,11 +1300,11 @@ function handleReviewApplications(notificationItem) {
     // Extract job info from notification
     const message = notificationItem.querySelector('.notification-message').textContent;
     
-    // Switch to applications tab
-    const applicationsTab = document.getElementById('applicationsTab');
-    if (applicationsTab) {
-        applicationsTab.click();
-    }
+    // REMOVED: Switch to applications tab - applications moved to jobs.html
+    // const applicationsTab = document.getElementById('applicationsTab');
+    // if (applicationsTab) {
+    //     applicationsTab.click();
+    // }
     
     // Show confirmation that we're navigating
     showConfirmationOverlay(
@@ -1292,7 +1313,7 @@ function handleReviewApplications(notificationItem) {
         'Taking you to review your job applications.'
     );
     
-    console.log('Backend action: Navigate to applications for job review');
+    console.log('Backend action: Navigate to applications for job review - REMOVED');
 }
 
 function handleViewApplication(notificationItem) {
@@ -1300,34 +1321,27 @@ function handleViewApplication(notificationItem) {
     const applicantMatch = message.match(/\*\*(.*?)\*\*/);
     const applicantName = applicantMatch ? applicantMatch[1] : 'Unknown';
     
-    // Extract application data from notification
-    const applicationId = notificationItem.getAttribute('data-application-id');
+    // REMOVED: Extract application data - applications moved to jobs.html
     const jobId = notificationItem.getAttribute('data-job-id');
     const jobTitle = notificationItem.getAttribute('data-job-title');
     
-    if (applicationId && jobId) {
-        // Backend-ready: Try navigation with fallback validation
+    if (jobId) {
+        // REMOVED: navigateToApplicationCard call - applications moved to jobs.html
         try {
-            navigateToApplicationCard(applicationId, jobId);
+            console.log('REMOVED: navigateToApplicationCard call - applications moved to jobs.html');
         } catch (error) {
             // Backend-ready error handling
             console.warn('Navigation failed, using fallback:', error);
-            const applicationsTab = document.getElementById('applicationsTab');
-            if (applicationsTab) {
-                applicationsTab.click();
-                showTemporaryNotification('Opening Applications tab...');
-            }
+            // REMOVED: Switch to applications tab - applications moved to jobs.html
+            showTemporaryNotification('Application view functionality moved to jobs.html');
         }
     } else {
-        // Fallback to basic tab switch if data is missing
-        console.warn('Missing application or job ID, using fallback navigation');
-        const applicationsTab = document.getElementById('applicationsTab');
-        if (applicationsTab) {
-            applicationsTab.click();
-        }
+        // REMOVED: Fallback tab switch - applications moved to jobs.html
+        console.warn('Missing job ID - application functionality moved to jobs.html');
+        showTemporaryNotification('Application view functionality moved to jobs.html');
     }
     
-    console.log('Backend action: Navigate to specific application for:', applicantName);
+    console.log('Backend action: Navigate to specific application for:', applicantName, '- REMOVED');
 }
 
 function handleReplyMessage(notificationItem) {
@@ -1871,21 +1885,13 @@ const MOCK_NOTIFICATIONS = [
         
         // Related document references for Firestore
         relatedDocuments: {
-            applicationId: 'app_kT3nH7mR8qX2bS9jL6',
+            // REMOVED: applicationId - applications moved to jobs.html
             jobId: 'job_gT5nM8xK2jS6wF3eA9',
             userProfile: 'user_3vN8mQ4rT9xK2jP7sC1'
         },
         
         actions: [
-            {
-                type: 'secondary',
-                action: 'view_application',
-                text: 'View Application',
-                actionData: {
-                    applicationId: 'app_kT3nH7mR8qX2bS9jL6',
-                    navigateTo: 'applications'
-                }
-            }
+            // REMOVED: View Application button - applications moved to jobs.html
         ],
         
         metadata: {
@@ -1997,21 +2003,13 @@ const MOCK_NOTIFICATIONS = [
         dateDisplay: 'Dec. 20, 2025',
         
         relatedDocuments: {
-            applicationId: 'app_nT7mK9qR2xJ4wS8nL6',
+            // REMOVED: applicationId - applications moved to jobs.html
             jobId: 'job_xK4nM7rT8qJ2wS5nP9',
             userProfile: 'user_dR7nK4mQ9xT2jP6sL8'
         },
         
         actions: [
-            {
-                type: 'secondary',
-                action: 'view_application',
-                text: 'View Application',
-                actionData: {
-                    applicationId: 'app_nT7mK9qR2xJ4wS8nL6',
-                    navigateTo: 'applications'
-                }
-            }
+            // REMOVED: View Application button - applications moved to jobs.html
         ],
         
         metadata: {
@@ -2147,12 +2145,12 @@ function generateNotificationHTML(notification) {
 
     // Add conditional data attributes - check both top-level and relatedDocuments
     const jobId = notification.jobId || notification.relatedDocuments?.jobId;
-    const applicationId = notification.applicationId || notification.relatedDocuments?.applicationId;
+    // REMOVED: applicationId - applications moved to jobs.html
     const threadId = notification.threadId || notification.relatedDocuments?.threadId;
     
     if (jobId) dataAttributes.push(`data-job-id="${jobId}"`);
     if (notification.jobTitle) dataAttributes.push(`data-job-title="${notification.jobTitle}"`);
-    if (applicationId) dataAttributes.push(`data-application-id="${applicationId}"`);
+    // REMOVED: applicationId data attribute - applications moved to jobs.html
     if (threadId) dataAttributes.push(`data-thread-id="${threadId}"`);
     if (notification.userId) dataAttributes.push(`data-user-id="${notification.userId}"`);
     if (notification.userName) dataAttributes.push(`data-user-name="${notification.userName}"`);
@@ -2161,7 +2159,7 @@ function generateNotificationHTML(notification) {
         const actionDataAttrs = [`data-action="${action.action}"`];
         // Use actionData for button-specific attributes
         if (action.actionData?.jobId) actionDataAttrs.push(`data-job-id="${action.actionData.jobId}"`);
-        if (action.actionData?.applicationId) actionDataAttrs.push(`data-application-id="${action.actionData.applicationId}"`);
+        // REMOVED: applicationId action data - applications moved to jobs.html
         if (action.actionData?.threadId) actionDataAttrs.push(`data-thread-id="${action.actionData.threadId}"`);
         
         return `<button class="notification-action-btn ${action.type}" ${actionDataAttrs.join(' ')}>${action.text}</button>`;
@@ -2329,9 +2327,9 @@ CONVERSATION CREATION RULES:
 1. APPLICATION-BASED THREADS (threadOrigin: 'application'):
    - Created when customer contacts worker's application via "Contact" button
    - applicationId must be provided and valid
-   - currentUserRole determines who can see "View Application" button
-   - Customer role: Can view application details
-   - Worker role: Cannot view their own application (redundant)
+   - currentUserRole determines user permissions  
+   - Customer and Worker roles have different overlay options
+   - "View Application" button removed since applications moved to jobs.html
 
 2. JOB-BASED THREADS (threadOrigin: 'job'):
    - Created when worker contacts customer's job post via "Contact" button
@@ -2370,7 +2368,7 @@ WORKER PERSPECTIVE EXAMPLES (Threads 4 & 5):
 Thread 4 - Peter as Worker receiving Interview Request:
 - Janice (customer) contacted Peter's application
 - Peter sees "Application Interview with Janice Legaspi"
-- No "View Application" button (worker can't view own application)
+- "View Application" button removed (applications moved to jobs.html)
 - "View Job Post" button available to reference original job
 - Critical for Peter to understand what job Janice is hiring for
 
@@ -3045,13 +3043,12 @@ function updateMessageCount() {
 }
 
 function updateApplicationsCount() {
-    // Count all remaining application cards
-    const applicationCards = document.querySelectorAll('.application-card');
+    // UPDATED: 3rd tab is now Messages (admin communications), not applications
+    // Set static count for Messages tab
     const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
-    const applicationsPlaceholder = document.getElementById('applications-placeholder');
     
     if (applicationsCountElement) {
-        const remainingCount = applicationCards.length;
+        const remainingCount = 6; // Static count for Messages tab
         applicationsCountElement.textContent = remainingCount;
         
         // Hide badge if count is 0
@@ -3402,9 +3399,10 @@ function initializeContactMessageOverlay() {
 window.cancelSelection = cancelSelection;
 window.deleteSelectedNotifications = deleteSelectedNotifications;
 
-// Applications Data Structure - FOR BACKEND PREPARATION
-const MOCK_APPLICATIONS = [
-    {
+// Removed: MOCK_APPLICATIONS array - Applications data moved to jobs.html overlay system
+// The Messages tab (3rd tab) now contains admin communications, not application cards
+// const MOCK_APPLICATIONS = [
+    /*{
         jobId: 'job_gT5nM8xK2jS6wF3eA9', // Firebase document ID format
         jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
         employerUid: 'user_currentUserUid', // Job owner
@@ -4732,73 +4730,13 @@ const MOCK_APPLICATIONS = [
                 }
             }
         ]
-    }
-];
+    }*/
+// ]; // End of removed MOCK_APPLICATIONS
 
-// Generate Application Card HTML - FIREBASE DATA-DRIVEN
-function generateApplicationCardHTML(application, jobTitle) {
-    const stars = Array.from({length: 5}, (_, i) => 
-        `<span class="star ${i < application.applicantProfile.averageRating ? 'filled' : ''}">★</span>`
-    ).join('');
+// REMOVED: Generate Application Card HTML - FIREBASE DATA-DRIVEN
+// REMOVED: generateApplicationCardHTML() function - obsolete since applications moved to jobs.html
 
-    return `
-        <div class="application-card" 
-             data-application-id="${application.applicationId}" 
-             data-user-id="${application.applicantUid}" 
-             data-job-title="${jobTitle}"
-             data-user-name="${application.applicantProfile.displayName}"
-             data-user-photo="${application.applicantProfile.photoURL}"
-             data-user-rating="${application.applicantProfile.averageRating}"
-             data-review-count="${application.applicantProfile.totalReviews}"
-             data-price-offer="${application.pricing.offeredAmount}"
-             data-price-type="${application.pricing.paymentType}"
-             data-is-counter-offer="${application.pricing.isCounterOffer}"
-             data-status="${application.status}"
-             data-timestamp="${application.appliedAt.toISOString()}">
-            <div class="application-job-title">
-                <span class="applicant-name" data-user-name="${application.applicantProfile.displayName}">${application.applicantProfile.displayName}</span>
-                <span class="price-offer">${application.displayData.formattedPrice}</span>
-            </div>
-            <div class="application-header">
-                <div class="application-left">
-                    <div class="application-date">${application.displayData.appliedDate}</div>
-                    <div class="application-time">${application.displayData.appliedTime}</div>
-                    <div class="application-rating" data-user-rating="${application.applicantProfile.averageRating}" data-review-count="${application.applicantProfile.totalReviews}">
-                        <div class="stars">${stars}</div>
-                        <span class="review-count">(${application.applicantProfile.totalReviews})</span>
-                    </div>
-                </div>
-                <div class="applicant-photo">
-                    <img src="${application.applicantProfile.photoURL}" alt="${application.applicantProfile.displayName}" data-user-photo="${application.applicantProfile.photoURL}">
-                </div>
-            </div>
-            <div class="application-message">
-                <strong>MESSAGE:</strong>
-                ${application.applicationMessage}
-            </div>
-        </div>
-    `;
-}
-
-// Generate Job Listing HTML - DATA-DRIVEN FOR BACKEND
-function generateJobListingHTML(jobData) {
-    const applicationsHTML = jobData.applications.map(app => 
-        generateApplicationCardHTML(app, jobData.jobTitle)
-    ).join('');
-
-    return `
-        <div class="job-listing" data-job-id="${jobData.jobId}">
-            <div class="job-header" data-job-id="${jobData.jobId}">
-                <div class="job-title">${jobData.jobTitle}</div>
-                <div class="application-count">${jobData.applicationCount}</div>
-                <div class="expand-icon">▼</div>
-            </div>
-            <div class="applications-list" id="applications-${jobData.jobId}" style="display: none;">
-                ${applicationsHTML}
-            </div>
-        </div>
-    `;
-}
+// REMOVED: generateJobListingHTML() function - obsolete since applications moved to jobs.html
 
 /*
 🔥 FIREBASE MIGRATION INSTRUCTIONS - CRITICAL REFACTOR NEEDED 🔥
@@ -5461,18 +5399,8 @@ function showAvatarOverlay(event, userData) {
     console.log(`🔍 DEBUG: applicationId = "${userData.applicationId}"`);
     console.log(`🔍 DEBUG: jobId = "${userData.jobId}"`);
     
-    // Create overlay content with conditional "View Application" button
-    // Only show "View Application" for customers in application-based threads
-    const viewApplicationButton = userData.threadOrigin === 'application' && 
-                                   userData.applicationId && 
-                                   userData.currentUserRole === 'customer'
-        ? `<button class="avatar-action-btn application" data-application-id="${userData.applicationId}" data-job-id="${userData.jobId}">
-               <span>📋</span>
-               <span>VIEW APPLICATION</span>
-           </button>`
-        : '';
-    
-    console.log(`🔍 DEBUG: viewApplicationButton HTML:`, viewApplicationButton);
+    // REMOVED: "View Application" button - no longer needed since applications moved to jobs.html
+    const viewApplicationButton = ''; // Always empty now
     
     overlay.innerHTML = `
         <div class="avatar-overlay-header">
@@ -5643,33 +5571,10 @@ function initializeAvatarOverlayActions(overlay, userData) {
             jobId: applicationBtn.getAttribute('data-job-id')
         });
         
-        applicationBtn.addEventListener('click', function() {
-            const applicationId = this.getAttribute('data-application-id');
-            const jobId = this.getAttribute('data-job-id');
-            
-            console.log(`🔗 DEBUG: Avatar overlay View Application clicked!`);
-            console.log(`🔗 DEBUG: applicationId = "${applicationId}"`);
-            console.log(`🔗 DEBUG: jobId = "${jobId}"`);
-            
-            if (!applicationId || !jobId) {
-                console.error(`❌ Missing data: applicationId="${applicationId}", jobId="${jobId}"`);
-                showTemporaryNotification(`Error: Missing application data`);
-                return;
-            }
-            
-            // BACKEND INTEGRATION POINT: Navigate to specific application card
-            // This should scroll to the Applications tab and expand the specific application
-            // Example implementation:
-            navigateToApplicationCard(applicationId, jobId);
-            
-            // Show temporary notification
-            showTemporaryNotification(`Opening application details...`);
-            
-            // Hide overlay
-            hideAvatarOverlay();
-        }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
+        // REMOVED: View Application button click handler - no longer needed
+        console.log(`🔍 DEBUG: View Application button functionality removed`);
     } else {
-        console.log(`🔍 DEBUG: No View Application button found in overlay`);
+        console.log(`🔍 DEBUG: No View Application button found in overlay (expected - removed)`);
     }
     
     // BLOCK USER button
@@ -6222,9 +6127,9 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
 
 // NUCLEAR OPTION: Global reset function for stuck overlays
 // This can be called manually or triggered by specific events
-// BACKEND INTEGRATION FUNCTION: Navigate to specific application card
-function navigateToApplicationCard(applicationId, jobId) {
-    console.log(`🎯 Navigating to application: ${applicationId} in job: ${jobId}`);
+// REMOVED: navigateToApplicationCard() function - no longer needed since applications moved to jobs.html
+// function navigateToApplicationCard(applicationId, jobId) {
+    /*console.log(`🎯 Navigating to application: ${applicationId} in job: ${jobId}`);
     
     // 1. Switch to Applications tab
     const applicationsTab = document.querySelector('.tab-btn[data-tab="applications"]');
@@ -6453,8 +6358,8 @@ function navigateToApplicationCard(applicationId, jobId) {
             console.warn(`Available application IDs:`, 
                 Array.from(allCards).map(el => el.getAttribute('data-application-id')));
         }
-    }
-}
+    }*/
+// } // End of removed navigateToApplicationCard function
 
 // NUCLEAR OPTION: Global reset function for stuck overlays
 // This can be called manually or triggered by specific events

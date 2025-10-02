@@ -181,10 +181,7 @@ body:has(.messages-header) {
   
   /* OLD HEADER RULES REMOVED - Using uniform header system now */
   
-  .messages-tabs {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 15px); /* Increased gap to show borderline */
-    margin-top: -10px; /* Golden Rule applied - reduce gap between borderline and tabs */
-  }
+  /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-content-wrapper {
     top: 160px !important; /* Increased from 138px to give cards more space above tabs */
@@ -297,10 +294,7 @@ body:has(.messages-header) {
   
   /* OLD HEADER RULES REMOVED - Using uniform header system now */
   
-  .messages-tabs {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 20px); /* Larger gap for desktop to show borderline */
-    margin-top: -9px; /* POSITIVE margin to push tabs away from borderline */    
-  }
+  /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-content-wrapper {
     top: 170px !important; /* Increased from 138px to give cards more space above tabs */
@@ -421,16 +415,89 @@ body:has(.messages-header) {
 
 
 
-/* Tab Navigation Styles - UPDATED FOR UNIFORM HEADER SYSTEM */
+/* Role Tab Navigation Styles - NEW TOP LEVEL TABS */
+.role-tabs {
+  position: fixed;
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 0px) + 0px); /* Clear uniform header - EXACT COPY from jobs.css */  
+  width: 100%;
+  height: 70px; /* Fixed height for consistent spacing */
+  background: transparent;
+  display: flex;    
+  justify-content: center;
+  align-items: center;
+  gap: 20px;  
+  z-index: 1000; /* EXACT COPY from jobs.css */
+  margin-left: -12px;
+}
+
+.role-tab-btn {
+  display: flex;
+  background: linear-gradient(135deg, #e6d6ae 0%, #d4c29a 100%);
+  color: #2d3748;
+  padding: 12px 32px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  border: 2px solid rgba(240, 230, 210, 0.3);
+  box-shadow: 0 6px 20px rgba(230, 214, 174, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 0 15px; /* Remove vertical margin, container handles centering */
+  min-width: 120px;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.role-tab-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(230, 214, 174, 0.6);
+  background: linear-gradient(135deg, #d4c29a 0%, #c4b28a 100%);
+}
+
+/* Active role tab - blue color for any active role */
+.role-tab-btn.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  transform: scale(1.02);
+}
+
+.role-tab-btn.active:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.8);
+}
+
+/* Inactive role tabs - muted gray color */
+.role-tab-btn:not(.active) {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: #e5e7eb;
+  border-color: rgba(107, 114, 128, 0.5);
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.3);
+}
+
+.role-tab-btn:not(.active):hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.5);
+}
+
+.role-tab-text {
+  display: block;
+}
+
+/* Tab Navigation Styles - UPDATED FOR UNIFORM HEADER SYSTEM AND NEW ROLE TABS */
 .messages-tabs {
   position: fixed;
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px); /* Clear uniform header */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px); /* Clear uniform header + role tabs - EXACT COPY from jobs.css */
   left: 0;
   width: 100%;
   background: #2d3748;
-  border-bottom: clamp(1px, 0.5vh, 2px) solid #4a5568; /* Responsive border */
+  border-top: 2px solid #4a5568; /* Top borderline to separate from role tabs */
+  border-bottom: 2px solid #4a5568; /* Match jobs.css border */
   display: flex;
-  z-index: 999;
+  z-index: 999; /* EXACT COPY from jobs.css */
 }
 
 .tab-btn {
@@ -464,13 +531,13 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
-/* Independent Tab Content Wrappers - SIMPLIFIED with fixed positioning */
+/* Independent Tab Content Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM AND NEW ROLE TABS */
 .tab-content-wrapper {
   position: fixed;
-  top: 120px; /* Simple fixed value: header(70px) + borderline(4px) + tabs(46px) */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px); /* Below uniform header, role tabs, and message tabs - EXACT COPY from jobs.css */
   left: 0;
   width: 100%;
-  height: calc(100vh - 120px); /* Simple fixed calculation */
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -1654,6 +1721,31 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: #363f4f !important;
   }
   
+  /* Role tabs mobile styling */
+  .role-tabs {
+    height: 60px; /* Fixed height for mobile */
+    padding: 0 15px; /* Remove vertical padding */
+    gap: 15px;
+  }
+
+  .role-tab-btn {
+    padding: 8px 20px;
+    font-size: 0.85rem;
+    margin: 0 8px; /* Remove vertical margin */
+    min-width: 100px;
+    border-radius: 25px;
+  }
+
+  .messages-tabs {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px); /* Mobile: uniform header + role tabs - EXACT COPY from jobs.css */
+    margin-top: -10px; /* GOLDEN RULE: Reduce gap between borderline and tabs - EXACT COPY from jobs.css */
+  }
+  
+  .tab-content-wrapper {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px); /* Mobile: header + role tabs + message tabs - EXACT COPY from jobs.css */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
+  }
+  
   /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 411px to 401px only */
   .message-thread.expanded {
     margin-top: 10px !important;
@@ -1721,9 +1813,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   /* Tabs */
-  .messages-tabs {
-    top: calc(clamp(66px, 18vh, 68px) + clamp(3px, 1vh, 4px)); /* Removed minimal spacing for consistency */
-  }
+  /* OLD RULE REMOVED - Using main .messages-tabs rule now */
 
   .tab-btn {
     padding: clamp(8px, 2vh, 10px) clamp(6px, 1.5vw, 8px);
@@ -2063,9 +2153,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   /* Ultra Small Tabs Responsive */
-  .messages-tabs {
-    top: calc(62px + clamp(3px, 1vh, 4px)); /* Ultra-small header height + borderline - tight positioning */
-  }
+  /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-btn {
     padding: clamp(6px, 1.5vh, 8px) clamp(4px, 1vw, 6px); /* Smaller padding for ultra-small */
