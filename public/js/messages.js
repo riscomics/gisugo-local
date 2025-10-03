@@ -343,8 +343,8 @@ function loadWorkerChats() {
         const content = workerChats.map(thread => generateMessageThreadHTML(thread)).join('');
         container.innerHTML = content;
         
-        // Initialize event handlers
-        initializeMessages();
+        // Initialize event handlers for this specific container
+        initializeMessages(container);
         
         // Update count
         const countElement = document.querySelector('#workerChatsTab .notification-count');
@@ -368,8 +368,8 @@ function loadCustomerInterviews() {
         const content = customerChats.map(thread => generateMessageThreadHTML(thread)).join('');
         container.innerHTML = content;
         
-        // Initialize event handlers
-        initializeMessages();
+        // Initialize event handlers for this specific container
+        initializeMessages(container);
         
         // Update count
         const countElement = document.querySelector('#customerInterviewsTab .notification-count');
@@ -405,7 +405,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // MEMORY LEAK FIX: Use tracked document listener for overlay clicks
     const overlayClickKey = addDocumentListener('click', function(e) {
-        const messagesContainer = document.querySelector('.messages-container');
+        // Find the correct messages container based on active role and tab
+        const messagesContainer = document.querySelector('.tab-content-wrapper.active .messages-container') || 
+                                 document.querySelector('.messages-container');
         const expandedThread = document.querySelector('.message-thread.expanded');
         
         // Only proceed if there's an active thread
@@ -2849,7 +2851,7 @@ function loadMessagesTab() {
         container.innerHTML = generateMessagesContent();
         
         // Initialize event handlers for the dynamically loaded content
-        initializeMessages();
+        initializeMessages(container);
         
         // Update message count badge
         updateMessageCount();
@@ -2863,8 +2865,8 @@ function loadMessagesTab() {
 // ===== END PHASE 1 TEMPLATES =====
 
 // Messages Management
-function initializeMessages() {
-    const messageThreadHeaders = document.querySelectorAll('.message-thread-header');
+function initializeMessages(container = document) {
+    const messageThreadHeaders = container.querySelectorAll('.message-thread-header');
     
     messageThreadHeaders.forEach(header => {
         header.addEventListener('click', function(e) {
@@ -2875,7 +2877,9 @@ function initializeMessages() {
             
             if (threadContent && expandIcon) {
                 const isExpanded = messageThread.classList.contains('expanded');
-                const messagesContainer = document.querySelector('.messages-container');
+                // Find the correct messages container based on active role and tab
+                const messagesContainer = document.querySelector('.tab-content-wrapper.active .messages-container') || 
+                                         document.querySelector('.messages-container');
                 
                 // IMPROVED UX: Different behavior for expanded threads
                 if (isExpanded) {
@@ -2940,8 +2944,19 @@ function initializeMessages() {
                     const newTag = this.querySelector('.thread-new-tag');
                     if (newTag) {
                         newTag.remove();
-                        // Update message count
-                        updateMessageCount();
+                        
+                        // Update count based on which container this thread is in
+                        const isWorkerChats = this.closest('#worker-chats-content');
+                        const isCustomerInterviews = this.closest('#customer-interviews-content');
+                        const isMainMessages = this.closest('#messages-content');
+                        
+                        if (isWorkerChats) {
+                            updateWorkerChatsCount();
+                        } else if (isCustomerInterviews) {
+                            updateCustomerInterviewsCount();
+                        } else if (isMainMessages) {
+                            updateMessageCount();
+                        }
                     }
                     
                     // Keep scroll at top since newest messages are now at top
@@ -2973,7 +2988,9 @@ function initializeMessages() {
 
 function closeAllMessageThreads() {
     const allMessageThreads = document.querySelectorAll('.message-thread');
-    const messagesContainer = document.querySelector('.messages-container');
+    // Find the correct messages container based on active role and tab
+    const messagesContainer = document.querySelector('.tab-content-wrapper.active .messages-container') || 
+                             document.querySelector('.messages-container');
     
     // CRITICAL FIX: Clean up avatar overlay when closing threads
     // This prevents overlay from being orphaned when threads are closed
@@ -3039,6 +3056,44 @@ function updateMessageCount() {
         }
         
         console.log('Message count updated to:', remainingCount);
+    }
+}
+
+function updateWorkerChatsCount() {
+    const workerContainer = document.querySelector('#worker-chats-content .messages-container');
+    const newTags = workerContainer ? workerContainer.querySelectorAll('.thread-new-tag') : [];
+    const countElement = document.querySelector('#workerChatsTab .notification-count');
+    
+    if (countElement) {
+        const remainingCount = newTags.length;
+        countElement.textContent = remainingCount;
+        
+        if (remainingCount === 0) {
+            countElement.style.display = 'none';
+        } else {
+            countElement.style.display = 'inline-block';
+        }
+        
+        console.log(`Updated worker chats count to: ${remainingCount}`);
+    }
+}
+
+function updateCustomerInterviewsCount() {
+    const customerContainer = document.querySelector('#customer-interviews-content .messages-container');
+    const newTags = customerContainer ? customerContainer.querySelectorAll('.thread-new-tag') : [];
+    const countElement = document.querySelector('#customerInterviewsTab .notification-count');
+    
+    if (countElement) {
+        const remainingCount = newTags.length;
+        countElement.textContent = remainingCount;
+        
+        if (remainingCount === 0) {
+            countElement.style.display = 'none';
+        } else {
+            countElement.style.display = 'inline-block';
+        }
+        
+        console.log(`Updated customer interviews count to: ${remainingCount}`);
     }
 }
 
@@ -5737,9 +5792,6 @@ function initializeAvatarOverlayActions(overlay, userData) {
             
             // Close the expanded thread
             closeAllMessageThreads();
-            
-            // Show temporary notification
-            showTemporaryNotification(`Conversation closed`);
         }, { signal });
     }
 }

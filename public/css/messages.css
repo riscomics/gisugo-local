@@ -184,12 +184,12 @@ body:has(.messages-header) {
   /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-content-wrapper {
-    top: 160px !important; /* Increased from 138px to give cards more space above tabs */
-    height: calc(100vh - 160px) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* FIXED: Use proper calc() instead of fixed pixels */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
   }
   
   .message-thread.expanded {
-    top: 158px !important; /* Tablet: content start(138px) + margin(20px) - increased spacing */
+    top: 260px; /* More space from tabs for tablet */
   }
   
   body {
@@ -198,8 +198,8 @@ body:has(.messages-header) {
 
   /* Tablet Overlay Positioning - Match tablet header layout */
   .messages-container.thread-active::before {
-    top: 138px !important; /* Tablet content start position */
-    height: calc(100vh - 138px) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* Tablet: Match content area start */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
   }
 
   /* Tablet Tab Content Spacing - Add top spacing for all tabs */
@@ -208,7 +208,7 @@ body:has(.messages-header) {
   }
 
   .messages-container {
-    padding-top: clamp(22px, 3.5vh, 28px) !important; /* Increased tablet top spacing from tabs */
+    padding-top: clamp(22px, 3.5vh, 28px) !important; /* Restored original tablet spacing */
   }
 
   /* Applications Tab Tablet Styles - Balanced spacing for 601-1023px range */
@@ -297,12 +297,12 @@ body:has(.messages-header) {
   /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-content-wrapper {
-    top: 170px !important; /* Increased from 138px to give cards more space above tabs */
-    height: calc(100vh - 170px) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* FIXED: Use proper calc() instead of fixed pixels */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
   }
   
   .message-thread.expanded {
-    top: 158px !important; /* Desktop: content start(138px) + margin(20px) - increased spacing */
+    top: 260px; /* More space from tabs for desktop */
   }
   
   body {
@@ -311,8 +311,8 @@ body:has(.messages-header) {
 
   /* Desktop Overlay Positioning - Match desktop header layout */
   .messages-container.thread-active::before {
-    top: 132px !important; /* Desktop content start position */
-    height: calc(100vh - 132px) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* Desktop: Match content area start */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
   }
 
   /* Desktop Tab Content Spacing - Add top spacing for all tabs */
@@ -321,7 +321,7 @@ body:has(.messages-header) {
   }
 
   .messages-container {
-    padding-top: clamp(24px, 3.5vh, 30px) !important; /* Increased desktop top spacing from tabs */
+    padding-top: clamp(24px, 3.5vh, 30px) !important; /* Restored original desktop spacing */
   }
 
   /* Applications Tab Desktop Styles - Minimal spacing for 1024px+ screens */
@@ -824,13 +824,13 @@ body:has(.messages-header) {
   font-style: normal;
 }
 
-/* Contact Message Overlay */
+/* Contact Message Overlay - Mobile positioning */
 .contact-message-overlay {
   position: fixed;
-  top: 0;
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px);
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
   background: rgba(0, 0, 0, 0.7);
   display: none;
   align-items: center;
@@ -1021,18 +1021,64 @@ body:has(.messages-header) {
   }
 }
 
-/* Application Action Overlay */
-.application-action-overlay {
+/* Application Action Overlay - Mobile positioning */
+#applicationActionOverlay {
   position: fixed;
-  top: 0;
+  top: 250px; /* FIXED: Position below tabs for mobile */
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - 250px);
   background: rgba(0, 0, 0, 0.7);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 2000;  
+}
+
+/* Tablet Action Overlay Positioning */
+@media (min-width: 601px) and (max-width: 1023px) {
+  #applicationActionOverlay.application-action-overlay {
+    top: 280px !important; /* FIXED: Position properly below tabs for tablet */
+    height: calc(100vh - 280px) !important;
+  }
+  
+  .contact-message-overlay {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+  }
+  
+  .confirmation-overlay {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+  }
+  
+  .custom-confirmation-overlay {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+  }
+}
+
+/* Desktop Action Overlay Positioning */
+@media (min-width: 1024px) {
+  #applicationActionOverlay.application-action-overlay {
+    top: 280px !important; /* FIXED: Position properly below tabs for desktop */
+    height: calc(100vh - 280px) !important;
+  }
+  
+  .contact-message-overlay {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+  }
+  
+  .confirmation-overlay {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+  }
+  
+  .custom-confirmation-overlay {
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+  }
 }
 
 .application-action-overlay.show {
@@ -1250,13 +1296,13 @@ body:has(.messages-header) {
   color: #ffffff;
 }
 
-/* Confirmation Overlay Styles */
+/* Confirmation Overlay Styles - Mobile positioning */
 .confirmation-overlay {
   position: fixed;
-  top: 0;
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px);
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
   background: rgba(0, 0, 0, 0.8);
   display: none;
   align-items: center;
@@ -1852,7 +1898,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 
   /* Mobile Notification Containers */
   .notifications-container {
-    padding: clamp(16px, 3vh, 20px) 0 60px 0; /* Increased top spacing from tabs + bottom padding for mobile scrolling */
+    padding: clamp(2px, 1vh, 6px) 0 60px 0; /* REDUCED FURTHER: Even tighter spacing between Alerts tab and notification cards for mobile */
   }
 
   #notifications-content {
@@ -1865,17 +1911,17 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .messages-container {
-    padding-top: clamp(16px, 3vh, 20px) !important; /* Increased mobile top spacing from tabs */
+    padding-top: clamp(2px, 1vh, 6px) !important; /* REDUCED: Tighter spacing between Chats tab and threads for mobile */
   }
 
   .applications-container {
-    padding: clamp(16px, 3vh, 20px) 0 clamp(80px, 12vh, 100px) 0 !important; /* Increased mobile spacing - force precedence */
+    padding: clamp(8px, 2vh, 12px) 0 clamp(80px, 12vh, 100px) 0 !important; /* REDUCED: Less spacing between Messages tab and inbox for mobile */
   }
 
   /* Mobile Overlay Positioning - Match mobile header layout */
   .messages-container.thread-active::before {
-    top: 120px !important; /* Mobile content start position */
-    height: calc(100vh - 120px) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px) !important; /* Mobile: Match content area start */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px)) !important;
   }
 
   .job-header {
@@ -2249,7 +2295,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Move entire expanded thread to top - FIXED positioning to eliminate excessive spacing */
 .message-thread.expanded {
   position: fixed;
-  top: 130px; /* Simple fixed: just below content area start (120px + 10px margin) */
+  top: 220px; /* Mobile: Below tabs */
   left: 50%;
   transform: translateX(-50%);
   width: clamp(92%, 90vw, 90%); /* Responsive width */
@@ -2258,6 +2304,13 @@ body:has(.selection-controls[style*="display: flex"]) {
   margin: 0;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
+}
+
+/* Tablet/Desktop expanded thread positioning */
+@media (min-width: 601px) {
+  .message-thread.expanded {
+    top: 280px; /* More space from tabs for tablet/desktop */
+  }
 }
 
 /* Show expanded thread after positioning */
@@ -2318,10 +2371,10 @@ body:has(.selection-controls[style*="display: flex"]) {
 .messages-container.thread-active::before {
   content: '';
   position: fixed;
-  top: 138px; /* Start below header area to prevent interference */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px); /* Start below content area to prevent interference */
   left: 0;
   width: 100vw;
-  height: calc(100vh - 138px); /* Adjust height to account for header offset */
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px)); /* Adjust height to account for header offset */
   background: rgba(0, 0, 0, 0.4);
   z-index: 997;
   opacity: 0;
@@ -2677,13 +2730,13 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 
 
-/* Custom Confirmation Dialog Styles */
+/* Custom Confirmation Dialog Styles - Mobile positioning */
 .custom-confirmation-overlay {
   position: fixed;
-  top: 0;
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px);
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
@@ -3126,6 +3179,18 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
 
+}
+
+/* Fix ACTUAL modal positioning - avatar overlay */
+#avatarOverlay.avatar-overlay {
+  top: 250px !important; /* Mobile positioning */
+}
+
+/* Tablet/Desktop modal positioning */
+@media (min-width: 601px) {
+  #avatarOverlay.avatar-overlay {
+    top: 300px !important; /* Lower for tablet/desktop */
+  }
 }
 
 /* ===== USER MESSAGES SYSTEM ===== */

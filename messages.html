@@ -6,7 +6,7 @@
     <title>Messages - GISUGO</title>
     <!-- UNIFORM HEADER SYSTEM -->
     <link rel="stylesheet" href="public/css/header-uniform.css?v=2.1">
-    <link rel="stylesheet" href="public/css/messages.css?v=10.8">
+    <link rel="stylesheet" href="public/css/messages.css?v=11.0">
 </head>
 <body class="page-messages">
     <!-- UNIFORM HEADER SYSTEM -->
@@ -50,7 +50,7 @@
         </button>
         <button class="tab-btn" data-tab="customer-interviews" id="customerInterviewsTab">
             <span class="tab-label">INTERVIEWS</span>
-            <span class="notification-count">3</span>
+            <span class="notification-count">2</span>
         </button>
         <button class="tab-btn" data-tab="customer-messages" id="customerMessagesTab">
             <span class="tab-label">MESSAGES</span>
@@ -66,7 +66,7 @@
         </button>
         <button class="tab-btn" data-tab="worker-chats" id="workerChatsTab">
             <span class="tab-label">CHATS</span>
-            <span class="notification-count">2</span>
+            <span class="notification-count">1</span>
         </button>
         <button class="tab-btn" data-tab="worker-messages" id="workerMessagesTab">
             <span class="tab-label">MESSAGES</span>
@@ -383,6 +383,39 @@
     <script src="public/js/header-uniform.js?v=1.0"></script>
     <script src="public/js/messages.js?v=11.0"></script>
 
+    <!-- Viewport Debug Tool -->
+    <div id="vp-debug"></div>
+    <script>
+        function updateViewportDebug() {
+            const vpDebug = document.getElementById('vp-debug');
+            if (vpDebug) {
+                vpDebug.textContent = `Viewport: ${window.innerWidth}px`;
+            }
+        }
+        
+        // Style the debug tool
+        const vpDebug = document.getElementById('vp-debug');
+        if (vpDebug) {
+            vpDebug.style.cssText = `
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                background: #000;
+                color: #fff;
+                padding: 4px 8px;
+                font-size: 12px;
+                opacity: 0.6;
+                z-index: 9999;
+                font-family: monospace;
+                border-radius: 0 4px 0 0;
+                pointer-events: none;
+            `;
+        }
+        
+        // Update on load and resize
+        updateViewportDebug();
+        window.addEventListener('resize', updateViewportDebug);
+    </script>
 
 </body>
 </html> 
