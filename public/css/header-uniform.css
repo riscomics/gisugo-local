@@ -352,7 +352,7 @@ html body:has(.uniform-header) {
 /* Use these classes on the body element to set page-specific titles */
 
 .page-messages .uniform-header-title::before {
-  content: "NOTIFICATIONS";
+  content: "COMMUNICATIONS";
 }
 
 .page-profile .uniform-header-title::before {

@@ -15,7 +15,7 @@ const MENU_ITEMS = [
   },
   {
     icon: 'public/icons/Messages.png',
-    text: 'Messages',
+    text: 'Communications',
     link: 'messages.html'
   },
   {

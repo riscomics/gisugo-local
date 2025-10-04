@@ -649,18 +649,7 @@ async function switchToWorkerTab(tabType) {
     }
 }
 
-function updatePageTitle(activeTab) {
-    const titleElement = document.getElementById('messagesTitle');
-    if (!titleElement) return;
-
-    const titles = {
-        'notifications': 'NOTIFICATIONS',
-        'applications': 'APPLICATIONS', 
-        'messages': 'MESSAGES'
-    };
-
-    titleElement.textContent = titles[activeTab] || 'MESSAGES';
-}
+// Title management removed - header always shows "COMMUNICATIONS"
 
 // MEMORY LEAK FIX: Cleanup job listing event listeners before reinitializing
 function cleanupJobListingListeners() {
