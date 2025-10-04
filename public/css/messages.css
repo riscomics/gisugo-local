@@ -110,6 +110,7 @@ body::-webkit-scrollbar {
   width: 100%;
   background: rgb(149, 149, 228); /* Fixed invalid RGB value - was 328, now 228 */
   position: fixed;
+  top: var(--header-height, 76px); /* Position directly below header */
   left: 0;
   z-index: 96;
 }
@@ -184,8 +185,8 @@ body:has(.messages-header) {
   /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* FIXED: Use proper calc() instead of fixed pixels */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px) !important; /* FIXED: Restore 10px gap to prevent content going behind tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
   }
   
   .message-thread.expanded {
@@ -198,13 +199,13 @@ body:has(.messages-header) {
 
   /* Tablet Overlay Positioning - Match tablet header layout */
   .messages-container.thread-active::before {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* Tablet: Match content area start */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px) !important; /* Tablet: Match content area start */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
   }
 
   /* Tablet Tab Content Spacing - Add top spacing for all tabs */
   .notifications-container {
-    padding-top: clamp(22px, 3.5vh, 28px) !important; /* Increased tablet top spacing from tabs */
+    padding-top: clamp(16px, 3.2vh, 22px) !important; /* REDUCED FURTHER: Even tighter tablet spacing */
   }
 
   .messages-container {
@@ -286,6 +287,48 @@ body:has(.messages-header) {
   }
 }
 
+/* Mobile range (887px and below) - Column layout for inbox controls - SCOPED TO MESSAGES TAB ONLY */
+@media (max-width: 887px) {
+  #customer-messages-content .user-messages-left-panel .inbox-controls,
+  #worker-messages-content .user-messages-left-panel .inbox-controls {
+    flex-direction: column !important;
+    gap: 0.75rem !important; /* REDUCED: Less space between New/Old buttons and search bar */
+    align-items: stretch !important; /* Full width on mobile */
+  }
+  
+  #customer-messages-content .user-messages-left-panel .inbox-search,
+  #worker-messages-content .user-messages-left-panel .inbox-search {
+    max-width: none !important;
+    width: 100% !important;
+    margin-top: 0 !important; /* Removed extra margin since we have gap now */
+  }
+  
+  .user-messages-left-panel .panel-header {
+    padding: 1rem 1rem 0.75rem 1rem !important; /* Balanced: More top padding, less bottom padding */
+  }
+}
+
+/* Medium Desktop range (888px-1252px) - Column layout for inbox controls - SCOPED TO MESSAGES TAB ONLY */
+@media (min-width: 888px) and (max-width: 1252px) {
+  #customer-messages-content .user-messages-left-panel .inbox-controls,
+  #worker-messages-content .user-messages-left-panel .inbox-controls {
+    flex-direction: column !important;
+    gap: 0.75rem !important; /* REDUCED: Less space between New/Old buttons and search bar */
+    align-items: flex-start !important;
+  }
+  
+  #customer-messages-content .user-messages-left-panel .inbox-search,
+  #worker-messages-content .user-messages-left-panel .inbox-search {
+    max-width: none !important;
+    width: 100% !important;
+    margin-top: 0 !important; /* Removed extra margin since we have gap now */
+  }
+  
+  .user-messages-left-panel .panel-header {
+    padding: 1rem 1rem 0.75rem 1rem !important; /* Balanced: More top padding, less bottom padding */
+  }
+}
+
 /* Desktop-specific overrides to ensure visibility */
 @media (min-width: 1024px) {
   :root {
@@ -297,8 +340,8 @@ body:has(.messages-header) {
   /* OLD RULE REMOVED - Using main .messages-tabs rule now */
   
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* FIXED: Use proper calc() instead of fixed pixels */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px) !important; /* FIXED: Restore 10px gap to prevent content going behind tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
   }
   
   .message-thread.expanded {
@@ -308,16 +351,41 @@ body:has(.messages-header) {
   body {
     padding-top: clamp(86px, 20vh, 126px) !important; /* Increased top padding for desktop header with margin and gap */
   }
+}
 
-  /* Desktop Overlay Positioning - Match desktop header layout */
+/* Large Desktop (1253px+) - Row layout with proper search positioning - SCOPED TO MESSAGES TAB ONLY */
+@media (min-width: 1253px) {
+  #customer-messages-content .user-messages-left-panel .inbox-controls,
+  #worker-messages-content .user-messages-left-panel .inbox-controls {
+    flex-direction: row !important;
+    gap: 1rem !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+  
+  #customer-messages-content .user-messages-left-panel .inbox-search,
+  #worker-messages-content .user-messages-left-panel .inbox-search {
+    flex: 0 0 auto !important;
+    max-width: 280px !important; /* Slightly larger for desktop */
+    margin-top: 0 !important;
+  }
+  
+  /* Ensure notifications container has proper spacing at large desktop */
+  .notifications-container {
+    padding-top: clamp(20px, 3.6vh, 26px) !important; /* REDUCED FURTHER: Even tighter large desktop spacing */
+  }
+}
+
+/* Desktop-specific overrides to ensure visibility */
+@media (min-width: 1024px) {
   .messages-container.thread-active::before {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px) !important; /* Desktop: Match content area start */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px)) !important;
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px) !important; /* Desktop: Match content area start with 10px gap */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
   }
 
   /* Desktop Tab Content Spacing - Add top spacing for all tabs */
   .notifications-container {
-    padding-top: clamp(24px, 3.5vh, 30px) !important; /* Increased desktop top spacing from tabs */
+    padding-top: clamp(20px, 3.6vh, 26px) !important; /* REDUCED FURTHER: Even tighter desktop spacing */
   }
 
   .messages-container {
@@ -328,6 +396,7 @@ body:has(.messages-header) {
   .applications-container {
     padding: clamp(24px, 3.5vh, 30px) 0 clamp(120px, 18vh, 150px) 0 !important; /* Increased desktop spacing - force precedence */
   }
+}
 
   .job-listing {
     max-width: clamp(580px, 85vw, 650px); /* Larger desktop width for better use of space */
@@ -397,7 +466,6 @@ body:has(.messages-header) {
     font-size: clamp(0.9rem, 1.8vw, 1rem);
     margin-bottom: clamp(9px, 2vh, 12px);
   }
-}
 
 /* Add margin between expanded header and tabs for larger mobile */
 .message-thread.expanded {
@@ -418,7 +486,7 @@ body:has(.messages-header) {
 /* Role Tab Navigation Styles - NEW TOP LEVEL TABS */
 .role-tabs {
   position: fixed;
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 0px) + 0px); /* Clear uniform header - EXACT COPY from jobs.css */  
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px); /* FIXED: Use consistent 4px borderline height */  
   width: 100%;
   height: 70px; /* Fixed height for consistent spacing */
   background: transparent;
@@ -1043,18 +1111,18 @@ body:has(.messages-header) {
   }
   
   .contact-message-overlay {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   }
   
   .confirmation-overlay {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   }
   
   .custom-confirmation-overlay {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   }
 }
 
@@ -1066,18 +1134,18 @@ body:has(.messages-header) {
   }
   
   .contact-message-overlay {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   }
   
   .confirmation-overlay {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   }
   
   .custom-confirmation-overlay {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px);
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px);
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
   }
 }
 
@@ -3224,7 +3292,8 @@ body:has(.selection-controls[style*="display: flex"]) {
     border-radius: 8px 8px 0 0;
 }
 
-.user-messages-left-panel .inbox-controls {
+#customer-messages-content .user-messages-left-panel .inbox-controls,
+#worker-messages-content .user-messages-left-panel .inbox-controls {
     display: flex;
     flex-direction: row;
     gap: 1rem;
@@ -3274,8 +3343,8 @@ body:has(.selection-controls[style*="display: flex"]) {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex: 1;
-    max-width: 200px;
+    flex: 0 0 auto; /* Changed from flex: 1 to prevent over-extension */
+    max-width: 250px; /* Increased from 200px for better desktop fit */
 }
 
 .search-input-small {
@@ -3283,7 +3352,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    background: #2d3748;
+    background: #232a35; /* DARKER: Match dropdown darker inner background */
     color: #e2e8f0;
     font-size: 0.875rem;
 }
@@ -3310,16 +3379,34 @@ body:has(.selection-controls[style*="display: flex"]) {
 .message-type-filter {
     padding: 0 1rem 1rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .type-dropdown {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    background: #2d3748;
-    color: #e2e8f0;
-    font-size: 0.875rem;
+    width: 50%; /* REDUCED: Half width since options aren't long phrases */
+    padding: 0.75rem 2.5rem 0.75rem 0.75rem; /* Add right padding for arrow space */
+    margin-top: 1rem; /* VERTICAL CENTERING: Increased top margin space */
+    background: #232a35; /* DARKER: Slightly darker inner background to stand out */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.5; /* VERTICAL CENTERING: Ensure text is centered within */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6d6ae' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center; /* Move arrow away from edge */
+    background-size: 1rem;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.type-dropdown:focus {
+    outline: none;
+    border-color: #10b981;
 }
 
 /* Scrollable Messages List */
@@ -3516,7 +3603,8 @@ body:has(.selection-controls[style*="display: flex"]) {
         max-height: calc(100vh - 160px);
     }
     
-    .user-messages-left-panel .inbox-controls {
+    #customer-messages-content .user-messages-left-panel .inbox-controls,
+    #worker-messages-content .user-messages-left-panel .inbox-controls {
         flex-direction: column;
         gap: 0.75rem;
         align-items: stretch;
@@ -3538,7 +3626,8 @@ body:has(.selection-controls[style*="display: flex"]) {
         padding: 0.75rem;
     }
     
-    .user-messages-left-panel .inbox-controls {
+    #customer-messages-content .user-messages-left-panel .inbox-controls,
+    #worker-messages-content .user-messages-left-panel .inbox-controls {
         gap: 0.5rem;
     }
     
