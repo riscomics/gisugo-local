@@ -953,7 +953,7 @@ section {
 .header__menu-caption {
   display: block;
   margin-top: 2px;
-  font-size: clamp(10px, 2.5vw, 12px);
+  font-size: clamp(0.8rem, 2.5vw, 1rem); /* Match header__subtitle */
   color: var(--primary-color);
   line-height: 1;
   font-weight: 700;
