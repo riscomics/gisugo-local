@@ -416,7 +416,7 @@ section {
     font-size: clamp(1.1rem, 3vw, 1.25rem);
   }
 
-  .header__menu svg {
+  .header__menu img {
     width: clamp(35px, 6vw, 45px);
     height: clamp(35px, 6vw, 45px);
   }
@@ -487,7 +487,7 @@ section {
     font-size: clamp(0.65rem, 2.2vw, 0.8rem);
   }
 
-  .header__menu svg {
+  .header__menu img {
     width: clamp(22px, 4vw, 28px);
     height: clamp(22px, 4vw, 28px);
   }
@@ -607,7 +607,7 @@ section {
     font-size: clamp(0.6rem, 2.8vw, 0.75rem);
   }
 
-  .header__menu svg {
+  .header__menu img {
     width: clamp(20px, 4.5vw, 25px);
     height: clamp(20px, 4.5vw, 25px);
   }
@@ -695,7 +695,7 @@ section {
     font-size: clamp(0.55rem, 3vw, 0.7rem);
   }
 
-  .header__menu svg {
+  .header__menu img {
     width: clamp(18px, 5vw, 22px);
     height: clamp(18px, 5vw, 22px);
   }
@@ -783,7 +783,7 @@ section {
     font-size: clamp(0.5rem, 3.5vw, 0.65rem);
   }
 
-  .header__menu svg {
+  .header__menu img {
     width: clamp(16px, 5vw, 20px);
     height: clamp(16px, 5vw, 20px);
   }
@@ -937,10 +937,11 @@ section {
   opacity: 0.8;
 } 
 
-.header__menu svg {
+.header__menu img {
   display: block;
   width: clamp(30px, 5vw, 40px);
   height: clamp(30px, 5vw, 40px);
+  object-fit: contain;
 }
 
 /* Header wrapper with responsive height synchronization */
@@ -1074,7 +1075,7 @@ section {
     padding: clamp(0.75rem, 1.5vw, 1rem) !important;
   }
 
-  .header__menu svg {
+  .header__menu img {
     width: clamp(45px, 7vw, 55px) !important;
     height: clamp(45px, 7vw, 55px) !important;
   }
