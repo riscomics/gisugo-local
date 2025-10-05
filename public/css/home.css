@@ -931,6 +931,9 @@ section {
   cursor: pointer;
   color: var(--primary-color);
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .header__menu:hover {
@@ -942,6 +945,18 @@ section {
   width: clamp(30px, 5vw, 40px);
   height: clamp(30px, 5vw, 40px);
   object-fit: contain;
+  filter: brightness(0.6) contrast(1.1);
+  border: 1.5px solid rgba(0,0,0,0.35);
+  border-radius: 6px;
+}
+
+.header__menu-caption {
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(10px, 2.5vw, 12px);
+  color: var(--primary-color);
+  line-height: 1;
+  font-weight: 700;
 }
 
 /* Header wrapper with responsive height synchronization */
