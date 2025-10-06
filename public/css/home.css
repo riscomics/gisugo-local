@@ -30,10 +30,10 @@
     --header-height: calc(var(--logo-size-ref) + (var(--header-gap) * 1.4));
   }
   .header__title {
-    font-size: clamp(2.05rem, 9.4vw, 3.1rem);
+    font-size: clamp(1.9rem, 8.4vw, 3rem);
   }
   .header__subtitle {
-    font-size: clamp(1.2rem, 4.4vw, 1.32rem);
+    font-size: clamp(1.08rem, 3.8vw, 1.22rem);
   }
   .header__menu img {
     width: clamp(36px, 6.2vw, 48px);
@@ -1171,13 +1171,13 @@ section {
   }
 }
 
-/* Final mobile overrides placed at end to win cascade over earlier blocks */
+/* Final mobile overrides placed at end (rollback to prior desired sizes) */
 @media (max-width: 491px) {
   .header__title {
-    font-size: clamp(2.2rem, 10vw, 3.2rem);
+    font-size: clamp(1.9rem, 8.4vw, 3rem);
   }
   .header__subtitle {
-    font-size: clamp(1.28rem, 4.8vw, 1.36rem);
+    font-size: clamp(1.08rem, 3.8vw, 1.22rem);
   }
 }
 
