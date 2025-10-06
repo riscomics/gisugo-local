@@ -13,6 +13,22 @@
   --borderline-height: 8px;
 }
 
+/* Ensure header height keeps up with item growth on small phones */
+@media (max-width: 491px) {
+  :root {
+    /* Slightly higher floor and faster growth to avoid overlap */
+    --header-height: clamp(3.4rem, 7vh + 3vw, 5rem);
+  }
+}
+
+/* Ensure header height keeps up with item growth on 492-1023px */
+@media (min-width: 492px) and (max-width: 1023px) {
+  :root {
+    /* Raise baseline and growth so items stay above the borderline */
+    --header-height: clamp(4.2rem, 6vh + 4vw, 8.5rem);
+  }
+}
+
 /* Reset & Base Styles */
 * {
   margin: 0;
