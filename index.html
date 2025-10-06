@@ -364,38 +364,6 @@
       }
     </script>
 
-    <!-- Temporary Viewport Debug Tool -->
-    <div id="vp-debug"></div>
-    <script>
-        function updateViewportDebug() {
-            const vpDebug = document.getElementById('vp-debug');
-            if (vpDebug) {
-                vpDebug.textContent = `Viewport: ${window.innerWidth}px`;
-            }
-        }
-        
-        // Style the debug tool
-        const vpDebug = document.getElementById('vp-debug');
-        if (vpDebug) {
-            vpDebug.style.cssText = `
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                background: #000;
-                color: #fff;
-                padding: 4px 8px;
-                font-size: 12px;
-                opacity: 0.6;
-                z-index: 9999;
-                font-family: monospace;
-                border-radius: 0 4px 0 0;
-                pointer-events: none;
-            `;
-        }
-        
-        // Update on load and resize
-        updateViewportDebug();
-        window.addEventListener('resize', updateViewportDebug);
-    </script>
+    
   </body>
 </html>  
