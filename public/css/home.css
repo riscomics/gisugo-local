@@ -7,6 +7,14 @@
   --card-background: #D9D9D9;
   --font-family: 'Arial', sans-serif;
   --container-max-width: 1200px;
+  
+  /* Gradual header scaling - starts small, grows with both vh and vw */
+  --header-height: clamp(2.8rem, 5vh + 3vw, 8rem);
+  --logo-size: clamp(32px, 5vh + 2vw, 88px);
+  --title-size: clamp(1.1rem, 3vh + 2vw, 3rem);
+  --subtitle-size: clamp(0.65rem, 1.5vh + 1vw, 1.25rem);
+  --menu-size: clamp(22px, 3vh + 2vw, 55px);
+  --caption-size: clamp(0.6rem, 1vh + 1vw, 1rem);
 }
 
 /* Reset & Base Styles */
@@ -869,7 +877,7 @@ section {
   z-index: 200;
   background-color: #fef6da;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  height: clamp(2.8rem, 7vh, 3.5rem); /* Mobile-first responsive header */
+  height: var(--header-height); /* Mobile-first responsive header */
   min-height: clamp(2.5rem, 6vh, 3rem);
   display: flex;
   align-items: center;
@@ -880,8 +888,8 @@ section {
 }
 
 .header__logo {
-  width: clamp(50px, 8vw, 68px);
-  height: clamp(50px, 8vw, 68px);
+  width: var(--logo-size);
+  height: var(--logo-size);
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -909,7 +917,7 @@ section {
 }
 
 .header__title {
-  font-size: clamp(1.5rem, 6vw, 3rem);
+  font-size: var(--title-size);
   font-weight: bold;
   color: var(--primary-color);
   line-height: 1.2;
@@ -918,7 +926,7 @@ section {
 }
 
 .header__subtitle {
-  font-size: clamp(0.8rem, 2.5vw, 1rem);
+  font-size: var(--subtitle-size);
   color: var(--primary-color);
   line-height: 1.3;
   margin: 0;
@@ -943,8 +951,8 @@ section {
 
 .header__menu img {
   display: block;
-  width: clamp(30px, 5vw, 40px);
-  height: clamp(30px, 5vw, 40px);
+  width: var(--menu-size);
+  height: var(--menu-size);
   object-fit: contain;
   filter: brightness(0.6) contrast(1.1);
   border: 1.5px solid rgba(0,0,0,0.35);
@@ -954,7 +962,7 @@ section {
 .header__menu-caption {
   display: block;
   margin-top: 2px;
-  font-size: clamp(calc(0.8rem - 1px), calc(2.5vw - 1px), calc(1rem - 1px));
+  font-size: var(--caption-size);
   color: var(--primary-color);
   line-height: 1;
   font-weight: 400;
@@ -968,12 +976,12 @@ section {
   right: 0;
   z-index: 100;
   background-color: #fef6da;
-  height: clamp(3.2rem, 8vh, 4rem); /* Mobile-first responsive header wrapper */
+  height: calc(var(--header-height) + 0.4rem); /* Mobile-first responsive header wrapper */
 }
 
 /* Header spacer with synchronized responsive height */
 .header-spacer {
-  height: clamp(3.2rem, 8vh, 4rem); /* Matches header-wrapper */
+  height: calc(var(--header-height) + 0.4rem); /* Matches header-wrapper */
 }
 
 /* Video Section */
@@ -1130,80 +1138,61 @@ section {
   }
 }
 
-/* New Intermediate Mobile/Tablet Transition (492px - 767px) */
-@media (min-width: 492px) and (max-width: 767px) {
-  .header, .listheader {
-    height: clamp(4rem, 9vh, 6rem);
-    min-height: clamp(3.5rem, 8vh, 5.5rem);
-  }
-
-  .header-wrapper {
-    height: clamp(4.5rem, 10vh, 6.5rem);
-  }
-
-  .header-spacer {
-    height: clamp(4.5rem, 10vh, 6.5rem);
-  }
-
-  .header__logo {
-    width: clamp(50px, 10vw, 70px);
-    height: clamp(50px, 10vw, 70px);
-  }
-
-  .header__title {
-    font-size: clamp(1.8rem, 5vw, 2.5rem);
-  }
-
-  .header__subtitle {
-    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-  }
-
-  .header__menu img {
-    width: clamp(30px, 6vw, 40px);
-    height: clamp(30px, 6vw, 40px);
-  }
-
-  .header__menu-caption {
-    font-size: clamp(0.7rem, 2vw, 0.9rem);
-  }
-}
-
 /* Enhanced Tablet Styles (768px - 1023px) - More responsive clamps */
 @media (min-width: 768px) and (max-width: 1023px) { 
-  .header, .listheader {
-    height: clamp(6rem, 12vh, 8rem);
-    min-height: clamp(5.5rem, 11vh, 7.5rem);
-  }
-
-  .header-wrapper {
-    height: clamp(6.5rem, 13vh, 8.5rem);
-  }
-
-  .header-spacer {
-    height: clamp(6.5rem, 13vh, 8.5rem);
-  }
-
-  .header__logo {
-    width: clamp(70px, 12vw, 88px);
-    height: clamp(70px, 12vw, 88px);
-  }
-
-  .header__title {
-    font-size: clamp(2.2rem, 6vw, 3rem);
-  }
-
-  .header__subtitle {
-    font-size: clamp(1rem, 2.8vw, 1.25rem);
-  }
-
-  .header__menu img {
-    width: clamp(35px, 7vw, 45px);
-    height: clamp(35px, 7vw, 45px);
-  }
-
-  .header__menu-caption {
-    font-size: clamp(0.8rem, 2.2vw, 1rem);
-  }
+  /* original tablet styles without new height changes */
 }
+
+/* Adjust base root variables for gradual scaling */
+:root {
+  --primary-color: #363f4f;
+  --secondary-color: #e6d6ae;
+  --accent-color: rgb(149, 149, 328);
+  --background-color: #856f67;
+  --card-background: #D9D9D9;
+  --font-family: 'Arial', sans-serif;
+  --container-max-width: 1200px;
+  
+  /* Gradual header scaling - starts small, grows with both vh and vw */
+  --header-height: clamp(2.8rem, 5vh + 3vw, 8rem);
+  --logo-size: clamp(32px, 5vh + 2vw, 88px);
+  --title-size: clamp(1.1rem, 3vh + 2vw, 3rem);
+  --subtitle-size: clamp(0.65rem, 1.5vh + 1vw, 1.25rem);
+  --menu-size: clamp(22px, 3vh + 2vw, 55px);
+  --caption-size: clamp(0.6rem, 1vh + 1vw, 1rem);
+}
+
+/* Update selectors to use new variables */
+.header, .listheader {
+  height: var(--header-height);
+}
+
+.header-wrapper, .header-spacer {
+  height: calc(var(--header-height) + 0.4rem); /* slight adjustment if needed */
+}
+
+.header__logo {
+  width: var(--logo-size);
+  height: var(--logo-size);
+}
+
+.header__title {
+  font-size: var(--title-size);
+}
+
+.header__subtitle {
+  font-size: var(--subtitle-size);
+}
+
+.header__menu img {
+  width: var(--menu-size);
+  height: var(--menu-size);
+}
+
+.header__menu-caption {
+  font-size: var(--caption-size);
+}
+
+/* Keep existing media queries but override only if needed for extremes */
 
 
