@@ -30,10 +30,10 @@
     --header-height: calc(var(--logo-size-ref) + (var(--header-gap) * 1.4));
   }
   .header__title {
-    font-size: clamp(1.78rem, 7.6vw, 3rem);
+    font-size: clamp(1.9rem, 8.4vw, 3rem);
   }
   .header__subtitle {
-    font-size: clamp(1.0rem, 3.4vw, 1.15rem);
+    font-size: clamp(1.08rem, 3.8vw, 1.22rem);
   }
   .header__menu img {
     width: clamp(36px, 6.2vw, 48px);
