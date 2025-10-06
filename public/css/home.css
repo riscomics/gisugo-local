@@ -884,6 +884,8 @@ section {
   align-items: center;
   justify-content: space-between;
   padding: clamp(0.25rem, 1vw, 0.5rem);
+  padding-top: clamp(4px, 1vh, 8px);
+  padding-bottom: clamp(4px, 1vh, 8px);
   box-sizing: border-box;
   flex-wrap: wrap;
 }
@@ -1154,11 +1156,11 @@ section {
 /* Slightly tune base variables for better small-screen start */
 :root {
   --header-height: clamp(2.8rem, 4vh + 3vw, 8rem); // Reduced vh factor
-  --logo-size: clamp(32px, 4vh + 2vw, 88px); // Reduced vh
-  --title-size: clamp(1.1rem, 2.5vh + 2vw, 3rem); // Reduced vh
-  --subtitle-size: clamp(0.65rem, 1.2vh + 1vw, 1.25rem); // Reduced vh
-  --menu-size: clamp(22px, 2.5vh + 2vw, 55px); // Reduced vh
-  --caption-size: clamp(0.6rem, 0.8vh + 1vw, 1rem); // Reduced vh
+  --logo-size: clamp(28px, 3.5vh + 1.5vw, 80px); // Smaller min and growth
+  --title-size: clamp(1rem, 2vh + 1.5vw, 2.8rem); // Smaller min and growth
+  --subtitle-size: clamp(0.6rem, 1vh + 0.8vw, 1.1rem); // Smaller
+  --menu-size: clamp(20px, 2vh + 1.5vw, 50px); // Smaller min and growth
+  --caption-size: clamp(0.55rem, 0.7vh + 0.8vw, 0.9rem); // Smaller
 }
 
 /* Update selectors to use new variables */
