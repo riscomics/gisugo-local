@@ -8,24 +8,18 @@
   --font-family: 'Arial', sans-serif;
   --container-max-width: 1200px;
   
-  /* Gradual header scaling - starts small, grows with both vh and vw */
-  --header-height: clamp(2.8rem, 5vh + 3vw, 8rem);
+  /* Spacing and sizing variables */
+  --header-gap: clamp(0.72rem, 2.1vw, 0.95rem); /* equals caption size */
+  --logo-size-ref: clamp(56px, 9vw, 92px); /* match logo's clamp */
+  /* Header height follows logo + uniform gaps (keeps items above borderline) */
+  --header-height: calc(var(--logo-size-ref) + (2 * var(--header-gap)));
   --borderline-height: 8px;
 }
 
-/* Ensure header height keeps up with item growth on small phones */
-@media (max-width: 491px) {
+/* Optional fine-tune: slightly smaller gap on ultra-small phones */
+@media (max-width: 380px) {
   :root {
-    /* Slightly higher floor and faster growth to avoid overlap */
-    --header-height: clamp(3.4rem, 7vh + 3vw, 5rem);
-  }
-}
-
-/* Ensure header height keeps up with item growth on 492-1023px */
-@media (min-width: 492px) and (max-width: 1023px) {
-  :root {
-    /* Raise baseline and growth so items stay above the borderline */
-    --header-height: clamp(5rem, 8vh + 5vw, 10rem);
+    --header-gap: clamp(0.6rem, 1.8vw, 0.85rem);
   }
 }
 
@@ -894,9 +888,7 @@ section {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(0.25rem, 1vw, 0.5rem);
-  padding-top: clamp(4px, 1vh, 8px);
-  padding-bottom: clamp(4px, 1vh, 8px);
+  padding: 0 clamp(0.5rem, 2vw, 1rem);
   box-sizing: border-box;
   flex-wrap: wrap;
 }
@@ -928,6 +920,11 @@ section {
 .header__title-group {
   flex: 1 1 auto;
   padding-left: clamp(0.5rem, 2vw, 1rem);
+  /* Vertically align block using the uniform gap */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: calc(var(--header-gap) * 0.25);
   min-width: 0;
 }
 
