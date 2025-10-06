@@ -1171,6 +1171,16 @@ section {
   }
 }
 
+/* Final mobile overrides placed at end to win cascade over earlier blocks */
+@media (max-width: 491px) {
+  .header__title {
+    font-size: clamp(2.2rem, 10vw, 3.2rem);
+  }
+  .header__subtitle {
+    font-size: clamp(1.28rem, 4.8vw, 1.36rem);
+  }
+}
+
 /* Enhanced Tablet Styles (768px - 1023px) - More responsive clamps */
 @media (min-width: 768px) and (max-width: 1023px) { 
   /* original tablet styles without new height changes */
