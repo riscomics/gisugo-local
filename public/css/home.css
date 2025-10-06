@@ -1130,4 +1130,80 @@ section {
   }
 }
 
+/* New Intermediate Mobile/Tablet Transition (492px - 767px) */
+@media (min-width: 492px) and (max-width: 767px) {
+  .header, .listheader {
+    height: clamp(4rem, 9vh, 6rem);
+    min-height: clamp(3.5rem, 8vh, 5.5rem);
+  }
+
+  .header-wrapper {
+    height: clamp(4.5rem, 10vh, 6.5rem);
+  }
+
+  .header-spacer {
+    height: clamp(4.5rem, 10vh, 6.5rem);
+  }
+
+  .header__logo {
+    width: clamp(50px, 10vw, 70px);
+    height: clamp(50px, 10vw, 70px);
+  }
+
+  .header__title {
+    font-size: clamp(1.8rem, 5vw, 2.5rem);
+  }
+
+  .header__subtitle {
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  }
+
+  .header__menu img {
+    width: clamp(30px, 6vw, 40px);
+    height: clamp(30px, 6vw, 40px);
+  }
+
+  .header__menu-caption {
+    font-size: clamp(0.7rem, 2vw, 0.9rem);
+  }
+}
+
+/* Enhanced Tablet Styles (768px - 1023px) - More responsive clamps */
+@media (min-width: 768px) and (max-width: 1023px) { 
+  .header, .listheader {
+    height: clamp(6rem, 12vh, 8rem);
+    min-height: clamp(5.5rem, 11vh, 7.5rem);
+  }
+
+  .header-wrapper {
+    height: clamp(6.5rem, 13vh, 8.5rem);
+  }
+
+  .header-spacer {
+    height: clamp(6.5rem, 13vh, 8.5rem);
+  }
+
+  .header__logo {
+    width: clamp(70px, 12vw, 88px);
+    height: clamp(70px, 12vw, 88px);
+  }
+
+  .header__title {
+    font-size: clamp(2.2rem, 6vw, 3rem);
+  }
+
+  .header__subtitle {
+    font-size: clamp(1rem, 2.8vw, 1.25rem);
+  }
+
+  .header__menu img {
+    width: clamp(35px, 7vw, 45px);
+    height: clamp(35px, 7vw, 45px);
+  }
+
+  .header__menu-caption {
+    font-size: clamp(0.8rem, 2.2vw, 1rem);
+  }
+}
+
 
