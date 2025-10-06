@@ -1155,12 +1155,12 @@ section {
 
 /* Slightly tune base variables for better small-screen start */
 :root {
-  --header-height: clamp(2.8rem, 4vh + 3vw, 8rem); // Reduced vh factor
-  --logo-size: clamp(28px, 3.5vh + 1.5vw, 80px); // Smaller min and growth
-  --title-size: clamp(1rem, 2vh + 1.5vw, 2.8rem); // Smaller min and growth
-  --subtitle-size: clamp(0.6rem, 1vh + 0.8vw, 1.1rem); // Smaller
-  --menu-size: clamp(20px, 2vh + 1.5vw, 50px); // Smaller min and growth
-  --caption-size: clamp(0.55rem, 0.7vh + 0.8vw, 0.9rem); // Smaller
+  --header-height: clamp(2.8rem, 4vh + 3vw, 8rem);
+  --logo-size: clamp(24px, 3vh + 1.5vw, 80px); // Even smaller min
+  --title-size: clamp(0.9rem, 1.8vh + 1.2vw, 2.8rem); // Smaller min and growth
+  --subtitle-size: clamp(0.55rem, 0.8vh + 0.6vw, 1.1rem); // Smaller
+  --menu-size: clamp(18px, 1.8vh + 1.2vw, 50px); // Smaller min
+  --caption-size: clamp(0.5rem, 0.6vh + 0.6vw, 0.9rem); // Smaller
 }
 
 /* Update selectors to use new variables */
