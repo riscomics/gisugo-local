@@ -934,6 +934,7 @@ section {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-right: clamp(8px, 2vw, 12px);
 }
 
 .header__menu:hover {
