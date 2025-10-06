@@ -25,7 +25,7 @@
 @media (min-width: 492px) and (max-width: 1023px) {
   :root {
     /* Raise baseline and growth so items stay above the borderline */
-    --header-height: clamp(4.2rem, 6vh + 4vw, 8.5rem);
+    --header-height: clamp(5rem, 8vh + 5vw, 10rem);
   }
 }
 
@@ -902,8 +902,9 @@ section {
 }
 
 .header__logo {
-  width: clamp(50px, 8vw, 68px);
-  height: clamp(50px, 8vw, 68px);
+  /* Keep logo slightly taller than combined title+subtitle block */
+  width: clamp(56px, 9vw, 92px);
+  height: clamp(56px, 9vw, 92px);
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -931,7 +932,7 @@ section {
 }
 
 .header__title {
-  font-size: clamp(1.5rem, 6vw, 3rem);
+  font-size: clamp(1.35rem, 5.2vw, 2.7rem); /* Slightly reduced growth */
   font-weight: bold;
   color: var(--primary-color);
   line-height: 1.2;
@@ -940,7 +941,7 @@ section {
 }
 
 .header__subtitle {
-  font-size: clamp(0.8rem, 2.5vw, 1rem);
+  font-size: clamp(0.72rem, 2.1vw, 0.95rem); /* Slightly reduced growth */
   color: var(--primary-color);
   line-height: 1.3;
   margin: 0;
