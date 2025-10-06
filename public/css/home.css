@@ -23,6 +23,26 @@
   }
 }
 
+/* Tighten header and slightly enlarge items on small phones (<=491px) */
+@media (max-width: 491px) {
+  :root {
+    --header-gap: clamp(0.6rem, 1.6vw, 0.82rem);
+  }
+  .header__title {
+    font-size: clamp(1.5rem, 6vw, 2.85rem);
+  }
+  .header__subtitle {
+    font-size: clamp(0.8rem, 2.6vw, 1rem);
+  }
+  .header__menu img {
+    width: clamp(34px, 5.8vw, 46px);
+    height: clamp(34px, 5.8vw, 46px);
+  }
+  .header__menu-caption {
+    font-size: clamp(calc(0.9rem - 1px), calc(2.9vw - 1px), calc(1.05rem - 1px));
+  }
+}
+
 /* Reset & Base Styles */
 * {
   margin: 0;
