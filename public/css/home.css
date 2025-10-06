@@ -956,7 +956,7 @@ section {
   font-size: clamp(0.8rem, 2.5vw, 1rem); /* Match header__subtitle */
   color: var(--primary-color);
   line-height: 1;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 /* Header wrapper with responsive height synchronization */
