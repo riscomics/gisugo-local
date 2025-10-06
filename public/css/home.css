@@ -15,6 +15,7 @@
   --subtitle-size: clamp(0.65rem, 1.5vh + 1vw, 1.25rem);
   --menu-size: clamp(22px, 3vh + 2vw, 55px);
   --caption-size: clamp(0.6rem, 1vh + 1vw, 1rem);
+  --borderline-height: 8px;
 }
 
 /* Reset & Base Styles */
@@ -146,7 +147,7 @@ section {
 /* Accent Line */
 .accent-line1 {
   margin-top: 0;
-  height: 8px;
+  height: var(--borderline-height);
   background-color: rgb(149, 149, 328);
   width: 100%;
 }
@@ -976,12 +977,12 @@ section {
   right: 0;
   z-index: 100;
   background-color: #fef6da;
-  height: calc(var(--header-height) + 0.4rem); /* Mobile-first responsive header wrapper */
+  height: calc(var(--header-height) + var(--borderline-height)); /* Mobile-first responsive header wrapper */
 }
 
 /* Header spacer with synchronized responsive height */
 .header-spacer {
-  height: calc(var(--header-height) + 0.4rem); /* Matches header-wrapper */
+  height: calc(var(--header-height) + var(--borderline-height)); /* Matches header-wrapper */
 }
 
 /* Video Section */
@@ -1160,6 +1161,19 @@ section {
   --subtitle-size: clamp(0.65rem, 1.5vh + 1vw, 1.25rem);
   --menu-size: clamp(22px, 3vh + 2vw, 55px);
   --caption-size: clamp(0.6rem, 1vh + 1vw, 1rem);
+  --borderline-height: 8px;
+}
+
+/* Lower starting heights for 492-766px */
+@media (min-width: 492px) and (max-width: 766px) {
+  :root {
+    --header-height: clamp(3rem, 6vh + 2vw, 5.5rem);
+    --logo-size: clamp(40px, 4vh + 3vw, 70px);
+    --title-size: clamp(1.4rem, 2.5vh + 2.5vw, 2.5rem);
+    --subtitle-size: clamp(0.75rem, 1.2vh + 1.2vw, 1.1rem);
+    --menu-size: clamp(28px, 3.5vh + 1.5vw, 40px);
+    --caption-size: clamp(0.65rem, 0.8vh + 1vw, 0.9rem);
+  }
 }
 
 /* Update selectors to use new variables */
@@ -1168,29 +1182,15 @@ section {
 }
 
 .header-wrapper, .header-spacer {
-  height: calc(var(--header-height) + 0.4rem); /* slight adjustment if needed */
+  height: calc(var(--header-height) + var(--borderline-height));
 }
 
-.header__logo {
-  width: var(--logo-size);
-  height: var(--logo-size);
-}
-
-.header__title {
-  font-size: var(--title-size);
-}
-
-.header__subtitle {
-  font-size: var(--subtitle-size);
-}
-
-.header__menu img {
-  width: var(--menu-size);
-  height: var(--menu-size);
-}
-
-.header__menu-caption {
-  font-size: var(--caption-size);
+/* Ensure borderline fills bottom with no gap */
+.accent-line1 {
+  margin-top: 0;
+  height: var(--borderline-height);
+  background-color: rgb(149, 149, 328);
+  width: 100%;
 }
 
 /* Keep existing media queries but override only if needed for extremes */
