@@ -10,11 +10,6 @@
   
   /* Gradual header scaling - starts small, grows with both vh and vw */
   --header-height: clamp(2.8rem, 5vh + 3vw, 8rem);
-  --logo-size: clamp(32px, 5vh + 2vw, 88px);
-  --title-size: clamp(1.1rem, 3vh + 2vw, 3rem);
-  --subtitle-size: clamp(0.65rem, 1.5vh + 1vw, 1.25rem);
-  --menu-size: clamp(22px, 3vh + 2vw, 55px);
-  --caption-size: clamp(0.6rem, 1vh + 1vw, 1rem);
   --borderline-height: 8px;
 }
 
@@ -891,8 +886,8 @@ section {
 }
 
 .header__logo {
-  width: var(--logo-size);
-  height: var(--logo-size);
+  width: clamp(50px, 8vw, 68px);
+  height: clamp(50px, 8vw, 68px);
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -920,7 +915,7 @@ section {
 }
 
 .header__title {
-  font-size: var(--title-size);
+  font-size: clamp(1.5rem, 6vw, 3rem);
   font-weight: bold;
   color: var(--primary-color);
   line-height: 1.2;
@@ -929,7 +924,7 @@ section {
 }
 
 .header__subtitle {
-  font-size: var(--subtitle-size);
+  font-size: clamp(0.8rem, 2.5vw, 1rem);
   color: var(--primary-color);
   line-height: 1.3;
   margin: 0;
@@ -954,8 +949,8 @@ section {
 
 .header__menu img {
   display: block;
-  width: var(--menu-size);
-  height: var(--menu-size);
+  width: clamp(30px, 5vw, 40px);
+  height: clamp(30px, 5vw, 40px);
   object-fit: contain;
   filter: brightness(0.6) contrast(1.1);
   border: 1.5px solid rgba(0,0,0,0.35);
@@ -965,7 +960,7 @@ section {
 .header__menu-caption {
   display: block;
   margin-top: 2px;
-  font-size: var(--caption-size);
+  font-size: clamp(calc(0.8rem - 1px), calc(2.5vw - 1px), calc(1rem - 1px));
   color: var(--primary-color);
   line-height: 1;
   font-weight: 400;
@@ -1153,15 +1148,7 @@ section {
   }
 }
 
-/* Slightly tune base variables for better small-screen start */
-:root {
-  --header-height: clamp(2.8rem, 4vh + 3vw, 8rem);
-  --logo-size: clamp(24px, 3vh + 1.5vw, 80px); // Even smaller min
-  --title-size: clamp(0.9rem, 1.8vh + 1.2vw, 2.8rem); // Smaller min and growth
-  --subtitle-size: clamp(0.55rem, 0.8vh + 0.6vw, 1.1rem); // Smaller
-  --menu-size: clamp(18px, 1.8vh + 1.2vw, 50px); // Smaller min
-  --caption-size: clamp(0.5rem, 0.6vh + 0.6vw, 0.9rem); // Smaller
-}
+/* Remove item clamp overrides to restore original behavior */
 
 /* Update selectors to use new variables */
 .header, .listheader {
