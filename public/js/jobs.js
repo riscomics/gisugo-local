@@ -2887,9 +2887,9 @@ function processAcceptGigConfirmation(jobData) {
     // Hide confirmation overlay
     hideConfirmAcceptGigOverlay();
     
-    // Show success confirmation
+    // Show success confirmation with celebration animation
     showConfirmationWithCallback(
-        '✅',
+        '🎉',
         'Gig Offer Accepted!',
         `You have accepted the job offer from ${jobData.posterName}. The job will now appear in your "Gigs Accepted" tab. You can coordinate work details through messages.`,
         async () => {
@@ -2908,7 +2908,8 @@ function processAcceptGigConfirmation(jobData) {
             } catch (error) {
                 console.error('❌ Error in accept gig process:', error);
             }
-        }
+        },
+        'celebration'
     );
 }
 
@@ -3005,7 +3006,7 @@ function processRejectGigConfirmation(jobData) {
     // Hide rejection overlay
     hideRejectGigOfferOverlay();
     
-    // Show confirmation
+    // Show confirmation with rejection animation
     showConfirmationWithCallback(
         '❌',
         'Gig Offer Rejected',
@@ -3025,7 +3026,8 @@ function processRejectGigConfirmation(jobData) {
             } catch (error) {
                 console.error('❌ Error in reject gig process:', error);
             }
-        }
+        },
+        'rejection'
     );
 }
 
@@ -5970,11 +5972,12 @@ function initializeApplicationActionHandlers() {
             // Close action overlay first
             hideApplicationActionOverlay();
             
-            // Show confirmation with reject-specific styling  
+            // Show confirmation with rejection animation
             showConfirmation(
                 '❌',
                 'Application Rejected',
-                `${userName}'s application has been rejected. They will be notified appropriately.`
+                `${userName}'s application has been rejected. They will be notified appropriately.`,
+                'rejection'
             );
             
             // Remove the application card from UI after confirmation
@@ -6113,7 +6116,7 @@ function handleSendContactMessage() {
     console.log(`📤 Sending message to ${userName}:`, message);
     
     // TODO: Send message to backend
-    showConfirmation('📤', 'Message Sent', `Your message has been sent to ${userName}`);
+    showConfirmation('📤', 'Message Sent', `Your message has been sent to ${userName}`, 'celebration');
     hideContactMessageOverlay();
 }
 
@@ -6141,11 +6144,12 @@ function hideApplicationActionOverlay() {
     console.log('👤 Application action overlay hidden and handlers cleaned up');
 }
 
-function showConfirmation(icon, title, message) {
+function showConfirmation(icon, title, message, animationType = 'default') {
     const overlay = document.getElementById('confirmationOverlay');
     const iconElement = document.getElementById('confirmationIcon');
     const titleElement = document.getElementById('confirmationTitle');
     const messageElement = document.getElementById('confirmationMessage');
+    const modalElement = document.querySelector('.confirmation-modal');
     const okBtn = document.getElementById('confirmationBtn');
     
     if (!overlay) return;
@@ -6153,6 +6157,20 @@ function showConfirmation(icon, title, message) {
     iconElement.textContent = icon;
     titleElement.textContent = title;
     messageElement.textContent = message;
+    
+    // Clear previous animation classes
+    modalElement.className = 'confirmation-modal';
+    iconElement.className = 'confirmation-icon';
+    
+    // Add animation based on type
+    if (animationType === 'celebration') {
+        modalElement.classList.add('celebration', 'celebration-pulse');
+        iconElement.classList.add('celebration');
+        createConfetti(overlay);
+    } else if (animationType === 'rejection') {
+        modalElement.classList.add('rejection', 'rejection-pulse');
+        iconElement.classList.add('rejection');
+    }
     
     overlay.classList.add('show');
     
@@ -6172,11 +6190,12 @@ function showConfirmation(icon, title, message) {
     }
 }
 
-function showConfirmationWithCallback(icon, title, message, callback) {
+function showConfirmationWithCallback(icon, title, message, callback, animationType = 'default') {
     const overlay = document.getElementById('confirmationOverlay');
     const iconElement = document.getElementById('confirmationIcon');
     const titleElement = document.getElementById('confirmationTitle');
     const messageElement = document.getElementById('confirmationMessage');
+    const modalElement = document.querySelector('.confirmation-modal');
     const okBtn = document.getElementById('confirmationBtn');
     
     if (!overlay) return;
@@ -6184,6 +6203,20 @@ function showConfirmationWithCallback(icon, title, message, callback) {
     iconElement.textContent = icon;
     titleElement.textContent = title;
     messageElement.textContent = message;
+    
+    // Clear previous animation classes
+    modalElement.className = 'confirmation-modal';
+    iconElement.className = 'confirmation-icon';
+    
+    // Add animation based on type
+    if (animationType === 'celebration') {
+        modalElement.classList.add('celebration', 'celebration-pulse');
+        iconElement.classList.add('celebration');
+        createConfetti(overlay);
+    } else if (animationType === 'rejection') {
+        modalElement.classList.add('rejection', 'rejection-pulse');
+        iconElement.classList.add('rejection');
+    }
     
     overlay.classList.add('show');
     
@@ -6226,10 +6259,74 @@ function showConfirmationWithCallback(icon, title, message, callback) {
 
 function hideConfirmationOverlay() {
     const overlay = document.getElementById('confirmationOverlay');
+    const modalElement = document.querySelector('.confirmation-modal');
+    const iconElement = document.getElementById('confirmationIcon');
+    
+    if (!overlay) return;
+    
     overlay.classList.remove('show');
+    
+    // Clear animation classes
+    if (modalElement) {
+        modalElement.className = 'confirmation-modal';
+    }
+    if (iconElement) {
+        iconElement.className = 'confirmation-icon';
+    }
+    
+    // Remove any confetti particles
+    const confettiParticles = overlay.querySelectorAll('.confetti-particle');
+    confettiParticles.forEach(particle => particle.remove());
     
     // Clear handlers initialization flag
     delete overlay.dataset.confirmationHandlersInitialized;
+}
+
+// Create confetti effect for celebrations - popper style burst
+function createConfetti(container) {
+    console.log('🎊 Creating confetti effect with', 40, 'particles');
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'];
+    const particleCount = 40;
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'confetti-particle';
+        particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+        
+        // Start all particles at the center point (50% left, 45% top)
+        particle.style.left = '50%';
+        particle.style.top = '45%';
+        
+        // Calculate random burst direction and distance in pixels
+        const angle = Math.random() * 360; // Random angle in degrees
+        const velocity = Math.random() * 200 + 100; // Random velocity between 100-300px
+        const gravity = Math.random() * 150 + 100; // Random gravity effect
+        
+        // Convert angle to radians for calculation
+        const angleRad = angle * (Math.PI / 180);
+        const endX = Math.cos(angleRad) * velocity;
+        const endY = Math.sin(angleRad) * velocity + gravity; // Add gravity
+        
+        // Set CSS custom properties for animation
+        particle.style.setProperty('--end-x', endX + 'px');
+        particle.style.setProperty('--end-y', endY + 'px');
+        particle.style.setProperty('--rotation', (Math.random() * 720 + 360) + 'deg');
+        
+        // Random timing for more natural effect
+        particle.style.animationDelay = Math.random() * 0.3 + 's';
+        particle.style.animationDuration = (Math.random() * 1 + 1.5) + 's';
+        
+        console.log(`🎊 Particle ${i}: endX=${endX}px, endY=${endY}px, delay=${particle.style.animationDelay}, duration=${particle.style.animationDuration}`);
+        
+        container.appendChild(particle);
+        
+        // Remove particle after animation
+        setTimeout(() => {
+            if (particle.parentNode) {
+                particle.parentNode.removeChild(particle);
+            }
+        }, 3000);
+    }
 }
 
 function hideApplicationsOverlay() {
@@ -6410,9 +6507,9 @@ function processHireConfirmation(workerData) {
     // Hide hire confirmation overlay
     hideHireConfirmationOverlay();
     
-    // Show success confirmation and wait for user to close it
+    // Show success confirmation with celebration animation
     showConfirmationWithCallback(
-        '✅',
+        '🎉',
         'Job Offer Sent!',
         `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab with "Pending Offer" status.`,
         async () => {
@@ -6454,7 +6551,8 @@ function processHireConfirmation(workerData) {
             } catch (error) {
                 console.error('❌ Error in offer process:', error);
             }
-        }
+        },
+        'celebration'
     );
     
     // TODO: Send hire notification to backend
