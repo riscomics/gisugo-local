@@ -288,10 +288,10 @@ body:has(.jobs-header) {
 /* Independent Tab Content Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM AND NEW ROLE TABS */
 .tab-content-wrapper {
   position: fixed;
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px); /* Below uniform header, role tabs, and jobs tabs */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px); /* Below uniform header, role tabs, and jobs tabs */
   left: 0;
   width: 100%;
-  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px));
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
   background: #363f4f;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
@@ -338,6 +338,7 @@ body:has(.jobs-header) {
 .listings-container,
 .hiring-container,
 .previous-container,
+.offered-container,
 .accepted-container,
 .worker-completed-container {
   padding: 25px 0 40px 0;
@@ -881,6 +882,22 @@ body:has(.jobs-header) {
   border: 2px solid #4a5568;
 }
 
+/* Enhanced styling for Gig Offer overlay */
+#gigOfferOptionsOverlay .listing-options-container {
+  background: linear-gradient(135deg, #2d3748, #1a202c);
+  border: 2px solid #4299e1;
+  box-shadow: 0 10px 30px rgba(66, 153, 225, 0.3);
+}
+
+#gigOfferOptionsOverlay .listing-options-title {
+  color: #4299e1;
+  text-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+}
+
+#gigOfferOptionsOverlay .listing-options-subtitle {
+  color: #cbd5e0;
+}
+
 .listing-options-header {
   text-align: center;
   margin-bottom: 28px;
@@ -975,6 +992,40 @@ body:has(.jobs-header) {
 
 .listing-option-btn.cancel:hover {
   background: #4b5563;
+}
+
+/* Gig Offer Specific Button Colors - More Vibrant */
+.listing-option-btn.accept {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.listing-option-btn.accept:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.listing-option-btn.reject {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.listing-option-btn.reject:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.listing-option-btn.contact {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.listing-option-btn.contact:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 /* Applications Overlay */
@@ -2488,8 +2539,8 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 85px + 52px); /* Tablet: uniform header + role tabs + jobs tabs */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 85px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 85px + 52px); /* Tablet: uniform header + role tabs + jobs tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 85px + 52px));
   }
 }
 
@@ -2517,8 +2568,8 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 90px + 52px); /* Desktop: uniform header + role tabs + jobs tabs */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 90px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 90px + 52px); /* Desktop: uniform header + role tabs + jobs tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 90px + 52px));
   }
 }
 
@@ -2711,15 +2762,18 @@ body:has(.jobs-header) {
 
   /* Mobile Independent Tab Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM AND ROLE TABS */
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px); /* Mobile: uniform header + role tabs + jobs tabs */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 60px + 52px); /* Mobile: uniform header + role tabs + jobs tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 60px + 52px));
     margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
   /* Mobile Tab Containers */
   .listings-container,
   .hiring-container,
-  .previous-container {
+  .previous-container,
+  .offered-container,
+  .accepted-container,
+  .worker-completed-container {
     padding: 35px 0 60px 0; /* Increased top padding from 0 to 35px */
   }
 
@@ -3059,8 +3113,8 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 55px + 52px); /* 375px: uniform header + role tabs + jobs tabs */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 55px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 55px + 52px); /* 375px: uniform header + role tabs + jobs tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 55px + 52px));
     margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
@@ -3211,6 +3265,13 @@ body:has(.jobs-header) {
 
   /* iPhone 7 Previous Container */
   .previous-container {
+    padding: 25px 0 55px 0;
+  }
+
+  /* iPhone 7 Worker Containers */
+  .offered-container,
+  .accepted-container,
+  .worker-completed-container {
     padding: 25px 0 55px 0;
   }
 
@@ -3369,13 +3430,21 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 58px + 52px); /* 400px: uniform header + role tabs + jobs tabs */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 58px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 58px + 52px); /* 400px: uniform header + role tabs + jobs tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 58px + 52px));
     margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
-  /* Smaller Mobile Listing Card Styles */
+  /* Smaller Mobile Container Styles */
   .listings-container {
+    padding: 20px 0 60px 0;
+  }
+
+  .hiring-container,
+  .previous-container,
+  .offered-container,
+  .accepted-container,
+  .worker-completed-container {
     padding: 20px 0 60px 0;
   }
 
@@ -4010,13 +4079,21 @@ body:has(.jobs-header) {
   }
 
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 45px + 52px); /* 320px: uniform header + role tabs + jobs tabs */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 45px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 45px + 52px); /* 320px: uniform header + role tabs + jobs tabs */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 45px + 52px));
     margin-top: -15px; /* GOLDEN RULE: Further reduce gap between tabs and cards */
   }
 
-  /* 320px Listing Card Styles */
+  /* 320px Container Styles */
   .listings-container {
+    padding: 15px 0 50px 0;
+  }
+
+  .hiring-container,
+  .previous-container,
+  .offered-container,
+  .accepted-container,
+  .worker-completed-container {
     padding: 15px 0 50px 0;
   }
 

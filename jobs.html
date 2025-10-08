@@ -60,7 +60,11 @@
 
     <!-- Worker Tab Navigation -->
     <div class="jobs-tabs worker-tabs">
-        <button class="tab-btn active" data-tab="accepted" id="acceptedTab">
+        <button class="tab-btn active" data-tab="offered" id="offeredTab">
+            <span class="tab-label">GIGS OFFERED</span>
+            <span class="notification-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="accepted" id="acceptedTab">
             <span class="tab-label">GIGS ACCEPTED</span>
             <span class="notification-count">0</span>
         </button>
@@ -101,8 +105,22 @@
     </div>
 
     <!-- WORKER ROLE CONTENT AREAS -->
+    <!-- Offered Gigs Tab Content - Independent Scroll Container -->
+    <div class="tab-content-wrapper worker-content active" id="offered-content">
+        <div class="tab-scroll-container">
+            <div class="offered-container">
+                <!-- Offered gigs content will be loaded dynamically when tab is active -->
+                <div class="empty-state">
+                    <div class="empty-state-icon">💼</div>
+                    <div class="empty-state-title">Gigs Offered</div>
+                    <div class="empty-state-message">Job offers from customers will appear here</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Accepted Gigs Tab Content - Independent Scroll Container -->
-    <div class="tab-content-wrapper worker-content active" id="accepted-content">
+    <div class="tab-content-wrapper worker-content" id="accepted-content" style="display: none;">
         <div class="tab-scroll-container">
             <div class="accepted-container">
                 <!-- Accepted gigs content will be loaded dynamically when tab is active -->
@@ -747,6 +765,154 @@
             <div class="success-title">Dispute Reported</div>
             <div class="success-message" id="disputeSubmittedMessage">Your dispute has been submitted and will be reviewed by our support team within 24-48 hours.</div>
             <button class="success-btn" id="disputeSubmittedOkBtn">UNDERSTOOD</button>
+        </div>
+    </div>
+
+    <!-- Gig Offer Options Overlay -->
+    <div class="listing-options-overlay" id="gigOfferOptionsOverlay">
+        <div class="listing-options-container">
+            <div class="listing-options-header">
+                <div class="listing-options-title" id="gigOfferOptionsTitle">Gig Offer</div>
+                <div class="listing-options-subtitle" id="gigOfferOptionsSubtitle">Choose an action for this job offer</div>
+            </div>
+            <div class="listing-options-actions">
+                <button class="listing-option-btn accept" id="acceptOfferBtn">
+                    ACCEPT OFFER
+                </button>
+                <button class="listing-option-btn reject" id="rejectOfferBtn">
+                    REJECT OFFER
+                </button>
+                <button class="listing-option-btn contact" id="contactCustomerBtn">
+                    CONTACT CUSTOMER
+                </button>
+                <button class="listing-option-btn cancel" id="closeOfferOptionsBtn">
+                    CLOSE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Accept Gig Overlay -->
+    <div id="confirmAcceptGigOverlay" class="hire-confirmation-overlay">
+        <div class="hire-confirmation-container">
+            <div class="hire-confirmation-header">
+                <div class="hire-confirmation-title-section">
+                    <div class="hire-confirmation-icon">🤝</div>
+                    <div class="hire-confirmation-title">Confirm Accept Gig Offer</div>
+                </div>
+                <button id="confirmAcceptGigCloseBtn" class="hire-confirmation-close-btn">&times;</button>
+            </div>
+            
+            <div class="hire-confirmation-content">
+                <!-- Customer Status Section -->
+                <div class="worker-status-section">
+                    <div class="worker-status-header">
+                        <div class="worker-status-title">Customer Account Status</div>
+                    </div>
+                    <div id="customerStatusInfo" class="worker-status-info">
+                        <div class="status-info-header">
+                            <span id="customerStatusFriendlyIcon" class="friendly-icon">🌱</span>
+                            <span id="customerStatusInfoTitle" class="info-title">New Community Member</span>
+                        </div>
+                        <div id="customerStatusInfoContent" class="status-info-content">
+                            This customer is new to our platform and hasn't completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legal Disclaimer Section -->
+                <div class="legal-disclaimer-section">
+                    <div class="disclaimer-header">
+                        <span class="disclaimer-icon">⚖️</span>
+                        <span class="disclaimer-title">Legal Disclaimer & Terms</span>
+                    </div>
+                    <div class="disclaimer-content">
+                        <p><strong>IMPORTANT:</strong> By accepting this gig offer, you acknowledge and agree to the following:</p>
+                        
+                        <div class="disclaimer-points">
+                            <div class="disclaimer-point">
+                                <span class="point-number">1.</span>
+                                <span class="point-text"><strong>Independent Transaction:</strong> This is a direct transaction between you (Worker) and the Customer. GISUGO acts solely as a platform facilitator.</span>
+                            </div>
+                            
+                            <div class="disclaimer-point">
+                                <span class="point-number">2.</span>
+                                <span class="point-text"><strong>Liability Limitation:</strong> GISUGO is not liable for payment disputes, work conditions, injuries, or conflicts arising from this transaction.</span>
+                            </div>
+                            
+                            <div class="disclaimer-point">
+                                <span class="point-number">3.</span>
+                                <span class="point-text"><strong>Payment Terms:</strong> You are responsible for negotiating and securing payment terms directly with the customer.</span>
+                            </div>
+                            
+                            <div class="disclaimer-point">
+                                <span class="point-number">4.</span>
+                                <span class="point-text"><strong>Work Quality:</strong> You agree to complete the work according to the agreed specifications and timeline.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="safety-recommendations">
+                            <div class="safety-header">
+                                <span class="safety-icon">🛡️</span>
+                                <span class="safety-title">Safety Recommendations</span>
+                            </div>
+                            <ul class="safety-list">
+                                <li>Review the customer's profile and ratings thoroughly</li>
+                                <li>Meet in safe, public locations when possible</li>
+                                <li>Verify work details and payment terms before starting</li>
+                                <li>Keep personal belongings secure during work</li>
+                                <li>Trust your instincts - decline if something feels wrong</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="hire-confirmation-footer">
+                <div class="confirmation-warning">
+                    <span class="final-warning-icon">✅</span>
+                    <span class="final-warning-text">This will confirm your commitment to complete the job.</span>
+                </div>
+                <div class="hire-confirmation-buttons">
+                    <button id="cancelAcceptGigBtn" class="cancel-hire-btn">
+                        <span>Cancel</span>
+                    </button>
+                    <button id="confirmAcceptGigBtn" class="confirm-hire-btn">
+                        <span>I Understand - Accept Gig</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Gig Offer Confirmation Overlay -->
+    <div class="delete-confirmation-overlay" id="rejectGigOfferOverlay">
+        <div class="delete-confirmation-container">
+            <div class="delete-confirmation-header">
+                <div class="delete-confirmation-title-row">
+                    <div class="delete-confirmation-icon">❌</div>
+                    <div class="delete-confirmation-title">Reject Gig Offer</div>
+                </div>
+                <div class="delete-confirmation-subtitle" id="rejectGigOfferSubtitle">This will decline the job offer</div>
+            </div>
+            <div class="delete-confirmation-warning">
+                <div class="delete-warning-text">
+                    WARNING: Rejecting this gig offer will:<br>
+                    • Notify <span id="rejectCustomerName">the customer</span> of your rejection<br>
+                    • Remove this offer from your list<br>
+                    • Allow the customer to consider other applicants<br><br>
+                    This action cannot be undone.
+                </div>
+            </div>
+            <div class="delete-confirmation-actions">
+                <button class="delete-confirmation-btn cancel" id="rejectGigOfferCancelBtn">
+                    KEEP OFFER
+                </button>
+                <button class="delete-confirmation-btn delete" id="confirmRejectGigOfferBtn">
+                    YES, REJECT OFFER
+                </button>
+            </div>
         </div>
     </div>
 

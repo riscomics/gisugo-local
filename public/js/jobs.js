@@ -15,9 +15,45 @@ const CLEANUP_REGISTRY = {
 let MOCK_LISTINGS_DATA = null;
 let MOCK_HIRING_DATA = null;
 let MOCK_COMPLETED_DATA = null; // ADD: Missing completed data tracking
+let MOCK_OFFERED_DATA = null; // ADD: Offered jobs data for worker perspective
 
 // Current user ID for testing different perspectives
 const CURRENT_USER_ID = 'user_peter_ang_001';
+
+// Global utility function for date formatting
+function formatDateTime(date) {
+    return date.toISOString();
+}
+
+// Global utility function for relative date formatting (e.g., "2 days ago", "today")
+function formatRelativeDate(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    const diffTime = Math.abs(today - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) {
+        return 'today';
+    } else if (diffDays === 2) {
+        return 'yesterday';
+    } else if (diffDays <= 7) {
+        return `${diffDays - 1} days ago`;
+    } else if (diffDays <= 30) {
+        return `${Math.ceil(diffDays / 7)} weeks ago`;
+    } else {
+        return `${Math.ceil(diffDays / 30)} months ago`;
+    }
+}
+
+// Debug function to check data status
+function debugDataStatus() {
+    console.log('🔍 DEBUG: Current data status:', {
+        MOCK_LISTINGS_DATA: MOCK_LISTINGS_DATA ? MOCK_LISTINGS_DATA.length : 'null',
+        MOCK_HIRING_DATA: MOCK_HIRING_DATA ? MOCK_HIRING_DATA.length : 'null',
+        MOCK_COMPLETED_DATA: MOCK_COMPLETED_DATA ? MOCK_COMPLETED_DATA.length : 'null',
+        MOCK_OFFERED_DATA: MOCK_OFFERED_DATA ? MOCK_OFFERED_DATA.length : 'null'
+    });
+}
 
 // Applications Data - Moved from messages.js for integration
 const MOCK_APPLICATIONS = [
@@ -519,6 +555,7 @@ window.JobsDataService = {
         MOCK_LISTINGS_DATA = null;
         MOCK_HIRING_DATA = null;
         MOCK_COMPLETED_DATA = null; // ADD: Clean up completed data
+        MOCK_OFFERED_DATA = null; // ADD: Clean up offered data
         console.log('🧹 JobsDataService mock data cleared');
     },
     
@@ -922,6 +959,120 @@ window.JobsDataService = {
             MOCK_COMPLETED_DATA = generateCompletedJobsData();
         }
         return MOCK_COMPLETED_DATA;
+    },
+    
+    // Get offered jobs (simulates Firebase query) - NEW FOR GIGS OFFERED TAB
+    async getOfferedJobs() {
+        // Firebase Implementation:
+        // const db = firebase.firestore();
+        // const currentUserId = firebase.auth().currentUser.uid;
+        // 
+        // const offeredJobsSnapshot = await db.collection('jobs')
+        //     .where('status', '==', 'offered')
+        //     .where('hiredWorkerId', '==', currentUserId)
+        //     .orderBy('hiredAt', 'desc')
+        //     .get();
+        // 
+        // return offeredJobsSnapshot.docs.map(doc => {
+        //     const data = doc.data();
+        //     return {
+        //         jobId: doc.id,
+        //         posterId: data.posterId,
+        //         posterName: data.posterName,
+        //         posterThumbnail: data.posterThumbnail,
+        //         title: data.title,
+        //         description: data.description,
+        //         category: data.category,
+        //         thumbnail: data.thumbnail,
+        //         jobDate: data.scheduledDate,
+        //         startTime: data.startTime,
+        //         endTime: data.endTime,
+        //         priceOffer: data.agreedPrice,
+        //         datePosted: data.datePosted,
+        //         dateOffered: data.hiredAt,
+        //         status: 'offered',
+        //         hiredWorkerId: data.hiredWorkerId,
+        //         hiredWorkerName: data.hiredWorkerName,
+        //         role: 'worker' // Always worker perspective for offered jobs
+        //     };
+        // });
+        
+        if (!MOCK_OFFERED_DATA) {
+            MOCK_OFFERED_DATA = this._generateOfferedJobsData();
+        }
+        return MOCK_OFFERED_DATA;
+    },
+    
+    // Generate mock offered jobs data
+    _generateOfferedJobsData() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        
+        const formatDateTime = (date) => date.toISOString();
+        
+        return [
+            {
+                jobId: 'job_2024_offered_001',
+                posterId: 'user_maria_santos_002',
+                posterName: 'Maria Santos',
+                posterThumbnail: 'public/users/User-02.jpg',
+                title: 'Deep Clean 3-Bedroom House After Renovation',
+                description: 'Need thorough cleaning after home renovation. Includes dust removal, window cleaning, and floor polishing.',
+                category: 'limpyo',
+                thumbnail: 'public/mock/mock-limpyo-post1.jpg',
+                jobDate: '2024-01-25',
+                startTime: '8AM',
+                endTime: '5PM',
+                priceOffer: '₱2,500',
+                datePosted: formatDateTime(yesterday),
+                dateOffered: formatDateTime(today),
+                status: 'offered',
+                hiredWorkerId: CURRENT_USER_ID,
+                hiredWorkerName: 'Peter J. Ang',
+                role: 'worker'
+            },
+            {
+                jobId: 'job_2024_offered_002',
+                posterId: 'user_ana_reyes_004',
+                posterName: 'Ana Reyes',
+                posterThumbnail: 'public/users/User-03.jpg',
+                title: 'Transport Furniture from Makati to Quezon City',
+                description: 'Need reliable transport for moving furniture and boxes to new apartment.',
+                category: 'hatod',
+                thumbnail: 'public/mock/mock-hatod-post2.jpg',
+                jobDate: '2024-01-26',
+                startTime: '10AM',
+                endTime: '2PM',
+                priceOffer: '₱1,800',
+                datePosted: formatDateTime(yesterday),
+                dateOffered: formatDateTime(today),
+                status: 'offered',
+                hiredWorkerId: CURRENT_USER_ID,
+                hiredWorkerName: 'Peter J. Ang',
+                role: 'worker'
+            },
+            {
+                jobId: 'job_2024_offered_003',
+                posterId: 'user_carlos_rivera_005',
+                posterName: 'Carlos Rivera',
+                posterThumbnail: 'public/users/User-05.jpg',
+                title: 'Fix Kitchen Plumbing - Leaky Faucet and Clogged Drain',
+                description: 'Need experienced plumber to fix kitchen sink issues. Faucet has been leaking for days and drain is completely blocked.',
+                category: 'plumber',
+                thumbnail: 'public/mock/mock-limpyo-post3.jpg',
+                jobDate: '2024-01-27',
+                startTime: '2PM',
+                endTime: '4PM',
+                priceOffer: '₱1,200',
+                datePosted: formatDateTime(yesterday),
+                dateOffered: formatDateTime(today),
+                status: 'offered',
+                hiredWorkerId: CURRENT_USER_ID,
+                hiredWorkerName: 'Peter J. Ang',
+                role: 'worker'
+            }
+        ];
     }
 };
 
@@ -1078,6 +1229,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             MOCK_LISTINGS_DATA = null;
             MOCK_HIRING_DATA = null;
             MOCK_COMPLETED_DATA = null;
+            MOCK_OFFERED_DATA = null;
             
             // Remove refresh parameter from URL without reloading page
             const cleanUrl = window.location.pathname;
@@ -1212,21 +1364,21 @@ async function switchToRole(roleType) {
             wrapper.classList.remove('active');
         });
         
-        // Show worker content (default to accepted)
-        const acceptedContent = document.getElementById('accepted-content');
-        if (acceptedContent) {
-            acceptedContent.style.display = 'block';
-            acceptedContent.classList.add('active');
+        // Show worker content (default to offered)
+        const offeredContent = document.getElementById('offered-content');
+        if (offeredContent) {
+            offeredContent.style.display = 'block';
+            offeredContent.classList.add('active');
         }
         
-        // Activate accepted tab
+        // Activate offered tab
         document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('acceptedTab')?.classList.add('active');
+        document.getElementById('offeredTab')?.classList.add('active');
         
-        // Initialize the default accepted tab content
-        await initializeAcceptedTab();
+        // Initialize the default offered tab content
+        await initializeOfferedTab();
         
-        console.log('✅ Worker role activated - showing Gigs Accepted/Gigs Completed tabs');
+        console.log('✅ Worker role activated - showing Gigs Offered/Gigs Accepted/Gigs Completed tabs');
     }
 }
 
@@ -1312,7 +1464,9 @@ async function switchToWorkerTab(tabType) {
     console.log(`🔄 Switched to worker tab: ${tabType}`);
     
     // Load worker content
-    if (tabType === 'accepted') {
+    if (tabType === 'offered') {
+        await initializeOfferedTab();
+    } else if (tabType === 'accepted') {
         await initializeAcceptedTab();
     } else if (tabType === 'worker-completed') {
         await initializeWorkerCompletedTab();
@@ -1320,6 +1474,188 @@ async function switchToWorkerTab(tabType) {
 }
 
 // Worker tab content functions
+async function initializeOfferedTab() {
+    console.log('📋 Initializing offered gigs tab');
+    
+    // Debug data status before loading
+    debugDataStatus();
+    
+    const container = document.querySelector('.offered-container');
+    if (!container) return;
+    
+    // Only force reload if we detect potential contamination from role switching
+    if (container.hasAttribute('data-loaded')) {
+        // Check if we need to force reload due to potential contamination
+        const lastRoleSwitch = window.lastRoleSwitch || 0;
+        const tabLastLoaded = parseInt(container.getAttribute('data-loaded-time') || '0');
+        
+        if (lastRoleSwitch > tabLastLoaded) {
+            console.log('🔄 Force reloading offered tab due to role switch contamination');
+            container.removeAttribute('data-loaded');
+        } else {
+            console.log('✅ Offered gigs tab already loaded and clean');
+            return;
+        }
+    }
+    
+    await loadOfferedContent();
+    container.setAttribute('data-loaded', 'true');
+    container.setAttribute('data-loaded-time', Date.now().toString());
+}
+
+async function loadOfferedContent() {
+    const container = document.querySelector('.offered-container');
+    if (!container) return;
+    
+    try {
+        // Get all offered jobs for current user (worker perspective)
+        console.log('🔄 Calling JobsDataService.getOfferedJobs()...');
+        const offeredJobs = await JobsDataService.getOfferedJobs();
+        
+        console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
+        console.log('📋 Offered jobs data:', offeredJobs);
+        
+        if (offeredJobs.length === 0) {
+            showEmptyOfferedState();
+            return;
+        }
+        
+        // Generate HTML for offered gigs cards using the same design as accepted cards
+        const cardsHTML = await generateMockOfferedJobs(offeredJobs);
+        container.innerHTML = cardsHTML;
+        
+        // Attach event listeners for offered gig cards
+        attachOfferedCardHandlers();
+        
+    } catch (error) {
+        console.error('❌ Error loading offered content:', error);
+        showEmptyOfferedState();
+    }
+}
+
+function showEmptyOfferedState() {
+    const container = document.querySelector('.offered-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">💼</div>
+            <div class="empty-state-title">Gigs Offered</div>
+            <div class="empty-state-message">Job offers from customers will appear here</div>
+        </div>
+    `;
+}
+
+async function generateMockOfferedJobs(offeredJobs) {
+    const cardsHTML = offeredJobs.map(job => generateOfferedJobCard(job)).join('');
+    return cardsHTML;
+}
+
+function generateOfferedJobCard(job) {
+    // Use same card design as accepted gigs but with "OFFERED BY" caption
+    const roleCaption = `OFFERED BY ${job.posterName.toUpperCase()}`;
+    const userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
+    const userName = job.posterName;
+    
+    return `
+        <div class="hiring-card worker offered-gig" 
+             data-job-id="${job.jobId}"
+             data-poster-id="${job.posterId}"
+             data-poster-name="${job.posterName}"
+             data-poster-thumbnail="${job.posterThumbnail}"
+             data-category="${job.category}"
+             data-role="${job.role}"
+             data-price-offer="${job.priceOffer}"
+             data-date-offered="${job.dateOffered}">
+            
+            <div class="hiring-title">${job.title}</div>
+            
+            <div class="hiring-date-time-row">
+                <div class="hiring-date-part">
+                    <span class="hiring-date-label">DUE:</span>
+                    <span class="hiring-date-value">${formatJobDate(job.jobDate)}</span>
+                </div>
+                <div class="hiring-time-part">
+                    <span class="hiring-time-label">FROM:</span>
+                    <span class="hiring-time-value">${formatTime(job.startTime)}</span>
+                    <span class="hiring-time-label">TO:</span>
+                    <span class="hiring-time-value">${formatTime(job.endTime)}</span>
+                </div>
+            </div>
+            
+            <div class="hiring-main-row">
+                <div class="hiring-thumbnail">
+                    <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                </div>
+                
+                <div class="hiring-content">
+                    <div class="hiring-left-content">
+                        <div class="hiring-price">${job.priceOffer}</div>
+                        <div class="hiring-role-caption worker">${roleCaption}</div>
+                    </div>
+                    <div class="hiring-right-content">
+                        <div class="hiring-user-thumbnail">
+                            <img src="${userThumbnail}" alt="${userName}" loading="lazy">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function attachOfferedCardHandlers() {
+    const offeredCards = document.querySelectorAll('.offered-gig');
+    
+    // Clean up any existing handlers first
+    executeCleanupsByType('offered-cards');
+    
+    const cleanOfferedCards = Array.from(offeredCards).filter(card => card && card.parentNode);
+    
+    cleanOfferedCards.forEach((card, index) => {
+        const cardClickHandler = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🎯 Offered gig card clicked');
+            
+            const jobData = extractOfferedJobDataFromCard(card);
+            if (jobData) {
+                showGigOfferOptionsOverlay(jobData);
+            }
+        };
+        
+        card.addEventListener('click', cardClickHandler);
+        
+        // Register cleanup for this card
+        if (!CLEANUP_REGISTRY.elementListeners.has(card)) {
+            CLEANUP_REGISTRY.elementListeners.set(card, []);
+        }
+        CLEANUP_REGISTRY.elementListeners.get(card).push(['click', cardClickHandler]);
+        
+        // Register cleanup function for this specific card
+        registerCleanup('offered-cards', `card-${index}`, () => {
+            card.removeEventListener('click', cardClickHandler);
+        });
+    });
+    
+    console.log(`✅ Added handlers to ${cleanOfferedCards.length} offered gig cards`);
+}
+
+function extractOfferedJobDataFromCard(cardElement) {
+    return {
+        jobId: cardElement.getAttribute('data-job-id'),
+        posterId: cardElement.getAttribute('data-poster-id'),
+        posterName: cardElement.getAttribute('data-poster-name'),
+        posterThumbnail: cardElement.getAttribute('data-poster-thumbnail'),
+        category: cardElement.getAttribute('data-category'),
+        role: cardElement.getAttribute('data-role'),
+        priceOffer: cardElement.getAttribute('data-price-offer'),
+        dateOffered: cardElement.getAttribute('data-date-offered'),
+        title: cardElement.querySelector('.hiring-title')?.textContent || 'Unknown Job'
+    };
+}
+
 async function initializeAcceptedTab() {
     console.log('📋 Initializing accepted gigs tab');
     const container = document.querySelector('.accepted-container');
@@ -2276,6 +2612,552 @@ function hideHiringOptionsOverlay() {
     delete overlay.dataset.registeredCleanupType;
     
     console.log(`👥 Hiring overlay hidden and ${cleanupType} handlers cleaned up`);
+}
+
+// ===== GIG OFFER OVERLAY FUNCTIONS =====
+async function showGigOfferOptionsOverlay(jobData) {
+    console.log('💼 Show gig offer options for:', jobData);
+    
+    const overlay = document.getElementById('gigOfferOptionsOverlay');
+    const title = document.getElementById('gigOfferOptionsTitle');
+    const subtitle = document.getElementById('gigOfferOptionsSubtitle');
+    
+    if (!overlay) {
+        console.error('❌ Gig offer overlay elements not found');
+        return;
+    }
+    
+    // Set overlay title and subtitle
+    title.textContent = 'Gig Offer';
+    subtitle.textContent = `Choose an action for "${jobData.title}"`;
+    
+    // Store job data in overlay for handlers
+    overlay.setAttribute('data-job-id', jobData.jobId);
+    overlay.setAttribute('data-poster-id', jobData.posterId);
+    overlay.setAttribute('data-poster-name', jobData.posterName);
+    overlay.setAttribute('data-poster-thumbnail', jobData.posterThumbnail);
+    overlay.setAttribute('data-job-title', jobData.title);
+    overlay.setAttribute('data-price-offer', jobData.priceOffer);
+    overlay.setAttribute('data-category', jobData.category);
+    
+    // Initialize handlers
+    initializeGigOfferOverlayHandlers();
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    console.log('💼 Gig offer options overlay shown');
+}
+
+function initializeGigOfferOverlayHandlers() {
+    const overlay = document.getElementById('gigOfferOptionsOverlay');
+    if (!overlay || overlay.dataset.handlersInitialized) return;
+    
+    const acceptBtn = document.getElementById('acceptOfferBtn');
+    const rejectBtn = document.getElementById('rejectOfferBtn');
+    const contactBtn = document.getElementById('contactCustomerBtn');
+    const closeBtn = document.getElementById('closeOfferOptionsBtn');
+    
+    console.log('🔧 Initializing gig offer overlay handlers');
+    
+    // Accept Offer button
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function() {
+            const jobData = extractGigOfferDataFromOverlay();
+            if (jobData) {
+                hideGigOfferOptionsOverlay();
+                showConfirmAcceptGigOverlay(jobData);
+            }
+        });
+    }
+    
+    // Reject Offer button
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', function() {
+            const jobData = extractGigOfferDataFromOverlay();
+            if (jobData) {
+                hideGigOfferOptionsOverlay();
+                showRejectGigOfferOverlay(jobData);
+            }
+        });
+    }
+    
+    // Contact Customer button
+    if (contactBtn) {
+        contactBtn.addEventListener('click', function() {
+            const jobData = extractGigOfferDataFromOverlay();
+            if (jobData) {
+                hideGigOfferOptionsOverlay();
+                showContactCustomerOverlay(jobData);
+            }
+        });
+    }
+    
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideGigOfferOptionsOverlay);
+    }
+    
+    // Backdrop click
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            hideGigOfferOptionsOverlay();
+        }
+    });
+    
+    // Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideGigOfferOptionsOverlay();
+        }
+    });
+    
+    overlay.dataset.handlersInitialized = 'true';
+}
+
+function extractGigOfferDataFromOverlay() {
+    const overlay = document.getElementById('gigOfferOptionsOverlay');
+    if (!overlay) return null;
+    
+    return {
+        jobId: overlay.getAttribute('data-job-id'),
+        posterId: overlay.getAttribute('data-poster-id'),
+        posterName: overlay.getAttribute('data-poster-name'),
+        posterThumbnail: overlay.getAttribute('data-poster-thumbnail'),
+        title: overlay.getAttribute('data-job-title'),
+        priceOffer: overlay.getAttribute('data-price-offer'),
+        category: overlay.getAttribute('data-category')
+    };
+}
+
+function hideGigOfferOptionsOverlay() {
+    const overlay = document.getElementById('gigOfferOptionsOverlay');
+    if (!overlay) return;
+    
+    overlay.classList.remove('show');
+    
+    // Clean up handlers
+    executeCleanupsByType('gig-offer-overlay');
+    
+    // Clear handlers initialization flag
+    delete overlay.dataset.handlersInitialized;
+    
+    console.log('💼 Gig offer overlay hidden and handlers cleaned up');
+}
+
+// ===== CONFIRM ACCEPT GIG OVERLAY FUNCTIONS =====
+function showConfirmAcceptGigOverlay(jobData) {
+    console.log('🤝 Show confirm accept gig overlay for:', jobData);
+    
+    const overlay = document.getElementById('confirmAcceptGigOverlay');
+    if (!overlay) {
+        console.error('❌ Confirm accept gig overlay not found');
+        return;
+    }
+    
+    // Store job data in overlay
+    overlay.dataset.jobId = jobData.jobId;
+    overlay.dataset.posterId = jobData.posterId;
+    overlay.dataset.posterName = jobData.posterName;
+    overlay.dataset.posterThumbnail = jobData.posterThumbnail;
+    overlay.dataset.jobTitle = jobData.title;
+    overlay.dataset.priceOffer = jobData.priceOffer;
+    overlay.dataset.category = jobData.category;
+    
+    // Update customer status (simulate based on poster data)
+    updateCustomerStatusDisplay(jobData);
+    
+    // Initialize handlers
+    initializeConfirmAcceptGigHandlers();
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    console.log('🤝 Confirm accept gig overlay shown');
+}
+
+function updateCustomerStatusDisplay(jobData) {
+    // Simulate customer status determination (in real app, this would come from backend)
+    const customerStatus = determineCustomerStatus(jobData.posterName);
+    
+    const statusIcon = document.getElementById('customerStatusFriendlyIcon');
+    const statusTitle = document.getElementById('customerStatusInfoTitle');
+    const statusContent = document.getElementById('customerStatusInfoContent');
+    
+    if (statusIcon && statusTitle && statusContent) {
+        statusIcon.textContent = customerStatus.icon;
+        statusTitle.textContent = customerStatus.title;
+        statusContent.textContent = customerStatus.description;
+    }
+}
+
+function determineCustomerStatus(customerName) {
+    // Simulate different customer statuses (in real app, this would be from backend data)
+    const statuses = {
+        'Maria Santos': {
+            icon: '👑',
+            title: 'Business Verified',
+            description: 'This customer has successfully completed our comprehensive business verification process and is recognized as a Premium Community Member. Government-issued business documents verified with enhanced profile visibility and priority listing.'
+        },
+        'Ana Reyes': {
+            icon: '⭐',
+            title: 'Pro Verified',
+            description: 'This customer has successfully verified their identity and is recognized as a Trusted Community Member. Government-issued ID verified with enhanced profile credibility and priority in search results.'
+        },
+        'Carlos Rivera': {
+            icon: '🌱',
+            title: 'New Member',
+            description: 'This customer is new to our platform and hasn\'t completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.'
+        }
+    };
+    
+    return statuses[customerName] || statuses['Carlos Rivera']; // Default to new member
+}
+
+function initializeConfirmAcceptGigHandlers() {
+    const overlay = document.getElementById('confirmAcceptGigOverlay');
+    if (!overlay || overlay.dataset.handlersInitialized) return;
+    
+    const closeBtn = document.getElementById('confirmAcceptGigCloseBtn');
+    const cancelBtn = document.getElementById('cancelAcceptGigBtn');
+    const confirmBtn = document.getElementById('confirmAcceptGigBtn');
+    
+    console.log('🔧 Initializing confirm accept gig handlers');
+    
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', hideConfirmAcceptGigOverlay);
+    }
+    
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideConfirmAcceptGigOverlay);
+    }
+    
+    // Confirm accept button
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            console.log('✅ Final accept gig confirmation clicked!');
+            const jobData = {
+                jobId: overlay.dataset.jobId,
+                posterId: overlay.dataset.posterId,
+                posterName: overlay.dataset.posterName,
+                posterThumbnail: overlay.dataset.posterThumbnail,
+                title: overlay.dataset.jobTitle,
+                priceOffer: overlay.dataset.priceOffer,
+                category: overlay.dataset.category
+            };
+            
+            processAcceptGigConfirmation(jobData);
+        });
+    }
+    
+    // Backdrop click
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            hideConfirmAcceptGigOverlay();
+        }
+    });
+    
+    // Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideConfirmAcceptGigOverlay();
+        }
+    });
+    
+    overlay.dataset.handlersInitialized = 'true';
+}
+
+function hideConfirmAcceptGigOverlay() {
+    const overlay = document.getElementById('confirmAcceptGigOverlay');
+    if (!overlay) return;
+    
+    overlay.classList.remove('show');
+    
+    // Clean up event handlers
+    delete overlay.dataset.handlersInitialized;
+    
+    console.log('🤝 Confirm accept gig overlay hidden and handlers cleaned up');
+}
+
+function processAcceptGigConfirmation(jobData) {
+    console.log('🎉 Processing accept gig confirmation for:', jobData);
+    
+    // Hide confirmation overlay
+    hideConfirmAcceptGigOverlay();
+    
+    // Show success confirmation
+    showConfirmationWithCallback(
+        '✅',
+        'Gig Offer Accepted!',
+        `You have accepted the job offer from ${jobData.posterName}. The job will now appear in your "Gigs Accepted" tab. You can coordinate work details through messages.`,
+        async () => {
+            try {
+                // Move job from offered to accepted status
+                await moveJobFromOfferedToAccepted(jobData.jobId);
+                
+                // Refresh both offered and accepted tabs
+                await loadOfferedContent();
+                await loadAcceptedContent();
+                
+                // Update tab counts
+                await updateTabCounts();
+                
+                console.log('✅ Job successfully moved from offered to accepted');
+            } catch (error) {
+                console.error('❌ Error in accept gig process:', error);
+            }
+        }
+    );
+}
+
+// ===== REJECT GIG OFFER OVERLAY FUNCTIONS =====
+function showRejectGigOfferOverlay(jobData) {
+    console.log('❌ Show reject gig offer overlay for:', jobData);
+    
+    const overlay = document.getElementById('rejectGigOfferOverlay');
+    const customerNameSpan = document.getElementById('rejectCustomerName');
+    
+    if (!overlay) {
+        console.error('❌ Reject gig offer overlay not found');
+        return;
+    }
+    
+    // Update customer name in warning text
+    if (customerNameSpan) {
+        customerNameSpan.textContent = jobData.posterName;
+    }
+    
+    // Store job data in overlay
+    overlay.dataset.jobId = jobData.jobId;
+    overlay.dataset.posterName = jobData.posterName;
+    overlay.dataset.jobTitle = jobData.title;
+    
+    // Initialize handlers
+    initializeRejectGigOfferHandlers();
+    
+    // Show overlay
+    overlay.classList.add('show');
+    
+    console.log('❌ Reject gig offer overlay shown');
+}
+
+function initializeRejectGigOfferHandlers() {
+    const overlay = document.getElementById('rejectGigOfferOverlay');
+    if (!overlay || overlay.dataset.handlersInitialized) return;
+    
+    const cancelBtn = document.getElementById('rejectGigOfferCancelBtn');
+    const confirmBtn = document.getElementById('confirmRejectGigOfferBtn');
+    
+    console.log('🔧 Initializing reject gig offer handlers');
+    
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideRejectGigOfferOverlay);
+    }
+    
+    // Confirm reject button
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            const jobData = {
+                jobId: overlay.dataset.jobId,
+                posterName: overlay.dataset.posterName,
+                title: overlay.dataset.jobTitle
+            };
+            
+            processRejectGigConfirmation(jobData);
+        });
+    }
+    
+    // Backdrop click
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            hideRejectGigOfferOverlay();
+        }
+    });
+    
+    // Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('show')) {
+            hideRejectGigOfferOverlay();
+        }
+    });
+    
+    overlay.dataset.handlersInitialized = 'true';
+}
+
+function hideRejectGigOfferOverlay() {
+    const overlay = document.getElementById('rejectGigOfferOverlay');
+    if (!overlay) return;
+    
+    overlay.classList.remove('show');
+    
+    // Clean up handlers
+    delete overlay.dataset.handlersInitialized;
+    
+    console.log('❌ Reject gig offer overlay hidden');
+}
+
+function processRejectGigConfirmation(jobData) {
+    console.log('❌ Processing reject gig confirmation for:', jobData);
+    
+    // Hide rejection overlay
+    hideRejectGigOfferOverlay();
+    
+    // Show confirmation
+    showConfirmationWithCallback(
+        '❌',
+        'Gig Offer Rejected',
+        `You have rejected the job offer from ${jobData.posterName}. The customer has been notified of your decision.`,
+        async () => {
+            try {
+                // Remove job from offered data and restore applications for customer
+                await rejectGigOffer(jobData.jobId);
+                
+                // Refresh offered tab
+                await loadOfferedContent();
+                
+                // Update tab counts
+                await updateTabCounts();
+                
+                console.log('✅ Gig offer successfully rejected');
+            } catch (error) {
+                console.error('❌ Error in reject gig process:', error);
+            }
+        }
+    );
+}
+
+// ===== CONTACT CUSTOMER OVERLAY FUNCTIONS =====
+function showContactCustomerOverlay(jobData) {
+    console.log('📞 Show contact customer overlay for:', jobData);
+    
+    // Use the existing contact message overlay system
+    showContactMessageOverlay(jobData.posterId, jobData.posterName, jobData.jobId);
+    
+    // Update placeholder text for customer context
+    const messageInput = document.getElementById('contactMessageInput');
+    if (messageInput) {
+        messageInput.placeholder = 'Write your message to the customer. Suggestion: Ask for contact details or clarify job requirements.';
+    }
+    
+    console.log('📞 Contact customer overlay shown');
+}
+
+// ===== DATA MANIPULATION FUNCTIONS =====
+async function moveJobFromOfferedToAccepted(jobId) {
+    console.log(`🔄 Moving job ${jobId} from offered to accepted status`);
+    
+    // Find the job in offered data
+    if (!MOCK_OFFERED_DATA) return;
+    
+    const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
+    if (jobIndex === -1) {
+        console.error(`❌ Job ${jobId} not found in offered data`);
+        return;
+    }
+    
+    // Get the job data
+    const offeredJob = MOCK_OFFERED_DATA[jobIndex];
+    
+    // Remove from offered data
+    MOCK_OFFERED_DATA.splice(jobIndex, 1);
+    
+    // Convert to accepted job format and add to hiring data
+    const acceptedJob = {
+        ...offeredJob,
+        status: 'hired', // Use 'hired' status for accepted jobs (matches existing logic)
+        dateHired: formatDateTime(new Date()),
+        hiredWorkerName: offeredJob.hiredWorkerName,
+        hiredWorkerId: offeredJob.hiredWorkerId,
+        hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
+    };
+    
+    // Add to hiring data (this makes it appear in both customer's Hiring tab and worker's Accepted tab)
+    if (!MOCK_HIRING_DATA) {
+        MOCK_HIRING_DATA = [];
+    }
+    MOCK_HIRING_DATA.push(acceptedJob);
+    
+    console.log(`✅ Job ${jobId} successfully moved from offered to accepted`);
+    
+    // In Firebase, this would be:
+    // const db = firebase.firestore();
+    // await db.collection('jobs').doc(jobId).update({
+    //     status: 'hired',
+    //     acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
+    // });
+}
+
+async function rejectGigOffer(jobId) {
+    console.log(`❌ Rejecting gig offer ${jobId}`);
+    
+    // Find and remove the job from offered data
+    if (!MOCK_OFFERED_DATA) return;
+    
+    const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
+    if (jobIndex === -1) {
+        console.error(`❌ Job ${jobId} not found in offered data`);
+        return;
+    }
+    
+    // Remove from offered data
+    MOCK_OFFERED_DATA.splice(jobIndex, 1);
+    
+    console.log(`✅ Job ${jobId} successfully rejected and removed from offered data`);
+    
+    // In Firebase, this would involve:
+    // 1. Updating job status back to 'active'
+    // 2. Removing hiredWorkerId and related fields
+    // 3. Restoring other applications for the customer
+    // 4. Sending notification to customer about rejection
+}
+
+async function addToOfferedData(jobData, workerData) {
+    console.log(`💼 Adding job ${jobData.jobId} to offered data for worker ${workerData.userName}`);
+    
+    // Initialize offered data if it doesn't exist
+    if (!MOCK_OFFERED_DATA) {
+        MOCK_OFFERED_DATA = [];
+    }
+    
+    // Create offered job entry
+    const offeredJob = {
+        jobId: jobData.jobId,
+        posterId: jobData.posterId || 'unknown-poster',
+        posterName: jobData.posterName || 'Unknown Customer',
+        posterThumbnail: jobData.posterThumbnail || 'public/users/User-04.jpg',
+        title: jobData.title,
+        description: jobData.description,
+        category: jobData.category,
+        thumbnail: jobData.thumbnail,
+        jobDate: jobData.jobDate,
+        startTime: jobData.startTime,
+        endTime: jobData.endTime,
+        priceOffer: workerData.priceOffer,
+        datePosted: jobData.datePosted,
+        dateOffered: formatDateTime(new Date()),
+        status: 'offered',
+        hiredWorkerId: workerData.userId,
+        hiredWorkerName: workerData.userName,
+        role: 'worker' // Always worker perspective for offered jobs
+    };
+    
+    // Add to offered data
+    MOCK_OFFERED_DATA.push(offeredJob);
+    
+    console.log(`✅ Job ${jobData.jobId} successfully added to offered data`);
+    
+    // In Firebase, this would be:
+    // const db = firebase.firestore();
+    // await db.collection('jobs').doc(jobId).update({
+    //     status: 'offered',
+    //     hiredWorkerId: workerData.userId,
+    //     hiredWorkerName: workerData.userName,
+    //     offeredAt: firebase.firestore.FieldValue.serverTimestamp(),
+    //     agreedPrice: workerData.priceOffer
+    // });
 }
 
 async function handleCompleteJob(jobData) {
@@ -5531,41 +6413,46 @@ function processHireConfirmation(workerData) {
     // Show success confirmation and wait for user to close it
     showConfirmationWithCallback(
         '✅',
-        'Worker Hired Successfully!',
-        `You have hired ${workerData.userName} for the job. All other applications will be automatically rejected. You can coordinate work details through messages.`,
+        'Job Offer Sent!',
+        `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab with "Pending Offer" status.`,
         async () => {
             // This callback runs AFTER user clicks OK on success overlay
-            console.log('✅ User closed success overlay, starting hire process...');
+            console.log('✅ User closed success overlay, starting offer process...');
             
             try {
                 // Close all overlays first
                 closeAllOverlaysAfterHire();
                 
-                // Add to hiring data immediately (before removing from listings)
+                // Create offered job for worker and pending hire for customer
                 const jobCard = document.querySelector(`[data-job-id="${workerData.jobId}"]`);
                 if (jobCard) {
                     const jobData = extractJobDataFromCard(jobCard);
                     if (jobData) {
+                        // Add to offered data for worker perspective
+                        await addToOfferedData(jobData, workerData);
+                        
+                        // Add to hiring data with pending status for customer perspective
                         jobData.hiredWorker = workerData.userName;
-                        jobData.hiredWorkerPhoto = workerData.userPhoto; // Add worker photo
-                        jobData.agreedPrice = workerData.priceOffer; // Add agreed price
-                        jobData.priceType = workerData.priceType; // Add price type
+                        jobData.hiredWorkerPhoto = workerData.userPhoto;
+                        jobData.agreedPrice = workerData.priceOffer;
+                        jobData.priceType = workerData.priceType;
+                        jobData.status = 'pending-offer'; // New status for pending offers
                         addToHiringData(jobData);
-                        console.log('✅ Job data added to hiring before removal');
+                        console.log('✅ Job offer created for both worker and customer');
                     }
                 }
                 
-                // Remove the hired application and auto-reject all others
-                autoRejectOtherApplications(workerData.applicationId);
-                removeApplicationCard(workerData.applicationId);
+                // Hold applications in reserve (don't reject yet)
+                // Applications will be restored if worker rejects or customer cancels
+                console.log('📋 Applications held in reserve until worker accepts offer');
                 
-                // Move job listing from Listings to Hiring tab with better timing
+                // Move job listing from Listings to Hiring tab with pending status
                 setTimeout(async () => {
-                    await moveJobListingToHiringWithData(workerData.jobId, workerData.userName);
+                    await moveJobListingToHiringWithData(workerData.jobId, workerData.userName, 'pending-offer');
                 }, 500);
                 
             } catch (error) {
-                console.error('❌ Error in hire process:', error);
+                console.error('❌ Error in offer process:', error);
             }
         }
     );
@@ -6229,6 +7116,9 @@ async function updateTabCounts() {
     // Update notification counts on tabs after job operations
     console.log('🔢 Updating tab notification counts...');
     
+    // Debug current data status
+    debugDataStatus();
+    
     try {
         // Firebase Implementation:
         // const db = firebase.firestore();
@@ -6268,6 +7158,7 @@ async function updateTabCounts() {
         const listingsJobs = await JobsDataService.getAllJobs();
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
         const completedJobs = await getCompletedJobs();
+        const offeredJobs = await JobsDataService.getOfferedJobs();
         
         // Separate hired jobs by perspective
         const customerHiringJobs = allHiredJobs.filter(job => job.role === 'customer');
@@ -6282,6 +7173,7 @@ async function updateTabCounts() {
             listings: listingsJobs.length,              // Active/paused jobs posted by user
             hiring: customerHiringJobs.length,          // Jobs where user hired workers (customer perspective)
             previous: customerCompletedJobs.length,     // Completed jobs where user was customer
+            offered: offeredJobs.length,                // Jobs offered to user (worker perspective)
             accepted: workerAcceptedJobs.length,        // Jobs where user was hired (worker perspective)
             workerCompleted: workerCompletedJobs.length // Jobs where user worked and completed
         };
@@ -6302,9 +7194,13 @@ async function updateTabCounts() {
         }
         
         // Update worker tab notification badges
+        const offeredCount = document.querySelector('#offeredTab .notification-count');
         const acceptedCount = document.querySelector('#acceptedTab .notification-count');
         const workerCompletedCount = document.querySelector('#workerCompletedTab .notification-count');
         
+        if (offeredCount) {
+            offeredCount.textContent = counts.offered;
+        }
         if (acceptedCount) {
             acceptedCount.textContent = counts.accepted;
         }
@@ -6312,7 +7208,7 @@ async function updateTabCounts() {
             workerCompletedCount.textContent = counts.workerCompleted;
         }
         
-        console.log(`📊 Tab counts updated: Listings(${counts.listings}), Hiring(${counts.hiring}), Previous(${counts.previous}), Accepted(${counts.accepted}), WorkerCompleted(${counts.workerCompleted})`);
+        console.log(`📊 Tab counts updated: Listings(${counts.listings}), Hiring(${counts.hiring}), Previous(${counts.previous}), Offered(${counts.offered}), Accepted(${counts.accepted}), WorkerCompleted(${counts.workerCompleted})`);
         
     } catch (error) {
         console.error('❌ Error updating tab counts:', error);
