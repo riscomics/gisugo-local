@@ -2480,7 +2480,16 @@ async function showHiringOptionsOverlay(jobData) {
 
 function initializeHiringOverlayHandlers() {
     const overlay = document.getElementById('hiringOptionsOverlay');
-    if (!overlay || overlay.dataset.handlersInitialized) return;
+    if (!overlay) {
+        console.error('❌ Hiring overlay not found!');
+        return;
+    }
+    
+    if (overlay.dataset.handlersInitialized) {
+        console.log('🔧 Hiring overlay handlers already initialized, clearing and re-initializing');
+        // Clear the flag and re-initialize to ensure handlers work for different cards
+        delete overlay.dataset.handlersInitialized;
+    }
     
     // Determine cleanup type based on current role and tab context
     const currentRole = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role');
@@ -2502,6 +2511,13 @@ function initializeHiringOverlayHandlers() {
     const resignBtn = document.getElementById('resignJobBtn');
     const cancelBtn = document.getElementById('cancelHiringBtn');
     
+    console.log('🔍 Button elements found:', {
+        completeBtn: !!completeBtn,
+        relistBtn: !!relistBtn, 
+        resignBtn: !!resignBtn,
+        cancelBtn: !!cancelBtn
+    });
+    
     // Complete job handler (customer)
     if (completeBtn) {
         const completeHandler = function(e) {
@@ -2517,12 +2533,17 @@ function initializeHiringOverlayHandlers() {
     
     // Relist job handler (customer)
     if (relistBtn) {
+        // Clear any existing handlers first
+        relistBtn.onclick = null;
         const relistHandler = function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            console.log('🔄 Relist button clicked');
             const jobData = getHiringJobDataFromOverlay();
             handleRelistJob(jobData);
         };
         relistBtn.addEventListener('click', relistHandler);
+        console.log('✅ Relist button handler attached');
         registerCleanup(cleanupType, 'relistBtn', () => {
             relistBtn.removeEventListener('click', relistHandler);
         });
@@ -2530,12 +2551,17 @@ function initializeHiringOverlayHandlers() {
     
     // Resign job handler (worker)
     if (resignBtn) {
+        // Clear any existing handlers first
+        resignBtn.onclick = null;
         const resignHandler = function(e) {
             e.preventDefault();
+            e.stopPropagation();
+            console.log('👋 Resign button clicked');
             const jobData = getHiringJobDataFromOverlay();
             handleResignJob(jobData);
         };
         resignBtn.addEventListener('click', resignHandler);
+        console.log('✅ Resign button handler attached');
         registerCleanup(cleanupType, 'resignBtn', () => {
             resignBtn.removeEventListener('click', resignHandler);
         });
@@ -2555,15 +2581,9 @@ function initializeHiringOverlayHandlers() {
     
     // Background click handler
     const backgroundHandler = function(e) {
-        // Close if clicking on overlay background
+        // Only close if clicking directly on overlay background, not on any child elements
         if (e.target === overlay) {
-            hideHiringOptionsOverlay();
-            return;
-        }
-        
-        // CONSISTENCY FIX: Also close if clicking on cancel button (for consistency with previous overlay)
-        if (e.target && e.target.id === 'cancelHiringBtn') {
-            console.log(`🔘 DEBUG Cancel button click detected in hiring background handler - calling hideHiringOptionsOverlay()`);
+            console.log('🔘 Background click detected - closing overlay');
             hideHiringOptionsOverlay();
             return;
         }
@@ -3190,6 +3210,14 @@ async function handleCompleteJob(jobData) {
 
 async function handleRelistJob(jobData) {
     console.log(`🔄 RELIST job: ${jobData.jobId} (Customer perspective)`);
+    
+    // Prevent multiple relist operations on the same job
+    const overlay = document.getElementById('relistJobConfirmationOverlay');
+    if (overlay.classList.contains('show')) {
+        console.log('⚠️ Relist overlay already shown, ignoring duplicate call');
+        return;
+    }
+    
     hideHiringOptionsOverlay();
     
     // Get worker name from job data
@@ -3197,8 +3225,7 @@ async function handleRelistJob(jobData) {
     const job = hiredJobs.find(j => j.jobId === jobData.jobId);
     const workerName = job ? job.hiredWorkerName : 'the worker';
     
-    // Show relist confirmation overlay
-    const overlay = document.getElementById('relistJobConfirmationOverlay');
+    // Show relist confirmation overlay (overlay already defined above)
     const subtitle = document.getElementById('relistJobSubtitle');
     const workerNameSpan = document.getElementById('relistWorkerName');
     const workerNameReminderSpan = document.getElementById('relistWorkerNameReminder');
@@ -3233,6 +3260,7 @@ async function handleRelistJob(jobData) {
     overlay.removeAttribute('data-relist-type'); // Clear previous relist type
     
     overlay.classList.add('show');
+    console.log('📋 Relist confirmation overlay shown');
     
     // Initialize confirmation handlers
     initializeRelistJobConfirmationHandlers();
@@ -3273,6 +3301,7 @@ async function handleResignJob(jobData) {
     overlay.setAttribute('data-customer-name', customerName);
     
     overlay.classList.add('show');
+    console.log('📋 Resign confirmation overlay shown');
     
     // Initialize confirmation handlers
     initializeResignJobConfirmationHandlers();
@@ -3346,6 +3375,12 @@ function initializeCompleteJobConfirmationHandlers() {
 }
 
 function initializeRelistJobConfirmationHandlers() {
+    const overlay = document.getElementById('relistJobConfirmationOverlay');
+    if (overlay.dataset.handlersInitialized) {
+        console.log('🔧 Relist confirmation handlers already initialized, skipping');
+        return;
+    }
+    
     const yesBtn = document.getElementById('relistJobYesBtn');
     const noBtn = document.getElementById('relistJobNoBtn');
     const reasonInput = document.getElementById('relistReasonInput');
@@ -3410,6 +3445,17 @@ function initializeRelistJobConfirmationHandlers() {
         yesBtn.onclick = null;
         const yesHandler = async function() {
             const overlay = document.getElementById('relistJobConfirmationOverlay');
+            
+            // Prevent multiple executions
+            if (overlay.dataset.processing === 'true') {
+                console.log('⚠️ Relist already in progress, ignoring duplicate call');
+                return;
+            }
+            overlay.dataset.processing = 'true';
+            
+            // Disable the button to prevent rapid clicking
+            yesBtn.disabled = true;
+            
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const relistType = overlay.getAttribute('data-relist-type');
@@ -3418,11 +3464,16 @@ function initializeRelistJobConfirmationHandlers() {
             // Validate reason input
             if (!reason || reason.length < 2) {
                 reasonError.classList.add('show');
+                overlay.dataset.processing = 'false'; // Reset processing flag
+                yesBtn.disabled = false; // Re-enable button
                 return;
             }
             
             // Hide confirmation overlay
             overlay.classList.remove('show');
+            
+            // Clear handlers initialization flag to allow re-initialization
+            delete overlay.dataset.handlersInitialized;
             
             if (relistType === 'completed') {
                 // Handle completed job relisting - create draft
@@ -3531,6 +3582,12 @@ function initializeRelistJobConfirmationHandlers() {
                     
                     console.log(`✅ Created new active job: ${newJobId} from hiring job: ${jobId}`);
                     
+                    // Remove the original job from hiring data
+                    if (MOCK_HIRING_DATA) {
+                        MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== jobId);
+                        console.log(`🗑️ Removed original hiring job: ${jobId} from MOCK_HIRING_DATA`);
+                    }
+                    
                     // Show success and redirect to jobs.html (Listings tab)
                     showContractVoidedSuccess(`Job relisted successfully! "${sourceJob.title}" is now active in your Listings.`);
                 } else {
@@ -3538,6 +3595,10 @@ function initializeRelistJobConfirmationHandlers() {
                     showErrorNotification('Failed to relist job - source job not found');
                 }
             }
+            
+            // Reset processing flag and re-enable button
+            overlay.dataset.processing = 'false';
+            yesBtn.disabled = false;
         };
         yesBtn.addEventListener('click', yesHandler);
         registerCleanup('confirmation', 'relistYes', () => {
@@ -3548,16 +3609,28 @@ function initializeRelistJobConfirmationHandlers() {
     if (noBtn) {
         noBtn.onclick = null;
         const noHandler = function() {
-            document.getElementById('relistJobConfirmationOverlay').classList.remove('show');
+            const overlay = document.getElementById('relistJobConfirmationOverlay');
+            overlay.classList.remove('show');
+            // Clear handlers initialization flag to allow re-initialization
+            delete overlay.dataset.handlersInitialized;
         };
         noBtn.addEventListener('click', noHandler);
         registerCleanup('confirmation', 'relistNo', () => {
             noBtn.removeEventListener('click', noHandler);
         });
     }
+    
+    overlay.dataset.handlersInitialized = 'true';
+    console.log('🔧 Relist confirmation handlers initialized');
 }
 
 function initializeResignJobConfirmationHandlers() {
+    const overlay = document.getElementById('resignJobConfirmationOverlay');
+    if (overlay.dataset.handlersInitialized) {
+        console.log('🔧 Resign confirmation handlers already initialized, skipping');
+        return;
+    }
+    
     const yesBtn = document.getElementById('resignJobYesBtn');
     const noBtn = document.getElementById('resignJobNoBtn');
     const reasonInput = document.getElementById('resignReasonInput');
@@ -3636,6 +3709,9 @@ function initializeResignJobConfirmationHandlers() {
             // Hide confirmation overlay
             overlay.classList.remove('show');
             
+            // Clear handlers initialization flag to allow re-initialization
+            delete overlay.dataset.handlersInitialized;
+            
             // Firebase Implementation - Worker resignation:
             // const db = firebase.firestore();
             // const batch = db.batch();
@@ -3705,13 +3781,19 @@ function initializeResignJobConfirmationHandlers() {
     if (noBtn) {
         noBtn.onclick = null;
         const noHandler = function() {
-            document.getElementById('resignJobConfirmationOverlay').classList.remove('show');
+            const overlay = document.getElementById('resignJobConfirmationOverlay');
+            overlay.classList.remove('show');
+            // Clear handlers initialization flag to allow re-initialization
+            delete overlay.dataset.handlersInitialized;
         };
         noBtn.addEventListener('click', noHandler);
         registerCleanup('confirmation', 'resignNo', () => {
             noBtn.removeEventListener('click', noHandler);
         });
     }
+    
+    overlay.dataset.handlersInitialized = 'true';
+    console.log('🔧 Resign confirmation handlers initialized');
 }
 
 function showJobCompletedSuccess(jobTitle, workerName) {
@@ -4108,6 +4190,7 @@ function resetFeedbackForm() {
 }
 
 function showContractVoidedSuccess(message) {
+    console.log('🎉 Showing contract voided success:', message);
     const overlay = document.getElementById('contractVoidedSuccessOverlay');
     const messageEl = document.getElementById('contractVoidedMessage');
     const okBtn = document.getElementById('contractVoidedOkBtn');
