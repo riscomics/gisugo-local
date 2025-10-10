@@ -6293,14 +6293,14 @@ function createConfetti(container) {
         particle.className = 'confetti-particle';
         particle.style.background = colors[Math.floor(Math.random() * colors.length)];
         
-        // Start all particles at the center point (50% left, 45% top)
+        // Start all particles at the confetti icon position (50% left, 40% top)
         particle.style.left = '50%';
-        particle.style.top = '45%';
+        particle.style.top = '40%';
         
         // Calculate random burst direction and distance in pixels
         const angle = Math.random() * 360; // Random angle in degrees
         const velocity = Math.random() * 200 + 100; // Random velocity between 100-300px
-        const gravity = Math.random() * 150 + 100; // Random gravity effect
+        const gravity = -(Math.random() * 150 + 100); // Random upward force (negative gravity)
         
         // Convert angle to radians for calculation
         const angleRad = angle * (Math.PI / 180);
