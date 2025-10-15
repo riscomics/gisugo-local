@@ -97,13 +97,7 @@ body::-webkit-scrollbar {
   transition: transform 0.15s;
 }
 
-.messages-header .messages-header-btn.back {
-  /* Removed justify-content override to use centered positioning */
-}
-
-.messages-header .messages-header-btn.menu {
-  /* Removed justify-content override to use centered positioning */
-}
+/* REMOVED: Empty CSS rules for back and menu buttons - using default centered positioning */
 
 .messages-header-borderline {
   height: clamp(4px, 1vh, 6px); /* Much thicker for desktop visibility */
@@ -189,19 +183,13 @@ body:has(.messages-header) {
     height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
   }
   
-  .message-thread.expanded {
-    top: 260px; /* More space from tabs for tablet */
-  }
+  /* REMOVED: Tablet positioning override now uses main full-height rule */
   
   body {
     padding-top: clamp(84px, 18vh, 124px) !important; /* Increased top padding for tablet header with margin and gap */
   }
 
-  /* Tablet Overlay Positioning - Match tablet header layout */
-  .messages-container.thread-active::before {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px) !important; /* Tablet: Match content area start */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
-  }
+  /* REMOVED: Tablet overlay positioning now uses main full-height rule */
 
   /* Tablet Tab Content Spacing - Add top spacing for all tabs */
   .notifications-container {
@@ -344,9 +332,7 @@ body:has(.messages-header) {
     height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
   }
   
-  .message-thread.expanded {
-    top: 260px; /* More space from tabs for desktop */
-  }
+  /* REMOVED: Desktop positioning override now uses main full-height rule */
   
   body {
     padding-top: clamp(86px, 20vh, 126px) !important; /* Increased top padding for desktop header with margin and gap */
@@ -380,10 +366,7 @@ body:has(.messages-header) {
 
 /* Desktop-specific overrides to ensure visibility */
 @media (min-width: 1024px) {
-  .messages-container.thread-active::before {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px) !important; /* Desktop: Match content area start with 10px gap */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px + 52px)) !important;
-  }
+  /* REMOVED: Desktop overlay positioning now uses main full-height rule */
 
   /* Desktop Tab Content Spacing - Add top spacing for all tabs */
   .notifications-container {
@@ -469,17 +452,9 @@ body:has(.messages-header) {
     margin-bottom: clamp(9px, 2vh, 12px);
   }
 
-/* Add margin between expanded header and tabs for larger mobile */
-.message-thread.expanded {
-  margin-top: 10px !important; /* 10px margin top space between open header and tabs for 411px-401px */
-}
+/* REMOVED: Margin overrides no longer needed with full-height positioning */
 
-/* Mobile specific - smaller container for smaller screens */
-@media (max-width: 400px) {
-  .message-thread.expanded {
-    margin-top: 5px !important; /* 5px margin top space between open header and tabs for 400px-361px */
-  }
-}
+/* REMOVED: Mobile margin overrides no longer needed with full-height positioning */
 
 
 
@@ -1862,10 +1837,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
   }
   
-  /* MESSAGE THREAD RESPONSIVE HEIGHTS AND MARGINS - 411px to 401px only */
-  .message-thread.expanded {
-    margin-top: 10px !important;
-  }
+  /* REMOVED: Message thread margins no longer needed with full-height positioning */
   
 
   
@@ -1988,11 +1960,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     padding: clamp(8px, 2vh, 12px) 0 clamp(80px, 12vh, 100px) 0 !important; /* REDUCED: Less spacing between Messages tab and inbox for mobile */
   }
 
-  /* Mobile Overlay Positioning - Match mobile header layout */
-  .messages-container.thread-active::before {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px) !important; /* Mobile: Match content area start */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px)) !important;
-  }
+  /* REMOVED: Mobile overlay positioning now uses main full-height rule */
 
   .job-header {
     padding: clamp(12px, 2.5vh, 15px);
@@ -2227,11 +2195,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 }
 
-/* 360px ONLY */
+/* REMOVED: 360px margin overrides no longer needed with full-height positioning */
 @media (min-width: 339px) and (max-width: 360px) {
-  .message-thread.expanded {
-    margin-top: 8px !important; /* Added space between tabs and expanded thread */
-  }
   
   .thread-job-title {
     font-size: 12px !important; /* Further reduced - prevent 3-line titles */
@@ -2293,11 +2258,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Ultra Specific Small Screens (320px and below) */
+/* REMOVED: 320px margin overrides no longer needed with full-height positioning */
 @media (max-width: 320px) {
-  .message-thread.expanded {
-    margin-top: 0px !important;
-  }
   
   .thread-job-title {
     font-size: 10px !important; /* Further reduced to definitely prevent 3 lines */
@@ -2362,59 +2324,284 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: #3d4856;
 }
 
-/* FULL-HEIGHT EXPANDED THREAD - Spans entire visible screen height */
-.message-thread.expanded {
+/* TRUE MODAL OVERLAY SYSTEM - Appears above ALL page elements */
+.chat-modal-overlay {
   position: fixed;
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px)); /* Start right below header */
-  left: 50%;
-  transform: translateX(-50%);
-  width: clamp(92%, 90vw, 90%); /* Responsive width */
-  max-width: clamp(550px, 85vw, 625px); /* Responsive max width */
-  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px))); /* Full remaining height */
-  z-index: 998;
-  margin: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8); /* Dark semi-transparent backdrop */
+  z-index: 9999; /* Above absolutely everything */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
+  padding: 20px; /* Safe area padding */
+  box-sizing: border-box;
+}
+
+.chat-modal-overlay.show {
+  opacity: 1;
+}
+
+/* Chat Modal Container - Full screen height as originally planned */
+.chat-modal-container {
+  background: #2d3748;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  height: calc(100vh - 40px); /* Full screen height minus padding */
+  max-height: none; /* Remove height restriction */
+  border: 1px solid rgba(240, 208, 170, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   display: flex;
-  flex-direction: column; /* Stack header and content vertically */
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Chat Modal Header */
+.chat-modal-header {
+  background: #1a202c;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  flex-shrink: 0;
+}
+
+.chat-modal-info {
+  flex: 1;
+}
+
+.chat-modal-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #e6d6ae;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.chat-modal-participant {
+  font-size: 0.95rem;
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+.chat-modal-menu {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+.chat-modal-menu:hover {
+  background: #4a5568;
+  color: #ffffff;
+}
+
+/* Chat Modal Body */
+.chat-modal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Chat Messages Container */
+.chat-messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 20px; /* Reduced from 120px - normal padding */
+  background: #354048;
+  -webkit-overflow-scrolling: touch;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.chat-messages-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Chat Input Container */
+.chat-input-container {
+  background: #2d3748;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 12px 12px;
+  padding: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 8px 16px;
+  border: 2px solid #4a5568;
+  border-radius: 24px;
+  background: #354048;
+  color: #f0e6d2;
+  font-size: 0.9rem;
+  font-family: Arial, Helvetica, sans-serif;
+  outline: none;
+  transition: all 0.2s ease;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
+  height: 20px;
+}
+
+/* Expanded state for chat input */
+.chat-input:focus,
+.chat-input.expanded {
+  height: 40px !important;
+  padding: 12px 16px !important;
+  border-radius: 16px !important;
+  background-color: #1a202c !important;
+  border-color: #f0d0aa !important;
+}
+
+.chat-input:focus {
+  border-color: #f0d0aa;
+  box-shadow: 0 0 0 2px rgba(240, 208, 170, 0.2);
+}
+
+/* Input focus state styling */
+.chat-input-container.input-focused {
+  background: #354048;
+  border-top-color: #f0d0aa;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.chat-input::placeholder {
+  color: #a0aec0;
+}
+
+.chat-send-btn {
+  padding: 12px 20px;
+  background: #48bb78;
+  border: none;
+  border-radius: 24px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: Arial, Helvetica, sans-serif;
+  white-space: nowrap;
+}
+
+.chat-send-btn:hover {
+  background: #38a169;
+  transform: translateY(-1px);
+}
+
+.chat-send-btn:active {
+  transform: translateY(0);
 }
 
 /* Tablet/Desktop expanded thread positioning - REMOVED: Now using full-height for all screen sizes */
 
-/* Show expanded thread after positioning */
+/* Show expanded thread modal */
 .message-thread.expanded.show {
   opacity: 1;
+}
+
+/* Modal Content Container - The actual chat window */
+.message-thread.expanded .message-thread-modal {
+  background: #2d3748;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85%;
   border: 1px solid rgba(240, 208, 170, 0.3);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(240, 208, 170, 0.1); /* Reduced shadow to prevent header interference */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
 }
 
-/* Position header relatively for hint positioning */
-.message-thread.expanded .message-thread-header {
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header - Top of the chat window */
+.message-thread.expanded .modal-header {
   position: relative;
+  background: #1a202c;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0; /* Don't shrink header */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(15px, 3.5vw, 20px);
 }
 
-/* Down arrow menu icon - bright and visible */
-.message-thread.expanded .message-thread-header::after {
-  content: '▼';
-  position: absolute;
-  bottom: clamp(2px, 1vw, 4px); /* Responsive bottom positioning */
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: clamp(18px, 5vw, 24px); /* Large, visible dots */
-  color: #f0d0aa; /* Bright cream color - very visible */
-  font-weight: bold;
-  line-height: 1;
-  text-align: center;
+/* Modal Header Content */
+.modal-thread-info {
+  flex: 1;
+}
+
+.modal-job-title {
+  font-size: clamp(1.1rem, 2.8vw, 1.3rem);
+  font-weight: 600;
+  color: #e6d6ae;
+  line-height: 1.3;
+  margin-bottom: clamp(3px, 1vw, 4px);
+}
+
+.modal-participant {
+  font-size: clamp(0.85rem, 2.2vw, 0.95rem);
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+/* Modal Close Button */
+.modal-close-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: 1.5rem;
   cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
-  z-index: 12;
-  text-shadow: none; /* Removed shadow to prevent header interference */
 }
 
-.message-thread.expanded .message-thread-header:hover::after {
-  color: #ffffff; /* Bright white on hover */
-  text-shadow: none; /* Removed glow to prevent header interference */
-  transform: translateX(-50%) scale(1.1); /* Slight scale on hover */
+.modal-close-btn:hover {
+  background: #4a5568;
+  color: #ffffff;
 }
 
 /* COMPLETELY remove X button container from expanded headers */
@@ -2422,36 +2609,18 @@ body:has(.selection-controls[style*="display: flex"]) {
   display: none !important; /* Remove entire status container - no layout space taken */
 }
 
-/* Enhanced styling for expanded thread header */
-.message-thread.expanded .message-thread-header {
-  background: #2d3748;
-  border-radius: 8px 8px 0 0;
-  box-shadow: none; /* Removed shadow to prevent header interference */
-  border-bottom: 2px solid #4a5568;
+/* REMOVED: Duplicate header styling - now handled above */
+
+/* Modal Body - Contains scroll container and input */
+.message-thread.expanded .modal-body {
+  flex: 1; /* Take up remaining space in modal */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow flex shrinking */
+  overflow: hidden; /* Prevent content from breaking out of modal */
 }
 
-/* Reset content margin when expanded */
-.message-thread.expanded .message-thread-content {
-  margin-top: 0;
-}
-
-/* Lightbox overlay for expanded thread - START BELOW HEADER */
-.messages-container.thread-active::before {
-  content: '';
-  position: fixed;
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px); /* Start below content area to prevent interference */
-  left: 0;
-  width: 100vw;
-  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px)); /* Adjust height to account for header offset */
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 997;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-}
-
-.messages-container.thread-active.show-overlay::before {
-  opacity: 1;
-}
+/* REMOVED: Old backdrop system - modal now has built-in backdrop */
 
 /* Inactive threads when one is expanded */
 .messages-container.thread-active .message-thread:not(.expanded) {
@@ -2524,16 +2693,21 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: transparent;
   padding: 0;
   margin-top: 0;
+  flex: 1; /* Take up remaining space in expanded thread */
+  display: flex;
+  flex-direction: column; /* Stack scroll container and input vertically */
+  min-height: 0; /* Allow flex shrinking */
 }
 
 .message-scroll-container {
-  /* ADAPTIVE HEIGHT SYSTEM - Accounts for variable title heights */
-  height: clamp(120px, calc(100vh - 450px), 400px); 
-  /* Extra 50px overhead for variable title heights (2-line vs 3-line) */
+  /* MODAL SCROLL SYSTEM - Proper scrolling within modal */
+  flex: 1; /* Take up all remaining space after header and input */
+  min-height: 0; /* Allow flex shrinking */
   overflow-y: auto;
-  padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
+  padding: clamp(15px, 3.5vw, 20px); /* Responsive padding */
+  padding-bottom: clamp(80px, 15vh, 120px); /* Extra bottom padding for last message visibility */
   background: #354048;
-  border-radius: 0 0 clamp(6px, 2vw, 8px) clamp(6px, 2vw, 8px); /* Responsive border radius */
+  border-radius: 0; /* No radius for middle section */
   -webkit-overflow-scrolling: touch;
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -2706,27 +2880,24 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 
 
-/* Message Input Styles - Now at TOP of thread */
+/* Message Input Styles - Bottom of modal */
 .message-input-container {
   display: flex;
   gap: clamp(8px, 2.5vw, 10px); /* Responsive gap */
-  padding: clamp(12px, 3.5vw, 15px); /* Responsive padding */
+  padding: clamp(15px, 3.5vw, 20px); /* Responsive padding */
   background: #2d3748;
-  border-bottom: clamp(1px, 0.5vw, 2px) solid #4a5568; /* Responsive border */
+  border-top: 1px solid rgba(255, 255, 255, 0.1); /* Top border instead of bottom */
+  border-radius: 0 0 12px 12px; /* Bottom radius to match modal */
   align-items: center;
-  /* Ensure input stays at top and never gets covered by keyboard */
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  flex-shrink: 0; /* Don't shrink input area */
   transition: all 0.3s ease;
 }
 
 /* INPUT FOCUS ELEGANCE: Enhanced styling when input is focused */
 .message-input-container.input-focused {
   background: #354048;
-  border-bottom-color: #f0d0aa;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  z-index: 15;
+  border-top-color: #f0d0aa; /* Top border instead of bottom */
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2); /* Upward shadow */
 }
 
 .message-input-container.input-focused .message-input {
@@ -2916,7 +3087,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   width: 100vw !important;
   height: 100vh !important;
   background: rgba(0, 0, 0, 0.25) !important; /* Subtle transparent shadow */
-  z-index: 2199 !important; /* Behind the modal but above everything else */
+  z-index: 9998 !important; /* Behind the avatar overlay but above chat modal */
   opacity: 0;
   transition: opacity 0.2s ease-out;
   pointer-events: none;
@@ -2940,7 +3111,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   border: 2px solid #4a5568;
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); /* Enhanced shadow with backdrop */
-  z-index: 2200;
+  z-index: 10000; /* Above chat modal (9999) */
   min-width: 200px; /* Back to original - only increase for specific range */
   opacity: 0;
   transition: all 0.2s ease-out;
@@ -3172,20 +3343,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-left: 3px solid rgba(66, 153, 225, 0.2); /* Dimmed blue accent */
 }
 
-/* 400px to 385px ONLY */
+/* REMOVED: 400px-385px margin overrides no longer needed with full-height positioning */
 @media (min-width: 385px) and (max-width: 400px) {
-  .message-thread.expanded {
-    margin-top: 5px !important;
-  }
   
 
 }
 
-/* 384px ONLY */
+/* REMOVED: 384px margin overrides no longer needed with full-height positioning */
 @media (min-width: 361px) and (max-width: 384px) {
-  .message-thread.expanded {
-    margin-top: 3px !important;
-  }
 }
   
   /* Smaller mobile header adjustments for positioning calculations */
@@ -3231,11 +3396,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Removed broken 411px media query - font increases now applied directly to mobile @media (max-width: 600px) section */
 
-/* 338px ONLY */  
+/* REMOVED: 338px margin overrides no longer needed with full-height positioning */  
 @media (min-width: 321px) and (max-width: 338px) {
-  .message-thread.expanded {
-    margin-top: 0px !important;
-  }
   
   .thread-job-title {
     font-size: 11px !important; /* Further reduced - prevent 3-line titles */

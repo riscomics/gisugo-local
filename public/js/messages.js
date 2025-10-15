@@ -2789,10 +2789,9 @@ function generateMessageThreadHTML(thread) {
         `data-current-user-role="${thread.currentUserRole || 'customer'}"` // NEW: Track current user's role in this thread
     ].join(' ');
 
-    // REVERSE MESSAGE ORDER: Newest messages at top
+    // CHRONOLOGICAL MESSAGE ORDER: Oldest messages at top, newest at bottom
     const messagesHTML = thread.messages
         .slice()  // Create copy to avoid mutating original
-        .reverse()  // Reverse so newest is first
         .map(message => generateMessageHTML(message))
         .join('');
 
@@ -2809,15 +2808,30 @@ function generateMessageThreadHTML(thread) {
                 </div>
             </div>
             <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
-                <!-- MESSAGE INPUT AT TOP - Never covered by keyboard -->
-                <div class="message-input-container">
-                    <textarea class="message-input" placeholder="Type a message..." maxlength="200"></textarea>
-                    <button class="message-send-btn">Send</button>
-                </div>
-                
-                <!-- Messages below input - newest at top -->
-                <div class="message-scroll-container">
-                    ${messagesHTML}
+                <!-- MODAL CONTAINER - Wraps the entire chat window -->
+                <div class="message-thread-modal">
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <div class="modal-thread-info">
+                            <div class="modal-job-title">${thread.jobTitle}</div>
+                            <div class="modal-participant">${thread.threadOrigin === 'application' ? 'Application Interview with' : 'Direct Message with'} ${thread.participantName}</div>
+                        </div>
+                        <button class="modal-close-btn">×</button>
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div class="modal-body">
+                        <!-- Messages area - scrollable -->
+                        <div class="message-scroll-container">
+                            ${messagesHTML}
+                        </div>
+                        
+                        <!-- Message input at bottom -->
+                        <div class="message-input-container">
+                            <textarea class="message-input" placeholder="Type a message..." maxlength="200"></textarea>
+                            <button class="message-send-btn">Send</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2912,22 +2926,12 @@ function initializeMessages(container = document) {
                     // First, close all other expanded threads
                     closeAllMessageThreads();
                     
-                    // Then expand the current thread with fade animation
-                    messageThread.classList.add('expanded');
-                    threadContent.style.display = 'block';
+                    // Create and show the chat modal overlay
+                    showChatModal(messageThread, threadContent);
                     expandIcon.textContent = '✕';
                     
-                    // Add thread-active class to container for styling inactive threads
+                    // Mark thread as active (for styling purposes)
                     messagesContainer.classList.add('thread-active');
-                    
-                    // Trigger fade-in animation after positioning
-                    setTimeout(() => {
-                        messageThread.classList.add('show');
-                        messagesContainer.classList.add('show-overlay');
-                    }, 50);
-                    
-                    // Scroll to top when opening thread (under tabs)
-                    scrollToThreadTop();
                     
                     // Remove "new" tag when opening thread
                     const newTag = this.querySelector('.thread-new-tag');
@@ -2948,25 +2952,7 @@ function initializeMessages(container = document) {
                         }
                     }
                     
-                    // Keep scroll at top since newest messages are now at top
-                    setTimeout(() => {
-                        const scrollContainer = threadContent.querySelector('.message-scroll-container');
-                        if (scrollContainer) {
-                            scrollContainer.scrollTop = 0;
-                        }
-                    }, 150);
-                    
-                    // Initialize mobile keyboard handling for input visibility
-                    initializeMobileInputVisibility(messageThread);
-                    
-                    // Initialize input focus elegance for dimming effect
-                    initializeInputFocusElegance(messageThread);
-                    
-                    // Initialize dynamic message sending for this thread
-                    initializeDynamicMessageSending(messageThread);
-                    
-                    // Initialize avatar overlay functionality for this thread
-                    initializeAvatarOverlays(messageThread);
+                    // Modal initialization is handled in showChatModal function
                 }
             }
         });
@@ -2976,42 +2962,49 @@ function initializeMessages(container = document) {
 
 
 function closeAllMessageThreads() {
+    // Close any open chat modals
+    const openModals = document.querySelectorAll('.chat-modal-overlay');
+    openModals.forEach(modal => {
+        closeChatModal(modal);
+    });
+    
+    // Reset all thread states and remove greyed out appearance
     const allMessageThreads = document.querySelectorAll('.message-thread');
-    // Find the correct messages container based on active role and tab
-    const messagesContainer = document.querySelector('.tab-content-wrapper.active .messages-container') || 
-                             document.querySelector('.messages-container');
-    
-    // CRITICAL FIX: Clean up avatar overlay when closing threads
-    // This prevents overlay from being orphaned when threads are closed
-    hideAvatarOverlay();
-    
-    // MEMORY LEAK FIX: Clean up all avatar listeners when closing threads
     allMessageThreads.forEach(thread => {
+        const header = thread.querySelector('.message-thread-header');
+        const threadId = header?.getAttribute('data-thread-id');
+        const threadContent = document.getElementById('thread-' + threadId);
+        const expandIcon = header?.querySelector('.expand-icon');
+        
+        // Reset thread state
+        thread.classList.remove('expanded', 'show');
+        if (threadContent) {
+            threadContent.style.display = 'none';
+        }
+        if (expandIcon) {
+            expandIcon.textContent = '▼';
+        }
+        
+        // CRITICAL: Reset thread appearance - remove greyed out state
+        thread.style.opacity = '';
+        thread.style.transform = '';
+        thread.style.pointerEvents = '';
+        
+        // Clean up avatar overlays
         cleanupAvatarOverlays(thread);
     });
     
-    allMessageThreads.forEach(thread => {
-        const header = thread.querySelector('.message-thread-header');
-        const threadId = header.getAttribute('data-thread-id');
-        const threadContent = document.getElementById('thread-' + threadId);
-        const expandIcon = header.querySelector('.expand-icon');
-        
-        if (thread.classList.contains('expanded')) {
-            thread.classList.remove('expanded', 'show');
-            if (threadContent) {
-                threadContent.style.display = 'none';
-            }
-            if (expandIcon) {
-                expandIcon.textContent = '▼';
-            }
-        }
+    // Find all messages containers and remove active state
+    const messagesContainers = document.querySelectorAll('.messages-container');
+    messagesContainers.forEach(container => {
+        container.classList.remove('thread-active', 'show-overlay');
     });
     
-    // Remove thread-active class and overlay when all threads are closed
-    messagesContainer.classList.remove('thread-active', 'show-overlay');
-    
-    // Clean up mobile input visibility handlers - ALWAYS clean up
+    // Clean up avatar overlay and mobile handlers
+    hideAvatarOverlay();
     cleanupMobileInputVisibility();
+    
+    console.log('✅ All message threads closed and cleaned up');
 }
 
 function scrollToThreadTop() {
@@ -5123,14 +5116,14 @@ function createMockResponse(participantName, threadId) {
 function addMessageToThread(message, scrollContainer) {
     const messageHTML = generateMessageHTML(message);
     
-    // Add to top since newest messages are first
-    scrollContainer.insertAdjacentHTML('afterbegin', messageHTML);
+    // Add to bottom since newest messages are last (chronological order)
+    scrollContainer.insertAdjacentHTML('beforeend', messageHTML);
     
     // Add entrance animation
-    const newMessageElement = scrollContainer.firstElementChild;
+    const newMessageElement = scrollContainer.lastElementChild;
     if (newMessageElement) {
         newMessageElement.style.opacity = '0';
-        newMessageElement.style.transform = 'translateY(-10px)';
+        newMessageElement.style.transform = 'translateY(10px)';
         
         setTimeout(() => {
             newMessageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
@@ -5147,8 +5140,8 @@ function addMessageToThread(message, scrollContainer) {
         }
     }
     
-    // Keep scroll at top to show the new message
-    scrollContainer.scrollTop = 0;
+    // Scroll to bottom to show the new message
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
 }
 
 /**
@@ -5387,6 +5380,361 @@ function initializeAvatarOverlays(messageThread) {
     });
     
     console.log(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
+}
+
+// Create and show chat modal overlay - TRUE MODAL SYSTEM
+function showChatModal(messageThread, threadContent) {
+    // Get thread data
+    const threadId = messageThread.getAttribute('data-thread-id');
+    const jobTitle = messageThread.querySelector('.thread-job-title').textContent;
+    const participant = messageThread.querySelector('.thread-participant').textContent;
+    
+    // Get messages content from the thread
+    const messagesContainer = threadContent.querySelector('.message-scroll-container');
+    const messagesHTML = messagesContainer ? messagesContainer.innerHTML : '';
+    
+    // Create modal overlay - append to body for proper z-index
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'chat-modal-overlay';
+    modalOverlay.id = `chat-modal-${threadId}`;
+    
+    // Add data attributes for message sending
+    modalOverlay.setAttribute('data-thread-id', threadId);
+    modalOverlay.setAttribute('data-participant-id', messageThread.getAttribute('data-participant-id'));
+    modalOverlay.setAttribute('data-job-id', messageThread.getAttribute('data-job-id'));
+    modalOverlay.setAttribute('data-thread-origin', messageThread.getAttribute('data-thread-origin'));
+    modalOverlay.setAttribute('data-application-id', messageThread.getAttribute('data-application-id'));
+    modalOverlay.setAttribute('data-current-user-role', messageThread.getAttribute('data-current-user-role'));
+    
+    modalOverlay.innerHTML = `
+        <div class="chat-modal-container">
+            <div class="chat-modal-header">
+                <div class="chat-modal-info">
+                    <div class="chat-modal-title">${jobTitle}</div>
+                    <div class="chat-modal-participant">${participant}</div>
+                </div>
+                <button class="chat-modal-menu">⋮</button>
+            </div>
+            <div class="chat-modal-body">
+                <div class="chat-messages-container">
+                    ${messagesHTML}
+                </div>
+                <div class="chat-input-container">
+                    <textarea class="chat-input" placeholder="Type a message..." maxlength="200"></textarea>
+                    <button class="chat-send-btn">Send</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append to body for proper layering
+    document.body.appendChild(modalOverlay);
+    
+    // Initialize modal functionality
+    initializeChatModal(modalOverlay, messageThread, threadId);
+    
+    // Show modal with animation
+    setTimeout(() => {
+        modalOverlay.classList.add('show');
+        
+        // Scroll to bottom to show latest messages (chronological order)
+        const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }, 10);
+    
+    console.log(`✅ Chat modal created for thread ${threadId}`);
+}
+
+// Initialize chat modal functionality
+function initializeChatModal(modalOverlay, messageThread, threadId) {
+    const menuBtn = modalOverlay.querySelector('.chat-modal-menu');
+    const modalContainer = modalOverlay.querySelector('.chat-modal-container');
+    
+    // Menu button handler - show options overlay
+    const menuHandler = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        console.log('🔍 Menu button clicked, event target:', e.target);
+        console.log('🔍 Menu button position:', e.target.getBoundingClientRect());
+        
+        // Get thread data for avatar overlay - extract participant name properly
+        const participantText = messageThread.querySelector('.thread-participant').textContent;
+        const senderName = participantText.replace('Direct Message with ', '').replace('Application Interview with ', '').trim();
+        
+        // Get thread data for avatar overlay
+        const threadData = {
+            senderId: messageThread.getAttribute('data-participant-id') || '2', // Default if not found
+            senderName: senderName,
+            threadId: threadId,
+            jobId: messageThread.getAttribute('data-job-id'),
+            jobTitle: messageThread.querySelector('.thread-job-title').textContent,
+            threadOrigin: messageThread.getAttribute('data-thread-origin') || 'direct',
+            applicationId: messageThread.getAttribute('data-application-id'),
+            currentUserRole: messageThread.getAttribute('data-current-user-role') || 'customer',
+            avatar: '', // Will be populated by avatar system
+            participantIds: [getCurrentUserId(), messageThread.getAttribute('data-participant-id')],
+            lastActivity: new Date().toISOString()
+        };
+        
+        console.log('🔍 Opening chat options for:', threadData);
+        
+        // Ensure showAvatarOverlay function exists before calling
+        if (typeof showAvatarOverlay === 'function') {
+            showAvatarOverlay(e, threadData);
+        } else {
+            console.error('❌ showAvatarOverlay function not found');
+        }
+    };
+    
+    // Click outside to close
+    const outsideClickHandler = (e) => {
+        if (e.target === modalOverlay) {
+            closeChatModal(modalOverlay);
+        }
+    };
+    
+    // Escape key to close
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeChatModal(modalOverlay);
+        }
+    };
+    
+    // Add event listeners
+    menuBtn.addEventListener('click', menuHandler);
+    modalOverlay.addEventListener('click', outsideClickHandler);
+    document.addEventListener('keydown', escapeHandler);
+    
+    // Initialize chat functionality with proper selectors
+    initializeChatInputFunctionality(modalOverlay);
+    initializeAvatarOverlays(modalOverlay);
+    
+    // Store cleanup functions
+    modalOverlay._cleanup = () => {
+        menuBtn.removeEventListener('click', menuHandler);
+        modalOverlay.removeEventListener('click', outsideClickHandler);
+        document.removeEventListener('keydown', escapeHandler);
+    };
+}
+
+// Initialize chat input functionality for modal
+function initializeChatInputFunctionality(modalOverlay) {
+    const inputField = modalOverlay.querySelector('.chat-input');
+    const sendBtn = modalOverlay.querySelector('.chat-send-btn');
+    const inputContainer = modalOverlay.querySelector('.chat-input-container');
+    
+    if (!inputField || !sendBtn) {
+        console.error('❌ Chat input elements not found');
+        return;
+    }
+    
+    // Use original CSS class system for input expansion
+    inputField.addEventListener('focus', function() {
+        this.classList.add('expanded');
+        inputContainer.classList.add('input-focused');
+    });
+    
+    inputField.addEventListener('blur', function() {
+        // Only remove expanded if input is empty
+        if (this.value.trim() === '') {
+            this.classList.remove('expanded');
+        }
+        inputContainer.classList.remove('input-focused');
+    });
+    
+    inputField.addEventListener('input', function() {
+        // Keep expanded while typing
+        this.classList.add('expanded');
+    });
+    
+    // Send message functionality
+    const sendMessage = () => {
+        const message = inputField.value.trim();
+        if (message) {
+            console.log('📤 Sending message:', message);
+            
+            // Get thread data from modal
+            const threadId = modalOverlay.getAttribute('data-thread-id');
+            const participantId = modalOverlay.getAttribute('data-participant-id');
+            
+            // Create message data
+            const messageData = {
+                threadId: threadId,
+                senderId: getCurrentUserId(),
+                receiverId: participantId,
+                content: message,
+                timestamp: new Date().toISOString(),
+                type: 'text'
+            };
+            
+            // Add message to chat immediately (optimistic update) - Use proper message bubble structure
+            const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message-card outgoing';
+            messageElement.innerHTML = `
+                <div class="message-header">
+                    <div class="message-avatar">
+                        <img src="public/users/Peter-J-Ang-User-01.jpg" alt="You" onerror="this.src='public/images/logo.png'">
+                    </div>
+                    <div class="message-info">
+                        <div class="message-sender">You</div>
+                        <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                    </div>
+                </div>
+                <div class="message-bubble outgoing">
+                    ${message}
+                </div>
+            `;
+            
+            // Insert at bottom since newest messages are last (chronological order)
+            messagesContainer.appendChild(messageElement);
+            
+            // Add entrance animation
+            messageElement.style.opacity = '0';
+            messageElement.style.transform = 'translateY(10px)';
+            setTimeout(() => {
+                messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                messageElement.style.opacity = '1';
+                messageElement.style.transform = 'translateY(0)';
+            }, 50);
+            
+            // Scroll to bottom to show the new message
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Clear input and reset state
+            inputField.value = '';
+            inputField.classList.remove('expanded');
+            inputContainer.classList.remove('input-focused');
+            
+            // SIMULATE AUTO-RESPONSE (like original system)
+            const participantName = modalOverlay.querySelector('.chat-modal-participant').textContent.replace('Direct Message with ', '').replace('Application Interview with ', '').trim();
+            
+            // 70% chance of auto-response after 1.5-3.5 seconds
+            if (Math.random() > 0.3) {
+                setTimeout(() => {
+                    const responses = [
+                        "Thanks for your message! I'll get back to you soon.",
+                        "Sounds good! When would be a good time to discuss this?",
+                        "I'm interested in learning more about this opportunity.",
+                        "That works for me. Let me know the next steps.",
+                        "I have some questions about the job requirements.",
+                        "Perfect! I'm available for an interview anytime.",
+                        "Thank you for considering my application!"
+                    ];
+                    
+                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                    
+                    const responseElement = document.createElement('div');
+                    responseElement.className = 'message-card incoming';
+                    responseElement.innerHTML = `
+                        <div class="message-header">
+                            <div class="message-info">
+                                <div class="message-sender">${participantName}</div>
+                                <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            </div>
+                            <div class="message-avatar">
+                                <img src="public/users/User-02.jpg" alt="${participantName}" onerror="this.src='public/images/logo.png'">
+                            </div>
+                        </div>
+                        <div class="message-bubble incoming">
+                            ${randomResponse}
+                        </div>
+                    `;
+                    
+                    // Insert at bottom since newest messages are last
+                    messagesContainer.appendChild(responseElement);
+                    
+                    // Add entrance animation
+                    responseElement.style.opacity = '0';
+                    responseElement.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        responseElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        responseElement.style.opacity = '1';
+                        responseElement.style.transform = 'translateY(0)';
+                    }, 50);
+                    
+                    // Scroll to bottom to show the new message
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    
+                    console.log(`🤖 Auto-response from ${participantName}: ${randomResponse}`);
+                }, Math.random() * 2000 + 1500); // 1.5-3.5 seconds delay
+            }
+            
+            // Send to backend (if available)
+            if (typeof sendMessageToBackend === 'function') {
+                sendMessageToBackend(messageData);
+            } else {
+                console.log('📝 Message data (backend not connected):', messageData);
+            }
+            
+            // Update the original thread's last message
+            updateThreadLastMessage(threadId, message);
+        }
+    };
+    
+    // Send button click
+    sendBtn.addEventListener('click', sendMessage);
+    
+    // Enter key to send (Shift+Enter for new line)
+    inputField.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    console.log('✅ Chat input functionality initialized');
+}
+
+// Close chat modal
+function closeChatModal(modalOverlay) {
+    if (modalOverlay && modalOverlay.parentNode) {
+        // Cleanup event listeners
+        if (modalOverlay._cleanup) {
+            modalOverlay._cleanup();
+        }
+        
+        // Reset all thread states and remove greyed out appearance
+        const allMessageThreads = document.querySelectorAll('.message-thread');
+        allMessageThreads.forEach(thread => {
+            const header = thread.querySelector('.message-thread-header');
+            const expandIcon = header?.querySelector('.expand-icon');
+            
+            // CRITICAL: Reset thread appearance - remove greyed out state
+            thread.style.opacity = '';
+            thread.style.transform = '';
+            thread.style.pointerEvents = '';
+            
+            // Reset expand icon to downarrow
+            if (expandIcon) {
+                expandIcon.textContent = '▼';
+            }
+            
+            // Remove expanded state
+            thread.classList.remove('expanded', 'show');
+        });
+        
+        // Find all messages containers and remove active state
+        const messagesContainers = document.querySelectorAll('.messages-container');
+        messagesContainers.forEach(container => {
+            container.classList.remove('thread-active', 'show-overlay');
+        });
+        
+        // Fade out animation
+        modalOverlay.classList.remove('show');
+        
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+        }, 300);
+        
+        console.log('✅ Chat modal closed and cleaned up');
+    }
 }
 
 // MEMORY LEAK FIX: Cleanup function for avatar listeners
