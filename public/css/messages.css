@@ -3165,17 +3165,17 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Avatar Overlay Backdrop - Subtle shadow and close functionality */
+/* Avatar Overlay Backdrop - Dark transparent background for better visibility */
 .avatar-overlay-backdrop {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(0, 0, 0, 0.25) !important; /* Subtle transparent shadow */
+  background: rgba(0, 0, 0, 0.8) !important; /* Much darker transparent background */
   z-index: 9998 !important; /* Behind the avatar overlay but above chat modal */
   opacity: 0;
-  transition: opacity 0.2s ease-out;
+  transition: opacity 0.3s ease-out;
   pointer-events: none;
   cursor: pointer; /* Indicate it's clickable to close */
 }
@@ -3188,7 +3188,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Message Avatar Overlay Styles */
 .avatar-overlay {
   position: fixed !important;
-  top: 240px !important; /* Back to original position */
+  top: 180px !important; /* Moved higher - was 240px */
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
@@ -3196,7 +3196,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: #2d3748;
   border: 2px solid #4a5568;
   border-radius: 12px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); /* Enhanced shadow with backdrop */
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7); /* Enhanced shadow for dark backdrop */
   z-index: 10000; /* Above chat modal (9999) */
   min-width: 200px; /* Back to original - only increase for specific range */
   opacity: 0;
@@ -3499,13 +3499,13 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Fix ACTUAL modal positioning - avatar overlay */
 #avatarOverlay.avatar-overlay {
-  top: 250px !important; /* Mobile positioning */
+  top: 150px !important; /* Higher mobile positioning */
 }
 
 /* Tablet/Desktop modal positioning */
 @media (min-width: 601px) {
   #avatarOverlay.avatar-overlay {
-    top: 300px !important; /* Lower for tablet/desktop */
+    top: 180px !important; /* Higher for tablet/desktop */
   }
 }
 
