@@ -2774,6 +2774,25 @@ function generateMessageHTML(message) {
     `;
 }
 
+// Helper function to generate participant text based on user perspective
+function generateParticipantText(thread) {
+    const participantName = thread.participantName;
+    
+    if (thread.threadOrigin === 'application') {
+        // Application Interview - always shows "Application Interview with [name]"
+        return `Application Interview with ${participantName}`;
+    } else {
+        // Direct Message - depends on current user role
+        if (thread.currentUserRole === 'worker') {
+            // Worker perspective: "You contacted [customer name]"
+            return `You contacted ${participantName}`;
+        } else {
+            // Customer perspective: "[worker name] contacted you"
+            return `${participantName} contacted you`;
+        }
+    }
+}
+
 // Generate Message Thread HTML
 function generateMessageThreadHTML(thread) {
     const threadDataAttrs = [
@@ -2800,7 +2819,7 @@ function generateMessageThreadHTML(thread) {
             <div class="message-thread-header" data-thread-id="${thread.threadId}">
                 <div class="thread-info">
                     <div class="thread-job-title">${thread.jobTitle}</div>
-                    <div class="thread-participant">${thread.threadOrigin === 'application' ? 'Application Interview with' : 'Direct Message with'} ${thread.participantName}</div>
+                    <div class="thread-participant">${generateParticipantText(thread)}</div>
                 </div>
                 <div class="thread-status">
                     ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
@@ -2814,7 +2833,7 @@ function generateMessageThreadHTML(thread) {
                     <div class="modal-header">
                         <div class="modal-thread-info">
                             <div class="modal-job-title">${thread.jobTitle}</div>
-                            <div class="modal-participant">${thread.threadOrigin === 'application' ? 'Application Interview with' : 'Direct Message with'} ${thread.participantName}</div>
+                            <div class="modal-participant">${generateParticipantText(thread)}</div>
                         </div>
                         <button class="modal-close-btn">×</button>
                     </div>
@@ -5450,9 +5469,10 @@ function showChatModal(messageThread, threadContent) {
 // Initialize chat modal functionality
 function initializeChatModal(modalOverlay, messageThread, threadId) {
     const menuBtn = modalOverlay.querySelector('.chat-modal-menu');
+    const chatHeader = modalOverlay.querySelector('.chat-modal-header');
     const modalContainer = modalOverlay.querySelector('.chat-modal-container');
     
-    // Menu button handler - show options overlay
+    // Menu handler - show options overlay (triggered by header or menu button)
     const menuHandler = (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -5462,7 +5482,12 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         
         // Get thread data for avatar overlay - extract participant name properly
         const participantText = messageThread.querySelector('.thread-participant').textContent;
-        const senderName = participantText.replace('Direct Message with ', '').replace('Application Interview with ', '').trim();
+        const senderName = participantText
+            .replace('Direct Message with ', '')
+            .replace('Application Interview with ', '')
+            .replace('You contacted ', '')
+            .replace(' contacted you', '')
+            .trim();
         
         // Get thread data for avatar overlay
         const threadData = {
@@ -5503,8 +5528,9 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         }
     };
     
-    // Add event listeners
+    // Add event listeners - both header and menu button trigger options
     menuBtn.addEventListener('click', menuHandler);
+    chatHeader.addEventListener('click', menuHandler);
     modalOverlay.addEventListener('click', outsideClickHandler);
     document.addEventListener('keydown', escapeHandler);
     
@@ -5515,6 +5541,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     // Store cleanup functions
     modalOverlay._cleanup = () => {
         menuBtn.removeEventListener('click', menuHandler);
+        chatHeader.removeEventListener('click', menuHandler);
         modalOverlay.removeEventListener('click', outsideClickHandler);
         document.removeEventListener('keydown', escapeHandler);
     };
@@ -5610,7 +5637,12 @@ function initializeChatInputFunctionality(modalOverlay) {
             inputContainer.classList.remove('input-focused');
             
             // SIMULATE AUTO-RESPONSE (like original system)
-            const participantName = modalOverlay.querySelector('.chat-modal-participant').textContent.replace('Direct Message with ', '').replace('Application Interview with ', '').trim();
+            const participantName = modalOverlay.querySelector('.chat-modal-participant').textContent
+                .replace('Direct Message with ', '')
+                .replace('Application Interview with ', '')
+                .replace('You contacted ', '')
+                .replace(' contacted you', '')
+                .trim();
             
             // 70% chance of auto-response after 1.5-3.5 seconds
             if (Math.random() > 0.3) {

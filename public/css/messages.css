@@ -2352,8 +2352,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-radius: 12px;
   width: 90%;
   max-width: 600px;
-  height: calc(100vh - 40px); /* Full screen height minus padding */
-  max-height: none; /* Remove height restriction */
+  height: calc(100vh - 80px); /* More conservative height for all screens */
+  max-height: 90vh; /* Safety limit to prevent cutoff */
   border: 1px solid rgba(240, 208, 170, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   display: flex;
@@ -2362,7 +2362,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   animation: modalSlideIn 0.3s ease-out;
 }
 
-/* Chat Modal Header */
+/* Chat Modal Header - Clickable to open options */
 .chat-modal-header {
   background: #1a202c;
   border-radius: 12px 12px 0 0;
@@ -2372,6 +2372,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   justify-content: space-between;
   padding: 20px;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.chat-modal-header:hover {
+  background: #2d3748;
 }
 
 .chat-modal-info {
@@ -2519,14 +2525,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* RESPONSIVE BREAKPOINTS FOR CHAT MODAL */
 
-/* Mobile (up to 492px) */
+/* Mobile screens (up to 492px) - Shared styles */
 @media (max-width: 492px) {
-  .chat-modal-container {
-    width: 95%;
-    height: calc(100vh - 20px); /* Less padding on mobile */
-    border-radius: 8px;
-  }
-  
   .chat-modal-header {
     padding: 15px;
     border-radius: 8px 8px 0 0;
@@ -2562,6 +2562,26 @@ body:has(.selection-controls[style*="display: flex"]) {
   .chat-send-btn {
     padding: 10px 16px;
     font-size: 0.85rem;
+  }
+}
+
+/* Very small screens (up to 360px) */
+@media (max-width: 360px) {
+  .chat-modal-container {
+    width: 98%;
+    height: calc(100vh - 80px); /* Extra conservative for small screens */
+    max-height: 80vh; /* Lower limit for very small screens */
+    border-radius: 6px;
+  }
+}
+
+/* Mobile (361px to 492px) */
+@media (min-width: 361px) and (max-width: 492px) {
+  .chat-modal-container {
+    width: 95%;
+    height: calc(100vh - 60px); /* More conservative height for mobile */
+    max-height: 85vh; /* Additional safety limit */
+    border-radius: 8px;
   }
 }
 
