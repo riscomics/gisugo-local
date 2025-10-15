@@ -3508,8 +3508,16 @@ body:has(.selection-controls[style*="display: flex"]) {
   top: 150px !important; /* Higher mobile positioning */
 }
 
-/* Small mobile screens (411px and below) - Move overlay higher */
-@media (max-width: 411px) {
+/* Medium-small mobile screens (385px to 411px) - Move overlay higher */
+@media (min-width: 385px) and (max-width: 411px) {
+  .avatar-overlay,
+  #avatarOverlay.avatar-overlay {
+    top: 110px !important; /* Higher positioning for this specific range */
+  }
+}
+
+/* Very small mobile screens (384px and below) - Keep original positioning */
+@media (max-width: 384px) {
   .avatar-overlay,
   #avatarOverlay.avatar-overlay {
     top: 130px !important; /* 20px higher than default mobile (150px - 20px) */
