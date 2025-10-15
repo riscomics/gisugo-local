@@ -3192,7 +3192,7 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Message Avatar Overlay Styles */
 .avatar-overlay {
   position: fixed !important;
-  top: 180px !important; /* Moved higher - was 240px */
+  top: 180px !important; /* Default position */
   left: 50% !important;
   right: auto !important;
   bottom: auto !important;
@@ -3504,6 +3504,14 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Fix ACTUAL modal positioning - avatar overlay */
 #avatarOverlay.avatar-overlay {
   top: 150px !important; /* Higher mobile positioning */
+}
+
+/* Small mobile screens (411px and below) - Move overlay higher */
+@media (max-width: 411px) {
+  .avatar-overlay,
+  #avatarOverlay.avatar-overlay {
+    top: 130px !important; /* 20px higher than default mobile (150px - 20px) */
+  }
 }
 
 /* Tablet/Desktop modal positioning */
