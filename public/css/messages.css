@@ -2517,7 +2517,73 @@ body:has(.selection-controls[style*="display: flex"]) {
   transform: translateY(0);
 }
 
-/* Tablet/Desktop expanded thread positioning - REMOVED: Now using full-height for all screen sizes */
+/* RESPONSIVE BREAKPOINTS FOR CHAT MODAL */
+
+/* Mobile (up to 492px) */
+@media (max-width: 492px) {
+  .chat-modal-container {
+    width: 95%;
+    height: calc(100vh - 20px); /* Less padding on mobile */
+    border-radius: 8px;
+  }
+  
+  .chat-modal-header {
+    padding: 15px;
+    border-radius: 8px 8px 0 0;
+  }
+  
+  .chat-modal-title {
+    font-size: 1.1rem;
+  }
+  
+  .chat-modal-participant {
+    font-size: 0.85rem;
+  }
+  
+  .chat-messages-container {
+    padding: 15px;
+  }
+  
+  .chat-input-container {
+    padding: 15px;
+  }
+  
+  .chat-input {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+  }
+  
+  .chat-input:focus,
+  .chat-input.expanded {
+    height: 36px !important;
+    padding: 10px 14px !important;
+  }
+  
+  .chat-send-btn {
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+}
+
+/* Tablet (493px to 768px) */
+@media (min-width: 493px) and (max-width: 768px) {
+  .chat-modal-container {
+    width: 85%;
+    max-width: 500px;
+  }
+  
+  .chat-modal-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* Desktop (769px and up) */
+@media (min-width: 769px) {
+  .chat-modal-container {
+    width: 80%;
+    max-width: 600px;
+  }
+}
 
 /* Show expanded thread modal */
 .message-thread.expanded.show {
