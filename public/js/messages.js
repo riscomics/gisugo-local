@@ -5832,6 +5832,10 @@ function showAvatarOverlay(event, userData) {
             <div class="avatar-overlay-subtitle">${userData.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'}</div>
         </div>
         <div class="avatar-overlay-actions">
+            <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
+                <span>✕</span>
+                <span>CLOSE CONVERSATION</span>
+            </button>
             <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
                 <span>👤</span>
                 <span>VIEW PROFILE</span>
@@ -5848,10 +5852,6 @@ function showAvatarOverlay(event, userData) {
             <button class="avatar-action-btn delete" data-thread-id="${userData.threadId || 'unknown'}" data-user-name="${userData.senderName}">
                 <span>🗑️</span>
                 <span>DELETE CONVERSATION</span>
-            </button>
-            <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
-                <span>✕</span>
-                <span>CLOSE CONVERSATION</span>
             </button>
         </div>
     `;

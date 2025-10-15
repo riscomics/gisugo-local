@@ -3165,11 +3165,13 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 }
 
-/* Avatar Overlay Backdrop - Dark transparent background for better visibility */
+/* Avatar Overlay Backdrop - Dark transparent background covering entire screen */
 .avatar-overlay-backdrop {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
   background: rgba(0, 0, 0, 0.8) !important; /* Much darker transparent background */
@@ -3178,6 +3180,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   transition: opacity 0.3s ease-out;
   pointer-events: none;
   cursor: pointer; /* Indicate it's clickable to close */
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .avatar-overlay-backdrop.show {
