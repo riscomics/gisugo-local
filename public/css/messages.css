@@ -3174,19 +3174,21 @@ body:has(.selection-controls[style*="display: flex"]) {
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(0, 0, 0, 0.8) !important; /* Much darker transparent background */
-  z-index: 9998 !important; /* Behind the avatar overlay but above chat modal */
-  opacity: 0;
-  transition: opacity 0.3s ease-out;
-  pointer-events: none;
-  cursor: pointer; /* Indicate it's clickable to close */
+  background: rgba(0, 0, 0, 0.8) !important; /* Dark transparent background */
+  z-index: 9999 !important; /* Above chat modal (9999) but below overlay (10000) */
+  opacity: 0 !important;
+  transition: opacity 0.3s ease-out !important;
+  pointer-events: none !important;
+  cursor: pointer !important; /* Indicate it's clickable to close */
   margin: 0 !important;
   padding: 0 !important;
+  display: block !important; /* Force display */
 }
 
 .avatar-overlay-backdrop.show {
-  opacity: 1;
-  pointer-events: auto; /* Enable clicking to close */
+  opacity: 1 !important;
+  pointer-events: auto !important; /* Enable clicking to close */
+  display: block !important;
 }
 
 /* Message Avatar Overlay Styles */
