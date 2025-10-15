@@ -2362,26 +2362,24 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: #3d4856;
 }
 
-/* Move entire expanded thread to top - FIXED positioning to eliminate excessive spacing */
+/* FULL-HEIGHT EXPANDED THREAD - Spans entire visible screen height */
 .message-thread.expanded {
   position: fixed;
-  top: 220px; /* Mobile: Below tabs */
+  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px)); /* Start right below header */
   left: 50%;
   transform: translateX(-50%);
   width: clamp(92%, 90vw, 90%); /* Responsive width */
   max-width: clamp(550px, 85vw, 625px); /* Responsive max width */
+  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px))); /* Full remaining height */
   z-index: 998;
   margin: 0;
   opacity: 0;
   transition: opacity 0.3s ease-in-out;
+  display: flex;
+  flex-direction: column; /* Stack header and content vertically */
 }
 
-/* Tablet/Desktop expanded thread positioning */
-@media (min-width: 601px) {
-  .message-thread.expanded {
-    top: 280px; /* More space from tabs for tablet/desktop */
-  }
-}
+/* Tablet/Desktop expanded thread positioning - REMOVED: Now using full-height for all screen sizes */
 
 /* Show expanded thread after positioning */
 .message-thread.expanded.show {

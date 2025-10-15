@@ -3497,102 +3497,62 @@ function initializeRelistJobConfirmationHandlers() {
                     showErrorNotification('Failed to find job data for relisting');
                 }
             } else {
-                // Handle hiring job relisting - void contract and create new active job directly in Listings
+                // Handle hiring job relisting - REACTIVATE existing job (don't create new one)
                 const workerName = overlay.getAttribute('data-worker-name');
                 
-                console.log(`🔄 RELIST hiring job: ${jobId} (Customer perspective)`);
+                console.log(`🔄 RELIST hiring job: ${jobId} (Customer perspective) - REACTIVATING existing job`);
                 
-                // Get the hiring job data to create new active job
-                const hiredJobs = await JobsDataService.getAllHiredJobs();
-                const sourceJob = hiredJobs.find(j => j.jobId === jobId);
-                
-                if (sourceJob) {
-                    // Create new active job directly in localStorage (similar to storeJobData)
-                    const newJobNumber = Date.now();
-                    const newJobId = `${sourceJob.category}_job_2025_${newJobNumber}`;
-                    
-                    const newActiveJob = {
-                        jobId: newJobId,
-                        jobNumber: newJobNumber,
-                        posterId: sourceJob.posterId,
-                        posterName: sourceJob.posterName,
-                        title: sourceJob.title,
-                        description: sourceJob.description || '',
-                        category: sourceJob.category,
-                        thumbnail: sourceJob.thumbnail,
-                        jobDate: sourceJob.jobDate,
-                        dateNeeded: sourceJob.jobDate,
-                        startTime: sourceJob.startTime,
-                        endTime: sourceJob.endTime,
-                        priceOffer: sourceJob.priceOffer || sourceJob.paymentAmount,
-                        paymentAmount: sourceJob.priceOffer || sourceJob.paymentAmount,
-                        paymentType: sourceJob.paymentType || 'Per Hour',
-                        region: sourceJob.region || 'CEBU',
-                        city: sourceJob.city || 'Cebu City',
-                        extras: sourceJob.extras || [],
-                        status: 'active',
-                        applicationCount: 0,
-                        applicationIds: [],
-                        datePosted: new Date().toISOString(),
-                        jobPageUrl: `${sourceJob.category}.html`,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        relistedFrom: 'hiring', // Track source for delete behavior
-                        originalJobId: jobId
-                    };
-                    
-                    // Store in gisugoJobs localStorage
-                    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-                    if (!allJobs[sourceJob.category]) {
-                        allJobs[sourceJob.category] = [];
-                    }
-                    allJobs[sourceJob.category].push(newActiveJob);
-                    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-                    
-                    // Store in jobPreviewCards for category pages
-                    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-                    if (!previewCards[sourceJob.category]) {
-                        previewCards[sourceJob.category] = [];
-                    }
-                    
-                    const date = new Date(sourceJob.jobDate);
-                    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    const timeDisplay = `${sourceJob.startTime} - ${sourceJob.endTime}`;
-                    
-                    const previewCard = {
-                        jobNumber: newJobNumber,
-                        title: sourceJob.title,
-                        extra1: sourceJob.extras && sourceJob.extras[0] ? sourceJob.extras[0] : '',
-                        extra2: sourceJob.extras && sourceJob.extras[1] ? sourceJob.extras[1] : '',
-                        price: `₱${sourceJob.priceOffer || sourceJob.paymentAmount}`,
-                        rate: sourceJob.paymentType || 'Per Hour',
-                        date: formattedDate,
-                        time: timeDisplay,
-                        photo: sourceJob.thumbnail,
-                        templateUrl: `dynamic-job.html?category=${sourceJob.category}&jobNumber=${newJobNumber}`,
-                        region: sourceJob.region || 'CEBU',
-                        city: sourceJob.city || 'Cebu City',
-                        createdAt: new Date().toISOString(),
-                        relistedFrom: 'hiring',
-                        originalJobId: jobId
-                    };
-                    
-                    previewCards[sourceJob.category].unshift(previewCard);
-                    localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-                    
-                    console.log(`✅ Created new active job: ${newJobId} from hiring job: ${jobId}`);
-                    
-                    // Remove the original job from hiring data
-                    if (MOCK_HIRING_DATA) {
+                // Find the job in hiring data to reactivate
+                if (MOCK_HIRING_DATA) {
+                    const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === jobId);
+                    if (jobToRelist) {
+                        // Remove from hiring data first
                         MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== jobId);
-                        console.log(`🗑️ Removed original hiring job: ${jobId} from MOCK_HIRING_DATA`);
+                        console.log(`🗑️ Removed job ${jobId} from MOCK_HIRING_DATA`);
+                        
+                        // Reactivate job by adding back to listings data with SAME ID
+                        if (!MOCK_LISTINGS_DATA) {
+                            MOCK_LISTINGS_DATA = [];
+                        }
+                        
+                        // Restore original job with preserved applications (minus the hired worker)
+                        const reactivatedJob = {
+                            jobId: jobToRelist.jobId, // Keep original ID - THIS IS KEY!
+                            posterId: jobToRelist.posterId,
+                            posterName: jobToRelist.posterName,
+                            title: jobToRelist.title,
+                            category: jobToRelist.category,
+                            thumbnail: jobToRelist.thumbnail,
+                            jobDate: jobToRelist.jobDate,
+                            startTime: jobToRelist.startTime,
+                            endTime: jobToRelist.endTime,
+                            datePosted: new Date().toISOString(), // Update posted date to show as recent
+                            status: 'active', // Reactivate the job
+                            // Preserve applications but exclude the hired worker's application
+                            applicationCount: Math.max(0, (jobToRelist.originalApplicationCount || 0) - 1),
+                            applicationIds: (jobToRelist.originalApplicationIds || []).filter(id => id !== jobToRelist.hiredWorkerId),
+                            jobPageUrl: `${jobToRelist.category}.html`,
+                            // Store metadata about reactivation
+                            originalApplicationCount: jobToRelist.originalApplicationCount || 0,
+                            originalApplicationIds: jobToRelist.originalApplicationIds || [],
+                            reactivatedAt: new Date().toISOString(),
+                            reactivatedFrom: 'hiring',
+                            voidedWorker: workerName,
+                            voidedWorkerId: jobToRelist.hiredWorkerId
+                        };
+                        
+                        MOCK_LISTINGS_DATA.push(reactivatedJob);
+                        console.log(`✅ REACTIVATED job ${jobId} - moved from hiring to listings with ${reactivatedJob.applicationCount} preserved applications (excluded hired worker: ${workerName})`);
+                        
+                        // Show success message
+                        showContractVoidedSuccess(`Job reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
+                    } else {
+                        console.error(`❌ Source hiring job not found: ${jobId}`);
+                        showErrorNotification('Failed to relist job - source job not found');
                     }
-                    
-                    // Show success and redirect to jobs.html (Listings tab)
-                    showContractVoidedSuccess(`Job relisted successfully! "${sourceJob.title}" is now active in your Listings.`);
                 } else {
-                    console.error(`❌ Source hiring job not found: ${jobId}`);
-                    showErrorNotification('Failed to relist job - source job not found');
+                    console.error(`❌ MOCK_HIRING_DATA not available`);
+                    showErrorNotification('Failed to relist job - hiring data not available');
                 }
             }
             
@@ -6804,6 +6764,12 @@ function addToHiringData(jobData) {
         MOCK_HIRING_DATA = [];
     }
     
+    // Find original job in listings data to preserve application data
+    let originalJob = null;
+    if (MOCK_LISTINGS_DATA) {
+        originalJob = MOCK_LISTINGS_DATA.find(job => job.jobId === jobData.jobId);
+    }
+    
     // Format data to match hiring tab expectations
     const hiringJob = {
         jobId: jobData.jobId,
@@ -6835,8 +6801,17 @@ function addToHiringData(jobData) {
         startTime: '9:00 AM', // Default start time
         endTime: '5:00 PM', // Default end time
         // Additional fields for consistency
-        hiredWorkerId: 'user_hired_worker_001'
+        hiredWorkerId: 'user_hired_worker_001',
+        // PRESERVE ORIGINAL APPLICATION DATA for reactivation
+        originalApplicationCount: originalJob ? originalJob.applicationCount : 0,
+        originalApplicationIds: originalJob ? [...(originalJob.applicationIds || [])] : []
     };
+    
+    // Remove original job from listings data (it's now hired)
+    if (MOCK_LISTINGS_DATA && originalJob) {
+        MOCK_LISTINGS_DATA = MOCK_LISTINGS_DATA.filter(job => job.jobId !== jobData.jobId);
+        console.log(`🗑️ Removed job ${jobData.jobId} from MOCK_LISTINGS_DATA (now hired)`);
+    }
     
     // Add new hired job to the beginning of the array (top of list)
     MOCK_HIRING_DATA.unshift(hiringJob);
