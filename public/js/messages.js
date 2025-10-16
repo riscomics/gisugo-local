@@ -5767,22 +5767,28 @@ function handlePhotoUpload(file, modalOverlay) {
         const threadId = modalOverlay.getAttribute('data-thread-id');
         const participantId = modalOverlay.getAttribute('data-participant-id');
         
-        // Create photo message data
+        // Create photo message data with dual URLs
         const photoMessageData = {
             threadId: threadId,
             senderId: getCurrentUserId(),
             receiverId: participantId,
             content: '', // Empty for photo messages
-            imageUrl: processedImage.dataURL,
+            thumbnailUrl: processedImage.thumbnailURL,
+            fullSizeUrl: processedImage.fullSizeURL,
             messageType: 'image',
             timestamp: new Date().toISOString(),
             dimensions: processedImage.dimensions,
-            aspectRatio: processedImage.aspectRatio
+            aspectRatio: processedImage.aspectRatio,
+            fileSizes: {
+                thumbnail: processedImage.thumbnailSize,
+                fullSize: processedImage.fullSizeSize
+            }
         };
         
-        // Create photo message HTML
+        // Create photo message HTML with thumbnail for display, full-size for lightbox
         const photoMessageHTML = createPhotoMessageHTML(
-            processedImage.dataURL,
+            processedImage.thumbnailURL,
+            processedImage.fullSizeURL,
             'outgoing',
             'You',
             'public/users/Peter-J-Ang-User-01.jpg'
@@ -5820,6 +5826,17 @@ function handlePhotoUpload(file, modalOverlay) {
         // Reset photo button
         photoBtn.classList.remove('loading');
         
+        // Log performance metrics
+        const originalSize = Math.round(processedImage.originalFile.size / 1024); // KB
+        const thumbnailSizeKB = Math.round(processedImage.thumbnailSize / 1024); // KB  
+        const fullSizeSizeKB = Math.round(processedImage.fullSizeSize / 1024); // KB
+        const bandwidthSavings = Math.round(((fullSizeSizeKB - thumbnailSizeKB) / fullSizeSizeKB) * 100);
+        
+        console.log('📸 Photo Upload Performance:');
+        console.log(`   Original: ${originalSize} KB`);
+        console.log(`   Full-size: ${fullSizeSizeKB} KB`);
+        console.log(`   Thumbnail: ${thumbnailSizeKB} KB`);
+        console.log(`   💰 Bandwidth savings: ${bandwidthSavings}% (${fullSizeSizeKB - thumbnailSizeKB} KB saved)`);
         console.log('✅ Photo message sent:', photoMessageData);
         
         // BACKEND TODO: Send photoMessageData to server
@@ -6993,10 +7010,10 @@ window.forceResetAvatarOverlay = function() {
 // ===== PHOTO UPLOAD FUNCTIONALITY =====
 
 /**
- * Process image for chat using new-post.js compression standards
- * Compresses to max 720px width, 75% JPEG quality
+ * Process image for chat using dual-size optimization
+ * Generates both thumbnail (100px) and full-size (720px) versions
  * @param {File} file - Image file to process
- * @param {Function} callback - Callback with processed image data URL
+ * @param {Function} callback - Callback with processed image data
  */
 function processChatImage(file, callback) {
     if (!file || !file.type.startsWith('image/')) {
@@ -7008,14 +7025,34 @@ function processChatImage(file, callback) {
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            // Create compressed version (max 720px width, maintain aspect ratio)
-            createCompressedChatImage(img, function(compressedDataURL) {
-                callback({
-                    dataURL: compressedDataURL,
-                    originalFile: file,
-                    dimensions: `${img.width}×${img.height}`,
-                    aspectRatio: img.width / img.height
-                });
+            let thumbnailComplete = false;
+            let fullSizeComplete = false;
+            const result = {
+                originalFile: file,
+                dimensions: `${img.width}×${img.height}`,
+                aspectRatio: img.width / img.height
+            };
+
+            // Generate thumbnail (100px max, 60% quality)
+            createChatThumbnail(img, function(thumbnailDataURL) {
+                result.thumbnailURL = thumbnailDataURL;
+                result.thumbnailSize = Math.round(thumbnailDataURL.length * 0.75); // Approximate size in bytes
+                thumbnailComplete = true;
+                
+                if (fullSizeComplete) {
+                    callback(result);
+                }
+            });
+
+            // Generate full-size (720px max, 75% quality)
+            createCompressedChatImage(img, function(fullSizeDataURL) {
+                result.fullSizeURL = fullSizeDataURL;
+                result.fullSizeSize = Math.round(fullSizeDataURL.length * 0.75); // Approximate size in bytes
+                fullSizeComplete = true;
+                
+                if (thumbnailComplete) {
+                    callback(result);
+                }
             });
         };
         img.src = e.target.result;
@@ -7054,6 +7091,46 @@ function createCompressedChatImage(img, callback) {
     // Convert to data URL with 75% quality (same as new-post.js)
     const compressedDataURL = canvas.toDataURL('image/jpeg', 0.75);
     callback(compressedDataURL);
+}
+
+/**
+ * Create thumbnail for chat display (100px max dimension, 60% quality)
+ * Optimized for fast loading and bandwidth efficiency
+ * @param {Image} img - Source image
+ * @param {Function} callback - Callback with thumbnail data URL
+ */
+function createChatThumbnail(img, callback) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Calculate dimensions (100px max dimension, maintain aspect ratio)
+    const maxSize = 100;
+    let newWidth = img.width;
+    let newHeight = img.height;
+    
+    // Scale to fit within 100px while maintaining aspect ratio
+    if (newWidth > newHeight) {
+        if (newWidth > maxSize) {
+            newHeight = Math.round((newHeight * maxSize) / newWidth);
+            newWidth = maxSize;
+        }
+    } else {
+        if (newHeight > maxSize) {
+            newWidth = Math.round((newWidth * maxSize) / newHeight);
+            newHeight = maxSize;
+        }
+    }
+    
+    // Set canvas dimensions
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    // Draw the resized image
+    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+    
+    // Convert to data URL with 60% quality (higher compression for thumbnails)
+    const thumbnailDataURL = canvas.toDataURL('image/jpeg', 0.6);
+    callback(thumbnailDataURL);
 }
 
 /**
@@ -7114,14 +7191,15 @@ function showPhotoLightbox(imageUrl) {
 }
 
 /**
- * Create photo message HTML
- * @param {string} imageUrl - URL of the image
+ * Create photo message HTML with thumbnail optimization
+ * @param {string} thumbnailUrl - URL of the thumbnail for chat display
+ * @param {string} fullSizeUrl - URL of the full-size image for lightbox
  * @param {string} direction - 'incoming' or 'outgoing'
  * @param {string} senderName - Name of the sender
  * @param {string} avatar - Avatar URL
  * @returns {string} HTML string for photo message
  */
-function createPhotoMessageHTML(imageUrl, direction, senderName, avatar) {
+function createPhotoMessageHTML(thumbnailUrl, fullSizeUrl, direction, senderName, avatar) {
     const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     
     return `
@@ -7145,8 +7223,8 @@ function createPhotoMessageHTML(imageUrl, direction, senderName, avatar) {
                     </div>
                 `}
             </div>
-            <div class="message-photo" onclick="showPhotoLightbox('${imageUrl}')">
-                <img src="${imageUrl}" alt="Shared photo" class="photo-thumbnail">
+            <div class="message-photo" onclick="showPhotoLightbox('${fullSizeUrl}')">
+                <img src="${thumbnailUrl}" alt="Shared photo" class="photo-thumbnail" data-full-size="${fullSizeUrl}">
             </div>
         </div>
     `;
