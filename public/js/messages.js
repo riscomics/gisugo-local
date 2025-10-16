@@ -5845,7 +5845,11 @@ function handlePhotoUpload(file, modalOverlay) {
         // Simulate auto-response with TEXT (30% chance) - photos should get text responses, not photo responses
         if (Math.random() > 0.7) {
             setTimeout(() => {
-                const participantName = modalOverlay.querySelector('.chat-modal-title').textContent.trim();
+                // Extract participant name properly (not from job title)
+                const participantNameElement = modalOverlay.querySelector('.chat-modal-participant');
+                const participantName = participantNameElement ? 
+                    participantNameElement.textContent.replace(/^(You contacted |Application Interview with |contacted you)/, '').trim() :
+                    'Bot';
                 
                 const photoResponses = [
                     "Nice photo! 📸",
@@ -7195,14 +7199,18 @@ function showPhotoLightbox(imageUrl) {
     const lightboxOverlay = document.createElement('div');
     lightboxOverlay.className = 'photo-lightbox-overlay';
     lightboxOverlay.setAttribute('data-current-index', gallery.currentIndex);
+    
+    // Only create arrows if there are multiple photos
+    const arrowsHTML = hasMultiplePhotos ? `
+        <button class="nav-arrow nav-prev" type="button" style="display: none;">‹</button>
+        <button class="nav-arrow nav-next" type="button" style="display: none;">›</button>
+    ` : '';
+    
     lightboxOverlay.innerHTML = `
         <div class="photo-lightbox">
             <img src="${imageUrl}" alt="Full size photo" class="lightbox-image">
             <button class="close-lightbox" type="button">×</button>
-            ${hasMultiplePhotos ? `
-                <button class="nav-arrow nav-prev" type="button">‹</button>
-                <button class="nav-arrow nav-next" type="button">›</button>
-            ` : ''}
+            ${arrowsHTML}
         </div>
     `;
 
@@ -7268,6 +7276,12 @@ function initializePhotoGallery(lightboxOverlay) {
     const prevBtn = lightboxOverlay.querySelector('.nav-prev');
     const nextBtn = lightboxOverlay.querySelector('.nav-next');
     
+    // Safety check - if no buttons exist, don't initialize gallery
+    if (!prevBtn || !nextBtn) {
+        console.log('📸 No navigation buttons found - skipping gallery initialization');
+        return;
+    }
+    
     let currentIndex = parseInt(lightboxOverlay.getAttribute('data-current-index'));
 
     /**
@@ -7296,14 +7310,14 @@ function initializePhotoGallery(lightboxOverlay) {
         // Update navigation button visibility and states
         if (currentIndex > 0) {
             prevBtn.style.display = 'flex';
-            prevBtn.style.opacity = '0.4'; // Mobile default opacity
+            prevBtn.style.opacity = '0.2'; // Very subtle mobile opacity
         } else {
             prevBtn.style.display = 'none';
         }
         
         if (currentIndex < gallery.photos.length - 1) {
             nextBtn.style.display = 'flex';
-            nextBtn.style.opacity = '0.4'; // Mobile default opacity
+            nextBtn.style.opacity = '0.2'; // Very subtle mobile opacity
         } else {
             nextBtn.style.display = 'none';
         }
@@ -7342,11 +7356,15 @@ function initializePhotoGallery(lightboxOverlay) {
     let touchEndX = 0;
     let touchEndY = 0;
     let isDragging = false;
+    let hasMoved = false;
 
     const handleTouchStart = (e) => {
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
+        touchEndX = touchStartX; // Initialize end positions
+        touchEndY = touchStartY;
         isDragging = true;
+        hasMoved = false;
         
         // Add visual feedback
         lightboxImage.style.transition = 'none';
@@ -7360,6 +7378,11 @@ function initializePhotoGallery(lightboxOverlay) {
         
         const deltaX = touchEndX - touchStartX;
         const deltaY = touchEndY - touchStartY;
+        
+        // Mark that user has moved their finger (10px threshold)
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+            hasMoved = true;
+        }
         
         // Only handle horizontal swipes (ignore vertical scrolling)
         if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
@@ -7385,29 +7408,33 @@ function initializePhotoGallery(lightboxOverlay) {
         lightboxImage.style.transform = 'translateX(0) scale(1)';
         lightboxImage.style.opacity = '1';
         
-        // Determine swipe direction (minimum 50px swipe distance)
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-            // Horizontal swipe - navigate photos
-            if (deltaX > 0 && currentIndex > 0) {
-                // Swipe right - go to previous photo
-                navigateToPhoto(currentIndex - 1);
-            } else if (deltaX < 0 && currentIndex < gallery.photos.length - 1) {
-                // Swipe left - go to next photo
-                navigateToPhoto(currentIndex + 1);
-            }
-        } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 80) {
-            // Vertical swipe - close lightbox (80px minimum for intentional gesture)
-            console.log('📸 Vertical swipe detected - closing lightbox');
-            
-            // Find and trigger close function
-            const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
-            if (closeBtn) {
-                closeBtn.click();
+        // Only process gestures if user actually moved their finger
+        if (hasMoved) {
+            // Determine swipe direction (minimum 50px swipe distance)
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                // Horizontal swipe - navigate photos
+                if (deltaX > 0 && currentIndex > 0) {
+                    // Swipe right - go to previous photo
+                    navigateToPhoto(currentIndex - 1);
+                } else if (deltaX < 0 && currentIndex < gallery.photos.length - 1) {
+                    // Swipe left - go to next photo
+                    navigateToPhoto(currentIndex + 1);
+                }
+            } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 80) {
+                // Vertical swipe - close lightbox (80px minimum for intentional gesture)
+                console.log('📸 Vertical swipe detected - closing lightbox');
+                
+                // Find and trigger close function
+                const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+                if (closeBtn) {
+                    closeBtn.click();
+                }
             }
         }
         
         // Reset touch coordinates
         touchStartX = touchStartY = touchEndX = touchEndY = 0;
+        hasMoved = false;
     };
 
     // Add touch event listeners to the lightbox image
@@ -7418,14 +7445,14 @@ function initializePhotoGallery(lightboxOverlay) {
     // Initialize button visibility and states
     if (currentIndex > 0) {
         prevBtn.style.display = 'flex';
-        prevBtn.style.opacity = '0.4'; // Mobile default opacity
+        prevBtn.style.opacity = '0.2'; // Very subtle mobile opacity
     } else {
         prevBtn.style.display = 'none';
     }
     
     if (currentIndex < gallery.photos.length - 1) {
         nextBtn.style.display = 'flex';
-        nextBtn.style.opacity = '0.4'; // Mobile default opacity
+        nextBtn.style.opacity = '0.2'; // Very subtle mobile opacity
     } else {
         nextBtn.style.display = 'none';
     }
@@ -7451,15 +7478,24 @@ function initializeSinglePhotoGestures(lightboxOverlay) {
     let touchStartY = 0;
     let touchEndY = 0;
     let isDragging = false;
+    let hasMoved = false;
 
     const handleTouchStart = (e) => {
         touchStartY = e.touches[0].clientY;
+        touchEndY = touchStartY; // Initialize end position
         isDragging = true;
+        hasMoved = false;
     };
 
     const handleTouchMove = (e) => {
         if (!isDragging) return;
         touchEndY = e.touches[0].clientY;
+        
+        // Mark that user has moved their finger
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        if (deltaY > 10) { // 10px threshold to detect actual movement
+            hasMoved = true;
+        }
     };
 
     const handleTouchEnd = (e) => {
@@ -7468,8 +7504,8 @@ function initializeSinglePhotoGestures(lightboxOverlay) {
         
         const deltaY = touchEndY - touchStartY;
         
-        // Vertical swipe to close (80px minimum)
-        if (Math.abs(deltaY) > 80) {
+        // Only close if user actually moved their finger AND it's a significant swipe
+        if (hasMoved && Math.abs(deltaY) > 80) {
             console.log('📸 Vertical swipe detected on single photo - closing lightbox');
             
             const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
@@ -7480,6 +7516,7 @@ function initializeSinglePhotoGestures(lightboxOverlay) {
         
         // Reset coordinates
         touchStartY = touchEndY = 0;
+        hasMoved = false;
     };
 
     // Add touch event listeners
@@ -7496,6 +7533,7 @@ function initializeSinglePhotoGestures(lightboxOverlay) {
     
     console.log('📸 Single photo gestures initialized');
 }
+
 
 /**
  * Create photo message HTML with thumbnail optimization

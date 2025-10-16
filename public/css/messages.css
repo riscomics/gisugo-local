@@ -2686,7 +2686,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   justify-content: center;
   transition: all 0.2s ease;
   z-index: 10002;
-  opacity: 0.4; /* Subtle by default */
+  opacity: 0.2; /* Very subtle by default */
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.8); /* Better visibility without background */
 }
 
@@ -2705,7 +2705,7 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     backdrop-filter: blur(10px);
-    opacity: 0.6 !important; /* Override inline styles for desktop */
+    opacity: 0.3 !important; /* More subtle for desktop too */
   }
   
   .nav-arrow:hover {
@@ -2715,11 +2715,11 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .nav-prev {
-  left: 20px;
+  left: 5px;
 }
 
 .nav-next {
-  right: 20px;
+  right: 5px;
 }
 
 
