@@ -2276,7 +2276,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .messages-container {
-    padding-top: 20px !important; /* Increased from 10px - prevent first thread from being covered by tabs */
+    padding-top: 35px !important; /* Further increased for 320px - ensure full clearance from tabs */
   }
 
   .applications-container {
