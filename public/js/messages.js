@@ -7194,6 +7194,7 @@ function showPhotoLightbox(imageUrl) {
     // Collect photos from current chat thread
     const gallery = collectChatThreadPhotos(imageUrl);
     const hasMultiplePhotos = gallery.photos.length > 1;
+    
 
     // Create lightbox overlay with gallery support
     const lightboxOverlay = document.createElement('div');
@@ -7202,8 +7203,8 @@ function showPhotoLightbox(imageUrl) {
     
     // Only create arrows if there are multiple photos
     const arrowsHTML = hasMultiplePhotos ? `
-        <button class="nav-arrow nav-prev" type="button" style="display: none;">‹</button>
-        <button class="nav-arrow nav-next" type="button" style="display: none;">›</button>
+        <button class="nav-arrow nav-prev" type="button">‹</button>
+        <button class="nav-arrow nav-next" type="button">›</button>
     ` : '';
     
     lightboxOverlay.innerHTML = `
@@ -7267,6 +7268,37 @@ function showPhotoLightbox(imageUrl) {
 }
 
 /**
+ * Update arrow visibility based on current position in gallery
+ * @param {number} currentIndex - Current photo index
+ * @param {number} totalPhotos - Total number of photos
+ * @param {HTMLElement} prevBtn - Previous button element
+ * @param {HTMLElement} nextBtn - Next button element
+ */
+function updateArrowVisibility(currentIndex, totalPhotos, prevBtn, nextBtn) {
+    console.log(`🎯 Updating arrows: photo ${currentIndex + 1}/${totalPhotos}`);
+    
+    // Previous arrow: show if not at first photo
+    if (currentIndex > 0) {
+        prevBtn.style.display = 'flex';
+        prevBtn.style.opacity = '0.2';
+        console.log('👈 Left arrow: SHOWN');
+    } else {
+        prevBtn.style.display = 'none';
+        console.log('👈 Left arrow: HIDDEN');
+    }
+    
+    // Next arrow: show if not at last photo
+    if (currentIndex < totalPhotos - 1) {
+        nextBtn.style.display = 'flex';
+        nextBtn.style.opacity = '0.2';
+        console.log('👉 Right arrow: SHOWN');
+    } else {
+        nextBtn.style.display = 'none';
+        console.log('👉 Right arrow: HIDDEN');
+    }
+}
+
+/**
  * Initialize photo gallery functionality with swipe gestures and navigation
  * @param {HTMLElement} lightboxOverlay - The lightbox overlay element
  */
@@ -7291,6 +7323,8 @@ function initializePhotoGallery(lightboxOverlay) {
     const navigateToPhoto = (newIndex) => {
         if (newIndex < 0 || newIndex >= gallery.photos.length) return;
         
+        console.log(`🔄 Navigating from photo ${currentIndex + 1} to photo ${newIndex + 1}`);
+        
         const photo = gallery.photos[newIndex];
         
         // Add transition effect
@@ -7305,26 +7339,15 @@ function initializePhotoGallery(lightboxOverlay) {
             // Reset transition
             lightboxImage.style.opacity = '1';
             lightboxImage.style.transform = 'scale(1)';
+            
+            // Update navigation button visibility and states
+            updateArrowVisibility(currentIndex, gallery.photos.length, prevBtn, nextBtn);
         }, 150);
-
-        // Update navigation button visibility and states
-        if (currentIndex > 0) {
-            prevBtn.style.display = 'flex';
-            prevBtn.style.opacity = '0.2'; // Very subtle mobile opacity
-        } else {
-            prevBtn.style.display = 'none';
-        }
-        
-        if (currentIndex < gallery.photos.length - 1) {
-            nextBtn.style.display = 'flex';
-            nextBtn.style.opacity = '0.2'; // Very subtle mobile opacity
-        } else {
-            nextBtn.style.display = 'none';
-        }
     };
 
     // Navigation button handlers
     prevBtn.addEventListener('click', (e) => {
+        console.log('👈 Left arrow clicked!');
         e.stopPropagation();
         if (currentIndex > 0) {
             navigateToPhoto(currentIndex - 1);
@@ -7332,6 +7355,7 @@ function initializePhotoGallery(lightboxOverlay) {
     });
 
     nextBtn.addEventListener('click', (e) => {
+        console.log('👉 Right arrow clicked!');
         e.stopPropagation();
         if (currentIndex < gallery.photos.length - 1) {
             navigateToPhoto(currentIndex + 1);
@@ -7443,19 +7467,7 @@ function initializePhotoGallery(lightboxOverlay) {
     lightboxImage.addEventListener('touchend', handleTouchEnd);
 
     // Initialize button visibility and states
-    if (currentIndex > 0) {
-        prevBtn.style.display = 'flex';
-        prevBtn.style.opacity = '0.2'; // Very subtle mobile opacity
-    } else {
-        prevBtn.style.display = 'none';
-    }
-    
-    if (currentIndex < gallery.photos.length - 1) {
-        nextBtn.style.display = 'flex';
-        nextBtn.style.opacity = '0.2'; // Very subtle mobile opacity
-    } else {
-        nextBtn.style.display = 'none';
-    }
+    updateArrowVisibility(currentIndex, gallery.photos.length, prevBtn, nextBtn);
     
     // Cleanup function (called when lightbox closes)
     lightboxOverlay._cleanup = () => {
