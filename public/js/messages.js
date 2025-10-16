@@ -7215,6 +7215,9 @@ function showPhotoLightbox(imageUrl) {
     // Initialize gallery functionality if multiple photos
     if (hasMultiplePhotos) {
         initializePhotoGallery(lightboxOverlay);
+    } else {
+        // Add vertical swipe to close for single photos
+        initializeSinglePhotoGestures(lightboxOverlay);
     }
 
     // Show with animation
@@ -7373,12 +7376,22 @@ function initializePhotoGallery(lightboxOverlay) {
         
         // Determine swipe direction (minimum 50px swipe distance)
         if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+            // Horizontal swipe - navigate photos
             if (deltaX > 0 && currentIndex > 0) {
                 // Swipe right - go to previous photo
                 navigateToPhoto(currentIndex - 1);
             } else if (deltaX < 0 && currentIndex < gallery.photos.length - 1) {
                 // Swipe left - go to next photo
                 navigateToPhoto(currentIndex + 1);
+            }
+        } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 80) {
+            // Vertical swipe - close lightbox (80px minimum for intentional gesture)
+            console.log('📸 Vertical swipe detected - closing lightbox');
+            
+            // Find and trigger close function
+            const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+            if (closeBtn) {
+                closeBtn.click();
             }
         }
         
@@ -7404,6 +7417,62 @@ function initializePhotoGallery(lightboxOverlay) {
     };
     
     console.log(`📸 Photo gallery initialized: ${gallery.photos.length} photos, starting at ${currentIndex + 1}`);
+}
+
+/**
+ * Initialize vertical swipe gestures for single photos
+ * @param {HTMLElement} lightboxOverlay - The lightbox overlay element
+ */
+function initializeSinglePhotoGestures(lightboxOverlay) {
+    const lightboxImage = lightboxOverlay.querySelector('.lightbox-image');
+    
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let isDragging = false;
+
+    const handleTouchStart = (e) => {
+        touchStartY = e.touches[0].clientY;
+        isDragging = true;
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        touchEndY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const deltaY = touchEndY - touchStartY;
+        
+        // Vertical swipe to close (80px minimum)
+        if (Math.abs(deltaY) > 80) {
+            console.log('📸 Vertical swipe detected on single photo - closing lightbox');
+            
+            const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+            if (closeBtn) {
+                closeBtn.click();
+            }
+        }
+        
+        // Reset coordinates
+        touchStartY = touchEndY = 0;
+    };
+
+    // Add touch event listeners
+    lightboxImage.addEventListener('touchstart', handleTouchStart, { passive: true });
+    lightboxImage.addEventListener('touchmove', handleTouchMove, { passive: true });
+    lightboxImage.addEventListener('touchend', handleTouchEnd);
+
+    // Cleanup function
+    lightboxOverlay._cleanup = () => {
+        lightboxImage.removeEventListener('touchstart', handleTouchStart);
+        lightboxImage.removeEventListener('touchmove', handleTouchMove);
+        lightboxImage.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+    console.log('📸 Single photo gestures initialized');
 }
 
 /**
