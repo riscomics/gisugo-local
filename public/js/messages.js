@@ -5440,6 +5440,8 @@ function showChatModal(messageThread, threadContent) {
                 </div>
                 <div class="chat-input-container">
                     <textarea class="chat-input" placeholder="Type a message..." maxlength="200"></textarea>
+                    <button class="chat-photo-btn" type="button" title="Attach Photo">📷</button>
+                    <input type="file" class="chat-photo-input" accept="image/*" style="display: none;">
                     <button class="chat-send-btn">Send</button>
                 </div>
             </div>
@@ -5551,9 +5553,11 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
 function initializeChatInputFunctionality(modalOverlay) {
     const inputField = modalOverlay.querySelector('.chat-input');
     const sendBtn = modalOverlay.querySelector('.chat-send-btn');
+    const photoBtn = modalOverlay.querySelector('.chat-photo-btn');
+    const photoInput = modalOverlay.querySelector('.chat-photo-input');
     const inputContainer = modalOverlay.querySelector('.chat-input-container');
     
-    if (!inputField || !sendBtn) {
+    if (!inputField || !sendBtn || !photoBtn || !photoInput) {
         console.error('❌ Chat input elements not found');
         return;
     }
@@ -5717,8 +5721,132 @@ function initializeChatInputFunctionality(modalOverlay) {
             sendMessage();
         }
     });
+
+    // Photo upload functionality
+    photoBtn.addEventListener('click', () => {
+        if (!photoBtn.classList.contains('loading')) {
+            photoInput.click();
+        }
+    });
+
+    photoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            handlePhotoUpload(file, modalOverlay);
+        }
+        // Reset input so same file can be selected again
+        photoInput.value = '';
+    });
     
     console.log('✅ Chat input functionality initialized');
+}
+
+/**
+ * Handle photo upload in chat
+ * @param {File} file - Selected image file
+ * @param {HTMLElement} modalOverlay - Chat modal overlay
+ */
+function handlePhotoUpload(file, modalOverlay) {
+    const photoBtn = modalOverlay.querySelector('.chat-photo-btn');
+    const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+    
+    // Show loading state
+    photoBtn.classList.add('loading');
+    photoBtn.innerHTML = '';
+    
+    console.log('📸 Processing photo for chat...');
+    
+    // Process image using new-post.js compression standards
+    processChatImage(file, (processedImage) => {
+        // Get thread data
+        const threadId = modalOverlay.getAttribute('data-thread-id');
+        const participantId = modalOverlay.getAttribute('data-participant-id');
+        
+        // Create photo message data
+        const photoMessageData = {
+            threadId: threadId,
+            senderId: getCurrentUserId(),
+            receiverId: participantId,
+            content: '', // Empty for photo messages
+            imageUrl: processedImage.dataURL,
+            messageType: 'image',
+            timestamp: new Date().toISOString(),
+            dimensions: processedImage.dimensions,
+            aspectRatio: processedImage.aspectRatio
+        };
+        
+        // Create photo message HTML
+        const photoMessageHTML = createPhotoMessageHTML(
+            processedImage.dataURL,
+            'outgoing',
+            'You',
+            'public/users/Peter-J-Ang-User-01.jpg'
+        );
+        
+        // Add photo message to chat
+        const messageElement = document.createElement('div');
+        messageElement.innerHTML = photoMessageHTML;
+        const photoMessage = messageElement.firstElementChild;
+        
+        // Insert at bottom since newest messages are last
+        messagesContainer.appendChild(photoMessage);
+        
+        // Add entrance animation
+        photoMessage.style.opacity = '0';
+        photoMessage.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+            photoMessage.style.opacity = '1';
+            photoMessage.style.transform = 'translateY(0)';
+            photoMessage.style.transition = 'all 0.3s ease';
+        }, 10);
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Reset photo button
+        photoBtn.classList.remove('loading');
+        photoBtn.innerHTML = '📷';
+        
+        console.log('✅ Photo message sent:', photoMessageData);
+        
+        // BACKEND TODO: Send photoMessageData to server
+        // In production, upload image to Firebase Storage and send message with image URL
+        
+        // Simulate auto-response with photo (30% chance)
+        if (Math.random() > 0.7) {
+            setTimeout(() => {
+                const participantName = modalOverlay.querySelector('.chat-modal-title').textContent.trim();
+                
+                // Use a sample image for auto-response (in production, this would be from the other user)
+                const responsePhotoHTML = createPhotoMessageHTML(
+                    'public/images/sample-response-photo.jpg', // Placeholder - would be actual user photo
+                    'incoming',
+                    participantName,
+                    getParticipantAvatar(threadId)
+                );
+                
+                const responseElement = document.createElement('div');
+                responseElement.innerHTML = responsePhotoHTML;
+                const responseMessage = responseElement.firstElementChild;
+                
+                messagesContainer.appendChild(responseMessage);
+                
+                // Add entrance animation
+                responseMessage.style.opacity = '0';
+                responseMessage.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    responseMessage.style.opacity = '1';
+                    responseMessage.style.transform = 'translateY(0)';
+                    responseMessage.style.transition = 'all 0.3s ease';
+                }, 10);
+                
+                // Scroll to bottom
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                console.log('📸 Auto-response photo sent');
+            }, 2000 + Math.random() * 2000); // 2-4 seconds delay
+        }
+    });
 }
 
 // Close chat modal
@@ -6830,6 +6958,168 @@ window.forceResetAvatarOverlay = function() {
     
     console.log(`✅ Force reset completed - cleaned up ${allAvatars.length} avatar listeners and all overlays`);
 };
+
+// ===== PHOTO UPLOAD FUNCTIONALITY =====
+
+/**
+ * Process image for chat using new-post.js compression standards
+ * Compresses to max 720px width, 75% JPEG quality
+ * @param {File} file - Image file to process
+ * @param {Function} callback - Callback with processed image data URL
+ */
+function processChatImage(file, callback) {
+    if (!file || !file.type.startsWith('image/')) {
+        console.error('❌ Invalid file type for chat image');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Create compressed version (max 720px width, maintain aspect ratio)
+            createCompressedChatImage(img, function(compressedDataURL) {
+                callback({
+                    dataURL: compressedDataURL,
+                    originalFile: file,
+                    dimensions: `${img.width}×${img.height}`,
+                    aspectRatio: img.width / img.height
+                });
+            });
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Create compressed chat image (max 720px width, 75% quality)
+ * Based on new-post.js compression standards
+ * @param {Image} img - Source image
+ * @param {Function} callback - Callback with compressed data URL
+ */
+function createCompressedChatImage(img, callback) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Calculate dimensions (max 720px width, maintain aspect ratio)
+    const maxWidth = 720;
+    let newWidth = img.width;
+    let newHeight = img.height;
+    
+    if (img.width > maxWidth) {
+        const scale = maxWidth / img.width;
+        newWidth = maxWidth;
+        newHeight = Math.round(img.height * scale);
+    }
+    
+    // Set canvas dimensions
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    // Draw the resized image (maintain original aspect ratio)
+    ctx.drawImage(img, 0, 0, newWidth, newHeight);
+    
+    // Convert to data URL with 75% quality (same as new-post.js)
+    const compressedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+    callback(compressedDataURL);
+}
+
+/**
+ * Show photo lightbox overlay
+ * @param {string} imageUrl - URL of the image to display
+ */
+function showPhotoLightbox(imageUrl) {
+    // Remove existing lightbox if any
+    const existingLightbox = document.querySelector('.photo-lightbox-overlay');
+    if (existingLightbox) {
+        existingLightbox.remove();
+    }
+
+    // Create lightbox overlay
+    const lightboxOverlay = document.createElement('div');
+    lightboxOverlay.className = 'photo-lightbox-overlay';
+    lightboxOverlay.innerHTML = `
+        <div class="photo-lightbox">
+            <img src="${imageUrl}" alt="Full size photo">
+            <button class="close-lightbox" type="button">×</button>
+        </div>
+    `;
+
+    // Add to body
+    document.body.appendChild(lightboxOverlay);
+
+    // Show with animation
+    setTimeout(() => {
+        lightboxOverlay.classList.add('show');
+    }, 10);
+
+    // Close handlers
+    const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+    const closeLightbox = () => {
+        lightboxOverlay.classList.remove('show');
+        setTimeout(() => {
+            if (lightboxOverlay.parentNode) {
+                lightboxOverlay.remove();
+            }
+        }, 300);
+    };
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightboxOverlay.addEventListener('click', (e) => {
+        if (e.target === lightboxOverlay) {
+            closeLightbox();
+        }
+    });
+
+    // ESC key to close
+    const handleEscKey = (e) => {
+        if (e.key === 'Escape') {
+            closeLightbox();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    document.addEventListener('keydown', handleEscKey);
+}
+
+/**
+ * Create photo message HTML
+ * @param {string} imageUrl - URL of the image
+ * @param {string} direction - 'incoming' or 'outgoing'
+ * @param {string} senderName - Name of the sender
+ * @param {string} avatar - Avatar URL
+ * @returns {string} HTML string for photo message
+ */
+function createPhotoMessageHTML(imageUrl, direction, senderName, avatar) {
+    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    return `
+        <div class="message-card ${direction}">
+            <div class="message-header">
+                ${direction === 'outgoing' ? `
+                    <div class="message-avatar">
+                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
+                    </div>
+                    <div class="message-info">
+                        <div class="message-sender">${senderName}</div>
+                        <div class="message-timestamp">${timestamp}</div>
+                    </div>
+                ` : `
+                    <div class="message-info">
+                        <div class="message-sender">${senderName}</div>
+                        <div class="message-timestamp">${timestamp}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
+                    </div>
+                `}
+            </div>
+            <div class="message-photo" onclick="showPhotoLightbox('${imageUrl}')">
+                <img src="${imageUrl}" alt="Shared photo" class="photo-thumbnail">
+            </div>
+        </div>
+    `;
+}
 
 
 
