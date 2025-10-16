@@ -5845,11 +5845,15 @@ function handlePhotoUpload(file, modalOverlay) {
         // Simulate auto-response with TEXT (30% chance) - photos should get text responses, not photo responses
         if (Math.random() > 0.7) {
             setTimeout(() => {
-                // Extract participant name properly (not from job title)
+                // Extract participant name properly (same logic as text auto-response)
                 const participantNameElement = modalOverlay.querySelector('.chat-modal-participant');
                 const participantName = participantNameElement ? 
-                    participantNameElement.textContent.replace(/^(You contacted |Application Interview with |contacted you)/, '').trim() :
-                    'Bot';
+                    participantNameElement.textContent
+                        .replace('Direct Message with ', '')
+                        .replace('Application Interview with ', '')
+                        .replace('You contacted ', '')
+                        .replace(' contacted you', '')
+                        .trim() : 'Bot';
                 
                 const photoResponses = [
                     "Nice photo! 📸",
@@ -7275,26 +7279,20 @@ function showPhotoLightbox(imageUrl) {
  * @param {HTMLElement} nextBtn - Next button element
  */
 function updateArrowVisibility(currentIndex, totalPhotos, prevBtn, nextBtn) {
-    console.log(`🎯 Updating arrows: photo ${currentIndex + 1}/${totalPhotos}`);
-    
     // Previous arrow: show if not at first photo
     if (currentIndex > 0) {
         prevBtn.style.display = 'flex';
         prevBtn.style.opacity = '0.2';
-        console.log('👈 Left arrow: SHOWN');
     } else {
         prevBtn.style.display = 'none';
-        console.log('👈 Left arrow: HIDDEN');
     }
     
     // Next arrow: show if not at last photo
     if (currentIndex < totalPhotos - 1) {
         nextBtn.style.display = 'flex';
         nextBtn.style.opacity = '0.2';
-        console.log('👉 Right arrow: SHOWN');
     } else {
         nextBtn.style.display = 'none';
-        console.log('👉 Right arrow: HIDDEN');
     }
 }
 
@@ -7323,8 +7321,6 @@ function initializePhotoGallery(lightboxOverlay) {
     const navigateToPhoto = (newIndex) => {
         if (newIndex < 0 || newIndex >= gallery.photos.length) return;
         
-        console.log(`🔄 Navigating from photo ${currentIndex + 1} to photo ${newIndex + 1}`);
-        
         const photo = gallery.photos[newIndex];
         
         // Add transition effect
@@ -7347,7 +7343,6 @@ function initializePhotoGallery(lightboxOverlay) {
 
     // Navigation button handlers
     prevBtn.addEventListener('click', (e) => {
-        console.log('👈 Left arrow clicked!');
         e.stopPropagation();
         if (currentIndex > 0) {
             navigateToPhoto(currentIndex - 1);
@@ -7355,7 +7350,6 @@ function initializePhotoGallery(lightboxOverlay) {
     });
 
     nextBtn.addEventListener('click', (e) => {
-        console.log('👉 Right arrow clicked!');
         e.stopPropagation();
         if (currentIndex < gallery.photos.length - 1) {
             navigateToPhoto(currentIndex + 1);
