@@ -5668,7 +5668,7 @@ function initializeChatInputFunctionality(modalOverlay) {
                                 <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                             </div>
                             <div class="message-avatar">
-                                <img src="public/users/User-02.jpg" alt="${participantName}" onerror="this.src='public/images/logo.png'">
+                                <img src="${getParticipantAvatar(threadId)}" alt="${participantName}" onerror="this.src='public/images/logo.png'">
                             </div>
                         </div>
                         <div class="message-bubble incoming">
