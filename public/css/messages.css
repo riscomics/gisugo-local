@@ -2705,12 +2705,12 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     backdrop-filter: blur(10px);
-    opacity: 0.6;
+    opacity: 0.6 !important; /* Override inline styles for desktop */
   }
   
   .nav-arrow:hover {
     background: rgba(255, 255, 255, 0.2);
-    opacity: 1;
+    opacity: 1 !important;
   }
 }
 

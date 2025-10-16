@@ -7293,9 +7293,20 @@ function initializePhotoGallery(lightboxOverlay) {
             lightboxImage.style.transform = 'scale(1)';
         }, 150);
 
-        // Update navigation button states
-        prevBtn.style.opacity = currentIndex > 0 ? '1' : '0.3';
-        nextBtn.style.opacity = currentIndex < gallery.photos.length - 1 ? '1' : '0.3';
+        // Update navigation button visibility and states
+        if (currentIndex > 0) {
+            prevBtn.style.display = 'flex';
+            prevBtn.style.opacity = '0.4'; // Mobile default opacity
+        } else {
+            prevBtn.style.display = 'none';
+        }
+        
+        if (currentIndex < gallery.photos.length - 1) {
+            nextBtn.style.display = 'flex';
+            nextBtn.style.opacity = '0.4'; // Mobile default opacity
+        } else {
+            nextBtn.style.display = 'none';
+        }
     };
 
     // Navigation button handlers
@@ -7404,9 +7415,20 @@ function initializePhotoGallery(lightboxOverlay) {
     lightboxImage.addEventListener('touchmove', handleTouchMove, { passive: false });
     lightboxImage.addEventListener('touchend', handleTouchEnd);
 
-    // Initialize button states
-    prevBtn.style.opacity = currentIndex > 0 ? '1' : '0.3';
-    nextBtn.style.opacity = currentIndex < gallery.photos.length - 1 ? '1' : '0.3';
+    // Initialize button visibility and states
+    if (currentIndex > 0) {
+        prevBtn.style.display = 'flex';
+        prevBtn.style.opacity = '0.4'; // Mobile default opacity
+    } else {
+        prevBtn.style.display = 'none';
+    }
+    
+    if (currentIndex < gallery.photos.length - 1) {
+        nextBtn.style.display = 'flex';
+        nextBtn.style.opacity = '0.4'; // Mobile default opacity
+    } else {
+        nextBtn.style.display = 'none';
+    }
     
     // Cleanup function (called when lightbox closes)
     lightboxOverlay._cleanup = () => {
