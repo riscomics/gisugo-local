@@ -7134,7 +7134,50 @@ function createChatThumbnail(img, callback) {
 }
 
 /**
- * Show photo lightbox overlay
+ * Collect all photos from current chat thread for gallery navigation
+ * @param {string} currentImageUrl - Currently displayed image URL
+ * @returns {Object} Gallery data with photos array and current index
+ */
+function collectChatThreadPhotos(currentImageUrl) {
+    // Find the currently open chat modal
+    const chatModal = document.querySelector('.chat-modal-overlay');
+    if (!chatModal) {
+        return { photos: [currentImageUrl], currentIndex: 0 };
+    }
+
+    // Get all photo thumbnails from the current chat thread
+    const photoElements = chatModal.querySelectorAll('.message-photo img.photo-thumbnail');
+    const photos = [];
+    let currentIndex = 0;
+
+    photoElements.forEach((img, index) => {
+        const fullSizeUrl = img.getAttribute('data-full-size') || img.src;
+        photos.push({
+            thumbnailUrl: img.src,
+            fullSizeUrl: fullSizeUrl,
+            element: img
+        });
+
+        // Find current photo index
+        if (fullSizeUrl === currentImageUrl) {
+            currentIndex = index;
+        }
+    });
+
+    // Fallback if no photos found or current not in collection
+    if (photos.length === 0) {
+        photos.push({
+            thumbnailUrl: currentImageUrl,
+            fullSizeUrl: currentImageUrl,
+            element: null
+        });
+    }
+
+    return { photos, currentIndex };
+}
+
+/**
+ * Show photo lightbox with gallery navigation
  * @param {string} imageUrl - URL of the image to display
  */
 function showPhotoLightbox(imageUrl) {
@@ -7144,18 +7187,35 @@ function showPhotoLightbox(imageUrl) {
         existingLightbox.remove();
     }
 
-    // Create lightbox overlay
+    // Collect photos from current chat thread
+    const gallery = collectChatThreadPhotos(imageUrl);
+    const hasMultiplePhotos = gallery.photos.length > 1;
+
+    // Create lightbox overlay with gallery support
     const lightboxOverlay = document.createElement('div');
     lightboxOverlay.className = 'photo-lightbox-overlay';
+    lightboxOverlay.setAttribute('data-current-index', gallery.currentIndex);
     lightboxOverlay.innerHTML = `
         <div class="photo-lightbox">
-            <img src="${imageUrl}" alt="Full size photo">
+            <img src="${imageUrl}" alt="Full size photo" class="lightbox-image">
             <button class="close-lightbox" type="button">×</button>
+            ${hasMultiplePhotos ? `
+                <button class="nav-arrow nav-prev" type="button">‹</button>
+                <button class="nav-arrow nav-next" type="button">›</button>
+            ` : ''}
         </div>
     `;
 
+    // Store gallery data on the overlay
+    lightboxOverlay._gallery = gallery;
+
     // Add to body
     document.body.appendChild(lightboxOverlay);
+
+    // Initialize gallery functionality if multiple photos
+    if (hasMultiplePhotos) {
+        initializePhotoGallery(lightboxOverlay);
+    }
 
     // Show with animation
     setTimeout(() => {
@@ -7165,6 +7225,11 @@ function showPhotoLightbox(imageUrl) {
     // Close handlers
     const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
     const closeLightbox = () => {
+        // Call cleanup function if it exists
+        if (lightboxOverlay._cleanup) {
+            lightboxOverlay._cleanup();
+        }
+        
         lightboxOverlay.classList.remove('show');
         setTimeout(() => {
             if (lightboxOverlay.parentNode) {
@@ -7188,6 +7253,157 @@ function showPhotoLightbox(imageUrl) {
         }
     };
     document.addEventListener('keydown', handleEscKey);
+}
+
+/**
+ * Initialize photo gallery functionality with swipe gestures and navigation
+ * @param {HTMLElement} lightboxOverlay - The lightbox overlay element
+ */
+function initializePhotoGallery(lightboxOverlay) {
+    const gallery = lightboxOverlay._gallery;
+    const lightboxImage = lightboxOverlay.querySelector('.lightbox-image');
+    const prevBtn = lightboxOverlay.querySelector('.nav-prev');
+    const nextBtn = lightboxOverlay.querySelector('.nav-next');
+    
+    let currentIndex = parseInt(lightboxOverlay.getAttribute('data-current-index'));
+
+    /**
+     * Navigate to specific photo index
+     * @param {number} newIndex - Target photo index
+     */
+    const navigateToPhoto = (newIndex) => {
+        if (newIndex < 0 || newIndex >= gallery.photos.length) return;
+        
+        const photo = gallery.photos[newIndex];
+        
+        // Add transition effect
+        lightboxImage.style.opacity = '0.7';
+        lightboxImage.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            lightboxImage.src = photo.fullSizeUrl;
+            currentIndex = newIndex;
+            lightboxOverlay.setAttribute('data-current-index', currentIndex);
+            
+            // Reset transition
+            lightboxImage.style.opacity = '1';
+            lightboxImage.style.transform = 'scale(1)';
+        }, 150);
+
+        // Update navigation button states
+        prevBtn.style.opacity = currentIndex > 0 ? '1' : '0.3';
+        nextBtn.style.opacity = currentIndex < gallery.photos.length - 1 ? '1' : '0.3';
+    };
+
+    // Navigation button handlers
+    prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentIndex > 0) {
+            navigateToPhoto(currentIndex - 1);
+        }
+    });
+
+    nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentIndex < gallery.photos.length - 1) {
+            navigateToPhoto(currentIndex + 1);
+        }
+    });
+
+    // Keyboard navigation
+    const handleGalleryKeys = (e) => {
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            e.preventDefault();
+            navigateToPhoto(currentIndex - 1);
+        } else if (e.key === 'ArrowRight' && currentIndex < gallery.photos.length - 1) {
+            e.preventDefault();
+            navigateToPhoto(currentIndex + 1);
+        }
+    };
+    document.addEventListener('keydown', handleGalleryKeys);
+
+    // Touch/Swipe gesture support
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    let isDragging = false;
+
+    const handleTouchStart = (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isDragging = true;
+        
+        // Add visual feedback
+        lightboxImage.style.transition = 'none';
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        
+        touchEndX = e.touches[0].clientX;
+        touchEndY = e.touches[0].clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Only handle horizontal swipes (ignore vertical scrolling)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            e.preventDefault();
+            
+            // Visual drag feedback
+            const dragAmount = Math.min(Math.abs(deltaX) / 3, 50);
+            const opacity = Math.max(0.7, 1 - dragAmount / 100);
+            lightboxImage.style.transform = `translateX(${deltaX / 3}px) scale(${0.95 + (opacity - 0.7) * 0.17})`;
+            lightboxImage.style.opacity = opacity;
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Reset visual state
+        lightboxImage.style.transition = 'all 0.3s ease';
+        lightboxImage.style.transform = 'translateX(0) scale(1)';
+        lightboxImage.style.opacity = '1';
+        
+        // Determine swipe direction (minimum 50px swipe distance)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+            if (deltaX > 0 && currentIndex > 0) {
+                // Swipe right - go to previous photo
+                navigateToPhoto(currentIndex - 1);
+            } else if (deltaX < 0 && currentIndex < gallery.photos.length - 1) {
+                // Swipe left - go to next photo
+                navigateToPhoto(currentIndex + 1);
+            }
+        }
+        
+        // Reset touch coordinates
+        touchStartX = touchStartY = touchEndX = touchEndY = 0;
+    };
+
+    // Add touch event listeners to the lightbox image
+    lightboxImage.addEventListener('touchstart', handleTouchStart, { passive: false });
+    lightboxImage.addEventListener('touchmove', handleTouchMove, { passive: false });
+    lightboxImage.addEventListener('touchend', handleTouchEnd);
+
+    // Initialize button states
+    prevBtn.style.opacity = currentIndex > 0 ? '1' : '0.3';
+    nextBtn.style.opacity = currentIndex < gallery.photos.length - 1 ? '1' : '0.3';
+    
+    // Cleanup function (called when lightbox closes)
+    lightboxOverlay._cleanup = () => {
+        document.removeEventListener('keydown', handleGalleryKeys);
+        lightboxImage.removeEventListener('touchstart', handleTouchStart);
+        lightboxImage.removeEventListener('touchmove', handleTouchMove);
+        lightboxImage.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+    console.log(`📸 Photo gallery initialized: ${gallery.photos.length} photos, starting at ${currentIndex + 1}`);
 }
 
 /**
