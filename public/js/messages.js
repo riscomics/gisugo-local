@@ -5440,7 +5440,13 @@ function showChatModal(messageThread, threadContent) {
                 </div>
                 <div class="chat-input-container">
                     <textarea class="chat-input" placeholder="Type a message..." maxlength="200"></textarea>
-                    <button class="chat-photo-btn" type="button" title="Attach Photo">📷</button>
+                    <button class="chat-photo-btn" type="button" title="Attach Photo">
+                        <svg class="photo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21,15 16,10 5,21"/>
+                        </svg>
+                    </button>
                     <input type="file" class="chat-photo-input" accept="image/*" style="display: none;">
                     <button class="chat-send-btn">Send</button>
                 </div>
@@ -5752,7 +5758,6 @@ function handlePhotoUpload(file, modalOverlay) {
     
     // Show loading state
     photoBtn.classList.add('loading');
-    photoBtn.innerHTML = '';
     
     console.log('📸 Processing photo for chat...');
     
@@ -5791,6 +5796,15 @@ function handlePhotoUpload(file, modalOverlay) {
         // Insert at bottom since newest messages are last
         messagesContainer.appendChild(photoMessage);
         
+        // Ensure proper scrolling after image loads
+        const photoImg = photoMessage.querySelector('.photo-thumbnail');
+        const scrollToBottom = () => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        };
+        
+        // Add load event listener to image for proper scroll positioning
+        photoImg.addEventListener('load', scrollToBottom);
+        
         // Add entrance animation
         photoMessage.style.opacity = '0';
         photoMessage.style.transform = 'translateY(10px)';
@@ -5798,52 +5812,69 @@ function handlePhotoUpload(file, modalOverlay) {
             photoMessage.style.opacity = '1';
             photoMessage.style.transform = 'translateY(0)';
             photoMessage.style.transition = 'all 0.3s ease';
+            
+            // Scroll to bottom after animation starts (fallback if image already loaded)
+            setTimeout(scrollToBottom, 50);
         }, 10);
-        
-        // Scroll to bottom
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
         // Reset photo button
         photoBtn.classList.remove('loading');
-        photoBtn.innerHTML = '📷';
         
         console.log('✅ Photo message sent:', photoMessageData);
         
         // BACKEND TODO: Send photoMessageData to server
         // In production, upload image to Firebase Storage and send message with image URL
         
-        // Simulate auto-response with photo (30% chance)
+        // Simulate auto-response with TEXT (30% chance) - photos should get text responses, not photo responses
         if (Math.random() > 0.7) {
             setTimeout(() => {
                 const participantName = modalOverlay.querySelector('.chat-modal-title').textContent.trim();
                 
-                // Use a sample image for auto-response (in production, this would be from the other user)
-                const responsePhotoHTML = createPhotoMessageHTML(
-                    'public/images/sample-response-photo.jpg', // Placeholder - would be actual user photo
-                    'incoming',
-                    participantName,
-                    getParticipantAvatar(threadId)
-                );
+                const photoResponses = [
+                    "Nice photo! 📸",
+                    "Looks great! Thanks for sharing.",
+                    "Perfect! That's exactly what I needed to see.",
+                    "Thanks for the photo! Very helpful.",
+                    "Great shot! 👍",
+                    "Awesome! This gives me a better idea.",
+                    "Perfect timing with that photo!"
+                ];
+                
+                const randomResponse = photoResponses[Math.floor(Math.random() * photoResponses.length)];
                 
                 const responseElement = document.createElement('div');
-                responseElement.innerHTML = responsePhotoHTML;
-                const responseMessage = responseElement.firstElementChild;
+                responseElement.className = 'message-card incoming';
+                responseElement.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-info">
+                            <div class="message-sender">${participantName}</div>
+                            <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        </div>
+                        <div class="message-avatar">
+                            <img src="${getParticipantAvatar(threadId)}" alt="${participantName}" onerror="this.src='public/images/logo.png'">
+                        </div>
+                    </div>
+                    <div class="message-bubble incoming">
+                        ${randomResponse}
+                    </div>
+                `;
                 
-                messagesContainer.appendChild(responseMessage);
+                // Insert at bottom since newest messages are last
+                messagesContainer.appendChild(responseElement);
                 
                 // Add entrance animation
-                responseMessage.style.opacity = '0';
-                responseMessage.style.transform = 'translateY(10px)';
+                responseElement.style.opacity = '0';
+                responseElement.style.transform = 'translateY(10px)';
                 setTimeout(() => {
-                    responseMessage.style.opacity = '1';
-                    responseMessage.style.transform = 'translateY(0)';
-                    responseMessage.style.transition = 'all 0.3s ease';
+                    responseElement.style.opacity = '1';
+                    responseElement.style.transform = 'translateY(0)';
+                    responseElement.style.transition = 'all 0.3s ease';
                 }, 10);
                 
                 // Scroll to bottom
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 
-                console.log('📸 Auto-response photo sent');
+                console.log('💬 Auto-response text sent for photo');
             }, 2000 + Math.random() * 2000); // 2-4 seconds delay
         }
     });

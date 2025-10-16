@@ -2521,10 +2521,10 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Chat Photo Button */
 .chat-photo-btn {
-  background: #4a5568;
-  border: 2px solid #718096;
+  background: transparent;
+  border: none;
   border-radius: 8px;
-  color: #ffffff;
+  color: #a0aec0;
   font-size: 1.2rem;
   padding: 8px 12px;
   cursor: pointer;
@@ -2537,9 +2537,15 @@ body:has(.selection-controls[style*="display: flex"]) {
   height: 44px;
 }
 
+.photo-icon {
+  width: 28px;
+  height: 28px;
+  stroke: currentColor;
+}
+
 .chat-photo-btn:hover {
-  background: #718096;
-  border-color: #a0aec0;
+  background: rgba(113, 128, 150, 0.2);
+  color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
 }
@@ -2551,10 +2557,13 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Photo upload loading state */
 .chat-photo-btn.loading {
-  background: #2d3748;
-  border-color: #4a5568;
+  background: rgba(45, 55, 72, 0.3);
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+.chat-photo-btn.loading .photo-icon {
+  display: none;
 }
 
 .chat-photo-btn.loading::after {
@@ -2728,6 +2737,11 @@ body:has(.selection-controls[style*="display: flex"]) {
     height: 36px;
     padding: 6px 10px;
     font-size: 1rem;
+  }
+  
+  .photo-icon {
+    width: 24px;
+    height: 24px;
   }
 }
 
