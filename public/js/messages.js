@@ -7581,5 +7581,1774 @@ function createPhotoMessageHTML(thumbnailUrl, fullSizeUrl, direction, senderName
     `;
 }
 
+// ===== MOCK MESSAGE DATA FOR ADMIN COMMUNICATIONS =====
 
+const MOCK_ADMIN_MESSAGES = {
+    customer: [
+        {
+            id: 'msg_cust_001',
+            topic: 'support',
+            subject: 'Account Verification Complete',
+            excerpt: 'Your GISUGO account has been successfully verified. You can now post jobs and hire workers.',
+            content: `Dear Valued Customer,
+
+We're pleased to inform you that your GISUGO account verification has been completed successfully! 
+
+Your account is now fully activated and you have access to all customer features:
+• Post unlimited job listings
+• Browse verified worker profiles
+• Use our secure G-Coins payment system
+• Access 24/7 customer support
+
+Welcome to the GISUGO community! We're excited to help you find the perfect workers for your needs.
+
+Best regards,
+The GISUGO Team`,
+            sender: {
+                name: 'GISUGO Support',
+                email: 'support@gisugo.com',
+                avatar: 'public/users/User-02.jpg'
+            },
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_002',
+            topic: 'support',
+            subject: 'G-Coins Wallet Issue Resolution',
+            excerpt: 'We have resolved the wallet connectivity issue you reported. Your G-Coins balance is now accessible.',
+            content: `Dear Customer,
+
+Thank you for reporting the G-Coins wallet connectivity issue. Our technical team has successfully resolved the problem.
+
+ISSUE RESOLVED:
+The temporary server maintenance that was causing wallet timeouts has been completed. All G-Coins transactions are now processing normally.
+
+YOUR ACCOUNT STATUS:
+• Current G-Coins Balance: ₱2,450 (confirmed secure)
+• All pending transactions have been processed
+• Wallet access fully restored
+
+We apologize for any inconvenience this may have caused. As compensation for the disruption, we've added a 5% bonus (₱122.50) to your wallet.
+
+If you experience any further issues, please don't hesitate to contact us.
+
+Best regards,
+GISUGO Technical Support Team
+support@gisugo.com`,
+            sender: {
+                name: 'GISUGO Technical Support',
+                email: 'tech-support@gisugo.com', 
+                avatar: 'public/users/User-03.jpg'
+            },
+            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'wallet-resolution-receipt.pdf'
+        },
+        {
+            id: 'msg_cust_003',
+            topic: 'system',
+            subject: 'Platform Maintenance Scheduled',
+            excerpt: 'GISUGO will undergo scheduled maintenance on Sunday, October 22nd from 2:00 AM to 4:00 AM.',
+            content: `Dear GISUGO Users,
+
+We will be performing scheduled system maintenance to improve our platform performance and security.
+
+MAINTENANCE DETAILS:
+• Date: Sunday, October 22nd, 2025
+• Time: 2:00 AM - 4:00 AM (Philippine Time)
+• Duration: Approximately 2 hours
+
+SERVICES AFFECTED:
+• Job posting and applications (temporarily unavailable)
+• G-Coins transactions (delayed processing)
+• Message notifications (may be delayed)
+
+SERVICES AVAILABLE:
+• Browsing job listings
+• Viewing profiles
+• Accessing existing conversations
+
+We recommend completing any urgent transactions before the maintenance window. All services will be fully restored by 4:00 AM.
+
+Thank you for your patience and understanding.
+
+GISUGO Operations Team`,
+            sender: {
+                name: 'GISUGO Operations',
+                email: 'operations@gisugo.com',
+                avatar: 'public/users/User-04.jpg'
+            },
+            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_004',
+            topic: 'system',
+            subject: 'New Security Features Available',
+            excerpt: 'Enhanced security features including two-factor authentication are now available for your account.',
+            content: `Dear Customer,
+
+We're excited to announce new security features to better protect your GISUGO account:
+
+NEW SECURITY FEATURES:
+✓ Two-Factor Authentication (2FA)
+✓ Login notifications via SMS/email
+✓ Enhanced password requirements
+✓ Account activity monitoring
+
+RECOMMENDED ACTIONS:
+1. Enable 2FA in your account settings
+2. Update your password if it's over 6 months old
+3. Review your account activity regularly
+4. Add a backup email address
+
+These features are optional but highly recommended for maximum account security.
+
+To enable these features, go to Settings > Security in your account dashboard.
+
+Stay secure,
+GISUGO Security Team`,
+            sender: {
+                name: 'GISUGO Security',
+                email: 'security@gisugo.com',
+                avatar: 'public/users/User-05.jpg'
+            },
+            timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_005',
+            topic: 'notifications',
+            subject: 'Important: Updated Terms of Service',
+            excerpt: 'Please review our updated Terms of Service, effective November 1st, 2025.',
+            content: `Important Notice: Updated Terms of Service
+
+Dear GISUGO Customer,
+
+We are updating our Terms of Service to better serve you and comply with new regulations. The updated terms will take effect on November 1st, 2025.
+
+KEY CHANGES:
+• Enhanced user privacy protections
+• Clearer dispute resolution procedures  
+• Updated payment processing terms
+• Improved worker verification standards
+
+WHAT YOU NEED TO DO:
+Please review the updated Terms of Service in your account dashboard. Continued use of GISUGO after November 1st constitutes acceptance of the new terms.
+
+QUESTIONS?
+If you have any questions about these changes, please contact our legal team at legal@gisugo.com or visit our FAQ section.
+
+The updated terms are designed to provide better protection for both customers and workers while maintaining the quality service you expect from GISUGO.
+
+Thank you for your attention to this important matter.
+
+GISUGO Legal Team
+legal@gisugo.com`,
+            sender: {
+                name: 'GISUGO Legal Team',
+                email: 'legal@gisugo.com',
+                avatar: 'public/users/User-06.jpg'
+            },
+            timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'updated-terms-of-service.pdf'
+        },
+        {
+            id: 'msg_cust_006',
+            topic: 'notifications',
+            subject: 'Holiday Schedule Notice',
+            excerpt: 'GISUGO support hours during the upcoming holidays and emergency contact information.',
+            content: `Holiday Schedule and Support Information
+
+Dear Valued Customer,
+
+Please note our modified support schedule during the upcoming holiday period:
+
+HOLIDAY DATES:
+• October 31st - November 2nd, 2025
+
+MODIFIED SUPPORT HOURS:
+• October 31st: 9:00 AM - 5:00 PM
+• November 1st: CLOSED (All Saints' Day)
+• November 2nd: 10:00 AM - 6:00 PM
+
+EMERGENCY SUPPORT:
+For urgent issues during holidays, use our emergency hotline: +63-917-GISUGO-1 (available 24/7)
+
+PLATFORM AVAILABILITY:
+All GISUGO services remain fully operational during holidays. Only customer support hours are modified.
+
+We wish you and your family a safe and happy holiday season!
+
+GISUGO Customer Care Team`,
+            sender: {
+                name: 'GISUGO Customer Care',
+                email: 'care@gisugo.com',
+                avatar: 'public/users/User-07.jpg'
+            },
+            timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_007',
+            topic: 'updates',
+            subject: 'New Feature: Advanced Job Matching',
+            excerpt: 'Introducing AI-powered job matching to help you find the perfect workers faster.',
+            content: `Exciting News: Advanced Job Matching is Here!
+
+Dear Customer,
+
+We're thrilled to introduce our new AI-powered job matching feature that will revolutionize how you find workers on GISUGO!
+
+NEW FEATURES:
+🤖 AI-Powered Matching: Our algorithm analyzes job requirements and worker skills for perfect matches
+📊 Compatibility Scores: See percentage match ratings for each worker
+⚡ Instant Recommendations: Get worker suggestions as soon as you post a job
+🎯 Smart Filters: Advanced filtering based on experience, ratings, and availability
+
+HOW IT WORKS:
+1. Post your job with detailed requirements
+2. Our AI analyzes your needs
+3. Receive ranked worker recommendations
+4. Review compatibility scores and profiles
+5. Contact top matches directly
+
+BENEFITS FOR YOU:
+• 60% faster hiring process
+• Higher quality matches
+• Reduced time screening candidates
+• Better project outcomes
+
+The feature is automatically enabled for all job postings. Try it out with your next job post!
+
+Happy hiring,
+GISUGO Product Team`,
+            sender: {
+                name: 'GISUGO Product Team',
+                email: 'product@gisugo.com',
+                avatar: 'public/users/User-08.jpg'
+            },
+            timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_008',
+            topic: 'updates',
+            subject: 'Mobile App Update Available',
+            excerpt: 'Version 3.2.0 of the GISUGO mobile app is now available with improved messaging and notifications.',
+            content: `GISUGO Mobile App Update - Version 3.2.0
+
+Dear Customer,
+
+A new version of the GISUGO mobile app is now available for download!
+
+NEW IN VERSION 3.2.0:
+📱 Improved messaging interface
+🔔 Enhanced push notifications
+📷 Better photo upload quality
+🔍 Faster search functionality
+🛡️ Enhanced security features
+
+BUG FIXES:
+• Fixed occasional app crashes during photo uploads
+• Resolved notification delay issues
+• Improved app performance on older devices
+• Fixed GPS location accuracy
+
+DOWNLOAD NOW:
+• iOS: Available on the App Store
+• Android: Available on Google Play Store
+
+The update is recommended for all users to ensure the best GISUGO experience.
+
+UPDATE INSTRUCTIONS:
+1. Open your device's app store
+2. Search for "GISUGO"
+3. Tap "Update" if available
+4. Restart the app after installation
+
+Thank you for keeping your app updated!
+
+GISUGO Mobile Team`,
+            sender: {
+                name: 'GISUGO Mobile Team',
+                email: 'mobile@gisugo.com',
+                avatar: 'public/users/User-09.jpg'
+            },
+            timestamp: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_009',
+            topic: 'promotions',
+            subject: 'Limited Time: 20% Bonus on G-Coins Purchase',
+            excerpt: 'Get 20% extra G-Coins when you top up ₱500 or more. Offer valid until October 31st.',
+            content: `🎉 Special Promotion: 20% Bonus G-Coins!
+
+Dear Valued Customer,
+
+For a limited time, get 20% extra G-Coins when you top up your wallet!
+
+PROMOTION DETAILS:
+💰 Minimum purchase: ₱500
+🎁 Bonus: 20% extra G-Coins
+⏰ Valid until: October 31st, 2025
+🎯 Maximum bonus: ₱1,000 extra G-Coins
+
+EXAMPLES:
+• Top up ₱500 → Get ₱600 G-Coins (₱100 bonus)
+• Top up ₱1,000 → Get ₱1,200 G-Coins (₱200 bonus)
+• Top up ₱2,500 → Get ₱3,000 G-Coins (₱500 bonus)
+
+HOW TO CLAIM:
+1. Go to your G-Coins wallet
+2. Select "Top Up"
+3. Choose ₱500 or higher amount
+4. Complete payment
+5. Bonus G-Coins added automatically!
+
+This is perfect timing to stock up for your upcoming projects. More G-Coins means more flexibility in hiring the best workers!
+
+Don't miss out - offer ends October 31st!
+
+GISUGO Promotions Team`,
+            sender: {
+                name: 'GISUGO Promotions',
+                email: 'promotions@gisugo.com',
+                avatar: 'public/users/User-10.jpg'
+            },
+            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_010',
+            topic: 'promotions',
+            subject: 'Refer Friends and Earn G-Coins',
+            excerpt: 'Invite friends to GISUGO and earn ₱100 G-Coins for each successful referral.',
+            content: `💸 Earn G-Coins by Referring Friends!
+
+Dear Customer,
+
+Share the GISUGO experience with friends and family while earning G-Coins!
+
+REFERRAL PROGRAM:
+🎁 Earn ₱100 G-Coins per successful referral
+👥 No limit on referrals
+⚡ G-Coins credited within 24 hours
+🏆 Bonus rewards for top referrers
+
+HOW IT WORKS:
+1. Share your unique referral code: CUST-REF-2025
+2. Friends sign up using your code
+3. They complete their first job transaction
+4. You both earn ₱100 G-Coins!
+
+YOUR FRIEND GETS:
+• ₱100 welcome G-Coins
+• Priority customer support for 30 days
+• Access to exclusive new user promotions
+
+SHARE YOUR CODE:
+Use your referral code CUST-REF-2025 or share this link:
+https://gisugo.com/signup?ref=CUST-REF-2025
+
+LEADERBOARD PRIZES:
+Top 3 referrers each month win:
+🥇 1st place: ₱5,000 G-Coins
+🥈 2nd place: ₱3,000 G-Coins  
+🥉 3rd place: ₱2,000 G-Coins
+
+Start referring today and watch your G-Coins grow!
+
+GISUGO Referral Team`,
+            sender: {
+                name: 'GISUGO Referral Team',
+                email: 'referrals@gisugo.com',
+                avatar: 'public/users/User-11.jpg'
+            },
+            timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
+            isRead: true,
+            hasAttachment: false
+        }
+    ],
+    worker: [
+        {
+            id: 'msg_work_001',
+            topic: 'support',
+            subject: 'Profile Verification Approved',
+            excerpt: 'Congratulations! Your worker profile has been verified and you can now accept job applications.',
+            content: `Congratulations! Profile Verification Complete
+
+Dear Worker,
+
+We're excited to inform you that your GISUGO worker profile has been successfully verified!
+
+VERIFICATION COMPLETED:
+✅ Identity verification
+✅ Skills assessment
+✅ Background check
+✅ Portfolio review
+
+YOU CAN NOW:
+• Accept job applications from customers
+• Set your own rates and availability
+• Receive direct messages from potential clients
+• Access premium worker features
+
+NEXT STEPS:
+1. Complete your profile with recent work samples
+2. Set your availability calendar
+3. Upload additional skill certifications
+4. Start browsing and applying for jobs!
+
+Your verified badge will appear on your profile within 24 hours, making you more attractive to potential customers.
+
+Welcome to the verified GISUGO worker community!
+
+Best regards,
+GISUGO Verification Team`,
+            sender: {
+                name: 'GISUGO Verification Team',
+                email: 'verification@gisugo.com',
+                avatar: 'public/users/User-02.jpg'
+            },
+            timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'verification-certificate.pdf'
+        },
+        {
+            id: 'msg_work_002',
+            topic: 'support',
+            subject: 'Payment Issue Resolved',
+            excerpt: 'The delayed payment for Job #JOB-2025-1234 has been processed and credited to your account.',
+            content: `Payment Issue Resolution - Job #JOB-2025-1234
+
+Dear Worker,
+
+We have successfully resolved the payment delay issue for your completed job.
+
+JOB DETAILS:
+• Job ID: JOB-2025-1234
+• Customer: Maria Santos
+• Service: House Cleaning (3-bedroom)
+• Amount: ₱800 G-Coins
+
+ISSUE RESOLVED:
+The payment delay was caused by a temporary system glitch during our recent maintenance. The issue has been fixed and your payment has been processed.
+
+PAYMENT STATUS:
+✅ ₱800 G-Coins credited to your wallet
+✅ Transaction completed successfully
+✅ Customer rating and review recorded
+
+We sincerely apologize for the inconvenience. As compensation for the delay, we've added a ₱50 bonus to your account.
+
+If you experience any future payment issues, please contact us immediately at payments@gisugo.com.
+
+Thank you for your patience and continued service excellence.
+
+GISUGO Payments Team`,
+            sender: {
+                name: 'GISUGO Payments Team',
+                email: 'payments@gisugo.com',
+                avatar: 'public/users/User-03.jpg'
+            },
+            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'payment-receipt-JOB-2025-1234.pdf'
+        },
+        {
+            id: 'msg_work_003',
+            topic: 'system',
+            subject: 'New Worker Safety Guidelines',
+            excerpt: 'Updated safety protocols and guidelines for all GISUGO workers, effective immediately.',
+            content: `Important: Updated Worker Safety Guidelines
+
+Dear GISUGO Worker,
+
+Your safety is our top priority. Please review these updated safety guidelines that are now in effect.
+
+NEW SAFETY PROTOCOLS:
+
+🏠 ON-SITE SAFETY:
+• Always verify customer identity before starting work
+• Take photos of work area before and after
+• Report any unsafe working conditions immediately
+• Keep emergency contact information accessible
+
+💬 COMMUNICATION SAFETY:
+• Use GISUGO messaging for all job-related communication
+• Never share personal contact information
+• Report inappropriate customer behavior
+• Document all agreements in writing
+
+💰 PAYMENT SAFETY:
+• Only accept payments through G-Coins system
+• Never accept cash or external payments
+• Report payment pressure or unusual requests
+• Verify job completion before leaving site
+
+🚨 EMERGENCY PROCEDURES:
+• Emergency hotline: +63-917-GISUGO-911
+• Local emergency: 911 or 117
+• GISUGO safety team: safety@gisugo.com
+
+MANDATORY TRAINING:
+All workers must complete the updated safety training module in their dashboard within 7 days.
+
+Your safety enables you to provide excellent service. Thank you for following these guidelines.
+
+GISUGO Safety Team`,
+            sender: {
+                name: 'GISUGO Safety Team',
+                email: 'safety@gisugo.com',
+                avatar: 'public/users/User-04.jpg'
+            },
+            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+            isRead: true,
+            hasAttachment: true,
+            attachmentName: 'worker-safety-guidelines-2025.pdf'
+        },
+        {
+            id: 'msg_work_004',
+            topic: 'system',
+            subject: 'Worker App Performance Improvements',
+            excerpt: 'Recent updates to improve app performance and reduce job notification delays.',
+            content: `Worker App Performance Update
+
+Dear Worker,
+
+We've implemented several improvements to enhance your GISUGO app experience:
+
+PERFORMANCE IMPROVEMENTS:
+⚡ 40% faster job loading times
+📱 Reduced app memory usage
+🔔 Improved notification reliability
+📷 Better photo upload speeds
+🗺️ More accurate GPS location tracking
+
+NOTIFICATION ENHANCEMENTS:
+• Instant job alerts (previously up to 5 minutes delay)
+• Priority notifications for high-paying jobs
+• Custom notification sounds for different job types
+• Offline notification queuing
+
+BUG FIXES:
+• Fixed app crashes during photo uploads
+• Resolved GPS accuracy issues
+• Fixed calendar sync problems
+• Improved chat message delivery
+
+WHAT YOU'LL NOTICE:
+• Faster response times when browsing jobs
+• More reliable job notifications
+• Smoother photo and document uploads
+• Better overall app stability
+
+These improvements are automatically applied - no action needed from you. If you experience any issues, please report them through the app's feedback feature.
+
+Thank you for your patience as we continue improving your GISUGO experience!
+
+GISUGO Technical Team`,
+            sender: {
+                name: 'GISUGO Technical Team',
+                email: 'tech@gisugo.com',
+                avatar: 'public/users/User-05.jpg'
+            },
+            timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_005',
+            topic: 'notifications',
+            subject: 'Tax Information for 2025',
+            excerpt: 'Important tax information for GISUGO workers and year-end documentation requirements.',
+            content: `Important: 2025 Tax Information for Workers
+
+Dear GISUGO Worker,
+
+As we approach the end of 2025, here's important tax information for your GISUGO earnings:
+
+TAX DOCUMENTATION:
+📄 BIR Form 2307 (Certificate of Creditable Tax Withheld at Source)
+📊 Annual earnings summary
+📋 Monthly transaction reports
+🧾 Detailed payment receipts
+
+WHAT GISUGO PROVIDES:
+• Comprehensive earnings report for 2025
+• Tax withholding certificates (if applicable)
+• Monthly transaction summaries
+• Support for tax filing questions
+
+TAX OBLIGATIONS:
+As an independent contractor, you are responsible for:
+• Declaring GISUGO earnings in your tax return
+• Paying appropriate income taxes
+• Keeping records of business expenses
+• Consulting with a tax professional if needed
+
+ACCESSING YOUR TAX DOCUMENTS:
+1. Go to your Worker Dashboard
+2. Click "Financial Reports"
+3. Select "Tax Documents"
+4. Download your 2025 earnings summary
+
+IMPORTANT DATES:
+• December 31, 2025: Tax year ends
+• January 15, 2026: Tax documents available
+• April 15, 2026: Tax filing deadline
+
+For tax-related questions, contact our finance team at finance@gisugo.com.
+
+GISUGO Finance Team`,
+            sender: {
+                name: 'GISUGO Finance Team',
+                email: 'finance@gisugo.com',
+                avatar: 'public/users/User-06.jpg'
+            },
+            timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'worker-tax-guide-2025.pdf'
+        },
+        {
+            id: 'msg_work_006',
+            topic: 'notifications',
+            subject: 'Worker Recognition Program Launch',
+            excerpt: 'Introducing the GISUGO Excellence Awards - monthly recognition and rewards for top-performing workers.',
+            content: `🏆 Introducing GISUGO Excellence Awards!
+
+Dear Outstanding Worker,
+
+We're launching a new program to recognize and reward exceptional workers like you!
+
+MONTHLY AWARDS CATEGORIES:
+
+🌟 Customer Favorite Award
+• Highest customer ratings (minimum 10 jobs)
+• Prize: ₱2,000 G-Coins + Featured profile
+
+⚡ Speed Demon Award  
+• Fastest job completion times
+• Prize: ₱1,500 G-Coins + Priority job alerts
+
+💎 Quality Champion Award
+• Highest quality work ratings
+• Prize: ₱2,500 G-Coins + Verified Pro badge
+
+🤝 Reliability Star Award
+• Perfect attendance and punctuality
+• Prize: ₱1,000 G-Coins + Reliability badge
+
+📈 Growth Leader Award
+• Most improved worker of the month
+• Prize: ₱1,500 G-Coins + Mentorship opportunity
+
+ANNUAL GRAND PRIZES:
+🥇 Worker of the Year: ₱25,000 G-Coins
+🥈 Runner-up: ₱15,000 G-Coins
+🥉 Third Place: ₱10,000 G-Coins
+
+HOW TO PARTICIPATE:
+Simply continue providing excellent service! All active workers are automatically eligible.
+
+Winners announced monthly via email and featured on our social media channels.
+
+Keep up the excellent work - you could be our next award winner!
+
+GISUGO Recognition Team`,
+            sender: {
+                name: 'GISUGO Recognition Team',
+                email: 'recognition@gisugo.com',
+                avatar: 'public/users/User-07.jpg'
+            },
+            timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_007',
+            topic: 'updates',
+            subject: 'New Skill Categories Available',
+            excerpt: 'Expand your opportunities with newly added skill categories: Tech Support, Event Planning, and Pet Training.',
+            content: `🚀 New Skill Categories Now Available!
+
+Dear Worker,
+
+Exciting news! We've added new skill categories to help you expand your service offerings and reach more customers.
+
+NEW CATEGORIES:
+
+💻 TECH SUPPORT
+• Computer troubleshooting
+• Software installation
+• Network setup
+• Device repair
+• Data recovery
+
+🎉 EVENT PLANNING
+• Party organization
+• Wedding coordination
+• Corporate events
+• Catering coordination
+• Venue decoration
+
+🐕 PET TRAINING
+• Dog obedience training
+• Puppy socialization
+• Behavioral correction
+• Pet sitting with training
+• Agility training
+
+📱 DIGITAL SERVICES
+• Social media management
+• Basic web design
+• Online tutoring
+• Virtual assistance
+• Content creation
+
+HOW TO ADD NEW SKILLS:
+1. Go to your Worker Profile
+2. Click "Edit Skills & Services"
+3. Select new categories
+4. Add relevant experience/certifications
+5. Set your rates for new services
+
+BENEFITS:
+• Access to new customer segments
+• Higher earning potential
+• Diversified income streams
+• Reduced competition in new categories
+
+Start adding these skills today and watch your job opportunities grow!
+
+GISUGO Skills Team`,
+            sender: {
+                name: 'GISUGO Skills Team',
+                email: 'skills@gisugo.com',
+                avatar: 'public/users/User-08.jpg'
+            },
+            timestamp: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000), // 9 days ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_008',
+            topic: 'updates',
+            subject: 'Enhanced Worker Dashboard Features',
+            excerpt: 'New dashboard features including earnings analytics, job history search, and customer feedback insights.',
+            content: `📊 Enhanced Worker Dashboard is Here!
+
+Dear Worker,
+
+Your worker dashboard just got a major upgrade with powerful new features to help you manage your GISUGO business better!
+
+NEW DASHBOARD FEATURES:
+
+📈 EARNINGS ANALYTICS
+• Monthly and yearly earnings charts
+• Income trends and projections
+• Peak earning hours analysis
+• Service category performance
+• Goal setting and tracking
+
+🔍 ADVANCED JOB HISTORY
+• Search jobs by date, customer, or service
+• Filter by earnings, ratings, or location
+• Export job history to spreadsheet
+• Detailed job performance metrics
+
+💬 CUSTOMER FEEDBACK INSIGHTS
+• Detailed rating breakdowns
+• Common feedback themes
+• Improvement suggestions
+• Response templates for reviews
+
+📅 SMART SCHEDULING
+• Calendar integration
+• Automatic availability updates
+• Job conflict detection
+• Travel time calculations
+
+📱 MOBILE OPTIMIZATION
+• Faster loading on mobile devices
+• Touch-friendly interface
+• Offline data viewing
+• Push notification settings
+
+🎯 PERFORMANCE TRACKING
+• Customer satisfaction scores
+• Response time metrics
+• Job completion rates
+• Earnings per hour calculations
+
+ACCESS YOUR NEW DASHBOARD:
+Log in to your worker account to explore all the new features. We've also added helpful tooltips to guide you through the updates.
+
+These improvements will help you work smarter, not harder!
+
+GISUGO Product Team`,
+            sender: {
+                name: 'GISUGO Product Team',
+                email: 'product@gisugo.com',
+                avatar: 'public/users/User-09.jpg'
+            },
+            timestamp: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000), // 11 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_009',
+            topic: 'promotions',
+            subject: 'Double G-Coins Weekend Special',
+            excerpt: 'Earn double G-Coins on all completed jobs this weekend! October 21-22, 2025.',
+            content: `💰 DOUBLE G-COINS WEEKEND SPECIAL! 💰
+
+Dear Hardworking GISUGO Worker,
+
+This weekend only, earn DOUBLE G-Coins on every completed job!
+
+PROMOTION DETAILS:
+📅 Dates: October 21-22, 2025 (Saturday & Sunday)
+⏰ Time: 12:01 AM Saturday to 11:59 PM Sunday
+💎 Bonus: 100% extra G-Coins on completed jobs
+🎯 No minimum job value required
+
+HOW IT WORKS:
+• Complete any job during the weekend
+• Earn your normal rate PLUS 100% bonus
+• Bonus G-Coins credited within 24 hours
+• No limit on number of jobs
+
+EXAMPLES:
+• ₱500 job → Earn ₱1,000 G-Coins total
+• ₱1,200 job → Earn ₱2,400 G-Coins total
+• ₱300 job → Earn ₱600 G-Coins total
+
+MAXIMIZE YOUR EARNINGS:
+🚀 Accept multiple jobs this weekend
+📱 Keep your availability status updated
+⚡ Respond quickly to job requests
+🏆 Deliver exceptional service for great reviews
+
+BONUS TIPS:
+• Popular weekend services: cleaning, gardening, event setup
+• Update your profile to highlight weekend availability
+• Consider offering package deals for multiple services
+
+This is your chance to supercharge your earnings! Don't miss out on this limited-time opportunity.
+
+Happy earning!
+GISUGO Promotions Team`,
+            sender: {
+                name: 'GISUGO Promotions Team',
+                email: 'promotions@gisugo.com',
+                avatar: 'public/users/User-10.jpg'
+            },
+            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_010',
+            topic: 'promotions',
+            subject: 'Worker Referral Bonus Program',
+            excerpt: 'Refer skilled workers to GISUGO and earn ₱200 for each successful referral who completes 5 jobs.',
+            content: `👥 Worker Referral Bonus Program!
+
+Dear GISUGO Worker,
+
+Know other skilled workers? Invite them to GISUGO and earn generous referral bonuses!
+
+REFERRAL REWARDS:
+💰 Earn ₱200 for each successful referral
+🎁 Your referral gets ₱100 welcome bonus
+🏆 Monthly bonus for top referrers: ₱2,000
+📈 No limit on referrals
+
+QUALIFICATION CRITERIA:
+✅ Referral must complete profile verification
+✅ Complete at least 5 jobs within 60 days
+✅ Maintain 4.0+ star rating
+✅ Use your referral code during signup
+
+YOUR REFERRAL CODE: WORK-REF-2025
+
+HOW TO REFER:
+1. Share your code: WORK-REF-2025
+2. Send this link: https://gisugo.com/worker-signup?ref=WORK-REF-2025
+3. Help them through the verification process
+4. Earn ₱200 when they complete 5 jobs!
+
+IDEAL REFERRALS:
+• Skilled tradespeople (electricians, plumbers, carpenters)
+• Service professionals (cleaners, gardeners, drivers)
+• Creative professionals (photographers, designers)
+• Technical experts (IT support, tutors)
+
+MONTHLY LEADERBOARD:
+🥇 Most referrals: ₱2,000 bonus
+🥈 Second place: ₱1,200 bonus
+🥉 Third place: ₱800 bonus
+
+TRACKING YOUR REFERRALS:
+Check your dashboard's "Referrals" section to track:
+• Number of people who used your code
+• Their verification status
+• Jobs completed
+• Bonuses earned
+
+Start referring today and build your passive income stream!
+
+GISUGO Referral Team`,
+            sender: {
+                name: 'GISUGO Referral Team',
+                email: 'referrals@gisugo.com',
+                avatar: 'public/users/User-11.jpg'
+            },
+            timestamp: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000), // 13 days ago
+            isRead: true,
+            hasAttachment: false
+        }
+    ]
+};
+
+// ===== ADMIN MESSAGES FUNCTIONALITY =====
+
+// Initialize admin messages when page loads
+function initializeAdminMessages() {
+    loadCustomerMessages();
+    loadWorkerMessages();
+    setupMessageFiltering('customer');
+    setupMessageFiltering('worker');
+    setupMessageDetailHandlers('customer');
+    setupMessageDetailHandlers('worker');
+    initializeReplyModal();
+}
+
+// Load customer messages
+function loadCustomerMessages() {
+    console.log('Loading customer messages...');
+    const container = document.querySelector('#customer-messages-content .user-messages-list-container');
+    if (container && MOCK_ADMIN_MESSAGES.customer) {
+        // Start with New messages only (filtering will handle Old messages)
+        const newMessages = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isClosed);
+        console.log('Customer new messages count:', newMessages.length);
+        
+        container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'customer')).join('');
+        
+        // Setup click handlers for message items
+        setupMessageDetailHandlers('customer');
+        
+        updateMessageCounts('customer');
+    }
+}
+
+// Load worker messages  
+function loadWorkerMessages() {
+    console.log('Loading worker messages...');
+    const container = document.querySelector('#worker-messages-content .user-messages-list-container');
+    if (container && MOCK_ADMIN_MESSAGES.worker) {
+        // Start with New messages only (filtering will handle Old messages)
+        const newMessages = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isClosed);
+        console.log('Worker new messages count:', newMessages.length);
+        
+        container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'worker')).join('');
+        
+        // Setup click handlers for message items
+        setupMessageDetailHandlers('worker');
+        
+        updateMessageCounts('worker');
+    }
+}
+
+// Generate admin message HTML
+function generateAdminMessageHTML(message, role) {
+    const topicClass = message.topic.toLowerCase().replace(/\s+/g, '-');
+    const topicLabel = getTopicLabel(message.topic);
+    const timeAgo = formatTimeAgo(message.timestamp);
+    
+    return `
+        <div class="admin-message-item ${!message.isRead ? 'unread' : ''}" 
+             data-message-id="${message.id}" 
+             data-topic="${message.topic}">
+            <div class="message-topic ${topicClass}">${topicLabel}</div>
+            <div class="message-content-area">
+                <div class="message-header">
+                    <div class="message-sender">
+                        <img src="${message.sender.avatar}" alt="${message.sender.name}" class="sender-avatar">
+                        <div class="sender-info">
+                            <div class="sender-name">${message.sender.name}</div>
+                            <div class="sender-email">${message.sender.email}</div>
+                        </div>
+                    </div>
+                    <div class="message-meta">
+                        <div class="message-time">${timeAgo}</div>
+                        ${message.hasAttachment ? '<div class="message-attachment" title="Has attachment">🖼️</div>' : ''}
+                    </div>
+                </div>
+                <div class="message-preview">
+                    <div class="message-subject">${message.subject}</div>
+                    <div class="message-excerpt">${message.excerpt}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Get topic label for display
+function getTopicLabel(topic) {
+    const labels = {
+        'support': 'Support Responses',
+        'system': 'System Updates', 
+        'notifications': 'Important Notices',
+        'updates': 'Platform Updates',
+        'promotions': 'Promotions'
+    };
+    return labels[topic] || topic;
+}
+
+// Format timestamp to relative time
+function formatTimeAgo(timestamp) {
+    const now = new Date();
+    const diff = now - new Date(timestamp);
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 60) return `${minutes} minutes ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return `${Math.floor(days / 7)} weeks ago`;
+}
+
+    // Show message detail (window or overlay based on screen size)
+    function showMessageDetail(message, role) {
+        if (window.innerWidth >= 887) {
+            // Desktop: Show in right panel window
+            showMessageWindow(message, role);
+        } else {
+            // Mobile: Show in overlay
+            showMessageOverlay(message, role);
+        }
+        
+        // DO NOT automatically mark as read when showing - only when user explicitly marks as read
+        // This prevents the timing issue where messages disappear immediately
+    }
+
+// Show message in desktop window
+function showMessageWindow(message, role) {
+    const detailContainer = document.getElementById(`${role}MessageDetail`);
+    const contentContainer = document.getElementById(`${role}MessageContent`);
+    
+    if (!detailContainer || !contentContainer) return;
+    
+    // Hide no-message-selected and show content
+    detailContainer.style.display = 'none';
+    contentContainer.style.display = 'flex';
+    
+    // Populate content
+    contentContainer.innerHTML = generateMessageDetailHTML(message, role);
+    
+    // Add close handler
+    const closeBtn = contentContainer.querySelector('.detail-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => closeMessage(message.id, role));
+    }
+    
+    // Add reply handler
+    const replyBtn = contentContainer.querySelector('.detail-reply-btn');
+    if (replyBtn) {
+        replyBtn.addEventListener('click', () => showReplyModal(message, role));
+    }
+}
+
+    // Show message in mobile overlay
+    function showMessageOverlay(message, role) {
+        const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+        if (!overlay) return;
+        
+        // Generate clean message content for overlay (no buttons in content)
+        const overlayMessageContent = generateOverlayMessageHTML(message, role);
+        
+        overlay.innerHTML = `
+            <div class="overlay-content">
+                <div class="overlay-header">
+                    <button class="overlay-close-btn" onclick="this.closest('.user-message-detail-overlay').style.display='none'">✕</button>
+                    <h3>Message Details</h3>
+                </div>
+                <div class="overlay-body">
+                    ${overlayMessageContent}
+                </div>
+                <div class="overlay-footer">
+                    <button class="detail-reply-btn" onclick="showReplyModal(MOCK_ADMIN_MESSAGES.${role}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
+                </div>
+            </div>
+        `;
+        
+        // Show overlay
+        overlay.style.display = 'flex';
+    }
+
+// Generate reply thread HTML (like dashboard)
+function generateReplyThreadHTML(messageId) {
+    const messageState = messageStates[messageId];
+    
+    if (!messageState || !messageState.replies || messageState.replies.length === 0) {
+        return ''; // No replies to show
+    }
+    
+    let threadHTML = '<div class="reply-thread"><h4 class="thread-title">Conversation History</h4>';
+    
+    messageState.replies.forEach(reply => {
+        const replyDate = new Date(reply.timestamp);
+        const formattedDate = replyDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        threadHTML += `
+            <div class="reply-item ${reply.type}">
+                <div class="reply-header">
+                    <div class="reply-author">
+                        <div class="reply-author-avatar">
+                            <img src="${reply.avatar}" alt="${reply.author}" class="author-avatar">
+                        </div>
+                        <div class="reply-author-info">
+                            <span class="author-name">${reply.author}</span>
+                            <span class="reply-time">${formattedDate}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="reply-content">
+                    ${reply.content.replace(/\n/g, '<br>')}
+                </div>
+            </div>
+        `;
+    });
+    
+    threadHTML += '</div>';
+    return threadHTML;
+}
+
+// Generate message detail HTML (for desktop window)
+function generateMessageDetailHTML(message, role) {
+    const timeAgo = formatTimeAgo(message.timestamp);
+    const topicLabel = getTopicLabel(message.topic);
+    
+    // Get reply thread HTML
+    const replyThreadHTML = generateReplyThreadHTML(message.id);
+    
+    return `
+        <div class="message-detail-header">
+            <div class="detail-sender">
+                <img src="${message.sender.avatar}" alt="${message.sender.name}" class="detail-avatar">
+                <div class="detail-sender-info">
+                    <div class="detail-sender-name">${message.sender.name}</div>
+                    <div class="detail-sender-email">${message.sender.email}</div>
+                    <div class="detail-message-time">${timeAgo}</div>
+                </div>
+            </div>
+            <div class="detail-topic-section">
+                <div class="detail-topic ${message.topic}">${topicLabel}</div>
+                <div class="detail-actions">
+                    <button class="detail-reply-btn">Reply</button>
+                    <button class="detail-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="message-content-inner">
+            <div class="message-detail-body">
+                <div class="detail-subject">${message.subject}</div>
+                <div class="detail-message-text">${message.content.replace(/\n/g, '<br>')}</div>
+                
+                ${message.hasAttachment ? `
+                    <div class="detail-attachment">
+                        <div class="attachment-label">Attachment:</div>
+                        <div class="attachment-file">
+                            <div class="attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${replyThreadHTML}
+            </div>
+        </div>
+    `;
+}
+
+// Generate clean message content for overlay (no action buttons)
+function generateOverlayMessageHTML(message, role) {
+    const timeAgo = formatTimeAgo(message.timestamp);
+    const topicLabel = getTopicLabel(message.topic);
+    
+    return `
+        <div class="overlay-message-header">
+            <div class="overlay-sender">
+                <img src="${message.sender.avatar}" alt="${message.sender.name}" class="overlay-avatar">
+                <div class="overlay-sender-info">
+                    <div class="overlay-sender-name">${message.sender.name}</div>
+                    <div class="overlay-sender-email">${message.sender.email}</div>
+                    <div class="overlay-message-time">${timeAgo}</div>
+                </div>
+            </div>
+            <div class="overlay-topic ${message.topic}">${topicLabel}</div>
+        </div>
+        
+        <div class="overlay-message-content">
+            <div class="overlay-subject">${message.subject}</div>
+            <div class="overlay-message-text">${message.content.replace(/\n/g, '<br>')}</div>
+            
+            ${message.hasAttachment ? `
+                <div class="overlay-attachment">
+                    <div class="overlay-attachment-label">Attachment:</div>
+                    <div class="overlay-attachment-file">
+                        <div class="overlay-attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${generateReplyThreadHTML(message.id)}
+        </div>
+    `;
+}
+
+// Mark message as read
+function markMessageAsRead(message, role) {
+    console.log('markMessageAsRead called:', message.id, role);
+    
+    // Update message state
+    message.isRead = true;
+    message.isClosed = true; // Also mark as closed when marking as read
+    
+    console.log('Message state updated:', { isRead: message.isRead, isClosed: message.isClosed });
+    
+    // Update UI - remove unread class
+    const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+    if (messageElement) {
+        messageElement.classList.remove('unread');
+        console.log('Removed unread class from message element');
+    }
+    
+    // Hide detail view first
+    const detailContainer = document.getElementById(`${role}MessageDetail`);
+    const contentContainer = document.getElementById(`${role}MessageContent`);
+    const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+    
+    if (detailContainer && contentContainer) {
+        detailContainer.style.display = 'flex';
+        contentContainer.style.display = 'none';
+    }
+    
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+    
+    // Force refresh the current tab's message list
+    const currentTabBtn = document.querySelector(`#${role}-messages-content .inbox-tab-btn.active`);
+    const currentTab = currentTabBtn ? currentTabBtn.dataset.tab : 'new';
+    
+    console.log('Current tab:', currentTab, 'Message will be moved from New to Old');
+    
+    // Since we're on the New tab and the message is now closed, it should disappear
+    // If we're on the Old tab, it should appear there
+    
+    // Trigger the filtering system to refresh the display
+    const filteringSystem = window[`${role}FilteringSystem`];
+    if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+        console.log('Using filtering system to reload messages');
+        filteringSystem.reloadFilteredMessages();
+    } else {
+        console.log('Using fallback method to reload messages');
+        // Fallback: manually reload the messages
+        const messages = MOCK_ADMIN_MESSAGES[role];
+        const searchInput = document.querySelector(`#${role}-messages-content .search-input-small`);
+        const typeDropdown = document.querySelector(`#${role}-messages-content .type-dropdown`);
+        
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
+        const messageType = typeDropdown ? typeDropdown.value : 'all';
+        
+        const filteredMessages = filterMessages(messages, searchTerm, messageType, currentTab);
+        
+        console.log('Filtered messages for tab', currentTab, ':', filteredMessages.length);
+        
+        const listContainer = document.querySelector(`#${role}-messages-content .user-messages-list-container`);
+        if (listContainer) {
+            if (filteredMessages.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #a0aec0;">
+                        <p>No ${currentTab} messages found${searchTerm ? ` for "${searchTerm}"` : ''}</p>
+                    </div>
+                `;
+            } else {
+                listContainer.innerHTML = filteredMessages.map(msg => generateAdminMessageHTML(msg, role)).join('');
+                setupMessageDetailHandlers(role);
+            }
+        }
+    }
+    
+    // Update notification counts
+    updateMessageCounts(role);
+    
+    // Show toast notification
+    showToast(`Message moved to Old Messages`);
+    
+    console.log('markMessageAsRead completed');
+}
+
+// Helper function for filtering messages
+function filterMessages(messages, searchTerm, messageType, currentTab) {
+    return messages.filter(message => {
+        // Filter by current tab (New/Old)
+        const isNewMessage = !message.isClosed;
+        const showInNewTab = currentTab === 'new' && isNewMessage;
+        const showInOldTab = currentTab === 'old' && message.isClosed;
+        
+        if (!showInNewTab && !showInOldTab) {
+            return false;
+        }
+        
+        // Filter by message type
+        if (messageType !== 'all' && message.topic !== messageType) {
+            return false;
+        }
+        
+        // Filter by search term
+        if (searchTerm && searchTerm.trim()) {
+            const searchLower = searchTerm.toLowerCase().trim();
+            return message.subject.toLowerCase().includes(searchLower) ||
+                   message.excerpt.toLowerCase().includes(searchLower) ||
+                   message.content.toLowerCase().includes(searchLower) ||
+                   message.sender.name.toLowerCase().includes(searchLower) ||
+                   message.sender.email.toLowerCase().includes(searchLower);
+        }
+        
+        return true;
+    });
+}
+
+// Close message (move to Old Messages)
+function closeMessage(messageId, role) {
+    const messages = MOCK_ADMIN_MESSAGES[role];
+    const message = messages.find(m => m.id === messageId);
+    
+    if (message) {
+        message.isRead = true;
+        message.isClosed = true;
+        
+        // Update UI
+        markMessageAsRead(message, role);
+        
+        // Hide detail view
+        const detailContainer = document.getElementById(`${role}MessageDetail`);
+        const contentContainer = document.getElementById(`${role}MessageContent`);
+        
+        if (detailContainer && contentContainer) {
+            detailContainer.style.display = 'flex';
+            contentContainer.style.display = 'none';
+        }
+        
+        // Reload messages to reflect changes
+        if (role === 'customer') {
+            loadCustomerMessages();
+        } else {
+            loadWorkerMessages();
+        }
+        
+        // Show toast notification
+        showToast(`Message moved to Old Messages`);
+    }
+}
+
+// Update message counts
+function updateMessageCounts(role) {
+    const messages = MOCK_ADMIN_MESSAGES[role];
+    const newCount = messages.filter(msg => !msg.isRead && !msg.isClosed).length;
+    
+    // Update the notification badge in the main tab
+    const tabElement = document.querySelector(`#${role === 'customer' ? 'customer' : 'worker'}-tab .notification-badge`);
+    if (tabElement) {
+        tabElement.textContent = newCount;
+        tabElement.style.display = newCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Update the Messages tab notification count
+    const messagesTabBadge = document.querySelector('.tab-content.active .tab-nav .tab-btn[data-tab="messages"] .notification-badge');
+    if (messagesTabBadge) {
+        const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
+        const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
+        const totalCount = customerCount + workerCount;
+        
+        messagesTabBadge.textContent = totalCount;
+        messagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+    }
+}
+
+    // Setup message filtering functionality
+    function setupMessageFiltering(role) {
+        const searchInput = document.querySelector(`#${role}-messages-content .search-input-small`);
+        const searchBtn = document.querySelector(`#${role}-messages-content .search-btn-small`);
+        const typeDropdown = document.querySelector(`#${role}-messages-content .type-dropdown`);
+        const newTabBtn = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="new"]`);
+        const oldTabBtn = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="old"]`);
+        
+        if (!searchInput || !typeDropdown || !newTabBtn || !oldTabBtn) {
+            console.log('setupMessageFiltering: Missing elements for role', role);
+            return;
+        }
+        
+        let currentTab = 'new';
+        let currentSearchTerm = '';
+        let currentMessageType = 'all';
+        
+        // Handle tab switching
+        function switchTab(tab) {
+            console.log('switchTab called:', tab, 'for role:', role);
+            currentTab = tab;
+            
+            // Update active tab styling
+            newTabBtn.classList.remove('active');
+            oldTabBtn.classList.remove('active');
+            
+            if (tab === 'new') {
+                newTabBtn.classList.add('active');
+            } else {
+                oldTabBtn.classList.add('active');
+            }
+            
+            // Reload messages with current filters
+            reloadFilteredMessages();
+        }
+        
+        // Handle search
+        function performSearch() {
+            currentSearchTerm = searchInput.value.trim();
+            console.log('performSearch:', currentSearchTerm);
+            reloadFilteredMessages();
+        }
+        
+        // Handle type filter
+        function changeMessageType() {
+            currentMessageType = typeDropdown.value;
+            console.log('changeMessageType:', currentMessageType);
+            reloadFilteredMessages();
+        }
+        
+        // Reload messages with current filters
+        function reloadFilteredMessages() {
+            console.log('reloadFilteredMessages called for role:', role, 'tab:', currentTab);
+            const messages = MOCK_ADMIN_MESSAGES[role];
+            const filteredMessages = filterMessages(messages, currentSearchTerm, currentMessageType, currentTab);
+            
+            console.log('Total messages:', messages.length);
+            console.log('New messages:', messages.filter(m => !m.isClosed).length);
+            console.log('Old messages:', messages.filter(m => m.isClosed).length);
+            console.log('Filtered messages count for', currentTab, 'tab:', filteredMessages.length);
+            
+            // Update message list
+            const listContainer = document.querySelector(`#${role}-messages-content .user-messages-list-container`);
+            if (listContainer) {
+                if (filteredMessages.length === 0) {
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: #a0aec0;">
+                            <p>No ${currentTab} messages found${currentSearchTerm ? ` for "${currentSearchTerm}"` : ''}</p>
+                        </div>
+                    `;
+                } else {
+                    listContainer.innerHTML = filteredMessages.map(message => generateAdminMessageHTML(message, role)).join('');
+                    
+                    // Re-attach click handlers
+                    setupMessageDetailHandlers(role);
+                }
+            }
+            
+            // Update counts
+            updateMessageCounts(role);
+        }
+        
+        // Store the filtering system globally so markMessageAsRead can access it
+        window[`${role}FilteringSystem`] = {
+            reloadFilteredMessages,
+            getCurrentTab: () => currentTab,
+            setCurrentTab: (tab) => { currentTab = tab; }
+        };
+        
+        // Event listeners
+        newTabBtn.addEventListener('click', () => switchTab('new'));
+        oldTabBtn.addEventListener('click', () => switchTab('old'));
+        
+        if (searchBtn) {
+            searchBtn.addEventListener('click', performSearch);
+        }
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        searchInput.addEventListener('input', () => {
+            // Real-time search with debounce
+            clearTimeout(searchInput.searchTimeout);
+            searchInput.searchTimeout = setTimeout(performSearch, 300);
+        });
+        
+        typeDropdown.addEventListener('change', changeMessageType);
+        
+        // Initialize with new tab active
+        switchTab('new');
+    }
+
+// Setup message detail handlers
+function setupMessageDetailHandlers(role) {
+    // Get all message items for this role
+    const messageItems = document.querySelectorAll(`#${role}-messages-content .admin-message-item`);
+    
+    messageItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const messageId = item.dataset.messageId;
+            const message = MOCK_ADMIN_MESSAGES[role].find(m => m.id === messageId);
+            
+            if (message) {
+                showMessageDetail(message, role);
+            }
+        });
+    });
+    
+    // Handle window resize to switch between window and overlay
+    window.addEventListener('resize', () => {
+        // Close any open overlays when switching to desktop
+        if (window.innerWidth >= 887) {
+            const overlays = document.querySelectorAll('.user-message-detail-overlay');
+            overlays.forEach(overlay => {
+                overlay.style.display = 'none';
+            });
+        }
+    });
+}
+
+// Show toast notification
+function showToast(message) {
+    const toast = document.getElementById('toastNotification');
+    if (toast) {
+        const messageElement = toast.querySelector('#toastMessage');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
+        
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+}
+
+// ===== REPLY FUNCTIONALITY (COPIED FROM DASHBOARD) =====
+
+let currentReplyMessage = null;
+let currentReplyRole = null;
+
+// Track message states for threading (like dashboard)
+let messageStates = {};
+
+// Show reply modal
+function showReplyModal(message, role) {
+    currentReplyMessage = message;
+    currentReplyRole = role;
+    
+    const replyOverlay = document.getElementById('replyOverlay');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    
+    if (replyOverlay && replyTextarea) {
+        // Clear previous content
+        replyTextarea.value = '';
+        
+        // Show modal
+        replyOverlay.style.display = 'flex';
+        
+        // Focus on textarea
+        setTimeout(() => {
+            replyTextarea.focus();
+        }, 100);
+    }
+}
+
+// Close reply modal
+function closeReplyModal() {
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.style.display = 'none';
+    }
+    
+    currentReplyMessage = null;
+    currentReplyRole = null;
+}
+
+// Send reply
+function sendReply() {
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    const attachmentInput = document.getElementById('floatingReplyAttachment');
+    
+    if (!replyTextarea || !currentReplyMessage || !currentReplyRole) return;
+    
+    const replyText = replyTextarea.value.trim();
+    
+    if (!replyText) {
+        showToast('Please enter a reply message');
+        return;
+    }
+    
+    // Initialize message state if it doesn't exist
+    if (!messageStates[currentReplyMessage.id]) {
+        messageStates[currentReplyMessage.id] = {
+            status: 'new',
+            isReplied: false,
+            isRead: false,
+            replies: []
+        };
+    }
+    
+    // Add user reply to the thread (like dashboard)
+    messageStates[currentReplyMessage.id].replies.push({
+        type: 'user_reply',
+        content: replyText,
+        timestamp: new Date().toISOString(),
+        author: 'You',
+        avatar: 'public/users/User-01.jpg'
+    });
+    
+    // Mark as replied
+    messageStates[currentReplyMessage.id].isReplied = true;
+    messageStates[currentReplyMessage.id].lastActivity = 'user_reply';
+    messageStates[currentReplyMessage.id].lastReplyTime = new Date().toISOString();
+    
+    // Update the message's excerpt to show latest activity
+    const messageIndex = MOCK_ADMIN_MESSAGES[currentReplyRole].findIndex(msg => msg.id === currentReplyMessage.id);
+    if (messageIndex !== -1) {
+        MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].excerpt = `You replied: ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}`;
+        MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].timestamp = new Date(); // Update timestamp for sorting
+    }
+    
+    // Simulate admin response after a delay (optional - for demo purposes)
+    setTimeout(() => {
+        const adminReplyText = `Thank you for your message. We have received your reply and will respond accordingly.
+
+Your message: "${replyText}"
+
+We will review your response and get back to you if any further action is needed.
+
+Best regards,
+GISUGO Support Team`;
+        
+        // Add admin reply to the same thread
+        messageStates[currentReplyMessage.id].replies.push({
+            type: 'admin_reply',
+            content: adminReplyText,
+            timestamp: new Date().toISOString(),
+            author: 'GISUGO Support',
+            avatar: 'public/users/User-02.jpg'
+        });
+        
+        // Update message excerpt to show admin response
+        const messageIndex = MOCK_ADMIN_MESSAGES[currentReplyRole].findIndex(msg => msg.id === currentReplyMessage.id);
+        if (messageIndex !== -1) {
+            MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].excerpt = 'GISUGO Support replied to your message';
+            MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].timestamp = new Date(); // Update timestamp
+            MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].isRead = false; // Mark as unread for admin response
+        }
+        
+        // Refresh the message list to show updated thread
+        if (currentReplyRole === 'customer') {
+            loadCustomerMessages();
+        } else {
+            loadWorkerMessages();
+        }
+        
+        // Update counts
+        updateMessageCounts(currentReplyRole);
+        
+        // Show toast for admin response
+        showToast('New response received from GISUGO Support');
+        
+    }, 3000); // 3 second delay to simulate admin response
+    
+    // Refresh the message list to show updated thread
+    if (currentReplyRole === 'customer') {
+        loadCustomerMessages();
+    } else {
+        loadWorkerMessages();
+    }
+    
+    // Update counts
+    updateMessageCounts(currentReplyRole);
+    
+    // Close modal
+    closeReplyModal();
+    
+    // Show success toast
+    showToast('Reply sent successfully');
+    
+    console.log('Reply added to thread:', currentReplyMessage.id);
+}
+
+// Initialize reply modal event handlers
+function initializeReplyModal() {
+    const closeBtn = document.getElementById('closeReplyModal');
+    const cancelBtn = document.getElementById('cancelReplyBtn');
+    const sendBtn = document.getElementById('sendFloatingReplyBtn');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeReplyModal);
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeReplyModal);
+    }
+    
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendReply);
+    }
+    
+    // Close modal when clicking outside
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.addEventListener('click', (e) => {
+            if (e.target === replyOverlay) {
+                closeReplyModal();
+            }
+        });
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for other initializations
+    setTimeout(() => {
+        initializeAdminMessages();
+        initializeReplyModal();
+    }, 500);
+});
 

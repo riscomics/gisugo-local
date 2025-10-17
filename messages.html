@@ -106,10 +106,10 @@
                         <div class="panel-header">
                             <div class="inbox-controls">
                                 <div class="inbox-tabs">
-                                    <button class="inbox-tab-btn active" id="customerNewInboxBtn" data-inbox="new">
+                                    <button class="inbox-tab-btn active" data-tab="new">
                                         New <span class="tab-count" id="customerNewCount">3</span>
                                     </button>
-                                    <button class="inbox-tab-btn" id="customerOldInboxBtn" data-inbox="old">
+                                    <button class="inbox-tab-btn" data-tab="old">
                                         Old Messages
                                     </button>
                                 </div>
@@ -160,22 +160,7 @@
                     </div>
                 </div>
 
-                <!-- Message Detail Overlay (for mobile screens) -->
-                <div id="customerMessageDetailOverlay" class="user-message-detail-overlay" style="display: none;">
-                    <div class="overlay-content">
-                        <div class="overlay-header">
-                            <button class="overlay-close-btn" id="customerOverlayCloseBtn">✕</button>
-                            <h3>Message Details</h3>
-                        </div>
-                        <div class="overlay-body">
-                            <!-- Content will be populated by JavaScript -->
-                        </div>
-                        <div class="overlay-footer">
-                            <button class="user-detail-reply-btn" id="customerOverlayReplyBtn">Reply</button>
-                            <button class="user-detail-close-btn" id="customerOverlayMarkReadBtn">Mark as Read</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Message Detail Overlay moved to root level -->
             </div>
         </div>
     </div>
@@ -210,10 +195,10 @@
                         <div class="panel-header">
                             <div class="inbox-controls">
                                 <div class="inbox-tabs">
-                                    <button class="inbox-tab-btn active" id="workerNewInboxBtn" data-inbox="new">
+                                    <button class="inbox-tab-btn active" data-tab="new">
                                         New <span class="tab-count" id="workerNewCount">3</span>
                                     </button>
-                                    <button class="inbox-tab-btn" id="workerOldInboxBtn" data-inbox="old">
+                                    <button class="inbox-tab-btn" data-tab="old">
                                         Old Messages
                                     </button>
                                 </div>
@@ -264,22 +249,7 @@
                     </div>
                 </div>
 
-                <!-- Message Detail Overlay (for mobile screens) -->
-                <div id="workerMessageDetailOverlay" class="user-message-detail-overlay" style="display: none;">
-                    <div class="overlay-content">
-                        <div class="overlay-header">
-                            <button class="overlay-close-btn" id="workerOverlayCloseBtn">✕</button>
-                            <h3>Message Details</h3>
-                        </div>
-                        <div class="overlay-body">
-                            <!-- Content will be populated by JavaScript -->
-                        </div>
-                        <div class="overlay-footer">
-                            <button class="user-detail-reply-btn" id="workerOverlayReplyBtn">Reply</button>
-                            <button class="user-detail-close-btn" id="workerOverlayMarkReadBtn">Mark as Read</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- Message Detail Overlay moved to root level -->
             </div>
         </div>
     </div>
@@ -374,6 +344,77 @@
     <!-- UNIFORM HEADER SYSTEM -->
     <script src="public/js/header-uniform.js?v=1.0"></script>
     <script src="public/js/messages.js?v=11.0"></script>
+
+    <!-- Message Detail Overlays (moved to root level like dashboard) -->
+    <!-- Customer Message Detail Overlay -->
+    <div id="customerMessageDetailOverlay" class="user-message-detail-overlay" style="display: none;">
+        <div class="overlay-content">
+            <div class="overlay-header">
+                <button class="overlay-close-btn" id="customerOverlayCloseBtn">✕</button>
+                <h3>Message Details</h3>
+            </div>
+            <div class="overlay-body">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="overlay-footer">
+                <button class="detail-reply-btn" id="customerOverlayReplyBtn">Reply</button>
+                <button class="detail-close-btn" id="customerOverlayCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Worker Message Detail Overlay -->
+    <div id="workerMessageDetailOverlay" class="user-message-detail-overlay" style="display: none;">
+        <div class="overlay-content">
+            <div class="overlay-header">
+                <button class="overlay-close-btn" id="workerOverlayCloseBtn">✕</button>
+                <h3>Message Details</h3>
+            </div>
+            <div class="overlay-body">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="overlay-footer">
+                <button class="detail-reply-btn" id="workerOverlayReplyBtn">Reply</button>
+                <button class="detail-close-btn" id="workerOverlayCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reply Modal (copied from dashboard) -->
+    <div class="reply-overlay" id="replyOverlay">
+        <div class="reply-modal">
+            <div class="reply-modal-header">
+                <h3 class="reply-modal-title">Reply to Message</h3>
+                <button class="reply-modal-close" id="closeReplyModal">×</button>
+            </div>
+            <div class="reply-modal-body">
+                <div class="reply-form-group">
+                    <label class="reply-form-label">Your Response:</label>
+                    <textarea 
+                        class="reply-form-textarea" 
+                        id="floatingReplyTextarea" 
+                        placeholder="Type your response to the message..."></textarea>
+                </div>
+                <div class="reply-attachment-upload">
+                    <label for="floatingReplyAttachment" class="reply-upload-btn">
+                        <span>📷</span>
+                        <span>Add Photo</span>
+                    </label>
+                    <input type="file" id="floatingReplyAttachment" accept="image/*" style="display: none;">
+                </div>
+            </div>
+            <div class="reply-modal-footer">
+                <button class="reply-modal-btn cancel" id="cancelReplyBtn">Cancel</button>
+                <button class="reply-modal-btn send" id="sendFloatingReplyBtn">Send Reply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="toast-notification">
+        <span class="toast-icon">✅</span>
+        <span class="toast-message" id="toastMessage">Message moved to Old Messages</span>
+    </div>
 
     <!-- Viewport Debug Tool -->
     <div id="vp-debug"></div>
