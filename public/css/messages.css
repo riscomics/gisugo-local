@@ -3968,23 +3968,28 @@ body:has(.selection-controls[style*="display: flex"]) {
     text-align: center;
     padding: 2rem;
     color: #a0aec0;
+    background: rgba(45, 55, 72, 0.3); /* Subtle background to reduce visual prominence */
+    border-radius: 8px;
+    margin: 1rem;
 }
 
 .no-message-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
-    opacity: 0.6;
+    font-size: 2.5rem; /* Smaller icon */
+    margin-bottom: 0.75rem;
+    opacity: 0.4; /* More subtle */
 }
 
 .no-message-selected h4 {
-    color: #e2e8f0;
+    color: #cbd5e0; /* Less bright */
     margin-bottom: 0.5rem;
-    font-size: 1.25rem;
+    font-size: 1rem; /* Smaller text */
+    font-weight: 500; /* Less bold */
 }
 
 .no-message-selected p {
-    font-size: 0.875rem;
+    font-size: 0.8rem; /* Smaller text */
     color: #a0aec0;
+    opacity: 0.8; /* More subtle */
 }
 
 /* Message Detail Overlay (for mobile) */
@@ -5391,6 +5396,131 @@ body:has(.selection-controls[style*="display: flex"]) {
     color: #cbd5e0;
     line-height: 1.6;
     font-size: 0.9rem;
+}
+
+/* ===== DESKTOP HEIGHT CONSTRAINTS (887px and above) ===== */
+@media (min-width: 887px) {
+    /* Target the applications-container that holds the messages layout */
+    #customer-messages-content .applications-container,
+    #worker-messages-content .applications-container {
+        height: 100%; /* Fill the tab-content-wrapper */
+        overflow: hidden;
+        padding: 0 !important; /* Remove ALL padding including bottom padding that causes overflow */
+        margin: 0 !important; /* Remove any margins */
+    }
+    
+    /* Main messages layout - use flexbox to fill container */
+    .user-messages-layout {
+        height: calc(100% - 1rem) !important; /* Reduce layout padding space by half */
+        display: flex !important; /* Override grid layout */
+        gap: 1rem;
+        padding: 1rem;
+        margin: 0 !important; /* Remove any margins */
+        box-sizing: border-box;
+    }
+    
+    /* Left panel (inbox) - constrain height to prevent page scrolling */
+    .user-messages-left-panel {
+        flex: 1; /* Narrower inbox panel like original grid 1fr */
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Messages list container - scrollable within constrained height */
+    .user-messages-list-container {
+        flex: 1; /* Take remaining space after header */
+        overflow-y: auto;
+        padding: 0;
+        margin: 0 !important; /* Remove all margins */
+        height: calc(100% - 120px); /* Fixed height instead of max-height to eliminate empty space */
+        /* Hide scrollbar for clean look */
+        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;     /* Firefox */
+    }
+    
+    .user-messages-list-container::-webkit-scrollbar {
+        display: none;  /* Safari and Chrome */
+    }
+    
+    /* Right panel (message details) - constrain height */
+    .user-messages-right-panel {
+        flex: 1.5; /* Wider message details panel like original grid 1.5fr */
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: rgba(54, 63, 79, 0.5); /* More subtle background when empty */
+        border: 1px solid rgba(255, 255, 255, 0.03); /* More subtle border */
+    }
+    
+    /* Message detail content - scrollable within constrained height */
+    .user-message-detail {
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .message-content-inner {
+        flex: 1; /* Take available space */
+        overflow-y: auto; /* Enable scrolling */
+        min-height: 0; /* Allow flex shrinking */
+        max-height: calc(100vh - 525px); /* Reduce bottom space by half */
+        margin-bottom: 0 !important; /* Remove any bottom margins */
+        /* Hide scrollbar for clean look */
+        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;     /* Firefox */
+    }
+    
+    .message-content-inner::-webkit-scrollbar {
+        display: none;  /* Safari and Chrome */
+    }
+}
+
+/* Hide desktop message window at mobile breakpoints (886px and below) */
+@media (max-width: 886px) {
+    .user-messages-right-panel {
+        display: none !important;
+    }
+    
+    /* Make inbox take full width when message window is hidden */
+    .user-messages-left-panel {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .user-messages-layout {
+        display: block !important; /* Change from flex to block for mobile */
+        height: calc(100% - 1rem) !important; /* Reduce layout padding space by half */
+        padding: 1rem !important; /* Consistent padding */
+        margin: 0 !important; /* Remove any margins */
+        box-sizing: border-box;
+    }
+    
+    /* Mobile applications container height constraints */
+    #customer-messages-content .applications-container,
+    #worker-messages-content .applications-container {
+        height: 100%; /* Fill the tab-content-wrapper */
+        overflow: hidden;
+        padding: 0 !important; /* Remove ALL padding including bottom padding */
+        margin: 0 !important; /* Remove any margins */
+    }
+    
+    /* Mobile inbox height constraints */
+    .user-messages-list-container {
+        overflow-y: auto;
+        height: calc(100% - 120px); /* Fixed height instead of max-height to eliminate empty space */
+        margin: 0 !important; /* Remove all margins */
+        /* Hide scrollbar for clean look */
+        -ms-overflow-style: none;  /* Internet Explorer 10+ */
+        scrollbar-width: none;     /* Firefox */
+    }
+    
+    .user-messages-list-container::-webkit-scrollbar {
+        display: none;  /* Safari and Chrome */
+    }
 }
 
 /* Mobile responsive reply thread */
