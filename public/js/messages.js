@@ -264,6 +264,12 @@ async function initializeWorkerMessagesTab() {
     loadWorkerMessages();
     setupMessageFiltering('worker');
     setupMessageDetailHandlers('worker');
+    
+    // Force update the Messages tab counter when initializing
+    setTimeout(() => {
+        updateMessageCounts('worker');
+        updateMessageCounts('customer'); // Update both to ensure correct total
+    }, 100);
 }
 
 async function initializeCustomerAlertsTab() {
@@ -284,6 +290,12 @@ async function initializeCustomerMessagesTab() {
     loadCustomerMessages();
     setupMessageFiltering('customer');
     setupMessageDetailHandlers('customer');
+    
+    // Force update the Messages tab counter when initializing
+    setTimeout(() => {
+        updateMessageCounts('customer');
+        updateMessageCounts('worker'); // Update both to ensure correct total
+    }, 100);
 }
 
 // Load segregated notifications based on role
@@ -8969,8 +8981,25 @@ function closeMessage(messageId, role) {
     }
 }
 
-// Update message counts
+// Debounced counter update to prevent race conditions
+let counterUpdateTimeout = null;
+
+// Update message counts with debouncing to prevent race conditions
 function updateMessageCounts(role) {
+    // Clear any pending counter updates
+    if (counterUpdateTimeout) {
+        clearTimeout(counterUpdateTimeout);
+    }
+    
+    // Debounce the actual update to prevent rapid-fire calls from interfering
+    counterUpdateTimeout = setTimeout(() => {
+        performMessageCountUpdate(role);
+        counterUpdateTimeout = null;
+    }, 50); // Small delay to batch rapid updates
+}
+
+// Perform the actual message count update
+function performMessageCountUpdate(role) {
     const messages = MOCK_ADMIN_MESSAGES[role];
     const newCount = messages.filter(msg => !msg.isRead && !msg.isClosed).length;
     
@@ -8997,6 +9026,7 @@ function updateMessageCounts(role) {
     }
     
     if (messagesTabBadge) {
+        // Always recalculate both customer and worker counts for accuracy
         const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
         const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
         const totalCount = customerCount + workerCount;
@@ -9547,6 +9577,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize reply modal only - messages will be initialized when their tabs are accessed
     setTimeout(() => {
         initializeReplyModal();
+        // Initialize Messages tab counter on page load
+        initializeMessagesTabCounter();
     }, 500);
 });
+
+// Initialize Messages tab counter on page load (before any tab is accessed)
+function initializeMessagesTabCounter() {
+    // Calculate the correct total count from mock data
+    const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
+    const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
+    const totalCount = customerCount + workerCount;
+    
+    // Update both Customer and Worker Messages tab badges
+    const customerMessagesTab = document.querySelector('#customerMessagesTab .notification-count');
+    const workerMessagesTab = document.querySelector('#workerMessagesTab .notification-count');
+    
+    if (customerMessagesTab) {
+        customerMessagesTab.textContent = totalCount;
+        customerMessagesTab.style.display = totalCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    if (workerMessagesTab) {
+        workerMessagesTab.textContent = totalCount;
+        workerMessagesTab.style.display = totalCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    console.log(`🚀 Initialized Messages tab counter: ${totalCount} (Customer: ${customerCount}, Worker: ${workerCount})`);
+}
 
