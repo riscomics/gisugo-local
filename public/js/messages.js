@@ -268,7 +268,7 @@ async function initializeWorkerMessagesTab() {
     // Force update the Messages tab counter when initializing
     setTimeout(() => {
         updateMessageCounts('worker');
-        updateMessageCounts('customer'); // Update both to ensure correct total
+        updateMainMessagesTabCount(); // Update main tab count
     }, 100);
 }
 
@@ -294,7 +294,7 @@ async function initializeCustomerMessagesTab() {
     // Force update the Messages tab counter when initializing
     setTimeout(() => {
         updateMessageCounts('customer');
-        updateMessageCounts('worker'); // Update both to ensure correct total
+        updateMainMessagesTabCount(); // Update main tab count
     }, 100);
 }
 
@@ -8959,6 +8959,16 @@ function closeMessage(messageId, role) {
         if (filteringSystem && filteringSystem.reloadFilteredMessages) {
             console.log(`🔄 Reloading ${currentTab} tab messages after close`);
             filteringSystem.reloadFilteredMessages();
+            
+            // Update notification counts AFTER the message list is reloaded
+            // Only update the specific role that changed, then update main tab
+            setTimeout(() => {
+                // Update the specific role's inbox tabs
+                updateInboxTabCounts(role);
+                
+                // Update main Messages tab with fresh calculation
+                updateMainMessagesTabCount();
+            }, 5);
         } else {
             // Fallback: reload messages manually
             if (role === 'customer') {
@@ -8966,10 +8976,16 @@ function closeMessage(messageId, role) {
             } else {
                 loadWorkerMessages();
             }
+            
+            // Update notification counts for fallback
+            setTimeout(() => {
+                // Update the specific role's inbox tabs
+                updateInboxTabCounts(role);
+                
+                // Update main Messages tab with fresh calculation
+                updateMainMessagesTabCount();
+            }, 5);
         }
-        
-        // Update notification counts
-        updateMessageCounts(role);
         
         // Show toast notification only if message was actually moved from New to Old
         if (!wasAlreadyClosed) {
@@ -8993,55 +9009,16 @@ function updateMessageCounts(role) {
     
     // Debounce the actual update to prevent rapid-fire calls from interfering
     counterUpdateTimeout = setTimeout(() => {
-        performMessageCountUpdate(role);
+        // Update the specific role's inbox tabs
+        updateInboxTabCounts(role);
+        
+        // Update main Messages tab with fresh calculation
+        updateMainMessagesTabCount();
+        
         counterUpdateTimeout = null;
-    }, 50); // Small delay to batch rapid updates
+    }, 10); // Very small delay to batch rapid updates while staying responsive
 }
 
-// Perform the actual message count update
-function performMessageCountUpdate(role) {
-    const messages = MOCK_ADMIN_MESSAGES[role];
-    const newCount = messages.filter(msg => !msg.isRead && !msg.isClosed).length;
-    
-    // Update the notification badge in the main tab
-    const tabElement = document.querySelector(`#${role === 'customer' ? 'customer' : 'worker'}-tab .notification-badge`);
-    if (tabElement) {
-        tabElement.textContent = newCount;
-        tabElement.style.display = newCount > 0 ? 'inline-block' : 'none';
-    }
-    
-    // Update the Messages tab notification count - use correct selectors for both roles
-    let messagesTabBadge;
-    
-    // Try to find the Messages tab badge for the current role
-    if (role === 'customer') {
-        messagesTabBadge = document.querySelector('#customerMessagesTab .notification-count');
-    } else if (role === 'worker') {
-        messagesTabBadge = document.querySelector('#workerMessagesTab .notification-count');
-    }
-    
-    // Fallback selectors if the specific ones don't work
-    if (!messagesTabBadge) {
-        messagesTabBadge = document.querySelector('.tab-btn[data-tab*="messages"] .notification-count');
-    }
-    
-    if (messagesTabBadge) {
-        // Always recalculate both customer and worker counts for accuracy
-        const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
-        const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
-        const totalCount = customerCount + workerCount;
-        
-        messagesTabBadge.textContent = totalCount;
-        messagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
-        
-        console.log(`📊 Updated Messages tab badge: ${totalCount} (Customer: ${customerCount}, Worker: ${workerCount})`);
-    } else {
-        console.log('⚠️ Could not find Messages tab badge to update');
-    }
-    
-    // Also update the New/Old inbox tab counts
-    updateInboxTabCounts(role);
-}
 
 // Update inbox tab counts (New/Old)
 function updateInboxTabCounts(role) {
@@ -9064,6 +9041,41 @@ function updateInboxTabCounts(role) {
     }
     
     console.log(`📊 Updated ${role} inbox tabs: New(${newCount}), Old(${oldCount})`);
+}
+
+// Update main Messages tab count (separate function to avoid race conditions)
+function updateMainMessagesTabCount() {
+    // Always recalculate both customer and worker counts for accuracy
+    const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
+    const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
+    const totalCount = customerCount + workerCount;
+    
+    // Update both customer and worker Messages tab badges
+    const customerMessagesTabBadge = document.querySelector('#customerMessagesTab .notification-count');
+    const workerMessagesTabBadge = document.querySelector('#workerMessagesTab .notification-count');
+    
+    // Update customer Messages tab badge
+    if (customerMessagesTabBadge) {
+        customerMessagesTabBadge.textContent = totalCount;
+        customerMessagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Update worker Messages tab badge
+    if (workerMessagesTabBadge) {
+        workerMessagesTabBadge.textContent = totalCount;
+        workerMessagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Fallback selector if the specific ones don't work
+    if (!customerMessagesTabBadge && !workerMessagesTabBadge) {
+        const fallbackBadge = document.querySelector('.tab-btn[data-tab*="messages"] .notification-count');
+        if (fallbackBadge) {
+            fallbackBadge.textContent = totalCount;
+            fallbackBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+        }
+    }
+    
+    console.log(`📊 Updated Messages tab badge: ${totalCount} (Customer: ${customerCount}, Worker: ${workerCount})`);
 }
 
     // Setup message filtering functionality
@@ -9584,25 +9596,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Initialize Messages tab counter on page load (before any tab is accessed)
 function initializeMessagesTabCounter() {
-    // Calculate the correct total count from mock data
-    const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
-    const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
-    const totalCount = customerCount + workerCount;
-    
-    // Update both Customer and Worker Messages tab badges
-    const customerMessagesTab = document.querySelector('#customerMessagesTab .notification-count');
-    const workerMessagesTab = document.querySelector('#workerMessagesTab .notification-count');
-    
-    if (customerMessagesTab) {
-        customerMessagesTab.textContent = totalCount;
-        customerMessagesTab.style.display = totalCount > 0 ? 'inline-block' : 'none';
-    }
-    
-    if (workerMessagesTab) {
-        workerMessagesTab.textContent = totalCount;
-        workerMessagesTab.style.display = totalCount > 0 ? 'inline-block' : 'none';
-    }
-    
-    console.log(`🚀 Initialized Messages tab counter: ${totalCount} (Customer: ${customerCount}, Worker: ${workerCount})`);
+    updateMainMessagesTabCount();
 }
 
