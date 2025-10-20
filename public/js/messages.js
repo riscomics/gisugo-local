@@ -260,8 +260,10 @@ async function initializeWorkerChatsTab() {
 
 async function initializeWorkerMessagesTab() {
     console.log('📧 Initializing worker messages tab');
-    // Load worker admin messages (placeholder)
-    console.log('Worker admin messages loaded (placeholder)');
+    // Initialize worker admin messages functionality
+    loadWorkerMessages();
+    setupMessageFiltering('worker');
+    setupMessageDetailHandlers('worker');
 }
 
 async function initializeCustomerAlertsTab() {
@@ -278,8 +280,10 @@ async function initializeCustomerInterviewsTab() {
 
 async function initializeCustomerMessagesTab() {
     console.log('📧 Initializing customer messages tab');
-    // Load customer admin messages (placeholder)
-    console.log('Customer admin messages loaded (placeholder)');
+    // Initialize customer admin messages functionality
+    loadCustomerMessages();
+    setupMessageFiltering('customer');
+    setupMessageDetailHandlers('customer');
 }
 
 // Load segregated notifications based on role
@@ -8743,6 +8747,11 @@ function generateReplyThreadHTML(messageId) {
                 </div>
                 <div class="reply-content">
                     ${reply.content.replace(/\n/g, '<br>')}
+                    ${reply.hasPhoto ? `
+                        <div class="reply-photo-attachment" onclick="showPhotoLightbox('${reply.photoData.fullSizeUrl}')">
+                            <img src="${reply.photoData.thumbnailUrl}" alt="Reply photo" class="reply-photo-thumbnail" data-full-size="${reply.photoData.fullSizeUrl}">
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -8781,6 +8790,10 @@ function generateMessageDetailHTML(message, role) {
         
         <div class="message-content-inner">
             <div class="message-detail-body">
+                ${replyThreadHTML.trim() !== '' ? replyThreadHTML : ''}
+                
+                ${replyThreadHTML.trim() !== '' ? '<div class="original-message-separator"><h4>Original Message</h4></div>' : ''}
+                
                 <div class="detail-subject">${message.subject}</div>
                 <div class="detail-message-text">${message.content.replace(/\n/g, '<br>')}</div>
                 
@@ -8793,7 +8806,7 @@ function generateMessageDetailHTML(message, role) {
                     </div>
                 ` : ''}
                 
-                ${replyThreadHTML}
+                ${replyThreadHTML.trim() === '' ? replyThreadHTML : ''}
             </div>
         </div>
     `;
@@ -8818,6 +8831,10 @@ function generateOverlayMessageHTML(message, role) {
         </div>
         
         <div class="overlay-message-content">
+            ${generateReplyThreadHTML(message.id).trim() !== '' ? generateReplyThreadHTML(message.id) : ''}
+            
+            ${generateReplyThreadHTML(message.id).trim() !== '' ? '<div class="original-message-separator"><h4>Original Message</h4></div>' : ''}
+            
             <div class="overlay-subject">${message.subject}</div>
             <div class="overlay-message-text">${message.content.replace(/\n/g, '<br>')}</div>
             
@@ -8830,12 +8847,12 @@ function generateOverlayMessageHTML(message, role) {
                 </div>
             ` : ''}
             
-            ${generateReplyThreadHTML(message.id)}
+            ${generateReplyThreadHTML(message.id).trim() === '' ? generateReplyThreadHTML(message.id) : ''}
         </div>
     `;
 }
 
-// Mark message as read
+// Mark message as read (simplified - no reloading)
 function markMessageAsRead(message, role) {
     console.log('markMessageAsRead called:', message.id, role);
     
@@ -8852,70 +8869,9 @@ function markMessageAsRead(message, role) {
         console.log('Removed unread class from message element');
     }
     
-    // Hide detail view first
-    const detailContainer = document.getElementById(`${role}MessageDetail`);
-    const contentContainer = document.getElementById(`${role}MessageContent`);
-    const overlay = document.getElementById(`${role}MessageDetailOverlay`);
-    
-    if (detailContainer && contentContainer) {
-        detailContainer.style.display = 'flex';
-        contentContainer.style.display = 'none';
-    }
-    
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
-    
-    // Force refresh the current tab's message list
-    const currentTabBtn = document.querySelector(`#${role}-messages-content .inbox-tab-btn.active`);
-    const currentTab = currentTabBtn ? currentTabBtn.dataset.tab : 'new';
-    
-    console.log('Current tab:', currentTab, 'Message will be moved from New to Old');
-    
-    // Since we're on the New tab and the message is now closed, it should disappear
-    // If we're on the Old tab, it should appear there
-    
-    // Trigger the filtering system to refresh the display
-    const filteringSystem = window[`${role}FilteringSystem`];
-    if (filteringSystem && filteringSystem.reloadFilteredMessages) {
-        console.log('Using filtering system to reload messages');
-        filteringSystem.reloadFilteredMessages();
-    } else {
-        console.log('Using fallback method to reload messages');
-        // Fallback: manually reload the messages
-        const messages = MOCK_ADMIN_MESSAGES[role];
-        const searchInput = document.querySelector(`#${role}-messages-content .search-input-small`);
-        const typeDropdown = document.querySelector(`#${role}-messages-content .type-dropdown`);
-        
-        const searchTerm = searchInput ? searchInput.value.trim() : '';
-        const messageType = typeDropdown ? typeDropdown.value : 'all';
-        
-        const filteredMessages = filterMessages(messages, searchTerm, messageType, currentTab);
-        
-        console.log('Filtered messages for tab', currentTab, ':', filteredMessages.length);
-        
-        const listContainer = document.querySelector(`#${role}-messages-content .user-messages-list-container`);
-        if (listContainer) {
-            if (filteredMessages.length === 0) {
-                listContainer.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: #a0aec0;">
-                        <p>No ${currentTab} messages found${searchTerm ? ` for "${searchTerm}"` : ''}</p>
-                    </div>
-                `;
-            } else {
-                listContainer.innerHTML = filteredMessages.map(msg => generateAdminMessageHTML(msg, role)).join('');
-                setupMessageDetailHandlers(role);
-            }
-        }
-    }
-    
-    // Update notification counts
-    updateMessageCounts(role);
-    
-    // Show toast notification
-    showToast(`Message moved to Old Messages`);
-    
-    console.log('markMessageAsRead completed');
+    // Note: This function only updates UI state
+    // Message reloading is handled by the calling function (closeMessage)
+    console.log('markMessageAsRead completed - UI updated only');
 }
 
 // Helper function for filtering messages
@@ -8955,11 +8911,22 @@ function closeMessage(messageId, role) {
     const message = messages.find(m => m.id === messageId);
     
     if (message) {
+        // Get current tab BEFORE making any changes
+        const filteringSystem = window[`${role}FilteringSystem`];
+        const currentTab = filteringSystem ? filteringSystem.getCurrentTab() : 'new';
+        console.log(`🔄 Closing message from ${currentTab} tab`);
+        
+        // Check if message was already closed (to determine if we should show toast)
+        const wasAlreadyClosed = message.isClosed;
+        
         message.isRead = true;
         message.isClosed = true;
         
-        // Update UI
-        markMessageAsRead(message, role);
+        // Update UI - remove unread class
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.classList.remove('unread');
+        }
         
         // Hide detail view
         const detailContainer = document.getElementById(`${role}MessageDetail`);
@@ -8970,15 +8937,35 @@ function closeMessage(messageId, role) {
             contentContainer.style.display = 'none';
         }
         
-        // Reload messages to reflect changes
-        if (role === 'customer') {
-            loadCustomerMessages();
-        } else {
-            loadWorkerMessages();
+        // Hide overlay if it's open
+        const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+        if (overlay) {
+            overlay.style.display = 'none';
         }
         
-        // Show toast notification
-        showToast(`Message moved to Old Messages`);
+        // Use filtering system to reload messages (preserves current tab)
+        if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+            console.log(`🔄 Reloading ${currentTab} tab messages after close`);
+            filteringSystem.reloadFilteredMessages();
+        } else {
+            // Fallback: reload messages manually
+            if (role === 'customer') {
+                loadCustomerMessages();
+            } else {
+                loadWorkerMessages();
+            }
+        }
+        
+        // Update notification counts
+        updateMessageCounts(role);
+        
+        // Show toast notification only if message was actually moved from New to Old
+        if (!wasAlreadyClosed) {
+            showToast(`Moved to Old Messages`);
+            console.log('📧 Message moved from New to Old - showing toast');
+        } else {
+            console.log('📧 Message was already in Old - no toast shown');
+        }
     }
 }
 
@@ -8994,8 +8981,21 @@ function updateMessageCounts(role) {
         tabElement.style.display = newCount > 0 ? 'inline-block' : 'none';
     }
     
-    // Update the Messages tab notification count
-    const messagesTabBadge = document.querySelector('.tab-content.active .tab-nav .tab-btn[data-tab="messages"] .notification-badge');
+    // Update the Messages tab notification count - use correct selectors for both roles
+    let messagesTabBadge;
+    
+    // Try to find the Messages tab badge for the current role
+    if (role === 'customer') {
+        messagesTabBadge = document.querySelector('#customerMessagesTab .notification-count');
+    } else if (role === 'worker') {
+        messagesTabBadge = document.querySelector('#workerMessagesTab .notification-count');
+    }
+    
+    // Fallback selectors if the specific ones don't work
+    if (!messagesTabBadge) {
+        messagesTabBadge = document.querySelector('.tab-btn[data-tab*="messages"] .notification-count');
+    }
+    
     if (messagesTabBadge) {
         const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
         const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
@@ -9003,7 +9003,37 @@ function updateMessageCounts(role) {
         
         messagesTabBadge.textContent = totalCount;
         messagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+        
+        console.log(`📊 Updated Messages tab badge: ${totalCount} (Customer: ${customerCount}, Worker: ${workerCount})`);
+    } else {
+        console.log('⚠️ Could not find Messages tab badge to update');
     }
+    
+    // Also update the New/Old inbox tab counts
+    updateInboxTabCounts(role);
+}
+
+// Update inbox tab counts (New/Old)
+function updateInboxTabCounts(role) {
+    const messages = MOCK_ADMIN_MESSAGES[role];
+    const newCount = messages.filter(msg => !msg.isClosed).length;
+    const oldCount = messages.filter(msg => msg.isClosed).length;
+    
+    // Update New tab count
+    const newTabBadge = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="new"] .notification-badge`);
+    if (newTabBadge) {
+        newTabBadge.textContent = newCount;
+        newTabBadge.style.display = newCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    // Update Old tab count
+    const oldTabBadge = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="old"] .notification-badge`);
+    if (oldTabBadge) {
+        oldTabBadge.textContent = oldCount;
+        oldTabBadge.style.display = oldCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    console.log(`📊 Updated ${role} inbox tabs: New(${newCount}), Old(${oldCount})`);
 }
 
     // Setup message filtering functionality
@@ -9028,14 +9058,16 @@ function updateMessageCounts(role) {
             console.log('switchTab called:', tab, 'for role:', role);
             currentTab = tab;
             
-            // Update active tab styling
-            newTabBtn.classList.remove('active');
-            oldTabBtn.classList.remove('active');
+            // Update active tab styling - ensure proper class management
+            const allInboxTabs = document.querySelectorAll(`#${role}-messages-content .inbox-tab-btn`);
+            allInboxTabs.forEach(btn => btn.classList.remove('active'));
             
             if (tab === 'new') {
                 newTabBtn.classList.add('active');
+                console.log(`✅ Set New tab as active for ${role}`);
             } else {
                 oldTabBtn.classList.add('active');
+                console.log(`✅ Set Old tab as active for ${role}`);
             }
             
             // Reload messages with current filters
@@ -9094,6 +9126,9 @@ function updateMessageCounts(role) {
             getCurrentTab: () => currentTab,
             setCurrentTab: (tab) => { currentTab = tab; }
         };
+        
+        // Initialize with proper tab state
+        switchTab('new'); // Ensure New tab starts as active
         
         // Event listeners
         newTabBtn.addEventListener('click', () => switchTab('new'));
@@ -9199,9 +9234,18 @@ function showReplyModal(message, role) {
 // Close reply modal
 function closeReplyModal() {
     const replyOverlay = document.getElementById('replyOverlay');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    
     if (replyOverlay) {
         replyOverlay.style.display = 'none';
     }
+    
+    if (replyTextarea) {
+        replyTextarea.value = '';
+    }
+    
+    // Clear photo preview and data
+    window.removeReplyPhoto();
     
     currentReplyMessage = null;
     currentReplyRole = null;
@@ -9232,13 +9276,22 @@ function sendReply() {
     }
     
     // Add user reply to the thread (like dashboard)
-    messageStates[currentReplyMessage.id].replies.push({
+    const replyData = {
         type: 'user_reply',
         content: replyText,
         timestamp: new Date().toISOString(),
         author: 'You',
-        avatar: 'public/users/User-01.jpg'
-    });
+        avatar: 'public/users/Peter-J-Ang-User-01.jpg' // Use proper user avatar
+    };
+    
+    // Add photo attachment if present
+    if (replyPhotoData) {
+        replyData.hasPhoto = true;
+        replyData.photoData = replyPhotoData;
+        console.log('📷 Adding photo to reply:', replyPhotoData);
+    }
+    
+    messageStates[currentReplyMessage.id].replies.push(replyData);
     
     // Mark as replied
     messageStates[currentReplyMessage.id].isReplied = true;
@@ -9269,7 +9322,7 @@ GISUGO Support Team`;
             content: adminReplyText,
             timestamp: new Date().toISOString(),
             author: 'GISUGO Support',
-            avatar: 'public/users/User-02.jpg'
+            avatar: 'public/images/Gisugo-emblem.png' // Use proper GISUGO logo
         });
         
         // Update message excerpt to show admin response
@@ -9280,38 +9333,110 @@ GISUGO Support Team`;
             MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].isRead = false; // Mark as unread for admin response
         }
         
-        // Refresh the message list to show updated thread
-        if (currentReplyRole === 'customer') {
-            loadCustomerMessages();
+        // Refresh the message list to show updated thread using filtering system
+        const filteringSystem = window[`${currentReplyRole}FilteringSystem`];
+        if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+            filteringSystem.reloadFilteredMessages();
         } else {
-            loadWorkerMessages();
+            // Fallback
+            if (currentReplyRole === 'customer') {
+                loadCustomerMessages();
+            } else {
+                loadWorkerMessages();
+            }
         }
         
         // Update counts
         updateMessageCounts(currentReplyRole);
+        
+        // Refresh the currently open message display to show new replies
+        refreshCurrentMessageDisplay(currentReplyMessage, currentReplyRole);
         
         // Show toast for admin response
         showToast('New response received from GISUGO Support');
         
     }, 3000); // 3 second delay to simulate admin response
     
-    // Refresh the message list to show updated thread
-    if (currentReplyRole === 'customer') {
-        loadCustomerMessages();
+    // Refresh the message list to show updated thread using filtering system
+    const filteringSystem = window[`${currentReplyRole}FilteringSystem`];
+    if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+        filteringSystem.reloadFilteredMessages();
     } else {
-        loadWorkerMessages();
+        // Fallback
+        if (currentReplyRole === 'customer') {
+            loadCustomerMessages();
+        } else {
+            loadWorkerMessages();
+        }
     }
     
     // Update counts
     updateMessageCounts(currentReplyRole);
     
+    // Refresh the currently open message display to show new replies immediately
+    refreshCurrentMessageDisplay(currentReplyMessage, currentReplyRole);
+    
+    // Show success toast
+    const photoText = replyPhotoData ? ' with photo' : '';
+    showToast(`Reply sent successfully${photoText}`);
+    
+    // Clear photo data after sending
+    replyPhotoData = null;
+    
     // Close modal
     closeReplyModal();
     
-    // Show success toast
-    showToast('Reply sent successfully');
-    
     console.log('Reply added to thread:', currentReplyMessage.id);
+}
+
+// Refresh currently open message display to show new replies
+function refreshCurrentMessageDisplay(message, role) {
+    if (!message || !role) return;
+    
+    // Check if message is currently displayed in desktop window
+    const contentContainer = document.getElementById(`${role}MessageContent`);
+    if (contentContainer && contentContainer.style.display !== 'none') {
+        // Refresh desktop window content
+        contentContainer.innerHTML = generateMessageDetailHTML(message, role);
+        
+        // Re-attach event handlers
+        const closeBtn = contentContainer.querySelector('.detail-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => closeMessage(message.id, role));
+        }
+        
+        const replyBtn = contentContainer.querySelector('.detail-reply-btn');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', () => showReplyModal(message, role));
+        }
+        
+        console.log('🔄 Refreshed desktop message window with new replies');
+    }
+    
+    // Check if message is currently displayed in mobile overlay
+    const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+    if (overlay && overlay.style.display === 'flex') {
+        // Refresh overlay content
+        const overlayMessageContent = generateOverlayMessageHTML(message, role);
+        
+        overlay.innerHTML = `
+            <div class="overlay-content">
+                <div class="overlay-header">
+                    <h3>Message Details</h3>
+                    <button class="overlay-close-btn" onclick="document.getElementById('${role}MessageDetailOverlay').style.display='none'">&times;</button>
+                </div>
+                <div class="overlay-body">
+                    ${overlayMessageContent}
+                </div>
+                <div class="overlay-footer">
+                    <button class="detail-reply-btn" onclick="showReplyModal(MOCK_ADMIN_MESSAGES.${role}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
+                </div>
+            </div>
+        `;
+        
+        console.log('🔄 Refreshed mobile overlay with new replies');
+    }
 }
 
 // Initialize reply modal event handlers
@@ -9319,6 +9444,7 @@ function initializeReplyModal() {
     const closeBtn = document.getElementById('closeReplyModal');
     const cancelBtn = document.getElementById('cancelReplyBtn');
     const sendBtn = document.getElementById('sendFloatingReplyBtn');
+    const photoInput = document.getElementById('floatingReplyAttachment');
     
     if (closeBtn) {
         closeBtn.addEventListener('click', closeReplyModal);
@@ -9332,6 +9458,11 @@ function initializeReplyModal() {
         sendBtn.addEventListener('click', sendReply);
     }
     
+    // Initialize photo upload functionality
+    if (photoInput) {
+        photoInput.addEventListener('change', handleReplyPhotoUpload);
+    }
+    
     // Close modal when clicking outside
     const replyOverlay = document.getElementById('replyOverlay');
     if (replyOverlay) {
@@ -9343,11 +9474,78 @@ function initializeReplyModal() {
     }
 }
 
+// Global variable to store uploaded photo data
+let replyPhotoData = null;
+
+// Handle reply photo upload
+function handleReplyPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file');
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Image file is too large. Please select a file under 10MB.');
+        return;
+    }
+    
+    console.log('📷 Processing reply photo...');
+    
+    // Process image using the same compression as chat
+    processChatImage(file, (processedImage) => {
+        // Store processed image data
+        replyPhotoData = {
+            thumbnailUrl: processedImage.thumbnailURL,
+            fullSizeUrl: processedImage.fullSizeURL,
+            dimensions: processedImage.dimensions,
+            aspectRatio: processedImage.aspectRatio,
+            fileSizes: processedImage.fileSizes
+        };
+        
+        // Show preview
+        showReplyPhotoPreview(processedImage.thumbnailURL);
+        
+        console.log('✅ Reply photo processed and ready');
+    });
+}
+
+// Show photo preview in reply modal
+function showReplyPhotoPreview(imageUrl) {
+    const previewContainer = document.getElementById('replyPhotoPreview');
+    const previewImage = document.getElementById('replyPreviewImage');
+    
+    if (previewContainer && previewImage) {
+        previewImage.src = imageUrl;
+        previewContainer.style.display = 'block';
+    }
+}
+
+// Remove reply photo (global function for HTML onclick)
+window.removeReplyPhoto = function() {
+    const previewContainer = document.getElementById('replyPhotoPreview');
+    const photoInput = document.getElementById('floatingReplyAttachment');
+    
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+    
+    if (photoInput) {
+        photoInput.value = '';
+    }
+    
+    replyPhotoData = null;
+    console.log('🗑️ Reply photo removed');
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait a bit for other initializations
+    // Initialize reply modal only - messages will be initialized when their tabs are accessed
     setTimeout(() => {
-        initializeAdminMessages();
         initializeReplyModal();
     }, 500);
 });

@@ -5155,6 +5155,47 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: #2d3748;
 }
 
+/* Reply photo preview styling */
+.reply-photo-preview {
+    margin-top: 1rem;
+    position: relative;
+    display: inline-block;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reply-preview-image {
+    max-width: 200px;
+    max-height: 150px;
+    width: auto;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+.reply-photo-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.reply-photo-remove:hover {
+    background: rgba(255, 0, 0, 0.8);
+}
+
 .reply-modal-footer {
     display: flex;
     gap: 1rem;
@@ -5325,6 +5366,34 @@ body:has(.selection-controls[style*="display: flex"]) {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Reduce spacing when reply thread appears at the top */
+.message-detail-body > .reply-thread:first-child {
+    margin-top: -1rem; /* Counteract the 1.5rem container padding */
+    padding-top: 0.5rem;
+}
+
+.overlay-message-content > .reply-thread:first-child {
+    margin-top: -0.5rem; /* Counteract overlay padding */
+    padding-top: 0.5rem;
+}
+
+/* Original message separator styling */
+.original-message-separator {
+    margin: 1.5rem 0 1rem 0;
+    padding: 0.75rem 0;
+    border-top: 2px solid #e2e8f0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.original-message-separator h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 .thread-title {
     color: #a0aec0;
     font-size: 0.9rem;
@@ -5396,6 +5465,30 @@ body:has(.selection-controls[style*="display: flex"]) {
     color: #cbd5e0;
     line-height: 1.6;
     font-size: 0.9rem;
+}
+
+/* Reply photo attachment styling */
+.reply-photo-attachment {
+    margin-top: 0.75rem;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    display: inline-block;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.reply-photo-attachment:hover {
+    transform: scale(1.02);
+}
+
+.reply-photo-thumbnail {
+    max-width: 200px;
+    max-height: 150px;
+    width: auto;
+    height: auto;
+    display: block;
+    border-radius: 8px;
 }
 
 /* ===== DESKTOP HEIGHT CONSTRAINTS (887px and above) ===== */
@@ -5529,6 +5622,18 @@ body:has(.selection-controls[style*="display: flex"]) {
         margin-top: 1.5rem;
         padding-top: 1rem;
     }
+    
+    /* Reduce spacing when reply thread appears at the top on mobile */
+    .message-detail-body > .reply-thread:first-child {
+        margin-top: -1.25rem; /* More aggressive counteraction for mobile */
+        padding-top: 0.25rem;
+    }
+    
+    .overlay-message-content > .reply-thread:first-child {
+        margin-top: -0.75rem; /* Counteract overlay padding on mobile */
+        padding-top: 0.25rem;
+    }
+}
     
     .thread-title {
         font-size: 0.8rem;
