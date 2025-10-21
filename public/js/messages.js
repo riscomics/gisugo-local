@@ -7736,80 +7736,6 @@ support@gisugo.com`,
             attachmentName: 'wallet-resolution-receipt.pdf'
         },
         {
-            id: 'msg_cust_003',
-            topic: 'system',
-            subject: 'Platform Maintenance Scheduled',
-            excerpt: 'GISUGO will undergo scheduled maintenance on Sunday, October 22nd from 2:00 AM to 4:00 AM.',
-            content: `Dear GISUGO Users,
-
-We will be performing scheduled system maintenance to improve our platform performance and security.
-
-MAINTENANCE DETAILS:
-• Date: Sunday, October 22nd, 2025
-• Time: 2:00 AM - 4:00 AM (Philippine Time)
-• Duration: Approximately 2 hours
-
-SERVICES AFFECTED:
-• Job posting and applications (temporarily unavailable)
-• G-Coins transactions (delayed processing)
-• Message notifications (may be delayed)
-
-SERVICES AVAILABLE:
-• Browsing job listings
-• Viewing profiles
-• Accessing existing conversations
-
-We recommend completing any urgent transactions before the maintenance window. All services will be fully restored by 4:00 AM.
-
-Thank you for your patience and understanding.
-
-GISUGO Operations Team`,
-            sender: {
-                name: 'GISUGO Operations',
-                email: 'operations@gisugo.com',
-                avatar: 'public/users/User-04.jpg'
-            },
-            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-            isRead: true,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_cust_004',
-            topic: 'system',
-            subject: 'New Security Features Available',
-            excerpt: 'Enhanced security features including two-factor authentication are now available for your account.',
-            content: `Dear Customer,
-
-We're excited to announce new security features to better protect your GISUGO account:
-
-NEW SECURITY FEATURES:
-✓ Two-Factor Authentication (2FA)
-✓ Login notifications via SMS/email
-✓ Enhanced password requirements
-✓ Account activity monitoring
-
-RECOMMENDED ACTIONS:
-1. Enable 2FA in your account settings
-2. Update your password if it's over 6 months old
-3. Review your account activity regularly
-4. Add a backup email address
-
-These features are optional but highly recommended for maximum account security.
-
-To enable these features, go to Settings > Security in your account dashboard.
-
-Stay secure,
-GISUGO Security Team`,
-            sender: {
-                name: 'GISUGO Security',
-                email: 'security@gisugo.com',
-                avatar: 'public/users/User-05.jpg'
-            },
-            timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-            isRead: true,
-            hasAttachment: false
-        },
-        {
             id: 'msg_cust_005',
             topic: 'notifications',
             subject: 'Important: Updated Terms of Service',
@@ -7847,43 +7773,6 @@ legal@gisugo.com`,
             isRead: false,
             hasAttachment: true,
             attachmentName: 'updated-terms-of-service.pdf'
-        },
-        {
-            id: 'msg_cust_006',
-            topic: 'notifications',
-            subject: 'Holiday Schedule Notice',
-            excerpt: 'GISUGO support hours during the upcoming holidays and emergency contact information.',
-            content: `Holiday Schedule and Support Information
-
-Dear Valued Customer,
-
-Please note our modified support schedule during the upcoming holiday period:
-
-HOLIDAY DATES:
-• October 31st - November 2nd, 2025
-
-MODIFIED SUPPORT HOURS:
-• October 31st: 9:00 AM - 5:00 PM
-• November 1st: CLOSED (All Saints' Day)
-• November 2nd: 10:00 AM - 6:00 PM
-
-EMERGENCY SUPPORT:
-For urgent issues during holidays, use our emergency hotline: +63-917-GISUGO-1 (available 24/7)
-
-PLATFORM AVAILABILITY:
-All GISUGO services remain fully operational during holidays. Only customer support hours are modified.
-
-We wish you and your family a safe and happy holiday season!
-
-GISUGO Customer Care Team`,
-            sender: {
-                name: 'GISUGO Customer Care',
-                email: 'care@gisugo.com',
-                avatar: 'public/users/User-07.jpg'
-            },
-            timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-            isRead: true,
-            hasAttachment: false
         },
         {
             id: 'msg_cust_007',
@@ -7926,54 +7815,6 @@ GISUGO Product Team`,
             },
             timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
             isRead: false,
-            hasAttachment: false
-        },
-        {
-            id: 'msg_cust_008',
-            topic: 'updates',
-            subject: 'Mobile App Update Available',
-            excerpt: 'Version 3.2.0 of the GISUGO mobile app is now available with improved messaging and notifications.',
-            content: `GISUGO Mobile App Update - Version 3.2.0
-
-Dear Customer,
-
-A new version of the GISUGO mobile app is now available for download!
-
-NEW IN VERSION 3.2.0:
-📱 Improved messaging interface
-🔔 Enhanced push notifications
-📷 Better photo upload quality
-🔍 Faster search functionality
-🛡️ Enhanced security features
-
-BUG FIXES:
-• Fixed occasional app crashes during photo uploads
-• Resolved notification delay issues
-• Improved app performance on older devices
-• Fixed GPS location accuracy
-
-DOWNLOAD NOW:
-• iOS: Available on the App Store
-• Android: Available on Google Play Store
-
-The update is recommended for all users to ensure the best GISUGO experience.
-
-UPDATE INSTRUCTIONS:
-1. Open your device's app store
-2. Search for "GISUGO"
-3. Tap "Update" if available
-4. Restart the app after installation
-
-Thank you for keeping your app updated!
-
-GISUGO Mobile Team`,
-            sender: {
-                name: 'GISUGO Mobile Team',
-                email: 'mobile@gisugo.com',
-                avatar: 'public/users/User-09.jpg'
-            },
-            timestamp: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
-            isRead: true,
             hasAttachment: false
         },
         {
@@ -9202,43 +9043,29 @@ function updateInboxTabCounts(role) {
 
 // Update main Messages tab count (separate function to avoid race conditions)
 function updateMainMessagesTabCount() {
-    // Always recalculate both customer and worker counts for accuracy
-    const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
+    // Unified view uses customer data only - count ALL unclosed customer messages
+    const unifiedCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
         const messageState = messageStates[msg.id];
-        return messageState ? (!messageState.isRead && !messageState.isClosed) : (!msg.isRead);
+        return messageState ? !messageState.isClosed : true;
     }).length;
-    const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => {
-        const messageState = messageStates[msg.id];
-        return messageState ? (!messageState.isRead && !messageState.isClosed) : (!msg.isRead);
-    }).length;
-    const totalCount = customerCount + workerCount;
     
-    // Update both customer and worker Messages tab badges (unified IDs)
+    // Update BOTH badge elements with the same unified count
     const customerMessagesTabBadge = document.querySelector('#unifiedMessagesTab .notification-count');
     const workerMessagesTabBadge = document.querySelector('#unifiedMessagesTabWorker .notification-count');
     
+    console.log(`📊 Unified badge update: ${unifiedCount} messages`);
+    
     // Update customer Messages tab badge
     if (customerMessagesTabBadge) {
-        customerMessagesTabBadge.textContent = totalCount;
-        customerMessagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+        customerMessagesTabBadge.textContent = unifiedCount;
+        customerMessagesTabBadge.style.display = unifiedCount > 0 ? 'inline-block' : 'none';
     }
     
-    // Update worker Messages tab badge
+    // Update worker Messages tab badge (same count for unified view)
     if (workerMessagesTabBadge) {
-        workerMessagesTabBadge.textContent = totalCount;
-        workerMessagesTabBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
+        workerMessagesTabBadge.textContent = unifiedCount;
+        workerMessagesTabBadge.style.display = unifiedCount > 0 ? 'inline-block' : 'none';
     }
-    
-    // Fallback selector if the specific ones don't work
-    if (!customerMessagesTabBadge && !workerMessagesTabBadge) {
-        const fallbackBadge = document.querySelector('.tab-btn[data-tab*="messages"] .notification-count');
-        if (fallbackBadge) {
-            fallbackBadge.textContent = totalCount;
-            fallbackBadge.style.display = totalCount > 0 ? 'inline-block' : 'none';
-        }
-    }
-    
-    console.log(`📊 Updated Messages tab badge: ${totalCount} (Customer: ${customerCount}, Worker: ${workerCount})`);
 }
 
     // Setup message filtering functionality
