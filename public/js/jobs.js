@@ -6101,6 +6101,13 @@ function showContactMessageOverlay(userId, userName, applicationId = null) {
     // Show overlay
     overlay.classList.add('show');
     
+    // On small viewports, scroll input into view to avoid keyboard overlap
+    if (window.innerWidth <= 600 && messageInput) {
+        setTimeout(() => {
+            messageInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 250);
+    }
+
     // Initialize handlers if not already done
     if (!overlay.dataset.contactHandlersInitialized) {
         console.log('🔧 Initializing contact overlay handlers');

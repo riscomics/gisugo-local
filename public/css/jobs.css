@@ -1916,6 +1916,7 @@ body:has(.jobs-header) {
   border: 2px solid #4a5568;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   animation: contactSlideIn 0.3s ease-out;
+  box-sizing: border-box; /* prevent overflow from borders/padding */
 }
 
 @keyframes contactSlideIn {
@@ -1984,12 +1985,64 @@ body:has(.jobs-header) {
   font-size: 0.875rem;
   font-family: Arial, Helvetica, sans-serif;
   resize: vertical;
-  margin-bottom: 16px;
+  margin: 0 auto 16px; /* center the field within modal */
+  display: block;
+  box-sizing: border-box; /* include padding/border in width */
 }
 
 .contact-message-input:focus {
   outline: none;
   border-color: #3b82f6;
+}
+
+/* Center placeholder globally */
+.contact-message-input::placeholder { text-align: center; }
+.contact-message-input::-webkit-input-placeholder { text-align: center; }
+
+/* Mobile adjustments: raise modal above keyboard and center input content */
+@media (max-width: 600px) {
+  .contact-message-overlay {
+    align-items: flex-start;
+    overflow-x: hidden;
+  }
+  .contact-message-modal {
+    margin-top: 7vh;
+    width: 92vw;
+    max-height: calc(100vh - 18vh);
+    overflow: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+  .contact-message-input {
+    text-align: center;
+  }
+  .contact-message-input::placeholder {
+    text-align: center;
+  }
+  .contact-message-input::-webkit-input-placeholder {
+    text-align: center;
+  }
+}
+
+@media (max-width: 400px) {
+  .contact-message-modal {
+    margin-top: 9vh;
+    max-height: calc(100vh - 20vh);
+  }
+}
+
+@media (max-width: 375px) {
+  .contact-message-modal {
+    margin-top: 10vh;
+    max-height: calc(100vh - 22vh);
+  }
+}
+
+@media (max-width: 320px) {
+  .contact-message-modal {
+    margin-top: 11vh;
+    max-height: calc(100vh - 24vh);
+  }
 }
 
 .contact-message-actions {
