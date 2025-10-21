@@ -166,6 +166,223 @@ Audit trail for deleted jobs.
 }
 ```
 
+### **8. `chat_threads` Collection**
+**NEW**: Chat/messaging threads between users for job-related communication.
+
+```javascript
+// Document ID: auto-generated
+{
+  // Thread Identification
+  "threadId": "auto-generated_string",
+  "jobId": "job_document_id",
+  "jobTitle": "String",
+  "applicationId": "application_document_id (optional)", // null if initiated from job contact
+  
+  // Participants
+  "participantIds": ["user_uid_1", "user_uid_2"], // Array of 2 user IDs
+  "participant1": {
+    "userId": "user_uid_string",
+    "userName": "String",
+    "userThumbnail": "path/to/image.jpg",
+    "role": "customer|worker" // Their role in THIS thread
+  },
+  "participant2": {
+    "userId": "user_uid_string",
+    "userName": "String",
+    "userThumbnail": "path/to/image.jpg",
+    "role": "customer|worker" // Their role in THIS thread
+  },
+  
+  // Thread Metadata
+  "threadOrigin": "job|application", // How the thread was started
+  "createdAt": timestamp,
+  "lastMessageTime": timestamp,
+  "lastMessagePreview": "String (last 100 chars)",
+  
+  // Status
+  "isActive": boolean, // false if thread should be archived
+  "unreadCount": {
+    "user_uid_1": 0,
+    "user_uid_2": 0
+  }
+}
+```
+
+### **9. `chat_messages` Collection**
+**NEW**: Individual messages within chat threads.
+
+```javascript
+// Document ID: auto-generated
+{
+  // Message Identification
+  "messageId": "auto-generated_string",
+  "threadId": "chat_thread_document_id",
+  
+  // Sender Information
+  "senderId": "user_uid_string",
+  "senderName": "String",
+  "senderType": "customer|worker",
+  "senderAvatar": "path/to/image.jpg",
+  
+  // Message Content
+  "content": "String",
+  "messageType": "text|image|file", // For future expansion
+  "attachmentUrl": "String (optional)", // For future file/image sharing
+  
+  // Timestamps
+  "timestamp": timestamp,
+  "createdAt": timestamp,
+  
+  // Read Status
+  "read": boolean,
+  "readAt": timestamp, // When message was read
+  
+  // Direction (relative to current viewer)
+  "direction": "incoming|outgoing" // Computed client-side based on viewer
+}
+```
+
+---
+
+## **💬 CHAT/MESSAGING QUERIES**
+
+### **Get User's Chat Threads**
+```javascript
+// Get all active chat threads for current user
+const chatThreadsSnapshot = await db.collection('chat_threads')
+  .where('participantIds', 'array-contains', currentUserId)
+  .where('isActive', '==', true)
+  .orderBy('lastMessageTime', 'desc')
+  .get();
+```
+
+### **Get or Create Chat Thread**
+```javascript
+// Check if thread exists between two users for a specific job
+const existingThread = await db.collection('chat_threads')
+  .where('jobId', '==', jobId)
+  .where('participantIds', 'array-contains', currentUserId)
+  .get();
+
+// Filter to find exact match with both participants
+const matchingThread = existingThread.docs.find(doc => {
+  const data = doc.data();
+  return data.participantIds.includes(otherUserId);
+});
+
+if (matchingThread) {
+  // Use existing thread
+  return matchingThread.id;
+} else {
+  // Create new thread
+  const threadRef = await db.collection('chat_threads').add({
+    threadId: db.collection('chat_threads').doc().id,
+    jobId: jobId,
+    jobTitle: jobTitle,
+    applicationId: applicationId || null,
+    participantIds: [currentUserId, otherUserId],
+    participant1: {
+      userId: currentUserId,
+      userName: currentUserName,
+      userThumbnail: currentUserThumbnail,
+      role: currentUserRole
+    },
+    participant2: {
+      userId: otherUserId,
+      userName: otherUserName,
+      userThumbnail: otherUserThumbnail,
+      role: otherUserRole
+    },
+    threadOrigin: applicationId ? 'application' : 'job',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+    lastMessagePreview: messageContent.substring(0, 100),
+    isActive: true,
+    unreadCount: {
+      [currentUserId]: 0,
+      [otherUserId]: 1
+    }
+  });
+  return threadRef.id;
+}
+```
+
+### **Send Message in Thread**
+```javascript
+const batch = db.batch();
+
+// Create message document
+const messageRef = db.collection('chat_messages').doc();
+batch.set(messageRef, {
+  messageId: messageRef.id,
+  threadId: threadId,
+  senderId: currentUserId,
+  senderName: currentUserName,
+  senderType: currentUserRole,
+  senderAvatar: currentUserThumbnail,
+  content: messageContent,
+  messageType: 'text',
+  timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+  createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  read: false,
+  direction: 'outgoing'
+});
+
+// Update thread metadata
+const threadRef = db.collection('chat_threads').doc(threadId);
+batch.update(threadRef, {
+  lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+  lastMessagePreview: messageContent.substring(0, 100),
+  [`unreadCount.${otherUserId}`]: firebase.firestore.FieldValue.increment(1)
+});
+
+await batch.commit();
+```
+
+### **Get Messages in Thread**
+```javascript
+// Real-time listener for messages
+const unsubscribe = db.collection('chat_messages')
+  .where('threadId', '==', threadId)
+  .orderBy('timestamp', 'asc')
+  .onSnapshot((snapshot) => {
+    const messages = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      direction: doc.data().senderId === currentUserId ? 'outgoing' : 'incoming'
+    }));
+    displayMessages(messages);
+  });
+```
+
+### **Mark Messages as Read**
+```javascript
+const batch = db.batch();
+
+// Get all unread messages in thread from other user
+const unreadMessages = await db.collection('chat_messages')
+  .where('threadId', '==', threadId)
+  .where('senderId', '!=', currentUserId)
+  .where('read', '==', false)
+  .get();
+
+// Mark all as read
+unreadMessages.docs.forEach(doc => {
+  batch.update(doc.ref, {
+    read: true,
+    readAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+});
+
+// Reset unread count for current user in thread
+const threadRef = db.collection('chat_threads').doc(threadId);
+batch.update(threadRef, {
+  [`unreadCount.${currentUserId}`]: 0
+});
+
+await batch.commit();
+```
+
 ---
 
 ## **FIRESTORE SECURITY RULES**
@@ -220,6 +437,40 @@ service cloud.firestore {
       
       // System can create notifications
       allow create: if request.auth != null;
+    }
+    
+    // Chat Threads Collection
+    match /chat_threads/{threadId} {
+      // Only participants can read thread
+      allow read: if request.auth != null && 
+        request.auth.uid in resource.data.participantIds;
+      
+      // Only participants can create threads
+      allow create: if request.auth != null && 
+        request.auth.uid in resource.data.participantIds;
+      
+      // Only participants can update (for unread counts, etc)
+      allow update: if request.auth != null && 
+        request.auth.uid in resource.data.participantIds;
+      
+      // No deletion allowed (archive instead)
+      allow delete: if false;
+    }
+    
+    // Chat Messages Collection
+    match /chat_messages/{messageId} {
+      // Must be thread participant to read messages
+      allow read: if request.auth != null;
+      
+      // Only sender can create their messages
+      allow create: if request.auth != null && 
+        resource.data.senderId == request.auth.uid;
+      
+      // Only recipient can update (mark as read)
+      allow update: if request.auth != null;
+      
+      // No deletion allowed
+      allow delete: if false;
     }
   }
 }

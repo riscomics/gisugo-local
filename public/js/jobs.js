@@ -5911,8 +5911,9 @@ function initializeApplicationActionHandlers() {
             const userName = this.getAttribute('data-user-name');
             const userId = this.getAttribute('data-user-id');
             const applicationId = this.getAttribute('data-application-id');
+            const jobId = overlay.getAttribute('data-job-id'); // Get jobId from overlay
             
-            console.log('Contact button data:', { userName, userId, applicationId });
+            console.log('Contact button data:', { userName, userId, applicationId, jobId });
             
             if (userName && userId) {
                 console.log(`Opening contact message for ${userName}`);
@@ -5920,8 +5921,8 @@ function initializeApplicationActionHandlers() {
                 // Close the current overlay
                 hideApplicationActionOverlay();
                 
-                // Show contact message overlay
-                showContactMessageOverlay(userId, userName, applicationId);
+                // Show contact message overlay with jobId and applicationId
+                showContactMessageOverlay(userId, userName, jobId, applicationId);
             } else {
                 console.error('Missing contact button data attributes:', { userName, userId });
             }
@@ -6069,7 +6070,7 @@ function initializeApplicationActionHandlers() {
     overlay.dataset.actionHandlersInitialized = 'true';
 }
 
-function showContactMessageOverlay(userId, userName, applicationId = null) {
+function showContactMessageOverlay(userId, userName, jobId = null, applicationId = null) {
     const overlay = document.getElementById('contactMessageOverlay');
     const userNameElement = document.getElementById('contactUserName');
     const messageInput = document.getElementById('contactMessageInput');
@@ -6085,12 +6086,18 @@ function showContactMessageOverlay(userId, userName, applicationId = null) {
     // Set data attributes
     overlay.setAttribute('data-user-id', userId);
     overlay.setAttribute('data-user-name', userName);
+    if (jobId) {
+        overlay.setAttribute('data-job-id', jobId);
+    }
     if (applicationId) {
         overlay.setAttribute('data-application-id', applicationId);
     }
     
     messageInput.setAttribute('data-user-id', userId);
     messageInput.setAttribute('data-user-name', userName);
+    if (jobId) {
+        messageInput.setAttribute('data-job-id', jobId);
+    }
     if (applicationId) {
         messageInput.setAttribute('data-application-id', applicationId);
     }
@@ -6139,7 +6146,7 @@ function showContactMessageOverlay(userId, userName, applicationId = null) {
     setTimeout(() => messageInput.focus(), 100);
 }
 
-function handleSendContactMessage() {
+async function handleSendContactMessage() {
     console.log('📤 handleSendContactMessage called');
     
     const overlay = document.getElementById('contactMessageOverlay');
@@ -6150,12 +6157,13 @@ function handleSendContactMessage() {
         return;
     }
     
-    const userId = overlay.getAttribute('data-user-id');
-    const userName = overlay.getAttribute('data-user-name');
+    const recipientId = overlay.getAttribute('data-user-id');
+    const recipientName = overlay.getAttribute('data-user-name');
+    const jobId = overlay.getAttribute('data-job-id');
     const applicationId = overlay.getAttribute('data-application-id');
     const message = messageInput.value.trim();
     
-    console.log('📤 Contact data:', { userId, userName, applicationId, message });
+    console.log('📤 Contact data:', { recipientId, recipientName, jobId, applicationId, message });
     
     if (!message) {
         console.log('⚠️ No message entered, focusing input');
@@ -6163,10 +6171,141 @@ function handleSendContactMessage() {
         return;
     }
     
-    console.log(`📤 Sending message to ${userName}:`, message);
+    console.log(`📤 Sending message to ${recipientName}:`, message);
     
-    // TODO: Send message to backend
-    showConfirmation('📤', 'Message Sent', `Your message has been sent to ${userName}`, 'celebration');
+    /* FIREBASE IMPLEMENTATION - UNCOMMENT WHEN FIREBASE IS CONFIGURED
+    try {
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            console.error('❌ User not authenticated');
+            showConfirmation('❌', 'Error', 'You must be logged in to send messages', 'error');
+            return;
+        }
+        
+        const db = firebase.firestore();
+        
+        // Get current user info from Firestore (or cached profile)
+        const currentUserDoc = await db.collection('users').doc(currentUser.uid).get();
+        const currentUserData = currentUserDoc.data();
+        
+        // Get job info for thread metadata
+        const jobDoc = await db.collection('jobs').doc(jobId).get();
+        const jobData = jobDoc.data();
+        
+        // Get recipient info
+        const recipientDoc = await db.collection('users').doc(recipientId).get();
+        const recipientData = recipientDoc.data();
+        
+        // Determine roles based on job poster
+        const currentUserRole = jobData.posterId === currentUser.uid ? 'customer' : 'worker';
+        const recipientRole = jobData.posterId === recipientId ? 'customer' : 'worker';
+        
+        // Check if thread already exists for this job/application between these users
+        let existingThreadQuery;
+        if (applicationId) {
+            // If from application, search by applicationId for more specific match
+            existingThreadQuery = await db.collection('chat_threads')
+                .where('applicationId', '==', applicationId)
+                .where('participantIds', 'array-contains', currentUser.uid)
+                .get();
+        } else {
+            // If from job offer (no applicationId), search by jobId
+            existingThreadQuery = await db.collection('chat_threads')
+                .where('jobId', '==', jobId)
+                .where('participantIds', 'array-contains', currentUser.uid)
+                .get();
+        }
+        
+        let threadId;
+        let isNewThread = false;
+        
+        // Find exact match with both participants
+        const matchingThread = existingThreadQuery.docs.find(doc => {
+            const data = doc.data();
+            return data.participantIds.includes(recipientId);
+        });
+        
+        if (matchingThread) {
+            // Use existing thread
+            threadId = matchingThread.id;
+            console.log('📝 Using existing thread:', threadId);
+        } else {
+            // Create new thread
+            isNewThread = true;
+            const threadRef = await db.collection('chat_threads').add({
+                jobId: jobId,
+                jobTitle: jobData.title,
+                applicationId: applicationId || null, // Set if contacting from application, null if from job offer
+                participantIds: [currentUser.uid, recipientId],
+                participant1: {
+                    userId: currentUser.uid,
+                    userName: currentUserData.displayName,
+                    userThumbnail: currentUserData.photoURL || 'public/users/default-avatar.jpg',
+                    role: currentUserRole
+                },
+                participant2: {
+                    userId: recipientId,
+                    userName: recipientData.displayName,
+                    userThumbnail: recipientData.photoURL || 'public/users/default-avatar.jpg',
+                    role: recipientRole
+                },
+                threadOrigin: applicationId ? 'application' : 'job', // 'application' if from Listings, 'job' if from Gigs Offered
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessagePreview: message.substring(0, 100),
+                isActive: true,
+                unreadCount: {
+                    [currentUser.uid]: 0,
+                    [recipientId]: 1
+                }
+            });
+            threadId = threadRef.id;
+            console.log('✅ Created new thread:', threadId);
+        }
+        
+        // Create message and update thread in batch
+        const batch = db.batch();
+        
+        // Create message document
+        const messageRef = db.collection('chat_messages').doc();
+        batch.set(messageRef, {
+            messageId: messageRef.id,
+            threadId: threadId,
+            senderId: currentUser.uid,
+            senderName: currentUserData.displayName,
+            senderType: currentUserRole,
+            senderAvatar: currentUserData.photoURL || 'public/users/default-avatar.jpg',
+            content: message,
+            messageType: 'text',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            read: false
+        });
+        
+        // Update thread metadata (only if not a new thread, as new thread already has this data)
+        if (!isNewThread) {
+            const threadRef = db.collection('chat_threads').doc(threadId);
+            batch.update(threadRef, {
+                lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+                lastMessagePreview: message.substring(0, 100),
+                [`unreadCount.${recipientId}`]: firebase.firestore.FieldValue.increment(1)
+            });
+        }
+        
+        await batch.commit();
+        
+        console.log('✅ Message sent successfully');
+        showConfirmation('📤', 'Message Sent', `Your message has been sent to ${recipientName}`, 'celebration');
+        hideContactMessageOverlay();
+        
+    } catch (error) {
+        console.error('❌ Error sending message:', error);
+        showConfirmation('❌', 'Error', 'Failed to send message. Please try again.', 'error');
+    }
+    */
+    
+    // MOCK IMPLEMENTATION (remove when Firebase is ready)
+    showConfirmation('📤', 'Message Sent', `Your message has been sent to ${recipientName}`, 'celebration');
     hideContactMessageOverlay();
 }
 
