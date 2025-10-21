@@ -3964,8 +3964,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .inbox-tab-btn.active {
-    background: #3182ce;
-    color: white;
+    background: #3182ce !important;
+    color: white !important;
 }
 
 .inbox-tab-btn:hover {
