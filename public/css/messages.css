@@ -544,8 +544,8 @@ body:has(.messages-header) {
   left: 0;
   width: 100%; /* Full width to contain all tabs */
   background: #2d3748;
-  border-top: 2px solid #4a5568; /* Top borderline to separate from role tabs */
-  border-bottom: 2px solid #4a5568; /* Match jobs.css border */
+  /* Use inset shadows for row lines so the gap overlay can mask them */
+  box-shadow: inset 0 2px #4a5568, inset 0 -2px #4a5568;
   display: flex;
   z-index: 999; /* EXACT COPY from jobs.css */
 }
@@ -568,6 +568,7 @@ body:has(.messages-header) {
   flex-direction: column;
   align-items: center;
   gap: clamp(2px, 1vh, 4px); /* Responsive gap */
+  position: relative; /* Anchor pseudo-elements for custom separators */
 }
 
 .tab-btn:hover {
@@ -584,11 +585,105 @@ body:has(.messages-header) {
 /* Unified Messages Tab Styles - Visual separation within the same tab row */
 .unified-messages-btn {
   margin-left: 20px; /* Gap from other tabs */
-  background: #1a202c !important; /* Darker background for distinction */
+  background: transparent !important; /* Match inactive background of other tabs */
   color: #cbd5e0 !important; /* Slightly different color */
-  border-left: 2px solid #4a5568; /* Left border for separation */
+  /* Remove built-in border; use custom separator line for better control */
   border-radius: 4px 0 0 4px; /* Minimal rounded corners on left side */
   position: relative;
+}
+
+.unified-messages-btn::before {
+  content: "";
+  position: absolute;
+  left: -20px; /* Fill the visual gap space */
+  top: 0; /* Align to row top to avoid sticking out */
+  height: 100%; /* Match row height exactly */
+  width: 20px; /* Match margin-left exactly */
+  /* Fill the gap and draw the Messages-side separator with top/bottom offsets */
+  background:
+    linear-gradient(#4a5568, #4a5568) right 0 top 0 / 2px 100% no-repeat, /* full height line inside the gap */
+    #363f4f;
+  box-shadow: none;
+  pointer-events: none; /* Don't block clicks on neighboring tabs */
+  z-index: 4; /* Ensure the line sits above the bottom gap mask */
+}
+
+/* Bottom border cut for the gap */
+.unified-messages-btn::after {
+  content: "";
+  position: absolute;
+  left: -20px; /* Align with gap */
+  bottom: -4px; /* Extend further to fully mask any residual line */
+  width: 18px; /* Leave 2px on the right for the vertical line */
+  height: 6px; /* Slightly larger than the shadow thickness to avoid hairline */
+  background: #363f4f; /* Page background to erase the line */
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Remove side rounding so selected tabs don't look awkward */
+.messages-tabs .tab-btn:nth-last-child(2),
+.messages-tabs .tab-btn:nth-last-child(2).active,
+.messages-tabs .tab-btn:nth-last-child(2):hover,
+.messages-tabs .unified-messages-btn,
+.messages-tabs .unified-messages-btn.active,
+.messages-tabs .unified-messages-btn:hover {
+  border-radius: 0;
+}
+
+/* Custom separator line between middle tab and Messages with top/bottom offsets */
+.messages-tabs .tab-btn:nth-last-child(2)::after {
+  content: "";
+  position: absolute;
+  right: -1px; /* Sit at the very edge into the gap */
+  top: 2px;   /* Keep a small offset from the top line */
+  bottom: 0; /* Reach the bottom to fully contain the tab */
+  width: 2px;
+  background: #4a5568; /* Match row line color */
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* Mirror separator on the left edge of Messages for symmetry and precise height */
+.messages-tabs .unified-messages-btn::marker { /* placeholder to keep specificity low */ }
+.messages-tabs .unified-messages-btn::before { /* already used for gap fill; add inner line */ }
+.messages-tabs .unified-messages-btn .__shim__ { display:none; } /* no-op to avoid selector collisions */
+
+.messages-tabs .unified-messages-btn::selection { background: transparent; } /* no-op */
+
+/* Add the vertical line on the Messages side using another layered pseudo-element */
+.messages-tabs .unified-messages-btn::after,
+.messages-tabs .unified-messages-btn::before {}
+
+/* Dedicated inner line element at Messages left edge */
+.messages-tabs .unified-messages-btn:after {
+  /* keep existing bottom mask; inner line is drawn via a new pseudo-element to avoid conflicts */
+}
+
+.messages-tabs .unified-messages-btn:before {}
+
+/* Create a new pseudo-element layered above the gap fill: */
+.messages-tabs .unified-messages-btn::before,
+.messages-tabs .unified-messages-btn::after {}
+
+/* Use an extra element for the vertical line using the Messages button itself */
+.messages-tabs .unified-messages-btn::before {
+  box-shadow: none; /* already set */
+}
+
+.messages-tabs .unified-messages-btn::after {
+  /* bottom mask already set; add a sibling line via a separate element */
+}
+
+/* Inject a separate pseudo-element for the Messages left-edge line */
+.messages-tabs .unified-messages-btn::before,
+.messages-tabs .unified-messages-btn::after {}
+
+/* Final: add a new pseudo-element using ::before for the gap fill (existing), and add a new ::after-variant using an overlay element below the existing ::after.
+   Since we already occupy ::after for bottom mask, we will draw the vertical line using a new ::before overlay within the gap by leveraging an inner gradient on the button itself. */
+/* Remove earlier background-image method to avoid double lines */
+.messages-tabs .unified-messages-btn {
+  background-image: none;
 }
 
 .unified-messages-btn:hover {

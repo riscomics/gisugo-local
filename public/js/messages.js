@@ -653,6 +653,17 @@ async function switchToCustomerTab(tabType) {
         wrapper.classList.remove('active');
     });
     
+    // Ensure unified messages content is hidden when switching away
+    const unifiedContentCustomerScope = document.getElementById('unified-messages-content');
+    if (unifiedContentCustomerScope) {
+        unifiedContentCustomerScope.style.display = 'none';
+        unifiedContentCustomerScope.classList.remove('active');
+    }
+    
+    // Remove active state from unified Messages tabs (both roles)
+    document.getElementById('unifiedMessagesTab')?.classList.remove('active');
+    document.getElementById('unifiedMessagesTabWorker')?.classList.remove('active');
+    
     const activeWrapper = document.getElementById(`${tabType}-content`);
     if (activeWrapper) {
         activeWrapper.style.display = 'block';
@@ -696,6 +707,17 @@ async function switchToWorkerTab(tabType) {
         wrapper.style.display = 'none';
         wrapper.classList.remove('active');
     });
+    
+    // Ensure unified messages content is hidden when switching away
+    const unifiedContentWorkerScope = document.getElementById('unified-messages-content');
+    if (unifiedContentWorkerScope) {
+        unifiedContentWorkerScope.style.display = 'none';
+        unifiedContentWorkerScope.classList.remove('active');
+    }
+    
+    // Remove active state from unified Messages tabs (both roles)
+    document.getElementById('unifiedMessagesTab')?.classList.remove('active');
+    document.getElementById('unifiedMessagesTabWorker')?.classList.remove('active');
     
     const activeWrapper = document.getElementById(`${tabType}-content`);
     if (activeWrapper) {
@@ -9191,9 +9213,9 @@ function updateMainMessagesTabCount() {
     }).length;
     const totalCount = customerCount + workerCount;
     
-    // Update both customer and worker Messages tab badges
-    const customerMessagesTabBadge = document.querySelector('#customerMessagesTab .notification-count');
-    const workerMessagesTabBadge = document.querySelector('#workerMessagesTab .notification-count');
+    // Update both customer and worker Messages tab badges (unified IDs)
+    const customerMessagesTabBadge = document.querySelector('#unifiedMessagesTab .notification-count');
+    const workerMessagesTabBadge = document.querySelector('#unifiedMessagesTabWorker .notification-count');
     
     // Update customer Messages tab badge
     if (customerMessagesTabBadge) {
