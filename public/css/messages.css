@@ -582,12 +582,17 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
+/* Ensure Messages tab shows the same bottom highlight when active */
+.unified-messages-btn.active {
+  border-bottom-color: #f0d0aa;
+}
+
 /* Unified Messages Tab Styles - Visual separation within the same tab row */
 .unified-messages-btn {
   margin-left: 16px; /* Gap from other tabs (reduced for slight left extension) */
   background: transparent !important; /* Match inactive background of other tabs */
   color: #cbd5e0 !important; /* Slightly different color */
-  border: none; /* Remove left border line */
+  border-left: none; /* Remove left border line only */
   position: relative;
 }
 
