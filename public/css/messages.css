@@ -584,21 +584,20 @@ body:has(.messages-header) {
 
 /* Unified Messages Tab Styles - Visual separation within the same tab row */
 .unified-messages-btn {
-  margin-left: 20px; /* Gap from other tabs */
+  margin-left: 16px; /* Gap from other tabs (reduced for slight left extension) */
   background: transparent !important; /* Match inactive background of other tabs */
   color: #cbd5e0 !important; /* Slightly different color */
-  /* Remove built-in border; use custom separator line for better control */
-  border-radius: 4px 0 0 4px; /* Minimal rounded corners on left side */
+  border: none; /* Remove left border line */
   position: relative;
 }
 
 .unified-messages-btn::before {
   content: "";
   position: absolute;
-  left: -20px; /* Fill the visual gap space */
+  left: -16px; /* Fill the visual gap space */
   top: 0; /* Align to row top to avoid sticking out */
   height: 100%; /* Match row height exactly */
-  width: 20px; /* Match margin-left exactly */
+  width: 16px; /* Match margin-left exactly */
   /* Fill the gap and draw the Messages-side separator with top/bottom offsets */
   background:
     linear-gradient(#4a5568, #4a5568) right 0 top 0 / 2px 100% no-repeat, /* full height line inside the gap */
@@ -612,9 +611,9 @@ body:has(.messages-header) {
 .unified-messages-btn::after {
   content: "";
   position: absolute;
-  left: -20px; /* Align with gap */
+  left: -16px; /* Align with gap */
   bottom: -4px; /* Extend further to fully mask any residual line */
-  width: 18px; /* Leave 2px on the right for the vertical line */
+  width: 14px; /* Leave 2px on the right for the vertical line */
   height: 6px; /* Slightly larger than the shadow thickness to avoid hairline */
   background: #363f4f; /* Page background to erase the line */
   pointer-events: none;
@@ -624,11 +623,16 @@ body:has(.messages-header) {
 /* Remove side rounding so selected tabs don't look awkward */
 .messages-tabs .tab-btn:nth-last-child(2),
 .messages-tabs .tab-btn:nth-last-child(2).active,
-.messages-tabs .tab-btn:nth-last-child(2):hover,
-.messages-tabs .unified-messages-btn,
-.messages-tabs .unified-messages-btn.active,
-.messages-tabs .unified-messages-btn:hover {
+.messages-tabs .tab-btn:nth-last-child(2):hover {
   border-radius: 0;
+}
+
+/* Minimalistic Messages tab shape with rounded left corners */
+.messages-tabs .unified-messages-btn,
+.messages-tabs .unified-messages-btn:hover,
+.messages-tabs .unified-messages-btn.active {
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* Custom separator line between middle tab and Messages with top/bottom offsets */
@@ -636,11 +640,11 @@ body:has(.messages-header) {
   content: "";
   position: absolute;
   right: -1px; /* Sit at the very edge into the gap */
-  top: 2px;   /* Keep a small offset from the top line */
-  bottom: 0; /* Reach the bottom to fully contain the tab */
+  top: 0;   /* Full height to match Messages-side line */
+  bottom: -2px; /* Extend slightly to eliminate tiny bottom gap */
   width: 2px;
   background: #4a5568; /* Match row line color */
-  z-index: 4;
+  z-index: 5; /* Above Messages gap overlay */
   pointer-events: none;
 }
 
@@ -689,12 +693,14 @@ body:has(.messages-header) {
 .unified-messages-btn:hover {
   color: #e2e8f0 !important;
   background: #2d3748 !important;
+  box-shadow: none;
 }
 
 .unified-messages-btn.active {
   color: #ffffff !important;
   border-bottom-color: #63b3ed !important; /* Different accent color */
   background: #2a4365 !important;
+  box-shadow: none;
 }
 
 /* Independent Tab Content Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM AND NEW ROLE TABS */
