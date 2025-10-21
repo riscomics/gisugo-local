@@ -278,14 +278,16 @@ body:has(.messages-header) {
 /* 1754px and below - Column layout: New/Old on top, Dropdown + Search bar below */
 @media (max-width: 1754px) {
   #customer-messages-content .user-messages-left-panel .inbox-controls,
-  #worker-messages-content .user-messages-left-panel .inbox-controls {
+  #worker-messages-content .user-messages-left-panel .inbox-controls,
+  #unified-messages-content .user-messages-left-panel .inbox-controls {
     flex-direction: column !important;
     gap: 0.75rem !important;
     align-items: stretch !important;
   }
   
   #customer-messages-content .user-messages-left-panel .inbox-search,
-  #worker-messages-content .user-messages-left-panel .inbox-search {
+  #worker-messages-content .user-messages-left-panel .inbox-search,
+  #unified-messages-content .user-messages-left-panel .inbox-search {
     max-width: none !important;
     width: 100% !important;
     display: flex !important;
@@ -312,7 +314,8 @@ body:has(.messages-header) {
   }
   
   #customer-messages-content .user-messages-left-panel .inbox-search,
-  #worker-messages-content .user-messages-left-panel .inbox-search {
+  #worker-messages-content .user-messages-left-panel .inbox-search,
+  #unified-messages-content .user-messages-left-panel .inbox-search {
     flex: 1 !important;
   }
 }
@@ -342,7 +345,8 @@ body:has(.messages-header) {
 /* 1755px and above - Row layout: New/Old, Dropdown, Search bar/icon all in one row */
 @media (min-width: 1755px) {
   #customer-messages-content .user-messages-left-panel .inbox-controls,
-  #worker-messages-content .user-messages-left-panel .inbox-controls {
+  #worker-messages-content .user-messages-left-panel .inbox-controls,
+  #unified-messages-content .user-messages-left-panel .inbox-controls {
     flex-direction: row !important;
     gap: 1rem !important;
     align-items: center !important;
@@ -350,7 +354,8 @@ body:has(.messages-header) {
   }
   
   #customer-messages-content .user-messages-left-panel .inbox-search,
-  #worker-messages-content .user-messages-left-panel .inbox-search {
+  #worker-messages-content .user-messages-left-panel .inbox-search,
+  #unified-messages-content .user-messages-left-panel .inbox-search {
     flex: 0 0 auto !important;
     max-width: none !important;
     display: flex !important;
@@ -537,7 +542,7 @@ body:has(.messages-header) {
   position: fixed;
   top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px); /* Clear uniform header + role tabs - EXACT COPY from jobs.css */
   left: 0;
-  width: 100%;
+  width: 100%; /* Full width to contain all tabs */
   background: #2d3748;
   border-top: 2px solid #4a5568; /* Top borderline to separate from role tabs */
   border-bottom: 2px solid #4a5568; /* Match jobs.css border */
@@ -576,6 +581,27 @@ body:has(.messages-header) {
   background: #3d4856;
 }
 
+/* Unified Messages Tab Styles - Visual separation within the same tab row */
+.unified-messages-btn {
+  margin-left: 20px; /* Gap from other tabs */
+  background: #1a202c !important; /* Darker background for distinction */
+  color: #cbd5e0 !important; /* Slightly different color */
+  border-left: 2px solid #4a5568; /* Left border for separation */
+  border-radius: 4px 0 0 4px; /* Minimal rounded corners on left side */
+  position: relative;
+}
+
+.unified-messages-btn:hover {
+  color: #e2e8f0 !important;
+  background: #2d3748 !important;
+}
+
+.unified-messages-btn.active {
+  color: #ffffff !important;
+  border-bottom-color: #63b3ed !important; /* Different accent color */
+  background: #2a4365 !important;
+}
+
 /* Independent Tab Content Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM AND NEW ROLE TABS */
 .tab-content-wrapper {
   position: fixed;
@@ -590,6 +616,15 @@ body:has(.messages-header) {
 
 .tab-content-wrapper.active {
   display: block; /* Show only active tab */
+}
+
+/* Unified Messages Content Wrapper */
+.unified-content {
+  /* Inherits from .tab-content-wrapper */
+}
+
+.unified-content.active {
+  display: block;
 }
 
 .tab-scroll-container {
@@ -3799,7 +3834,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 #customer-messages-content .user-messages-left-panel .inbox-controls,
-#worker-messages-content .user-messages-left-panel .inbox-controls {
+#worker-messages-content .user-messages-left-panel .inbox-controls,
+#unified-messages-content .user-messages-left-panel .inbox-controls {
     display: flex;
     flex-direction: row;
     gap: 1rem;
@@ -4107,7 +4143,8 @@ body:has(.selection-controls[style*="display: flex"]) {
     }
     
     #customer-messages-content .user-messages-left-panel .inbox-controls,
-    #worker-messages-content .user-messages-left-panel .inbox-controls {
+    #worker-messages-content .user-messages-left-panel .inbox-controls,
+    #unified-messages-content .user-messages-left-panel .inbox-controls {
         flex-direction: column;
         gap: 0.75rem;
         align-items: stretch;
@@ -4130,7 +4167,8 @@ body:has(.selection-controls[style*="display: flex"]) {
     }
     
     #customer-messages-content .user-messages-left-panel .inbox-controls,
-    #worker-messages-content .user-messages-left-panel .inbox-controls {
+    #worker-messages-content .user-messages-left-panel .inbox-controls,
+    #unified-messages-content .user-messages-left-panel .inbox-controls {
         gap: 0.5rem;
     }
     
@@ -4186,7 +4224,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Column layout for 338px and below - ENHANCED */
 @media (max-width: 338px) {
     #customer-messages-content .user-messages-left-panel .inbox-controls,
-    #worker-messages-content .user-messages-left-panel .inbox-controls {
+    #worker-messages-content .user-messages-left-panel .inbox-controls,
+    #unified-messages-content .user-messages-left-panel .inbox-controls {
         flex-direction: column !important;
         gap: 0.5rem !important;
         align-items: stretch !important;
@@ -4309,7 +4348,8 @@ body:has(.selection-controls[style*="display: flex"]) {
     }
     
     #customer-messages-content .user-messages-left-panel .inbox-controls,
-    #worker-messages-content .user-messages-left-panel .inbox-controls {
+    #worker-messages-content .user-messages-left-panel .inbox-controls,
+    #unified-messages-content .user-messages-left-panel .inbox-controls {
         gap: 0.4rem !important;
         padding: 0 0.25rem;
     }
@@ -5495,7 +5535,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 @media (min-width: 887px) {
     /* Target the applications-container that holds the messages layout */
     #customer-messages-content .applications-container,
-    #worker-messages-content .applications-container {
+    #worker-messages-content .applications-container,
+    #unified-messages-content .applications-container {
         height: 100%; /* Fill the tab-content-wrapper */
         overflow: hidden;
         padding: 0 !important; /* Remove ALL padding including bottom padding that causes overflow */
@@ -5535,6 +5576,12 @@ body:has(.selection-controls[style*="display: flex"]) {
     
     .user-messages-list-container::-webkit-scrollbar {
         display: none;  /* Safari and Chrome */
+    }
+    
+    /* Desktop spacing for message thread cards in inbox */
+    .admin-message-item {
+        margin-left: 1rem;
+        margin-right: 1rem;
     }
     
     /* Right panel (message details) - constrain height */
@@ -5594,7 +5641,8 @@ body:has(.selection-controls[style*="display: flex"]) {
     
     /* Mobile applications container height constraints */
     #customer-messages-content .applications-container,
-    #worker-messages-content .applications-container {
+    #worker-messages-content .applications-container,
+    #unified-messages-content .applications-container {
         height: 100%; /* Fill the tab-content-wrapper */
         overflow: hidden;
         padding: 0 !important; /* Remove ALL padding including bottom padding */

@@ -284,6 +284,19 @@ async function initializeCustomerInterviewsTab() {
     loadCustomerInterviews();
 }
 
+async function initializeUnifiedMessagesTab() {
+    console.log('📧 Initializing unified messages tab');
+    // Initialize unified admin messages functionality using customer data
+    loadUnifiedMessages();
+    setupMessageFiltering('unified');
+    setupMessageDetailHandlers('unified');
+    
+    // Force update the Messages tab counter when initializing
+    setTimeout(() => {
+        updateMainMessagesTabCount(); // Update main tab count
+    }, 100);
+}
+
 async function initializeCustomerMessagesTab() {
     console.log('📧 Initializing customer messages tab');
     // Initialize customer admin messages functionality
@@ -564,6 +577,12 @@ function initializeTabs() {
             e.preventDefault();
             const tabType = this.getAttribute('data-tab');
             
+            // Check if this is the unified Messages tab
+            if (tabType === 'unified-messages') {
+                await switchToUnifiedMessages();
+                return;
+            }
+            
             // Determine if this is a customer or worker tab
             const isCustomerTab = this.closest('.customer-tabs');
             const isWorkerTab = this.closest('.worker-tabs');
@@ -575,6 +594,37 @@ function initializeTabs() {
             }
         });
     });
+}
+
+async function switchToUnifiedMessages() {
+    console.log('🔄 Switching to unified Messages tab');
+    
+    // CLEANUP: Close all message threads when switching tabs
+    closeAllMessageThreads();
+    
+    // CLEANUP: Cancel any active selections when switching tabs
+    cancelSelection();
+    
+    // Hide all content first
+    document.querySelectorAll('.tab-content-wrapper').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    // Show unified messages content
+    const unifiedContent = document.getElementById('unified-messages-content');
+    if (unifiedContent) {
+        unifiedContent.style.display = 'block';
+        unifiedContent.classList.add('active');
+    }
+    
+    // Update tab button states - both customer and worker Messages tabs should be active
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('unifiedMessagesTab')?.classList.add('active');
+    document.getElementById('unifiedMessagesTabWorker')?.classList.add('active');
+    
+    // Initialize unified messages tab content
+    await initializeUnifiedMessagesTab();
 }
 
 async function switchToCustomerTab(tabType) {
@@ -8563,7 +8613,10 @@ function loadCustomerMessages() {
     const container = document.querySelector('#customer-messages-content .user-messages-list-container');
     if (container && MOCK_ADMIN_MESSAGES.customer) {
         // Start with New messages only (filtering will handle Old messages)
-        const newMessages = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isClosed);
+        const newMessages = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
+            const messageState = messageStates[msg.id];
+            return messageState ? !messageState.isClosed : true;
+        });
         console.log('Customer new messages count:', newMessages.length);
         
         container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'customer')).join('');
@@ -8575,13 +8628,37 @@ function loadCustomerMessages() {
     }
 }
 
+// Load unified messages (using customer data as the single source)
+function loadUnifiedMessages() {
+    console.log('Loading unified messages...');
+    const container = document.querySelector('#unified-messages-content .user-messages-list-container');
+    if (container && MOCK_ADMIN_MESSAGES.customer) {
+        // Start with New messages only (filtering will handle Old messages)
+        const newMessages = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
+            const messageState = messageStates[msg.id];
+            return messageState ? !messageState.isClosed : true;
+        });
+        console.log('Unified new messages count:', newMessages.length);
+        
+        container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'unified')).join('');
+        
+        // Setup click handlers for message items
+        setupMessageDetailHandlers('unified');
+        
+        updateMainMessagesTabCount();
+    }
+}
+
 // Load worker messages  
 function loadWorkerMessages() {
     console.log('Loading worker messages...');
     const container = document.querySelector('#worker-messages-content .user-messages-list-container');
     if (container && MOCK_ADMIN_MESSAGES.worker) {
         // Start with New messages only (filtering will handle Old messages)
-        const newMessages = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isClosed);
+        const newMessages = MOCK_ADMIN_MESSAGES.worker.filter(msg => {
+            const messageState = messageStates[msg.id];
+            return messageState ? !messageState.isClosed : true;
+        });
         console.log('Worker new messages count:', newMessages.length);
         
         container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'worker')).join('');
@@ -8670,8 +8747,10 @@ function formatTimeAgo(timestamp) {
 
 // Show message in desktop window
 function showMessageWindow(message, role) {
-    const detailContainer = document.getElementById(`${role}MessageDetail`);
-    const contentContainer = document.getElementById(`${role}MessageContent`);
+    const detailId = role === 'unified' ? 'unifiedMessageDetail' : `${role}MessageDetail`;
+    const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
+    const detailContainer = document.getElementById(detailId);
+    const contentContainer = document.getElementById(contentId);
     
     if (!detailContainer || !contentContainer) return;
     
@@ -8697,7 +8776,8 @@ function showMessageWindow(message, role) {
 
     // Show message in mobile overlay
     function showMessageOverlay(message, role) {
-        const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+        const overlayId = role === 'unified' ? 'unifiedMessageDetailOverlay' : `${role}MessageDetailOverlay`;
+        const overlay = document.getElementById(overlayId);
         if (!overlay) return;
         
         // Generate clean message content for overlay (no buttons in content)
@@ -8706,18 +8786,29 @@ function showMessageWindow(message, role) {
         overlay.innerHTML = `
             <div class="overlay-content">
                 <div class="overlay-header">
-                    <button class="overlay-close-btn" onclick="this.closest('.user-message-detail-overlay').style.display='none'">✕</button>
+                    <button class="overlay-close-btn" data-message-id="${message.id}" data-role="${role}">✕</button>
                     <h3>Message Details</h3>
                 </div>
                 <div class="overlay-body">
                     ${overlayMessageContent}
                 </div>
                 <div class="overlay-footer">
-                    <button class="detail-reply-btn" onclick="showReplyModal(MOCK_ADMIN_MESSAGES.${role}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-reply-btn" onclick="showReplyModal(${role === 'unified' ? 'MOCK_ADMIN_MESSAGES.customer' : 'MOCK_ADMIN_MESSAGES.' + role}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
                     <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
                 </div>
             </div>
         `;
+        
+        // Add event listener for the X close button to trigger auto-close
+        const closeBtn = overlay.querySelector('.overlay-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                // Auto-close the message (move to Old Messages)
+                closeMessage(message.id, role);
+                // Hide the overlay
+                overlay.style.display = 'none';
+            });
+        }
         
         // Show overlay
         overlay.style.display = 'flex';
@@ -8733,7 +8824,10 @@ function generateReplyThreadHTML(messageId) {
     
     let threadHTML = '<div class="reply-thread"><h4 class="thread-title">Conversation History</h4>';
     
-    messageState.replies.forEach(reply => {
+    // Reverse the replies array to show newest first
+    const reversedReplies = [...messageState.replies].reverse();
+    
+    reversedReplies.forEach(reply => {
         const replyDate = new Date(reply.timestamp);
         const formattedDate = replyDate.toLocaleDateString('en-US', {
             month: 'short',
@@ -8868,11 +8962,22 @@ function generateOverlayMessageHTML(message, role) {
 function markMessageAsRead(message, role) {
     console.log('markMessageAsRead called:', message.id, role);
     
-    // Update message state
-    message.isRead = true;
-    message.isClosed = true; // Also mark as closed when marking as read
+    // Initialize message state if it doesn't exist
+    if (!messageStates[message.id]) {
+        messageStates[message.id] = {
+            status: 'new',
+            isReplied: false,
+            isRead: false,
+            isClosed: false,
+            replies: []
+        };
+    }
     
-    console.log('Message state updated:', { isRead: message.isRead, isClosed: message.isClosed });
+    // Update message state
+    messageStates[message.id].isRead = true;
+    messageStates[message.id].isClosed = true; // Also mark as closed when marking as read
+    
+    console.log('Message state updated:', { isRead: messageStates[message.id].isRead, isClosed: messageStates[message.id].isClosed });
     
     // Update UI - remove unread class
     const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
@@ -8889,10 +8994,12 @@ function markMessageAsRead(message, role) {
 // Helper function for filtering messages
 function filterMessages(messages, searchTerm, messageType, currentTab) {
     return messages.filter(message => {
-        // Filter by current tab (New/Old)
-        const isNewMessage = !message.isClosed;
+        // Filter by current tab (New/Old) - check messageStates instead of message object
+        const messageState = messageStates[message.id];
+        const isClosed = messageState ? messageState.isClosed : false;
+        const isNewMessage = !isClosed;
         const showInNewTab = currentTab === 'new' && isNewMessage;
-        const showInOldTab = currentTab === 'old' && message.isClosed;
+        const showInOldTab = currentTab === 'old' && isClosed;
         
         if (!showInNewTab && !showInOldTab) {
             return false;
@@ -8919,7 +9026,8 @@ function filterMessages(messages, searchTerm, messageType, currentTab) {
 
 // Close message (move to Old Messages)
 function closeMessage(messageId, role) {
-    const messages = MOCK_ADMIN_MESSAGES[role];
+    // Use customer messages for unified, otherwise use role-specific messages
+    const messages = role === 'unified' ? MOCK_ADMIN_MESSAGES.customer : MOCK_ADMIN_MESSAGES[role];
     const message = messages.find(m => m.id === messageId);
     
     if (message) {
@@ -8928,11 +9036,23 @@ function closeMessage(messageId, role) {
         const currentTab = filteringSystem ? filteringSystem.getCurrentTab() : 'new';
         console.log(`🔄 Closing message from ${currentTab} tab`);
         
-        // Check if message was already closed (to determine if we should show toast)
-        const wasAlreadyClosed = message.isClosed;
+        // Initialize message state if it doesn't exist
+        if (!messageStates[messageId]) {
+            messageStates[messageId] = {
+                status: 'new',
+                isReplied: false,
+                isRead: false,
+                isClosed: false,
+                replies: []
+            };
+        }
         
-        message.isRead = true;
-        message.isClosed = true;
+        // Check if message was already closed (to determine if we should show toast)
+        const wasAlreadyClosed = messageStates[messageId].isClosed;
+        
+        // Update message state
+        messageStates[messageId].isRead = true;
+        messageStates[messageId].isClosed = true;
         
         // Update UI - remove unread class
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
@@ -8941,8 +9061,10 @@ function closeMessage(messageId, role) {
         }
         
         // Hide detail view
-        const detailContainer = document.getElementById(`${role}MessageDetail`);
-        const contentContainer = document.getElementById(`${role}MessageContent`);
+        const detailId = role === 'unified' ? 'unifiedMessageDetail' : `${role}MessageDetail`;
+        const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
+        const detailContainer = document.getElementById(detailId);
+        const contentContainer = document.getElementById(contentId);
         
         if (detailContainer && contentContainer) {
             detailContainer.style.display = 'flex';
@@ -8950,7 +9072,8 @@ function closeMessage(messageId, role) {
         }
         
         // Hide overlay if it's open
-        const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+        const overlayId = role === 'unified' ? 'unifiedMessageDetailOverlay' : `${role}MessageDetailOverlay`;
+        const overlay = document.getElementById(overlayId);
         if (overlay) {
             overlay.style.display = 'none';
         }
@@ -8994,6 +9117,12 @@ function closeMessage(messageId, role) {
         } else {
             console.log('📧 Message was already in Old - no toast shown');
         }
+        
+        // Clear currently open message tracking if this message was closed
+        if (currentlyOpenMessage && currentlyOpenMessage.id === messageId) {
+            currentlyOpenMessage = null;
+            currentlyOpenRole = null;
+        }
     }
 }
 
@@ -9023,8 +9152,14 @@ function updateMessageCounts(role) {
 // Update inbox tab counts (New/Old)
 function updateInboxTabCounts(role) {
     const messages = MOCK_ADMIN_MESSAGES[role];
-    const newCount = messages.filter(msg => !msg.isClosed).length;
-    const oldCount = messages.filter(msg => msg.isClosed).length;
+    const newCount = messages.filter(msg => {
+        const messageState = messageStates[msg.id];
+        return messageState ? !messageState.isClosed : true;
+    }).length;
+    const oldCount = messages.filter(msg => {
+        const messageState = messageStates[msg.id];
+        return messageState ? messageState.isClosed : false;
+    }).length;
     
     // Update New tab count
     const newTabBadge = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="new"] .notification-badge`);
@@ -9046,8 +9181,14 @@ function updateInboxTabCounts(role) {
 // Update main Messages tab count (separate function to avoid race conditions)
 function updateMainMessagesTabCount() {
     // Always recalculate both customer and worker counts for accuracy
-    const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => !msg.isRead && !msg.isClosed).length;
-    const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => !msg.isRead && !msg.isClosed).length;
+    const customerCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
+        const messageState = messageStates[msg.id];
+        return messageState ? (!messageState.isRead && !messageState.isClosed) : (!msg.isRead);
+    }).length;
+    const workerCount = MOCK_ADMIN_MESSAGES.worker.filter(msg => {
+        const messageState = messageStates[msg.id];
+        return messageState ? (!messageState.isRead && !messageState.isClosed) : (!msg.isRead);
+    }).length;
     const totalCount = customerCount + workerCount;
     
     // Update both customer and worker Messages tab badges
@@ -9080,11 +9221,13 @@ function updateMainMessagesTabCount() {
 
     // Setup message filtering functionality
     function setupMessageFiltering(role) {
-        const searchInput = document.querySelector(`#${role}-messages-content .search-input-small`);
-        const searchBtn = document.querySelector(`#${role}-messages-content .search-btn-small`);
-        const typeDropdown = document.querySelector(`#${role}-messages-content .type-dropdown`);
-        const newTabBtn = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="new"]`);
-        const oldTabBtn = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="old"]`);
+        // Handle unified messages with different selector
+        const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
+        const searchInput = document.querySelector(`${contentSelector} .search-input-small`);
+        const searchBtn = document.querySelector(`${contentSelector} .search-btn-small`);
+        const typeDropdown = document.querySelector(`${contentSelector} .type-dropdown`);
+        const newTabBtn = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="new"]`);
+        const oldTabBtn = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="old"]`);
         
         if (!searchInput || !typeDropdown || !newTabBtn || !oldTabBtn) {
             console.log('setupMessageFiltering: Missing elements for role', role);
@@ -9101,7 +9244,7 @@ function updateMainMessagesTabCount() {
             currentTab = tab;
             
             // Update active tab styling - ensure proper class management
-            const allInboxTabs = document.querySelectorAll(`#${role}-messages-content .inbox-tab-btn`);
+            const allInboxTabs = document.querySelectorAll(`${contentSelector} .inbox-tab-btn`);
             allInboxTabs.forEach(btn => btn.classList.remove('active'));
             
             if (tab === 'new') {
@@ -9133,16 +9276,23 @@ function updateMainMessagesTabCount() {
         // Reload messages with current filters
         function reloadFilteredMessages() {
             console.log('reloadFilteredMessages called for role:', role, 'tab:', currentTab);
-            const messages = MOCK_ADMIN_MESSAGES[role];
+            // Use customer messages for unified, otherwise use role-specific messages
+            const messages = role === 'unified' ? MOCK_ADMIN_MESSAGES.customer : MOCK_ADMIN_MESSAGES[role];
             const filteredMessages = filterMessages(messages, currentSearchTerm, currentMessageType, currentTab);
             
             console.log('Total messages:', messages.length);
-            console.log('New messages:', messages.filter(m => !m.isClosed).length);
-            console.log('Old messages:', messages.filter(m => m.isClosed).length);
+            console.log('New messages:', messages.filter(m => {
+                const messageState = messageStates[m.id];
+                return messageState ? !messageState.isClosed : true;
+            }).length);
+            console.log('Old messages:', messages.filter(m => {
+                const messageState = messageStates[m.id];
+                return messageState ? messageState.isClosed : false;
+            }).length);
             console.log('Filtered messages count for', currentTab, 'tab:', filteredMessages.length);
             
             // Update message list
-            const listContainer = document.querySelector(`#${role}-messages-content .user-messages-list-container`);
+            const listContainer = document.querySelector(`${contentSelector} .user-messages-list-container`);
             if (listContainer) {
                 if (filteredMessages.length === 0) {
                     listContainer.innerHTML = `
@@ -9159,7 +9309,11 @@ function updateMainMessagesTabCount() {
             }
             
             // Update counts
-            updateMessageCounts(role);
+            if (role === 'unified') {
+                updateMainMessagesTabCount();
+            } else {
+                updateMessageCounts(role);
+            }
         }
         
         // Store the filtering system globally so markMessageAsRead can access it
@@ -9198,17 +9352,48 @@ function updateMainMessagesTabCount() {
         switchTab('new');
     }
 
+// Track currently open message for auto-close behavior
+let currentlyOpenMessage = null;
+let currentlyOpenRole = null;
+
 // Setup message detail handlers
 function setupMessageDetailHandlers(role) {
     // Get all message items for this role
-    const messageItems = document.querySelectorAll(`#${role}-messages-content .admin-message-item`);
+    const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
+    const messageItems = document.querySelectorAll(`${contentSelector} .admin-message-item`);
     
     messageItems.forEach(item => {
         item.addEventListener('click', () => {
             const messageId = item.dataset.messageId;
-            const message = MOCK_ADMIN_MESSAGES[role].find(m => m.id === messageId);
+            // Use customer messages for unified, otherwise use role-specific messages
+            const messages = role === 'unified' ? MOCK_ADMIN_MESSAGES.customer : MOCK_ADMIN_MESSAGES[role];
+            const message = messages.find(m => m.id === messageId);
             
             if (message) {
+                // Auto-close previously open message (any viewed message should move to Old when switching)
+                if (currentlyOpenMessage && currentlyOpenRole && currentlyOpenMessage.id !== messageId) {
+                    const previousMessageState = messageStates[currentlyOpenMessage.id];
+                    if (previousMessageState && !previousMessageState.isClosed) {
+                        console.log(`🔄 Auto-closing previously viewed message: ${currentlyOpenMessage.id}`);
+                        closeMessage(currentlyOpenMessage.id, currentlyOpenRole);
+                    }
+                }
+                
+                // Initialize message state when first viewed (this marks it as "viewed")
+                if (!messageStates[messageId]) {
+                    messageStates[messageId] = {
+                        status: 'new',
+                        isReplied: false,
+                        isRead: false,
+                        isClosed: false,
+                        replies: []
+                    };
+                }
+                
+                // Track the newly opened message
+                currentlyOpenMessage = message;
+                currentlyOpenRole = role;
+                
                 showMessageDetail(message, role);
             }
         });
@@ -9307,6 +9492,9 @@ function sendReply() {
         return;
     }
     
+    // Use customer data for unified messages
+    const actualRole = currentReplyRole === 'unified' ? 'customer' : currentReplyRole;
+    
     // Initialize message state if it doesn't exist
     if (!messageStates[currentReplyMessage.id]) {
         messageStates[currentReplyMessage.id] = {
@@ -9341,102 +9529,117 @@ function sendReply() {
     messageStates[currentReplyMessage.id].lastReplyTime = new Date().toISOString();
     
     // Update the message's excerpt to show latest activity
-    const messageIndex = MOCK_ADMIN_MESSAGES[currentReplyRole].findIndex(msg => msg.id === currentReplyMessage.id);
+    const messageIndex = MOCK_ADMIN_MESSAGES[actualRole].findIndex(msg => msg.id === currentReplyMessage.id);
     if (messageIndex !== -1) {
-        MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].excerpt = `You replied: ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}`;
-        MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].timestamp = new Date(); // Update timestamp for sorting
+        MOCK_ADMIN_MESSAGES[actualRole][messageIndex].excerpt = `You replied: ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}`;
+        MOCK_ADMIN_MESSAGES[actualRole][messageIndex].timestamp = new Date(); // Update timestamp for sorting
     }
     
-    // Simulate admin response after a delay (optional - for demo purposes)
-    setTimeout(() => {
-        const adminReplyText = `Thank you for your message. We have received your reply and will respond accordingly.
-
-Your message: "${replyText}"
-
-We will review your response and get back to you if any further action is needed.
-
-Best regards,
-GISUGO Support Team`;
-        
-        // Add admin reply to the same thread
-        messageStates[currentReplyMessage.id].replies.push({
-            type: 'admin_reply',
-            content: adminReplyText,
-            timestamp: new Date().toISOString(),
-            author: 'GISUGO Support',
-            avatar: 'public/images/Gisugo-emblem.png' // Use proper GISUGO logo
-        });
-        
-        // Update message excerpt to show admin response
-        const messageIndex = MOCK_ADMIN_MESSAGES[currentReplyRole].findIndex(msg => msg.id === currentReplyMessage.id);
-        if (messageIndex !== -1) {
-            MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].excerpt = 'GISUGO Support replied to your message';
-            MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].timestamp = new Date(); // Update timestamp
-            MOCK_ADMIN_MESSAGES[currentReplyRole][messageIndex].isRead = false; // Mark as unread for admin response
-        }
-        
-        // Refresh the message list to show updated thread using filtering system
-        const filteringSystem = window[`${currentReplyRole}FilteringSystem`];
+    // Close the reply modal immediately
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.style.display = 'none';
+    }
+    
+    // Clear the textarea
+    const textareaElement = document.getElementById('floatingReplyTextarea');
+    if (textareaElement) {
+        textareaElement.value = '';
+    }
+    
+    // Clear photo preview if exists
+    const photoPreview = document.getElementById('replyPhotoPreview');
+    if (photoPreview) {
+        photoPreview.style.display = 'none';
+    }
+    
+    // Clear reply data
+    replyPhotoData = null;
+    
+    // Refresh the message list and display immediately
+    if (currentReplyRole === 'unified') {
+        // For unified messages, use customer filtering system
+        const filteringSystem = window['customerFilteringSystem'];
         if (filteringSystem && filteringSystem.reloadFilteredMessages) {
             filteringSystem.reloadFilteredMessages();
         } else {
-            // Fallback
-            if (currentReplyRole === 'customer') {
+            loadUnifiedMessages();
+        }
+    } else {
+        const filteringSystem = window[`${actualRole}FilteringSystem`];
+        if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+            filteringSystem.reloadFilteredMessages();
+        } else {
+            if (actualRole === 'customer') {
                 loadCustomerMessages();
             } else {
                 loadWorkerMessages();
             }
         }
-        
-        // Update counts
-        updateMessageCounts(currentReplyRole);
-        
-        // Refresh the currently open message display to show new replies
-        refreshCurrentMessageDisplay(currentReplyMessage, currentReplyRole);
-        
-        // Show toast for admin response
-        showToast('New response received from GISUGO Support');
-        
-    }, 3000); // 3 second delay to simulate admin response
-    
-    // Refresh the message list to show updated thread using filtering system
-    const filteringSystem = window[`${currentReplyRole}FilteringSystem`];
-    if (filteringSystem && filteringSystem.reloadFilteredMessages) {
-        filteringSystem.reloadFilteredMessages();
-    } else {
-        // Fallback
-        if (currentReplyRole === 'customer') {
-            loadCustomerMessages();
-        } else {
-            loadWorkerMessages();
-        }
     }
     
     // Update counts
-    updateMessageCounts(currentReplyRole);
+    updateMessageCounts(actualRole);
+    if (currentReplyRole === 'unified') {
+        updateMainMessagesTabCount();
+    }
     
     // Refresh the currently open message display to show new replies immediately
     refreshCurrentMessageDisplay(currentReplyMessage, currentReplyRole);
     
     // Show success toast
-    const photoText = replyPhotoData ? ' with photo' : '';
-    showToast(`Reply sent successfully${photoText}`);
+    showToast('Reply sent successfully');
+}
+
+// Update New/Old Messages tab counters
+function updateInboxTabCounts(role) {
+    // Use customer data for unified messages
+    const actualRole = role === 'unified' ? 'customer' : role;
+    const messages = MOCK_ADMIN_MESSAGES[actualRole];
     
-    // Clear photo data after sending
-    replyPhotoData = null;
+    if (!messages) return;
     
-    // Close modal
-    closeReplyModal();
+    let newCount = 0;
+    let oldCount = 0;
     
-    console.log('Reply added to thread:', currentReplyMessage.id);
+    messages.forEach(message => {
+        const messageState = messageStates[message.id];
+        if (messageState && messageState.isClosed) {
+            oldCount++;
+        } else {
+            newCount++;
+        }
+    });
+    
+    // Update the notification badges
+    const newBadge = document.querySelector('.inbox-tab-btn[data-tab="new"] .notification-badge');
+    const oldBadge = document.querySelector('.inbox-tab-btn[data-tab="old"] .notification-badge');
+    
+    if (newBadge) {
+        newBadge.textContent = newCount;
+        newBadge.style.display = newCount > 0 ? 'inline' : 'none';
+    }
+    
+    if (oldBadge) {
+        oldBadge.textContent = oldCount;
+        oldBadge.style.display = oldCount > 0 ? 'inline' : 'none';
+    }
+    
+    console.log(`📊 Updated inbox counters: New=${newCount}, Old=${oldCount}`);
 }
 
 // Refresh currently open message display to show new replies
 function refreshCurrentMessageDisplay(message, role) {
     if (!message || !role) return;
     
+    console.log('🔄 Refreshing message display for:', message.id, 'role:', role);
+    
+    // Handle unified messages - use correct IDs
+    const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
+    const overlayId = role === 'unified' ? 'unifiedMessageDetailOverlay' : `${role}MessageDetailOverlay`;
+    
     // Check if message is currently displayed in desktop window
-    const contentContainer = document.getElementById(`${role}MessageContent`);
+    const contentContainer = document.getElementById(contentId);
     if (contentContainer && contentContainer.style.display !== 'none') {
         // Refresh desktop window content
         contentContainer.innerHTML = generateMessageDetailHTML(message, role);
@@ -9452,33 +9655,74 @@ function refreshCurrentMessageDisplay(message, role) {
             replyBtn.addEventListener('click', () => showReplyModal(message, role));
         }
         
-        console.log('🔄 Refreshed desktop message window with new replies');
+        console.log('✅ Refreshed desktop message window with new replies');
     }
     
     // Check if message is currently displayed in mobile overlay
-    const overlay = document.getElementById(`${role}MessageDetailOverlay`);
+    const overlay = document.getElementById(overlayId);
     if (overlay && overlay.style.display === 'flex') {
         // Refresh overlay content
         const overlayMessageContent = generateOverlayMessageHTML(message, role);
+        
+        // Get the correct data source for unified messages
+        const dataSource = role === 'unified' ? 'MOCK_ADMIN_MESSAGES.customer' : `MOCK_ADMIN_MESSAGES.${role}`;
         
         overlay.innerHTML = `
             <div class="overlay-content">
                 <div class="overlay-header">
                     <h3>Message Details</h3>
-                    <button class="overlay-close-btn" onclick="document.getElementById('${role}MessageDetailOverlay').style.display='none'">&times;</button>
+                    <button class="overlay-close-btn" data-message-id="${message.id}" data-role="${role}">&times;</button>
                 </div>
                 <div class="overlay-body">
                     ${overlayMessageContent}
                 </div>
                 <div class="overlay-footer">
-                    <button class="detail-reply-btn" onclick="showReplyModal(MOCK_ADMIN_MESSAGES.${role}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-reply-btn" onclick="showReplyModal(${dataSource}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
                     <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
                 </div>
             </div>
         `;
         
-        console.log('🔄 Refreshed mobile overlay with new replies');
+        // Add event listener for the refreshed X close button to trigger auto-close
+        const refreshedCloseBtn = overlay.querySelector('.overlay-close-btn');
+        if (refreshedCloseBtn) {
+            refreshedCloseBtn.addEventListener('click', () => {
+                // Auto-close the message (move to Old Messages)
+                closeMessage(message.id, role);
+                // Hide the overlay
+                overlay.style.display = 'none';
+            });
+        }
+        
+        console.log('✅ Refreshed mobile overlay with new replies');
     }
+}
+
+// Close reply modal function
+function closeReplyModal() {
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.style.display = 'none';
+    }
+    
+    // Clear the textarea
+    const modalTextarea = document.getElementById('floatingReplyTextarea');
+    if (modalTextarea) {
+        modalTextarea.value = '';
+    }
+    
+    // Clear photo preview if exists
+    const photoPreview = document.getElementById('replyPhotoPreview');
+    if (photoPreview) {
+        photoPreview.style.display = 'none';
+    }
+    
+    // Clear photo data
+    replyPhotoData = null;
+    
+    // Reset current reply variables
+    currentReplyMessage = null;
+    currentReplyRole = null;
 }
 
 // Initialize reply modal event handlers
@@ -9597,5 +9841,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Initialize Messages tab counter on page load (before any tab is accessed)
 function initializeMessagesTabCounter() {
     updateMainMessagesTabCount();
+    // Also initialize inbox tab counters
+    updateInboxTabCounts('customer'); // Use customer data for unified messages
 }
 
