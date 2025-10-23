@@ -49,6 +49,10 @@
           <div class="social-icon"><img src="public/icons/FB.png" alt="Facebook"></div>
           <div class="social-icon"><img src="public/icons/IG.png" alt="Instagram"></div>
           <div class="social-icon"><img src="public/icons/IN.png" alt="LinkedIn"></div>
+          <button class="account-btn" id="accountBtn" aria-label="Account Settings">
+            <img src="public/icons/user.png" alt="Account" class="account-icon">
+            <span class="account-text">ACCOUNT</span>
+          </button>
         </div>
         <div class="verification-badge-row">
           <div class="verification-badge business-verified" id="businessVerifiedBadge">
@@ -57,13 +61,6 @@
           <div class="verification-badge pro-verified" id="proVerifiedBadge" style="display: none;">
             <span class="verification-badge-text">PRO VERIFIED</span>
           </div>
-         <div class="verification-badge new-user" id="newUserBadge" style="display: none;">
-           <span class="verification-badge-text">NEW MEMBER</span>
-         </div>
-          <button class="account-btn" id="accountBtn" aria-label="Account Settings">
-            <img src="public/icons/user.png" alt="Account" class="account-icon">
-            <span class="account-text">ACCOUNT</span>
-          </button>
         </div>
       </div>
     </div>
@@ -93,22 +90,35 @@
       <div class="profile-section-content">
         <!-- User Information Grid -->
         <div class="user-info-grid">
+          <!-- Status Badge -->
+          <div class="user-info-item user-info-status">
+            <div class="verification-badge business-verified" id="businessVerifiedBadgeGrid">
+              <span class="verification-badge-text">BUSINESS VERIFIED</span>
+            </div>
+            <div class="verification-badge pro-verified" id="proVerifiedBadgeGrid" style="display: none;">
+              <span class="verification-badge-text">PRO VERIFIED</span>
+            </div>
+            <div class="verification-badge new-user" id="newUserBadgeGrid" style="display: none;">
+              <span class="verification-badge-text">NEW MEMBER</span>
+            </div>
+          </div>
+          
           <!-- Registered Since -->
           <div class="user-info-item">
             <div class="user-info-label">REGISTERED SINCE:</div>
             <div class="user-info-value" id="registeredSince">Loading...</div>
           </div>
           
+          <!-- Education Level -->
+          <div class="user-info-item">
+            <div class="user-info-label">EDUCATION:</div>
+            <div class="user-info-value" id="educationLevel">Loading...</div>
+          </div>
+          
           <!-- Age -->
           <div class="user-info-item">
             <div class="user-info-label">AGE:</div>
             <div class="user-info-value" id="userAge">Loading...</div>
-          </div>
-          
-          <!-- Education Level -->
-          <div class="user-info-item user-info-education">
-            <div class="user-info-label">EDUCATION:</div>
-            <div class="user-info-value" id="educationLevel">Loading...</div>
           </div>
         </div>
 

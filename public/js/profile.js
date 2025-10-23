@@ -92,7 +92,7 @@ function closeBusinessPrestigeOverlay() {
   }
 }
 
-// Business verified badge click handler
+// Business verified badge click handler (header)
 if (businessVerifiedBadge) {
   businessVerifiedBadge.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -101,6 +101,18 @@ if (businessVerifiedBadge) {
   
   // Add cursor pointer to indicate clickability
   businessVerifiedBadge.style.cursor = 'pointer';
+}
+
+// Business verified badge click handler (grid)
+const businessVerifiedBadgeGrid = document.getElementById('businessVerifiedBadgeGrid');
+if (businessVerifiedBadgeGrid) {
+  businessVerifiedBadgeGrid.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openBusinessPrestigeOverlay();
+  });
+  
+  // Add cursor pointer to indicate clickability
+  businessVerifiedBadgeGrid.style.cursor = 'pointer';
 }
 
 // ===== PRO VERIFIED OVERLAY FUNCTIONALITY =====
@@ -129,7 +141,7 @@ function closeProPrestigeOverlay() {
   }
 }
 
-// Pro verified badge click handler
+// Pro verified badge click handler (header)
 if (proVerifiedBadge) {
   proVerifiedBadge.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -138,6 +150,18 @@ if (proVerifiedBadge) {
   
   // Add cursor pointer to indicate clickability
   proVerifiedBadge.style.cursor = 'pointer';
+}
+
+// Pro verified badge click handler (grid)
+const proVerifiedBadgeGrid = document.getElementById('proVerifiedBadgeGrid');
+if (proVerifiedBadgeGrid) {
+  proVerifiedBadgeGrid.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openProPrestigeOverlay();
+  });
+  
+  // Add cursor pointer to indicate clickability
+  proVerifiedBadgeGrid.style.cursor = 'pointer';
 }
 
 // Close button handlers for pro prestige overlay
@@ -164,7 +188,7 @@ if (proPrestigeOverlay) {
 const notVerifiedOverlay = document.getElementById('notVerifiedOverlay');
 const notVerifiedClose = document.getElementById('notVerifiedClose');
 const notVerifiedUnderstandBtn = document.getElementById('notVerifiedUnderstandBtn');
-const newUserBadge = document.getElementById('newUserBadge');
+const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
 
 // Open not verified overlay
 function openNotVerifiedOverlay() {
@@ -185,14 +209,14 @@ function closeNotVerifiedOverlay() {
 }
 
 // New user badge click handler
-if (newUserBadge) {
-  newUserBadge.addEventListener('click', function(e) {
+if (newUserBadgeGrid) {
+  newUserBadgeGrid.addEventListener('click', function(e) {
     e.stopPropagation();
     openNotVerifiedOverlay();
   });
   
   // Add cursor pointer to indicate clickability
-  newUserBadge.style.cursor = 'pointer';
+  newUserBadgeGrid.style.cursor = 'pointer';
 }
 
 // Close button handlers for not verified overlay
@@ -352,7 +376,9 @@ function getCurrentUserId() {
 // Update badge and account button visibility based on auth and verification status
 function updateBadgeVisibility(userProfile) {
   const businessVerifiedBadge = document.getElementById('businessVerifiedBadge');
-  const newUserBadge = document.getElementById('newUserBadge');
+  const businessVerifiedBadgeGrid = document.getElementById('businessVerifiedBadgeGrid');
+  const proVerifiedBadgeGrid = document.getElementById('proVerifiedBadgeGrid');
+  const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
   const accountBtn = document.getElementById('accountBtn');
   
   console.log('🔍 Updating badge visibility...');
@@ -370,24 +396,42 @@ function updateBadgeVisibility(userProfile) {
   // Badge visibility logic
   const hasVerification = hasVerificationStatus(userProfile);
   
-  // Badge visibility logic: Show only one badge based on verification status
-  if (businessVerifiedBadge && proVerifiedBadge && newUserBadge && userProfile?.verification) {
+  // Badge visibility logic: Show only one badge based on verification status (header badges)
+  if (businessVerifiedBadge && proVerifiedBadge && userProfile?.verification) {
     // Priority: Business > Pro > New User
     if (userProfile.verification.businessVerified) {
       businessVerifiedBadge.style.display = 'inline-flex';
       proVerifiedBadge.style.display = 'none';
-      newUserBadge.style.display = 'none';
-      console.log('Showing: Business Verified badge');
+      console.log('Showing: Business Verified badge (header)');
     } else if (userProfile.verification.proVerified) {
       businessVerifiedBadge.style.display = 'none';
       proVerifiedBadge.style.display = 'inline-flex';
-      newUserBadge.style.display = 'none';
-      console.log('Showing: Pro Verified badge');
+      console.log('Showing: Pro Verified badge (header)');
     } else {
       businessVerifiedBadge.style.display = 'none';
       proVerifiedBadge.style.display = 'none';
-      newUserBadge.style.display = 'inline-flex';
-      console.log('Showing: New Member badge');
+      console.log('Showing: No badge (header) - New user');
+    }
+  }
+  
+  // Badge visibility logic: Show only one badge in grid
+  if (businessVerifiedBadgeGrid && proVerifiedBadgeGrid && newUserBadgeGrid && userProfile?.verification) {
+    // Priority: Business > Pro > New User
+    if (userProfile.verification.businessVerified) {
+      businessVerifiedBadgeGrid.style.display = 'inline-flex';
+      proVerifiedBadgeGrid.style.display = 'none';
+      newUserBadgeGrid.style.display = 'none';
+      console.log('Showing: Business Verified badge (grid)');
+    } else if (userProfile.verification.proVerified) {
+      businessVerifiedBadgeGrid.style.display = 'none';
+      proVerifiedBadgeGrid.style.display = 'inline-flex';
+      newUserBadgeGrid.style.display = 'none';
+      console.log('Showing: Pro Verified badge (grid)');
+    } else {
+      businessVerifiedBadgeGrid.style.display = 'none';
+      proVerifiedBadgeGrid.style.display = 'none';
+      newUserBadgeGrid.style.display = 'inline-flex';
+      console.log('Showing: New Member badge (grid)');
     }
   }
   

@@ -147,6 +147,7 @@ body::-webkit-scrollbar {
 
 .social-icons-row {
   display: flex;
+  align-items: center;
   gap: clamp(0.6rem, 2.5vw, 1rem); /* Responsive gap */
 }
 
@@ -3528,8 +3529,64 @@ body::-webkit-scrollbar {
   margin-bottom: clamp(1.5rem, 5vw, 2rem); /* Responsive bottom margin */
 }
 
-.user-info-education {
-  grid-column: 1 / -1;
+.user-info-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Enlarge badges in status box */
+.user-info-status .verification-badge {
+  padding: clamp(10px, 2vw, 14px) clamp(20px, 4vw, 28px); /* Larger padding */
+  font-size: clamp(0.75rem, 3vw, 1rem); /* Larger font */
+  border-radius: clamp(20px, 5vw, 28px); /* Larger border radius */
+  letter-spacing: 0.15rem;
+}
+
+/* Pulsating animation for status badge */
+@keyframes pulsate-status {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(251, 191, 36, 0.8);
+  }
+}
+
+@keyframes pulsate-status-pro {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(96, 165, 250, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(96, 165, 250, 0.8);
+  }
+}
+
+@keyframes pulsate-status-new {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.6);
+  }
+}
+
+.user-info-status .verification-badge.business-verified {
+  animation: pulsate-status 2s ease-in-out infinite;
+}
+
+.user-info-status .verification-badge.pro-verified {
+  animation: pulsate-status-pro 2s ease-in-out infinite;
+}
+
+.user-info-status .verification-badge.new-user {
+  animation: pulsate-status-new 2s ease-in-out infinite;
 }
 
 .user-info-item {
@@ -3771,10 +3828,6 @@ body::-webkit-scrollbar {
     grid-template-columns: 1fr; /* Single column for smaller screens */
     gap: clamp(0.8rem, 4vw, 1rem);
     margin-bottom: clamp(1.2rem, 5vw, 1.5rem);
-  }
-  
-  .user-info-education {
-    grid-column: 1; /* Reset column span */
   }
   
   /* Review Cards Ultra-Mobile Optimization */

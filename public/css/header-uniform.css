@@ -166,11 +166,25 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: row;
   width: 100%;
-  justify-content: space-around;
+  justify-content: space-between; /* even distribution across full width */
   align-items: center;
   height: 100px;
   background: #866f67;
   border-bottom: 2px solid #222;
+  padding: 0 4vw; /* symmetric edge spacing to match interior gaps */
+  box-sizing: border-box; /* prevent padding from pushing items off-screen */
+}
+
+@media (max-width: 400px) {
+  .uniform-menu-items {
+    padding: 0 3vw;
+  }
+}
+
+@media (max-width: 320px) {
+  .uniform-menu-items {
+    padding: 0 2vw;
+  }
 }
 
 .uniform-menu-item {
