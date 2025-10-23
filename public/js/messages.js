@@ -9694,3 +9694,108 @@ function initializeMessagesTabCounter() {
     updateInboxTabCounts('customer'); // Use customer data for unified messages
 }
 
+// ===== KEYBOARD DETECTION FOR MESSENGER BROWSER FIX (MOBILE 411px AND BELOW) =====
+
+/**
+ * Detects when mobile keyboard opens and reduces overlay height to prevent
+ * input field from being covered. Specifically targets Messenger browser
+ * which doesn't auto-adjust viewport when keyboard appears.
+ * Only activates on viewports 411px and below.
+ */
+
+function initializeKeyboardDetection() {
+    const overlay = document.getElementById('unifiedMessageDetailOverlay');
+    
+    if (!overlay) {
+        console.log('⌨️ Keyboard detection: overlay not found');
+        return;
+    }
+    
+    // Only apply on mobile viewports 411px and below
+    const isMobile = () => window.innerWidth <= 411;
+    
+    // Track initial viewport height
+    let initialViewportHeight = window.innerHeight;
+    
+    // Use Visual Viewport API if available (better for keyboard detection)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            if (!isMobile()) return;
+            
+            const currentHeight = window.visualViewport.height;
+            const heightDiff = initialViewportHeight - currentHeight;
+            
+            // If viewport height decreased significantly (keyboard likely opened)
+            if (heightDiff > 150) {
+                overlay.classList.add('keyboard-open');
+                console.log('⌨️ Keyboard detected: OPEN (visualViewport)');
+            } else {
+                overlay.classList.remove('keyboard-open');
+                console.log('⌨️ Keyboard detected: CLOSED (visualViewport)');
+            }
+        });
+        
+        console.log('✅ Keyboard detection initialized (visualViewport API)');
+    } else {
+        // Fallback: Use window resize + focus events
+        let resizeTimeout;
+        
+        window.addEventListener('resize', () => {
+            if (!isMobile()) return;
+            
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const currentHeight = window.innerHeight;
+                const heightDiff = initialViewportHeight - currentHeight;
+                
+                // If viewport height decreased significantly (keyboard likely opened)
+                if (heightDiff > 150) {
+                    overlay.classList.add('keyboard-open');
+                    console.log('⌨️ Keyboard detected: OPEN (resize)');
+                } else {
+                    overlay.classList.remove('keyboard-open');
+                    initialViewportHeight = currentHeight; // Update baseline
+                    console.log('⌨️ Keyboard detected: CLOSED (resize)');
+                }
+            }, 100);
+        });
+        
+        console.log('✅ Keyboard detection initialized (resize fallback)');
+    }
+    
+    // Focus/blur detection on inputs and textareas within overlay
+    overlay.addEventListener('focusin', (e) => {
+        if (!isMobile()) return;
+        
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            // Add class immediately on focus
+            setTimeout(() => {
+                overlay.classList.add('keyboard-open');
+                console.log('⌨️ Input focused - keyboard likely opening');
+            }, 300); // Small delay to allow keyboard to start opening
+        }
+    });
+    
+    overlay.addEventListener('focusout', (e) => {
+        if (!isMobile()) return;
+        
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            // Remove class after blur
+            setTimeout(() => {
+                // Only remove if no other input is focused
+                if (!overlay.querySelector('input:focus, textarea:focus')) {
+                    overlay.classList.remove('keyboard-open');
+                    console.log('⌨️ Input blurred - keyboard likely closing');
+                }
+            }, 100);
+        }
+    });
+}
+
+// Initialize keyboard detection when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeKeyboardDetection);
+} else {
+    initializeKeyboardDetection();
+}
+
