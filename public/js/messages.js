@@ -9697,13 +9697,37 @@ function initializeMessagesTabCounter() {
 // ===== KEYBOARD DETECTION FOR MESSENGER BROWSER FIX (MOBILE 411px AND BELOW) =====
 
 /**
- * Detects when mobile keyboard opens and reduces overlay height to prevent
- * input field from being covered. Specifically targets Messenger browser
- * which doesn't auto-adjust viewport when keyboard appears.
- * Only activates on viewports 411px and below.
+ * Detects Messenger browser and reduces overlay height when keyboard opens.
+ * Messenger browser doesn't auto-adjust viewport, causing keyboard to cover input.
+ * Only activates on Messenger browser + viewports 411px and below.
  */
 
+// Detect if user is on Messenger browser
+function isMessengerBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    
+    // TESTING MODE: Set to true to force-enable keyboard fix on any browser
+    const TESTING_MODE = false; // Change to true to test the keyboard fix
+    
+    // Messenger browser contains "FBAN" or "FBAV" in user agent
+    const isMessenger = /FBAN|FBAV|FB_IAB|FB4A/i.test(ua);
+    
+    if (TESTING_MODE) {
+        console.log('🧪 TESTING MODE: Keyboard fix force-enabled on any browser');
+        return true;
+    }
+    
+    console.log('🔍 Browser detection:', isMessenger ? 'MESSENGER' : 'REGULAR', '| UA:', ua.substring(0, 100));
+    return isMessenger;
+}
+
 function initializeKeyboardDetection() {
+    // Only run on Messenger browser
+    if (!isMessengerBrowser()) {
+        console.log('✅ Regular browser detected - using native keyboard handling');
+        return;
+    }
+    
     const overlay = document.getElementById('unifiedMessageDetailOverlay');
     
     if (!overlay) {
@@ -9711,85 +9735,54 @@ function initializeKeyboardDetection() {
         return;
     }
     
+    console.log('🎯 Messenger browser detected - activating keyboard fix');
+    
     // Only apply on mobile viewports 411px and below
     const isMobile = () => window.innerWidth <= 411;
     
-    // Track initial viewport height
-    let initialViewportHeight = window.innerHeight;
-    
-    // Use Visual Viewport API if available (better for keyboard detection)
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            if (!isMobile()) return;
-            
-            const currentHeight = window.visualViewport.height;
-            const heightDiff = initialViewportHeight - currentHeight;
-            
-            // If viewport height decreased significantly (keyboard likely opened)
-            if (heightDiff > 150) {
-                overlay.classList.add('keyboard-open');
-                console.log('⌨️ Keyboard detected: OPEN (visualViewport)');
-            } else {
-                overlay.classList.remove('keyboard-open');
-                console.log('⌨️ Keyboard detected: CLOSED (visualViewport)');
-            }
-        });
-        
-        console.log('✅ Keyboard detection initialized (visualViewport API)');
-    } else {
-        // Fallback: Use window resize + focus events
-        let resizeTimeout;
-        
-        window.addEventListener('resize', () => {
-            if (!isMobile()) return;
-            
-            clearTimeout(resizeTimeout);
-            resizeTimeout = setTimeout(() => {
-                const currentHeight = window.innerHeight;
-                const heightDiff = initialViewportHeight - currentHeight;
-                
-                // If viewport height decreased significantly (keyboard likely opened)
-                if (heightDiff > 150) {
-                    overlay.classList.add('keyboard-open');
-                    console.log('⌨️ Keyboard detected: OPEN (resize)');
-                } else {
-                    overlay.classList.remove('keyboard-open');
-                    initialViewportHeight = currentHeight; // Update baseline
-                    console.log('⌨️ Keyboard detected: CLOSED (resize)');
-                }
-            }, 100);
-        });
-        
-        console.log('✅ Keyboard detection initialized (resize fallback)');
+    if (!isMobile()) {
+        console.log('⌨️ Screen too wide (>411px) - keyboard fix disabled');
+        return;
     }
     
-    // Focus/blur detection on inputs and textareas within overlay
-    overlay.addEventListener('focusin', (e) => {
+    // Focus detection on inputs and textareas within overlay (most reliable for Messenger)
+    document.addEventListener('focusin', (e) => {
         if (!isMobile()) return;
         
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            // Add class immediately on focus
-            setTimeout(() => {
-                overlay.classList.add('keyboard-open');
-                console.log('⌨️ Input focused - keyboard likely opening');
-            }, 300); // Small delay to allow keyboard to start opening
+        const target = e.target;
+        const isInOverlay = overlay.contains(target);
+        
+        if (isInOverlay && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+            console.log('⌨️ MESSENGER: Input focused - reducing overlay height');
+            overlay.classList.add('keyboard-open');
+            
+            // Force reflow to ensure CSS applies
+            void overlay.offsetHeight;
         }
-    });
+    }, true);
     
-    overlay.addEventListener('focusout', (e) => {
+    document.addEventListener('focusout', (e) => {
         if (!isMobile()) return;
         
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-            // Remove class after blur
+        const target = e.target;
+        const isInOverlay = overlay.contains(target);
+        
+        if (isInOverlay && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+            // Small delay to check if another input was focused
             setTimeout(() => {
-                // Only remove if no other input is focused
-                if (!overlay.querySelector('input:focus, textarea:focus')) {
+                const hasActiveInput = overlay.querySelector('input:focus, textarea:focus');
+                if (!hasActiveInput) {
+                    console.log('⌨️ MESSENGER: Input blurred - restoring overlay height');
                     overlay.classList.remove('keyboard-open');
-                    console.log('⌨️ Input blurred - keyboard likely closing');
+                    
+                    // Force reflow to ensure CSS applies
+                    void overlay.offsetHeight;
                 }
             }, 100);
         }
-    });
+    }, true);
+    
+    console.log('✅ Messenger keyboard detection initialized (focus/blur method)');
 }
 
 // Initialize keyboard detection when DOM is ready
