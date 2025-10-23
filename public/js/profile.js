@@ -401,23 +401,38 @@ function updateBadgeVisibility(userProfile) {
 
 // Update the verification status display in account overlay
 function updateAccountOverlayVerificationStatus(userProfile) {
-  const businessVerifiedOption = document.querySelector('.account-option');
-  const businessStatus = document.querySelector('.account-option-status.active');
+  const verificationStatusIcon = document.getElementById('verificationStatusIcon');
+  const verificationStatusName = document.getElementById('verificationStatusName');
+  const verificationStatusDesc = document.getElementById('verificationStatusDesc');
+  const verificationStatusBadge = document.getElementById('verificationStatusBadge');
   const submitIdOption = document.getElementById('submitIdOption');
   
-  if (businessVerifiedOption && userProfile?.verification) {
-    // Update business verification status
-    const isBusinessVerified = userProfile.verification.businessVerified;
-    const businessStatusElement = businessVerifiedOption.querySelector('.account-option-status');
-    
-    if (businessStatusElement) {
-      if (isBusinessVerified) {
-        businessStatusElement.textContent = 'Active';
-        businessStatusElement.className = 'account-option-status active';
-      } else {
-        businessStatusElement.textContent = 'Available';
-        businessStatusElement.className = 'account-option-status inactive';
-      }
+  if (verificationStatusIcon && verificationStatusName && verificationStatusDesc && verificationStatusBadge && userProfile?.verification) {
+    // Determine current verification status
+    if (userProfile.verification.businessVerified) {
+      // Business Verified
+      verificationStatusIcon.textContent = '👑';
+      verificationStatusName.textContent = 'Business Verified';
+      verificationStatusDesc.textContent = 'Your business account is verified';
+      verificationStatusBadge.textContent = 'Active';
+      verificationStatusBadge.className = 'account-option-status active';
+      console.log('💼 Account overlay showing: Business Verified');
+    } else if (userProfile.verification.proVerified) {
+      // Pro Verified
+      verificationStatusIcon.textContent = '⭐';
+      verificationStatusName.textContent = 'Pro Verified';
+      verificationStatusDesc.textContent = 'Your account is verified';
+      verificationStatusBadge.textContent = 'Active';
+      verificationStatusBadge.className = 'account-option-status active';
+      console.log('⭐ Account overlay showing: Pro Verified');
+    } else {
+      // New Member (Not Verified)
+      verificationStatusIcon.textContent = '🌱';
+      verificationStatusName.textContent = 'New Member';
+      verificationStatusDesc.textContent = 'Not verified yet';
+      verificationStatusBadge.textContent = 'Not Verified';
+      verificationStatusBadge.className = 'account-option-status inactive';
+      console.log('🌱 Account overlay showing: New Member');
     }
   }
   
