@@ -55,7 +55,7 @@ body::-webkit-scrollbar {
 .profile-right-column {
   display: flex;
   flex-direction: column;
-  gap: clamp(0.3rem, 1.5vw, 0.5rem); /* Responsive gap */
+  gap: clamp(0.8rem, 3vw, 1.2rem); /* Increased vertical spacing */
   flex: 1;
   min-width: 0;
 }
@@ -66,7 +66,7 @@ body::-webkit-scrollbar {
 
 .full-name {
   color: #e6d6ae;
-  font-size: 2.5rem;
+  font-size: clamp(2.5rem, 5vw, 3rem); /* Larger, responsive name */
   font-weight: bold;
   line-height: 1.1;
   font-family: Arial, sans-serif;
@@ -75,31 +75,31 @@ body::-webkit-scrollbar {
 .profile-rating-row {
   display: flex;
   align-items: center;
-  gap: clamp(0.4rem, 2vw, 0.75rem); /* Responsive gap */
+  gap: clamp(0.6rem, 2.5vw, 1rem); /* Increased gap */
   width: 100%;
   flex-wrap: nowrap;
 }
 
 .stars-container {
   display: flex;
-  gap: clamp(0.3rem, 1.5vw, 0.5rem); /* Responsive gap */
+  gap: clamp(0.5rem, 2vw, 0.8rem); /* Increased gap between stars */
   align-items: center;
 }
 
 .reviews-number {
   color: #e6d6ae;
-  font-size: 1.5125rem;
+  font-size: clamp(1.5rem, 4vw, 2rem); /* Larger, responsive rating number */
   font-weight: bold;
 }
 
 .star {
-  font-size: 1.5125rem;
+  font-size: clamp(1.5rem, 4vw, 2rem); /* Larger, responsive stars */
   color: #ffffff;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
   position: relative;
   display: flex;
-  width: 1.5125rem;
-  height: 1.5125rem;
+  width: clamp(1.5rem, 4vw, 2rem);
+  height: clamp(1.5rem, 4vw, 2rem);
   text-align: center;
   line-height: 1;
   margin: 0;
@@ -148,7 +148,7 @@ body::-webkit-scrollbar {
 .social-icons-row {
   display: flex;
   align-items: center;
-  gap: clamp(0.6rem, 2.5vw, 1rem); /* Responsive gap */
+  gap: clamp(0.8rem, 3vw, 1.5rem); /* Increased gap between social icons */
 }
 
 .social-icon {
@@ -156,10 +156,15 @@ body::-webkit-scrollbar {
 }
 
 .social-icon img {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: clamp(50px, 8vw, 60px); /* Larger, responsive social icons */
+  height: clamp(50px, 8vw, 60px);
+  border-radius: clamp(10px, 2vw, 12px);
   cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.social-icon img:hover {
+  transform: scale(1.1);
 }
 
 /* Business Verification Badge Styles */
