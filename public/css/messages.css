@@ -5506,14 +5506,13 @@ body:has(.selection-controls[style*="display: flex"]) {
 
 /* Keyboard open handling for mobile 411px and below - Messenger browser fix */
 @media (max-width: 411px) {
-    .user-message-detail-overlay.keyboard-open .overlay-content {
+    .chat-modal-overlay.keyboard-open .chat-modal-container {
         max-height: 50vh; /* Reduce height when keyboard is open */
-        margin: 0 auto;
-        transition: max-height 0.3s ease, margin 0.3s ease;
+        transition: max-height 0.3s ease;
     }
     
-    .user-message-detail-overlay.keyboard-open .overlay-body {
-        max-height: calc(50vh - 140px); /* Adjust body height accordingly */
+    .chat-modal-overlay.keyboard-open .chat-messages-container {
+        max-height: calc(50vh - 150px); /* Adjust messages container height */
     }
 }
 

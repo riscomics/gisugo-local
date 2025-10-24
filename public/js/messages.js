@@ -9728,13 +9728,6 @@ function initializeKeyboardDetection() {
         return;
     }
     
-    const overlay = document.getElementById('unifiedMessageDetailOverlay');
-    
-    if (!overlay) {
-        console.log('⌨️ Keyboard detection: overlay not found');
-        return;
-    }
-    
     console.log('🎯 Messenger browser detected - activating keyboard fix');
     
     // Only apply on mobile viewports 411px and below
@@ -9745,19 +9738,22 @@ function initializeKeyboardDetection() {
         return;
     }
     
-    // Focus detection on inputs and textareas within overlay (most reliable for Messenger)
+    // Focus detection on inputs and textareas within chat modal (most reliable for Messenger)
+    // The chat modal is dynamically created, so we listen at document level
     document.addEventListener('focusin', (e) => {
         if (!isMobile()) return;
         
         const target = e.target;
-        const isInOverlay = overlay.contains(target);
         
-        if (isInOverlay && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-            console.log('⌨️ MESSENGER: Input focused - reducing overlay height');
-            overlay.classList.add('keyboard-open');
+        // Check if the input is within a chat modal overlay
+        const chatModal = target.closest('.chat-modal-overlay');
+        
+        if (chatModal && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+            console.log('⌨️ MESSENGER: Chat input focused - reducing overlay height');
+            chatModal.classList.add('keyboard-open');
             
             // Force reflow to ensure CSS applies
-            void overlay.offsetHeight;
+            void chatModal.offsetHeight;
         }
     }, true);
     
@@ -9765,24 +9761,26 @@ function initializeKeyboardDetection() {
         if (!isMobile()) return;
         
         const target = e.target;
-        const isInOverlay = overlay.contains(target);
         
-        if (isInOverlay && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        // Check if the input is within a chat modal overlay
+        const chatModal = target.closest('.chat-modal-overlay');
+        
+        if (chatModal && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
             // Small delay to check if another input was focused
             setTimeout(() => {
-                const hasActiveInput = overlay.querySelector('input:focus, textarea:focus');
+                const hasActiveInput = chatModal.querySelector('input:focus, textarea:focus');
                 if (!hasActiveInput) {
-                    console.log('⌨️ MESSENGER: Input blurred - restoring overlay height');
-                    overlay.classList.remove('keyboard-open');
+                    console.log('⌨️ MESSENGER: Chat input blurred - restoring overlay height');
+                    chatModal.classList.remove('keyboard-open');
                     
                     // Force reflow to ensure CSS applies
-                    void overlay.offsetHeight;
+                    void chatModal.offsetHeight;
                 }
             }, 100);
         }
     }, true);
     
-    console.log('✅ Messenger keyboard detection initialized (focus/blur method)');
+    console.log('✅ Messenger keyboard detection initialized (focus/blur method for chat modals)');
 }
 
 // Initialize keyboard detection when DOM is ready
