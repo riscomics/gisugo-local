@@ -3012,7 +3012,6 @@ body::-webkit-scrollbar {
 .tab-content-wrapper {
   display: none;
   width: 100%;
-  min-height: calc(100vh - 200px); /* Minimum height for content */
   overflow: hidden;
   background: #363f4f;
   position: relative; /* Changed from fixed to relative to flow after tabs */
@@ -3186,9 +3185,7 @@ body::-webkit-scrollbar {
     font-weight: 700;
   }
   
-  .tab-content-wrapper {
-    min-height: calc(100vh - 250px); /* Mobile: reduced height for content */
-  }
+  /* Tab content wrapper height removed - content determines height */
 }
 
 /* Smaller Mobile Screens (400px and below) */
@@ -3316,9 +3313,7 @@ body::-webkit-scrollbar {
     height: clamp(36px, 8vh, 40px);
   }
   
-  .tab-content-wrapper {
-    min-height: calc(100vh - 220px); /* 375px: reduced height for content */
-  }
+  /* Tab content wrapper height removed - content determines height */
 }
 
 /* Ultra Small Screens (320px and below) */
@@ -3438,9 +3433,7 @@ body::-webkit-scrollbar {
     font-weight: 700;
   }
   
-  .tab-content-wrapper {
-    min-height: calc(100vh - 210px); /* 320px: reduced height for content */
-  }
+  /* Tab content wrapper height removed - content determines height */
 }
 
 /* Tablet Media Query - UNIFORM HEADER SYSTEM INTEGRATION */
@@ -3533,7 +3526,6 @@ body::-webkit-scrollbar {
 .profile-content-container {
   padding: clamp(0.8rem, 3vw, 1rem); /* Responsive container padding */
   background: #363f4f;
-  min-height: calc(100vh - 200px); /* Ensure content fills available space */
   max-width: 100%; /* Prevent horizontal overflow */
   overflow-x: hidden; /* Hide any horizontal overflow */
   box-sizing: border-box; /* Include padding in width calculations */
