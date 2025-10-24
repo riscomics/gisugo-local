@@ -5723,20 +5723,8 @@ function initializeChatInputFunctionality(modalOverlay) {
 
     photoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file) {
-            console.log('📎 File selected:', {
-                name: file.name,
-                type: file.type,
-                size: Math.round(file.size / 1024) + 'KB'
-            });
-            
-            if (file.type.startsWith('image/')) {
-                handlePhotoUpload(file, modalOverlay);
-            } else {
-                // Invalid file type - show error
-                showErrorAlert('Please select a valid image file (JPG, PNG, GIF, etc.).');
-                console.error('❌ Invalid file type selected:', file.type);
-            }
+        if (file && file.type.startsWith('image/')) {
+            handlePhotoUpload(file, modalOverlay);
         }
         // Reset input so same file can be selected again
         photoInput.value = '';
@@ -5759,11 +5747,12 @@ function handlePhotoUpload(file, modalOverlay) {
     
     console.log('📸 Processing photo for chat...');
     
-    // Add timeout safety to prevent stuck loading state (10 seconds max)
+    // Add timeout safety to prevent stuck loading state (3 seconds max)
     const safetyTimeout = setTimeout(() => {
         photoBtn.classList.remove('loading');
         console.error('⚠️ Photo processing timeout - removing loading state');
-    }, 10000);
+        alert('Photo processing is taking too long. Please try a different image.');
+    }, 3000);
     
     // Process image using new-post.js compression standards
     processChatImage(file, (processedImage) => {
@@ -7037,7 +7026,6 @@ window.forceResetAvatarOverlay = function() {
 function processChatImage(file, callback, errorCallback) {
     if (!file || !file.type.startsWith('image/')) {
         console.error('❌ Invalid file type for chat image');
-        showErrorAlert('Please select a valid image file (JPG, PNG, GIF, etc.).');
         if (errorCallback) errorCallback('Invalid file type');
         return;
     }
@@ -7046,7 +7034,7 @@ function processChatImage(file, callback, errorCallback) {
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
         console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
-        showErrorAlert('Image is too large. Please select an image under 10MB.');
+        alert('Image is too large. Please select an image under 10MB.');
         if (errorCallback) errorCallback('File too large');
         return;
     }
@@ -7058,28 +7046,28 @@ function processChatImage(file, callback, errorCallback) {
     // Add error handler for FileReader
     reader.onerror = function(error) {
         console.error('❌ FileReader error:', error);
-        showErrorAlert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
+        alert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
         if (errorCallback) errorCallback('FileReader error');
     };
     
     reader.onload = function(e) {
         const img = new Image();
         
-        // Add timeout to detect hung image loading (5 seconds)
+        // Add timeout to detect hung image loading (3 seconds)
         const imageTimeout = setTimeout(() => {
             console.error('❌ Image loading timeout - may be corrupted or unsupported format');
-            showErrorAlert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
+            alert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
             img.src = '';
             img.onload = null;
             img.onerror = null;
             if (errorCallback) errorCallback('Image loading timeout');
-        }, 5000);
+        }, 3000);
         
         // Add error handler for Image loading
         img.onerror = function() {
             clearTimeout(imageTimeout);
             console.error('❌ Image load error - file may be corrupted or unsupported format');
-            showErrorAlert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
+            alert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
             img.src = '';
             img.onload = null;
             img.onerror = null;
@@ -7098,51 +7086,51 @@ function processChatImage(file, callback, errorCallback) {
                 aspectRatio: img.width / img.height
             };
 
-            // Wrap thumbnail generation in try-catch
-            try {
-                // Generate thumbnail (100px max, 60% quality)
-                createChatThumbnail(img, function(thumbnailDataURL) {
-                    result.thumbnailURL = thumbnailDataURL;
-                    result.thumbnailSize = Math.round(thumbnailDataURL.length * 0.75);
-                    thumbnailComplete = true;
-                    
-                    if (fullSizeComplete) {
-                        // MEMORY CLEANUP: Free image object after both versions are done
-                        img.src = '';
-                        img.onload = null;
-                        img.onerror = null;
-                        callback(result);
-                    }
-                });
-            } catch (error) {
-                console.error('❌ Thumbnail generation error:', error);
-                showErrorAlert('Failed to process this image. It may be in an unsupported format.');
+            // Generate thumbnail (100px max, 60% quality)
+            createChatThumbnail(img, function(thumbnailDataURL) {
+                result.thumbnailURL = thumbnailDataURL;
+                result.thumbnailSize = Math.round(thumbnailDataURL.length * 0.75);
+                thumbnailComplete = true;
+                
+                if (fullSizeComplete) {
+                    // MEMORY CLEANUP: Free image object after both versions are done
+                    img.src = '';
+                    img.onload = null;
+                    img.onerror = null;
+                    callback(result);
+                }
+            }, function(error) {
+                // Thumbnail generation error
+                console.error('❌ Thumbnail generation failed');
+                alert('Failed to process this image. It may be in an unsupported format.');
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
                 if (errorCallback) errorCallback('Thumbnail generation error');
-                return;
-            }
+            });
 
-            // Wrap full-size generation in try-catch
-            try {
-                // Generate full-size (720px max, 75% quality)
-                createCompressedChatImage(img, function(fullSizeDataURL) {
-                    result.fullSizeURL = fullSizeDataURL;
-                    result.fullSizeSize = Math.round(fullSizeDataURL.length * 0.75);
-                    fullSizeComplete = true;
-                    
-                    if (thumbnailComplete) {
-                        // MEMORY CLEANUP: Free image object after both versions are done
-                        img.src = '';
-                        img.onload = null;
-                        img.onerror = null;
-                        callback(result);
-                    }
-                });
-            } catch (error) {
-                console.error('❌ Full-size generation error:', error);
-                showErrorAlert('Failed to process this image. It may be in an unsupported format.');
+            // Generate full-size (720px max, 75% quality)
+            createCompressedChatImage(img, function(fullSizeDataURL) {
+                result.fullSizeURL = fullSizeDataURL;
+                result.fullSizeSize = Math.round(fullSizeDataURL.length * 0.75);
+                fullSizeComplete = true;
+                
+                if (thumbnailComplete) {
+                    // MEMORY CLEANUP: Free image object after both versions are done
+                    img.src = '';
+                    img.onload = null;
+                    img.onerror = null;
+                    callback(result);
+                }
+            }, function(error) {
+                // Full-size generation error
+                console.error('❌ Full-size generation failed');
+                alert('Failed to process this image. It may be in an unsupported format.');
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
                 if (errorCallback) errorCallback('Full-size generation error');
-                return;
-            }
+            });
         };
         
         img.src = e.target.result;
@@ -7156,38 +7144,48 @@ function processChatImage(file, callback, errorCallback) {
  * Based on new-post.js compression standards
  * @param {Image} img - Source image
  * @param {Function} callback - Callback with compressed data URL
+ * @param {Function} errorCallback - Callback for errors
  */
-function createCompressedChatImage(img, callback) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Calculate dimensions (max 720px width, maintain aspect ratio)
-    const maxWidth = 720;
-    let newWidth = img.width;
-    let newHeight = img.height;
-    
-    if (img.width > maxWidth) {
-        const scale = maxWidth / img.width;
-        newWidth = maxWidth;
-        newHeight = Math.round(img.height * scale);
+function createCompressedChatImage(img, callback, errorCallback) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+            throw new Error('Failed to get canvas context');
+        }
+        
+        // Calculate dimensions (max 720px width, maintain aspect ratio)
+        const maxWidth = 720;
+        let newWidth = img.width;
+        let newHeight = img.height;
+        
+        if (img.width > maxWidth) {
+            const scale = maxWidth / img.width;
+            newWidth = maxWidth;
+            newHeight = Math.round(img.height * scale);
+        }
+        
+        // Set canvas dimensions
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw the resized image (maintain original aspect ratio)
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to data URL with 75% quality (same as new-post.js)
+        const compressedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+        
+        // MEMORY CLEANUP: Clear canvas and free memory
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+        
+        callback(compressedDataURL);
+    } catch (error) {
+        console.error('❌ Canvas operation error in createCompressedChatImage:', error);
+        if (errorCallback) errorCallback(error);
     }
-    
-    // Set canvas dimensions
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-    
-    // Draw the resized image (maintain original aspect ratio)
-    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-    
-    // Convert to data URL with 75% quality (same as new-post.js)
-    const compressedDataURL = canvas.toDataURL('image/jpeg', 0.75);
-    
-    // MEMORY CLEANUP: Clear canvas and free memory
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
-    
-    callback(compressedDataURL);
 }
 
 /**
@@ -7195,45 +7193,55 @@ function createCompressedChatImage(img, callback) {
  * Optimized for fast loading and bandwidth efficiency
  * @param {Image} img - Source image
  * @param {Function} callback - Callback with thumbnail data URL
+ * @param {Function} errorCallback - Callback for errors
  */
-function createChatThumbnail(img, callback) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Calculate dimensions (100px max dimension, maintain aspect ratio)
-    const maxSize = 100;
-    let newWidth = img.width;
-    let newHeight = img.height;
-    
-    // Scale to fit within 100px while maintaining aspect ratio
-    if (newWidth > newHeight) {
-        if (newWidth > maxSize) {
-            newHeight = Math.round((newHeight * maxSize) / newWidth);
-            newWidth = maxSize;
+function createChatThumbnail(img, callback, errorCallback) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+            throw new Error('Failed to get canvas context');
         }
-    } else {
-        if (newHeight > maxSize) {
-            newWidth = Math.round((newWidth * maxSize) / newHeight);
-            newHeight = maxSize;
+        
+        // Calculate dimensions (100px max dimension, maintain aspect ratio)
+        const maxSize = 100;
+        let newWidth = img.width;
+        let newHeight = img.height;
+        
+        // Scale to fit within 100px while maintaining aspect ratio
+        if (newWidth > newHeight) {
+            if (newWidth > maxSize) {
+                newHeight = Math.round((newHeight * maxSize) / newWidth);
+                newWidth = maxSize;
+            }
+        } else {
+            if (newHeight > maxSize) {
+                newWidth = Math.round((newWidth * maxSize) / newHeight);
+                newHeight = maxSize;
+            }
         }
+        
+        // Set canvas dimensions
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw the resized image
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to data URL with 60% quality (higher compression for thumbnails)
+        const thumbnailDataURL = canvas.toDataURL('image/jpeg', 0.6);
+        
+        // MEMORY CLEANUP: Clear canvas and free memory
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+        
+        callback(thumbnailDataURL);
+    } catch (error) {
+        console.error('❌ Canvas operation error in createChatThumbnail:', error);
+        if (errorCallback) errorCallback(error);
     }
-    
-    // Set canvas dimensions
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-    
-    // Draw the resized image
-    ctx.drawImage(img, 0, 0, newWidth, newHeight);
-    
-    // Convert to data URL with 60% quality (higher compression for thumbnails)
-    const thumbnailDataURL = canvas.toDataURL('image/jpeg', 0.6);
-    
-    // MEMORY CLEANUP: Clear canvas and free memory
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    canvas.width = 0;
-    canvas.height = 0;
-    
-    callback(thumbnailDataURL);
 }
 
 /**
@@ -9284,37 +9292,6 @@ function showToast(message) {
     }
 }
 
-/**
- * Show custom error alert overlay
- * @param {string} message - Error message to display
- */
-function showErrorAlert(message) {
-    const overlay = document.getElementById('errorAlertOverlay');
-    const messageElement = document.getElementById('errorAlertMessage');
-    const btn = document.getElementById('errorAlertBtn');
-    
-    if (!overlay || !messageElement || !btn) return;
-    
-    messageElement.textContent = message;
-    overlay.style.display = 'flex';
-    
-    // Remove any previous click handler
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    
-    // Add click handler to close
-    newBtn.addEventListener('click', () => {
-        overlay.style.display = 'none';
-    });
-    
-    // Close on overlay background click
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            overlay.style.display = 'none';
-        }
-    };
-}
-
 // ===== REPLY FUNCTIONALITY (COPIED FROM DASHBOARD) =====
 
 let currentReplyMessage = null;
@@ -9655,23 +9632,15 @@ function handleReplyPhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    console.log('📎 Reply photo selected:', {
-        name: file.name,
-        type: file.type,
-        size: Math.round(file.size / 1024) + 'KB'
-    });
-    
     // Validate file type
     if (!file.type.startsWith('image/')) {
-        showErrorAlert('Please select a valid image file (JPG, PNG, GIF, etc.).');
-        console.error('❌ Invalid file type selected:', file.type);
+        showToast('Please select a valid image file');
         return;
     }
     
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-        showErrorAlert('Image is too large. Please select an image under 10MB.');
-        console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
+        showToast('Image file is too large. Please select a file under 10MB.');
         return;
     }
     
