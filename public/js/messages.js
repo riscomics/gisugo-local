@@ -4924,30 +4924,6 @@ function initializeInputFocusElegance(messageThread) {
             }
         });
         
-        // Mobile-specific: Handle keyboard show/hide with Visual Viewport API
-        if ('visualViewport' in window) {
-            const handleViewportChange = () => {
-                if (document.activeElement === inputField) {
-                    // Input is focused and viewport changed (likely keyboard)
-                    console.log('Mobile keyboard detected - applying focus elegance');
-                    inputContainer.classList.add('input-focused');
-                    messageThread.classList.add('input-focused');
-                }
-            };
-            
-            // MEMORY LEAK FIX: Use AbortController for proper cleanup
-            const controller = new AbortController();
-            window.visualViewport.addEventListener('resize', handleViewportChange, { signal: controller.signal });
-            
-            // Register controller for cleanup
-            registerCleanup('controller', `viewportFocus_${messageThread.dataset.threadId}`, controller);
-            
-            // Store cleanup function for potential future use
-            messageThread._cleanupFocusElegance = () => {
-                controller.abort();
-                console.log(`🧹 Cleaned up viewport listener for thread ${messageThread.dataset.threadId}`);
-            };
-        }
         
         console.log('Input focus elegance initialized successfully');
     } else {
