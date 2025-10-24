@@ -932,6 +932,13 @@ body::-webkit-scrollbar {
   transform: scale(0.8) translateY(20px);
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.business-prestige-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .business-prestige-overlay.active .business-prestige-container {
@@ -1163,6 +1170,13 @@ body::-webkit-scrollbar {
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
   margin: 0 auto;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.pro-prestige-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .pro-prestige-overlay.active .pro-prestige-container {
@@ -1386,6 +1400,13 @@ body::-webkit-scrollbar {
   transform: scale(0.8) translateY(20px);
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   position: relative;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
+.not-verified-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .not-verified-overlay.active .not-verified-container {
@@ -2201,6 +2222,8 @@ body::-webkit-scrollbar {
   border-radius: clamp(12px, 3vw, 16px);
   max-width: clamp(280px, 90vw, 600px);
   max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -2212,6 +2235,7 @@ body::-webkit-scrollbar {
   padding: clamp(1rem, 4vw, 1.5rem);
   border-bottom: 1px solid rgba(230, 214, 174, 0.2);
   background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .explanation-overlay-title {
@@ -2244,12 +2268,26 @@ body::-webkit-scrollbar {
 
 .explanation-overlay-content {
   padding: clamp(1rem, 4vw, 1.5rem);
-  max-height: 70vh;
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .explanation-overlay-content::-webkit-scrollbar {
   width: 6px;
+}
+
+.explanation-overlay-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.explanation-overlay-content::-webkit-scrollbar-thumb {
+  background: rgba(230, 214, 174, 0.3);
+  border-radius: 3px;
+}
+
+.explanation-overlay-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(230, 214, 174, 0.5);
 }
 
 .explanation-intro-text {
@@ -2603,6 +2641,7 @@ body::-webkit-scrollbar {
   padding: clamp(1rem, 4vw, 1.5rem);
   border-top: 1px solid rgba(230, 214, 174, 0.2);
   background: rgba(255, 255, 255, 0.02);
+  flex-shrink: 0; /* Prevent footer from shrinking */
 }
 
 .explanation-purchase-btn {
