@@ -5771,8 +5771,16 @@ function handlePhotoUpload(file, modalOverlay) {
     
     console.log('📸 Processing photo for chat...');
     
+    // Add timeout safety to prevent stuck loading state (10 seconds max)
+    const safetyTimeout = setTimeout(() => {
+        photoBtn.classList.remove('loading');
+        console.error('⚠️ Photo processing timeout - removing loading state');
+    }, 10000);
+    
     // Process image using new-post.js compression standards
     processChatImage(file, (processedImage) => {
+        // Clear safety timeout since processing completed
+        clearTimeout(safetyTimeout);
         // Get thread data
         const threadId = modalOverlay.getAttribute('data-thread-id');
         const participantId = modalOverlay.getAttribute('data-participant-id');
@@ -7058,6 +7066,9 @@ function processChatImage(file, callback) {
                 thumbnailComplete = true;
                 
                 if (fullSizeComplete) {
+                    // MEMORY CLEANUP: Free image object after both versions are done
+                    img.src = '';
+                    img.onload = null;
                     callback(result);
                 }
             });
@@ -7069,6 +7080,9 @@ function processChatImage(file, callback) {
                 fullSizeComplete = true;
                 
                 if (thumbnailComplete) {
+                    // MEMORY CLEANUP: Free image object after both versions are done
+                    img.src = '';
+                    img.onload = null;
                     callback(result);
                 }
             });
@@ -7108,6 +7122,12 @@ function createCompressedChatImage(img, callback) {
     
     // Convert to data URL with 75% quality (same as new-post.js)
     const compressedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+    
+    // MEMORY CLEANUP: Clear canvas and free memory
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+    
     callback(compressedDataURL);
 }
 
@@ -7148,6 +7168,12 @@ function createChatThumbnail(img, callback) {
     
     // Convert to data URL with 60% quality (higher compression for thumbnails)
     const thumbnailDataURL = canvas.toDataURL('image/jpeg', 0.6);
+    
+    // MEMORY CLEANUP: Clear canvas and free memory
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+    
     callback(thumbnailDataURL);
 }
 
