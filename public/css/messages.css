@@ -1175,7 +1175,7 @@ body:has(.messages-header) {
   .contact-message-modal {
     max-width: 95%;
     margin: 20px;
-    transition: transform 0.3s ease; /* Smooth transition for keyboard adjustments */
+    transition: transform 0.3s ease;
   }
   
   .contact-message-header {
@@ -5503,23 +5503,6 @@ body:has(.selection-controls[style*="display: flex"]) {
         gap: 0.75rem;
     }
 }
-
-/* Keyboard open handling for mobile 411px and below - DISABLED
- * NOTE: This CSS is disabled due to conflicts with photo upload functionality
- * The Messenger browser keyboard issue will need a different approach
- */
-/*
-@media (max-width: 411px) {
-    .chat-modal-overlay.keyboard-open .chat-modal-container {
-        max-height: 50vh;
-        transition: max-height 0.3s ease;
-    }
-    
-    .chat-modal-overlay.keyboard-open .chat-messages-container {
-        max-height: calc(50vh - 150px);
-    }
-}
-*/
 
 /* ===== REPLY THREAD STYLING (COPIED FROM DASHBOARD) ===== */
 

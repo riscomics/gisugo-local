@@ -3330,9 +3330,6 @@ function showContactMessageOverlay(userId, userName, applicationId = null) {
         // Show overlay
         overlay.classList.add('show');
         
-        // Initialize keyboard detection for mobile
-        initializeKeyboardDetection(overlay);
-        
         // Focus on input
         setTimeout(() => {
             messageInput.focus();
@@ -3344,81 +3341,6 @@ function closeContactMessageOverlay() {
     const overlay = document.getElementById('contactMessageOverlay');
     if (overlay) {
         overlay.classList.remove('show');
-        // Clean up keyboard detection
-        cleanupKeyboardDetection();
-    }
-}
-
-// Keyboard detection for mobile devices
-function initializeKeyboardDetection(overlay) {
-    // Only run on mobile devices
-    if (window.innerWidth > 600) return;
-    
-    const modal = overlay.querySelector('.contact-message-modal');
-    const messageInput = overlay.querySelector('#contactMessageInput');
-    let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    
-    function handleKeyboardShow() {
-        const currentViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        const keyboardHeight = initialViewportHeight - currentViewportHeight;
-        
-        if (keyboardHeight > 150) { // Keyboard is likely open
-            // Position modal above keyboard with some padding
-            const translateY = -(keyboardHeight / 2 + 20);
-            modal.style.transform = `translateY(${translateY}px)`;
-            console.log('Keyboard detected, adjusting modal position:', translateY);
-        }
-    }
-    
-    function handleKeyboardHide() {
-        // Reset position when keyboard is hidden
-        modal.style.transform = 'translateY(0)';
-        console.log('Keyboard hidden, resetting modal position');
-    }
-    
-    // MEMORY LEAK FIX: Listen for viewport changes with AbortController
-    const controller = new AbortController();
-    const signal = controller.signal;
-    
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            const currentHeight = window.visualViewport.height;
-            if (currentHeight < initialViewportHeight - 150) {
-                handleKeyboardShow();
-            } else {
-                handleKeyboardHide();
-            }
-        }, { signal });
-    } else {
-        // Fallback for older browsers
-        window.addEventListener('resize', () => {
-            const currentHeight = window.innerHeight;
-            if (currentHeight < initialViewportHeight - 150) {
-                handleKeyboardShow();
-            } else {
-                handleKeyboardHide();
-            }
-        }, { signal });
-    }
-    
-    // Register controller for cleanup
-    registerCleanup('controller', `keyboardDetection_${Date.now()}`, controller);
-    
-    // Also listen for input focus/blur as additional detection
-    messageInput.addEventListener('focus', () => {
-        setTimeout(handleKeyboardShow, 300); // Delay to allow keyboard to appear
-    });
-    
-    messageInput.addEventListener('blur', () => {
-        setTimeout(handleKeyboardHide, 300); // Delay to allow keyboard to disappear
-    });
-}
-
-function cleanupKeyboardDetection() {
-    // Reset any transforms when overlay is closed
-    const modal = document.querySelector('.contact-message-modal');
-    if (modal) {
-        modal.style.transform = '';
     }
 }
 
@@ -9693,23 +9615,3 @@ function initializeMessagesTabCounter() {
     // Also initialize inbox tab counters
     updateInboxTabCounts('customer'); // Use customer data for unified messages
 }
-
-// ===== KEYBOARD DETECTION FOR MESSENGER BROWSER FIX - DISABLED =====
-// NOTE: This feature is currently disabled due to conflicts with photo upload functionality
-// The Messenger browser keyboard issue will need a different approach
-
-/*
-// Detect if user is on Messenger browser
-function isMessengerBrowser() {
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
-    const isMessenger = /FBAN|FBAV|FB_IAB|FB4A/i.test(ua);
-    return isMessenger;
-}
-
-function initializeKeyboardDetection() {
-    // DISABLED - Causes conflicts with photo uploads
-    console.log('⚠️ Keyboard detection disabled - conflicts with photo upload functionality');
-    return;
-}
-*/
-
