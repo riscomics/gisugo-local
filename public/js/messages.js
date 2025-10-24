@@ -5723,8 +5723,20 @@ function initializeChatInputFunctionality(modalOverlay) {
 
     photoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            handlePhotoUpload(file, modalOverlay);
+        if (file) {
+            console.log('📎 File selected:', {
+                name: file.name,
+                type: file.type,
+                size: Math.round(file.size / 1024) + 'KB'
+            });
+            
+            if (file.type.startsWith('image/')) {
+                handlePhotoUpload(file, modalOverlay);
+            } else {
+                // Invalid file type - show error
+                showErrorAlert('Please select a valid image file (JPG, PNG, GIF, etc.).');
+                console.error('❌ Invalid file type selected:', file.type);
+            }
         }
         // Reset input so same file can be selected again
         photoInput.value = '';
@@ -7025,6 +7037,7 @@ window.forceResetAvatarOverlay = function() {
 function processChatImage(file, callback, errorCallback) {
     if (!file || !file.type.startsWith('image/')) {
         console.error('❌ Invalid file type for chat image');
+        showErrorAlert('Please select a valid image file (JPG, PNG, GIF, etc.).');
         if (errorCallback) errorCallback('Invalid file type');
         return;
     }
@@ -9642,15 +9655,23 @@ function handleReplyPhotoUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
+    console.log('📎 Reply photo selected:', {
+        name: file.name,
+        type: file.type,
+        size: Math.round(file.size / 1024) + 'KB'
+    });
+    
     // Validate file type
     if (!file.type.startsWith('image/')) {
-        showToast('Please select a valid image file');
+        showErrorAlert('Please select a valid image file (JPG, PNG, GIF, etc.).');
+        console.error('❌ Invalid file type selected:', file.type);
         return;
     }
     
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-        showToast('Image file is too large. Please select a file under 10MB.');
+        showErrorAlert('Image is too large. Please select an image under 10MB.');
+        console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
         return;
     }
     
