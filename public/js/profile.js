@@ -647,6 +647,56 @@ function handleGCoinsPurchase(packageData) {
 
 // ===== PURCHASE SUCCESS OVERLAY FUNCTIONALITY =====
 
+// Create confetti burst animation from popper icon - EXACT copy from jobs.html
+function createConfettiBurst() {
+  const container = document.querySelector('.purchase-success-container');
+  if (!container) return;
+  
+  console.log('🎊 Creating confetti effect with 40 particles');
+  const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff'];
+  const particleCount = 40;
+  
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-piece';
+    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+    
+    // Start all particles at the popper icon position (50% left, 12% top to align with icon)
+    particle.style.left = '50%';
+    particle.style.top = '12%';
+    
+    // Calculate random burst direction and distance in pixels
+    const angle = Math.random() * 360; // Random angle in degrees
+    const velocity = Math.random() * 200 + 100; // Random velocity between 100-300px
+    const gravity = -(Math.random() * 150 + 100); // Random upward force (negative gravity)
+    
+    // Convert angle to radians for calculation
+    const angleRad = angle * (Math.PI / 180);
+    const endX = Math.cos(angleRad) * velocity;
+    const endY = Math.sin(angleRad) * velocity + gravity; // Add gravity
+    
+    // Set CSS custom properties for animation
+    particle.style.setProperty('--end-x', endX + 'px');
+    particle.style.setProperty('--end-y', endY + 'px');
+    particle.style.setProperty('--rotation', (Math.random() * 720 + 360) + 'deg');
+    
+    // Random timing for more natural effect
+    particle.style.animationDelay = Math.random() * 0.3 + 's';
+    particle.style.animationDuration = (Math.random() * 1 + 1.5) + 's';
+    
+    container.appendChild(particle);
+    
+    // Remove particle after animation
+    setTimeout(() => {
+      if (particle.parentNode) {
+        particle.parentNode.removeChild(particle);
+      }
+    }, 3000);
+  }
+  
+  console.log('🎉 Confetti burst triggered!');
+}
+
 // Show custom purchase success overlay
 function showPurchaseSuccessOverlay(packageData, newBalance, verificationMessage) {
   const purchaseSuccessOverlay = document.getElementById('purchaseSuccessOverlay');
@@ -683,6 +733,11 @@ function showPurchaseSuccessOverlay(packageData, newBalance, verificationMessage
     // Show overlay
     purchaseSuccessOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+    
+    // Trigger confetti burst after a short delay (wait for overlay to render)
+    setTimeout(() => {
+      createConfettiBurst();
+    }, 100);
     
     console.log('💰 Purchase success overlay displayed');
   }
