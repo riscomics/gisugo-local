@@ -9694,99 +9694,22 @@ function initializeMessagesTabCounter() {
     updateInboxTabCounts('customer'); // Use customer data for unified messages
 }
 
-// ===== KEYBOARD DETECTION FOR MESSENGER BROWSER FIX (MOBILE 411px AND BELOW) =====
+// ===== KEYBOARD DETECTION FOR MESSENGER BROWSER FIX - DISABLED =====
+// NOTE: This feature is currently disabled due to conflicts with photo upload functionality
+// The Messenger browser keyboard issue will need a different approach
 
-/**
- * Detects Messenger browser and reduces overlay height when keyboard opens.
- * Messenger browser doesn't auto-adjust viewport, causing keyboard to cover input.
- * Only activates on Messenger browser + viewports 411px and below.
- */
-
+/*
 // Detect if user is on Messenger browser
 function isMessengerBrowser() {
     const ua = navigator.userAgent || navigator.vendor || window.opera;
-    
-    // TESTING MODE: Set to true to force-enable keyboard fix on any browser
-    const TESTING_MODE = false; // Change to true to test the keyboard fix
-    
-    // Messenger browser contains "FBAN" or "FBAV" in user agent
     const isMessenger = /FBAN|FBAV|FB_IAB|FB4A/i.test(ua);
-    
-    if (TESTING_MODE) {
-        console.log('🧪 TESTING MODE: Keyboard fix force-enabled on any browser');
-        return true;
-    }
-    
-    console.log('🔍 Browser detection:', isMessenger ? 'MESSENGER' : 'REGULAR', '| UA:', ua.substring(0, 100));
     return isMessenger;
 }
 
 function initializeKeyboardDetection() {
-    // Only run on Messenger browser
-    if (!isMessengerBrowser()) {
-        console.log('✅ Regular browser detected - using native keyboard handling');
-        return;
-    }
-    
-    console.log('🎯 Messenger browser detected - activating keyboard fix');
-    
-    // Only apply on mobile viewports 411px and below
-    const isMobile = () => window.innerWidth <= 411;
-    
-    if (!isMobile()) {
-        console.log('⌨️ Screen too wide (>411px) - keyboard fix disabled');
-        return;
-    }
-    
-    // Focus detection on inputs and textareas within chat modal (most reliable for Messenger)
-    // The chat modal is dynamically created, so we listen at document level
-    document.addEventListener('focusin', (e) => {
-        if (!isMobile()) return;
-        
-        const target = e.target;
-        
-        // Check if the input is within a chat modal overlay
-        const chatModal = target.closest('.chat-modal-overlay');
-        
-        if (chatModal && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-            console.log('⌨️ MESSENGER: Chat input focused - reducing overlay height');
-            chatModal.classList.add('keyboard-open');
-            
-            // Force reflow to ensure CSS applies
-            void chatModal.offsetHeight;
-        }
-    }, true);
-    
-    document.addEventListener('focusout', (e) => {
-        if (!isMobile()) return;
-        
-        const target = e.target;
-        
-        // Check if the input is within a chat modal overlay
-        const chatModal = target.closest('.chat-modal-overlay');
-        
-        if (chatModal && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
-            // Small delay to check if another input was focused
-            setTimeout(() => {
-                const hasActiveInput = chatModal.querySelector('input:focus, textarea:focus');
-                if (!hasActiveInput) {
-                    console.log('⌨️ MESSENGER: Chat input blurred - restoring overlay height');
-                    chatModal.classList.remove('keyboard-open');
-                    
-                    // Force reflow to ensure CSS applies
-                    void chatModal.offsetHeight;
-                }
-            }, 100);
-        }
-    }, true);
-    
-    console.log('✅ Messenger keyboard detection initialized (focus/blur method for chat modals)');
+    // DISABLED - Causes conflicts with photo uploads
+    console.log('⚠️ Keyboard detection disabled - conflicts with photo upload functionality');
+    return;
 }
-
-// Initialize keyboard detection when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeKeyboardDetection);
-} else {
-    initializeKeyboardDetection();
-}
+*/
 
