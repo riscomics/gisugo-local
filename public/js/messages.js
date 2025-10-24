@@ -7017,16 +7017,61 @@ window.forceResetAvatarOverlay = function() {
  * @param {File} file - Image file to process
  * @param {Function} callback - Callback with processed image data
  */
-function processChatImage(file, callback) {
+function processChatImage(file, callback, errorCallback) {
     if (!file || !file.type.startsWith('image/')) {
         console.error('❌ Invalid file type for chat image');
+        if (errorCallback) errorCallback('Invalid file type');
         return;
     }
+    
+    // Validate file size (max 10MB to prevent memory issues)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+        console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
+        alert('Image is too large. Please select an image under 10MB.');
+        if (errorCallback) errorCallback('File too large');
+        return;
+    }
+    
+    console.log('📸 Processing image:', file.name, 'Type:', file.type, 'Size:', Math.round(file.size / 1024) + 'KB');
 
     const reader = new FileReader();
+    
+    // Add error handler for FileReader
+    reader.onerror = function(error) {
+        console.error('❌ FileReader error:', error);
+        alert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
+        if (errorCallback) errorCallback('FileReader error');
+    };
+    
     reader.onload = function(e) {
         const img = new Image();
+        
+        // Add timeout to detect hung image loading (5 seconds)
+        const imageTimeout = setTimeout(() => {
+            console.error('❌ Image loading timeout - may be corrupted or unsupported format');
+            alert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
+            img.src = '';
+            img.onload = null;
+            img.onerror = null;
+            if (errorCallback) errorCallback('Image loading timeout');
+        }, 5000);
+        
+        // Add error handler for Image loading
+        img.onerror = function() {
+            clearTimeout(imageTimeout);
+            console.error('❌ Image load error - file may be corrupted or unsupported format');
+            alert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
+            img.src = '';
+            img.onload = null;
+            img.onerror = null;
+            if (errorCallback) errorCallback('Image load error');
+        };
+        
         img.onload = function() {
+            clearTimeout(imageTimeout);
+            console.log('✅ Image loaded successfully:', img.width + 'x' + img.height);
+            
             let thumbnailComplete = false;
             let fullSizeComplete = false;
             const result = {
@@ -7035,36 +7080,56 @@ function processChatImage(file, callback) {
                 aspectRatio: img.width / img.height
             };
 
-            // Generate thumbnail (100px max, 60% quality)
-            createChatThumbnail(img, function(thumbnailDataURL) {
-                result.thumbnailURL = thumbnailDataURL;
-                result.thumbnailSize = Math.round(thumbnailDataURL.length * 0.75); // Approximate size in bytes
-                thumbnailComplete = true;
-                
-                if (fullSizeComplete) {
-                    // MEMORY CLEANUP: Free image object after both versions are done
-                    img.src = '';
-                    img.onload = null;
-                    callback(result);
-                }
-            });
+            // Wrap thumbnail generation in try-catch
+            try {
+                // Generate thumbnail (100px max, 60% quality)
+                createChatThumbnail(img, function(thumbnailDataURL) {
+                    result.thumbnailURL = thumbnailDataURL;
+                    result.thumbnailSize = Math.round(thumbnailDataURL.length * 0.75);
+                    thumbnailComplete = true;
+                    
+                    if (fullSizeComplete) {
+                        // MEMORY CLEANUP: Free image object after both versions are done
+                        img.src = '';
+                        img.onload = null;
+                        img.onerror = null;
+                        callback(result);
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Thumbnail generation error:', error);
+                alert('Failed to process this image. It may be in an unsupported format.');
+                if (errorCallback) errorCallback('Thumbnail generation error');
+                return;
+            }
 
-            // Generate full-size (720px max, 75% quality)
-            createCompressedChatImage(img, function(fullSizeDataURL) {
-                result.fullSizeURL = fullSizeDataURL;
-                result.fullSizeSize = Math.round(fullSizeDataURL.length * 0.75); // Approximate size in bytes
-                fullSizeComplete = true;
-                
-                if (thumbnailComplete) {
-                    // MEMORY CLEANUP: Free image object after both versions are done
-                    img.src = '';
-                    img.onload = null;
-                    callback(result);
-                }
-            });
+            // Wrap full-size generation in try-catch
+            try {
+                // Generate full-size (720px max, 75% quality)
+                createCompressedChatImage(img, function(fullSizeDataURL) {
+                    result.fullSizeURL = fullSizeDataURL;
+                    result.fullSizeSize = Math.round(fullSizeDataURL.length * 0.75);
+                    fullSizeComplete = true;
+                    
+                    if (thumbnailComplete) {
+                        // MEMORY CLEANUP: Free image object after both versions are done
+                        img.src = '';
+                        img.onload = null;
+                        img.onerror = null;
+                        callback(result);
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Full-size generation error:', error);
+                alert('Failed to process this image. It may be in an unsupported format.');
+                if (errorCallback) errorCallback('Full-size generation error');
+                return;
+            }
         };
+        
         img.src = e.target.result;
     };
+    
     reader.readAsDataURL(file);
 }
 
