@@ -1,3 +1,18 @@
+// ============================================================================
+// 🔥 FIREBASE MIGRATION NOTES - FILE HEADER
+// ============================================================================
+// When migrating to Firebase backend, add these imports at the top:
+// 
+// import { initializeApp } from 'firebase/app';
+// import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+// import { firebaseConfig } from './firebase-config.js';
+// 
+// const app = initializeApp(firebaseConfig);
+// const db = getFirestore(app);
+//
+// Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
+// ============================================================================
+
 // Service Menu Overlay
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
 const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
@@ -256,6 +271,7 @@ regionPickerList.addEventListener('click', function(e) {
     renderCityMenu();
     closeRegionPicker();
     // Trigger job filtering and sorting based on selected region
+    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
@@ -283,6 +299,7 @@ regionMenuOverlay.addEventListener('click', function(e) {
     regionMenuOverlay.classList.remove('show');
     regionMenuOpen = false;
     // Trigger job filtering and sorting based on selected region
+    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
@@ -342,6 +359,7 @@ cityPickerList.addEventListener('click', function(e) {
     renderCityMenu();
     closeCityPicker();
     // Trigger job filtering and sorting based on selected city
+    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
@@ -419,6 +437,7 @@ payPickerList.addEventListener('click', function(e) {
     renderPayMenu();
     closePayPicker();
     // Trigger job filtering and sorting based on selected pay type
+    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
@@ -440,6 +459,7 @@ payMenuOverlay.addEventListener('click', function(e) {
     payMenuOverlay.classList.remove('show');
     payMenuOpen = false;
     // Trigger job filtering and sorting based on selected pay type
+    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
@@ -554,23 +574,61 @@ function filterAndSortJobs() {
   const existingCards = document.querySelectorAll('.job-preview-card');
   existingCards.forEach(card => card.remove());
   
+  // ============================================================================
+  // 🔥 FIREBASE MIGRATION POINT - DATA FETCHING
+  // ============================================================================
+  // CURRENT (MOCK): Fetching all gigs for category from localStorage, then filtering client-side
+  // FUTURE (FIREBASE): Replace lines below with Firebase query that filters server-side
+  //
+  // Example Firebase implementation:
+  // ----------------------------------------------------------------------------
+  // import { collection, query, where, getDocs } from 'firebase/firestore';
+  // 
+  // async function filterAndSortJobs() {
+  //   // ... (keep header spacer checks above)
+  //   
+  //   const gigsRef = collection(db, 'gigs');
+  //   let q = query(
+  //     gigsRef,
+  //     where('category', '==', currentCategory),
+  //     where('region', '==', activeRegion),
+  //     where('status', '==', 'active')  // Only show active gigs
+  //   );
+  //   
+  //   // Note: Pay type filter may need to stay client-side if you hit 
+  //   // Firestore's compound index limits (max 2 where clauses on different fields)
+  //   
+  //   const snapshot = await getDocs(q);
+  //   let categoryCards = snapshot.docs.map(doc => ({
+  //     id: doc.id,
+  //     ...doc.data()
+  //   }));
+  //   
+  //   // Then continue with pay type filtering below (if not in query)
+  // ----------------------------------------------------------------------------
+  
   // Get dynamic job preview cards from localStorage only
   const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
   const categoryCards = previewCards[currentCategory] || [];
   
-
+  // ============================================================================
+  // ✅ FIREBASE-READY - FILTERING LOGIC (Keep this section as-is)
+  // ============================================================================
+  // This filtering logic will work with both mock data and Firebase data.
+  // If you add region filter to Firebase query above, you can remove the region filter here.
+  // Pay type filter should stay here unless you create a compound index in Firestore.
   
   // Filter jobs based on selected region and pay type
   let filteredJobs = categoryCards;
   
-  // Filter by region
+  // Filter by region (client-side - remove this if region is in Firebase query)
   filteredJobs = filteredJobs.filter(job => {
     // If no region data in job, include it (for backwards compatibility)
     if (!job.region) return true;
     return job.region === activeRegion;
   });
   
-  // Filter by pay type
+  // Filter by pay type (keep this client-side for Firebase to avoid compound index complexity)
   if (activePay !== 'PAY TYPE') {
     filteredJobs = filteredJobs.filter(job => {
       const jobRate = (job.rate || '').toUpperCase();
@@ -578,6 +636,13 @@ function filterAndSortJobs() {
       return jobRate === filterRate;
     });
   }
+  
+  // ============================================================================
+  // ✅ FIREBASE-READY - SORTING LOGIC (Keep this section as-is)
+  // ============================================================================
+  // This sorting logic works with both mock data and Firebase data.
+  // You could optionally move sorting to Firebase with orderBy(), but client-side
+  // sorting gives you more flexibility for complex multi-field sorting.
   
   // Sort jobs by earliest job schedule date/time, then by earliest end time
   filteredJobs.sort((a, b) => {
@@ -608,7 +673,12 @@ function filterAndSortJobs() {
     return createdB - createdA; // Newest created first
   });
   
-
+  
+  // ============================================================================
+  // ✅ FIREBASE-READY - RENDERING LOGIC (Keep this section as-is)
+  // ============================================================================
+  // This rendering logic works perfectly with both mock data and Firebase data.
+  // No changes needed during Firebase migration.
   
   // Create and insert filtered job cards in reverse order to get correct display order
   let previousPayType = null;
@@ -705,73 +775,6 @@ function getCurrentCategory() {
   return filename.replace('.html', '');
 }
 
-function loadJobPreviewCards() {
-  const currentCategory = getCurrentCategory();
-  
-  // Get dynamic job preview cards from localStorage
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  const categoryCards = previewCards[currentCategory] || [];
-  
-  // Find the insertion point (after the header spacer)
-  const headerSpacer = document.querySelector('.jobcat-header-spacer');
-  if (!headerSpacer) {
-    console.error('Header spacer not found');
-    return;
-  }
-  
-  // Sort by earliest job schedule date/time, then by earliest end time
-  const sortedCards = categoryCards.sort((a, b) => {
-    // Convert job date and time to comparable format
-    const dateTimeA = parseJobDateTime(a.date, a.time);
-    const dateTimeB = parseJobDateTime(b.date, b.time);
-    
-    // Sort by earliest job date/time first
-    if (dateTimeA && dateTimeB) {
-      const timeDiff = dateTimeA - dateTimeB;
-      
-      // If start times are the same, sort by end time (earliest end time first)
-      if (timeDiff === 0) {
-        const endTimeA = parseJobEndTime(a.date, a.time);
-        const endTimeB = parseJobEndTime(b.date, b.time);
-        
-        if (endTimeA && endTimeB) {
-          return endTimeA - endTimeB; // Earliest end time first
-        }
-      }
-      
-      return timeDiff; // Earliest start time first
-    }
-    
-    // Fallback: if date parsing fails, sort by creation time
-    const createdA = new Date(a.createdAt || 0).getTime();
-    const createdB = new Date(b.createdAt || 0).getTime();
-    return createdB - createdA; // Newest created first
-  });
-  
-  // Create and insert dynamic job preview cards in reverse order to get correct display order
-  let prevPayType = null;
-  let consecCount = 0;
-  
-  sortedCards.reverse().forEach((cardData) => {
-    const currPayType = cardData.rate || 'Per Hour';
-    
-    // Track consecutive cards of same pay type for subtle variations
-    if (currPayType === prevPayType) {
-      consecCount++;
-    } else {
-      consecCount = 0;
-      prevPayType = currPayType;
-    }
-    
-    const jobCard = createJobPreviewCard(cardData, currPayType, consecCount);
-    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
-  });
-}
-
-
-
-
-
 function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount = 0) {
   const cardElement = document.createElement('a');
   cardElement.href = cardData.templateUrl;
@@ -826,12 +829,27 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
 // Load job preview cards when page loads
 document.addEventListener('DOMContentLoaded', function() {
   
-  loadJobPreviewCards();
-  // Apply initial sorting after cards are loaded
+  // ============================================================================
+  // 🔥 FIREBASE MIGRATION NOTE - PAGE LOAD
+  // ============================================================================
+  // When filterAndSortJobs() becomes async (for Firebase), update this to:
+  // 
+  // document.addEventListener('DOMContentLoaded', async function() {
+  //   await filterAndSortJobs();
+  //   setTimeout(() => {
+  //     truncateBarangayNames();
+  //   }, 50);
+  //   // ... rest stays the same
+  // });
+  //
+  // Also add loading state UI while fetching from Firebase
+  // ============================================================================
+  
+  // Apply filtering and sorting directly - no need to load all cards first
+  filterAndSortJobs();
   setTimeout(() => {
-    filterAndSortJobs();
     truncateBarangayNames();
-  }, 100);
+  }, 50);
   
   // Initialize jobcat overlay auto-resize
   initJobcatOverlayAutoResize();
