@@ -5896,6 +5896,11 @@ function handlePhotoUpload(file, modalOverlay) {
                 console.log('💬 Auto-response text sent for photo');
             }, 2000 + Math.random() * 2000); // 2-4 seconds delay
         }
+    }, (error) => {
+        // Error callback - clear loading state when image processing fails
+        clearTimeout(safetyTimeout);
+        photoBtn.classList.remove('loading');
+        console.error('❌ Photo processing failed in handlePhotoUpload:', error);
     });
 }
 
@@ -7028,7 +7033,7 @@ function processChatImage(file, callback, errorCallback) {
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
         console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
-        alert('Image is too large. Please select an image under 10MB.');
+        showErrorAlert('Image is too large. Please select an image under 10MB.');
         if (errorCallback) errorCallback('File too large');
         return;
     }
@@ -7040,7 +7045,7 @@ function processChatImage(file, callback, errorCallback) {
     // Add error handler for FileReader
     reader.onerror = function(error) {
         console.error('❌ FileReader error:', error);
-        alert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
+        showErrorAlert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
         if (errorCallback) errorCallback('FileReader error');
     };
     
@@ -7050,7 +7055,7 @@ function processChatImage(file, callback, errorCallback) {
         // Add timeout to detect hung image loading (5 seconds)
         const imageTimeout = setTimeout(() => {
             console.error('❌ Image loading timeout - may be corrupted or unsupported format');
-            alert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
+            showErrorAlert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
             img.src = '';
             img.onload = null;
             img.onerror = null;
@@ -7061,7 +7066,7 @@ function processChatImage(file, callback, errorCallback) {
         img.onerror = function() {
             clearTimeout(imageTimeout);
             console.error('❌ Image load error - file may be corrupted or unsupported format');
-            alert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
+            showErrorAlert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
             img.src = '';
             img.onload = null;
             img.onerror = null;
@@ -7098,7 +7103,7 @@ function processChatImage(file, callback, errorCallback) {
                 });
             } catch (error) {
                 console.error('❌ Thumbnail generation error:', error);
-                alert('Failed to process this image. It may be in an unsupported format.');
+                showErrorAlert('Failed to process this image. It may be in an unsupported format.');
                 if (errorCallback) errorCallback('Thumbnail generation error');
                 return;
             }
@@ -7121,7 +7126,7 @@ function processChatImage(file, callback, errorCallback) {
                 });
             } catch (error) {
                 console.error('❌ Full-size generation error:', error);
-                alert('Failed to process this image. It may be in an unsupported format.');
+                showErrorAlert('Failed to process this image. It may be in an unsupported format.');
                 if (errorCallback) errorCallback('Full-size generation error');
                 return;
             }
@@ -9266,6 +9271,37 @@ function showToast(message) {
     }
 }
 
+/**
+ * Show custom error alert overlay
+ * @param {string} message - Error message to display
+ */
+function showErrorAlert(message) {
+    const overlay = document.getElementById('errorAlertOverlay');
+    const messageElement = document.getElementById('errorAlertMessage');
+    const btn = document.getElementById('errorAlertBtn');
+    
+    if (!overlay || !messageElement || !btn) return;
+    
+    messageElement.textContent = message;
+    overlay.style.display = 'flex';
+    
+    // Remove any previous click handler
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    // Add click handler to close
+    newBtn.addEventListener('click', () => {
+        overlay.style.display = 'none';
+    });
+    
+    // Close on overlay background click
+    overlay.onclick = (e) => {
+        if (e.target === overlay) {
+            overlay.style.display = 'none';
+        }
+    };
+}
+
 // ===== REPLY FUNCTIONALITY (COPIED FROM DASHBOARD) =====
 
 let currentReplyMessage = null;
@@ -9635,6 +9671,10 @@ function handleReplyPhotoUpload(event) {
         showReplyPhotoPreview(processedImage.thumbnailURL);
         
         console.log('✅ Reply photo processed and ready');
+    }, (error) => {
+        // Error callback - clear file input on error
+        event.target.value = '';
+        console.error('❌ Reply photo processing failed:', error);
     });
 }
 
