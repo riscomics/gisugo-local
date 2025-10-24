@@ -247,12 +247,28 @@ body.admin-dashboard::-webkit-scrollbar {
     transform: rotate(180deg);
 }
 
+/* Center icons when sidebar is collapsed */
+.admin-sidebar.collapsed .menu-item {
+    padding: 1rem 0;
+    justify-content: center;
+}
+
+.admin-sidebar.collapsed .menu-icon {
+    margin: 0;
+}
+
 /* Sidebar Header */
 .sidebar-header {
     padding: 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     justify-content: flex-end;
+}
+
+/* Center toggle button when sidebar is collapsed */
+.admin-sidebar.collapsed .sidebar-header {
+    justify-content: center;
+    padding: 1rem 0;
 }
 
 .sidebar-toggle {
@@ -337,12 +353,18 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Badge positioning when sidebar is collapsed */
 .admin-sidebar.collapsed .menu-notification-badge {
     position: absolute;
     top: 8px;
     right: 8px;
     padding: 0.15rem 0.3rem;
     font-size: 0.65rem;
+}
+
+/* Hide badge completely when sidebar is auto-collapsed (1350px and below) */
+.admin-sidebar.auto-collapsed .menu-notification-badge {
+    display: none;
 }
 
 /* ===== MAIN CONTENT AREA ===== */
@@ -484,6 +506,9 @@ body.admin-dashboard::-webkit-scrollbar {
     background: #2d3748;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .activity-icon {
@@ -529,6 +554,9 @@ body.admin-dashboard::-webkit-scrollbar {
     padding: 1rem;
     border-radius: 8px;
     border-left: 4px solid;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .priority-item.urgent {
@@ -2027,6 +2055,17 @@ body.admin-dashboard::-webkit-scrollbar {
         display: none;
     }
     
+    /* Center icons when auto-collapsed */
+    .menu-item {
+        padding: 1rem 0;
+        justify-content: center;
+    }
+    
+    .sidebar-header {
+        justify-content: center;
+        padding: 1rem 0;
+    }
+    
     /* Stack inbox controls vertically */
     .messages-left-panel .inbox-controls {
         flex-direction: column;
@@ -2222,6 +2261,63 @@ body.admin-dashboard::-webkit-scrollbar {
         height: auto;
     }
     
+    /* Fix dashboard grid overflow - force single column */
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    /* Fix stats grid for mobile */
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .dashboard-card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .stat-card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Priority items mobile - ensure proper wrapping */
+    .priority-item {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+    
+    .priority-badge {
+        flex-shrink: 0;
+    }
+    
+    .priority-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        word-wrap: break-word;
+    }
+    
+    .priority-btn {
+        flex-shrink: 0;
+        min-width: 70px;
+    }
+    
+    /* Activity items mobile */
+    .activity-item {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .activity-text {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
     /* Additional mobile-specific adjustments */
     
     /* Header adjustments */
@@ -2273,36 +2369,33 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.85rem;
     }
     
-    /* Sidebar adjustments */
-    .admin-sidebar {
-        width: 60px; /* Even narrower sidebar */
-    }
+    /* Sidebar adjustments - using gradual scaling from 800px media query */
+    /* Width is already set by the clamp() at 800px breakpoint */
     
     .sidebar-nav li {
         margin-bottom: 0.5rem; /* Reduced spacing */
     }
     
     .sidebar-nav a {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
     
-    .sidebar-nav img {
-        width: 20px;
-        height: 20px; /* Smaller icons for mobile */
-    }
-    
     .admin-main {
-        margin-left: 60px;
         padding: 1rem 0.5rem; /* Further reduced padding */
-        width: calc(100vw - 60px); /* Ensure it doesn't exceed viewport minus sidebar */
-        max-width: calc(100vw - 60px);
+        width: calc(100vw - clamp(45px, 8.75vw, 70px));
+        max-width: calc(100vw - clamp(45px, 8.75vw, 70px));
         box-sizing: border-box;
         overflow-x: hidden; /* Prevent horizontal overflow */
+    }
+    
+    /* Ensure content sections respect container width */
+    .content-section {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
     
     /* Section spacing */
@@ -2575,6 +2668,29 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== COMPACT MOBILE: 450px and below ===== */
 @media (max-width: 450px) {
+    /* Ensure dashboard cards don't overflow */
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .dashboard-card {
+        padding: 1rem;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    /* Make priority items stack on very small screens */
+    .priority-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .priority-btn {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    
     /* Keep column layout but make elements smaller */
     .messages-left-panel .inbox-controls {
         gap: 0.5rem !important;
@@ -2615,18 +2731,140 @@ body.admin-dashboard::-webkit-scrollbar {
     }
 }
 
-/* Phone Optimizations (400px and below) */
-@media (max-width: 400px) {
-    /* Even more aggressive mobile scaling */
+/* ===== GRADUAL SIDEBAR SCALING: 800px to 320px ===== */
+@media (max-width: 800px) {
+    /* Gradual narrowing of collapsed sidebar width from 800px down to 320px */
     .admin-sidebar {
-        width: 50px; /* Ultra narrow sidebar */
+        width: clamp(45px, 8.75vw, 70px); /* Scales from 70px at 800px down to 45px at 320px */
     }
     
+    .admin-sidebar.collapsed {
+        width: clamp(45px, 8.75vw, 70px);
+    }
+    
+    /* Adjust main content margin to match sidebar */
     .admin-main {
-        margin-left: 50px;
+        margin-left: clamp(45px, 8.75vw, 70px);
+    }
+    
+    .admin-main.sidebar-collapsed {
+        margin-left: clamp(45px, 8.75vw, 70px);
+    }
+    
+    /* Gradual icon size reduction */
+    .menu-icon {
+        font-size: clamp(1rem, 2.5vw, 1.2rem); /* Scales from 1.2rem down to 1rem */
+        width: clamp(20px, 5vw, 24px);
+        height: clamp(20px, 5vw, 24px);
+    }
+    
+    /* Sidebar header adjustments - ensure centering */
+    .sidebar-header {
+        padding: clamp(0.5rem, 2vw, 1rem) 0;
+        justify-content: center;
+    }
+    
+    .sidebar-toggle {
+        font-size: clamp(1rem, 2.5vw, 1.2rem);
+        padding: clamp(0.3rem, 1.25vw, 0.5rem);
+    }
+    
+    /* Menu item padding - centered for compact sidebar */
+    .menu-item {
+        padding: clamp(0.75rem, 2.5vw, 1rem) 0;
+        justify-content: center;
+    }
+}
+
+/* ===== GRADUAL FONT SCALING: 411px to 320px ===== */
+@media (max-width: 411px) {
+    /* Gradual font size reduction using clamp() - scales smoothly from 411px to 320px */
+    
+    /* Section titles: scales from 1.5rem to 1.25rem */
+    .section-title {
+        font-size: clamp(1.25rem, 3.8vw, 1.5rem);
+    }
+    
+    /* Section subtitles: scales from 1rem to 0.875rem */
+    .section-subtitle {
+        font-size: clamp(0.875rem, 2.4vw, 1rem);
+    }
+    
+    /* Card titles: scales from 1.25rem to 1.1rem */
+    .card-title {
+        font-size: clamp(1.1rem, 3vw, 1.25rem);
+    }
+    
+    /* Stat numbers: scales from 1.75rem to 1.5rem */
+    .stat-number {
+        font-size: clamp(1.5rem, 4.2vw, 1.75rem);
+    }
+    
+    /* Stat labels: scales from 0.9rem to 0.8rem */
+    .stat-label {
+        font-size: clamp(0.8rem, 2.2vw, 0.9rem);
+    }
+    
+    /* Activity text: scales from 1rem to 0.875rem */
+    .activity-text {
+        font-size: clamp(0.875rem, 2.4vw, 1rem);
+    }
+    
+    /* Activity time: scales from 0.85rem to 0.75rem */
+    .activity-time {
+        font-size: clamp(0.75rem, 2vw, 0.85rem);
+    }
+    
+    /* Priority text: scales from 1rem to 0.875rem */
+    .priority-text {
+        font-size: clamp(0.875rem, 2.4vw, 1rem);
+    }
+    
+    /* Priority badge: scales from 0.75rem to 0.7rem */
+    .priority-badge {
+        font-size: clamp(0.7rem, 1.9vw, 0.75rem);
+    }
+    
+    /* Priority button: scales from 1rem to 0.875rem */
+    .priority-btn {
+        font-size: clamp(0.875rem, 2.4vw, 1rem);
+        padding: clamp(0.4rem, 1.2vw, 0.5rem) clamp(0.8rem, 2.4vw, 1rem);
+    }
+    
+    /* Panel titles: scales from 1.1rem to 1rem */
+    .panel-title {
+        font-size: clamp(1rem, 2.6vw, 1.1rem);
+    }
+}
+
+/* Phone Optimizations (400px and below) */
+@media (max-width: 400px) {
+    /* Sidebar width uses gradual scaling from 800px breakpoint */
+    /* No fixed widths needed - clamp() handles the gradual narrowing */
+    
+    .admin-main {
         padding: 0.75rem 0.25rem; /* Minimal padding */
-        width: calc(100vw - 50px);
-        max-width: calc(100vw - 50px);
+        width: calc(100vw - clamp(45px, 8.75vw, 70px));
+        max-width: calc(100vw - clamp(45px, 8.75vw, 70px));
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+    
+    /* Additional dashboard overflow protection */
+    .dashboard-grid,
+    .stats-grid {
+        width: 100%;
+        max-width: 100%;
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-card,
+    .stat-card,
+    .activity-item,
+    .priority-item {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
     }
     
     .admin-header {
@@ -2769,20 +3007,11 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== ULTRA SMALL MOBILE: 350px and below ===== */
 @media (max-width: 350px) {
-    /* Ultra compact sidebar instead of hiding */
-    .admin-sidebar {
-        width: 45px; /* Even more compact */
-    }
+    /* Sidebar width uses gradual scaling from 800px breakpoint */
+    /* clamp() automatically handles the narrowing to 45px at this size */
     
     .sidebar-nav a {
-        width: 38px;
-        height: 38px;
         border-radius: 4px;
-    }
-    
-    .sidebar-nav img {
-        width: 16px;
-        height: 16px;
     }
     
     .sidebar-nav li {
@@ -2790,9 +3019,8 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .admin-main {
-        margin-left: 45px;
-        width: calc(100vw - 45px);
-        max-width: calc(100vw - 45px);
+        width: calc(100vw - clamp(45px, 8.75vw, 70px));
+        max-width: calc(100vw - clamp(45px, 8.75vw, 70px));
         padding: 0.5rem 0.2rem;
     }
     
@@ -2928,14 +3156,7 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.85rem;
     }
     
-    .admin-sidebar.mobile-open {
-        transform: translateX(0);
-    }
-    
-    .admin-main {
-        margin-left: 0;
-        padding: 1rem;
-    }
+    /* Mobile sidebar behavior - width handled by gradual scaling */
     
     /* Compact header */
     .admin-header-container {

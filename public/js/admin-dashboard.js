@@ -64,6 +64,12 @@ function toggleSidebar() {
     const sidebar = document.getElementById('adminSidebar');
     const mainContent = document.querySelector('.admin-main');
     
+    // Don't allow toggle if auto-collapsed (at 1350px and below)
+    if (sidebar && sidebar.classList.contains('auto-collapsed')) {
+        console.log('🚫 Toggle disabled - sidebar is auto-collapsed at this viewport size');
+        return;
+    }
+    
     if (sidebar && mainContent) {
         const isCollapsed = sidebar.classList.contains('collapsed');
         
@@ -88,21 +94,27 @@ function handleResponsiveSidebar() {
     const mainContent = document.querySelector('.admin-main');
     const sidebarToggle = document.getElementById('sidebarToggle');
     
-    if (window.innerWidth <= 800) {
-        // Auto-collapse on tablet and below
+    if (window.innerWidth <= 1350) {
+        // Auto-collapse at 1350px and below - sidebar becomes icon-only permanently
         if (sidebar && mainContent) {
-            sidebar.classList.add('collapsed');
+            sidebar.classList.add('collapsed', 'auto-collapsed');
             mainContent.classList.add('sidebar-collapsed');
         }
-        // Hide toggle button on small screens
+        // Keep toggle button visible but disabled (for visual consistency)
         if (sidebarToggle) {
-            sidebarToggle.style.display = 'none';
+            sidebarToggle.style.display = 'flex'; // Keep visible
+            sidebarToggle.style.pointerEvents = 'none'; // Disable clicking
+            sidebarToggle.style.opacity = '0.5'; // Show it's disabled
         }
     } else {
-        // Restore saved state on desktop
+        // Above 1350px: enable toggle and restore saved state
         const savedState = localStorage.getItem('sidebarCollapsed');
         if (sidebar && mainContent && sidebarToggle) {
-            sidebarToggle.style.display = 'block';
+            sidebarToggle.style.display = 'flex';
+            sidebarToggle.style.pointerEvents = 'auto';
+            sidebarToggle.style.opacity = '1';
+            
+            sidebar.classList.remove('auto-collapsed');
             
             if (savedState === 'true') {
                 sidebar.classList.add('collapsed');
