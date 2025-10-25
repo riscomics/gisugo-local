@@ -2166,6 +2166,9 @@ function initializeGigModeration() {
     // Initialize contact overlay
     initializeContactGigOverlay();
     
+    // Initialize confirmation overlays
+    initializeConfirmationOverlays();
+    
     // Initialize mobile overlay
     initializeGigDetailOverlay();
     
@@ -2176,45 +2179,148 @@ function initializeGigModeration() {
 }
 
 function generateMockGigData() {
-    // Sample locations for extras
-    const locations = ['Barangay Capitol Site', 'Barangay Lahug', 'Barangay Mabolo', 'Barangay Kasambagan', 'Barangay Guadalupe'];
+    // Sample barangays (without "Barangay" prefix - matches backend data structure)
+    const barangays = ['Capitol Site', 'Lahug', 'Mabolo', 'Kasambagan', 'Guadalupe', 'Banilad', 'Talamban', 'Apas'];
     const supplies = ['Provided', 'Required'];
     const subjects = ['Math', 'Science', 'Computer', 'Language', 'Other'];
     const positions = ['In-Person', 'Virtual'];
     
+    // Realistic Filipino names for customers
+    const customerNames = [
+        'Maria Santos', 'Juan Dela Cruz', 'Pedro Garcia', 'Rosa Mendoza',
+        'Carlos Reyes', 'Elena Ramos', 'Miguel Torres', 'Sofia Villanueva',
+        'Antonio Cruz', 'Isabel Fernandez', 'Jose Rodriguez', 'Carmen Lopez',
+        'Francisco Gonzales', 'Luz Ramirez', 'Ricardo Silva', 'Teresa Morales',
+        'Roberto Diaz', 'Angela Castro', 'Manuel Flores', 'Gloria Ortega',
+        'Fernando Santos', 'Cristina Navarro', 'Eduardo Martinez', 'Beatriz Rivera'
+    ];
+    
+    // Realistic Filipino names for workers
+    const workerNames = [
+        'Ana Reyes', 'Mark Santos', 'Jenny Cruz', 'Ryan Garcia',
+        'Liza Mendoza', 'Ben Torres', 'Carla Ramos', 'Dennis Villanueva',
+        'Mary Ann Fernandez', 'Joel Rodriguez', 'Lea Lopez', 'Mike Gonzales',
+        'Nina Ramirez', 'Jay Silva', 'Grace Morales', 'Jun Diaz'
+    ];
+    
+    // Admin names for suspensions
+    const adminNames = [
+        'Admin Maria Garcia', 'Admin John Santos', 'Admin Lisa Reyes', 
+        'Admin Robert Cruz', 'Admin Sofia Mendoza'
+    ];
+    
+    // Helper function to get realistic titles based on category
+    function getRealisticTitle(category, photoNum) {
+        // Titles matched to actual thumbnail images (50-55 char limit)
+        const titlesByPhoto = {
+            'hatod': [
+                'Deliver Rice Bags to Store in Mandaue',           // post1: rice bags
+                'Transport Cooler Box to Beach Event',            // post2: cooler
+                'Deliver Packages Across Town Today',             // post3: boxes
+                'Need Ride to Airport - Early Morning',           // post4
+                'Quick Delivery Service to SM Seaside',           // post5
+                'Transport Documents to City Hall',               // post6
+                'Urgent Medical Supply Delivery Needed'           // post7
+            ],
+            'hakot': [
+                'Load and Move Boxes to New Warehouse',           // post1: workers loading
+                'Move Heavy Furniture to New House',              // post2
+                'Transport Construction Materials to Site',       // post3
+                'Haul Office Equipment Across City',              // post4
+                'Move Appliances and Heavy Items Today',          // post5
+                'Deliver Building Supplies to Talisay',           // post6
+                'Pickup and Move Boxes from Storage'              // post7
+            ],
+            'kompra': [
+                'Shop at SM Mall for Party Supplies',             // post1: mall
+                'Buy Fresh Produce from Carbon Market',           // post2: Carbon Market
+                'Grocery Shopping at Gaisano Grand Mall',         // post3
+                'Purchase Medicine from Mercury Drug',            // post4
+                'Get School Supplies for 3 Children',             // post5
+                'Weekly Grocery Shopping Service Needed',         // post6
+                'Buy Hardware Items from Handyman Store'          // post7
+            ],
+            'limpyo': [
+                'Clean Abandoned Property and Grounds',           // post1: old building
+                'Restaurant Kitchen Dishwashing Service',         // post2: restaurant dishes
+                'Deep Clean 3-Bedroom House This Weekend',        // post3
+                'Office Cleaning After Renovation Work',          // post4
+                'Post-Construction Cleanup Service Needed',       // post5
+                'Move-Out Cleaning for Apartment Unit',           // post6
+                'Weekly House Cleaning Service Required'          // post7
+            ],
+            'luto': [
+                'Cook Filipino Dishes for 50 Guests',
+                'Prepare Daily Meals for Family of Five',
+                'Catering Service for Office Party Event',
+                'Home-Cooked Meals for the Whole Week',
+                'Private Chef for Birthday Celebration',
+                'Meal Prep Service for Busy Professionals',
+                'Cook Traditional Cebuano Dishes Today'
+            ],
+            'hugas': [
+                'Wash Dishes After Big Party Event',
+                'Daily Dishwashing Service for Family',
+                'Clean Kitchen After Wedding Reception',
+                'Weekly Dishwashing Help Required',
+                'Post-Event Kitchen Cleanup Service',
+                'Restaurant Dishwashing Service Needed',
+                'Kitchen Cleaning After Catering Event'
+            ],
+            'laba': [
+                'Laundry Service for Two Weeks of Clothes',
+                'Wash and Iron All Work Clothes',
+                'Bulk Laundry After Month-Long Vacation',
+                'Weekly Laundry Service for Large Family',
+                'Wash All Bedsheets and Linens Today',
+                'Laundry Folding and Ironing Service',
+                'Express Laundry Service Needed Urgently'
+            ]
+        };
+        
+        const titles = titlesByPhoto[category] || [
+            `${category.charAt(0).toUpperCase() + category.slice(1)} Service Needed`,
+            `Looking for ${category.charAt(0).toUpperCase() + category.slice(1)} Help`,
+            `${category.charAt(0).toUpperCase() + category.slice(1)} Job Available`
+        ];
+        
+        // Return title matching photo number (1-7)
+        return titles[(photoNum - 1) % titles.length];
+    }
+    
     // Helper function to get extras based on category
     function getExtrasForCategory(category) {
-        const randomLocation1 = locations[Math.floor(Math.random() * locations.length)];
-        const randomLocation2 = locations[Math.floor(Math.random() * locations.length)];
+        const randomBarangay1 = barangays[Math.floor(Math.random() * barangays.length)];
+        const randomBarangay2 = barangays[Math.floor(Math.random() * barangays.length)];
         const randomSupply = supplies[Math.floor(Math.random() * supplies.length)];
         const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
         const randomPosition = positions[Math.floor(Math.random() * positions.length)];
         
         const extrasMap = {
-            'hatod': { 'Pickup at': randomLocation1, 'Deliver to': randomLocation2 },
-            'hakot': { 'Load at': randomLocation1, 'Unload at': randomLocation2 },
-            'kompra': { 'Shop at': randomLocation1, 'Deliver to': randomLocation2 },
-            'luto': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'hugas': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'laba': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'limpyo': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'tindera': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'bantay': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'painter': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'carpenter': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'plumber': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'security': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'driver': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'tutor': { 'Location': randomLocation1, 'Subject': randomSubject },
-            'nurse': { 'Location': randomLocation1, 'Position': randomPosition },
-            'doctor': { 'Location': randomLocation1, 'Position': randomPosition },
-            'lawyer': { 'Location': randomLocation1, 'Position': randomPosition },
-            'mechanic': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'electrician': { 'Location': randomLocation1, 'Supplies': randomSupply },
-            'tailor': { 'Location': randomLocation1, 'Supplies': randomSupply }
+            'hatod': { 'Pickup at': randomBarangay1, 'Deliver to': randomBarangay2 },
+            'hakot': { 'Load at': randomBarangay1, 'Unload at': randomBarangay2 },
+            'kompra': { 'Shop at': randomBarangay1, 'Deliver to': randomBarangay2 },
+            'luto': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'hugas': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'laba': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'limpyo': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'tindera': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'bantay': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'painter': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'carpenter': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'plumber': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'security': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'driver': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'tutor': { 'Location': randomBarangay1, 'Subject': randomSubject },
+            'nurse': { 'Location': randomBarangay1, 'Position': randomPosition },
+            'doctor': { 'Location': randomBarangay1, 'Position': randomPosition },
+            'lawyer': { 'Location': randomBarangay1, 'Position': randomPosition },
+            'mechanic': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'electrician': { 'Location': randomBarangay1, 'Supplies': randomSupply },
+            'tailor': { 'Location': randomBarangay1, 'Supplies': randomSupply }
         };
         
-        return extrasMap[category] || { 'Location': randomLocation1, 'Supplies': randomSupply };
+        return extrasMap[category] || { 'Location': randomBarangay1, 'Supplies': randomSupply };
     }
     
     // Mock gig data for demonstration
@@ -2226,14 +2332,14 @@ function generateMockGigData() {
             posterName: 'Maria Santos',
             posterAvatar: 'public/users/User-02.jpg',
             category: 'hatod',
-            title: 'Need Driver for Airport Drop-off',
+            title: 'Deliver Rice Bags to Store in Mandaue',
             thumbnail: 'public/mock/mock-hatod-post1.jpg',
-            jobDate: 'December 25, 2024',
-            startTime: '6:00 AM',
-            endTime: '8:00 AM',
+            jobDate: 'February 8, 2025',
+            startTime: '6AM',
+            endTime: '8AM',
             region: 'Cebu',
             city: 'Cebu City',
-            extras: { 'Pickup at': 'Barangay Capitol Site', 'Deliver to': 'Mactan Airport' },
+            extras: { 'Pickup at': 'Capitol Site', 'Deliver to': 'Mactan Airport' },
             description: 'Need reliable driver for early morning airport trip. Must have clean vehicle and arrive on time.',
             price: '800',
             payRate: 'Per Job',
@@ -2248,16 +2354,16 @@ function generateMockGigData() {
             posterName: 'Juan Dela Cruz',
             posterAvatar: 'public/users/User-03.jpg',
             category: 'limpyo',
-            title: 'House Deep Cleaning Needed',
+            title: 'Restaurant Kitchen Dishwashing Service',
             thumbnail: 'public/mock/mock-limpyo-post2.jpg',
-            jobDate: 'December 26, 2024',
-            startTime: '9:00 AM',
-            endTime: '5:00 PM',
+            jobDate: 'March 12, 2025',
+            startTime: '9AM',
+            endTime: '5PM',
             region: 'Cebu',
             city: 'Mandaue City',
-            extras: { 'Location': 'Barangay Mabolo', 'Supplies': 'Provided' },
+            extras: { 'Location': 'Mabolo', 'Supplies': 'Provided' },
             description: 'Looking for experienced cleaner for deep house cleaning. All supplies provided.',
-            price: '2500',
+            price: '1200',
             payRate: 'Per Job',
             status: 'posted',
             datePosted: '5 hours ago',
@@ -2271,44 +2377,68 @@ function generateMockGigData() {
             posterName: 'Pedro Garcia',
             posterAvatar: 'public/users/User-05.jpg',
             category: 'hakot',
-            title: 'Move Furniture to New House',
+            title: 'Transport Construction Materials to Site',
             thumbnail: 'public/mock/mock-hakot-post3.jpg',
-            jobDate: 'December 27, 2024',
-            startTime: '8:00 AM',
-            endTime: '12:00 PM',
+            jobDate: 'February 14, 2025',
+            startTime: '8AM',
+            endTime: '12PM',
             region: 'Cebu',
             city: 'Talisay City',
-            extras: { 'Load at': 'Barangay Kasambagan', 'Unload at': 'Barangay Guadalupe' },
+            extras: { 'Load at': 'Kasambagan', 'Unload at': 'Guadalupe' },
             description: 'Need help moving furniture. Heavy items included.',
-            price: '3000',
+            price: '1500',
             payRate: 'Per Hour',
-            status: 'reported',
+            status: 'posted', // Still live in marketplace
             datePosted: '1 day ago',
             applicationCount: 5,
-            hiredWorker: null
+            hiredWorker: null,
+            reportedBy: [
+                { reporterId: 'user007', reporterName: 'Carlos Reyes', reporterAvatar: 'public/users/User-07.jpg', reportDate: 'January 28, 2025 3:45 PM' },
+                { reporterId: 'user012', reporterName: 'Elena Ramos', reporterAvatar: 'public/users/User-02.jpg', reportDate: 'January 28, 2025 5:20 PM' },
+                { reporterId: 'user018', reporterName: 'Miguel Torres', reporterAvatar: 'public/users/User-03.jpg', reportDate: 'January 29, 2025 9:15 AM' }
+            ],
+            reportCount: 3,
+            reportThreshold: 0, // Show in Reported tab (initial reports)
+            ignoredBy: [] // Track admin ignores
         },
         // Suspended gigs
         {
             gigId: '1760557532321',
             posterId: 'user004',
-            posterName: 'Suspicious User',
+            posterName: 'Rosa Mendoza',
             posterAvatar: 'public/users/User-06.jpg',
             category: 'kompra',
-            title: 'Grocery Shopping Service - SUSPENDED',
+            title: 'Purchase Medicine from Mercury Drug',
             thumbnail: 'public/mock/mock-kompra-post4.jpg',
-            jobDate: 'December 28, 2024',
-            startTime: '4:00 PM',
-            endTime: '10:00 PM',
+            jobDate: 'March 5, 2025',
+            startTime: '4PM',
+            endTime: '10PM',
             region: 'Cebu',
             city: 'Lapu-Lapu City',
-            extras: { 'Shop at': 'Barangay Lahug', 'Deliver to': 'Barangay Capitol Site' },
+            extras: { 'Shop at': 'Lahug', 'Deliver to': 'Capitol Site' },
             description: 'This gig was reported for suspicious activity and has been suspended.',
-            price: '5000',
+            price: '1000',
             payRate: 'Per Job',
             status: 'suspended',
             datePosted: '3 days ago',
             applicationCount: 2,
-            hiredWorker: null
+            hiredWorker: null,
+            reportedBy: [
+                { reporterId: 'user015', reporterName: 'Antonio Cruz', reporterAvatar: 'public/users/User-05.jpg', reportDate: 'January 27, 2025 2:30 PM' },
+                { reporterId: 'user021', reporterName: 'Isabel Fernandez', reporterAvatar: 'public/users/User-06.jpg', reportDate: 'January 28, 2025 11:45 AM' },
+                { reporterId: 'user009', reporterName: 'Jose Rodriguez', reporterAvatar: 'public/users/User-07.jpg', reportDate: 'January 29, 2025 4:20 PM' },
+                { reporterId: 'user026', reporterName: 'Carmen Lopez', reporterAvatar: 'public/users/User-02.jpg', reportDate: 'January 29, 2025 8:55 PM' },
+                { reporterId: 'user033', reporterName: 'Francisco Gonzales', reporterAvatar: 'public/users/User-03.jpg', reportDate: 'January 30, 2025 7:10 AM' }
+            ],
+            reportCount: 5,
+            reportThreshold: 0,
+            ignoredBy: [],
+            suspendedBy: { 
+                adminId: 'admin001', 
+                adminName: 'Admin Maria Garcia', 
+                adminAvatar: 'public/users/User-01.jpg', 
+                suspendDate: 'January 30, 2025 10:20 AM' 
+            }
         }
     ];
     
@@ -2323,33 +2453,93 @@ function generateMockGigData() {
     const categories = Object.keys(categoriesWithPhotos);
     const statuses = ['posted', 'posted', 'posted', 'reported', 'posted'];
     
+    // Helper to format time correctly (12-hour format without space: "9AM", "2PM")
+    function formatTime(hour) {
+        if (hour === 12) return '12PM';
+        if (hour > 12) return `${hour - 12}PM`;
+        return `${hour}AM`;
+    }
+    
     for (let i = 0; i < 20; i++) {
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const category = categories[Math.floor(Math.random() * categories.length)];
         const photoNum = (i % categoriesWithPhotos[category]) + 1;
         
-        allGigs.push({
+        // Generate realistic time range (8AM-11PM, with 2-6 hour duration)
+        const startHour = ((i % 14) + 8); // 8 to 21 (8AM to 9PM)
+        const duration = (i % 4) + 2; // 2 to 5 hours
+        const endHour = Math.min(startHour + duration, 23); // Cap at 11PM
+        
+        const gigData = {
             gigId: `176055753${2322 + i}`,
             posterId: `user${String(i + 5).padStart(3, '0')}`,
-            posterName: `Customer ${i + 5}`,
+            posterName: customerNames[i % customerNames.length],
             posterAvatar: `public/users/User-0${(i % 6) + 2}.jpg`,
             category: category,
-            title: `Sample Gig #${i + 5} - ${category}`,
+            title: getRealisticTitle(category, photoNum),
             thumbnail: `public/mock/mock-${category}-post${photoNum}.jpg`,
-            jobDate: `January ${(i % 28) + 1}, 2025`,
-            startTime: `${(i % 12) + 8}:00 AM`,
-            endTime: `${(i % 12) + 10}:00 AM`,
+            jobDate: `${['January', 'February', 'March'][i % 3]} ${(i % 28) + 1}, 2025`,
+            startTime: formatTime(startHour),
+            endTime: formatTime(endHour),
             region: 'Cebu',
             city: 'Cebu City',
             extras: getExtrasForCategory(category),
-            description: `This is a sample gig description for gig #${i + 5}.`,
-            price: `${(i + 1) * 500}`,
+            description: 'Looking for reliable and experienced help. Please review the details carefully before applying. Contact me if you have any questions.',
+            price: `${500 + (i % 5) * 250}`,
             payRate: i % 2 === 0 ? 'Per Job' : 'Per Hour',
             status: status,
             datePosted: `${i + 1} hours ago`,
             applicationCount: Math.floor(Math.random() * 20),
-            hiredWorker: i % 3 === 0 ? { workerId: `worker${i}`, workerName: `Worker ${i}`, workerAvatar: 'public/users/User-04.jpg' } : null
-        });
+            hiredWorker: i % 3 === 0 ? { workerId: `worker${i}`, workerName: workerNames[i % workerNames.length], workerAvatar: 'public/users/User-04.jpg' } : null
+        };
+        
+        // Add reportedBy for reported gigs (array of reporters)
+        if (status === 'reported') {
+            const numReporters = Math.floor(Math.random() * 5) + 1; // 1-5 reporters
+            gigData.reportedBy = [];
+            
+            for (let r = 0; r < numReporters; r++) {
+                gigData.reportedBy.push({
+                    reporterId: `user${String((i + 100 + r * 10) % 200).padStart(3, '0')}`,
+                    reporterName: customerNames[(i + r + 7) % customerNames.length],
+                    reporterAvatar: `public/users/User-0${((i + r + 3) % 6) + 2}.jpg`,
+                    reportDate: `January ${(i % 28) + 1}, 2025 ${((i + r) % 12) + 1}:${((i + r * 5) % 60).toString().padStart(2, '0')} PM`
+                });
+            }
+            
+            gigData.reportCount = numReporters;
+            gigData.reportThreshold = 0; // Show in Reported tab
+            gigData.ignoredBy = [];
+        }
+        
+        // Add suspendedBy for suspended gigs (will be added when admin suspends)
+        if (status === 'suspended') {
+            // Suspended gigs were likely reported first
+            const numReporters = Math.floor(Math.random() * 8) + 3; // 3-10 reporters
+            gigData.reportedBy = [];
+            
+            for (let r = 0; r < numReporters; r++) {
+                gigData.reportedBy.push({
+                    reporterId: `user${String((i + 100 + r * 10) % 200).padStart(3, '0')}`,
+                    reporterName: customerNames[(i + r + 7) % customerNames.length],
+                    reporterAvatar: `public/users/User-0${((i + r + 3) % 6) + 2}.jpg`,
+                    reportDate: `January ${(i % 28) + 1}, 2025 ${((i + r) % 12) + 1}:${((i + r * 5) % 60).toString().padStart(2, '0')} PM`
+                });
+            }
+            
+            gigData.reportCount = numReporters;
+            gigData.reportThreshold = 0;
+            gigData.ignoredBy = [];
+            
+            gigData.suspendedBy = {
+                adminId: `admin${String((i % 5) + 1).padStart(3, '0')}`,
+                adminName: adminNames[i % adminNames.length],
+                adminAvatar: 'public/users/User-01.jpg',
+                suspendDate: `January ${(i % 28) + 1}, 2025 ${(i % 12) + 1}:${(i % 60).toString().padStart(2, '0')} PM`
+            };
+        }
+        
+        allGigs.push(gigData);
     }
 }
 
@@ -2386,8 +2576,24 @@ function loadGigCards(tabType) {
     const gigCardsList = document.getElementById('gigCardsList');
     if (!gigCardsList) return;
     
-    // Filter gigs by status
-    const filteredGigs = allGigs.filter(gig => gig.status === tabType);
+    // Filter gigs by tab type
+    let filteredGigs;
+    
+    if (tabType === 'reported') {
+        // Show gigs that are reported AND meet threshold
+        filteredGigs = allGigs.filter(gig => 
+            gig.reportedBy && 
+            gig.reportedBy.length > 0 && 
+            gig.reportCount >= gig.reportThreshold &&
+            gig.status !== 'suspended' // Don't show suspended gigs in reported tab
+        );
+    } else if (tabType === 'suspended') {
+        // Show only suspended gigs
+        filteredGigs = allGigs.filter(gig => gig.status === 'suspended');
+    } else {
+        // Posted tab: show all posted gigs (including reported ones that are still live)
+        filteredGigs = allGigs.filter(gig => gig.status === 'posted' && (!gig.reportedBy || gig.reportedBy.length === 0));
+    }
     
     // Update tab counts
     updateTabCounts();
@@ -2406,14 +2612,10 @@ function loadGigCards(tabType) {
 }
 
 function generateGigCardHTML(gig) {
-    const statusClass = `status-${gig.status}`;
-    const statusText = gig.status.charAt(0).toUpperCase() + gig.status.slice(1);
-    
     return `
         <div class="gig-card" data-gig-id="${gig.gigId}" data-poster-id="${gig.posterId}">
             <div class="gig-thumbnail">
                 <img src="${gig.thumbnail}" alt="${gig.title}">
-                <span class="gig-status-badge ${statusClass}">${statusText}</span>
             </div>
             <div class="gig-card-content">
                 <div class="gig-card-title">${gig.title}</div>
@@ -2537,6 +2739,80 @@ function populateGigDetailPanel(gig) {
     } else {
         hiredWorkerInfo.innerHTML = '<div class="no-hired-worker">This Gig has no hired worker.</div>';
     }
+    
+    // Reported By section (for reported and suspended gigs)
+    const reportedBySection = document.getElementById('reportedBySection');
+    const reportedByInfo = document.getElementById('reportedByInfo');
+    if (gig.reportedBy && gig.reportedBy.length > 0) {
+        const firstReporter = gig.reportedBy[0];
+        const additionalCount = gig.reportedBy.length - 1;
+        const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
+        
+        reportedByInfo.innerHTML = `
+            <div class="reported-by-profile">
+                <img src="${firstReporter.reporterAvatar}" alt="${firstReporter.reporterName}" class="reporter-avatar">
+                <div class="reporter-details">
+                    <span class="reporter-name">${firstReporter.reporterName}${countBadge}</span>
+                    <span class="report-date">${firstReporter.reportDate}</span>
+                </div>
+            </div>
+        `;
+        reportedBySection.style.display = 'block';
+    } else {
+        reportedBySection.style.display = 'none';
+    }
+    
+    // Suspended By section (for suspended gigs)
+    const suspendedBySection = document.getElementById('suspendedBySection');
+    const suspendedByInfo = document.getElementById('suspendedByInfo');
+    if (gig.status === 'suspended' && gig.suspendedBy) {
+        suspendedByInfo.innerHTML = `
+            <div class="suspended-by-profile">
+                <img src="${gig.suspendedBy.adminAvatar}" alt="${gig.suspendedBy.adminName}" class="admin-avatar">
+                <div class="admin-details">
+                    <span class="admin-name">${gig.suspendedBy.adminName}</span>
+                    <span class="suspend-date">${gig.suspendedBy.suspendDate}</span>
+                </div>
+            </div>
+        `;
+        suspendedBySection.style.display = 'block';
+    } else {
+        suspendedBySection.style.display = 'none';
+    }
+    
+    // Update action buttons based on gig status
+    const suspendBtn = document.getElementById('suspendGigBtn');
+    const relistBtn = document.getElementById('relistGigBtn');
+    const closeBtn = document.getElementById('closeGigBtn');
+    const ignoreBtn = document.getElementById('ignoreGigBtn');
+    const bigSuspendSection = document.getElementById('bigSuspendSection');
+    const permDeleteSection = document.getElementById('permDeleteSection');
+    
+    if (gig.status === 'suspended') {
+        // Suspended: Hide SUSPEND/IGNORE, Show RELIST/CLOSE, Hide BIG SUSPEND, Show PERM DELETE section
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (ignoreBtn) ignoreBtn.style.display = 'none';
+        if (relistBtn) relistBtn.style.display = 'inline-block';
+        if (closeBtn) closeBtn.style.display = 'inline-block';
+        if (bigSuspendSection) bigSuspendSection.style.display = 'none';
+        if (permDeleteSection) permDeleteSection.style.display = 'block';
+    } else if (gig.reportedBy && gig.reportedBy.length > 0) {
+        // Reported: Hide SUSPEND, Show IGNORE/CLOSE, Show BIG SUSPEND section, Hide PERM DELETE
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (ignoreBtn) ignoreBtn.style.display = 'inline-block';
+        if (relistBtn) relistBtn.style.display = 'none';
+        if (closeBtn) closeBtn.style.display = 'inline-block';
+        if (bigSuspendSection) bigSuspendSection.style.display = 'block';
+        if (permDeleteSection) permDeleteSection.style.display = 'none';
+    } else {
+        // Posted: Show SUSPEND/CLOSE, Hide IGNORE/RELIST, Hide BIG SUSPEND and PERM DELETE sections
+        if (suspendBtn) suspendBtn.style.display = 'inline-block';
+        if (ignoreBtn) ignoreBtn.style.display = 'none';
+        if (relistBtn) relistBtn.style.display = 'none';
+        if (closeBtn) closeBtn.style.display = 'inline-block';
+        if (bigSuspendSection) bigSuspendSection.style.display = 'none';
+        if (permDeleteSection) permDeleteSection.style.display = 'none';
+    }
 }
 
 function clearGigDetail() {
@@ -2562,6 +2838,18 @@ function initializeGigActions() {
     // Suspend button
     document.getElementById('suspendGigBtn')?.addEventListener('click', handleSuspendGig);
     
+    // Big Suspend button (for reported gigs)
+    document.getElementById('bigSuspendGigBtn')?.addEventListener('click', handleSuspendGig);
+    
+    // Ignore button (for reported gigs)
+    document.getElementById('ignoreGigBtn')?.addEventListener('click', handleIgnoreGig);
+    
+    // Relist button (for suspended gigs)
+    document.getElementById('relistGigBtn')?.addEventListener('click', handleRelistGig);
+    
+    // Permanent Delete button (for suspended gigs)
+    document.getElementById('permDeleteGigBtn')?.addEventListener('click', handlePermanentDeleteGig);
+    
     // Contact button
     document.getElementById('contactGigBtn')?.addEventListener('click', handleContactGig);
     
@@ -2572,26 +2860,244 @@ function initializeGigActions() {
 function handleSuspendGig() {
     if (!currentGigData) return;
     
-    const confirmed = confirm(`Are you sure you want to suspend this gig?\n\nTitle: ${currentGigData.title}\nPosted by: ${currentGigData.posterName}\n\nThis action will move the gig to the "Gigs Suspended" tab.`);
+    // Show confirmation overlay
+    showSuspendConfirmation();
+}
+
+function showSuspendConfirmation() {
+    const overlay = document.getElementById('suspendConfirmOverlay');
+    const message = document.getElementById('suspendConfirmMessage');
     
-    if (confirmed) {
-        // Update gig status
-        const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
-        if (gig) {
-            gig.status = 'suspended';
-        }
-        
-        // Close detail view
-        clearGigDetail();
-        
-        // Reload current tab
-        loadGigCards(currentGigTab);
-        
-        // Show toast
-        showToast('Gig suspended successfully', 'success');
-        
-        console.log(`🚫 Gig ${currentGigData.gigId} suspended`);
+    if (overlay && currentGigData) {
+        message.innerHTML = `<strong>${currentGigData.title}</strong> by ${currentGigData.posterName} will be moved to the "Suspended" tab.`;
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
     }
+}
+
+function hideSuspendConfirmation() {
+    const overlay = document.getElementById('suspendConfirmOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function confirmSuspendGig() {
+    if (!currentGigData) return;
+    
+    // Update gig status
+    const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
+    if (gig) {
+        gig.status = 'suspended';
+        
+        // Add suspended by info (current admin user)
+        const now = new Date();
+        gig.suspendedBy = {
+            adminId: 'admin001',
+            adminName: 'Admin Maria Garcia',
+            adminAvatar: 'public/users/User-01.jpg',
+            suspendDate: now.toLocaleString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric', 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+            })
+        };
+    }
+    
+    // Hide confirmation
+    hideSuspendConfirmation();
+    
+    // Close detail view
+    clearGigDetail();
+    
+    // Reload current tab
+    loadGigCards(currentGigTab);
+    
+    // Show toast
+    showToast('Gig suspended successfully', 'success');
+    
+    console.log(`🚫 Gig ${currentGigData.gigId} suspended`);
+}
+
+function handleRelistGig() {
+    if (!currentGigData) return;
+    
+    // Show confirmation overlay
+    showRelistConfirmation();
+}
+
+function showRelistConfirmation() {
+    const overlay = document.getElementById('relistConfirmOverlay');
+    const message = document.getElementById('relistConfirmMessage');
+    
+    if (overlay && currentGigData) {
+        message.innerHTML = `<strong>${currentGigData.title}</strong> by ${currentGigData.posterName} will be moved back to the "Posted" tab.`;
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function hideRelistConfirmation() {
+    const overlay = document.getElementById('relistConfirmOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function confirmRelistGig() {
+    if (!currentGigData) return;
+    
+    // Update gig status
+    const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
+    if (gig) {
+        gig.status = 'posted';
+        
+        // Remove suspended by info
+        delete gig.suspendedBy;
+    }
+    
+    // Hide confirmation
+    hideRelistConfirmation();
+    
+    // Close detail view
+    clearGigDetail();
+    
+    // Reload current tab
+    loadGigCards(currentGigTab);
+    
+    // Show toast
+    showToast('Gig relisted successfully', 'success');
+    
+    console.log(`✅ Gig ${currentGigData.gigId} relisted`);
+}
+
+function handleIgnoreGig() {
+    if (!currentGigData) return;
+    
+    // Show confirmation overlay
+    showIgnoreConfirmation();
+}
+
+function showIgnoreConfirmation() {
+    const overlay = document.getElementById('ignoreConfirmOverlay');
+    const message = document.getElementById('ignoreConfirmMessage');
+    
+    if (overlay && currentGigData) {
+        message.innerHTML = `<strong>${currentGigData.title}</strong> will be hidden from "Reported" and requires ${currentGigData.reportCount + 10} total reports to reappear.`;
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function hideIgnoreConfirmation() {
+    const overlay = document.getElementById('ignoreConfirmOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function confirmIgnoreGig() {
+    if (!currentGigData) return;
+    
+    const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
+    if (gig) {
+        // Add ignore record
+        const now = new Date();
+        gig.ignoredBy.push({
+            adminId: 'admin001',
+            adminName: 'Admin Maria Garcia',
+            adminAvatar: 'public/users/User-01.jpg',
+            ignoreDate: now.toLocaleString('en-US', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric', 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
+            }),
+            reportCountAtIgnore: gig.reportCount
+        });
+        
+        // Set new threshold: current count + 10
+        gig.reportThreshold = gig.reportCount + 10;
+    }
+    
+    // Hide confirmation overlay
+    hideIgnoreConfirmation();
+    
+    // Close detail view
+    clearGigDetail();
+    
+    // Reload Reported tab
+    loadGigCards('reported');
+    
+    // Show toast
+    showToast('Reports ignored. Gig will reappear after 10 more unique reports.', 'success');
+    
+    console.log(`🙈 Gig ${currentGigData.gigId} ignored`);
+}
+
+function handleDeleteGig() {
+    if (!currentGigData) return;
+    
+    // Same as permanent delete - redirect
+    handlePermanentDeleteGig();
+}
+
+function handlePermanentDeleteGig() {
+    if (!currentGigData) return;
+    
+    // Show confirmation overlay
+    showDeleteConfirmation();
+}
+
+function showDeleteConfirmation() {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    const message = document.getElementById('deleteConfirmMessage');
+    
+    if (overlay && currentGigData) {
+        message.innerHTML = `<strong>⚠️ Warning:</strong> <strong>"${currentGigData.title}"</strong> posted by ${currentGigData.posterName} will be permanently removed from the marketplace and database. This action cannot be undone.`;
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function hideDeleteConfirmation() {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function confirmDeleteGig() {
+    if (!currentGigData) return;
+    
+    // Remove from allGigs array
+    const index = allGigs.findIndex(g => g.gigId === currentGigData.gigId);
+    if (index !== -1) {
+        allGigs.splice(index, 1);
+    }
+    
+    // Hide confirmation overlay
+    hideDeleteConfirmation();
+    
+    // Close detail view
+    clearGigDetail();
+    
+    // Reload Suspended tab
+    loadGigCards('suspended');
+    
+    // Show toast
+    showToast('Gig permanently deleted from database', 'success');
+    
+    console.log(`🗑️ Gig ${currentGigData.gigId} permanently deleted`);
 }
 
 function handleContactGig() {
@@ -2721,6 +3227,54 @@ function closeContactGigOverlay() {
     }
 }
 
+function initializeConfirmationOverlays() {
+    // Suspend Confirmation
+    document.getElementById('confirmSuspendBtn')?.addEventListener('click', confirmSuspendGig);
+    document.getElementById('cancelSuspendBtn')?.addEventListener('click', hideSuspendConfirmation);
+    
+    // Close on background click
+    document.getElementById('suspendConfirmOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideSuspendConfirmation();
+        }
+    });
+    
+    // Relist Confirmation
+    document.getElementById('confirmRelistBtn')?.addEventListener('click', confirmRelistGig);
+    document.getElementById('cancelRelistBtn')?.addEventListener('click', hideRelistConfirmation);
+    
+    // Close on background click
+    document.getElementById('relistConfirmOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideRelistConfirmation();
+        }
+    });
+    
+    // Ignore Confirmation
+    document.getElementById('confirmIgnoreBtn')?.addEventListener('click', confirmIgnoreGig);
+    document.getElementById('cancelIgnoreBtn')?.addEventListener('click', hideIgnoreConfirmation);
+    
+    // Close on background click
+    document.getElementById('ignoreConfirmOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideIgnoreConfirmation();
+        }
+    });
+    
+    // Delete Confirmation
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDeleteGig);
+    document.getElementById('cancelDeleteBtn')?.addEventListener('click', hideDeleteConfirmation);
+    
+    // Close on background click
+    document.getElementById('deleteConfirmOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideDeleteConfirmation();
+        }
+    });
+    
+    console.log('✅ Confirmation overlays initialized');
+}
+
 function initializeGigDetailOverlay() {
     // Close buttons (X in header and CLOSE in footer)
     document.getElementById('gigOverlayCloseBtnX')?.addEventListener('click', hideGigOverlay);
@@ -2730,6 +3284,16 @@ function initializeGigDetailOverlay() {
     document.getElementById('gigOverlaySuspendBtn')?.addEventListener('click', function() {
         hideGigOverlay();
         handleSuspendGig();
+    });
+    
+    document.getElementById('gigOverlayIgnoreBtn')?.addEventListener('click', function() {
+        hideGigOverlay();
+        handleIgnoreGig();
+    });
+    
+    document.getElementById('gigOverlayRelistBtn')?.addEventListener('click', function() {
+        hideGigOverlay();
+        handleRelistGig();
     });
     
     document.getElementById('gigOverlayContactBtn')?.addEventListener('click', function() {
@@ -2759,6 +3323,50 @@ function showGigOverlay(gig) {
     
     // Generate content (body only, without header)
     overlayBody.innerHTML = generateGigOverlayContent(gig);
+    
+    // Attach permanent delete button listener (dynamically generated)
+    const overlayPermDeleteBtn = document.getElementById('overlayPermDeleteBtn');
+    if (overlayPermDeleteBtn) {
+        overlayPermDeleteBtn.addEventListener('click', function() {
+            hideGigOverlay();
+            handlePermanentDeleteGig();
+        });
+    }
+    
+    // Attach big suspend button listener (dynamically generated for reported gigs)
+    const overlayBigSuspendBtn = document.getElementById('overlayBigSuspendBtn');
+    if (overlayBigSuspendBtn) {
+        overlayBigSuspendBtn.addEventListener('click', function() {
+            hideGigOverlay();
+            handleSuspendGig();
+        });
+    }
+    
+    // Update action buttons based on gig status
+    const overlaySuspendBtn = document.getElementById('gigOverlaySuspendBtn');
+    const overlayIgnoreBtn = document.getElementById('gigOverlayIgnoreBtn');
+    const overlayRelistBtn = document.getElementById('gigOverlayRelistBtn');
+    const overlayCloseBtn = document.getElementById('gigOverlayCloseBtn');
+    
+    if (gig.status === 'suspended') {
+        // Suspended: Hide SUSPEND/IGNORE, Show RELIST/CLOSE
+        if (overlaySuspendBtn) overlaySuspendBtn.style.display = 'none';
+        if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'none';
+        if (overlayRelistBtn) overlayRelistBtn.style.display = 'inline-block';
+        if (overlayCloseBtn) overlayCloseBtn.style.display = 'inline-block';
+    } else if (gig.reportedBy && gig.reportedBy.length > 0) {
+        // Reported: Hide SUSPEND, Show IGNORE/CLOSE
+        if (overlaySuspendBtn) overlaySuspendBtn.style.display = 'none';
+        if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'inline-block';
+        if (overlayRelistBtn) overlayRelistBtn.style.display = 'none';
+        if (overlayCloseBtn) overlayCloseBtn.style.display = 'inline-block';
+    } else {
+        // Posted: Show SUSPEND/CLOSE, Hide RELIST/IGNORE
+        if (overlaySuspendBtn) overlaySuspendBtn.style.display = 'inline-block';
+        if (overlayIgnoreBtn) overlayIgnoreBtn.style.display = 'none';
+        if (overlayRelistBtn) overlayRelistBtn.style.display = 'none';
+        if (overlayCloseBtn) overlayCloseBtn.style.display = 'inline-block';
+    }
     
     // Show overlay
     overlay.style.display = 'flex';
@@ -2796,6 +3404,80 @@ function generateGigOverlayContent(gig) {
         `;
     } else {
         hiredWorkerHTML = '<div class="no-hired-worker">This Gig has no hired worker.</div>';
+    }
+    
+    // Reported By HTML (for reported and suspended gigs)
+    let reportedByHTML = '';
+    if (gig.reportedBy && gig.reportedBy.length > 0) {
+        const firstReporter = gig.reportedBy[0];
+        const additionalCount = gig.reportedBy.length - 1;
+        const countBadge = additionalCount > 0 ? ` <span class="report-count-badge">+${additionalCount}</span>` : '';
+        
+        reportedByHTML = `
+            <div class="reported-by-section">
+                <div class="reported-by-label">REPORTED BY:</div>
+                <div class="reported-by-info">
+                    <div class="reported-by-profile">
+                        <img src="${firstReporter.reporterAvatar}" alt="${firstReporter.reporterName}" class="reporter-avatar">
+                        <div class="reporter-details">
+                            <span class="reporter-name">${firstReporter.reporterName}${countBadge}</span>
+                            <span class="report-date">${firstReporter.reportDate}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Big Suspend HTML (for reported gigs only)
+    let bigSuspendHTML = '';
+    if (gig.reportedBy && gig.reportedBy.length > 0 && gig.status !== 'suspended') {
+        bigSuspendHTML = `
+            <div class="big-suspend-section">
+                <div class="big-suspend-warning">
+                    <div class="big-suspend-icon">⚠️</div>
+                    <div class="big-suspend-text">
+                        <strong>Action Required:</strong> This gig has been reported by users. Review the content and suspend if it violates community guidelines.
+                    </div>
+                </div>
+                <button class="big-suspend-btn" id="overlayBigSuspendBtn">SUSPEND GIG</button>
+            </div>
+        `;
+    }
+    
+    // Suspended By HTML (for suspended gigs)
+    let suspendedByHTML = '';
+    if (gig.status === 'suspended' && gig.suspendedBy) {
+        suspendedByHTML = `
+            <div class="suspended-by-section">
+                <div class="suspended-by-label">SUSPENDED BY:</div>
+                <div class="suspended-by-info">
+                    <div class="suspended-by-profile">
+                        <img src="${gig.suspendedBy.adminAvatar}" alt="${gig.suspendedBy.adminName}" class="admin-avatar">
+                        <div class="admin-details">
+                            <span class="admin-name">${gig.suspendedBy.adminName}</span>
+                            <span class="suspend-date">${gig.suspendedBy.suspendDate}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Permanent Delete HTML (for suspended gigs only)
+    let permDeleteHTML = '';
+    if (gig.status === 'suspended') {
+        permDeleteHTML = `
+            <div class="perm-delete-section">
+                <div class="perm-delete-warning">
+                    <div class="perm-delete-icon">⚠️</div>
+                    <div class="perm-delete-text">
+                        <strong>Danger Zone:</strong> This action cannot be undone. The gig will be permanently removed from the marketplace and database.
+                    </div>
+                </div>
+                <button class="perm-delete-btn" id="overlayPermDeleteBtn">PERMANENTLY DELETE GIG</button>
+            </div>
+        `;
     }
     
     return `
@@ -2854,6 +3536,11 @@ function generateGigOverlayContent(gig) {
                 <div class="hired-worker-label">HIRED WORKER:</div>
                 <div class="hired-worker-info">${hiredWorkerHTML}</div>
             </div>
+            
+            ${reportedByHTML}
+            ${bigSuspendHTML}
+            ${suspendedByHTML}
+            ${permDeleteHTML}
         </div>
     `;
 }
@@ -2913,8 +3600,18 @@ function performGigSearch() {
 }
 
 function updateTabCounts() {
-    const postedCount = allGigs.filter(g => g.status === 'posted').length;
-    const reportedCount = allGigs.filter(g => g.status === 'reported').length;
+    // Posted: gigs that are posted and not reported
+    const postedCount = allGigs.filter(g => g.status === 'posted' && (!g.reportedBy || g.reportedBy.length === 0)).length;
+    
+    // Reported: gigs with reports that meet threshold and not suspended
+    const reportedCount = allGigs.filter(g => 
+        g.reportedBy && 
+        g.reportedBy.length > 0 && 
+        g.reportCount >= g.reportThreshold &&
+        g.status !== 'suspended'
+    ).length;
+    
+    // Suspended: gigs that are suspended
     const suspendedCount = allGigs.filter(g => g.status === 'suspended').length;
     
     document.getElementById('postedCount').textContent = postedCount;

@@ -749,6 +749,8 @@
                                 <div class="detail-actions-section">
                                     <div class="detail-actions">
                                         <button class="gig-action-btn suspend-btn" id="suspendGigBtn">SUSPEND</button>
+                                        <button class="gig-action-btn ignore-btn" id="ignoreGigBtn" style="display: none;">IGNORE</button>
+                                        <button class="gig-action-btn relist-btn" id="relistGigBtn" style="display: none;">RELIST</button>
                                         <button class="gig-action-btn contact-btn" id="contactGigBtn">CONTACT</button>
                                         <button class="gig-action-btn close-btn" id="closeGigBtn">CLOSE</button>
                                     </div>
@@ -825,6 +827,40 @@
                                             <div class="no-hired-worker">This Gig has no hired worker.</div>
                                         </div>
                                     </div>
+                                    
+                                    <!-- Reported By Section (for reported gigs) -->
+                                    <div class="reported-by-section" id="reportedBySection" style="display: none;">
+                                        <div class="reported-by-label">REPORTED BY:</div>
+                                        <div class="reported-by-info" id="reportedByInfo"></div>
+                                    </div>
+                                    
+                                    <!-- Big Suspend Section (for reported gigs only) -->
+                                    <div class="big-suspend-section" id="bigSuspendSection" style="display: none;">
+                                        <div class="big-suspend-warning">
+                                            <div class="big-suspend-icon">⚠️</div>
+                                            <div class="big-suspend-text">
+                                                <strong>Action Required:</strong> This gig has been reported by users. Review the content and suspend if it violates community guidelines.
+                                            </div>
+                                        </div>
+                                        <button class="big-suspend-btn" id="bigSuspendGigBtn">SUSPEND GIG</button>
+                                    </div>
+                                    
+                                    <!-- Suspended By Section (for suspended gigs) -->
+                                    <div class="suspended-by-section" id="suspendedBySection" style="display: none;">
+                                        <div class="suspended-by-label">SUSPENDED BY:</div>
+                                        <div class="suspended-by-info" id="suspendedByInfo"></div>
+                                    </div>
+                                    
+                                    <!-- Permanent Delete Section (for suspended gigs only) -->
+                                    <div class="perm-delete-section" id="permDeleteSection" style="display: none;">
+                                        <div class="perm-delete-warning">
+                                            <div class="perm-delete-icon">⚠️</div>
+                                            <div class="perm-delete-text">
+                                                <strong>Danger Zone:</strong> This action cannot be undone. The gig will be permanently removed from the marketplace and database.
+                                            </div>
+                                        </div>
+                                        <button class="perm-delete-btn" id="permDeleteGigBtn">PERMANENTLY DELETE GIG</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -851,8 +887,70 @@
                     </div>
                     <div class="overlay-footer">
                         <button class="gig-action-btn suspend-btn" id="gigOverlaySuspendBtn">SUSPEND</button>
+                        <button class="gig-action-btn ignore-btn" id="gigOverlayIgnoreBtn" style="display: none;">IGNORE</button>
+                        <button class="gig-action-btn relist-btn" id="gigOverlayRelistBtn" style="display: none;">RELIST</button>
                         <button class="gig-action-btn contact-btn" id="gigOverlayContactBtn">CONTACT</button>
                         <button class="gig-action-btn close-btn" id="gigOverlayCloseBtn">CLOSE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Suspend Confirmation Overlay -->
+            <div class="confirm-overlay" id="suspendConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon suspend-icon">⚠️</div>
+                    <h3 class="confirm-title">Suspend This Gig?</h3>
+                    <p class="confirm-message" id="suspendConfirmMessage">
+                        This will move the gig to the "Suspended" tab and prevent further applications.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelSuspendBtn">Cancel</button>
+                        <button class="confirm-btn confirm-suspend-btn" id="confirmSuspendBtn">Suspend Gig</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Relist Confirmation Overlay -->
+            <div class="confirm-overlay" id="relistConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon relist-icon">✓</div>
+                    <h3 class="confirm-title">Relist This Gig?</h3>
+                    <p class="confirm-message" id="relistConfirmMessage">
+                        This will move the gig back to the "Posted" tab and allow applications again.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelRelistBtn">Cancel</button>
+                        <button class="confirm-btn confirm-relist-btn" id="confirmRelistBtn">Relist Gig</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ignore Confirmation Overlay -->
+            <div class="confirm-overlay" id="ignoreConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon ignore-icon">👁️</div>
+                    <h3 class="confirm-title">Ignore This Report?</h3>
+                    <p class="confirm-message" id="ignoreConfirmMessage">
+                        This gig will be hidden from the "Reported" tab and requires 10 more reports to reappear.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelIgnoreBtn">Cancel</button>
+                        <button class="confirm-btn confirm-ignore-btn" id="confirmIgnoreBtn">Ignore Report</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Overlay -->
+            <div class="confirm-overlay" id="deleteConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon delete-icon">🗑️</div>
+                    <h3 class="confirm-title">Permanently Delete This Gig?</h3>
+                    <p class="confirm-message" id="deleteConfirmMessage">
+                        <strong>⚠️ Warning:</strong> This action cannot be undone. The gig will be permanently removed from the marketplace and database.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelDeleteBtn">Cancel</button>
+                        <button class="confirm-btn confirm-delete-btn" id="confirmDeleteBtn">Permanently Delete</button>
                     </div>
                 </div>
             </div>
