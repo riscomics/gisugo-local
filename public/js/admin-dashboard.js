@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize message overlay system
     initializeMessageOverlay();
+    
+    // Initialize gig moderation system
+    initializeGigModeration();
 });
 
 // ===== SIDEBAR TOGGLE SYSTEM =====
@@ -166,7 +169,7 @@ function updatePageTitle(section) {
         'users': 'User Management', 
         'finance': 'Financial Management',
         'analytics': 'Platform Analytics',
-        'moderation': 'Content Moderation',
+        'moderation': 'Gig Moderation',
         'settings': 'System Settings'
     };
     
@@ -2137,6 +2140,832 @@ function showToast(message, type = 'success', duration = 1500) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, duration);
+}
+
+// ===== GIG MODERATION SYSTEM =====
+
+let currentGigTab = 'posted'; // Track current tab: 'posted', 'reported', 'suspended'
+let currentGigData = null; // Track currently selected gig
+let allGigs = []; // Store all gig data
+
+function initializeGigModeration() {
+    console.log('🛡️ Initializing Gig Moderation system');
+    
+    // Generate mock gig data
+    generateMockGigData();
+    
+    // Initialize tab buttons
+    initializeGigTabs();
+    
+    // Initialize search
+    initializeGigSearch();
+    
+    // Initialize action buttons (desktop)
+    initializeGigActions();
+    
+    // Initialize contact overlay
+    initializeContactGigOverlay();
+    
+    // Initialize mobile overlay
+    initializeGigDetailOverlay();
+    
+    // Load initial gigs (posted tab)
+    loadGigCards('posted');
+    
+    console.log('✅ Gig Moderation initialized');
+}
+
+function generateMockGigData() {
+    // Sample locations for extras
+    const locations = ['Barangay Capitol Site', 'Barangay Lahug', 'Barangay Mabolo', 'Barangay Kasambagan', 'Barangay Guadalupe'];
+    const supplies = ['Provided', 'Required'];
+    const subjects = ['Math', 'Science', 'Computer', 'Language', 'Other'];
+    const positions = ['In-Person', 'Virtual'];
+    
+    // Helper function to get extras based on category
+    function getExtrasForCategory(category) {
+        const randomLocation1 = locations[Math.floor(Math.random() * locations.length)];
+        const randomLocation2 = locations[Math.floor(Math.random() * locations.length)];
+        const randomSupply = supplies[Math.floor(Math.random() * supplies.length)];
+        const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+        const randomPosition = positions[Math.floor(Math.random() * positions.length)];
+        
+        const extrasMap = {
+            'hatod': { 'Pickup at': randomLocation1, 'Deliver to': randomLocation2 },
+            'hakot': { 'Load at': randomLocation1, 'Unload at': randomLocation2 },
+            'kompra': { 'Shop at': randomLocation1, 'Deliver to': randomLocation2 },
+            'luto': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'hugas': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'laba': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'limpyo': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'tindera': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'bantay': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'painter': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'carpenter': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'plumber': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'security': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'driver': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'tutor': { 'Location': randomLocation1, 'Subject': randomSubject },
+            'nurse': { 'Location': randomLocation1, 'Position': randomPosition },
+            'doctor': { 'Location': randomLocation1, 'Position': randomPosition },
+            'lawyer': { 'Location': randomLocation1, 'Position': randomPosition },
+            'mechanic': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'electrician': { 'Location': randomLocation1, 'Supplies': randomSupply },
+            'tailor': { 'Location': randomLocation1, 'Supplies': randomSupply }
+        };
+        
+        return extrasMap[category] || { 'Location': randomLocation1, 'Supplies': randomSupply };
+    }
+    
+    // Mock gig data for demonstration
+    allGigs = [
+        // Posted gigs
+        {
+            gigId: '1760557532318',
+            posterId: 'user001',
+            posterName: 'Maria Santos',
+            posterAvatar: 'public/users/User-02.jpg',
+            category: 'hatod',
+            title: 'Need Driver for Airport Drop-off',
+            thumbnail: 'public/mock/mock-hatod-post1.jpg',
+            jobDate: 'December 25, 2024',
+            startTime: '6:00 AM',
+            endTime: '8:00 AM',
+            region: 'Cebu',
+            city: 'Cebu City',
+            extras: { 'Pickup at': 'Barangay Capitol Site', 'Deliver to': 'Mactan Airport' },
+            description: 'Need reliable driver for early morning airport trip. Must have clean vehicle and arrive on time.',
+            price: '800',
+            payRate: 'Per Job',
+            status: 'posted',
+            datePosted: '2 hours ago',
+            applicationCount: 12,
+            hiredWorker: null
+        },
+        {
+            gigId: '1760557532319',
+            posterId: 'user002',
+            posterName: 'Juan Dela Cruz',
+            posterAvatar: 'public/users/User-03.jpg',
+            category: 'limpyo',
+            title: 'House Deep Cleaning Needed',
+            thumbnail: 'public/mock/mock-limpyo-post2.jpg',
+            jobDate: 'December 26, 2024',
+            startTime: '9:00 AM',
+            endTime: '5:00 PM',
+            region: 'Cebu',
+            city: 'Mandaue City',
+            extras: { 'Location': 'Barangay Mabolo', 'Supplies': 'Provided' },
+            description: 'Looking for experienced cleaner for deep house cleaning. All supplies provided.',
+            price: '2500',
+            payRate: 'Per Job',
+            status: 'posted',
+            datePosted: '5 hours ago',
+            applicationCount: 8,
+            hiredWorker: { workerId: 'worker001', workerName: 'Ana Reyes', workerAvatar: 'public/users/User-04.jpg' }
+        },
+        // Reported gigs
+        {
+            gigId: '1760557532320',
+            posterId: 'user003',
+            posterName: 'Pedro Garcia',
+            posterAvatar: 'public/users/User-05.jpg',
+            category: 'hakot',
+            title: 'Move Furniture to New House',
+            thumbnail: 'public/mock/mock-hakot-post3.jpg',
+            jobDate: 'December 27, 2024',
+            startTime: '8:00 AM',
+            endTime: '12:00 PM',
+            region: 'Cebu',
+            city: 'Talisay City',
+            extras: { 'Load at': 'Barangay Kasambagan', 'Unload at': 'Barangay Guadalupe' },
+            description: 'Need help moving furniture. Heavy items included.',
+            price: '3000',
+            payRate: 'Per Hour',
+            status: 'reported',
+            datePosted: '1 day ago',
+            applicationCount: 5,
+            hiredWorker: null
+        },
+        // Suspended gigs
+        {
+            gigId: '1760557532321',
+            posterId: 'user004',
+            posterName: 'Suspicious User',
+            posterAvatar: 'public/users/User-06.jpg',
+            category: 'kompra',
+            title: 'Grocery Shopping Service - SUSPENDED',
+            thumbnail: 'public/mock/mock-kompra-post4.jpg',
+            jobDate: 'December 28, 2024',
+            startTime: '4:00 PM',
+            endTime: '10:00 PM',
+            region: 'Cebu',
+            city: 'Lapu-Lapu City',
+            extras: { 'Shop at': 'Barangay Lahug', 'Deliver to': 'Barangay Capitol Site' },
+            description: 'This gig was reported for suspicious activity and has been suspended.',
+            price: '5000',
+            payRate: 'Per Job',
+            status: 'suspended',
+            datePosted: '3 days ago',
+            applicationCount: 2,
+            hiredWorker: null
+        }
+    ];
+    
+    // Add more mock gigs for each category with real photos
+    const categoriesWithPhotos = {
+        'hatod': 7,
+        'limpyo': 7,
+        'hakot': 7,
+        'kompra': 7
+    };
+    
+    const categories = Object.keys(categoriesWithPhotos);
+    const statuses = ['posted', 'posted', 'posted', 'reported', 'posted'];
+    
+    for (let i = 0; i < 20; i++) {
+        const status = statuses[Math.floor(Math.random() * statuses.length)];
+        const category = categories[Math.floor(Math.random() * categories.length)];
+        const photoNum = (i % categoriesWithPhotos[category]) + 1;
+        
+        allGigs.push({
+            gigId: `176055753${2322 + i}`,
+            posterId: `user${String(i + 5).padStart(3, '0')}`,
+            posterName: `Customer ${i + 5}`,
+            posterAvatar: `public/users/User-0${(i % 6) + 2}.jpg`,
+            category: category,
+            title: `Sample Gig #${i + 5} - ${category}`,
+            thumbnail: `public/mock/mock-${category}-post${photoNum}.jpg`,
+            jobDate: `January ${(i % 28) + 1}, 2025`,
+            startTime: `${(i % 12) + 8}:00 AM`,
+            endTime: `${(i % 12) + 10}:00 AM`,
+            region: 'Cebu',
+            city: 'Cebu City',
+            extras: getExtrasForCategory(category),
+            description: `This is a sample gig description for gig #${i + 5}.`,
+            price: `${(i + 1) * 500}`,
+            payRate: i % 2 === 0 ? 'Per Job' : 'Per Hour',
+            status: status,
+            datePosted: `${i + 1} hours ago`,
+            applicationCount: Math.floor(Math.random() * 20),
+            hiredWorker: i % 3 === 0 ? { workerId: `worker${i}`, workerName: `Worker ${i}`, workerAvatar: 'public/users/User-04.jpg' } : null
+        });
+    }
+}
+
+function initializeGigTabs() {
+    const tabButtons = document.querySelectorAll('.gig-tab-btn');
+    
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tabType = this.dataset.tab;
+            switchGigTab(tabType);
+        });
+    });
+}
+
+function switchGigTab(tabType) {
+    console.log(`📑 Switching to ${tabType} tab`);
+    
+    currentGigTab = tabType;
+    
+    // Update active tab button
+    document.querySelectorAll('.gig-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tab="${tabType}"]`)?.classList.add('active');
+    
+    // Clear detail view
+    clearGigDetail();
+    
+    // Load gigs for this tab
+    loadGigCards(tabType);
+}
+
+function loadGigCards(tabType) {
+    const gigCardsList = document.getElementById('gigCardsList');
+    if (!gigCardsList) return;
+    
+    // Filter gigs by status
+    const filteredGigs = allGigs.filter(gig => gig.status === tabType);
+    
+    // Update tab counts
+    updateTabCounts();
+    
+    // Generate HTML
+    gigCardsList.innerHTML = filteredGigs.map(gig => generateGigCardHTML(gig)).join('');
+    
+    // Update stats
+    const gigsStats = document.getElementById('gigsStats');
+    if (gigsStats) {
+        gigsStats.textContent = `Showing ${filteredGigs.length} gigs`;
+    }
+    
+    // Attach click handlers
+    attachGigCardHandlers();
+}
+
+function generateGigCardHTML(gig) {
+    const statusClass = `status-${gig.status}`;
+    const statusText = gig.status.charAt(0).toUpperCase() + gig.status.slice(1);
+    
+    return `
+        <div class="gig-card" data-gig-id="${gig.gigId}" data-poster-id="${gig.posterId}">
+            <div class="gig-thumbnail">
+                <img src="${gig.thumbnail}" alt="${gig.title}">
+                <span class="gig-status-badge ${statusClass}">${statusText}</span>
+            </div>
+            <div class="gig-card-content">
+                <div class="gig-card-title">${gig.title}</div>
+                <div class="gig-card-meta">
+                    <div class="gig-card-schedule">
+                        <span class="gig-card-date">📅 ${gig.jobDate}</span>
+                        <span class="gig-card-time">🕐 ${gig.startTime} - ${gig.endTime}</span>
+                    </div>
+                    <div class="gig-card-price">₱${gig.price} (${gig.payRate})</div>
+                    <div class="gig-card-posted">Posted ${gig.datePosted} • ${gig.applicationCount} applicants</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function attachGigCardHandlers() {
+    const gigCards = document.querySelectorAll('.gig-card');
+    
+    gigCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const gigId = this.dataset.gigId;
+            loadGigDetails(gigId);
+        });
+    });
+}
+
+function loadGigDetails(gigId) {
+    const gig = allGigs.find(g => g.gigId === gigId);
+    if (!gig) return;
+    
+    currentGigData = gig;
+    
+    // Update selected card highlight
+    document.querySelectorAll('.gig-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`[data-gig-id="${gigId}"]`)?.classList.add('selected');
+    
+    // Check viewport width
+    if (window.innerWidth <= 887) {
+        // Mobile: Show overlay
+        showGigOverlay(gig);
+    } else {
+        // Desktop: Populate right panel
+        populateGigDetailPanel(gig);
+    }
+}
+
+function populateGigDetailPanel(gig) {
+    const gigContent = document.getElementById('gigContent');
+    const gigDetail = document.getElementById('gigDetail');
+    
+    if (!gigContent) return;
+    
+    // Hide "no selection" message
+    if (gigDetail) {
+        gigDetail.style.display = 'none';
+    }
+    
+    // Show content
+    gigContent.style.display = 'flex';
+    
+    // Populate header
+    document.getElementById('gigPosterAvatar').src = gig.posterAvatar;
+    document.getElementById('gigPosterName').textContent = gig.posterName;
+    document.getElementById('gigPostedTime').textContent = `Posted ${gig.datePosted}`;
+    
+    // Populate body
+    document.getElementById('gigCategory').textContent = gig.category.toUpperCase();
+    document.getElementById('gigTitle').textContent = gig.title;
+    
+    // Photo
+    const gigPhoto = document.getElementById('gigPhoto');
+    const gigPhotoContainer = document.getElementById('gigPhotoContainer');
+    if (gig.thumbnail) {
+        gigPhoto.src = gig.thumbnail;
+        gigPhotoContainer.style.display = 'block';
+    } else {
+        gigPhotoContainer.style.display = 'none';
+    }
+    
+    // Info fields
+    document.getElementById('gigDate').textContent = gig.jobDate;
+    document.getElementById('gigTime').textContent = `${gig.startTime} - ${gig.endTime}`;
+    document.getElementById('gigRegion').textContent = gig.region;
+    document.getElementById('gigCity').textContent = gig.city;
+    
+    // Extras (category-specific)
+    const extrasRow = document.getElementById('gigExtrasRow');
+    if (gig.extras && Object.keys(gig.extras).length > 0) {
+        const extraKeys = Object.keys(gig.extras);
+        document.getElementById('gigExtra1Label').textContent = extraKeys[0]?.toUpperCase() + ':' || 'EXTRA 1:';
+        document.getElementById('gigExtra1Value').textContent = gig.extras[extraKeys[0]] || 'N/A';
+        
+        if (extraKeys[1]) {
+            document.getElementById('gigExtra2Label').textContent = extraKeys[1]?.toUpperCase() + ':' || 'EXTRA 2:';
+            document.getElementById('gigExtra2Value').textContent = gig.extras[extraKeys[1]] || 'N/A';
+        }
+        extrasRow.style.display = 'grid';
+    } else {
+        extrasRow.style.display = 'none';
+    }
+    
+    // Description
+    document.getElementById('gigDescription').textContent = gig.description;
+    
+    // Payment
+    document.getElementById('gigPrice').textContent = `₱${gig.price}`;
+    document.getElementById('gigPayRate').textContent = gig.payRate;
+    
+    // Hired worker
+    const hiredWorkerInfo = document.getElementById('hiredWorkerInfo');
+    if (gig.hiredWorker) {
+        hiredWorkerInfo.innerHTML = `
+            <div class="hired-worker-profile">
+                <img src="${gig.hiredWorker.workerAvatar}" alt="${gig.hiredWorker.workerName}" class="hired-worker-avatar">
+                <span class="hired-worker-name">${gig.hiredWorker.workerName}</span>
+            </div>
+        `;
+    } else {
+        hiredWorkerInfo.innerHTML = '<div class="no-hired-worker">This Gig has no hired worker.</div>';
+    }
+}
+
+function clearGigDetail() {
+    const gigContent = document.getElementById('gigContent');
+    const gigDetail = document.getElementById('gigDetail');
+    
+    if (gigContent) {
+        gigContent.style.display = 'none';
+    }
+    if (gigDetail) {
+        gigDetail.style.display = 'flex';
+    }
+    
+    // Clear selected card
+    document.querySelectorAll('.gig-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    currentGigData = null;
+}
+
+function initializeGigActions() {
+    // Suspend button
+    document.getElementById('suspendGigBtn')?.addEventListener('click', handleSuspendGig);
+    
+    // Contact button
+    document.getElementById('contactGigBtn')?.addEventListener('click', handleContactGig);
+    
+    // Close button
+    document.getElementById('closeGigBtn')?.addEventListener('click', handleCloseGig);
+}
+
+function handleSuspendGig() {
+    if (!currentGigData) return;
+    
+    const confirmed = confirm(`Are you sure you want to suspend this gig?\n\nTitle: ${currentGigData.title}\nPosted by: ${currentGigData.posterName}\n\nThis action will move the gig to the "Gigs Suspended" tab.`);
+    
+    if (confirmed) {
+        // Update gig status
+        const gig = allGigs.find(g => g.gigId === currentGigData.gigId);
+        if (gig) {
+            gig.status = 'suspended';
+        }
+        
+        // Close detail view
+        clearGigDetail();
+        
+        // Reload current tab
+        loadGigCards(currentGigTab);
+        
+        // Show toast
+        showToast('Gig suspended successfully', 'success');
+        
+        console.log(`🚫 Gig ${currentGigData.gigId} suspended`);
+    }
+}
+
+function handleContactGig() {
+    if (!currentGigData) return;
+    
+    // Show contact overlay
+    const contactOverlay = document.getElementById('contactGigOverlay');
+    if (contactOverlay) {
+        contactOverlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function handleCloseGig() {
+    clearGigDetail();
+}
+
+function initializeContactGigOverlay() {
+    // Close button
+    document.getElementById('closeContactGigModal')?.addEventListener('click', closeContactGigOverlay);
+    
+    // Cancel button
+    document.getElementById('cancelContactBtn')?.addEventListener('click', closeContactGigOverlay);
+    
+    // Attach photo button
+    const attachBtn = document.getElementById('contactAttachBtn');
+    const attachInput = document.getElementById('contactAttachmentInput');
+    
+    if (attachBtn && attachInput) {
+        attachBtn.addEventListener('click', function() {
+            attachInput.click();
+        });
+        
+        attachInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const previewContainer = document.getElementById('contactAttachmentPreview');
+                    const previewImage = document.getElementById('contactPreviewImage');
+                    
+                    if (previewImage && previewContainer) {
+                        previewImage.src = event.target.result;
+                        previewContainer.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Remove attachment button
+    document.getElementById('removeContactAttachment')?.addEventListener('click', function() {
+        const previewContainer = document.getElementById('contactAttachmentPreview');
+        const attachInput = document.getElementById('contactAttachmentInput');
+        const previewImage = document.getElementById('contactPreviewImage');
+        
+        if (previewContainer) {
+            previewContainer.style.display = 'none';
+        }
+        if (previewImage) {
+            previewImage.src = '';
+        }
+        if (attachInput) {
+            attachInput.value = '';
+        }
+    });
+    
+    // Send Message button
+    document.getElementById('sendContactMessageBtn')?.addEventListener('click', function() {
+        const recipient = document.getElementById('contactRecipientSelect').value;
+        const message = document.getElementById('contactMessageInput').value.trim();
+        const attachInput = document.getElementById('contactAttachmentInput');
+        const hasAttachment = attachInput && attachInput.files.length > 0;
+        
+        if (!recipient) {
+            alert('Please select a recipient');
+            return;
+        }
+        
+        if (!message) {
+            alert('Please enter a message');
+            return;
+        }
+        
+        // Close contact overlay
+        closeContactGigOverlay();
+        
+        // Show success toast
+        const attachmentText = hasAttachment ? ' with attachment' : '';
+        showToast(`Message sent to ${recipient}${attachmentText}`, 'success');
+        
+        console.log(`💬 Message sent to: ${recipient}`);
+        console.log(`📝 Message: ${message}`);
+        if (hasAttachment) {
+            console.log(`📎 Attachment: ${attachInput.files[0].name}`);
+        }
+    });
+    
+    // Close on background click
+    document.getElementById('contactGigOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeContactGigOverlay();
+        }
+    });
+}
+
+function closeContactGigOverlay() {
+    const contactOverlay = document.getElementById('contactGigOverlay');
+    if (contactOverlay) {
+        contactOverlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    
+    // Reset form
+    document.getElementById('contactRecipientSelect').value = '';
+    document.getElementById('contactMessageInput').value = '';
+    document.getElementById('contactAttachmentInput').value = '';
+    
+    const previewContainer = document.getElementById('contactAttachmentPreview');
+    const previewImage = document.getElementById('contactPreviewImage');
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+    if (previewImage) {
+        previewImage.src = '';
+    }
+}
+
+function initializeGigDetailOverlay() {
+    // Close buttons (X in header and CLOSE in footer)
+    document.getElementById('gigOverlayCloseBtnX')?.addEventListener('click', hideGigOverlay);
+    document.getElementById('gigOverlayCloseBtn')?.addEventListener('click', hideGigOverlay);
+    
+    // Overlay action buttons
+    document.getElementById('gigOverlaySuspendBtn')?.addEventListener('click', function() {
+        hideGigOverlay();
+        handleSuspendGig();
+    });
+    
+    document.getElementById('gigOverlayContactBtn')?.addEventListener('click', function() {
+        hideGigOverlay();
+        handleContactGig();
+    });
+    
+    // Close on background click
+    document.getElementById('gigDetailOverlay')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            hideGigOverlay();
+        }
+    });
+}
+
+function showGigOverlay(gig) {
+    const overlay = document.getElementById('gigDetailOverlay');
+    const overlayBody = overlay?.querySelector('.overlay-body');
+    
+    if (!overlay || !overlayBody) return;
+    
+    // Populate header info
+    document.getElementById('gigOverlayPosterAvatar').src = gig.posterAvatar;
+    document.getElementById('gigOverlayPosterName').textContent = gig.posterName;
+    document.getElementById('gigOverlayPostedTime').textContent = `Posted ${gig.datePosted}`;
+    document.getElementById('gigOverlayCategory').textContent = gig.category.toUpperCase();
+    
+    // Generate content (body only, without header)
+    overlayBody.innerHTML = generateGigOverlayContent(gig);
+    
+    // Show overlay
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    console.log(`📱 Showing gig overlay for ${gig.gigId}`);
+}
+
+function hideGigOverlay() {
+    const overlay = document.getElementById('gigDetailOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+function generateGigOverlayContent(gig) {
+    let extrasHTML = '';
+    if (gig.extras && Object.keys(gig.extras).length > 0) {
+        extrasHTML = Object.entries(gig.extras).map(([key, value]) => `
+            <div class="gig-info-item">
+                <div class="gig-info-label">${key.toUpperCase()}:</div>
+                <div class="gig-info-value">${value}</div>
+            </div>
+        `).join('');
+    }
+    
+    let hiredWorkerHTML = '';
+    if (gig.hiredWorker) {
+        hiredWorkerHTML = `
+            <div class="hired-worker-profile">
+                <img src="${gig.hiredWorker.workerAvatar}" alt="${gig.hiredWorker.workerName}" class="hired-worker-avatar">
+                <span class="hired-worker-name">${gig.hiredWorker.workerName}</span>
+            </div>
+        `;
+    } else {
+        hiredWorkerHTML = '<div class="no-hired-worker">This Gig has no hired worker.</div>';
+    }
+    
+    return `
+        <div class="gig-overlay-body-content">
+            <div class="gig-title">${gig.title}</div>
+            
+            ${gig.thumbnail ? `
+                <div class="gig-photo-container">
+                    <img src="${gig.thumbnail}" alt="Gig Photo" class="gig-photo">
+                </div>
+            ` : ''}
+            
+            <div class="gig-info-section">
+                <div class="gig-info-row">
+                    <div class="gig-info-item">
+                        <div class="gig-info-label">DATE:</div>
+                        <div class="gig-info-value">${gig.jobDate}</div>
+                    </div>
+                    <div class="gig-info-item">
+                        <div class="gig-info-label">TIME:</div>
+                        <div class="gig-info-value">${gig.startTime} - ${gig.endTime}</div>
+                    </div>
+                </div>
+                <div class="gig-info-row">
+                    <div class="gig-info-item">
+                        <div class="gig-info-label">REGION:</div>
+                        <div class="gig-info-value">${gig.region}</div>
+                    </div>
+                    <div class="gig-info-item">
+                        <div class="gig-info-label">CITY:</div>
+                        <div class="gig-info-value">${gig.city}</div>
+                    </div>
+                </div>
+                ${extrasHTML ? `<div class="gig-info-row">${extrasHTML}</div>` : ''}
+            </div>
+            
+            <div class="gig-description-section">
+                <div class="gig-description-label">DETAILS:</div>
+                <div class="gig-description-text">${gig.description}</div>
+            </div>
+            
+            <div class="gig-payment-section">
+                <div class="gig-payment-row">
+                    <div class="gig-payment-item">
+                        <div class="gig-payment-label">PRICE:</div>
+                        <div class="gig-payment-value">₱${gig.price}</div>
+                    </div>
+                    <div class="gig-payment-item">
+                        <div class="gig-payment-label">PAY RATE:</div>
+                        <div class="gig-payment-value">${gig.payRate}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hired-worker-section">
+                <div class="hired-worker-label">HIRED WORKER:</div>
+                <div class="hired-worker-info">${hiredWorkerHTML}</div>
+            </div>
+        </div>
+    `;
+}
+
+function initializeGigSearch() {
+    const searchInput = document.getElementById('gigsSearchInput');
+    
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performGigSearch();
+            }
+        });
+        
+        // Real-time search on input
+        searchInput.addEventListener('input', performGigSearch);
+    }
+}
+
+function performGigSearch() {
+    const query = document.getElementById('gigsSearchInput')?.value.toLowerCase().trim();
+    
+    if (!query) {
+        // If empty, show all gigs for current tab
+        loadGigCards(currentGigTab);
+        return;
+    }
+    
+    // Filter gigs by current tab AND search query
+    const filteredGigs = allGigs.filter(gig => {
+        const matchesTab = gig.status === currentGigTab;
+        const matchesQuery = 
+            gig.title.toLowerCase().includes(query) ||
+            gig.description.toLowerCase().includes(query) ||
+            gig.posterName.toLowerCase().includes(query) ||
+            gig.category.toLowerCase().includes(query);
+        
+        return matchesTab && matchesQuery;
+    });
+    
+    // Render filtered results
+    const gigCardsList = document.getElementById('gigCardsList');
+    if (gigCardsList) {
+        if (filteredGigs.length === 0) {
+            gigCardsList.innerHTML = '<div style="padding: 2rem; text-align: center; color: #a0aec0;">No gigs found matching your search.</div>';
+        } else {
+            gigCardsList.innerHTML = filteredGigs.map(gig => generateGigCardHTML(gig)).join('');
+            attachGigCardHandlers();
+        }
+        
+        // Update stats
+        const gigsStats = document.getElementById('gigsStats');
+        if (gigsStats) {
+            gigsStats.textContent = `Showing ${filteredGigs.length} of ${allGigs.filter(g => g.status === currentGigTab).length} gigs`;
+        }
+    }
+}
+
+function updateTabCounts() {
+    const postedCount = allGigs.filter(g => g.status === 'posted').length;
+    const reportedCount = allGigs.filter(g => g.status === 'reported').length;
+    const suspendedCount = allGigs.filter(g => g.status === 'suspended').length;
+    
+    document.getElementById('postedCount').textContent = postedCount;
+    document.getElementById('reportedCount').textContent = reportedCount;
+    document.getElementById('suspendedCount').textContent = suspendedCount;
+}
+
+// Handle resize to switch between overlay/panel views
+window.addEventListener('resize', () => {
+    const gigOverlay = document.getElementById('gigDetailOverlay');
+    
+    if (window.innerWidth >= 888 && gigOverlay && gigOverlay.style.display === 'flex') {
+        // Switched to desktop - hide overlay and show in panel
+        hideGigOverlay();
+        
+        if (currentGigData) {
+            populateGigDetailPanel(currentGigData);
+        }
+    } else if (window.innerWidth < 888 && currentGigData && document.getElementById('gigContent')?.style.display !== 'none') {
+        // Switched to mobile - hide panel and show overlay
+        if (currentGigData) {
+            showGigOverlay(currentGigData);
+        }
+    }
+});
+
+// Helper function to switch sections (used for Contact -> Messages flow)
+function switchAdminSection(sectionId) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Show target section
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    // Update menu items
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    const activeMenuItem = document.querySelector(`.menu-item[data-section="${sectionId}"]`);
+    if (activeMenuItem) {
+        activeMenuItem.classList.add('active');
+    }
+    
+    // Update page title
+    updatePageTitle(sectionId);
 }
 
 // ===== INITIALIZATION COMPLETE =====

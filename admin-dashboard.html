@@ -57,6 +57,12 @@
                     <span class="menu-text">User Management</span>
                 </div>
 
+                <!-- Gig Moderation Section -->
+                <div class="menu-item" data-section="moderation">
+                    <span class="menu-icon">🛡️</span>
+                    <span class="menu-text">Gig Moderation</span>
+                </div>
+
                 <!-- Messages Management Section -->
                 <div class="menu-item" data-section="messages">
                     <span class="menu-icon">💬</span>
@@ -80,12 +86,6 @@
                 <div class="menu-item" data-section="analytics">
                     <span class="menu-icon">📈</span>
                     <span class="menu-text">Analytics</span>
-                </div>
-
-                <!-- Content Moderation Section -->
-                <div class="menu-item" data-section="moderation">
-                    <span class="menu-icon">🛡️</span>
-                    <span class="menu-text">Moderation</span>
                 </div>
 
                 <!-- System Settings Section -->
@@ -681,24 +681,224 @@
                 </div>
             </section>
 
-            <!-- Content Moderation Section -->
+            <!-- Gig Moderation Section -->
             <section id="moderation" class="content-section">
                 <div class="section-header">
-                    <h1 class="section-title">Content Moderation</h1>
-                    <p class="section-subtitle">Review and moderate platform content</p>
+                    <h1 class="section-title">Gig Moderation</h1>
+                    <p class="section-subtitle">Review and moderate job posts and gig content</p>
                 </div>
                 
-                <div class="placeholder-content">
-                    <div class="placeholder-icon">🛡️</div>
-                    <h3>Moderation Features</h3>
-                    <ul>
-                        <li>Reported Content Queue</li>
-                        <li>Job Post Reviews</li>
-                        <li>Message Monitoring</li>
-                        <li>Profile Audits</li>
-                    </ul>
+                <div class="gig-moderation-layout">
+                    <!-- Left Panel: Gig Navigation -->
+                    <div class="gig-nav-panel">
+                        <div class="panel-header">
+                            <div class="gig-controls">
+                                <div class="gig-tabs">
+                                    <button class="gig-tab-btn active" id="gigsPostedBtn" data-tab="posted">
+                                        POSTED <span class="tab-count" id="postedCount">24</span>
+                                    </button>
+                                    <button class="gig-tab-btn" id="gigsReportedBtn" data-tab="reported">
+                                        REPORTED <span class="tab-count" id="reportedCount">5</span>
+                                    </button>
+                                    <button class="gig-tab-btn" id="gigsSuspendedBtn" data-tab="suspended">
+                                        SUSPENDED <span class="tab-count" id="suspendedCount">2</span>
+                                    </button>
+                                </div>
+                                <div class="gig-search">
+                                    <input type="text" placeholder="Search gigs..." class="search-input-small" id="gigsSearchInput">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable Gig Cards Container -->
+                        <div class="gig-cards-container">
+                            <div class="gig-cards-list" id="gigCardsList">
+                                <!-- Gig cards will be populated here by JavaScript -->
+                            </div>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="gig-pagination">
+                                <div class="loading-indicator" id="gigsLoading">Loading more gigs...</div>
+                                <button class="load-more-btn" id="loadMoreGigsBtn">Load More Gigs</button>
+                                <div class="gig-stats" id="gigsStats">Showing 20 of 156 gigs</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Gig Details -->
+                    <div class="gig-detail-panel">
+                        <div class="gig-detail" id="gigDetail">
+                            <div class="no-gig-selected">
+                                <div class="no-gig-icon">🛡️</div>
+                                <h4>Select a gig to view details</h4>
+                                <p>Choose a gig from the left to review and take action</p>
+                            </div>
+                        </div>
+
+                        <!-- Gig Detail Content (hidden initially) -->
+                        <div class="gig-content" id="gigContent" style="display: none;">
+                            <!-- Fixed Header -->
+                            <div class="gig-detail-header">
+                                <div class="detail-poster">
+                                    <img src="public/users/User-02.jpg" alt="Poster" class="detail-avatar" id="gigPosterAvatar">
+                                    <div class="detail-poster-info">
+                                        <div class="detail-poster-name" id="gigPosterName">Customer Name</div>
+                                        <div class="detail-posted-time" id="gigPostedTime">Posted 2 hours ago</div>
+                                    </div>
+                                </div>
+                                <div class="detail-actions-section">
+                                    <div class="detail-actions">
+                                        <button class="gig-action-btn suspend-btn" id="suspendGigBtn">SUSPEND</button>
+                                        <button class="gig-action-btn contact-btn" id="contactGigBtn">CONTACT</button>
+                                        <button class="gig-action-btn close-btn" id="closeGigBtn">CLOSE</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Scrollable Body -->
+                            <div class="gig-content-inner">
+                                <div class="gig-detail-body">
+                                    <div class="gig-category" id="gigCategory">Category</div>
+                                    <div class="gig-title" id="gigTitle">Gig Title</div>
+                                    
+                                    <div class="gig-photo-container" id="gigPhotoContainer">
+                                        <img src="" alt="Gig Photo" class="gig-photo" id="gigPhoto">
+                                    </div>
+                                    
+                                    <div class="gig-info-section" id="gigInfoSection">
+                                        <div class="gig-info-row">
+                                            <div class="gig-info-item">
+                                                <div class="gig-info-label">DATE:</div>
+                                                <div class="gig-info-value" id="gigDate">Loading...</div>
+                                            </div>
+                                            <div class="gig-info-item">
+                                                <div class="gig-info-label">TIME:</div>
+                                                <div class="gig-info-value" id="gigTime">Loading...</div>
+                                            </div>
+                                        </div>
+                                        <div class="gig-info-row">
+                                            <div class="gig-info-item">
+                                                <div class="gig-info-label">REGION:</div>
+                                                <div class="gig-info-value" id="gigRegion">Loading...</div>
+                                            </div>
+                                            <div class="gig-info-item">
+                                                <div class="gig-info-label">CITY:</div>
+                                                <div class="gig-info-value" id="gigCity">Loading...</div>
+                                            </div>
+                                        </div>
+                                        <div class="gig-info-row" id="gigExtrasRow" style="display: none;">
+                                            <div class="gig-info-item">
+                                                <div class="gig-info-label" id="gigExtra1Label">EXTRA 1:</div>
+                                                <div class="gig-info-value" id="gigExtra1Value">N/A</div>
+                                            </div>
+                                            <div class="gig-info-item">
+                                                <div class="gig-info-label" id="gigExtra2Label">EXTRA 2:</div>
+                                                <div class="gig-info-value" id="gigExtra2Value">N/A</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="gig-description-section">
+                                        <div class="gig-description-label">DETAILS:</div>
+                                        <div class="gig-description-text" id="gigDescription">Loading...</div>
+                                    </div>
+                                    
+                                    <div class="gig-payment-section">
+                                        <div class="gig-payment-row">
+                                            <div class="gig-payment-item">
+                                                <div class="gig-payment-label">PRICE:</div>
+                                                <div class="gig-payment-value" id="gigPrice">₱0</div>
+                                            </div>
+                                            <div class="gig-payment-item">
+                                                <div class="gig-payment-label">PAY RATE:</div>
+                                                <div class="gig-payment-value" id="gigPayRate">Per Hour</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Footer: Hired Worker -->
+                                <div class="gig-detail-footer">
+                                    <div class="hired-worker-section" id="hiredWorkerSection">
+                                        <div class="hired-worker-label">HIRED WORKER:</div>
+                                        <div class="hired-worker-info" id="hiredWorkerInfo">
+                                            <div class="no-hired-worker">This Gig has no hired worker.</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
+
+            <!-- Gig Detail Overlay (for screens 888px and below) -->
+            <div id="gigDetailOverlay" class="gig-detail-overlay">
+                <div class="overlay-content">
+                    <div class="overlay-header">
+                        <button class="overlay-close-btn" id="gigOverlayCloseBtnX">✕</button>
+                        <div class="overlay-poster-info" id="gigOverlayPosterInfo">
+                            <img src="public/users/User-02.jpg" alt="Poster" class="overlay-poster-avatar" id="gigOverlayPosterAvatar">
+                            <div class="overlay-poster-details">
+                                <div class="overlay-poster-name" id="gigOverlayPosterName">Poster Name</div>
+                                <div class="overlay-posted-time" id="gigOverlayPostedTime">Posted time</div>
+                            </div>
+                        </div>
+                        <div class="overlay-category-badge" id="gigOverlayCategory">CATEGORY</div>
+                    </div>
+                    <div class="overlay-body">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                    <div class="overlay-footer">
+                        <button class="gig-action-btn suspend-btn" id="gigOverlaySuspendBtn">SUSPEND</button>
+                        <button class="gig-action-btn contact-btn" id="gigOverlayContactBtn">CONTACT</button>
+                        <button class="gig-action-btn close-btn" id="gigOverlayCloseBtn">CLOSE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Gig Overlay -->
+            <div class="contact-gig-overlay" id="contactGigOverlay">
+                <div class="contact-gig-modal">
+                    <div class="contact-gig-header">
+                        <h3 class="contact-gig-title">Contact Regarding Gig</h3>
+                        <button class="contact-gig-close" id="closeContactGigModal">×</button>
+                    </div>
+                    <div class="contact-gig-body">
+                        <div class="contact-form-group">
+                            <label class="contact-form-label">Recipient:</label>
+                            <select class="contact-recipient-select" id="contactRecipientSelect">
+                                <option value="">Select recipient...</option>
+                                <option value="customer">Customer (Gig Poster)</option>
+                                <option value="hired-worker">Hired Worker</option>
+                                <option value="applicants">All Applicants</option>
+                            </select>
+                        </div>
+                        <div class="contact-form-group">
+                            <label class="contact-form-label">Message:</label>
+                            <textarea class="contact-message-input" id="contactMessageInput" placeholder="Type your message here..." rows="6"></textarea>
+                        </div>
+                        <div class="contact-form-group">
+                            <label class="contact-form-label">Attachment (Optional):</label>
+                            <div class="contact-attachment-area">
+                                <input type="file" id="contactAttachmentInput" accept="image/*" style="display: none;">
+                                <button class="contact-attach-btn" id="contactAttachBtn">
+                                    <span class="attach-icon">📎</span>
+                                    <span class="attach-text">Attach Photo</span>
+                                </button>
+                                <div class="contact-attachment-preview" id="contactAttachmentPreview" style="display: none;">
+                                    <img src="" alt="Preview" id="contactPreviewImage">
+                                    <button class="remove-attachment-btn" id="removeContactAttachment">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="contact-gig-footer">
+                        <button class="contact-modal-btn cancel" id="cancelContactBtn">Cancel</button>
+                        <button class="contact-modal-btn send" id="sendContactMessageBtn">Send Message</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- System Settings Section -->
             <section id="settings" class="content-section">
