@@ -3718,8 +3718,23 @@ function initializeMockData() {
         existingRevenue,
         existingUsers,
         lastUpdate,
-        storageAvailable: typeof(Storage) !== "undefined"
+        storageAvailable: typeof(Storage) !== "undefined",
+        isPrivate: false
     });
+    
+    // Show localStorage status prominently
+    if (!existingRevenue && !existingUsers) {
+        console.log('🚨 ========================================');
+        console.log('🚨 NO DATA IN LOCALSTORAGE!');
+        console.log('🚨 Possible causes:');
+        console.log('🚨 1. First time load (normal)');
+        console.log('🚨 2. Private/Incognito browsing mode');
+        console.log('🚨 3. Browser cleared storage');
+        console.log('🚨 4. Storage blocked by browser settings');
+        console.log('🚨 ========================================');
+    } else {
+        console.log('✅ localStorage data found - this is a refresh!');
+    }
     
     if (!existingRevenue || !existingUsers || !lastUpdate) {
         // First time initialization
@@ -4304,9 +4319,15 @@ function populateRevenueData(data) {
     
     // Get current values (for smooth transition on filter change)
     // Use unrounded value if available for more accurate transitions
-    const currentPHP = phpDisplay && phpDisplay._unroundedValue ? phpDisplay._unroundedValue : (phpDisplay && phpDisplay._currentValue ? phpDisplay._currentValue : 0);
-    const currentUSD = usdDisplay && usdDisplay._unroundedValue ? usdDisplay._unroundedValue : (usdDisplay && usdDisplay._currentValue ? usdDisplay._currentValue : 0);
+    // If not available (first open), use the main dashboard card value
+    const mainRevenueCard = document.getElementById('revenueNumber');
+    const mainRevenueValue = mainRevenueCard && mainRevenueCard._currentValue ? mainRevenueCard._currentValue : data.revenue;
+    
+    const currentPHP = phpDisplay && phpDisplay._unroundedValue ? phpDisplay._unroundedValue : (phpDisplay && phpDisplay._currentValue ? phpDisplay._currentValue : mainRevenueValue);
+    const currentUSD = usdDisplay && usdDisplay._unroundedValue ? usdDisplay._unroundedValue : (usdDisplay && usdDisplay._currentValue ? usdDisplay._currentValue : (mainRevenueValue / 57));
     const currentGrowth = growthDisplay && growthDisplay._unroundedValue ? growthDisplay._unroundedValue : (growthDisplay && growthDisplay._currentValue ? growthDisplay._currentValue : 0);
+    
+    console.log('🎬 Animation start values:', { currentPHP, mainRevenueValue, hasPreviousValue: !!phpDisplay._currentValue });
     
     // Store target values and animate (faster: 500ms)
     if (phpDisplay) {
