@@ -3711,19 +3711,30 @@ function initializeMockData() {
     const lastUpdate = localStorage.getItem(STORAGE_KEYS.lastUpdate);
     
     // Check if data exists
+    const existingRevenue = localStorage.getItem(STORAGE_KEYS.revenue);
     const existingUsers = localStorage.getItem(STORAGE_KEYS.totalUsers);
     
-    if (!existingUsers || !lastUpdate) {
+    console.log('🔍 Checking localStorage:', {
+        existingRevenue,
+        existingUsers,
+        lastUpdate,
+        storageAvailable: typeof(Storage) !== "undefined"
+    });
+    
+    if (!existingRevenue || !existingUsers || !lastUpdate) {
         // First time initialization
         console.log('🆕 Initializing fresh mock data...');
         const initialData = generateInitialMockData();
         saveMockDataToStorage(initialData);
+        console.log('✅ Saved initial data:', initialData);
     } else {
         // Apply cumulative growth on refresh
         console.log('📈 Applying cumulative growth to existing mock data...');
         const currentData = loadMockDataFromStorage();
+        console.log('📊 Current data loaded:', currentData);
         const grownData = applyGrowth(currentData);
         saveMockDataToStorage(grownData);
+        console.log('✅ Saved grown data:', grownData);
     }
 }
 
@@ -3733,8 +3744,9 @@ function generateInitialMockData() {
     const totalUsers = Math.floor(Math.random() * 50) + 50; // 50-99
     const verifications = Math.floor(Math.random() * 10) + 5; // 5-14
     
-    // Higher starting revenue so 1% growth is visible (₱2,000 - ₱5,000)
-    const baseOptions = [2000, 2500, 3000, 3500, 4000, 4500, 5000];
+    // Higher starting revenue so 1% growth is visible (₱10,000 - ₱20,000)
+    // This ensures that even filtered views (1 day = 3%) show substantial amounts
+    const baseOptions = [10000, 12500, 15000, 17500, 20000];
     const revenue = baseOptions[Math.floor(Math.random() * baseOptions.length)];
     
     const gigsReported = Math.floor(Math.random() * 10) + 10; // 10-19
@@ -4244,6 +4256,7 @@ function populateRevenueData(data) {
     
     // Store target values and animate (faster: 500ms)
     if (phpDisplay) {
+        console.log(`🎯 Revenue Animation: From ₱${currentPHP.toLocaleString()} → To ₱${revenuePHP.toLocaleString()}`);
         phpDisplay.setAttribute('data-target', revenuePHP);
         startCountingAnimation(phpDisplay, currentPHP, revenuePHP, '₱', 500);
     }

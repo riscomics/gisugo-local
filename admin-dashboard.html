@@ -1580,8 +1580,66 @@
                 <span class="toast-message" id="toastMessage">Message moved to Old inbox</span>
             </div>
 
+    <!-- Temporary Mobile Debug Console -->
+    <div id="mobileDebugConsole" style="position: fixed; bottom: 0; left: 0; right: 0; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.95); color: #0f0; font-family: monospace; font-size: 11px; padding: 10px; z-index: 99999; display: block; border-top: 2px solid #0f0;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; align-items: center; gap: 8px;">
+            <span style="color: #0ff; font-weight: bold;">📱 Debug Log</span>
+            <div style="display: flex; gap: 4px;">
+                <button onclick="if(typeof window.resetAdminMockData === 'function') { window.resetAdminMockData(); location.reload(); } else { alert('Reset function not available'); }" style="background: #ff9500; color: #fff; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; font-size: 10px;">🔄 Reset Data</button>
+                <button onclick="document.getElementById('mobileDebugConsole').style.display='none'" style="background: #f00; color: #fff; border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px; font-size: 10px;">✕</button>
+            </div>
+        </div>
+        <div id="mobileDebugContent" style="font-size: 10px; line-height: 1.4;"></div>
+    </div>
+
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
+    
+    <!-- MOBILE DEBUG CONSOLE SCRIPT -->
+    <script>
+    (function() {
+        const debugContent = document.getElementById('mobileDebugContent');
+        const originalLog = console.log;
+        let logCount = 0;
+        
+        // Intercept console.log
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            
+            // Format and display in mobile console
+            const message = args.map(arg => {
+                if (typeof arg === 'object') {
+                    try {
+                        return JSON.stringify(arg, null, 2);
+                    } catch (e) {
+                        return String(arg);
+                    }
+                }
+                return String(arg);
+            }).join(' ');
+            
+            const logEntry = document.createElement('div');
+            logEntry.style.marginBottom = '4px';
+            logEntry.style.borderBottom = '1px solid #333';
+            logEntry.style.paddingBottom = '4px';
+            
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.innerHTML = `<span style="color: #888;">[${timestamp}]</span> ${message}`;
+            
+            debugContent.appendChild(logEntry);
+            
+            // Keep only last 50 logs
+            if (debugContent.children.length > 50) {
+                debugContent.removeChild(debugContent.firstChild);
+            }
+            
+            // Auto-scroll to bottom
+            debugContent.parentElement.scrollTop = debugContent.parentElement.scrollHeight;
+        };
+        
+        console.log('📱 Mobile debug console ready!');
+    })();
+    </script>
     
     <!-- VIEWPORT DEBUG SCRIPT -->
     <script>
