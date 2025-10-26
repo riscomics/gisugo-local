@@ -3941,10 +3941,21 @@ function startMainDashboardCounting() {
     
     // Total Users: increment by random 1-25 every 1 second
     if (totalUsersEl) {
+        let secondsCounter = 0;
         totalUsersEl._dashboardTimer = setInterval(() => {
             const randomIncrease = Math.floor(Math.random() * 25) + 1; // 1-25
             totalUsersEl._currentValue += randomIncrease;
             totalUsersEl.textContent = totalUsersEl._currentValue.toLocaleString();
+            
+            // Save to localStorage every 5 seconds to prevent data loss on refresh
+            secondsCounter++;
+            if (secondsCounter >= 5) {
+                secondsCounter = 0;
+                const currentData = loadMockDataFromStorage();
+                currentData.totalUsers = totalUsersEl._currentValue;
+                saveMockDataToStorage(currentData);
+            }
+            
             console.log(`👥 Total Users increased by ${randomIncrease} to:`, totalUsersEl._currentValue);
         }, 1000); // Every 1 second
     }
@@ -4733,6 +4744,16 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                 });
                 element.textContent = formattedValue;
                 
+                // Save to localStorage every 5 seconds to prevent data loss on refresh
+                if (!element._saveCounter) element._saveCounter = 0;
+                element._saveCounter++;
+                if (element._saveCounter >= 5) {
+                    element._saveCounter = 0;
+                    const currentData = loadMockDataFromStorage();
+                    currentData.totalUsers = Math.round(element._unroundedValue);
+                    saveMockDataToStorage(currentData);
+                }
+                
                 // Also update New Members (70-80% of total) and Verified Members (remaining)
                 const newDisplay = document.getElementById('usersNewDisplay');
                 const verifiedDisplay = document.getElementById('usersVerifiedDisplay');
@@ -5020,14 +5041,33 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                     });
                     element.textContent = formattedValue;
                     
-                    // Also update New Members (70-80% of total)
+                    // Save to localStorage every 5 seconds to prevent data loss on refresh
+                    if (!element._saveCounter) element._saveCounter = 0;
+                    element._saveCounter++;
+                    if (element._saveCounter >= 5) {
+                        element._saveCounter = 0;
+                        const currentData = loadMockDataFromStorage();
+                        currentData.totalUsers = Math.round(element._unroundedValue);
+                        saveMockDataToStorage(currentData);
+                    }
+                    
+                    // Also update New Members (70-80% of total) and Verified Members (remaining)
                     const newDisplay = document.getElementById('usersNewDisplay');
+                    const verifiedDisplay = document.getElementById('usersVerifiedDisplay');
                     if (newDisplay) {
                         const newMemberPercent = 0.70 + (Math.random() * 0.10);
                         const newValue = Math.round(element._unroundedValue * newMemberPercent);
                         newDisplay._unroundedValue = newValue;
                         newDisplay._currentValue = newValue;
                         newDisplay.textContent = newValue.toLocaleString('en-US');
+                        
+                        // Update Verified Members (total - new)
+                        if (verifiedDisplay) {
+                            const verifiedValue = element._unroundedValue - newValue;
+                            verifiedDisplay._unroundedValue = verifiedValue;
+                            verifiedDisplay._currentValue = verifiedValue;
+                            verifiedDisplay.textContent = verifiedValue.toLocaleString('en-US');
+                        }
                     }
                     
                     console.log(`👥 Users increased by ${randomIncrease}: ${formattedValue}`);
