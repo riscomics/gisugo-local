@@ -3913,6 +3913,7 @@ function startMainDashboardCounting() {
     // Monthly Revenue: add random ₱100/₱250/₱500 every 1 second
     // (This will be controlled by overlay when revenue overlay is open)
     if (revenueEl) {
+        let secondsCounter = 0;
         revenueEl._dashboardTimer = setInterval(() => {
             // Only update if revenue overlay is NOT open
             const revenueOverlay = document.getElementById('revenueOverlay');
@@ -3923,7 +3924,15 @@ function startMainDashboardCounting() {
                 const randomIncrement = increments[Math.floor(Math.random() * increments.length)];
                 revenueEl._currentValue += randomIncrement;
                 revenueEl.textContent = `₱${revenueEl._currentValue.toLocaleString()}`;
-                console.log(`💰 Revenue increased by ${randomIncrement} to: ₱${revenueEl._currentValue.toLocaleString()}`);
+                
+                // Save to localStorage every 5 seconds to prevent data loss on refresh
+                secondsCounter++;
+                if (secondsCounter >= 5) {
+                    secondsCounter = 0;
+                    const currentData = loadMockDataFromStorage();
+                    currentData.revenue = revenueEl._currentValue;
+                    saveMockDataToStorage(currentData);
+                }
             }
         }, 1000); // Every 1 second
     }
@@ -4454,6 +4463,7 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
         // Start continuous incrementing
         element._currentValue = end;
         element._unroundedValue = end; // Track unrounded value for accurate increments
+        element._saveCounter = 0; // Track for periodic saves
         element._continuousTimer = setInterval(() => {
             // For PHP revenue, add random increments (100/250/500)
             if (prefix === '₱') {
@@ -4483,6 +4493,15 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                             // Sync the current value so dashboard timer continues correctly
                             mainRevenueCard._currentValue = displayValue;
                         }
+                    }
+                    
+                    // Save to localStorage every 5 seconds
+                    element._saveCounter++;
+                    if (element._saveCounter >= 5) {
+                        element._saveCounter = 0;
+                        const currentData = loadMockDataFromStorage();
+                        currentData.revenue = Math.round(displayValue);
+                        saveMockDataToStorage(currentData);
                     }
                 }
                 
@@ -4577,6 +4596,7 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
             // Phase 2: Start continuous incrementing every 1 second
             element._currentValue = current;
             element._unroundedValue = current; // Track unrounded value for accurate increments
+            element._saveCounter = 0; // Track for periodic saves
             element._continuousTimer = setInterval(() => {
                 // For PHP revenue, add random increments (100/250/500)
                 if (prefix === '₱') {
@@ -4606,6 +4626,15 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                                 // Sync the current value so dashboard timer continues correctly
                                 mainRevenueCard._currentValue = displayValue;
                             }
+                        }
+                        
+                        // Save to localStorage every 5 seconds
+                        element._saveCounter++;
+                        if (element._saveCounter >= 5) {
+                            element._saveCounter = 0;
+                            const currentData = loadMockDataFromStorage();
+                            currentData.revenue = Math.round(displayValue);
+                            saveMockDataToStorage(currentData);
                         }
                     }
                     
