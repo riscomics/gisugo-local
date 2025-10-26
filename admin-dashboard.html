@@ -154,16 +154,16 @@
                                 <label class="stat-filter-label">Date Range:</label>
                                 <select class="stat-filter-dropdown" id="usersDateRange">
                                     <option value="1">Last 1 Day</option>
-                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="7">Last 7 Days</option>
                                     <option value="30">Last 30 Days</option>
-                                    <option value="all">All Time</option>
+                                    <option value="all" selected>All Time</option>
                                 </select>
                             </div>
 
                             <!-- Main Stats Showcase -->
                             <div class="revenue-showcase">
                                 <div class="revenue-card php-card">
-                                    <div class="revenue-icon">👥</div>
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #00ff88);">👤</div>
                                     <div class="revenue-content">
                                         <div class="revenue-label">Total Users</div>
                                         <div class="revenue-amount counting" id="usersTotalDisplay" data-target="85">85</div>
@@ -171,15 +171,23 @@
                                     </div>
                                 </div>
                                 <div class="revenue-card usd-card">
-                                    <div class="revenue-icon">🆕</div>
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #00d4ff);">🆕</div>
                                     <div class="revenue-content">
                                         <div class="revenue-label">New Members</div>
-                                        <div class="revenue-amount counting" id="usersNewDisplay" data-target="60">60</div>
-                                        <div class="revenue-exchange-rate">Unverified</div>
+                                        <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                                            <div>
+                                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 0.25rem;">Unverified</div>
+                                                <div class="revenue-amount counting" style="font-size: 1.75rem;" id="usersNewDisplay" data-target="60">60</div>
+                                            </div>
+                                            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.5rem;">
+                                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 0.25rem;">Verified (Pro + Business)</div>
+                                                <div class="revenue-amount counting" style="font-size: 1.75rem;" id="usersVerifiedDisplay" data-target="25">25</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="revenue-card growth-card">
-                                    <div class="revenue-icon">📈</div>
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #ffaa00);">📈</div>
                                     <div class="revenue-content">
                                         <div class="revenue-label">Growth Rate</div>
                                         <div class="revenue-amount growth-positive counting" id="usersGrowthDisplay" data-target="5.2">+5.2%</div>
@@ -331,21 +339,49 @@
                                 <label class="stat-filter-label">Date Range:</label>
                                 <select class="stat-filter-dropdown" id="verificationsDateRange">
                                     <option value="1">Last 1 Day</option>
-                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="7">Last 7 Days</option>
                                     <option value="30">Last 30 Days</option>
-                                    <option value="all">All Time</option>
+                                    <option value="all" selected>All Time</option>
                                 </select>
                             </div>
 
-                            <!-- Main Stats Row -->
-                            <div class="stat-metrics-row">
-                                <div class="stat-metric-card">
-                                    <div class="stat-metric-number" id="verificationsTotalDisplay">12</div>
-                                    <div class="stat-metric-label">Pending Submissions</div>
+                            <!-- Main Stats Showcase -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card php-card">
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #00d4ff);">📝</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Total Submissions</div>
+                                        <div class="revenue-amount counting" id="verificationsTotalDisplay" data-target="12">12</div>
+                                        <div class="revenue-sparkline" id="verificationsSparkline"></div>
+                                    </div>
                                 </div>
-                                <div class="stat-metric-card warning">
-                                    <div class="stat-metric-number" id="verificationsOverdueDisplay">0</div>
-                                    <div class="stat-metric-label">Over 1 Week Old</div>
+                                <div class="revenue-card usd-card">
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #a855f7);">✅</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Verification Types</div>
+                                        <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                                            <div>
+                                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 0.25rem;">Pro (Individual)</div>
+                                                <div class="revenue-amount counting" style="font-size: 1.75rem;" id="verificationsProDisplay" data-target="8">8</div>
+                                            </div>
+                                            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.5rem;">
+                                                <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 0.25rem;">Business (Company)</div>
+                                                <div class="revenue-amount counting" style="font-size: 1.75rem;" id="verificationsBusinessDisplay" data-target="4">4</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Overdue Warning Card -->
+                            <div class="revenue-showcase" style="margin-top: 1rem;">
+                                <div class="revenue-card php-card" style="background: linear-gradient(135deg, rgba(251, 113, 133, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%); flex: 1;">
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #ff6b6b);">⚠️</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Overdue (1 Week+)</div>
+                                        <div class="revenue-amount counting" style="color: #ff6b6b;" id="verificationsOverdueDisplay" data-target="0">0</div>
+                                        <div class="revenue-trend" style="color: #ff6b6b;">⏰ Needs Attention</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -441,7 +477,7 @@
                             <!-- Main Stats Row with Enhanced Graphics -->
                             <div class="revenue-showcase">
                                 <div class="revenue-card php-card">
-                                    <div class="revenue-icon">💵</div>
+                                    <div class="revenue-icon" style="font-family: Arial, sans-serif; font-weight: 900; font-size: 4rem; color: #00ff88; filter: drop-shadow(0 0 12px #00ff88);">₱</div>
                                     <div class="revenue-content">
                                         <div class="revenue-label">Philippine Peso</div>
                                         <div class="revenue-amount counting" id="revenuePHPDisplay" data-target="500">₱500</div>
@@ -550,21 +586,37 @@
                                 <label class="stat-filter-label">Date Range:</label>
                                 <select class="stat-filter-dropdown" id="gigsReportedDateRange">
                                     <option value="1">Last 1 Day</option>
-                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="7">Last 7 Days</option>
                                     <option value="30">Last 30 Days</option>
-                                    <option value="all">All Time</option>
+                                    <option value="all" selected>All Time</option>
                                 </select>
                             </div>
 
-                            <!-- Main Stats Row -->
-                            <div class="stat-metrics-row">
-                                <div class="stat-metric-card warning">
-                                    <div class="stat-metric-number" id="gigsReportedTotalDisplay">18</div>
-                                    <div class="stat-metric-label">Total Reported</div>
+                            <!-- Main Stats Showcase -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card php-card" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);">
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #fbbf24);">🚨</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Total Reported</div>
+                                        <div class="revenue-amount counting" style="color: #fbbf24;" id="gigsReportedTotalDisplay" data-target="18">18</div>
+                                        <div class="revenue-sparkline" id="gigsReportedSparkline"></div>
+                                    </div>
                                 </div>
-                                <div class="stat-metric-card">
-                                    <div class="stat-metric-number" id="gigsReportedChangeDisplay">±0%</div>
-                                    <div class="stat-metric-label">Change Rate</div>
+                                <div class="revenue-card usd-card">
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #f97316);">⚡</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">This Week</div>
+                                        <div class="revenue-amount counting" id="gigsReportedWeekDisplay" data-target="5">5</div>
+                                        <div class="revenue-exchange-rate">Last 7 Days</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card growth-card">
+                                    <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #10b981);">📊</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Change Rate</div>
+                                        <div class="revenue-amount growth-positive counting" id="gigsReportedChangeDisplay" data-target="2.5">+2.5%</div>
+                                        <div class="revenue-trend">▲ From Last Period</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1571,9 +1623,6 @@
         </div>
     </div>
 
-    <!-- VIEWPORT DEBUG TOOL -->
-            <div id="vp-debug"></div>
-            
             <!-- Toast Notification -->
             <div id="toastNotification" class="toast-notification">
                 <span class="toast-icon">✅</span>
@@ -1582,23 +1631,5 @@
 
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
-    
-    <!-- VIEWPORT DEBUG SCRIPT -->
-    <script>
-    (function() {
-        const vpDebug = document.getElementById('vp-debug');
-        
-        function updateViewport() {
-            const width = window.innerWidth;
-            vpDebug.textContent = `Viewport: ${width}px`;
-        }
-        
-        // Initial update
-        updateViewport();
-        
-        // Update on resize
-        window.addEventListener('resize', updateViewport);
-    })();
-    </script>
 </body>
 </html>

@@ -3672,12 +3672,40 @@ function switchAdminSection(sectionId) {
 // ⚠️ MOCK DATA WARNING: Remove this entire section when implementing Firebase real-time data
 
 // localStorage keys for persistent mock data
+// =============================================================================
+// 🔥 FIREBASE INTEGRATION POINTS - MOCK DATA SIMULATION
+// =============================================================================
+// This section handles MOCK analytics data for simulation purposes only.
+// When implementing Firebase, replace ALL functions in this section with Firebase queries.
+//
+// FIREBASE DATABASE STRUCTURE:
+// /admin/
+//   /analytics/
+//     /users/
+//       total: number              // Total registered users
+//       new: number                // New members (unverified)
+//       proVerified: number        // Pro verified count
+//       businessVerified: number   // Business verified count
+//       byAge/                     // Age distribution
+//       byRegion/                  // Regional distribution
+//     /verifications/
+//       pending: number            // Pending verification requests
+//       submissions/               // Individual submission records
+//     /revenue/
+//       monthly: number            // Current month revenue in PHP
+//       transactions/              // Individual transaction records
+//     /gigs/
+//       reported/                  // Reported gigs with reportedBy arrays
+//       suspended/                 // Suspended gigs with suspendedBy data
+//     /lastUpdate: timestamp       // Last analytics update
+// =============================================================================
+
 const STORAGE_KEYS = {
-    totalUsers: 'admin_mock_total_users',
-    verifications: 'admin_mock_verifications',
-    revenue: 'admin_mock_revenue',
-    gigsReported: 'admin_mock_gigs_reported',
-    lastUpdate: 'admin_mock_last_update'
+    totalUsers: 'admin_mock_total_users',        // 🔥 Firebase: /admin/analytics/users/total
+    verifications: 'admin_mock_verifications',   // 🔥 Firebase: /admin/analytics/verifications/pending
+    revenue: 'admin_mock_revenue',               // 🔥 Firebase: /admin/analytics/revenue/monthly
+    gigsReported: 'admin_mock_gigs_reported',    // 🔥 Firebase: /admin/analytics/gigs/reported (count)
+    lastUpdate: 'admin_mock_last_update'         // 🔥 Firebase: /admin/analytics/lastUpdate
 };
 
 // Initialize stat overlay system
@@ -3705,7 +3733,15 @@ function initializeStatOverlays() {
     console.log('✅ Stat overlay system initialized');
 }
 
+// =============================================================================
+// 🔥 FIREBASE TODO: Replace this entire function with Firebase real-time listeners
+// =============================================================================
 // Initialize mock data with cumulative growth
+// FIREBASE IMPLEMENTATION:
+//   1. Set up Firebase listener: onValue(ref(db, '/admin/analytics'), (snapshot) => {...})
+//   2. Update dashboard cards in real-time as data changes
+//   3. Remove all localStorage calls
+//   4. Remove mock data generation and growth simulation
 function initializeMockData() {
     const now = Date.now();
     const lastUpdate = localStorage.getItem(STORAGE_KEYS.lastUpdate);
@@ -3716,18 +3752,19 @@ function initializeMockData() {
     
     
     if (!existingRevenue || !existingUsers || !lastUpdate) {
-        // First time initialization
+        // First time initialization (MOCK ONLY)
         const initialData = generateInitialMockData();
         saveMockDataToStorage(initialData);
     } else {
-        // Apply cumulative growth on refresh
+        // Apply cumulative growth on refresh (MOCK ONLY)
         const currentData = loadMockDataFromStorage();
         const grownData = applyGrowth(currentData);
         saveMockDataToStorage(grownData);
     }
 }
 
-// Generate initial baseline mock data
+// 🔥 FIREBASE TODO: DELETE THIS FUNCTION - Real data will come from Firebase
+// Generate initial baseline mock data (MOCK ONLY - DELETE WHEN IMPLEMENTING FIREBASE)
 function generateInitialMockData() {
     // Starting values as per requirements
     const totalUsers = Math.floor(Math.random() * 50) + 50; // 50-99
@@ -3749,7 +3786,8 @@ function generateInitialMockData() {
     };
 }
 
-// Apply cumulative growth percentages
+// 🔥 FIREBASE TODO: DELETE THIS FUNCTION - Real analytics will be calculated server-side
+// Apply cumulative growth percentages (MOCK ONLY - DELETE WHEN IMPLEMENTING FIREBASE)
 function applyGrowth(data) {
     // Total Users: up to 5% increase
     const usersGrowth = 1 + (Math.random() * 0.05);
@@ -3800,7 +3838,10 @@ function roundToValidIncrement(amount) {
     return Math.max(100, rounded);
 }
 
-// Save mock data to localStorage
+// 🔥 FIREBASE TODO: Replace with Firebase set() or update() calls
+// Save mock data to localStorage (MOCK ONLY - REPLACE WITH FIREBASE)
+// FIREBASE IMPLEMENTATION: 
+//   set(ref(db, '/admin/analytics'), { users: {...}, revenue: {...}, ... })
 function saveMockDataToStorage(data) {
     try {
         localStorage.setItem(STORAGE_KEYS.totalUsers, data.totalUsers);
@@ -3813,7 +3854,11 @@ function saveMockDataToStorage(data) {
     }
 }
 
-// Load mock data from localStorage
+// 🔥 FIREBASE TODO: Replace with Firebase get() or onValue() listener
+// Load mock data from localStorage (MOCK ONLY - REPLACE WITH FIREBASE)
+// FIREBASE IMPLEMENTATION:
+//   const snapshot = await get(ref(db, '/admin/analytics'))
+//   const data = snapshot.val()
 function loadMockDataFromStorage() {
     try {
         return {
@@ -3874,15 +3919,20 @@ function updateStatCardsDisplay() {
     startMainDashboardCounting();
 }
 
-// Start continuous counting for main dashboard stat cards
+// 🔥 FIREBASE TODO: Remove this function - Real-time updates will come from Firebase listeners
+// Start continuous counting for main dashboard stat cards (SIMULATION ONLY)
+// FIREBASE IMPLEMENTATION:
+//   Set up onValue() listeners that automatically update cards when data changes
+//   Remove all setInterval timers and counting animations
 function startMainDashboardCounting() {
     const totalUsersEl = document.getElementById('totalUsersNumber');
     const verificationsEl = document.getElementById('verificationsNumber');
     const revenueEl = document.getElementById('revenueNumber');
     const gigsReportedEl = document.getElementById('gigsReportedNumber');
+    const suspendedCountEl = document.getElementById('suspendedCount');
     
     // Clear any existing timers
-    [totalUsersEl, verificationsEl, revenueEl, gigsReportedEl].forEach(el => {
+    [totalUsersEl, verificationsEl, revenueEl, gigsReportedEl, suspendedCountEl].forEach(el => {
         if (el && el._dashboardTimer) {
             clearInterval(el._dashboardTimer);
             el._dashboardTimer = null;
@@ -3899,15 +3949,25 @@ function startMainDashboardCounting() {
         }, 1000); // Every 1 second
     }
     
-    // Verifications: increment by 1 randomly every 10 seconds
+    // Verifications: increment by random 5-20 every 1 second
     if (verificationsEl) {
+        let secondsCounter = 0;
         verificationsEl._dashboardTimer = setInterval(() => {
-            if (Math.random() > 0.3) { // 70% chance each interval
-                verificationsEl._currentValue += 1;
-                verificationsEl.textContent = verificationsEl._currentValue.toLocaleString();
-                console.log('✓ Verifications increased to:', verificationsEl._currentValue);
+            const randomIncrease = Math.floor(Math.random() * 16) + 5; // 5-20
+            verificationsEl._currentValue += randomIncrease;
+            verificationsEl.textContent = verificationsEl._currentValue.toLocaleString();
+            
+            // Save to localStorage every 5 seconds to prevent data loss on refresh
+            secondsCounter++;
+            if (secondsCounter >= 5) {
+                secondsCounter = 0;
+                const currentData = loadMockDataFromStorage();
+                currentData.verifications = verificationsEl._currentValue;
+                saveMockDataToStorage(currentData);
             }
-        }, 10000); // Every 10 seconds
+            
+            console.log(`✓ Verifications increased by ${randomIncrease} to:`, verificationsEl._currentValue);
+        }, 1000); // Every 1 second
     }
     
     // Monthly Revenue: add random ₱100/₱250/₱500 every 1 second
@@ -3937,15 +3997,62 @@ function startMainDashboardCounting() {
         }, 1000); // Every 1 second
     }
     
-    // Gigs Reported: increment by 1 randomly every 30 seconds
+    // Gigs Reported: FLUCTUATE every 10 seconds (max 100)
     if (gigsReportedEl) {
+        if (!gigsReportedEl._maxValue) gigsReportedEl._maxValue = 100;
+        
         gigsReportedEl._dashboardTimer = setInterval(() => {
-            if (Math.random() > 0.4) { // 60% chance each interval
-                gigsReportedEl._currentValue += 1;
-                gigsReportedEl.textContent = gigsReportedEl._currentValue.toLocaleString();
-                console.log('⚠️ Gigs Reported increased to:', gigsReportedEl._currentValue);
+            const maxValue = gigsReportedEl._maxValue || 100;
+            const currentValue = gigsReportedEl._currentValue || 0;
+            
+            // Random fluctuation: add 1-10 or subtract 1-10
+            const change = Math.floor(Math.random() * 10) + 1; // 1-10
+            const shouldIncrease = Math.random() > 0.5;
+            
+            let newValue;
+            if (shouldIncrease) {
+                newValue = Math.min(maxValue, currentValue + change);
+            } else {
+                newValue = Math.max(5, currentValue - change); // Min 5
             }
-        }, 30000); // Every 30 seconds
+            
+            gigsReportedEl._currentValue = newValue;
+            gigsReportedEl.textContent = newValue.toLocaleString();
+            
+            const direction = shouldIncrease ? '📈' : '📉';
+            console.log(`${direction} Gigs Reported ${shouldIncrease ? '+' : '-'}${change}:`, newValue);
+        }, 10000); // Every 10 seconds
+    }
+    
+    // Suspended Gigs Tab Count: SLOW FLUCTUATION every 30 seconds (max 50)
+    if (suspendedCountEl) {
+        // Initialize current value from displayed count
+        if (!suspendedCountEl._currentValue) {
+            suspendedCountEl._currentValue = parseInt(suspendedCountEl.textContent) || 2;
+        }
+        if (!suspendedCountEl._maxValue) suspendedCountEl._maxValue = 50;
+        
+        suspendedCountEl._dashboardTimer = setInterval(() => {
+            const maxValue = suspendedCountEl._maxValue || 50;
+            const currentValue = suspendedCountEl._currentValue || 0;
+            
+            // SLOWER fluctuation: add 1-3 or subtract 1-3
+            const change = Math.floor(Math.random() * 3) + 1; // 1-3
+            const shouldIncrease = Math.random() > 0.5;
+            
+            let newValue;
+            if (shouldIncrease) {
+                newValue = Math.min(maxValue, currentValue + change);
+            } else {
+                newValue = Math.max(0, currentValue - change); // Min 0
+            }
+            
+            suspendedCountEl._currentValue = newValue;
+            suspendedCountEl.textContent = newValue.toLocaleString();
+            
+            const direction = shouldIncrease ? '📈' : '📉';
+            console.log(`${direction} Suspended Gigs ${shouldIncrease ? '+' : '-'}${change}:`, newValue);
+        }, 30000); // Every 30 seconds (much slower)
     }
     
     console.log('🎬 Main dashboard counting animations started');
@@ -4027,6 +4134,21 @@ function openStatOverlay(type) {
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden'; // Prevent background scroll
         
+        // Pause main dashboard counting for this overlay type
+        if (type === 'revenue') {
+            const revenueCard = document.getElementById('revenueNumber');
+            if (revenueCard && revenueCard._dashboardTimer) {
+                clearInterval(revenueCard._dashboardTimer);
+                revenueCard._dashboardTimer = null;
+            }
+        } else if (type === 'verifications') {
+            const verificationsCard = document.getElementById('verificationsNumber');
+            if (verificationsCard && verificationsCard._dashboardTimer) {
+                clearInterval(verificationsCard._dashboardTimer);
+                verificationsCard._dashboardTimer = null;
+            }
+        }
+        
         // Populate overlay data
         populateOverlayData(type);
         
@@ -4039,7 +4161,7 @@ function closeStatOverlay(overlayId) {
     const overlay = document.getElementById(overlayId);
     
     if (overlay) {
-        // Stop any counting animations for revenue elements
+        // Stop any counting animations for overlay elements
         const countingElements = overlay.querySelectorAll('.counting');
         countingElements.forEach(element => {
             stopCountingAnimation(element);
@@ -4047,6 +4169,10 @@ function closeStatOverlay(overlayId) {
         
         overlay.classList.remove('active');
         document.body.style.overflow = ''; // Restore scroll
+        
+        // Restart main dashboard counting after overlay closes
+        startMainDashboardCounting();
+        
         console.log(`✖️ Closed ${overlayId}`);
     }
 }
@@ -4094,33 +4220,41 @@ function populateTotalUsersData(data) {
     // Update main displays with counting animation
     const totalDisplay = document.getElementById('usersTotalDisplay');
     const newDisplay = document.getElementById('usersNewDisplay');
+    const verifiedDisplay = document.getElementById('usersVerifiedDisplay');
     const growthDisplay = document.getElementById('usersGrowthDisplay');
     
     // Get current values (for smooth transition on filter change)
     const currentTotal = totalDisplay && totalDisplay._unroundedValue ? totalDisplay._unroundedValue : (totalDisplay && totalDisplay._currentValue ? totalDisplay._currentValue : 0);
     const currentNew = newDisplay && newDisplay._unroundedValue ? newDisplay._unroundedValue : (newDisplay && newDisplay._currentValue ? newDisplay._currentValue : 0);
+    const currentVerified = verifiedDisplay && verifiedDisplay._unroundedValue ? verifiedDisplay._unroundedValue : (verifiedDisplay && verifiedDisplay._currentValue ? verifiedDisplay._currentValue : 0);
     const currentGrowth = growthDisplay && growthDisplay._unroundedValue ? growthDisplay._unroundedValue : (growthDisplay && growthDisplay._currentValue ? growthDisplay._currentValue : 0);
     
-    // Calculate new members (70-80% of total, unverified)
+    // Calculate new members (70-80% of total, unverified) and verified members (remaining)
     const newMemberPercent = 0.70 + (Math.random() * 0.10); // 70-80%
     const newMemberCount = Math.round(total * newMemberPercent);
+    const verifiedMemberCount = total - newMemberCount; // Remaining are verified (Pro + Business)
     
-    // Start counting animations (faster: 500ms)
+    // Start counting animations (ultra fast: 150ms)
     if (totalDisplay) {
         totalDisplay.setAttribute('data-target', total);
-        startCountingAnimation(totalDisplay, currentTotal, total, '', 500, 0);
+        startCountingAnimation(totalDisplay, currentTotal, total, '', 150, 0);
     }
     
     if (newDisplay) {
         newDisplay.setAttribute('data-target', newMemberCount);
-        startCountingAnimation(newDisplay, currentNew, newMemberCount, '', 500, 0);
+        startCountingAnimation(newDisplay, currentNew, newMemberCount, '', 150, 0);
+    }
+    
+    if (verifiedDisplay) {
+        verifiedDisplay.setAttribute('data-target', verifiedMemberCount);
+        startCountingAnimation(verifiedDisplay, currentVerified, verifiedMemberCount, '', 150, 0);
     }
     
     // Calculate growth rate (mock)
     const growthRate = ((Math.random() * 5) + 1).toFixed(1);
     if (growthDisplay) {
         growthDisplay.setAttribute('data-target', growthRate);
-        startCountingAnimation(growthDisplay, currentGrowth, parseFloat(growthRate), '+', 500, 1, '%');
+        startCountingAnimation(growthDisplay, currentGrowth, parseFloat(growthRate), '+', 150, 1, '%');
         growthDisplay.className = 'revenue-amount growth-positive counting';
     }
     
@@ -4184,7 +4318,11 @@ function populateTotalUsersData(data) {
 
 // Populate Verifications overlay data
 function populateVerificationsData(data) {
-    let total = data.verifications;
+    // Get the current value from main dashboard card (real-time value)
+    const mainVerificationsCard = document.getElementById('verificationsNumber');
+    const mainVerificationsValue = mainVerificationsCard && mainVerificationsCard._currentValue ? mainVerificationsCard._currentValue : data.verifications;
+    
+    let total = mainVerificationsValue;
     
     // Apply date range filter (mock simulation)
     const dateRangeSelect = document.getElementById('verificationsDateRange');
@@ -4205,14 +4343,47 @@ function populateVerificationsData(data) {
         total = Math.max(1, total);
     }
     
-    // Update main display
+    // Update main displays with counting animation
     const totalDisplay = document.getElementById('verificationsTotalDisplay');
-    if (totalDisplay) totalDisplay.textContent = total.toLocaleString();
+    const proDisplay = document.getElementById('verificationsProDisplay');
+    const businessDisplay = document.getElementById('verificationsBusinessDisplay');
+    const overdueDisplay = document.getElementById('verificationsOverdueDisplay');
+    
+    // Get current values (for smooth transition on filter change)
+    const currentTotal = totalDisplay && totalDisplay._currentValue ? totalDisplay._currentValue : 0;
+    const currentPro = proDisplay && proDisplay._currentValue ? proDisplay._currentValue : 0;
+    const currentBusiness = businessDisplay && businessDisplay._currentValue ? businessDisplay._currentValue : 0;
+    const currentOverdue = overdueDisplay && overdueDisplay._currentValue ? overdueDisplay._currentValue : 0;
+    
+    // Calculate verification types (Pro vs Business)
+    const proVerifications = Math.floor(total * (0.6 + Math.random() * 0.2)); // 60-80%
+    const businessVerifications = total - proVerifications;
     
     // Calculate overdue (over 1 week)
     const over1Week = Math.floor(total * (Math.random() * 0.3)); // 0-30% overdue
-    const overdueDisplay = document.getElementById('verificationsOverdueDisplay');
-    if (overdueDisplay) overdueDisplay.textContent = over1Week.toLocaleString();
+    
+    // Start counting animations (ultra fast: 150ms)
+    if (totalDisplay) {
+        totalDisplay.setAttribute('data-target', total);
+        startCountingAnimation(totalDisplay, currentTotal, total, '', 150, 0);
+    }
+    
+    if (proDisplay) {
+        proDisplay.setAttribute('data-target', proVerifications);
+        startCountingAnimation(proDisplay, currentPro, proVerifications, '', 150, 0);
+    }
+    
+    if (businessDisplay) {
+        businessDisplay.setAttribute('data-target', businessVerifications);
+        startCountingAnimation(businessDisplay, currentBusiness, businessVerifications, '', 150, 0);
+    }
+    
+    if (overdueDisplay) {
+        overdueDisplay.setAttribute('data-target', over1Week);
+        // Initialize max value if not set
+        if (!overdueDisplay._maxValue) overdueDisplay._maxValue = 20;
+        startCountingAnimation(overdueDisplay, currentOverdue, over1Week, '', 150, 0);
+    }
     
     // Verification age breakdown
     const under1Week = total - over1Week;
@@ -4223,10 +4394,7 @@ function populateVerificationsData(data) {
     updateBreakdownBar('verification1_2Weeks', between1_2Weeks, total);
     updateBreakdownBar('verificationOver2Weeks', over2Weeks, total);
     
-    // Verification types (Pro vs Business)
-    const proVerifications = Math.floor(total * (0.6 + Math.random() * 0.2)); // 60-80%
-    const businessVerifications = total - proVerifications;
-    
+    // Verification types breakdowns (already calculated above)
     updateBreakdownBar('proVerification', proVerifications, total);
     updateBreakdownBar('businessVerification', businessVerifications, total);
 }
@@ -4273,27 +4441,31 @@ function populateRevenueData(data) {
     const mainRevenueCard = document.getElementById('revenueNumber');
     const mainRevenueValue = mainRevenueCard && mainRevenueCard._currentValue ? mainRevenueCard._currentValue : data.revenue;
     
-    const currentPHP = phpDisplay && phpDisplay._unroundedValue ? phpDisplay._unroundedValue : (phpDisplay && phpDisplay._currentValue ? phpDisplay._currentValue : mainRevenueValue);
-    const currentUSD = usdDisplay && usdDisplay._unroundedValue ? usdDisplay._unroundedValue : (usdDisplay && usdDisplay._currentValue ? usdDisplay._currentValue : (mainRevenueValue / 57));
-    const currentGrowth = growthDisplay && growthDisplay._unroundedValue ? growthDisplay._unroundedValue : (growthDisplay && growthDisplay._currentValue ? growthDisplay._currentValue : 0);
+    // For smooth transition: if overlay was already opened, use current value; otherwise start from 0
+    const currentPHP = phpDisplay && phpDisplay._hasBeenAnimated && phpDisplay._unroundedValue ? phpDisplay._unroundedValue : 0;
+    const currentUSD = usdDisplay && usdDisplay._hasBeenAnimated && usdDisplay._unroundedValue ? usdDisplay._unroundedValue : 0;
+    const currentGrowth = growthDisplay && growthDisplay._hasBeenAnimated && growthDisplay._unroundedValue ? growthDisplay._unroundedValue : 0;
     
-    // Store target values and animate (faster: 500ms)
+    // Store target values and animate (ultra fast: 150ms)
     if (phpDisplay) {
         phpDisplay.setAttribute('data-target', revenuePHP);
-        startCountingAnimation(phpDisplay, currentPHP, revenuePHP, '₱', 500);
+        phpDisplay._hasBeenAnimated = true; // Mark as animated for future filter changes
+        startCountingAnimation(phpDisplay, currentPHP, revenuePHP, '₱', 150);
     }
     
     if (usdDisplay) {
         const usdValue = parseFloat(revenueUSD);
         usdDisplay.setAttribute('data-target', usdValue);
-        startCountingAnimation(usdDisplay, currentUSD, usdValue, '$', 500, 2);
+        usdDisplay._hasBeenAnimated = true; // Mark as animated for future filter changes
+        startCountingAnimation(usdDisplay, currentUSD, usdValue, '$', 150, 2);
     }
     
     // Growth rate with animation
     const growthRate = ((Math.random() * 10) + 5).toFixed(1);
     if (growthDisplay) {
         growthDisplay.setAttribute('data-target', growthRate);
-        startCountingAnimation(growthDisplay, currentGrowth, parseFloat(growthRate), '+', 500, 1, '%');
+        growthDisplay._hasBeenAnimated = true; // Mark as animated for future filter changes
+        startCountingAnimation(growthDisplay, currentGrowth, parseFloat(growthRate), '+', 150, 1, '%');
         growthDisplay.className = 'revenue-amount growth-positive counting';
     }
     
@@ -4346,17 +4518,39 @@ function populateGigsReportedData(data) {
         total = Math.max(1, total);
     }
     
-    // Update main display
+    // Update main displays with counting animation
     const totalDisplay = document.getElementById('gigsReportedTotalDisplay');
-    if (totalDisplay) totalDisplay.textContent = total.toLocaleString();
+    const weekDisplay = document.getElementById('gigsReportedWeekDisplay');
+    const changeDisplay = document.getElementById('gigsReportedChangeDisplay');
+    
+    // Get current values (for smooth transition on filter change)
+    const currentTotal = totalDisplay && totalDisplay._currentValue ? totalDisplay._currentValue : 0;
+    const currentWeek = weekDisplay && weekDisplay._currentValue ? weekDisplay._currentValue : 0;
+    const currentChange = changeDisplay && changeDisplay._currentValue ? changeDisplay._currentValue : 0;
+    
+    // Calculate this week's reports (25% of total)
+    const thisWeek = Math.round(total * 0.25);
     
     // Calculate change rate
     const changeRate = ((Math.random() - 0.5) * 10).toFixed(1);
-    const changeDisplay = document.getElementById('gigsReportedChangeDisplay');
+    
+    // Start counting animations (ultra fast: 150ms)
+    if (totalDisplay) {
+        totalDisplay.setAttribute('data-target', total);
+        // Initialize max value for fluctuation (max 100)
+        if (!totalDisplay._maxValue) totalDisplay._maxValue = 100;
+        startCountingAnimation(totalDisplay, currentTotal, total, '', 150, 0);
+    }
+    
+    if (weekDisplay) {
+        weekDisplay.setAttribute('data-target', thisWeek);
+        startCountingAnimation(weekDisplay, currentWeek, thisWeek, '', 150, 0);
+    }
+    
     if (changeDisplay) {
-        const sign = changeRate >= 0 ? '+' : '';
-        changeDisplay.textContent = `${sign}${changeRate}%`;
-        changeDisplay.className = changeRate >= 0 ? 'stat-metric-number growth-negative' : 'stat-metric-number growth-positive';
+        changeDisplay.setAttribute('data-target', changeRate);
+        startCountingAnimation(changeDisplay, currentChange, parseFloat(changeRate), changeRate >= 0 ? '+' : '', 150, 1, '%');
+        changeDisplay.className = changeRate >= 0 ? 'revenue-amount growth-positive counting' : 'revenue-amount growth-negative counting';
     }
     
     // Report reasons breakdown
@@ -4539,19 +4733,173 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                 });
                 element.textContent = formattedValue;
                 
-                // Also update New Members (70-80% of total)
+                // Also update New Members (70-80% of total) and Verified Members (remaining)
                 const newDisplay = document.getElementById('usersNewDisplay');
+                const verifiedDisplay = document.getElementById('usersVerifiedDisplay');
                 if (newDisplay) {
                     const newMemberPercent = 0.70 + (Math.random() * 0.10);
                     const newValue = Math.round(element._unroundedValue * newMemberPercent);
                     newDisplay._unroundedValue = newValue;
                     newDisplay._currentValue = newValue;
                     newDisplay.textContent = newValue.toLocaleString('en-US');
+                    
+                    // Update Verified Members (total - new)
+                    if (verifiedDisplay) {
+                        const verifiedValue = element._unroundedValue - newValue;
+                        verifiedDisplay._unroundedValue = verifiedValue;
+                        verifiedDisplay._currentValue = verifiedValue;
+                        verifiedDisplay.textContent = verifiedValue.toLocaleString('en-US');
+                    }
                 }
                 
                 console.log(`👥 Users increased by ${randomIncrease}: ${formattedValue}`);
             } else if (prefix === '' && suffix === '' && element.id === 'usersNewDisplay') {
                 // New Members display - skip (controlled by Total Users)
+                return;
+            } else if (prefix === '' && suffix === '' && element.id === 'usersVerifiedDisplay') {
+                // Verified Members display - skip (controlled by Total Users)
+                return;
+            } else if (prefix === '' && suffix === '' && element.id === 'verificationsTotalDisplay') {
+                // For Verification Submissions in overlay, add random 5-20 per second
+                const randomIncrease = Math.floor(Math.random() * 16) + 5; // 5-20
+                element._unroundedValue += randomIncrease;
+                element._currentValue = element._unroundedValue;
+                
+                const formattedValue = element._unroundedValue.toLocaleString('en-US', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                });
+                element.textContent = formattedValue;
+                
+                // Distribute the increase between Pro and Business
+                // Pro gets 60-75% of the increase (faster growth)
+                // Business gets 25-40% of the increase (slower but consistent growth)
+                const proPercent = 0.60 + (Math.random() * 0.15); // 60-75%
+                const proIncrease = Math.round(randomIncrease * proPercent);
+                const businessIncrease = randomIncrease - proIncrease; // Remaining goes to business
+                
+                const proDisplay = document.getElementById('verificationsProDisplay');
+                if (proDisplay) {
+                    // Initialize if not set
+                    if (!proDisplay._unroundedValue) proDisplay._unroundedValue = parseInt(proDisplay.textContent) || 8;
+                    
+                    proDisplay._unroundedValue += proIncrease;
+                    proDisplay._currentValue = proDisplay._unroundedValue;
+                    proDisplay.textContent = proDisplay._unroundedValue.toLocaleString('en-US');
+                }
+                
+                const businessDisplay = document.getElementById('verificationsBusinessDisplay');
+                if (businessDisplay) {
+                    // Initialize if not set
+                    if (!businessDisplay._unroundedValue) businessDisplay._unroundedValue = parseInt(businessDisplay.textContent) || 4;
+                    
+                    businessDisplay._unroundedValue += businessIncrease;
+                    businessDisplay._currentValue = businessDisplay._unroundedValue;
+                    businessDisplay.textContent = businessDisplay._unroundedValue.toLocaleString('en-US');
+                }
+                
+                // Also update the main dashboard verification card if not filtering
+                const dateRangeSelect = document.getElementById('verificationsDateRange');
+                const isAllTime = !dateRangeSelect || dateRangeSelect.value === 'all';
+                
+                if (isAllTime) {
+                    const mainVerificationsCard = document.getElementById('verificationsNumber');
+                    if (mainVerificationsCard) {
+                        mainVerificationsCard._currentValue = element._unroundedValue;
+                        mainVerificationsCard.textContent = element._unroundedValue.toLocaleString('en-US');
+                    }
+                    
+                    // Save to localStorage every 5 seconds
+                    if (!element._saveCounter) element._saveCounter = 0;
+                    element._saveCounter++;
+                    if (element._saveCounter >= 5) {
+                        element._saveCounter = 0;
+                        const currentData = loadMockDataFromStorage();
+                        currentData.verifications = Math.round(element._unroundedValue);
+                        saveMockDataToStorage(currentData);
+                    }
+                }
+                
+                console.log(`📝 Verifications +${randomIncrease}: Total=${formattedValue} | Pro +${proIncrease} | Business +${businessIncrease}`);
+            } else if (prefix === '' && suffix === '' && element.id === 'verificationsProDisplay') {
+                // Pro display - skip (controlled by Total Verifications)
+                return;
+            } else if (prefix === '' && suffix === '' && element.id === 'verificationsBusinessDisplay') {
+                // Business display - skip (controlled by Total Verifications)
+                return;
+            } else if (prefix === '' && suffix === '' && element.id === 'verificationsOverdueDisplay') {
+                // Overdue Verifications - FLUCTUATE every 10 seconds (max 20)
+                if (!element._fluctuateCounter) element._fluctuateCounter = 0;
+                element._fluctuateCounter++;
+                
+                // Only update every 10 seconds
+                if (element._fluctuateCounter >= 10) {
+                    element._fluctuateCounter = 0;
+                    
+                    const maxValue = element._maxValue || 20;
+                    const currentValue = element._currentValue || 0;
+                    
+                    // Random fluctuation: add 1-10 or subtract 1-10
+                    const change = Math.floor(Math.random() * 10) + 1; // 1-10
+                    const shouldIncrease = Math.random() > 0.5;
+                    
+                    let newValue;
+                    if (shouldIncrease) {
+                        newValue = Math.min(maxValue, currentValue + change);
+                    } else {
+                        newValue = Math.max(0, currentValue - change);
+                    }
+                    
+                    element._unroundedValue = newValue;
+                    element._currentValue = newValue;
+                    element.textContent = newValue.toLocaleString('en-US');
+                    
+                    const direction = shouldIncrease ? '📈' : '📉';
+                    console.log(`${direction} Overdue Verifications ${shouldIncrease ? '+' : '-'}${change}: ${newValue}`);
+                }
+                return;
+            } else if (prefix === '' && suffix === '' && element.id === 'gigsReportedTotalDisplay') {
+                // Gigs Reported Total - FLUCTUATE every 10 seconds (max 100)
+                if (!element._fluctuateCounter) element._fluctuateCounter = 0;
+                element._fluctuateCounter++;
+                
+                // Only update every 10 seconds
+                if (element._fluctuateCounter >= 10) {
+                    element._fluctuateCounter = 0;
+                    
+                    const maxValue = element._maxValue || 100;
+                    const currentValue = element._currentValue || 0;
+                    
+                    // Random fluctuation: add 1-15 or subtract 1-15
+                    const change = Math.floor(Math.random() * 15) + 1; // 1-15
+                    const shouldIncrease = Math.random() > 0.5;
+                    
+                    let newValue;
+                    if (shouldIncrease) {
+                        newValue = Math.min(maxValue, currentValue + change);
+                    } else {
+                        newValue = Math.max(5, currentValue - change); // Min 5
+                    }
+                    
+                    element._unroundedValue = newValue;
+                    element._currentValue = newValue;
+                    element.textContent = newValue.toLocaleString('en-US');
+                    
+                    // Also update This Week (25% of total)
+                    const weekDisplay = document.getElementById('gigsReportedWeekDisplay');
+                    if (weekDisplay) {
+                        const weekValue = Math.round(newValue * 0.25);
+                        weekDisplay._unroundedValue = weekValue;
+                        weekDisplay._currentValue = weekValue;
+                        weekDisplay.textContent = weekValue.toLocaleString('en-US');
+                    }
+                    
+                    const direction = shouldIncrease ? '📈' : '📉';
+                    console.log(`${direction} Gigs Reported ${shouldIncrease ? '+' : '-'}${change}: ${newValue}`);
+                }
+                return;
+            } else if (prefix === '' && suffix === '' && element.id === 'gigsReportedWeekDisplay') {
+                // Week display - skip (controlled by Total Reported)
                 return;
             } else {
                 // For growth percentage and other non-PHP displays
@@ -4685,6 +5033,32 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                     console.log(`👥 Users increased by ${randomIncrease}: ${formattedValue}`);
                 } else if (prefix === '' && suffix === '' && element.id === 'usersNewDisplay') {
                     // New Members display - skip (controlled by Total Users)
+                    return;
+                } else if (prefix === '' && suffix === '' && element.id === 'verificationsTotalDisplay') {
+                    // For Verification Submissions in overlay, add random 5-20 per second
+                    const randomIncrease = Math.floor(Math.random() * 16) + 5; // 5-20
+                    element._unroundedValue += randomIncrease;
+                    element._currentValue = element._unroundedValue;
+                    
+                    const formattedValue = element._unroundedValue.toLocaleString('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                    element.textContent = formattedValue;
+                    
+                    // Also update Pro Display (60-80% of total)
+                    const proDisplay = document.getElementById('verificationsProDisplay');
+                    if (proDisplay) {
+                        const proPercent = 0.60 + (Math.random() * 0.20);
+                        const proValue = Math.round(element._unroundedValue * proPercent);
+                        proDisplay._unroundedValue = proValue;
+                        proDisplay._currentValue = proValue;
+                        proDisplay.textContent = proValue.toLocaleString('en-US');
+                    }
+                    
+                    console.log(`📝 Verifications increased by ${randomIncrease}: ${formattedValue}`);
+                } else if (prefix === '' && suffix === '' && (element.id === 'verificationsProDisplay' || element.id === 'verificationsOverdueDisplay')) {
+                    // Pro/Overdue displays - skip (controlled by Total Verifications)
                     return;
                 } else {
                     // For growth percentage and other non-PHP displays
