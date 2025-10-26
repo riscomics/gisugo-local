@@ -108,35 +108,557 @@
                 </div>
                 
                 <div class="stats-grid">
-                    <div class="stat-card">
+                    <div class="stat-card" id="totalUsersCard">
                         <div class="stat-icon">👥</div>
                         <div class="stat-content">
-                            <div class="stat-number">1,234</div>
+                            <div class="stat-number" id="totalUsersNumber">85</div>
                             <div class="stat-label">Total Users</div>
                         </div>
                     </div>
                     
-                    <div class="stat-card">
+                    <div class="stat-card" id="verificationsCard">
                         <div class="stat-icon">🆔</div>
                         <div class="stat-content">
-                            <div class="stat-number">15</div>
-                            <div class="stat-label">Pending Verifications</div>
+                            <div class="stat-number" id="verificationsNumber">12</div>
+                            <div class="stat-label">Verification Submissions</div>
                         </div>
                     </div>
                     
-                    <div class="stat-card">
+                    <div class="stat-card" id="revenueCard">
                         <div class="stat-icon">💰</div>
                         <div class="stat-content">
-                            <div class="stat-number">₱45,690</div>
+                            <div class="stat-number" id="revenueNumber">₱500</div>
                             <div class="stat-label">Monthly Revenue</div>
                         </div>
                     </div>
                     
-                    <div class="stat-card">
+                    <div class="stat-card" id="gigsReportedCard">
                         <div class="stat-icon">🚨</div>
                         <div class="stat-content">
-                            <div class="stat-number">8</div>
-                            <div class="stat-label">Content Reports</div>
+                            <div class="stat-number" id="gigsReportedNumber">18</div>
+                            <div class="stat-label">Gigs Reported</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Users Overlay -->
+                <div class="stat-overlay" id="totalUsersOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">👥 Total Users Analytics</h2>
+                            <button class="stat-overlay-close" id="closeTotalUsersOverlay">✕</button>
+                        </div>
+                        <div class="stat-overlay-body">
+                            <!-- Date Range Filter -->
+                            <div class="stat-filter-section">
+                                <label class="stat-filter-label">Date Range:</label>
+                                <select class="stat-filter-dropdown" id="usersDateRange">
+                                    <option value="1">Last 1 Day</option>
+                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+
+                            <!-- Main Stats Showcase -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card php-card">
+                                    <div class="revenue-icon">👥</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Total Users</div>
+                                        <div class="revenue-amount counting" id="usersTotalDisplay" data-target="85">85</div>
+                                        <div class="revenue-sparkline" id="usersSparkline"></div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card usd-card">
+                                    <div class="revenue-icon">🆕</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">New Members</div>
+                                        <div class="revenue-amount counting" id="usersNewDisplay" data-target="60">60</div>
+                                        <div class="revenue-exchange-rate">Unverified</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card growth-card">
+                                    <div class="revenue-icon">📈</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Growth Rate</div>
+                                        <div class="revenue-amount growth-positive counting" id="usersGrowthDisplay" data-target="5.2">+5.2%</div>
+                                        <div class="revenue-trend">▲ Trending Up</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Breakdown Sections -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="ageBreakdown">
+                                    <span class="breakdown-title">📊 Age Groups</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="ageBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">18-24</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="age18_24Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="age18_24Value">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">25-34</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="age25_34Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="age25_34Value">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">35-44</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="age35_44Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="age35_44Value">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">45-54</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="age45_54Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="age45_54Value">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">55+</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="age55PlusBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="age55PlusValue">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="regionBreakdown">
+                                    <span class="breakdown-title">🗺️ Regional Distribution</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="regionBreakdown">
+                                    <!-- Pie Chart Visualization -->
+                                    <div class="chart-container">
+                                        <div class="chart-with-title">
+                                            <div class="chart-title-text">PHILIPPINES</div>
+                                            <div class="pie-chart" id="regionPieChart">
+                                                <div class="pie-chart-label-simple">
+                                                    <div class="pie-chart-total-large" id="regionPieTotal">0</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="pie-legend">
+                                            <div class="legend-item">
+                                                <div class="legend-color" style="background: #ff6b6b;"></div>
+                                                <div class="legend-label">🏙️ Luzon</div>
+                                                <div class="legend-value" id="luzonLegend">0</div>
+                                            </div>
+                                            <div class="legend-item">
+                                                <div class="legend-color" style="background: #4ecdc4;"></div>
+                                                <div class="legend-label">🏝️ Visayas</div>
+                                                <div class="legend-value" id="visayasLegend">0</div>
+                                            </div>
+                                            <div class="legend-item">
+                                                <div class="legend-color" style="background: #ffd93d;"></div>
+                                                <div class="legend-label">🌴 Mindanao</div>
+                                                <div class="legend-value" id="mindanaoLegend">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="accountTypeBreakdown">
+                                    <span class="breakdown-title">✅ Account Types</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="accountTypeBreakdown">
+                                    <!-- Donut Chart Visualization -->
+                                    <div class="chart-container">
+                                        <div class="donut-chart" id="accountTypePieChart">
+                                            <div class="donut-chart-label">
+                                                <div class="donut-chart-icon">👤</div>
+                                                <div class="donut-chart-total" id="accountTypePieTotal">0</div>
+                                            </div>
+                                        </div>
+                                        <div class="pie-legend">
+                                            <div class="legend-item">
+                                                <div class="legend-color" style="background: #6c5ce7;"></div>
+                                                <div class="legend-label">🆕 New Member</div>
+                                                <div class="legend-value" id="newMemberLegend">0</div>
+                                            </div>
+                                            <div class="legend-item">
+                                                <div class="legend-color" style="background: #00b894;"></div>
+                                                <div class="legend-label">✅ Pro Verified</div>
+                                                <div class="legend-value" id="proVerifiedLegend">0</div>
+                                            </div>
+                                            <div class="legend-item">
+                                                <div class="legend-color" style="background: #ff6b6b;"></div>
+                                                <div class="legend-label">🏢 Business Verified</div>
+                                                <div class="legend-value" id="businessVerifiedLegend">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Submissions Overlay -->
+                <div class="stat-overlay" id="verificationsOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">🆔 Verification Submissions</h2>
+                            <button class="stat-overlay-close" id="closeVerificationsOverlay">✕</button>
+                        </div>
+                        <div class="stat-overlay-body">
+                            <!-- Date Range Filter -->
+                            <div class="stat-filter-section">
+                                <label class="stat-filter-label">Date Range:</label>
+                                <select class="stat-filter-dropdown" id="verificationsDateRange">
+                                    <option value="1">Last 1 Day</option>
+                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+
+                            <!-- Main Stats Row -->
+                            <div class="stat-metrics-row">
+                                <div class="stat-metric-card">
+                                    <div class="stat-metric-number" id="verificationsTotalDisplay">12</div>
+                                    <div class="stat-metric-label">Pending Submissions</div>
+                                </div>
+                                <div class="stat-metric-card warning">
+                                    <div class="stat-metric-number" id="verificationsOverdueDisplay">0</div>
+                                    <div class="stat-metric-label">Over 1 Week Old</div>
+                                </div>
+                            </div>
+
+                            <!-- Age Warning Section -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="verificationAgeBreakdown">
+                                    <span class="breakdown-title">⏱️ Submission Age</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="verificationAgeBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Less than 1 Week</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill green" id="verificationUnder1WeekBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="verificationUnder1WeekValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">1-2 Weeks</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill orange" id="verification1_2WeeksBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="verification1_2WeeksValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item warning">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Over 2 Weeks ⚠️</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill red" id="verificationOver2WeeksBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="verificationOver2WeeksValue">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Type Breakdown -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="verificationTypeBreakdown">
+                                    <span class="breakdown-title">📋 Verification Types</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="verificationTypeBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Pro Verification</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="proVerificationBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="proVerificationValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Business Verification</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="businessVerificationBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="businessVerificationValue">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Revenue Overlay -->
+                <div class="stat-overlay" id="revenueOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">💰 Monthly Revenue Analytics</h2>
+                            <button class="stat-overlay-close" id="closeRevenueOverlay">✕</button>
+                        </div>
+                        <div class="stat-overlay-body">
+                            <!-- Date Range Filter -->
+                            <div class="stat-filter-section">
+                                <label class="stat-filter-label">Period:</label>
+                                <select class="stat-filter-dropdown" id="revenueDateRange">
+                                    <option value="1">Last 1 Day</option>
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                    <option value="current" selected>Current Month</option>
+                                    <option value="last">Last Month</option>
+                                    <option value="quarter">This Quarter</option>
+                                </select>
+                            </div>
+
+                            <!-- Main Stats Row with Enhanced Graphics -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card php-card">
+                                    <div class="revenue-icon">💵</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Philippine Peso</div>
+                                        <div class="revenue-amount counting" id="revenuePHPDisplay" data-target="500">₱500</div>
+                                        <div class="revenue-sparkline" id="phpSparkline"></div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card usd-card">
+                                    <div class="revenue-icon">💵</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">US Dollar</div>
+                                        <div class="revenue-amount counting" id="revenueUSDDisplay" data-target="8.77">$8.77</div>
+                                        <div class="revenue-exchange-rate">@ ₱57 = $1</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card growth-card">
+                                    <div class="revenue-icon">📈</div>
+                                    <div class="revenue-content">
+                                        <div class="revenue-label">Growth Rate</div>
+                                        <div class="revenue-amount growth-positive counting" id="revenueGrowthDisplay" data-target="10.5">+10.5%</div>
+                                        <div class="revenue-trend">▲ Trending Up</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Revenue Sources -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="revenueSourcesBreakdown">
+                                    <span class="breakdown-title">💵 Revenue Sources</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="revenueSourcesBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">G-Coins Purchases</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gCoinsPurchasesBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gCoinsPurchasesValue">₱0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Pro Verification Fees</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="proFeesBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="proFeesValue">₱0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Business Verification Fees</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="businessFeesBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="businessFeesValue">₱0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Platform Fees (5%)</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="platformFeesBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="platformFeesValue">₱0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Transaction Stats -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="transactionStatsBreakdown">
+                                    <span class="breakdown-title">📊 Transaction Statistics</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="transactionStatsBreakdown">
+                                    <div class="stat-info-row">
+                                        <div class="stat-info-label">Total Transactions:</div>
+                                        <div class="stat-info-value" id="totalTransactionsValue">0</div>
+                                    </div>
+                                    <div class="stat-info-row">
+                                        <div class="stat-info-label">Average Transaction:</div>
+                                        <div class="stat-info-value" id="avgTransactionValue">₱0</div>
+                                    </div>
+                                    <div class="stat-info-row">
+                                        <div class="stat-info-label">Highest Transaction:</div>
+                                        <div class="stat-info-value" id="highestTransactionValue">₱0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gigs Reported Overlay -->
+                <div class="stat-overlay" id="gigsReportedOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">🚨 Gigs Reported</h2>
+                            <button class="stat-overlay-close" id="closeGigsReportedOverlay">✕</button>
+                        </div>
+                        <div class="stat-overlay-body">
+                            <!-- Date Range Filter -->
+                            <div class="stat-filter-section">
+                                <label class="stat-filter-label">Date Range:</label>
+                                <select class="stat-filter-dropdown" id="gigsReportedDateRange">
+                                    <option value="1">Last 1 Day</option>
+                                    <option value="7" selected>Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+
+                            <!-- Main Stats Row -->
+                            <div class="stat-metrics-row">
+                                <div class="stat-metric-card warning">
+                                    <div class="stat-metric-number" id="gigsReportedTotalDisplay">18</div>
+                                    <div class="stat-metric-label">Total Reported</div>
+                                </div>
+                                <div class="stat-metric-card">
+                                    <div class="stat-metric-number" id="gigsReportedChangeDisplay">±0%</div>
+                                    <div class="stat-metric-label">Change Rate</div>
+                                </div>
+                            </div>
+
+                            <!-- Report Reasons -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="reportReasonsBreakdown">
+                                    <span class="breakdown-title">📋 Report Reasons</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="reportReasonsBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Inappropriate Content</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="inappropriateContentBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="inappropriateContentValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Scam/Fraud</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="scamFraudBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="scamFraudValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Misleading Info</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="misleadingInfoBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="misleadingInfoValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Duplicate Posting</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="duplicatePostingBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="duplicatePostingValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Other</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="otherReasonBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="otherReasonValue">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Report Status -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="reportStatusBreakdown">
+                                    <span class="breakdown-title">✅ Report Status</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="reportStatusBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Pending Review</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill orange" id="pendingReviewBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="pendingReviewValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Ignored</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="ignoredReportsBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="ignoredReportsValue">0</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Suspended</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill red" id="suspendedReportsBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="suspendedReportsValue">0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
