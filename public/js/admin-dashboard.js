@@ -3714,42 +3714,16 @@ function initializeMockData() {
     const existingRevenue = localStorage.getItem(STORAGE_KEYS.revenue);
     const existingUsers = localStorage.getItem(STORAGE_KEYS.totalUsers);
     
-    console.log('🔍 Checking localStorage:', {
-        existingRevenue,
-        existingUsers,
-        lastUpdate,
-        storageAvailable: typeof(Storage) !== "undefined",
-        isPrivate: false
-    });
-    
-    // Show localStorage status prominently
-    if (!existingRevenue && !existingUsers) {
-        console.log('🚨 ========================================');
-        console.log('🚨 NO DATA IN LOCALSTORAGE!');
-        console.log('🚨 Possible causes:');
-        console.log('🚨 1. First time load (normal)');
-        console.log('🚨 2. Private/Incognito browsing mode');
-        console.log('🚨 3. Browser cleared storage');
-        console.log('🚨 4. Storage blocked by browser settings');
-        console.log('🚨 ========================================');
-    } else {
-        console.log('✅ localStorage data found - this is a refresh!');
-    }
     
     if (!existingRevenue || !existingUsers || !lastUpdate) {
         // First time initialization
-        console.log('🆕 Initializing fresh mock data...');
         const initialData = generateInitialMockData();
         saveMockDataToStorage(initialData);
-        console.log('✅ Saved initial data:', initialData);
     } else {
         // Apply cumulative growth on refresh
-        console.log('📈 Applying cumulative growth to existing mock data...');
         const currentData = loadMockDataFromStorage();
-        console.log('📊 Current data loaded:', currentData);
         const grownData = applyGrowth(currentData);
         saveMockDataToStorage(grownData);
-        console.log('✅ Saved grown data:', grownData);
     }
 }
 
@@ -3786,12 +3760,9 @@ function applyGrowth(data) {
     data.verifications = Math.max(5, Math.min(100, data.verifications + verificationChange));
     
     // Monthly Revenue: EXACTLY 1% increase, rounded to valid increments (100, 250, 500)
-    const oldRevenue = data.revenue;
     const revenueGrowth = 1.01; // Fixed 1% growth
     const rawRevenue = data.revenue * revenueGrowth;
     data.revenue = roundToValidIncrement(rawRevenue);
-    
-    console.log(`💰 Revenue Growth: ₱${oldRevenue.toLocaleString()} → ₱${data.revenue.toLocaleString()} (+${(data.revenue - oldRevenue).toLocaleString()})`);
     
     // Gigs Reported: ±5% fluctuation (can grow up to max 100)
     const reportedChange = (Math.random() - 0.5) * 0.10; // -5% to +5%
@@ -3824,62 +3795,28 @@ function roundToValidIncrement(amount) {
 // Save mock data to localStorage
 function saveMockDataToStorage(data) {
     try {
-        console.log('💾 SAVING to localStorage:', {
-            revenue: data.revenue,
-            users: data.totalUsers,
-            storageAvailable: typeof(Storage) !== "undefined",
-            privateMode: false
-        });
-        
         localStorage.setItem(STORAGE_KEYS.totalUsers, data.totalUsers);
         localStorage.setItem(STORAGE_KEYS.verifications, data.verifications);
         localStorage.setItem(STORAGE_KEYS.revenue, data.revenue);
         localStorage.setItem(STORAGE_KEYS.gigsReported, data.gigsReported);
         localStorage.setItem(STORAGE_KEYS.lastUpdate, data.timestamp);
-        
-        // Verify it was actually saved
-        const savedRevenue = localStorage.getItem(STORAGE_KEYS.revenue);
-        console.log('✅ VERIFIED saved revenue:', savedRevenue);
-        
-        if (savedRevenue != data.revenue) {
-            console.error('❌ SAVE FAILED! Expected:', data.revenue, 'Got:', savedRevenue);
-        }
     } catch (e) {
-        console.error('❌ localStorage SAVE ERROR:', e.message);
-        console.log('🚨 Possible private/incognito mode!');
+        console.error('❌ localStorage not available:', e.message);
     }
 }
 
 // Load mock data from localStorage
 function loadMockDataFromStorage() {
     try {
-        const rawRevenue = localStorage.getItem(STORAGE_KEYS.revenue);
-        const rawUsers = localStorage.getItem(STORAGE_KEYS.totalUsers);
-        
-        console.log('📂 LOADING from localStorage:', {
-            rawRevenue,
-            rawUsers,
-            storageLength: localStorage.length,
-            allKeys: Object.keys(localStorage)
-        });
-        
-        const data = {
-            totalUsers: parseInt(rawUsers) || 85,
+        return {
+            totalUsers: parseInt(localStorage.getItem(STORAGE_KEYS.totalUsers)) || 85,
             verifications: parseInt(localStorage.getItem(STORAGE_KEYS.verifications)) || 12,
-            revenue: parseInt(rawRevenue) || 250, // Default fallback
+            revenue: parseInt(localStorage.getItem(STORAGE_KEYS.revenue)) || 250,
             gigsReported: parseInt(localStorage.getItem(STORAGE_KEYS.gigsReported)) || 18,
             timestamp: parseInt(localStorage.getItem(STORAGE_KEYS.lastUpdate)) || Date.now()
         };
-        
-        console.log('✅ LOADED data:', data);
-        
-        if (!rawRevenue) {
-            console.log('⚠️ No revenue in localStorage - using fallback 250');
-        }
-        
-        return data;
     } catch (e) {
-        console.error('❌ localStorage LOAD ERROR:', e.message);
+        console.error('❌ localStorage not available:', e.message);
         return {
             totalUsers: 85,
             verifications: 12,
@@ -4286,13 +4223,9 @@ function populateRevenueData(data) {
     if (dateRangeSelect) {
         const dateRange = dateRangeSelect.value;
         
-        console.log(`🔽 Revenue Filter: "${dateRange}" applied to ₱${revenuePHP.toLocaleString()}`);
-        
         // Simulate filtering
         if (dateRange === '1') {
-            const beforeFilter = revenuePHP;
             revenuePHP = Math.round(revenuePHP * 0.03); // 1 day is ~3% of monthly
-            console.log(`📉 Filtered (1 day): ₱${beforeFilter.toLocaleString()} → ₱${revenuePHP.toLocaleString()}`);
 
         } else if (dateRange === '7') {
             revenuePHP = Math.round(revenuePHP * 0.25); // 7 days is ~25% of monthly
@@ -4327,11 +4260,8 @@ function populateRevenueData(data) {
     const currentUSD = usdDisplay && usdDisplay._unroundedValue ? usdDisplay._unroundedValue : (usdDisplay && usdDisplay._currentValue ? usdDisplay._currentValue : (mainRevenueValue / 57));
     const currentGrowth = growthDisplay && growthDisplay._unroundedValue ? growthDisplay._unroundedValue : (growthDisplay && growthDisplay._currentValue ? growthDisplay._currentValue : 0);
     
-    console.log('🎬 Animation start values:', { currentPHP, mainRevenueValue, hasPreviousValue: !!phpDisplay._currentValue });
-    
     // Store target values and animate (faster: 500ms)
     if (phpDisplay) {
-        console.log(`🎯 Revenue Animation: From ₱${currentPHP.toLocaleString()} → To ₱${revenuePHP.toLocaleString()}`);
         phpDisplay.setAttribute('data-target', revenuePHP);
         startCountingAnimation(phpDisplay, currentPHP, revenuePHP, '₱', 500);
     }
