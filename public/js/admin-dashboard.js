@@ -3717,13 +3717,22 @@ function initializeMockData() {
     
     if (!existingRevenue || !existingUsers || !lastUpdate) {
         // First time initialization
+        console.log('⚠️ FRESH INIT - Missing data:', { existingRevenue, existingUsers, lastUpdate });
         const initialData = generateInitialMockData();
         saveMockDataToStorage(initialData);
+        
+        // Visual indicator on mobile
+        alert(`🆕 Fresh Init! Revenue: ₱${initialData.revenue.toLocaleString()}`);
     } else {
         // Apply cumulative growth on refresh
+        console.log('✅ LOADING EXISTING - Revenue before:', existingRevenue);
         const currentData = loadMockDataFromStorage();
         const grownData = applyGrowth(currentData);
         saveMockDataToStorage(grownData);
+        console.log('✅ GROWTH APPLIED - Revenue after:', grownData.revenue);
+        
+        // Visual indicator on mobile
+        alert(`📈 Growth Applied! ₱${currentData.revenue.toLocaleString()} → ₱${grownData.revenue.toLocaleString()}`);
     }
 }
 
