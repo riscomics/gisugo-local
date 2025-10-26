@@ -3732,7 +3732,11 @@ function generateInitialMockData() {
     // Starting values as per requirements
     const totalUsers = Math.floor(Math.random() * 50) + 50; // 50-99
     const verifications = Math.floor(Math.random() * 10) + 5; // 5-14
-    const revenue = [100, 250, 500][Math.floor(Math.random() * 3)]; // 100, 250, or 500
+    
+    // Higher starting revenue so 1% growth is visible (₱2,000 - ₱5,000)
+    const baseOptions = [2000, 2500, 3000, 3500, 4000, 4500, 5000];
+    const revenue = baseOptions[Math.floor(Math.random() * baseOptions.length)];
+    
     const gigsReported = Math.floor(Math.random() * 10) + 10; // 10-19
     
     return {
@@ -3755,9 +3759,12 @@ function applyGrowth(data) {
     data.verifications = Math.max(5, Math.min(100, data.verifications + verificationChange));
     
     // Monthly Revenue: EXACTLY 1% increase, rounded to valid increments (100, 250, 500)
+    const oldRevenue = data.revenue;
     const revenueGrowth = 1.01; // Fixed 1% growth
     const rawRevenue = data.revenue * revenueGrowth;
     data.revenue = roundToValidIncrement(rawRevenue);
+    
+    console.log(`💰 Revenue Growth: ₱${oldRevenue.toLocaleString()} → ₱${data.revenue.toLocaleString()} (+${(data.revenue - oldRevenue).toLocaleString()})`);
     
     // Gigs Reported: ±5% fluctuation (can grow up to max 100)
     const reportedChange = (Math.random() - 0.5) * 0.10; // -5% to +5%
