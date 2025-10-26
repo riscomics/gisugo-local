@@ -3717,22 +3717,13 @@ function initializeMockData() {
     
     if (!existingRevenue || !existingUsers || !lastUpdate) {
         // First time initialization
-        console.log('⚠️ FRESH INIT - Missing data:', { existingRevenue, existingUsers, lastUpdate });
         const initialData = generateInitialMockData();
         saveMockDataToStorage(initialData);
-        
-        // Visual indicator on mobile
-        alert(`🆕 Fresh Init! Revenue: ₱${initialData.revenue.toLocaleString()}`);
     } else {
         // Apply cumulative growth on refresh
-        console.log('✅ LOADING EXISTING - Revenue before:', existingRevenue);
         const currentData = loadMockDataFromStorage();
         const grownData = applyGrowth(currentData);
         saveMockDataToStorage(grownData);
-        console.log('✅ GROWTH APPLIED - Revenue after:', grownData.revenue);
-        
-        // Visual indicator on mobile
-        alert(`📈 Growth Applied! ₱${currentData.revenue.toLocaleString()} → ₱${grownData.revenue.toLocaleString()}`);
     }
 }
 
@@ -3769,9 +3760,17 @@ function applyGrowth(data) {
     data.verifications = Math.max(5, Math.min(100, data.verifications + verificationChange));
     
     // Monthly Revenue: EXACTLY 1% increase, rounded to valid increments (100, 250, 500)
+    const oldRevenue = data.revenue;
     const revenueGrowth = 1.01; // Fixed 1% growth
     const rawRevenue = data.revenue * revenueGrowth;
-    data.revenue = roundToValidIncrement(rawRevenue);
+    const roundedRevenue = roundToValidIncrement(rawRevenue);
+    
+    // Ensure growth never stays the same - if rounding results in same value, add minimum increment
+    if (roundedRevenue <= oldRevenue) {
+        data.revenue = oldRevenue + 50; // Always add at least 50
+    } else {
+        data.revenue = roundedRevenue;
+    }
     
     // Gigs Reported: ±5% fluctuation (can grow up to max 100)
     const reportedChange = (Math.random() - 0.5) * 0.10; // -5% to +5%
