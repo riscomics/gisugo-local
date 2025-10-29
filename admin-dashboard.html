@@ -759,50 +759,170 @@
                 </div>
 
                 <div class="dashboard-grid">
-                    <div class="dashboard-card">
-                        <h3 class="card-title">Recent Activity</h3>
-                        <div class="activity-list">
-                            <div class="activity-item">
-                                <div class="activity-icon">🆔</div>
-                                <div class="activity-content">
-                                    <div class="activity-text">New verification request from Maria Santos</div>
-                                    <div class="activity-time">2 minutes ago</div>
+                    <!-- User Activity Analytics Card -->
+                    <div class="dashboard-card" id="userActivityCard">
+                        <h3 class="card-title">📊 User Activity</h3>
+                        <!-- FIREBASE TODO: Fetch from /admin/analytics/userActivity -->
+                        
+                        <div class="analytics-section">
+                            <div class="analytics-row">
+                                <div class="analytics-item">
+                                    <div class="analytics-label">📱 Mobile</div>
+                                    <div class="analytics-value" id="mobileDeviceCount">1,245</div>
+                                    <div class="analytics-percent">68%</div>
+                                </div>
+                                <div class="analytics-item">
+                                    <div class="analytics-label">💻 Desktop</div>
+                                    <div class="analytics-value" id="desktopDeviceCount">587</div>
+                                    <div class="analytics-percent">32%</div>
                                 </div>
                             </div>
-                            <div class="activity-item">
-                                <div class="activity-icon">💰</div>
-                                <div class="activity-content">
-                                    <div class="activity-text">G-Coins purchase: ₱500 by Juan Dela Cruz</div>
-                                    <div class="activity-time">15 minutes ago</div>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Browser Distribution</div>
+                            <div class="browser-list">
+                                <!-- FIREBASE TODO: Fetch from /admin/analytics/userActivity/browsers -->
+                                <div class="browser-item">
+                                    <span class="browser-name">Chrome</span>
+                                    <div class="browser-bar-container">
+                                        <div class="browser-bar" style="width: 65%; background: #4285f4;"></div>
+                                    </div>
+                                    <span class="browser-count" id="chromeBrowserCount">1,192</span>
+                                </div>
+                                <div class="browser-item">
+                                    <span class="browser-name">Safari</span>
+                                    <div class="browser-bar-container">
+                                        <div class="browser-bar" style="width: 20%; background: #000000;"></div>
+                                    </div>
+                                    <span class="browser-count" id="safariBrowserCount">367</span>
+                                </div>
+                                <div class="browser-item">
+                                    <span class="browser-name">Firefox</span>
+                                    <div class="browser-bar-container">
+                                        <div class="browser-bar" style="width: 8%; background: #ff7139;"></div>
+                                    </div>
+                                    <span class="browser-count" id="firefoxBrowserCount">147</span>
+                                </div>
+                                <div class="browser-item">
+                                    <span class="browser-name">Edge</span>
+                                    <div class="browser-bar-container">
+                                        <div class="browser-bar" style="width: 5%; background: #0078d7;"></div>
+                                    </div>
+                                    <span class="browser-count" id="edgeBrowserCount">92</span>
+                                </div>
+                                <div class="browser-item">
+                                    <span class="browser-name">Other</span>
+                                    <div class="browser-bar-container">
+                                        <div class="browser-bar" style="width: 2%; background: #888;"></div>
+                                    </div>
+                                    <span class="browser-count" id="otherBrowserCount">34</span>
                                 </div>
                             </div>
-                            <div class="activity-item">
-                                <div class="activity-icon">🚨</div>
-                                <div class="activity-content">
-                                    <div class="activity-text">Job post reported: Inappropriate content</div>
-                                    <div class="activity-time">1 hour ago</div>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="analytics-row">
+                                <div class="analytics-item">
+                                    <div class="analytics-label">⏱️ Avg. Session</div>
+                                    <div class="analytics-value" id="avgSessionDuration">8m 34s</div>
                                 </div>
+                                <div class="analytics-item">
+                                    <div class="analytics-label">🔄 Repeat Users</div>
+                                    <div class="analytics-value" id="repeatUserPercent">42%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Peak Usage Hours (24h)</div>
+                            <div class="peak-hours-display" id="peakHoursDisplay">
+                                <span class="peak-hour-badge">6PM - 9PM</span>
+                                <span class="peak-hour-count">~487 active users</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="dashboard-card">
-                        <h3 class="card-title">Priority Actions</h3>
-                        <div class="priority-list">
-                            <div class="priority-item urgent">
-                                <div class="priority-badge">URGENT</div>
-                                <div class="priority-text">15 ID verifications pending review</div>
-                                <button class="priority-btn">Review</button>
+                    <!-- Content Analytics Card -->
+                    <div class="dashboard-card" id="contentAnalyticsCard">
+                        <h3 class="card-title">📈 Content Analytics</h3>
+                        <!-- FIREBASE TODO: Fetch from /admin/analytics/content -->
+                        
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Gig Activity</div>
+                            <div class="analytics-row">
+                                <div class="analytics-item">
+                                    <div class="analytics-label">📝 Total Gigs</div>
+                                    <div class="analytics-value" id="totalGigsPosted">1,847</div>
+                                </div>
+                                <div class="analytics-item">
+                                    <div class="analytics-label">👥 Applicants</div>
+                                    <div class="analytics-value" id="totalApplicants">5,624</div>
+                                </div>
                             </div>
-                            <div class="priority-item warning">
-                                <div class="priority-badge">REVIEW</div>
-                                <div class="priority-text">8 content reports require attention</div>
-                                <button class="priority-btn">Check</button>
+                            <div class="ratio-display">
+                                <span class="ratio-label">Avg. Applicants per Gig:</span>
+                                <span class="ratio-value" id="avgApplicantsPerGig">3.0</span>
                             </div>
-                            <div class="priority-item info">
-                                <div class="priority-badge">INFO</div>
-                                <div class="priority-text">Monthly analytics report ready</div>
-                                <button class="priority-btn">View</button>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Storage Usage</div>
+                            <!-- FIREBASE TODO: Fetch from /admin/analytics/content/storage -->
+                            <div class="storage-stats">
+                                <div class="storage-item">
+                                    <span class="storage-icon">📷</span>
+                                    <div class="storage-info">
+                                        <div class="storage-label">Media Uploads</div>
+                                        <div class="storage-value" id="mediaUploadCount">12,456 files</div>
+                                        <div class="storage-size" id="mediaStorageSize">2.4 GB</div>
+                                    </div>
+                                </div>
+                                <div class="storage-item">
+                                    <span class="storage-icon">🗄️</span>
+                                    <div class="storage-info">
+                                        <div class="storage-label">Total Storage</div>
+                                        <div class="storage-value" id="totalStorageUsed">3.8 GB</div>
+                                        <div class="storage-limit">/ 10 GB plan</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Traffic & Costs</div>
+                            <!-- FIREBASE TODO: Fetch from /admin/analytics/content/traffic -->
+                            <div class="traffic-stats">
+                                <div class="traffic-row">
+                                    <span class="traffic-label">🌐 Bandwidth (30d)</span>
+                                    <span class="traffic-value" id="bandwidthUsage">45.2 GB</span>
+                                </div>
+                                <div class="traffic-row">
+                                    <span class="traffic-label">📊 DB Reads</span>
+                                    <span class="traffic-value" id="dbReadsCount">1.2M reads</span>
+                                </div>
+                                <div class="traffic-row">
+                                    <span class="traffic-label">✍️ DB Writes</span>
+                                    <span class="traffic-value" id="dbWritesCount">340K writes</span>
+                                </div>
+                                <div class="traffic-row cost-estimate">
+                                    <span class="traffic-label">💵 Est. Firebase Cost</span>
+                                    <span class="traffic-value cost-value" id="firebaseCostEstimate">$12.40</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="analytics-section">
+                            <div class="section-subtitle-small">Engagement Metrics</div>
+                            <div class="analytics-row">
+                                <div class="analytics-item">
+                                    <div class="analytics-label">🔍 Search Queries</div>
+                                    <div class="analytics-value" id="searchQueriesCount">8,945</div>
+                                </div>
+                                <div class="analytics-item">
+                                    <div class="analytics-label">⚡ Avg. Response</div>
+                                    <div class="analytics-value" id="avgResponseTime">4.2h</div>
+                                </div>
                             </div>
                         </div>
                     </div>
