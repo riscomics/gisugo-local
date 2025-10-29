@@ -3713,34 +3713,182 @@ function switchAdminSection(sectionId) {
 const STORAGE_KEYS = {
     totalUsers: 'admin_mock_total_users',        // 🔥 Firebase: /admin/analytics/users/total
     verifications: 'admin_mock_verifications',   // 🔥 Firebase: /admin/analytics/verifications/pending
-    revenue: 'admin_mock_revenue',               // 🔥 Firebase: /admin/analytics/revenue/monthly
+    allTimeRevenue: 'admin_mock_alltime_revenue', // 🔥 Firebase: /admin/analytics/revenue/allTime
+    simulationStartTime: 'admin_mock_sim_start', // Simulation start timestamp (real time)
+    revenueHistory: 'admin_mock_revenue_history', // Array of {timestamp, amount} for period calculations
     gigsReported: 'admin_mock_gigs_reported',    // 🔥 Firebase: /admin/analytics/gigs/reported (count)
     lastUpdate: 'admin_mock_last_update'         // 🔥 Firebase: /admin/analytics/lastUpdate
 };
+
+// ===== TIME-BASED SIMULATION HELPERS =====
+// Time conversion: 1 real second = 1 simulated hour
+// 24 real seconds = 1 simulated day
+// 720 real seconds (12 minutes) = 1 simulated month (30 days)
+// 8640 real seconds (2.4 hours) = 1 simulated year (12 months)
+
+function getSimulationStartTime() {
+    const stored = localStorage.getItem(STORAGE_KEYS.simulationStartTime);
+    return stored ? parseInt(stored) : Date.now();
+}
+
+function getElapsedRealSeconds() {
+    const startTime = getSimulationStartTime();
+    const now = Date.now();
+    return Math.floor((now - startTime) / 1000); // Convert ms to seconds
+}
+
+function getSimulatedDate() {
+    const elapsedSeconds = getElapsedRealSeconds();
+    const simulatedDays = Math.floor(elapsedSeconds / 24); // 24 real seconds = 1 simulated day
+    
+    // Start from January 1 + 7 days (initial state)
+    const startDate = new Date(2025, 0, 1); // Jan 1, 2025
+    const initialDays = 7; // Simulation starts 7 days in
+    const totalDays = initialDays + simulatedDays;
+    
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + totalDays);
+    
+    return {
+        date: currentDate,
+        year: currentDate.getFullYear(),
+        month: currentDate.getMonth() + 1, // 1-12
+        day: currentDate.getDate(),
+        totalElapsedDays: totalDays,
+        elapsedRealSeconds: elapsedSeconds
+    };
+}
+
+function addRevenueToHistory(amount) {
+    try {
+        const history = getRevenueHistory();
+        const entry = {
+            timestamp: Date.now(),
+            amount: amount
+        };
+        
+        history.push(entry);
+        
+        // Keep only last 17,280 entries (2 simulated years = ~4.8 real hours)
+        if (history.length > 17280) {
+            history.shift(); // Remove oldest entry
+        }
+        
+        localStorage.setItem(STORAGE_KEYS.revenueHistory, JSON.stringify(history));
+    } catch (e) {
+        console.error('❌ Failed to save revenue history:', e);
+    }
+}
+
+function getRevenueHistory() {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEYS.revenueHistory);
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.error('❌ Failed to load revenue history:', e);
+        return [];
+    }
+}
+
+function getRevenueForPeriod(periodType, periodValue = null) {
+    const history = getRevenueHistory();
+    const now = Date.now();
+    const simData = getSimulatedDate();
+    
+    let cutoffTimestamp = 0;
+    
+    switch(periodType) {
+        case '1': // Last 1 Day (last 24 real seconds)
+            cutoffTimestamp = now - (24 * 1000);
+            break;
+            
+        case '7': // Last 7 Days (last 168 real seconds)
+            cutoffTimestamp = now - (168 * 1000);
+            break;
+            
+        case '30': // Last 30 Days (last 720 real seconds)
+            cutoffTimestamp = now - (720 * 1000);
+            break;
+            
+        case 'current': // Current Month (from start of current 720-sec bracket)
+            const elapsedSeconds = getElapsedRealSeconds();
+            const secondsIntoCurrentMonth = elapsedSeconds % 720;
+            cutoffTimestamp = now - (secondsIntoCurrentMonth * 1000);
+            break;
+            
+        case 'last': // Last Month (previous 720-sec bracket)
+            const elapsed = getElapsedRealSeconds();
+            const monthsPassed = Math.floor(elapsed / 720);
+            if (monthsPassed === 0) {
+                // Still in first month, return 0
+                return 0;
+            }
+            // Get entries from previous month bracket
+            const lastMonthStart = now - ((elapsed % 720) * 1000) - (720 * 1000);
+            const lastMonthEnd = now - ((elapsed % 720) * 1000);
+            return history
+                .filter(entry => entry.timestamp >= lastMonthStart && entry.timestamp < lastMonthEnd)
+                .reduce((sum, entry) => sum + entry.amount, 0);
+            
+        case 'quarter': // This Quarter (from start of current 2160-sec bracket)
+            const elapsedSec = getElapsedRealSeconds();
+            const secondsIntoCurrentQuarter = elapsedSec % 2160;
+            cutoffTimestamp = now - (secondsIntoCurrentQuarter * 1000);
+            break;
+            
+        case 'ytd': // Year To Date (from start of current 8640-sec bracket)
+            const elapsedYTD = getElapsedRealSeconds();
+            const secondsIntoCurrentYear = elapsedYTD % 8640;
+            cutoffTimestamp = now - (secondsIntoCurrentYear * 1000);
+            break;
+            
+        case 'all': // All Time
+        default:
+            cutoffTimestamp = 0; // Include everything
+            break;
+    }
+    
+    // Sum all entries after cutoff
+    return history
+        .filter(entry => entry.timestamp >= cutoffTimestamp)
+        .reduce((sum, entry) => sum + entry.amount, 0);
+}
 
 // Initialize stat overlay system
 function initializeStatOverlays() {
     console.log('📊 Initializing stat overlay system...');
     
-    // Load or initialize mock data with cumulative growth
-    initializeMockData();
-    
-    // Update display with current values
-    updateStatCardsDisplay();
-    
-    // Attach click listeners to stat cards
-    attachStatCardListeners();
-    
-    // Attach overlay close listeners
-    attachOverlayCloseListeners();
-    
-    // Initialize expandable sections
-    initializeExpandableSections();
-    
-    // Initialize dropdown filters
-    initializeDropdownFilters();
-    
-    console.log('✅ Stat overlay system initialized');
+    try {
+        // Load or initialize mock data with cumulative growth
+        initializeMockData();
+        console.log('✅ Mock data initialized');
+        
+        // Update display with current values
+        updateStatCardsDisplay();
+        console.log('✅ Stat cards display updated');
+        
+        // Attach click listeners to stat cards
+        attachStatCardListeners();
+        console.log('✅ Stat card listeners attached');
+        
+        // Attach overlay close listeners
+        attachOverlayCloseListeners();
+        console.log('✅ Overlay close listeners attached');
+        
+        // Initialize expandable sections
+        initializeExpandableSections();
+        console.log('✅ Expandable sections initialized');
+        
+        // Initialize dropdown filters
+        initializeDropdownFilters();
+        console.log('✅ Dropdown filters initialized');
+        
+        console.log('✅ Stat overlay system initialized successfully');
+    } catch (error) {
+        console.error('❌ CRITICAL ERROR in initializeStatOverlays:', error);
+        console.error('Error stack:', error.stack);
+        alert('⚠️ Dashboard initialization failed. Please open browser console (F12) and share the error message.');
+    }
 }
 
 // =============================================================================
@@ -3756,17 +3904,35 @@ function initializeMockData() {
     const now = Date.now();
     const lastUpdate = localStorage.getItem(STORAGE_KEYS.lastUpdate);
     
-    // Check if data exists
-    const existingRevenue = localStorage.getItem(STORAGE_KEYS.revenue);
+    // Check if NEW structure exists (post-refactor)
+    const existingRevenue = localStorage.getItem(STORAGE_KEYS.allTimeRevenue);
     const existingUsers = localStorage.getItem(STORAGE_KEYS.totalUsers);
+    const existingSimStart = localStorage.getItem(STORAGE_KEYS.simulationStartTime);
     
+    // Check if OLD structure exists (pre-refactor)
+    const oldRevenue = localStorage.getItem('admin_mock_revenue');
     
-    if (!existingRevenue || !existingUsers || !lastUpdate) {
+    // If old structure detected but new structure missing, clear everything and start fresh
+    if (oldRevenue && !existingSimStart) {
+        console.log('🔄 Detected old data structure. Migrating to new time-based system...');
+        // Clear all old keys
+        localStorage.removeItem('admin_mock_revenue');
+        Object.values(STORAGE_KEYS).forEach(key => {
+            localStorage.removeItem(key);
+        });
+        // Force initialization with new structure
+        const initialData = generateInitialMockData();
+        saveMockDataToStorage(initialData);
+        return;
+    }
+    
+    if (!existingRevenue || !existingUsers || !lastUpdate || !existingSimStart) {
         // First time initialization (MOCK ONLY)
         const initialData = generateInitialMockData();
         saveMockDataToStorage(initialData);
     } else {
         // Apply cumulative growth on refresh (MOCK ONLY)
+        // NOTE: Revenue growth now happens per-second, not on refresh
         const currentData = loadMockDataFromStorage();
         const grownData = applyGrowth(currentData);
         saveMockDataToStorage(grownData);
@@ -3780,19 +3946,26 @@ function generateInitialMockData() {
     const totalUsers = Math.floor(Math.random() * 50) + 50; // 50-99
     const verifications = Math.floor(Math.random() * 10) + 5; // 5-14
     
-    // Higher starting revenue so 1% growth is visible (₱10,000 - ₱15,000)
-    // This ensures that even filtered views (1 day = 3%) show substantial amounts
+    // All Time Revenue starts at ₱10,000 - ₱15,000
+    // Represents 7 simulated days of accumulated revenue
     const baseOptions = [10000, 11000, 12000, 13000, 14000, 15000];
-    const revenue = baseOptions[Math.floor(Math.random() * baseOptions.length)];
+    const allTimeRevenue = baseOptions[Math.floor(Math.random() * baseOptions.length)];
     
     const gigsReported = Math.floor(Math.random() * 10) + 10; // 10-19
+    
+    // Initialize simulation start time and empty revenue history
+    const now = Date.now();
+    localStorage.setItem(STORAGE_KEYS.simulationStartTime, now);
+    localStorage.setItem(STORAGE_KEYS.revenueHistory, JSON.stringify([]));
+    
+    console.log(`🎬 Simulation started! Date: Jan 8, 2025 (7 days in), All Time Revenue: ₱${allTimeRevenue.toLocaleString()}`);
     
     return {
         totalUsers,
         verifications,
-        revenue,
+        allTimeRevenue,
         gigsReported,
-        timestamp: Date.now()
+        timestamp: now
     };
 }
 
@@ -3807,18 +3980,9 @@ function applyGrowth(data) {
     const verificationChange = Math.random() < 0.5 ? -1 : Math.floor(Math.random() * 3) + 1;
     data.verifications = Math.max(5, Math.min(100, data.verifications + verificationChange));
     
-    // Monthly Revenue: EXACTLY 1% increase, rounded to valid increments (100, 250, 500)
-    const oldRevenue = data.revenue;
-    const revenueGrowth = 1.01; // Fixed 1% growth
-    const rawRevenue = data.revenue * revenueGrowth;
-    const roundedRevenue = roundToValidIncrement(rawRevenue);
-    
-    // Ensure growth never stays the same - if rounding results in same value, add minimum increment
-    if (roundedRevenue <= oldRevenue) {
-        data.revenue = oldRevenue + 50; // Always add at least 50
-    } else {
-        data.revenue = roundedRevenue;
-    }
+    // Revenue: NO LONGER GROWS ON REFRESH - grows continuously per second
+    // allTimeRevenue will be updated by the per-second timer, just preserve it here
+    // (No changes to data.allTimeRevenue)
     
     // Gigs Reported: ±5% fluctuation (can grow up to max 100)
     const reportedChange = (Math.random() - 0.5) * 0.10; // -5% to +5%
@@ -3829,7 +3993,7 @@ function applyGrowth(data) {
     console.log('📊 Growth applied:', {
         users: `+${((usersGrowth - 1) * 100).toFixed(1)}%`,
         verifications: verificationChange,
-        revenue: `+10.0% → ₱${data.revenue.toLocaleString()} (rounded to valid increment)`,
+        allTimeRevenue: `₱${data.allTimeRevenue.toLocaleString()} (continuous per-second growth)`,
         gigsReported: `${(reportedChange * 100).toFixed(1)}%`
     });
     
@@ -3856,9 +4020,10 @@ function saveMockDataToStorage(data) {
     try {
         localStorage.setItem(STORAGE_KEYS.totalUsers, data.totalUsers);
         localStorage.setItem(STORAGE_KEYS.verifications, data.verifications);
-        localStorage.setItem(STORAGE_KEYS.revenue, data.revenue);
+        localStorage.setItem(STORAGE_KEYS.allTimeRevenue, data.allTimeRevenue);
         localStorage.setItem(STORAGE_KEYS.gigsReported, data.gigsReported);
         localStorage.setItem(STORAGE_KEYS.lastUpdate, data.timestamp);
+        // Note: simulationStartTime and revenueHistory are saved separately
     } catch (e) {
         console.error('❌ localStorage not available:', e.message);
     }
@@ -3874,7 +4039,7 @@ function loadMockDataFromStorage() {
         return {
             totalUsers: parseInt(localStorage.getItem(STORAGE_KEYS.totalUsers)) || 85,
             verifications: parseInt(localStorage.getItem(STORAGE_KEYS.verifications)) || 12,
-            revenue: parseInt(localStorage.getItem(STORAGE_KEYS.revenue)) || 250,
+            allTimeRevenue: parseInt(localStorage.getItem(STORAGE_KEYS.allTimeRevenue)) || 10000,
             gigsReported: parseInt(localStorage.getItem(STORAGE_KEYS.gigsReported)) || 18,
             timestamp: parseInt(localStorage.getItem(STORAGE_KEYS.lastUpdate)) || Date.now()
         };
@@ -3883,7 +4048,7 @@ function loadMockDataFromStorage() {
         return {
             totalUsers: 85,
             verifications: 12,
-            revenue: 250,
+            allTimeRevenue: 10000,
             gigsReported: 18,
             timestamp: Date.now()
         };
@@ -3909,11 +4074,11 @@ function updateStatCardsDisplay() {
         if (!verificationsEl._currentValue) verificationsEl._currentValue = data.verifications;
     }
     
-    // Update Revenue
+    // Update Total Revenue
     const revenueEl = document.getElementById('revenueNumber');
     if (revenueEl) {
-        revenueEl.textContent = `₱${data.revenue.toLocaleString()}`;
-        if (!revenueEl._currentValue) revenueEl._currentValue = data.revenue;
+        revenueEl.textContent = `₱${data.allTimeRevenue.toLocaleString()}`;
+        if (!revenueEl._currentValue) revenueEl._currentValue = data.allTimeRevenue;
     }
     
     // Update Gigs Reported
@@ -3991,7 +4156,8 @@ function startMainDashboardCounting() {
         }, 1000); // Every 1 second
     }
     
-    // Monthly Revenue: add random ₱100/₱250/₱500 every 1 second
+    // Total Revenue: add random ₱100/₱250/₱500 every 1 second
+    // 🔥 FIREBASE TODO: Replace with real-time listener on revenue transactions
     // (This will be controlled by overlay when revenue overlay is open)
     if (revenueEl) {
         let secondsCounter = 0;
@@ -4006,16 +4172,21 @@ function startMainDashboardCounting() {
                 revenueEl._currentValue += randomIncrement;
                 revenueEl.textContent = `₱${revenueEl._currentValue.toLocaleString()}`;
                 
+                // Add to revenue history for period calculations
+                addRevenueToHistory(randomIncrement);
+                
                 // Save to localStorage every 5 seconds to prevent data loss on refresh
                 secondsCounter++;
                 if (secondsCounter >= 5) {
                     secondsCounter = 0;
                     const currentData = loadMockDataFromStorage();
-                    currentData.revenue = revenueEl._currentValue;
+                    currentData.allTimeRevenue = revenueEl._currentValue;
                     saveMockDataToStorage(currentData);
                 }
+                
+                console.log(`💰 Revenue +₱${randomIncrement} to: ₱${revenueEl._currentValue.toLocaleString()}`);
             }
-        }, 1000); // Every 1 second
+        }, 1000); // Every 1 second = 1 simulated hour
     }
     
     // Gigs Reported: FLUCTUATE every 10 seconds (max 100)
@@ -4357,10 +4528,14 @@ function populateTotalUsersData(data) {
     }
     
     // Account types - Realistic distribution (New Members are majority)
-    // Use the same newMemberCount calculated above for consistency
-    const proVerifiedPercent = 0.15 + (Math.random() * 0.05); // 15-20%
-    const proVerifiedCount = Math.round(exactTotal * proVerifiedPercent);
-    const businessVerifiedCount = exactTotal - newMemberCount - proVerifiedCount; // Ensure they add up
+    // Use the same newMemberCount and verifiedMemberCount calculated above for consistency
+    // Pro + Business should equal verifiedMemberCount (which is displayed in New Members section)
+    const proPercentOfVerified = 0.70 + (Math.random() * 0.10); // 70-80% of verified are Pro
+    const proVerifiedCount = Math.round(verifiedMemberCount * proPercentOfVerified);
+    const businessVerifiedCount = verifiedMemberCount - proVerifiedCount; // Remaining verified are Business
+    
+    // Verify: newMemberCount + proVerifiedCount + businessVerifiedCount should equal exactTotal
+    console.log(`👥 Account Types Check: ${newMemberCount} (New) + ${proVerifiedCount} (Pro) + ${businessVerifiedCount} (Business) = ${newMemberCount + proVerifiedCount + businessVerifiedCount} (should be ${exactTotal})`)
     
     // Update donut chart with more contrasting colors
     updatePieChart('accountTypePieChart', [
@@ -4374,6 +4549,10 @@ function populateTotalUsersData(data) {
     if (accountPieTotal) {
         const currentAccountTotal = accountPieTotal._currentValue || 0;
         startCountingAnimation(accountPieTotal, currentAccountTotal, exactTotal, '', 150, 0);
+        
+        // Store percentage ratios for dynamic updates
+        accountPieTotal._newMemberPercent = newMemberPercent;
+        accountPieTotal._proPercentOfVerified = proPercentOfVerified;
     }
     
     // Update account type legend values with counting animations
@@ -4384,14 +4563,23 @@ function populateTotalUsersData(data) {
     if (newMemberLegend) {
         const currentNewMember = newMemberLegend._currentValue || 0;
         startCountingAnimation(newMemberLegend, currentNewMember, newMemberCount, '', 150, 0);
+        
+        // Mark this element to be updated by accountPieTotal
+        newMemberLegend._syncWithPieChart = true;
     }
     if (proVerifiedLegend) {
         const currentProVerified = proVerifiedLegend._currentValue || 0;
         startCountingAnimation(proVerifiedLegend, currentProVerified, proVerifiedCount, '', 150, 0);
+        
+        // Mark this element to be updated by accountPieTotal
+        proVerifiedLegend._syncWithPieChart = true;
     }
     if (businessVerifiedLegend) {
         const currentBusinessVerified = businessVerifiedLegend._currentValue || 0;
         startCountingAnimation(businessVerifiedLegend, currentBusinessVerified, businessVerifiedCount, '', 150, 0);
+        
+        // Mark this element to be updated by accountPieTotal
+        businessVerifiedLegend._syncWithPieChart = true;
     }
 }
 
@@ -4505,41 +4693,53 @@ function populateVerificationsData(data) {
 
 // Populate Revenue overlay data
 function populateRevenueData(data) {
-    let revenuePHP = data.revenue;
+    // 🔥 FIREBASE TODO: Fetch revenue data from /analytics/revenue/[period]
     
-    // Apply date range filter (mock simulation)
+    // Get the main dashboard's live All Time revenue
+    const mainRevenueCard = document.getElementById('revenueNumber');
+    const allTimeRevenue = mainRevenueCard && mainRevenueCard._currentValue ? mainRevenueCard._currentValue : data.allTimeRevenue;
+    
+    // Apply date range filter using time-based history
     const dateRangeSelect = document.getElementById('revenueDateRange');
-    let daysInPeriod = 30; // Default to monthly
+    let revenuePHP = allTimeRevenue; // Default to All Time
+    let daysInPeriod = 7; // Default (simulation starts at 7 days)
+    
     if (dateRangeSelect) {
         const dateRange = dateRangeSelect.value;
         
-        // Simulate filtering
-        if (dateRange === '1') {
-            revenuePHP = Math.round(revenuePHP * 0.03); // 1 day is ~3% of monthly
-            daysInPeriod = 1;
-        } else if (dateRange === '7') {
-            revenuePHP = Math.round(revenuePHP * 0.25); // 7 days is ~25% of monthly
-            daysInPeriod = 7;
-        } else if (dateRange === '30') {
-            revenuePHP = Math.round(revenuePHP * 1.0); // 30 days is monthly
-            daysInPeriod = 30;
-        } else if (dateRange === 'last') {
-            revenuePHP = Math.round(revenuePHP * 0.85); // Last month was ~85% of current
-            daysInPeriod = 30;
-        } else if (dateRange === 'quarter') {
-            revenuePHP = Math.round(revenuePHP * 2.8); // Quarter is ~2.8x monthly
-            daysInPeriod = 90;
-        } else if (dateRange === 'ytd') {
-            revenuePHP = Math.round(revenuePHP * 10); // Year to date (~300 days)
-            daysInPeriod = 300;
-        } else if (dateRange === 'all') {
-            revenuePHP = Math.round(revenuePHP * 40); // All time (4 years worth)
-            daysInPeriod = 1460;
+        // Calculate revenue based on actual history
+        if (dateRange === 'all') {
+            // All Time = use the live dashboard value
+            revenuePHP = allTimeRevenue;
+            const simData = getSimulatedDate();
+            daysInPeriod = simData.totalElapsedDays;
+        } else {
+            // Calculate from history for specific periods
+            revenuePHP = getRevenueForPeriod(dateRange);
+            
+            // Set daysInPeriod for transaction calculations
+            if (dateRange === '1') {
+                daysInPeriod = 1;
+            } else if (dateRange === '7') {
+                daysInPeriod = 7;
+            } else if (dateRange === '30') {
+                daysInPeriod = 30;
+            } else if (dateRange === 'current') {
+                const elapsed = getElapsedRealSeconds();
+                const secondsIntoMonth = elapsed % 720;
+                daysInPeriod = Math.floor(secondsIntoMonth / 24) || 1; // Convert seconds to days
+            } else if (dateRange === 'last') {
+                daysInPeriod = 30;
+            } else if (dateRange === 'quarter') {
+                const elapsed = getElapsedRealSeconds();
+                const secondsIntoQuarter = elapsed % 2160;
+                daysInPeriod = Math.floor(secondsIntoQuarter / 24) || 1;
+            } else if (dateRange === 'ytd') {
+                const elapsed = getElapsedRealSeconds();
+                const secondsIntoYear = elapsed % 8640;
+                daysInPeriod = Math.floor(secondsIntoYear / 24) || 1;
+            }
         }
-        // 'current' keeps the monthly value (daysInPeriod = 30)
-        
-        // Round to valid increment
-        revenuePHP = roundToValidIncrement(revenuePHP);
     }
     
     const exchangeRate = 57; // ₱57 = $1 USD (mock rate)
@@ -4552,9 +4752,6 @@ function populateRevenueData(data) {
     
     // Get current values (for smooth transition on filter change)
     // Use unrounded value if available for more accurate transitions
-    // If not available (first open), use the main dashboard card value
-    const mainRevenueCard = document.getElementById('revenueNumber');
-    const mainRevenueValue = mainRevenueCard && mainRevenueCard._currentValue ? mainRevenueCard._currentValue : data.revenue;
     
     // For smooth transition: if overlay was already opened, use current value; otherwise start from 0
     const currentPHP = phpDisplay && phpDisplay._hasBeenAnimated && phpDisplay._unroundedValue ? phpDisplay._unroundedValue : 0;
@@ -4816,6 +5013,7 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
         // Skip continuous phase for elements that will be updated by other elements
         if (element.id === 'regionPieTotal' || element.id === 'accountTypePieTotal' || 
             element.id === 'usersNewDisplay' || element.id === 'usersVerifiedDisplay' ||
+            element.id === 'newMemberLegend' || element.id === 'proVerifiedLegend' || element.id === 'businessVerifiedLegend' ||
             element.id === 'verificationsProDisplay' || element.id === 'verificationsBusinessDisplay' ||
             element.id === 'verificationsOverdueDisplay' || element.id === 'gigsReportedThisWeek') {
             // These elements are controlled by their parent element, no continuous timer needed
@@ -4952,6 +5150,40 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                     accountTypePieTotal._unroundedValue = element._unroundedValue;
                     accountTypePieTotal._currentValue = element._unroundedValue;
                     accountTypePieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
+                    
+                    // Also update Account Types legend values based on stored percentages
+                    if (accountTypePieTotal._newMemberPercent && accountTypePieTotal._proPercentOfVerified) {
+                        const currentTotal = accountTypePieTotal._unroundedValue;
+                        const newMemberLegend = document.getElementById('newMemberLegend');
+                        const proVerifiedLegend = document.getElementById('proVerifiedLegend');
+                        const businessVerifiedLegend = document.getElementById('businessVerifiedLegend');
+                        
+                        if (newMemberLegend && newMemberLegend._syncWithPieChart) {
+                            const newMemberValue = Math.round(currentTotal * accountTypePieTotal._newMemberPercent);
+                            newMemberLegend._unroundedValue = newMemberValue;
+                            newMemberLegend._currentValue = newMemberValue;
+                            newMemberLegend.textContent = newMemberValue.toLocaleString('en-US');
+                            
+                            // Calculate verified total
+                            const verifiedTotal = currentTotal - newMemberValue;
+                            
+                            // Update Pro (percentage of verified)
+                            if (proVerifiedLegend && proVerifiedLegend._syncWithPieChart) {
+                                const proValue = Math.round(verifiedTotal * accountTypePieTotal._proPercentOfVerified);
+                                proVerifiedLegend._unroundedValue = proValue;
+                                proVerifiedLegend._currentValue = proValue;
+                                proVerifiedLegend.textContent = proValue.toLocaleString('en-US');
+                                
+                                // Update Business (remaining verified)
+                                if (businessVerifiedLegend && businessVerifiedLegend._syncWithPieChart) {
+                                    const businessValue = verifiedTotal - proValue;
+                                    businessVerifiedLegend._unroundedValue = businessValue;
+                                    businessVerifiedLegend._currentValue = businessValue;
+                                    businessVerifiedLegend.textContent = businessValue.toLocaleString('en-US');
+                                }
+                            }
+                        }
+                    }
                 }
                 
                 console.log(`👥 Users increased by ${randomIncrease}: ${formattedValue}`);
@@ -5151,6 +5383,7 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
             // Skip continuous phase for elements that will be updated by other elements
             if (element.id === 'regionPieTotal' || element.id === 'accountTypePieTotal' || 
                 element.id === 'usersNewDisplay' || element.id === 'usersVerifiedDisplay' ||
+                element.id === 'newMemberLegend' || element.id === 'proVerifiedLegend' || element.id === 'businessVerifiedLegend' ||
                 element.id === 'verificationsProDisplay' || element.id === 'verificationsBusinessDisplay' ||
                 element.id === 'verificationsOverdueDisplay' || element.id === 'gigsReportedThisWeek') {
                 // These elements are controlled by their parent element, no continuous timer needed
@@ -5258,6 +5491,56 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                             verifiedDisplay._unroundedValue = verifiedValue;
                             verifiedDisplay._currentValue = verifiedValue;
                             verifiedDisplay.textContent = verifiedValue.toLocaleString('en-US');
+                        }
+                    }
+                    
+                    // Also update Regional Distribution and Account Types totals to match
+                    const regionPieTotal = document.getElementById('regionPieTotal');
+                    const accountTypePieTotal = document.getElementById('accountTypePieTotal');
+                    
+                    if (regionPieTotal) {
+                        regionPieTotal._unroundedValue = element._unroundedValue;
+                        regionPieTotal._currentValue = element._unroundedValue;
+                        regionPieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
+                    }
+                    
+                    if (accountTypePieTotal) {
+                        accountTypePieTotal._unroundedValue = element._unroundedValue;
+                        accountTypePieTotal._currentValue = element._unroundedValue;
+                        accountTypePieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
+                        
+                        // Also update Account Types legend values based on stored percentages
+                        if (accountTypePieTotal._newMemberPercent && accountTypePieTotal._proPercentOfVerified) {
+                            const currentTotal = accountTypePieTotal._unroundedValue;
+                            const newMemberLegend = document.getElementById('newMemberLegend');
+                            const proVerifiedLegend = document.getElementById('proVerifiedLegend');
+                            const businessVerifiedLegend = document.getElementById('businessVerifiedLegend');
+                            
+                            if (newMemberLegend && newMemberLegend._syncWithPieChart) {
+                                const newMemberValue = Math.round(currentTotal * accountTypePieTotal._newMemberPercent);
+                                newMemberLegend._unroundedValue = newMemberValue;
+                                newMemberLegend._currentValue = newMemberValue;
+                                newMemberLegend.textContent = newMemberValue.toLocaleString('en-US');
+                                
+                                // Calculate verified total
+                                const verifiedTotal = currentTotal - newMemberValue;
+                                
+                                // Update Pro (percentage of verified)
+                                if (proVerifiedLegend && proVerifiedLegend._syncWithPieChart) {
+                                    const proValue = Math.round(verifiedTotal * accountTypePieTotal._proPercentOfVerified);
+                                    proVerifiedLegend._unroundedValue = proValue;
+                                    proVerifiedLegend._currentValue = proValue;
+                                    proVerifiedLegend.textContent = proValue.toLocaleString('en-US');
+                                    
+                                    // Update Business (remaining verified)
+                                    if (businessVerifiedLegend && businessVerifiedLegend._syncWithPieChart) {
+                                        const businessValue = verifiedTotal - proValue;
+                                        businessVerifiedLegend._unroundedValue = businessValue;
+                                        businessVerifiedLegend._currentValue = businessValue;
+                                        businessVerifiedLegend.textContent = businessValue.toLocaleString('en-US');
+                                    }
+                                }
+                            }
                         }
                     }
                     

@@ -127,8 +127,8 @@
                     <div class="stat-card" id="revenueCard">
                         <div class="stat-icon">💰</div>
                         <div class="stat-content">
-                            <div class="stat-number" id="revenueNumber">₱500</div>
-                            <div class="stat-label">Monthly Revenue</div>
+                            <div class="stat-number" id="revenueNumber">₱10,000</div>
+                            <div class="stat-label">Total Revenue</div>
                         </div>
                     </div>
                     
@@ -476,11 +476,11 @@
                     </div>
                 </div>
 
-                <!-- Monthly Revenue Overlay -->
+                <!-- Total Revenue Overlay -->
                 <div class="stat-overlay" id="revenueOverlay">
                     <div class="stat-overlay-content">
                         <div class="stat-overlay-header">
-                            <h2 class="stat-overlay-title">💰 Monthly Revenue Analytics</h2>
+                            <h2 class="stat-overlay-title">💰 Total Revenue Analytics</h2>
                             <button class="stat-overlay-close" id="closeRevenueOverlay">✕</button>
                         </div>
                         <div class="stat-overlay-body">
@@ -1685,40 +1685,6 @@
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
     
-    <!-- Viewport Debug Tool -->
-    <div id="vp-debug"></div>
-    <script>
-        // Viewport Debug Tool
-    (function() {
-            const debugEl = document.getElementById('vp-debug');
-            
-            // Apply styles
-            debugEl.style.position = 'fixed';
-            debugEl.style.bottom = '0';
-            debugEl.style.left = '0';
-            debugEl.style.background = '#000';
-            debugEl.style.color = '#fff';
-            debugEl.style.padding = '4px 8px';
-            debugEl.style.fontSize = '12px';
-            debugEl.style.opacity = '0.6';
-            debugEl.style.zIndex = '9999';
-            debugEl.style.fontFamily = 'monospace';
-            debugEl.style.borderRadius = '0 4px 0 0';
-            debugEl.style.pointerEvents = 'none';
-            
-            // Update viewport size
-        function updateViewport() {
-            const width = window.innerWidth;
-                debugEl.textContent = `Viewport: ${width}px`;
-        }
-        
-        // Initial update
-        updateViewport();
-        
-        // Update on resize
-        window.addEventListener('resize', updateViewport);
-    })();
-    </script>
 </body>
 </html>
 
