@@ -30,11 +30,10 @@ All of the above! Plus detailed breakdowns for overlays.
       proVerified: number              // Pro verified count
       businessVerified: number         // Business verified count
       /byAge/
-        18_24: number
-        25_34: number
-        35_44: number
-        45_54: number
-        55plus: number
+        18_25: number
+        26_40: number
+        41_59: number
+        60plus: number
       /byRegion/
         luzon: number
         visayas: number

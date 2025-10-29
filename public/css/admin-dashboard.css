@@ -663,6 +663,74 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ===== SETTINGS DANGER ZONE ===== */
+.settings-danger-zone {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: #2d1f1f;
+    border: 2px solid #ff6b6b;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.2);
+}
+
+.danger-zone-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ff6b6b;
+    margin-bottom: 0.75rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.danger-zone-description {
+    font-size: 0.95rem;
+    color: #cbd5e0;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.reset-data-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1.75rem;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.reset-data-btn:hover {
+    background: linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.reset-data-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.reset-btn-icon {
+    font-size: 1.25rem;
+    animation: rotateOnHover 0.6s ease;
+}
+
+.reset-data-btn:hover .reset-btn-icon {
+    animation: spin 0.6s ease-in-out;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* ===== ADMIN MESSAGES SYSTEM ===== */
 
 /* Two-Panel Layout for Messages */
@@ -5098,6 +5166,20 @@ body.admin-dashboard::-webkit-scrollbar {
     animation: slideUp 0.4s ease;
 }
 
+/* Desktop: Responsive overlay width for larger screens */
+@media (min-width: 1501px) {
+    .stat-overlay-content {
+        max-width: min(90vw, 1400px); /* Grows with viewport up to 1400px */
+    }
+}
+
+/* Extra Large Desktop: Maximum comfort width */
+@media (min-width: 1600px) {
+    .stat-overlay-content {
+        max-width: min(85vw, 1600px); /* Even wider for very large screens */
+    }
+}
+
 .stat-overlay-header {
     display: flex;
     align-items: center;
@@ -5485,9 +5567,16 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Revenue Showcase */
 .revenue-showcase {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: 1fr; /* Default: column layout for mobile/tablet */
     gap: 1.5rem;
     margin-bottom: 2rem;
+}
+
+/* Desktop: Switch to row layout only on large screens (1501px+) */
+@media (min-width: 1501px) {
+    .revenue-showcase {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
 }
 
 .revenue-card {
@@ -5496,7 +5585,7 @@ body.admin-dashboard::-webkit-scrollbar {
     border-radius: 16px;
     padding: 1.5rem;
     display: flex;
-    gap: 1rem;
+    gap: 1rem; /* Base gap - overridden by media queries */
     align-items: flex-start;
     transition: all 0.3s ease;
     position: relative;
@@ -5802,6 +5891,61 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 /* Responsive: Tablets and Below */
+@media (max-width: 1500px) {
+    /* Tablet and below: Keep revenue showcase in column layout */
+    .revenue-showcase {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Tablet: Increase icon-content gap */
+@media (min-width: 601px) and (max-width: 1500px) {
+    .revenue-card {
+        gap: clamp(2rem, 5vw, 3.5rem);
+    }
+}
+
+/* Desktop: Tight gap when switching to row layout (1501px+) */
+@media (min-width: 1501px) {
+    .revenue-card {
+        gap: 1.5rem; /* Can afford more gap now that content stacks vertically */
+    }
+    
+    /* Stack unverified/verified numbers vertically */
+    .new-members-split {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+    
+    .verified-section {
+        border-left: none !important;
+        padding-left: 0 !important;
+        padding-top: 0.75rem !important;
+        border-top: 1px solid rgba(255,255,255,0.1) !important;
+    }
+}
+
+/* Desktop: Gradually increase gap as viewport widens */
+@media (min-width: 1600px) {
+    .revenue-card {
+        gap: clamp(1.75rem, 3vw, 2.25rem);
+    }
+}
+
+/* Large Desktop: More breathing room */
+@media (min-width: 1800px) {
+    .revenue-card {
+        gap: clamp(2rem, 4vw, 3rem);
+    }
+}
+
+/* Ultra-wide: Maximum spacing for very large monitors */
+@media (min-width: 2000px) {
+    .revenue-card {
+        gap: clamp(2.5rem, 5vw, 4rem);
+    }
+}
+
 @media (max-width: 888px) {
     .stat-overlay {
         padding: 1rem;
@@ -5864,6 +6008,10 @@ body.admin-dashboard::-webkit-scrollbar {
 
     .stat-overlay-body {
         padding: 1rem;
+    }
+    
+    .revenue-card {
+        gap: clamp(1.25rem, 5vw, 2rem); /* Noticeable gap even on mobile */
     }
 
     .stat-filter-section {

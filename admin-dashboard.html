@@ -174,12 +174,12 @@
                                     <div class="revenue-icon" style="font-size: 3rem; filter: drop-shadow(0 0 8px #00d4ff);">🆕</div>
                                     <div class="revenue-content">
                                         <div class="revenue-label">New Members</div>
-                                        <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                                        <div class="new-members-split" style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
                                             <div>
                                                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 0.25rem;">Unverified</div>
                                                 <div class="revenue-amount counting" style="font-size: 1.75rem;" id="usersNewDisplay" data-target="60">60</div>
                                             </div>
-                                            <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.5rem;">
+                                            <div class="verified-section" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 1.5rem;">
                                                 <div style="font-size: 0.75rem; color: rgba(255,255,255,0.6); margin-bottom: 0.25rem;">Verified</div>
                                                 <div class="revenue-amount counting" style="font-size: 1.75rem;" id="usersVerifiedDisplay" data-target="25">25</div>
                                             </div>
@@ -205,49 +205,40 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="ageBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">18-24</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="age18_24Bar"></div>
+                                    <!-- FIREBASE TODO: Fetch age group data from Firebase Analytics or custom user collection -->
+                                    <!-- FIREBASE PATH: /analytics/users/ageGroups/{18-25, 26-40, 41-59, 60+} -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #00b4d8);">🧑🏻</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">18-25 Years</div>
+                                                <div class="revenue-amount counting" id="age18_25Value" data-target="0">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="age18_24Value">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">25-34</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="age25_34Bar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #0077b6);">👨🏻‍💻</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">26-40 Years</div>
+                                                <div class="revenue-amount counting" id="age26_40Value" data-target="0">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="age25_34Value">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">35-44</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="age35_44Bar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #023e8a);">👨🏻‍💼</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">41-59 Years</div>
+                                                <div class="revenue-amount counting" id="age41_59Value" data-target="0">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="age35_44Value">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">45-54</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="age45_54Bar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #6a4c93);">👴🏻</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">60+ Years</div>
+                                                <div class="revenue-amount counting" id="age60PlusValue" data-target="0">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="age45_54Value">0</div>
-                                        </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">55+</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="age55PlusBar"></div>
-                                            </div>
-                                            <div class="breakdown-value" id="age55PlusValue">0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -260,30 +251,44 @@
                                 </div>
                                 <div class="breakdown-content" id="regionBreakdown">
                                     <!-- Pie Chart Visualization -->
-                                    <div class="chart-container">
+                                    <div class="chart-container" style="margin-bottom: 1.5rem;">
                                         <div class="chart-with-title">
                                             <div class="chart-title-text">PHILIPPINES</div>
                                             <div class="pie-chart" id="regionPieChart">
-                                                <div class="pie-chart-label-simple">
-                                                    <div class="pie-chart-total-large" id="regionPieTotal">0</div>
-                                                </div>
+                                                <!-- Empty center, no label inside -->
+                                            </div>
+                                            <!-- Total display below chart -->
+                                            <div style="text-align: center; margin-top: 1rem;">
+                                                <div style="font-size: 0.85rem; color: #a0a0a0; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 0.25rem;">TOTAL USERS</div>
+                                                <div class="pie-chart-total-large counting" id="regionPieTotal" style="font-size: 2rem; font-weight: 700; color: #ffffff;">0</div>
                                             </div>
                                         </div>
-                                        <div class="pie-legend">
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #ff6b6b;"></div>
-                                                <div class="legend-label">🏙️ Luzon</div>
-                                                <div class="legend-value" id="luzonLegend">0</div>
+                                    </div>
+                                    
+                                    <!-- Regional Breakdown Cards -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ff6b6b);">🏙️</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Luzon</div>
+                                                <div class="revenue-amount counting" id="luzonLegend" data-target="0" style="color: #ff6b6b;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #4ecdc4;"></div>
-                                                <div class="legend-label">🏝️ Visayas</div>
-                                                <div class="legend-value" id="visayasLegend">0</div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #4ecdc4);">🏝️</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Visayas</div>
+                                                <div class="revenue-amount counting" id="visayasLegend" data-target="0" style="color: #4ecdc4;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #ffd93d;"></div>
-                                                <div class="legend-label">🌴 Mindanao</div>
-                                                <div class="legend-value" id="mindanaoLegend">0</div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ffd93d);">🌴</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Mindanao</div>
+                                                <div class="revenue-amount counting" id="mindanaoLegend" data-target="0" style="color: #ffd93d;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -297,28 +302,43 @@
                                 </div>
                                 <div class="breakdown-content" id="accountTypeBreakdown">
                                     <!-- Donut Chart Visualization -->
-                                    <div class="chart-container">
-                                        <div class="donut-chart" id="accountTypePieChart">
-                                            <div class="donut-chart-label">
-                                                <div class="donut-chart-icon">👤</div>
-                                                <div class="donut-chart-total" id="accountTypePieTotal">0</div>
+                                    <div class="chart-container" style="margin-bottom: 1.5rem;">
+                                        <div style="display: flex; flex-direction: column; align-items: center;">
+                                            <div class="donut-chart" id="accountTypePieChart">
+                                                <!-- Empty center, no label inside -->
+                                            </div>
+                                            <!-- Total display below chart -->
+                                            <div style="text-align: center; margin-top: 1rem;">
+                                                <div style="font-size: 0.85rem; color: #a0a0a0; font-weight: 500; letter-spacing: 0.5px; margin-bottom: 0.25rem;">TOTAL USERS</div>
+                                                <div class="donut-chart-total counting" id="accountTypePieTotal" style="font-size: 2rem; font-weight: 700; color: #ffffff;">0</div>
                                             </div>
                                         </div>
-                                        <div class="pie-legend">
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #6c5ce7;"></div>
-                                                <div class="legend-label">🆕 New Member</div>
-                                                <div class="legend-value" id="newMemberLegend">0</div>
+                                    </div>
+                                    
+                                    <!-- Account Type Breakdown Cards -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #6c5ce7);">🆕</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">New Member</div>
+                                                <div class="revenue-amount counting" id="newMemberLegend" data-target="0" style="color: #6c5ce7;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #00b894;"></div>
-                                                <div class="legend-label">✅ Pro Verified</div>
-                                                <div class="legend-value" id="proVerifiedLegend">0</div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #00b894);">✅</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Pro Verified</div>
+                                                <div class="revenue-amount counting" id="proVerifiedLegend" data-target="0" style="color: #00b894;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="legend-item">
-                                                <div class="legend-color" style="background: #ff6b6b;"></div>
-                                                <div class="legend-label">🏢 Business Verified</div>
-                                                <div class="legend-value" id="businessVerifiedLegend">0</div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ff6b6b);">🏢</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Business Verified</div>
+                                                <div class="revenue-amount counting" id="businessVerifiedLegend" data-target="0" style="color: #ff6b6b;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
                                         </div>
                                     </div>
@@ -394,31 +414,31 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="verificationAgeBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Less than 1 Week</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill green" id="verificationUnder1WeekBar"></div>
+                                    <!-- FIREBASE TODO: Fetch from /analytics/verifications/age/{under1Week, 1to2Weeks, over2Weeks} -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #00d455);">✅</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Less than 1 Week</div>
+                                                <div class="revenue-amount counting" id="verificationUnder1WeekValue" data-target="0" style="color: #00d455;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="verificationUnder1WeekValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">1-2 Weeks</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill orange" id="verification1_2WeeksBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ffa500);">⏳</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">1-2 Weeks</div>
+                                                <div class="revenue-amount counting" id="verification1_2WeeksValue" data-target="0" style="color: #ffa500;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="verification1_2WeeksValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item warning">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Over 2 Weeks ⚠️</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill red" id="verificationOver2WeeksBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ff4d57);">⚠️</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Over 2 Weeks</div>
+                                                <div class="revenue-amount counting" id="verificationOver2WeeksValue" data-target="0" style="color: #ff4d57;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="verificationOver2WeeksValue">0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -431,22 +451,23 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="verificationTypeBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Pro Verification</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="proVerificationBar"></div>
+                                    <!-- FIREBASE TODO: Fetch from /analytics/verifications/submissions filtered by type -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #a855f7);">✅</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Pro Verification</div>
+                                                <div class="revenue-amount counting" id="proVerificationValue" data-target="0" style="color: #a855f7;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="proVerificationValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Business Verification</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="businessVerificationBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #0ea5e9);">🏢</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Business Verification</div>
+                                                <div class="revenue-amount counting" id="businessVerificationValue" data-target="0" style="color: #0ea5e9;">0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="businessVerificationValue">0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -470,9 +491,11 @@
                                     <option value="1">Last 1 Day</option>
                                     <option value="7">Last 7 Days</option>
                                     <option value="30">Last 30 Days</option>
-                                    <option value="current" selected>Current Month</option>
+                                    <option value="current">Current Month</option>
                                     <option value="last">Last Month</option>
                                     <option value="quarter">This Quarter</option>
+                                    <option value="ytd">Year To Date</option>
+                                    <option value="all" selected>All Time</option>
                                 </select>
                             </div>
 
@@ -512,40 +535,40 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="revenueSourcesBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">G-Coins Purchases</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="gCoinsPurchasesBar"></div>
+                                    <!-- FIREBASE TODO: Fetch from /analytics/revenue/sources -->
+                                    <!-- NOTE: G-Coins Purchases = Total PHP Revenue. Pro + Business + Funds Added = G-Coins Purchases -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ffd700);">🪙</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">G-Coins Purchases</div>
+                                                <div class="revenue-amount counting" id="gCoinsPurchasesValue" data-target="0" style="color: #ffd700;">₱0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="gCoinsPurchasesValue">₱0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Pro Verification Fees</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="proFeesBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #a855f7);">✅</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Pro Verification Fees</div>
+                                                <div class="revenue-amount counting" id="proFeesValue" data-target="0" style="color: #a855f7;">₱0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="proFeesValue">₱0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Business Verification Fees</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="businessFeesBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #0ea5e9);">🏢</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Business Verification Fees</div>
+                                                <div class="revenue-amount counting" id="businessFeesValue" data-target="0" style="color: #0ea5e9;">₱0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="businessFeesValue">₱0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Platform Fees (5%)</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="platformFeesBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #00ff88);">💸</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Funds Added</div>
+                                                <div class="revenue-amount counting" id="fundsAddedValue" data-target="0" style="color: #00ff88;">₱0</div>
+                                                <div class="revenue-sparkline"></div>
                                             </div>
-                                            <div class="breakdown-value" id="platformFeesValue">₱0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -558,17 +581,33 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="transactionStatsBreakdown">
-                                    <div class="stat-info-row">
-                                        <div class="stat-info-label">Total Transactions:</div>
-                                        <div class="stat-info-value" id="totalTransactionsValue">0</div>
-                                    </div>
-                                    <div class="stat-info-row">
-                                        <div class="stat-info-label">Average Transaction:</div>
-                                        <div class="stat-info-value" id="avgTransactionValue">₱0</div>
-                                    </div>
-                                    <div class="stat-info-row">
-                                        <div class="stat-info-label">Highest Transaction:</div>
-                                        <div class="stat-info-value" id="highestTransactionValue">₱0</div>
+                                    <!-- FIREBASE TODO: Fetch from /analytics/revenue/transactions aggregated data -->
+                                    <!-- NOTE: Total Transactions = G-Coins Purchases / random(100, 250, 500) -->
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #00d4ff);">📈</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Total Transactions</div>
+                                                <div class="revenue-amount counting" id="totalTransactionsValue" data-target="0" style="color: #00d4ff;">0</div>
+                                                <div class="revenue-sparkline"></div>
+                                            </div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ffa500);">📊</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Average Transaction</div>
+                                                <div class="revenue-amount counting" id="avgTransactionValue" data-target="0" style="color: #ffa500;">₱0</div>
+                                                <div class="revenue-sparkline"></div>
+                                            </div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="font-size: 2.5rem; filter: drop-shadow(0 0 8px #ff4d57);">🔝</div>
+                                            <div class="revenue-content">
+                                                <div class="revenue-label">Highest Transaction</div>
+                                                <div class="revenue-amount counting" id="highestTransactionValue" data-target="0" style="color: #ff4d57;">₱0</div>
+                                                <div class="revenue-sparkline"></div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1593,6 +1632,16 @@
                         <li>API Management</li>
                     </ul>
                 </div>
+                
+                <!-- Data Management Section -->
+                <div class="settings-danger-zone">
+                    <h3 class="danger-zone-title">🔧 Development Tools</h3>
+                    <p class="danger-zone-description">Reset mock analytics data to baseline values. This will clear all accumulated counts and start fresh.</p>
+                    <button class="reset-data-btn" id="resetMockDataBtn">
+                        <span class="reset-btn-icon">🔄</span>
+                        <span class="reset-btn-text">Reset Analytics Data</span>
+                    </button>
+                </div>
             </section>
         </main>
     </div>
@@ -1635,5 +1684,41 @@
 
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
+    
+    <!-- Viewport Debug Tool -->
+    <div id="vp-debug"></div>
+    <script>
+        // Viewport Debug Tool
+    (function() {
+            const debugEl = document.getElementById('vp-debug');
+            
+            // Apply styles
+            debugEl.style.position = 'fixed';
+            debugEl.style.bottom = '0';
+            debugEl.style.left = '0';
+            debugEl.style.background = '#000';
+            debugEl.style.color = '#fff';
+            debugEl.style.padding = '4px 8px';
+            debugEl.style.fontSize = '12px';
+            debugEl.style.opacity = '0.6';
+            debugEl.style.zIndex = '9999';
+            debugEl.style.fontFamily = 'monospace';
+            debugEl.style.borderRadius = '0 4px 0 0';
+            debugEl.style.pointerEvents = 'none';
+            
+            // Update viewport size
+        function updateViewport() {
+            const width = window.innerWidth;
+                debugEl.textContent = `Viewport: ${width}px`;
+        }
+        
+        // Initial update
+        updateViewport();
+        
+        // Update on resize
+        window.addEventListener('resize', updateViewport);
+    })();
+    </script>
 </body>
 </html>
+

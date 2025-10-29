@@ -41,6 +41,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize stat overlay system
     initializeStatOverlays();
+    
+    // Initialize reset button
+    initializeResetButton();
 });
 
 // ===== SIDEBAR TOGGLE SYSTEM =====
@@ -3686,8 +3689,15 @@ function switchAdminSection(sectionId) {
 //       new: number                // New members (unverified)
 //       proVerified: number        // Pro verified count
 //       businessVerified: number   // Business verified count
-//       byAge/                     // Age distribution
+//       byAge/                     // Age distribution (18-25, 26-40, 41-59, 60+)
+//         18_25: number
+//         26_40: number
+//         41_59: number
+//         60plus: number
 //       byRegion/                  // Regional distribution
+//         luzon: number
+//         visayas: number
+//         mindanao: number
 //     /verifications/
 //       pending: number            // Pending verification requests
 //       submissions/               // Individual submission records
@@ -3770,9 +3780,9 @@ function generateInitialMockData() {
     const totalUsers = Math.floor(Math.random() * 50) + 50; // 50-99
     const verifications = Math.floor(Math.random() * 10) + 5; // 5-14
     
-    // Higher starting revenue so 1% growth is visible (₱10,000 - ₱20,000)
+    // Higher starting revenue so 1% growth is visible (₱10,000 - ₱15,000)
     // This ensures that even filtered views (1 day = 3%) show substantial amounts
-    const baseOptions = [10000, 12500, 15000, 17500, 20000];
+    const baseOptions = [10000, 11000, 12000, 13000, 14000, 15000];
     const revenue = baseOptions[Math.floor(Math.random() * baseOptions.length)];
     
     const gigsReported = Math.floor(Math.random() * 10) + 10; // 10-19
@@ -4158,6 +4168,12 @@ function openStatOverlay(type) {
                 clearInterval(verificationsCard._dashboardTimer);
                 verificationsCard._dashboardTimer = null;
             }
+        } else if (type === 'totalUsers') {
+            const usersCard = document.getElementById('usersNumber');
+            if (usersCard && usersCard._dashboardTimer) {
+                clearInterval(usersCard._dashboardTimer);
+                usersCard._dashboardTimer = null;
+            }
         }
         
         // Populate overlay data
@@ -4210,7 +4226,11 @@ function populateOverlayData(type) {
 
 // Populate Total Users overlay data
 function populateTotalUsersData(data) {
-    let total = data.totalUsers;
+    // Get the current real-time value from main dashboard card
+    const mainUsersCard = document.getElementById('usersNumber');
+    const mainUsersValue = mainUsersCard && mainUsersCard._currentValue ? Math.round(mainUsersCard._currentValue) : data.totalUsers;
+    
+    let total = mainUsersValue;
     
     // Apply date range filter (mock simulation)
     const dateRangeSelect = document.getElementById('usersDateRange');
@@ -4240,15 +4260,19 @@ function populateTotalUsersData(data) {
     const currentVerified = verifiedDisplay && verifiedDisplay._unroundedValue ? verifiedDisplay._unroundedValue : (verifiedDisplay && verifiedDisplay._currentValue ? verifiedDisplay._currentValue : 0);
     const currentGrowth = growthDisplay && growthDisplay._unroundedValue ? growthDisplay._unroundedValue : (growthDisplay && growthDisplay._currentValue ? growthDisplay._currentValue : 0);
     
+    // Store the exact total value to ensure consistency across all displays
+    const exactTotal = Math.round(total);
+    
     // Calculate new members (70-80% of total, unverified) and verified members (remaining)
     const newMemberPercent = 0.70 + (Math.random() * 0.10); // 70-80%
-    const newMemberCount = Math.round(total * newMemberPercent);
-    const verifiedMemberCount = total - newMemberCount; // Remaining are verified (Pro + Business)
+    const newMemberCount = Math.round(exactTotal * newMemberPercent);
+    const verifiedMemberCount = exactTotal - newMemberCount; // Remaining are verified (Pro + Business)
     
     // Start counting animations (ultra fast: 150ms)
+    
     if (totalDisplay) {
-        totalDisplay.setAttribute('data-target', total);
-        startCountingAnimation(totalDisplay, currentTotal, total, '', 150, 0);
+        totalDisplay.setAttribute('data-target', exactTotal);
+        startCountingAnimation(totalDisplay, currentTotal, exactTotal, '', 150, 0);
     }
     
     if (newDisplay) {
@@ -4270,15 +4294,35 @@ function populateTotalUsersData(data) {
     }
     
     // Age distribution (percentages that add to 100)
-    const ageDistribution = generateDistribution(5, total);
-    updateBreakdownBar('age18_24', ageDistribution[0], total);
-    updateBreakdownBar('age25_34', ageDistribution[1], total);
-    updateBreakdownBar('age35_44', ageDistribution[2], total);
-    updateBreakdownBar('age45_54', ageDistribution[3], total);
-    updateBreakdownBar('age55Plus', ageDistribution[4], total);
+    // 🔥 FIREBASE TODO: Fetch from /analytics/users/ageGroups/{18-25, 26-40, 41-59, 60+}
+    const ageDistribution = generateDistribution(4, exactTotal); // Changed from 5 to 4 groups
+    
+    // Get age elements and their current values
+    const age18_25El = document.getElementById('age18_25Value');
+    const age26_40El = document.getElementById('age26_40Value');
+    const age41_59El = document.getElementById('age41_59Value');
+    const age60PlusEl = document.getElementById('age60PlusValue');
+    
+    // Update with counting animations
+    if (age18_25El) {
+        const current = age18_25El._currentValue || 0;
+        startCountingAnimation(age18_25El, current, ageDistribution[0], '', 150, 0);
+    }
+    if (age26_40El) {
+        const current = age26_40El._currentValue || 0;
+        startCountingAnimation(age26_40El, current, ageDistribution[1], '', 150, 0);
+    }
+    if (age41_59El) {
+        const current = age41_59El._currentValue || 0;
+        startCountingAnimation(age41_59El, current, ageDistribution[2], '', 150, 0);
+    }
+    if (age60PlusEl) {
+        const current = age60PlusEl._currentValue || 0;
+        startCountingAnimation(age60PlusEl, current, ageDistribution[3], '', 150, 0);
+    }
     
     // Regional distribution (Luzon, Visayas, Mindanao)
-    const regionDistribution = generateDistribution(3, total);
+    const regionDistribution = generateDistribution(3, exactTotal);
     
     // Update pie chart with more contrasting colors
     updatePieChart('regionPieChart', [
@@ -4287,24 +4331,36 @@ function populateTotalUsersData(data) {
         { value: regionDistribution[2], color: '#ffd93d' }   // Yellow for Mindanao
     ]);
     
-    // Update pie chart center total
+    // Update pie chart center total with counting animation - use exactTotal for consistency
     const regionPieTotal = document.getElementById('regionPieTotal');
-    if (regionPieTotal) regionPieTotal.textContent = total.toLocaleString();
+    if (regionPieTotal) {
+        const currentRegionTotal = regionPieTotal._currentValue || 0;
+        startCountingAnimation(regionPieTotal, currentRegionTotal, exactTotal, '', 150, 0);
+    }
     
-    // Update legend values
+    // Update regional legend values with counting animations
     const luzonLegend = document.getElementById('luzonLegend');
     const visayasLegend = document.getElementById('visayasLegend');
     const mindanaoLegend = document.getElementById('mindanaoLegend');
     
-    if (luzonLegend) luzonLegend.textContent = regionDistribution[0].toLocaleString();
-    if (visayasLegend) visayasLegend.textContent = regionDistribution[1].toLocaleString();
-    if (mindanaoLegend) mindanaoLegend.textContent = regionDistribution[2].toLocaleString();
+    if (luzonLegend) {
+        const currentLuzon = luzonLegend._currentValue || 0;
+        startCountingAnimation(luzonLegend, currentLuzon, regionDistribution[0], '', 150, 0);
+    }
+    if (visayasLegend) {
+        const currentVisayas = visayasLegend._currentValue || 0;
+        startCountingAnimation(visayasLegend, currentVisayas, regionDistribution[1], '', 150, 0);
+    }
+    if (mindanaoLegend) {
+        const currentMindanao = mindanaoLegend._currentValue || 0;
+        startCountingAnimation(mindanaoLegend, currentMindanao, regionDistribution[2], '', 150, 0);
+    }
     
     // Account types - Realistic distribution (New Members are majority)
     // Use the same newMemberCount calculated above for consistency
     const proVerifiedPercent = 0.15 + (Math.random() * 0.05); // 15-20%
-    const proVerifiedCount = Math.round(total * proVerifiedPercent);
-    const businessVerifiedCount = total - newMemberCount - proVerifiedCount; // Ensure they add up
+    const proVerifiedCount = Math.round(exactTotal * proVerifiedPercent);
+    const businessVerifiedCount = exactTotal - newMemberCount - proVerifiedCount; // Ensure they add up
     
     // Update donut chart with more contrasting colors
     updatePieChart('accountTypePieChart', [
@@ -4313,18 +4369,30 @@ function populateTotalUsersData(data) {
         { value: businessVerifiedCount, color: '#ff6b6b' }  // Red for Business
     ]);
     
-    // Update donut chart center total
+    // Update donut chart center total with counting animation - use exactTotal for consistency
     const accountPieTotal = document.getElementById('accountTypePieTotal');
-    if (accountPieTotal) accountPieTotal.textContent = total.toLocaleString();
+    if (accountPieTotal) {
+        const currentAccountTotal = accountPieTotal._currentValue || 0;
+        startCountingAnimation(accountPieTotal, currentAccountTotal, exactTotal, '', 150, 0);
+    }
     
-    // Update legend values
+    // Update account type legend values with counting animations
     const newMemberLegend = document.getElementById('newMemberLegend');
     const proVerifiedLegend = document.getElementById('proVerifiedLegend');
     const businessVerifiedLegend = document.getElementById('businessVerifiedLegend');
     
-    if (newMemberLegend) newMemberLegend.textContent = newMemberCount.toLocaleString();
-    if (proVerifiedLegend) proVerifiedLegend.textContent = proVerifiedCount.toLocaleString();
-    if (businessVerifiedLegend) businessVerifiedLegend.textContent = businessVerifiedCount.toLocaleString();
+    if (newMemberLegend) {
+        const currentNewMember = newMemberLegend._currentValue || 0;
+        startCountingAnimation(newMemberLegend, currentNewMember, newMemberCount, '', 150, 0);
+    }
+    if (proVerifiedLegend) {
+        const currentProVerified = proVerifiedLegend._currentValue || 0;
+        startCountingAnimation(proVerifiedLegend, currentProVerified, proVerifiedCount, '', 150, 0);
+    }
+    if (businessVerifiedLegend) {
+        const currentBusinessVerified = businessVerifiedLegend._currentValue || 0;
+        startCountingAnimation(businessVerifiedLegend, currentBusinessVerified, businessVerifiedCount, '', 150, 0);
+    }
 }
 
 // Populate Verifications overlay data
@@ -4397,17 +4465,42 @@ function populateVerificationsData(data) {
     }
     
     // Verification age breakdown
+    // 🔥 FIREBASE TODO: Fetch from /analytics/verifications/age/{under1Week, 1to2Weeks, over2Weeks}
     const under1Week = total - over1Week;
     const between1_2Weeks = Math.floor(over1Week * 0.6);
     const over2Weeks = over1Week - between1_2Weeks;
     
-    updateBreakdownBar('verificationUnder1Week', under1Week, total);
-    updateBreakdownBar('verification1_2Weeks', between1_2Weeks, total);
-    updateBreakdownBar('verificationOver2Weeks', over2Weeks, total);
+    // Update age breakdown cards with counting animations
+    const under1WeekEl = document.getElementById('verificationUnder1WeekValue');
+    const between1_2WeeksEl = document.getElementById('verification1_2WeeksValue');
+    const over2WeeksEl = document.getElementById('verificationOver2WeeksValue');
     
-    // Verification types breakdowns (already calculated above)
-    updateBreakdownBar('proVerification', proVerifications, total);
-    updateBreakdownBar('businessVerification', businessVerifications, total);
+    if (under1WeekEl) {
+        const current = under1WeekEl._currentValue || 0;
+        startCountingAnimation(under1WeekEl, current, under1Week, '', 150, 0);
+    }
+    if (between1_2WeeksEl) {
+        const current = between1_2WeeksEl._currentValue || 0;
+        startCountingAnimation(between1_2WeeksEl, current, between1_2Weeks, '', 150, 0);
+    }
+    if (over2WeeksEl) {
+        const current = over2WeeksEl._currentValue || 0;
+        startCountingAnimation(over2WeeksEl, current, over2Weeks, '', 150, 0);
+    }
+    
+    // Verification types breakdowns
+    // 🔥 FIREBASE TODO: Fetch from /analytics/verifications/submissions filtered by type
+    const proVerificationEl = document.getElementById('proVerificationValue');
+    const businessVerificationEl = document.getElementById('businessVerificationValue');
+    
+    if (proVerificationEl) {
+        const current = proVerificationEl._currentValue || 0;
+        startCountingAnimation(proVerificationEl, current, proVerifications, '', 150, 0);
+    }
+    if (businessVerificationEl) {
+        const current = businessVerificationEl._currentValue || 0;
+        startCountingAnimation(businessVerificationEl, current, businessVerifications, '', 150, 0);
+    }
 }
 
 // Populate Revenue overlay data
@@ -4416,23 +4509,34 @@ function populateRevenueData(data) {
     
     // Apply date range filter (mock simulation)
     const dateRangeSelect = document.getElementById('revenueDateRange');
+    let daysInPeriod = 30; // Default to monthly
     if (dateRangeSelect) {
         const dateRange = dateRangeSelect.value;
         
         // Simulate filtering
         if (dateRange === '1') {
             revenuePHP = Math.round(revenuePHP * 0.03); // 1 day is ~3% of monthly
-
+            daysInPeriod = 1;
         } else if (dateRange === '7') {
             revenuePHP = Math.round(revenuePHP * 0.25); // 7 days is ~25% of monthly
+            daysInPeriod = 7;
         } else if (dateRange === '30') {
             revenuePHP = Math.round(revenuePHP * 1.0); // 30 days is monthly
+            daysInPeriod = 30;
         } else if (dateRange === 'last') {
             revenuePHP = Math.round(revenuePHP * 0.85); // Last month was ~85% of current
+            daysInPeriod = 30;
         } else if (dateRange === 'quarter') {
             revenuePHP = Math.round(revenuePHP * 2.8); // Quarter is ~2.8x monthly
+            daysInPeriod = 90;
+        } else if (dateRange === 'ytd') {
+            revenuePHP = Math.round(revenuePHP * 10); // Year to date (~300 days)
+            daysInPeriod = 300;
+        } else if (dateRange === 'all') {
+            revenuePHP = Math.round(revenuePHP * 40); // All time (4 years worth)
+            daysInPeriod = 1460;
         }
-        // 'current' keeps the monthly value
+        // 'current' keeps the monthly value (daysInPeriod = 30)
         
         // Round to valid increment
         revenuePHP = roundToValidIncrement(revenuePHP);
@@ -4481,29 +4585,68 @@ function populateRevenueData(data) {
     }
     
     // Revenue sources breakdown
-    const gCoinsPurchases = Math.floor(revenuePHP * (0.40 + Math.random() * 0.20)); // 40-60%
-    const proFees = Math.floor(revenuePHP * (0.15 + Math.random() * 0.10)); // 15-25%
-    const businessFees = Math.floor(revenuePHP * (0.10 + Math.random() * 0.10)); // 10-20%
-    const platformFees = revenuePHP - gCoinsPurchases - proFees - businessFees;
+    // 🔥 FIREBASE TODO: Fetch from /analytics/revenue/sources/{gCoinsPurchases, proSubscriptions, businessSubscriptions, fundsAdded}
+    // G-Coins Purchases equals the total PHP revenue
+    const gCoinsPurchases = revenuePHP;
     
-    updateBreakdownBar('gCoinsPurchases', gCoinsPurchases, revenuePHP, '₱');
-    updateBreakdownBar('proFees', proFees, revenuePHP, '₱');
-    updateBreakdownBar('businessFees', businessFees, revenuePHP, '₱');
-    updateBreakdownBar('platformFees', platformFees, revenuePHP, '₱');
+    // Pro, Business, and Funds Added fees are breakdowns of G-Coins Purchases (they sum to the total)
+    const proFees = Math.floor(gCoinsPurchases * (0.30 + Math.random() * 0.15)); // 30-45%
+    const businessFees = Math.floor(gCoinsPurchases * (0.15 + Math.random() * 0.10)); // 15-25%
+    const fundsAdded = gCoinsPurchases - proFees - businessFees; // Remaining amount
+    
+    // Update revenue source cards with counting animations
+    const gCoinsEl = document.getElementById('gCoinsPurchasesValue');
+    const proFeesEl = document.getElementById('proFeesValue');
+    const businessFeesEl = document.getElementById('businessFeesValue');
+    const fundsAddedEl = document.getElementById('fundsAddedValue');
+    
+    if (gCoinsEl) {
+        const current = gCoinsEl._currentValue || 0;
+        startCountingAnimation(gCoinsEl, current, gCoinsPurchases, '₱', 150, 0);
+    }
+    if (proFeesEl) {
+        const current = proFeesEl._currentValue || 0;
+        startCountingAnimation(proFeesEl, current, proFees, '₱', 150, 0);
+    }
+    if (businessFeesEl) {
+        const current = businessFeesEl._currentValue || 0;
+        startCountingAnimation(businessFeesEl, current, businessFees, '₱', 150, 0);
+    }
+    if (fundsAddedEl) {
+        const current = fundsAddedEl._currentValue || 0;
+        startCountingAnimation(fundsAddedEl, current, fundsAdded, '₱', 150, 0);
+    }
     
     // Transaction statistics
-    const totalTransactions = Math.floor((revenuePHP / 100) + Math.random() * 50);
-    const avgTransaction = Math.floor(revenuePHP / totalTransactions);
-    const highestTransaction = Math.floor(avgTransaction * (2 + Math.random() * 2));
+    // 🔥 FIREBASE TODO: Fetch aggregated data from /analytics/revenue/transactions
+    // Total Transactions = G-Coins Purchases divided by random purchase amounts (100, 250, or 500)
+    const purchaseAmounts = [100, 250, 500];
+    const avgPurchaseAmount = purchaseAmounts[Math.floor(Math.random() * purchaseAmounts.length)];
+    const totalTransactions = Math.floor(gCoinsPurchases / avgPurchaseAmount);
     
+    // Average Transaction: 100-500 for 1 day, scaled by number of days
+    const avgTransaction = Math.floor((100 + Math.random() * 400) * daysInPeriod);
+    
+    // Highest Transaction: 500-1500 for 1 day, scaled by number of days
+    const highestTransaction = Math.floor((500 + Math.random() * 1000) * daysInPeriod);
+    
+    // Update transaction stat cards with counting animations
     const totalTransEl = document.getElementById('totalTransactionsValue');
-    if (totalTransEl) totalTransEl.textContent = totalTransactions.toLocaleString();
-    
     const avgTransEl = document.getElementById('avgTransactionValue');
-    if (avgTransEl) avgTransEl.textContent = `₱${avgTransaction.toLocaleString()}`;
-    
     const highestTransEl = document.getElementById('highestTransactionValue');
-    if (highestTransEl) highestTransEl.textContent = `₱${highestTransaction.toLocaleString()}`;
+    
+    if (totalTransEl) {
+        const current = totalTransEl._currentValue || 0;
+        startCountingAnimation(totalTransEl, current, totalTransactions, '', 150, 0);
+    }
+    if (avgTransEl) {
+        const current = avgTransEl._currentValue || 0;
+        startCountingAnimation(avgTransEl, current, avgTransaction, '₱', 150, 0);
+    }
+    if (highestTransEl) {
+        const current = highestTransEl._currentValue || 0;
+        startCountingAnimation(highestTransEl, current, highestTransaction, '₱', 150, 0);
+    }
 }
 
 // Populate Gigs Reported overlay data
@@ -4669,6 +4812,16 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
         element._currentValue = end;
         element._unroundedValue = end; // Track unrounded value for accurate increments
         element._saveCounter = 0; // Track for periodic saves
+        
+        // Skip continuous phase for elements that will be updated by other elements
+        if (element.id === 'regionPieTotal' || element.id === 'accountTypePieTotal' || 
+            element.id === 'usersNewDisplay' || element.id === 'usersVerifiedDisplay' ||
+            element.id === 'verificationsProDisplay' || element.id === 'verificationsBusinessDisplay' ||
+            element.id === 'verificationsOverdueDisplay' || element.id === 'gigsReportedThisWeek') {
+            // These elements are controlled by their parent element, no continuous timer needed
+            return;
+        }
+        
         element._continuousTimer = setInterval(() => {
             // For PHP revenue, add random increments (100/250/500)
             if (prefix === '₱') {
@@ -4744,6 +4897,18 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                 });
                 element.textContent = formattedValue;
                 
+                // Also update the main dashboard users card (if overlay is open on "All Time" filter)
+                const dateRangeSelect = document.getElementById('usersDateRange');
+                const isAllTime = !dateRangeSelect || dateRangeSelect.value === 'all';
+                
+                if (isAllTime) {
+                    const mainUsersCard = document.getElementById('usersNumber');
+                    if (mainUsersCard) {
+                        mainUsersCard._currentValue = element._unroundedValue;
+                        mainUsersCard.textContent = element._unroundedValue.toLocaleString('en-US');
+                    }
+                }
+                
                 // Save to localStorage every 5 seconds to prevent data loss on refresh
                 if (!element._saveCounter) element._saveCounter = 0;
                 element._saveCounter++;
@@ -4771,6 +4936,22 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                         verifiedDisplay._currentValue = verifiedValue;
                         verifiedDisplay.textContent = verifiedValue.toLocaleString('en-US');
                     }
+                }
+                
+                // Also update Regional Distribution and Account Types totals to match
+                const regionPieTotal = document.getElementById('regionPieTotal');
+                const accountTypePieTotal = document.getElementById('accountTypePieTotal');
+                
+                if (regionPieTotal) {
+                    regionPieTotal._unroundedValue = element._unroundedValue;
+                    regionPieTotal._currentValue = element._unroundedValue;
+                    regionPieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
+                }
+                
+                if (accountTypePieTotal) {
+                    accountTypePieTotal._unroundedValue = element._unroundedValue;
+                    accountTypePieTotal._currentValue = element._unroundedValue;
+                    accountTypePieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
                 }
                 
                 console.log(`👥 Users increased by ${randomIncrease}: ${formattedValue}`);
@@ -4966,6 +5147,16 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
             element._currentValue = current;
             element._unroundedValue = current; // Track unrounded value for accurate increments
             element._saveCounter = 0; // Track for periodic saves
+            
+            // Skip continuous phase for elements that will be updated by other elements
+            if (element.id === 'regionPieTotal' || element.id === 'accountTypePieTotal' || 
+                element.id === 'usersNewDisplay' || element.id === 'usersVerifiedDisplay' ||
+                element.id === 'verificationsProDisplay' || element.id === 'verificationsBusinessDisplay' ||
+                element.id === 'verificationsOverdueDisplay' || element.id === 'gigsReportedThisWeek') {
+                // These elements are controlled by their parent element, no continuous timer needed
+                return;
+            }
+            
             element._continuousTimer = setInterval(() => {
                 // For PHP revenue, add random increments (100/250/500)
                 if (prefix === '₱') {
@@ -5204,7 +5395,32 @@ function initializeDropdownFilters() {
     console.log('✅ Dropdown filters initialized with change listeners');
 }
 
-// Reset function (accessible from console)
+// Initialize reset button in settings
+function initializeResetButton() {
+    const resetBtn = document.getElementById('resetMockDataBtn');
+    
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            // Confirm before resetting
+            if (confirm('⚠️ Are you sure you want to reset all analytics data?\n\nThis will clear:\n• Total Users count\n• Verification Submissions\n• Monthly Revenue\n• Gigs Reported\n\nThe page will refresh with new baseline values.')) {
+                // Call the reset function
+                window.resetAdminMockData();
+                
+                // Show success message
+                alert('✅ Analytics data has been reset!\n\nThe page will now refresh.');
+                
+                // Refresh the page after a short delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            }
+        });
+        
+        console.log('✅ Reset button initialized');
+    }
+}
+
+// Reset function (accessible from console and button)
 window.resetAdminMockData = function() {
     // Clear all mock data from localStorage
     Object.values(STORAGE_KEYS).forEach(key => {
@@ -5212,7 +5428,7 @@ window.resetAdminMockData = function() {
     });
     
     console.log('🔄 Mock data reset! Refresh the page to generate new baseline values.');
-    console.log('💡 New revenue will start at 100, 250, or 500');
+    console.log('💡 New revenue will start between ₱10,000 - ₱15,000');
 };
 
 // ===== INITIALIZATION COMPLETE =====
