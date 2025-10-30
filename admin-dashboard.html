@@ -922,11 +922,10 @@
 
                             <!-- Peak Usage Hours -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="peakUsageBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">🕐 Peak Usage Hours (24h)</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content" id="peakUsageBreakdown">
+                                <div class="breakdown-content expanded" id="peakUsageBreakdown">
                                     <div class="peak-usage-display">
                                         <div class="peak-usage-primary">
                                             <div class="peak-badge">🔥 PEAK TIME</div>
@@ -1200,8 +1199,9 @@
 
                             <!-- Media Uploads Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="mediaUploadsBreakdown">
                                     <span class="breakdown-title">📷 Media Uploads by Type</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content expanded" id="mediaUploadsBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/storage/mediaTypes -->
@@ -1244,10 +1244,11 @@
 
                             <!-- Storage Usage Over Time (Placeholder) -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="storageGrowthBreakdown">
                                     <span class="breakdown-title">📈 Storage Growth</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded">
+                                <div class="breakdown-content expanded" id="storageGrowthBreakdown">
                                     <div class="storage-growth-info">
                                         <div class="growth-stat">
                                             <span class="growth-label">This Month:</span>
@@ -1278,9 +1279,9 @@
 
                         <div class="stat-overlay-body">
                             <!-- Period Selector -->
-                            <div class="overlay-controls">
-                                <label for="trafficPeriodSelect" class="filter-label">Time Period:</label>
-                                <select id="trafficPeriodSelect" class="date-range-select">
+                            <div class="stat-filter-section">
+                                <label class="stat-filter-label">Time Period:</label>
+                                <select class="stat-filter-dropdown" id="trafficPeriodSelect">
                                     <option value="today">Today</option>
                                     <option value="week">This Week</option>
                                     <option value="month" selected>This Month</option>
@@ -1323,8 +1324,9 @@
 
                             <!-- Cost Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="firebaseCostBreakdown">
                                     <span class="breakdown-title">💵 Firebase Cost Breakdown</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content expanded" id="firebaseCostBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/traffic/costs -->
@@ -1367,10 +1369,11 @@
 
                             <!-- Traffic Trends -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="trafficTrendsBreakdown">
                                     <span class="breakdown-title">📊 Traffic Trends</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded">
+                                <div class="breakdown-content expanded" id="trafficTrendsBreakdown">
                                     <div class="traffic-trends-info">
                                         <div class="trend-stat">
                                             <span class="trend-label">Daily Average:</span>
