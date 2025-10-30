@@ -3717,6 +3717,13 @@ const STORAGE_KEYS = {
     simulationStartTime: 'admin_mock_sim_start', // Simulation start timestamp (real time)
     revenueHistory: 'admin_mock_revenue_history', // Array of {timestamp, amount} for period calculations
     gigsReported: 'admin_mock_gigs_reported',    // 🔥 Firebase: /admin/analytics/gigs/reported (count)
+    androidUsers: 'admin_mock_android_users',    // 🔥 Firebase: /admin/analytics/userActivity/android
+    iphoneUsers: 'admin_mock_iphone_users',      // 🔥 Firebase: /admin/analytics/userActivity/iphone
+    totalGigs: 'admin_mock_total_gigs',          // 🔥 Firebase: /admin/analytics/gigs/total
+    totalApplicants: 'admin_mock_total_applicants', // 🔥 Firebase: /admin/analytics/gigs/applicants
+    storageUsed: 'admin_mock_storage_used',      // 🔥 Firebase: /admin/analytics/storage/used (GB)
+    bandwidthMTD: 'admin_mock_bandwidth_mtd',    // 🔥 Firebase: /admin/analytics/traffic/bandwidth (GB)
+    firebaseCostMTD: 'admin_mock_firebase_cost_mtd', // 🔥 Firebase: /admin/analytics/traffic/cost
     lastUpdate: 'admin_mock_last_update'         // 🔥 Firebase: /admin/analytics/lastUpdate
 };
 
@@ -3953,6 +3960,15 @@ function generateInitialMockData() {
     
     const gigsReported = Math.floor(Math.random() * 10) + 10; // 10-19
     
+    // New analytics metrics
+    const androidUsers = Math.floor(Math.random() * 200) + 750; // 750-949
+    const iphoneUsers = Math.floor(Math.random() * 100) + 350; // 350-449
+    const totalGigs = Math.floor(Math.random() * 200) + 1750; // 1750-1949
+    const totalApplicants = Math.round(totalGigs * (Math.random() * 0.5 + 2.8)); // 2.8-3.3x gigs
+    const storageUsed = (Math.random() * 1.5 + 2.5).toFixed(1); // 2.5-4.0 GB
+    const bandwidthMTD = (Math.random() * 3 + 10).toFixed(1); // 10-13 GB
+    const firebaseCostMTD = (Math.random() * 1 + 2.5).toFixed(2); // $2.50-$3.50
+    
     // Initialize simulation start time and empty revenue history
     const now = Date.now();
     localStorage.setItem(STORAGE_KEYS.simulationStartTime, now);
@@ -3965,6 +3981,13 @@ function generateInitialMockData() {
         verifications,
         allTimeRevenue,
         gigsReported,
+        androidUsers,
+        iphoneUsers,
+        totalGigs,
+        totalApplicants,
+        storageUsed: parseFloat(storageUsed),
+        bandwidthMTD: parseFloat(bandwidthMTD),
+        firebaseCostMTD: parseFloat(firebaseCostMTD),
         timestamp: now
     };
 }
@@ -4022,6 +4045,13 @@ function saveMockDataToStorage(data) {
         localStorage.setItem(STORAGE_KEYS.verifications, data.verifications);
         localStorage.setItem(STORAGE_KEYS.allTimeRevenue, data.allTimeRevenue);
         localStorage.setItem(STORAGE_KEYS.gigsReported, data.gigsReported);
+        localStorage.setItem(STORAGE_KEYS.androidUsers, data.androidUsers);
+        localStorage.setItem(STORAGE_KEYS.iphoneUsers, data.iphoneUsers);
+        localStorage.setItem(STORAGE_KEYS.totalGigs, data.totalGigs);
+        localStorage.setItem(STORAGE_KEYS.totalApplicants, data.totalApplicants);
+        localStorage.setItem(STORAGE_KEYS.storageUsed, data.storageUsed);
+        localStorage.setItem(STORAGE_KEYS.bandwidthMTD, data.bandwidthMTD);
+        localStorage.setItem(STORAGE_KEYS.firebaseCostMTD, data.firebaseCostMTD);
         localStorage.setItem(STORAGE_KEYS.lastUpdate, data.timestamp);
         // Note: simulationStartTime and revenueHistory are saved separately
     } catch (e) {
@@ -4041,6 +4071,13 @@ function loadMockDataFromStorage() {
             verifications: parseInt(localStorage.getItem(STORAGE_KEYS.verifications)) || 12,
             allTimeRevenue: parseInt(localStorage.getItem(STORAGE_KEYS.allTimeRevenue)) || 10000,
             gigsReported: parseInt(localStorage.getItem(STORAGE_KEYS.gigsReported)) || 18,
+            androidUsers: parseInt(localStorage.getItem(STORAGE_KEYS.androidUsers)) || 847,
+            iphoneUsers: parseInt(localStorage.getItem(STORAGE_KEYS.iphoneUsers)) || 398,
+            totalGigs: parseInt(localStorage.getItem(STORAGE_KEYS.totalGigs)) || 1847,
+            totalApplicants: parseInt(localStorage.getItem(STORAGE_KEYS.totalApplicants)) || 5624,
+            storageUsed: parseFloat(localStorage.getItem(STORAGE_KEYS.storageUsed)) || 3.8,
+            bandwidthMTD: parseFloat(localStorage.getItem(STORAGE_KEYS.bandwidthMTD)) || 12.4,
+            firebaseCostMTD: parseFloat(localStorage.getItem(STORAGE_KEYS.firebaseCostMTD)) || 3.20,
             timestamp: parseInt(localStorage.getItem(STORAGE_KEYS.lastUpdate)) || Date.now()
         };
     } catch (e) {
@@ -4050,6 +4087,13 @@ function loadMockDataFromStorage() {
             verifications: 12,
             allTimeRevenue: 10000,
             gigsReported: 18,
+            androidUsers: 847,
+            iphoneUsers: 398,
+            totalGigs: 1847,
+            totalApplicants: 5624,
+            storageUsed: 3.8,
+            bandwidthMTD: 12.4,
+            firebaseCostMTD: 3.20,
             timestamp: Date.now()
         };
     }
@@ -4086,6 +4130,66 @@ function updateStatCardsDisplay() {
     if (gigsReportedEl) {
         gigsReportedEl.textContent = data.gigsReported.toLocaleString();
         if (!gigsReportedEl._currentValue) gigsReportedEl._currentValue = data.gigsReported;
+    }
+    
+    // Update Android Users
+    const androidEl = document.getElementById('androidDeviceCount');
+    if (androidEl) {
+        androidEl.textContent = data.androidUsers.toLocaleString();
+        if (!androidEl._currentValue) androidEl._currentValue = data.androidUsers;
+    }
+    
+    // Update iPhone Users
+    const iphoneEl = document.getElementById('iphoneDeviceCount');
+    if (iphoneEl) {
+        iphoneEl.textContent = data.iphoneUsers.toLocaleString();
+        if (!iphoneEl._currentValue) iphoneEl._currentValue = data.iphoneUsers;
+    }
+    
+    // Update Total Gigs
+    const totalGigsEl = document.getElementById('totalGigsPosted');
+    if (totalGigsEl) {
+        totalGigsEl.textContent = data.totalGigs.toLocaleString();
+        if (!totalGigsEl._currentValue) totalGigsEl._currentValue = data.totalGigs;
+    }
+    
+    // Update Total Applicants
+    const totalApplicantsEl = document.getElementById('totalApplicants');
+    if (totalApplicantsEl) {
+        totalApplicantsEl.textContent = data.totalApplicants.toLocaleString();
+        if (!totalApplicantsEl._currentValue) totalApplicantsEl._currentValue = data.totalApplicants;
+    }
+    
+    // Update Avg Applicants per Gig
+    const avgPerGigEl = document.getElementById('avgApplicantsPerGig');
+    if (avgPerGigEl) {
+        const avg = (data.totalApplicants / data.totalGigs).toFixed(1);
+        avgPerGigEl.textContent = avg;
+    }
+    
+    // Update Storage Used
+    const storageEl = document.getElementById('totalStorageUsed');
+    if (storageEl) {
+        storageEl.textContent = `${data.storageUsed.toFixed(1)} GB`;
+    }
+    
+    // Update Storage Progress Bar
+    const storageProgressEl = document.getElementById('storageProgressFill');
+    if (storageProgressEl) {
+        const percentage = (data.storageUsed / 10) * 100; // Out of 10 GB
+        storageProgressEl.style.width = `${percentage}%`;
+    }
+    
+    // Update Bandwidth MTD
+    const bandwidthEl = document.getElementById('bandwidthUsageMTD');
+    if (bandwidthEl) {
+        bandwidthEl.textContent = `${data.bandwidthMTD.toFixed(1)} GB`;
+    }
+    
+    // Update Firebase Cost MTD
+    const firebaseCostEl = document.getElementById('firebaseCostMTD');
+    if (firebaseCostEl) {
+        firebaseCostEl.textContent = `$${data.firebaseCostMTD.toFixed(2)}`;
     }
     
     console.log('🔄 Stat cards updated:', data);
@@ -4256,6 +4360,10 @@ function attachStatCardListeners() {
     const verificationsCard = document.getElementById('verificationsCard');
     const revenueCard = document.getElementById('revenueCard');
     const gigsReportedCard = document.getElementById('gigsReportedCard');
+    const userActivityCard = document.getElementById('userActivityCard');
+    const gigsAnalyticsCard = document.getElementById('gigsAnalyticsCard');
+    const storageUsageCard = document.getElementById('storageUsageCard');
+    const trafficCostsCard = document.getElementById('trafficCostsCard');
     
     if (totalUsersCard) {
         totalUsersCard.addEventListener('click', () => openStatOverlay('totalUsers'));
@@ -4272,6 +4380,22 @@ function attachStatCardListeners() {
     if (gigsReportedCard) {
         gigsReportedCard.addEventListener('click', () => openStatOverlay('gigsReported'));
     }
+    
+    if (userActivityCard) {
+        userActivityCard.addEventListener('click', () => openStatOverlay('userActivity'));
+    }
+    
+    if (gigsAnalyticsCard) {
+        gigsAnalyticsCard.addEventListener('click', () => openStatOverlay('gigsAnalytics'));
+    }
+    
+    if (storageUsageCard) {
+        storageUsageCard.addEventListener('click', () => openStatOverlay('storageUsage'));
+    }
+    
+    if (trafficCostsCard) {
+        trafficCostsCard.addEventListener('click', () => openStatOverlay('trafficCosts'));
+    }
 }
 
 // Attach overlay close listeners
@@ -4280,7 +4404,11 @@ function attachOverlayCloseListeners() {
         { id: 'closeTotalUsersOverlay', overlayId: 'totalUsersOverlay' },
         { id: 'closeVerificationsOverlay', overlayId: 'verificationsOverlay' },
         { id: 'closeRevenueOverlay', overlayId: 'revenueOverlay' },
-        { id: 'closeGigsReportedOverlay', overlayId: 'gigsReportedOverlay' }
+        { id: 'closeGigsReportedOverlay', overlayId: 'gigsReportedOverlay' },
+        { id: 'closeUserActivityOverlay', overlayId: 'userActivityOverlay' },
+        { id: 'closeGigsAnalyticsOverlay', overlayId: 'gigsAnalyticsOverlay' },
+        { id: 'closeStorageUsageOverlay', overlayId: 'storageUsageOverlay' },
+        { id: 'closeTrafficCostsOverlay', overlayId: 'trafficCostsOverlay' }
     ];
     
     closeButtons.forEach(({ id, overlayId }) => {
@@ -4316,7 +4444,11 @@ function openStatOverlay(type) {
         totalUsers: 'totalUsersOverlay',
         verifications: 'verificationsOverlay',
         revenue: 'revenueOverlay',
-        gigsReported: 'gigsReportedOverlay'
+        gigsReported: 'gigsReportedOverlay',
+        userActivity: 'userActivityOverlay',
+        gigsAnalytics: 'gigsAnalyticsOverlay',
+        storageUsage: 'storageUsageOverlay',
+        trafficCosts: 'trafficCostsOverlay'
     };
     
     const overlayId = overlays[type];
@@ -4391,6 +4523,18 @@ function populateOverlayData(type) {
             break;
         case 'gigsReported':
             populateGigsReportedData(data);
+            break;
+        case 'userActivity':
+            populateUserActivityData(data);
+            break;
+        case 'gigsAnalytics':
+            populateGigsAnalyticsData(data);
+            break;
+        case 'storageUsage':
+            populateStorageUsageData(data);
+            break;
+        case 'trafficCosts':
+            populateTrafficCostsData(data);
             break;
     }
 }
@@ -4920,6 +5064,240 @@ function populateGigsReportedData(data) {
     updateBreakdownBar('pendingReview', pending, total);
     updateBreakdownBar('ignoredReports', ignored, total);
     updateBreakdownBar('suspendedReports', suspended, total);
+}
+
+// Populate User Activity overlay data
+function populateUserActivityData(data) {
+    // Get Android and iPhone counts from main dashboard
+    const androidEl = document.getElementById('androidDeviceCount');
+    const iphoneEl = document.getElementById('iphoneDeviceCount');
+    
+    const androidCount = androidEl && androidEl._currentValue ? Math.round(androidEl._currentValue) : 847;
+    const iphoneCount = iphoneEl && iphoneEl._currentValue ? Math.round(iphoneEl._currentValue) : 398;
+    
+    const totalMobile = androidCount + iphoneCount;
+    const desktop = Math.round(totalMobile * 0.47); // Desktop is ~47% of mobile
+    
+    // Populate top showcase cards
+    setElementValue('userActivityMobileCount', totalMobile);
+    setElementValue('userActivityDesktopCount', desktop);
+    setElementValue('userActivityRepeatPercent', '42%');
+    setElementValue('userActivityBounceRate', '28%');
+    
+    // Mobile Platform Breakdown
+    updateBreakdownBar('androidBreakdown', androidCount, totalMobile);
+    updateBreakdownBar('iphoneBreakdown', iphoneCount, totalMobile);
+    
+    // Browser Distribution (percentages of total users)
+    const totalBrowserUsers = totalMobile + desktop;
+    const browsers = {
+        chrome: Math.round(totalBrowserUsers * 0.65),
+        safari: Math.round(totalBrowserUsers * 0.20),
+        firefox: Math.round(totalBrowserUsers * 0.08),
+        edge: Math.round(totalBrowserUsers * 0.05),
+        otherBrowser: Math.round(totalBrowserUsers * 0.02)
+    };
+    
+    Object.keys(browsers).forEach(browser => {
+        updateBreakdownBar(browser, browsers[browser], totalBrowserUsers);
+    });
+    
+    // Session Duration Breakdown
+    const sessionDistribution = generateDistribution(4, totalBrowserUsers);
+    updateBreakdownBar('session0to5', sessionDistribution[0], totalBrowserUsers);
+    updateBreakdownBar('session5to15', sessionDistribution[1], totalBrowserUsers);
+    updateBreakdownBar('session15to30', sessionDistribution[2], totalBrowserUsers);
+    updateBreakdownBar('session30plus', sessionDistribution[3], totalBrowserUsers);
+    
+    setElementValue('avgSessionOverlayDisplay', '8m 34s');
+    
+    // Peak Usage Hours
+    const peakUsers = Math.round(totalBrowserUsers * 0.27); // 27% active at peak
+    setElementValue('peakUsageCount', `~${peakUsers} active users`);
+    setElementValue('morningUsersCount', `~${Math.round(totalBrowserUsers * 0.13)} users`);
+    setElementValue('afternoonUsersCount', `~${Math.round(totalBrowserUsers * 0.21)} users`);
+    setElementValue('eveningUsersCount', `~${peakUsers} users`);
+    setElementValue('nightUsersCount', `~${Math.round(totalBrowserUsers * 0.06)} users`);
+}
+
+// Populate Gigs Analytics overlay data
+function populateGigsAnalyticsData(data) {
+    // Get values from main dashboard
+    const totalGigsEl = document.getElementById('totalGigsPosted');
+    const totalAppsEl = document.getElementById('totalApplicants');
+    
+    const totalGigs = totalGigsEl && totalGigsEl._currentValue ? Math.round(totalGigsEl._currentValue) : 1847;
+    const totalApps = totalAppsEl && totalAppsEl._currentValue ? Math.round(totalAppsEl._currentValue) : 5624;
+    
+    const avgPerGig = (totalApps / totalGigs).toFixed(1);
+    
+    // Populate top showcase cards
+    setElementValue('gigsOverlayTotalGigs', totalGigs);
+    setElementValue('gigsOverlayTotalApplicants', totalApps);
+    setElementValue('gigsOverlayAvgPerGig', avgPerGig);
+    
+    // Gigs Posted by Category (percentages of total gigs)
+    const gigsDistribution = {
+        gigsDriver: Math.round(totalGigs * 0.155),
+        gigsCarpenter: Math.round(totalGigs * 0.133),
+        gigsElectrician: Math.round(totalGigs * 0.107),
+        gigsPlumber: Math.round(totalGigs * 0.095),
+        gigsMechanic: Math.round(totalGigs * 0.083),
+        gigsTutor: Math.round(totalGigs * 0.077),
+        gigsClerical: Math.round(totalGigs * 0.069),
+        gigsOther: 0
+    };
+    
+    // Calculate "Other" as remainder
+    const gigsSum = Object.values(gigsDistribution).reduce((a, b) => a + b, 0);
+    gigsDistribution.gigsOther = totalGigs - gigsSum;
+    
+    Object.keys(gigsDistribution).forEach(category => {
+        updateBreakdownBar(category, gigsDistribution[category], totalGigs);
+    });
+    
+    // Applications by Category (higher multipliers for popular categories)
+    const appsDistribution = {
+        appsDriver: Math.round(totalApps * 0.173),
+        appsCarpenter: Math.round(totalApps * 0.152),
+        appsElectrician: Math.round(totalApps * 0.111),
+        appsPlumber: Math.round(totalApps * 0.097),
+        appsMechanic: Math.round(totalApps * 0.087),
+        appsTutor: Math.round(totalApps * 0.077),
+        appsClerical: Math.round(totalApps * 0.071),
+        appsOther: 0
+    };
+    
+    // Calculate "Other" as remainder
+    const appsSum = Object.values(appsDistribution).reduce((a, b) => a + b, 0);
+    appsDistribution.appsOther = totalApps - appsSum;
+    
+    Object.keys(appsDistribution).forEach(category => {
+        updateBreakdownBar(category, appsDistribution[category], totalApps);
+    });
+}
+
+// Populate Storage Usage overlay data
+function populateStorageUsageData(data) {
+    // Get storage from main dashboard
+    const storageEl = document.getElementById('totalStorageUsed');
+    const storageValue = storageEl ? storageEl.textContent : '3.8 GB';
+    
+    // Parse GB value
+    const storageGB = parseFloat(storageValue);
+    const storageCost = (storageGB * 0.026).toFixed(2); // $0.026 per GB per month (Firebase pricing)
+    
+    // Populate top showcase cards
+    setElementValue('storageOverlayTotal', `${storageGB.toFixed(1)} GB`);
+    setElementValue('storageOverlayMediaCount', '12,456');
+    setElementValue('storageOverlayMediaSize', `${(storageGB * 0.63).toFixed(1)} GB`);
+    setElementValue('storageOverlayCost', `$${storageCost}`);
+    
+    // Media Uploads Breakdown
+    const mediaDistribution = {
+        profilePhotos: { count: 4567, size: storageGB * 0.21 },
+        gigPhotos: { count: 6234, size: storageGB * 0.34 },
+        idVerifications: { count: 1255, size: storageGB * 0.05 },
+        otherFiles: { count: 400, size: storageGB * 0.03 }
+    };
+    
+    Object.keys(mediaDistribution).forEach(type => {
+        const item = mediaDistribution[type];
+        updateBreakdownBar(type, item.size, storageGB);
+        setElementValue(`${type}Value`, `${item.count.toLocaleString()} (${item.size.toFixed(1)} GB)`);
+    });
+    
+    // Storage Growth
+    setElementValue('storageGrowthMonth', `+${(storageGB * 0.105).toFixed(1)} GB`);
+    setElementValue('storageGrowthAvg', `+${(storageGB * 0.132).toFixed(1)} GB`);
+    
+    const monthsToFull = Math.round((10 - storageGB) / (storageGB * 0.132));
+    setElementValue('storageProjectedFull', `${monthsToFull} months`);
+}
+
+// Populate Traffic & Costs overlay data
+function populateTrafficCostsData(data) {
+    // Get current period selection
+    const periodSelect = document.getElementById('trafficPeriodSelect');
+    const period = periodSelect ? periodSelect.value : 'month';
+    
+    // Base values (for "month")
+    let bandwidth = 12.4; // GB
+    let reads = 342000;
+    let writes = 87000;
+    
+    // Adjust based on period
+    switch(period) {
+        case 'today':
+            bandwidth *= 0.033; // ~1 day
+            reads = Math.round(reads * 0.033);
+            writes = Math.round(writes * 0.033);
+            break;
+        case 'week':
+            bandwidth *= 0.233; // ~7 days
+            reads = Math.round(reads * 0.233);
+            writes = Math.round(writes * 0.233);
+            break;
+        case 'month':
+            // Keep base values
+            break;
+        case 'year':
+            bandwidth *= 12;
+            reads = Math.round(reads * 12);
+            writes = Math.round(writes * 12);
+            break;
+        case 'all':
+            bandwidth *= 18; // Assume 18 months all-time
+            reads = Math.round(reads * 18);
+            writes = Math.round(writes * 18);
+            break;
+    }
+    
+    // Calculate Firebase cost (simplified pricing model)
+    // Storage: $0.026/GB, Reads: $0.06/100K, Writes: $0.18/100K, Bandwidth: $0.12/GB
+    const dbCost = ((reads / 100000) * 0.06) + ((writes / 100000) * 0.18);
+    const storageCost = 0.80; // From storage analysis (relatively constant)
+    const bandwidthCost = bandwidth * 0.012;
+    const authCost = 0.20; // Relatively constant
+    const totalCost = dbCost + storageCost + bandwidthCost + authCost;
+    
+    // Populate top showcase cards
+    setElementValue('trafficOverlayBandwidth', `${bandwidth.toFixed(1)} GB`);
+    setElementValue('trafficOverlayReads', reads >= 1000 ? `${(reads/1000).toFixed(0)}K` : reads.toString());
+    setElementValue('trafficOverlayWrites', writes >= 1000 ? `${(writes/1000).toFixed(0)}K` : writes.toString());
+    setElementValue('trafficOverlayCost', `$${totalCost.toFixed(2)}`);
+    
+    // Cost Breakdown
+    updateBreakdownBar('dbOperationsCost', dbCost, totalCost);
+    setElementValue('dbOperationsCostValue', `$${dbCost.toFixed(2)}`);
+    
+    updateBreakdownBar('storageCost', storageCost, totalCost);
+    setElementValue('storageCostValue', `$${storageCost.toFixed(2)}`);
+    
+    updateBreakdownBar('bandwidthCost', bandwidthCost, totalCost);
+    setElementValue('bandwidthCostValue', `$${bandwidthCost.toFixed(2)}`);
+    
+    updateBreakdownBar('authCost', authCost, totalCost);
+    setElementValue('authCostValue', `$${authCost.toFixed(2)}`);
+    
+    // Traffic Trends
+    setElementValue('trafficDailyAvg', `${(bandwidth / 30).toFixed(0)} MB`);
+    setElementValue('trafficPeakDay', `${(bandwidth / 30 * 2.05).toFixed(0)} MB`);
+    setElementValue('trafficGrowthRate', '+18%');
+    
+    // Add period change listener
+    if (periodSelect && !periodSelect._listenerAttached) {
+        periodSelect.addEventListener('change', () => populateTrafficCostsData(data));
+        periodSelect._listenerAttached = true;
+    }
+}
+
+// Helper: Set element value safely
+function setElementValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.textContent = value;
+    }
 }
 
 // Helper: Generate distribution that adds up to total

@@ -758,65 +758,677 @@
                     </div>
                 </div>
 
+                <!-- User Activity Overlay -->
+                <div class="stat-overlay" id="userActivityOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">📊 User Activity Analytics</h2>
+                            <button class="stat-overlay-close" id="closeUserActivityOverlay">✕</button>
+                        </div>
+
+                        <div class="stat-overlay-body">
+                            <!-- Device Distribution -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">📱</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Mobile Devices</div>
+                                        <div class="revenue-amount" id="userActivityMobileCount">1,245</div>
+                                        <div class="revenue-percent">68%</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">💻</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Desktop Users</div>
+                                        <div class="revenue-amount" id="userActivityDesktopCount">587</div>
+                                        <div class="revenue-percent">32%</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">🔄</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Repeat Users</div>
+                                        <div class="revenue-amount" id="userActivityRepeatPercent">42%</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">🚪</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Bounce Rate</div>
+                                        <div class="revenue-amount red" id="userActivityBounceRate">28%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mobile Platform Breakdown -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="mobilePlatformBreakdown">
+                                    <span class="breakdown-title">📱 Mobile Platforms</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="mobilePlatformBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">🤖 Android</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="androidBreakdownBar" style="background: #3ddc84;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="androidBreakdownValue">847</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">🍎 iPhone</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="iphoneBreakdownBar" style="background: #000;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="iphoneBreakdownValue">398</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Browser Distribution -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="browserDistributionBreakdown">
+                                    <span class="breakdown-title">🌐 Browser Distribution</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content expanded" id="browserDistributionBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Chrome</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="chromeBar" style="background: #4285f4;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="chromeValue">1,192</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Safari</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="safariBar" style="background: #000;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="safariValue">367</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Firefox</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="firefoxBar" style="background: #ff7139;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="firefoxValue">147</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Edge</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="edgeBar" style="background: #0078d7;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="edgeValue">92</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Other</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="otherBrowserBar" style="background: #888;"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="otherBrowserValue">34</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Session Duration Breakdown -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="sessionDurationBreakdown">
+                                    <span class="breakdown-title">⏱️ Session Duration Analysis</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="sessionDurationBreakdown">
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">0-5 minutes</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill red" id="session0to5Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="session0to5Value">342</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">5-15 minutes</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill yellow" id="session5to15Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="session5to15Value">687</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">15-30 minutes</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="session15to30Bar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="session15to30Value">456</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">30+ minutes</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="session30plusBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="session30plusValue">347</div>
+                                        </div>
+                                    </div>
+                                    <div class="session-avg-display">
+                                        <span class="session-avg-label">Average Session Duration:</span>
+                                        <span class="session-avg-value" id="avgSessionOverlayDisplay">8m 34s</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Peak Usage Hours -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="peakUsageBreakdown">
+                                    <span class="breakdown-title">🕐 Peak Usage Hours (24h)</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="peakUsageBreakdown">
+                                    <div class="peak-usage-display">
+                                        <div class="peak-usage-primary">
+                                            <div class="peak-badge">🔥 PEAK TIME</div>
+                                            <div class="peak-time">6:00 PM - 9:00 PM</div>
+                                            <div class="peak-count" id="peakUsageCount">~487 active users</div>
+                                        </div>
+                                        <div class="peak-usage-secondary">
+                                            <div class="peak-secondary-item">
+                                                <span class="peak-secondary-label">Morning (6AM-12PM):</span>
+                                                <span class="peak-secondary-value" id="morningUsersCount">~245 users</span>
+                                            </div>
+                                            <div class="peak-secondary-item">
+                                                <span class="peak-secondary-label">Afternoon (12PM-6PM):</span>
+                                                <span class="peak-secondary-value" id="afternoonUsersCount">~389 users</span>
+                                            </div>
+                                            <div class="peak-secondary-item">
+                                                <span class="peak-secondary-label">Evening (6PM-12AM):</span>
+                                                <span class="peak-secondary-value" id="eveningUsersCount">~487 users</span>
+                                            </div>
+                                            <div class="peak-secondary-item">
+                                                <span class="peak-secondary-label">Night (12AM-6AM):</span>
+                                                <span class="peak-secondary-value" id="nightUsersCount">~112 users</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gigs Analytics Overlay -->
+                <div class="stat-overlay" id="gigsAnalyticsOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">💼 Gigs Analytics</h2>
+                            <button class="stat-overlay-close" id="closeGigsAnalyticsOverlay">✕</button>
+                        </div>
+
+                        <div class="stat-overlay-body">
+                            <!-- Summary Stats -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">📝</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Total Gigs Posted</div>
+                                        <div class="revenue-amount" id="gigsOverlayTotalGigs">1,847</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">👥</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Total Applications</div>
+                                        <div class="revenue-amount" id="gigsOverlayTotalApplicants">5,624</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">📊</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Avg. per Gig</div>
+                                        <div class="revenue-amount" id="gigsOverlayAvgPerGig">3.0</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gigs Posted by Category -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="gigsPostedBreakdown">
+                                    <span class="breakdown-title">📝 Gigs Posted by Category</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content expanded" id="gigsPostedBreakdown">
+                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/gigs/byCategory -->
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Driver</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsDriverBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsDriverValue">287</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Carpenter</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsCarpenterBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsCarpenterValue">245</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Electrician</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsElectricianBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsElectricianValue">198</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Plumber</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsPlumberBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsPlumberValue">176</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Mechanic</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsMechanicBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsMechanicValue">154</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Tutor</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsTutorBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsTutorValue">142</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Clerical</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsClericalBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsClericalValue">128</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Other Categories</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigsOtherBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigsOtherValue">517</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Applications by Category -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="applicationsBreakdown">
+                                    <span class="breakdown-title">👥 Applications by Category</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content" id="applicationsBreakdown">
+                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/applications/byCategory -->
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Driver</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsDriverBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsDriverValue">974</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Carpenter</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsCarpenterBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsCarpenterValue">856</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Electrician</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsElectricianBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsElectricianValue">623</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Plumber</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsPlumberBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsPlumberValue">547</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Mechanic</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsMechanicBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsMechanicValue">492</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Tutor</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsTutorBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsTutorValue">434</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Clerical</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsClericalBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsClericalValue">398</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Other Categories</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="appsOtherBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="appsOtherValue">1,300</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Storage Usage Overlay -->
+                <div class="stat-overlay" id="storageUsageOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">💾 Storage Usage Analytics</h2>
+                            <button class="stat-overlay-close" id="closeStorageUsageOverlay">✕</button>
+                        </div>
+
+                        <div class="stat-overlay-body">
+                            <!-- Storage Summary -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">🗄️</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Total Storage</div>
+                                        <div class="revenue-amount" id="storageOverlayTotal">3.8 GB</div>
+                                        <div class="revenue-sublabel">of 10 GB plan</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">📷</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Media Files</div>
+                                        <div class="revenue-amount" id="storageOverlayMediaCount">12,456</div>
+                                        <div class="revenue-sublabel" id="storageOverlayMediaSize">2.4 GB</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">💵</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Storage Cost</div>
+                                        <div class="revenue-amount cost-value" id="storageOverlayCost">$1.20</div>
+                                        <div class="revenue-sublabel">per month</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Media Uploads Breakdown -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="mediaUploadsBreakdown">
+                                    <span class="breakdown-title">📷 Media Uploads by Type</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content expanded" id="mediaUploadsBreakdown">
+                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/storage/mediaTypes -->
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Profile Photos</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="profilePhotosBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="profilePhotosValue">4,567 (0.8 GB)</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Gig Photos</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="gigPhotosBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="gigPhotosValue">6,234 (1.3 GB)</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">ID Verifications</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="idVerificationsBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="idVerificationsValue">1,255 (0.2 GB)</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Other Files</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="otherFilesBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="otherFilesValue">400 (0.1 GB)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Storage Usage Over Time (Placeholder) -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header">
+                                    <span class="breakdown-title">📈 Storage Growth</span>
+                                </div>
+                                <div class="breakdown-content expanded">
+                                    <div class="storage-growth-info">
+                                        <div class="growth-stat">
+                                            <span class="growth-label">This Month:</span>
+                                            <span class="growth-value" id="storageGrowthMonth">+0.4 GB</span>
+                                        </div>
+                                        <div class="growth-stat">
+                                            <span class="growth-label">Average Monthly:</span>
+                                            <span class="growth-value" id="storageGrowthAvg">+0.5 GB</span>
+                                        </div>
+                                        <div class="growth-stat">
+                                            <span class="growth-label">Projected Full:</span>
+                                            <span class="growth-value" id="storageProjectedFull">12 months</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Traffic & Costs Overlay -->
+                <div class="stat-overlay" id="trafficCostsOverlay">
+                    <div class="stat-overlay-content">
+                        <div class="stat-overlay-header">
+                            <h2 class="stat-overlay-title">🌐 Traffic & Firebase Costs</h2>
+                            <button class="stat-overlay-close" id="closeTrafficCostsOverlay">✕</button>
+                        </div>
+
+                        <div class="stat-overlay-body">
+                            <!-- Period Selector -->
+                            <div class="overlay-controls">
+                                <label for="trafficPeriodSelect" class="filter-label">Time Period:</label>
+                                <select id="trafficPeriodSelect" class="date-range-select">
+                                    <option value="today">Today</option>
+                                    <option value="week">This Week</option>
+                                    <option value="month" selected>This Month</option>
+                                    <option value="year">Year to Date</option>
+                                    <option value="all">All Time</option>
+                                </select>
+                            </div>
+
+                            <!-- Traffic Summary -->
+                            <div class="revenue-showcase">
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">🌐</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Bandwidth</div>
+                                        <div class="revenue-amount" id="trafficOverlayBandwidth">12.4 GB</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">📖</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Database Reads</div>
+                                        <div class="revenue-amount" id="trafficOverlayReads">342K</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">✍️</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Database Writes</div>
+                                        <div class="revenue-amount" id="trafficOverlayWrites">87K</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon">💵</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Firebase Cost</div>
+                                        <div class="revenue-amount cost-value" id="trafficOverlayCost">$3.20</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cost Breakdown -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header expandable" data-target="firebaseCostBreakdown">
+                                    <span class="breakdown-title">💵 Firebase Cost Breakdown</span>
+                                    <span class="expand-icon">▼</span>
+                                </div>
+                                <div class="breakdown-content expanded" id="firebaseCostBreakdown">
+                                    <!-- FIREBASE TODO: Fetch from /admin/analytics/traffic/costs -->
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Database Operations</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="dbOperationsCostBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="dbOperationsCostValue">$1.80</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Storage Costs</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="storageCostBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="storageCostValue">$0.80</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Bandwidth Egress</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="bandwidthCostBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="bandwidthCostValue">$0.40</div>
+                                        </div>
+                                    </div>
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-bar-container">
+                                            <div class="breakdown-label">Authentication</div>
+                                            <div class="breakdown-bar">
+                                                <div class="breakdown-bar-fill" id="authCostBar"></div>
+                                            </div>
+                                            <div class="breakdown-value" id="authCostValue">$0.20</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Traffic Trends -->
+                            <div class="stat-breakdown-section">
+                                <div class="breakdown-header">
+                                    <span class="breakdown-title">📊 Traffic Trends</span>
+                                </div>
+                                <div class="breakdown-content expanded">
+                                    <div class="traffic-trends-info">
+                                        <div class="trend-stat">
+                                            <span class="trend-label">Daily Average:</span>
+                                            <span class="trend-value" id="trafficDailyAvg">412 MB</span>
+                                        </div>
+                                        <div class="trend-stat">
+                                            <span class="trend-label">Peak Day:</span>
+                                            <span class="trend-value" id="trafficPeakDay">847 MB</span>
+                                        </div>
+                                        <div class="trend-stat">
+                                            <span class="trend-label">vs Last Period:</span>
+                                            <span class="trend-value green" id="trafficGrowthRate">+18%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="dashboard-grid">
                     <!-- User Activity Analytics Card -->
-                    <div class="dashboard-card" id="userActivityCard">
+                    <div class="dashboard-card clickable-card" id="userActivityCard">
                         <h3 class="card-title">📊 User Activity</h3>
                         <!-- FIREBASE TODO: Fetch from /admin/analytics/userActivity -->
                         
                         <div class="analytics-section">
+                            <div class="section-subtitle-small">Mobile Platforms</div>
                             <div class="analytics-row">
                                 <div class="analytics-item">
-                                    <div class="analytics-label">📱 Mobile</div>
-                                    <div class="analytics-value" id="mobileDeviceCount">1,245</div>
+                                    <div class="analytics-label">🤖 Android</div>
+                                    <div class="analytics-value" id="androidDeviceCount">847</div>
                                     <div class="analytics-percent">68%</div>
                                 </div>
                                 <div class="analytics-item">
-                                    <div class="analytics-label">💻 Desktop</div>
-                                    <div class="analytics-value" id="desktopDeviceCount">587</div>
+                                    <div class="analytics-label">🍎 iPhone</div>
+                                    <div class="analytics-value" id="iphoneDeviceCount">398</div>
                                     <div class="analytics-percent">32%</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="analytics-section">
-                            <div class="section-subtitle-small">Browser Distribution</div>
-                            <div class="browser-list">
-                                <!-- FIREBASE TODO: Fetch from /admin/analytics/userActivity/browsers -->
-                                <div class="browser-item">
-                                    <span class="browser-name">Chrome</span>
-                                    <div class="browser-bar-container">
-                                        <div class="browser-bar" style="width: 65%; background: #4285f4;"></div>
-                                    </div>
-                                    <span class="browser-count" id="chromeBrowserCount">1,192</span>
-                                </div>
-                                <div class="browser-item">
-                                    <span class="browser-name">Safari</span>
-                                    <div class="browser-bar-container">
-                                        <div class="browser-bar" style="width: 20%; background: #000000;"></div>
-                                    </div>
-                                    <span class="browser-count" id="safariBrowserCount">367</span>
-                                </div>
-                                <div class="browser-item">
-                                    <span class="browser-name">Firefox</span>
-                                    <div class="browser-bar-container">
-                                        <div class="browser-bar" style="width: 8%; background: #ff7139;"></div>
-                                    </div>
-                                    <span class="browser-count" id="firefoxBrowserCount">147</span>
-                                </div>
-                                <div class="browser-item">
-                                    <span class="browser-name">Edge</span>
-                                    <div class="browser-bar-container">
-                                        <div class="browser-bar" style="width: 5%; background: #0078d7;"></div>
-                                    </div>
-                                    <span class="browser-count" id="edgeBrowserCount">92</span>
-                                </div>
-                                <div class="browser-item">
-                                    <span class="browser-name">Other</span>
-                                    <div class="browser-bar-container">
-                                        <div class="browser-bar" style="width: 2%; background: #888;"></div>
-                                    </div>
-                                    <span class="browser-count" id="otherBrowserCount">34</span>
                                 </div>
                             </div>
                         </div>
@@ -828,100 +1440,78 @@
                                     <div class="analytics-value" id="avgSessionDuration">8m 34s</div>
                                 </div>
                                 <div class="analytics-item">
-                                    <div class="analytics-label">🔄 Repeat Users</div>
-                                    <div class="analytics-value" id="repeatUserPercent">42%</div>
+                                    <div class="analytics-label">🕐 Peak Hours</div>
+                                    <div class="analytics-value" id="peakHoursDisplay">6PM-9PM</div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="analytics-section">
-                            <div class="section-subtitle-small">Peak Usage Hours (24h)</div>
-                            <div class="peak-hours-display" id="peakHoursDisplay">
-                                <span class="peak-hour-badge">6PM - 9PM</span>
-                                <span class="peak-hour-count">~487 active users</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Content Analytics Card -->
-                    <div class="dashboard-card" id="contentAnalyticsCard">
-                        <h3 class="card-title">📈 Content Analytics</h3>
-                        <!-- FIREBASE TODO: Fetch from /admin/analytics/content -->
+                    <!-- Gigs Analytics Card -->
+                    <div class="dashboard-card clickable-card" id="gigsAnalyticsCard">
+                        <h3 class="card-title">💼 Gigs Analytics</h3>
+                        <!-- FIREBASE TODO: Fetch from /admin/analytics/gigs -->
                         
                         <div class="analytics-section">
-                            <div class="section-subtitle-small">Gig Activity</div>
                             <div class="analytics-row">
                                 <div class="analytics-item">
                                     <div class="analytics-label">📝 Total Gigs</div>
                                     <div class="analytics-value" id="totalGigsPosted">1,847</div>
                                 </div>
                                 <div class="analytics-item">
-                                    <div class="analytics-label">👥 Applicants</div>
+                                    <div class="analytics-label">👥 Applications</div>
                                     <div class="analytics-value" id="totalApplicants">5,624</div>
                                 </div>
                             </div>
                             <div class="ratio-display">
-                                <span class="ratio-label">Avg. Applicants per Gig:</span>
+                                <span class="ratio-label">Avg. per Gig:</span>
                                 <span class="ratio-value" id="avgApplicantsPerGig">3.0</span>
                             </div>
                         </div>
+                    </div>
+                </div>
 
+                <div class="dashboard-grid">
+                    <!-- Storage Usage Card -->
+                    <div class="dashboard-card clickable-card" id="storageUsageCard">
+                        <h3 class="card-title">💾 Storage Usage</h3>
+                        <!-- FIREBASE TODO: Fetch from /admin/analytics/storage -->
+                        
                         <div class="analytics-section">
-                            <div class="section-subtitle-small">Storage Usage</div>
-                            <!-- FIREBASE TODO: Fetch from /admin/analytics/content/storage -->
-                            <div class="storage-stats">
-                                <div class="storage-item">
-                                    <span class="storage-icon">📷</span>
-                                    <div class="storage-info">
-                                        <div class="storage-label">Media Uploads</div>
-                                        <div class="storage-value" id="mediaUploadCount">12,456 files</div>
-                                        <div class="storage-size" id="mediaStorageSize">2.4 GB</div>
-                                    </div>
-                                </div>
-                                <div class="storage-item">
-                                    <span class="storage-icon">🗄️</span>
-                                    <div class="storage-info">
-                                        <div class="storage-label">Total Storage</div>
-                                        <div class="storage-value" id="totalStorageUsed">3.8 GB</div>
-                                        <div class="storage-limit">/ 10 GB plan</div>
+                            <div class="storage-main-display">
+                                <div class="storage-icon-large">🗄️</div>
+                                <div class="storage-main-info">
+                                    <div class="storage-main-label">Total Storage Used</div>
+                                    <div class="storage-main-value" id="totalStorageUsed">3.8 GB</div>
+                                    <div class="storage-main-limit">of 10 GB plan</div>
+                                    <div class="storage-progress-bar">
+                                        <div class="storage-progress-fill" style="width: 38%;" id="storageProgressFill"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
+                    <!-- Traffic Costs Card -->
+                    <div class="dashboard-card clickable-card" id="trafficCostsCard">
+                        <h3 class="card-title">🌐 Traffic & Costs</h3>
+                        <!-- FIREBASE TODO: Fetch from /admin/analytics/traffic -->
+                        
                         <div class="analytics-section">
-                            <div class="section-subtitle-small">Traffic & Costs</div>
-                            <!-- FIREBASE TODO: Fetch from /admin/analytics/content/traffic -->
-                            <div class="traffic-stats">
-                                <div class="traffic-row">
-                                    <span class="traffic-label">🌐 Bandwidth (30d)</span>
-                                    <span class="traffic-value" id="bandwidthUsage">45.2 GB</span>
+                            <div class="traffic-compact">
+                                <div class="traffic-compact-item">
+                                    <div class="traffic-compact-icon">📊</div>
+                                    <div class="traffic-compact-info">
+                                        <div class="traffic-compact-label">Bandwidth (MTD)</div>
+                                        <div class="traffic-compact-value" id="bandwidthUsageMTD">12.4 GB</div>
+                                    </div>
                                 </div>
-                                <div class="traffic-row">
-                                    <span class="traffic-label">📊 DB Reads</span>
-                                    <span class="traffic-value" id="dbReadsCount">1.2M reads</span>
-                                </div>
-                                <div class="traffic-row">
-                                    <span class="traffic-label">✍️ DB Writes</span>
-                                    <span class="traffic-value" id="dbWritesCount">340K writes</span>
-                                </div>
-                                <div class="traffic-row cost-estimate">
-                                    <span class="traffic-label">💵 Est. Firebase Cost</span>
-                                    <span class="traffic-value cost-value" id="firebaseCostEstimate">$12.40</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="analytics-section">
-                            <div class="section-subtitle-small">Engagement Metrics</div>
-                            <div class="analytics-row">
-                                <div class="analytics-item">
-                                    <div class="analytics-label">🔍 Search Queries</div>
-                                    <div class="analytics-value" id="searchQueriesCount">8,945</div>
-                                </div>
-                                <div class="analytics-item">
-                                    <div class="analytics-label">⚡ Avg. Response</div>
-                                    <div class="analytics-value" id="avgResponseTime">4.2h</div>
+                                <div class="traffic-compact-item cost-highlight">
+                                    <div class="traffic-compact-icon">💵</div>
+                                    <div class="traffic-compact-info">
+                                        <div class="traffic-compact-label">Firebase Cost (MTD)</div>
+                                        <div class="traffic-compact-value cost-value" id="firebaseCostMTD">$3.20</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
