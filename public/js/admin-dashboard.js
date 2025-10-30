@@ -5050,20 +5050,37 @@ function populateGigsReportedData(data) {
     
     // Report reasons breakdown
     const reasonsDistribution = generateDistribution(5, total);
-    updateBreakdownBar('inappropriateContent', reasonsDistribution[0], total);
-    updateBreakdownBar('scamFraud', reasonsDistribution[1], total);
-    updateBreakdownBar('misleadingInfo', reasonsDistribution[2], total);
-    updateBreakdownBar('duplicatePosting', reasonsDistribution[3], total);
-    updateBreakdownBar('otherReason', reasonsDistribution[4], total);
+    
+    // Update each reason with value and percentage
+    setElementValue('inappropriateContentValue', reasonsDistribution[0].toLocaleString());
+    setElementValue('inappropriateContentPercent', `${((reasonsDistribution[0] / total) * 100).toFixed(1)}%`);
+    
+    setElementValue('scamFraudValue', reasonsDistribution[1].toLocaleString());
+    setElementValue('scamFraudPercent', `${((reasonsDistribution[1] / total) * 100).toFixed(1)}%`);
+    
+    setElementValue('misleadingInfoValue', reasonsDistribution[2].toLocaleString());
+    setElementValue('misleadingInfoPercent', `${((reasonsDistribution[2] / total) * 100).toFixed(1)}%`);
+    
+    setElementValue('duplicatePostingValue', reasonsDistribution[3].toLocaleString());
+    setElementValue('duplicatePostingPercent', `${((reasonsDistribution[3] / total) * 100).toFixed(1)}%`);
+    
+    setElementValue('otherReasonValue', reasonsDistribution[4].toLocaleString());
+    setElementValue('otherReasonPercent', `${((reasonsDistribution[4] / total) * 100).toFixed(1)}%`);
     
     // Report status
     const pending = Math.floor(total * (0.5 + Math.random() * 0.2)); // 50-70%
     const ignored = Math.floor(total * (0.1 + Math.random() * 0.1)); // 10-20%
     const suspended = total - pending - ignored;
     
-    updateBreakdownBar('pendingReview', pending, total);
-    updateBreakdownBar('ignoredReports', ignored, total);
-    updateBreakdownBar('suspendedReports', suspended, total);
+    // Update status values and percentages
+    setElementValue('pendingReviewValue', pending.toLocaleString());
+    setElementValue('pendingReviewPercent', `${((pending / total) * 100).toFixed(1)}%`);
+    
+    setElementValue('ignoredReportsValue', ignored.toLocaleString());
+    setElementValue('ignoredReportsPercent', `${((ignored / total) * 100).toFixed(1)}%`);
+    
+    setElementValue('suspendedReportsValue', suspended.toLocaleString());
+    setElementValue('suspendedReportsPercent', `${((suspended / total) * 100).toFixed(1)}%`);
 }
 
 // Populate User Activity overlay data
@@ -5085,8 +5102,11 @@ function populateUserActivityData(data) {
     setElementValue('userActivityBounceRate', '28%');
     
     // Mobile Platform Breakdown
-    updateBreakdownBar('androidBreakdown', androidCount, totalMobile);
-    updateBreakdownBar('iphoneBreakdown', iphoneCount, totalMobile);
+    setElementValue('androidBreakdownValue', androidCount.toLocaleString());
+    setElementValue('androidBreakdownPercent', `${((androidCount / totalMobile) * 100).toFixed(0)}%`);
+    
+    setElementValue('iphoneBreakdownValue', iphoneCount.toLocaleString());
+    setElementValue('iphoneBreakdownPercent', `${((iphoneCount / totalMobile) * 100).toFixed(0)}%`);
     
     // Browser Distribution (percentages of total users)
     const totalBrowserUsers = totalMobile + desktop;
@@ -5098,16 +5118,35 @@ function populateUserActivityData(data) {
         otherBrowser: Math.round(totalBrowserUsers * 0.02)
     };
     
-    Object.keys(browsers).forEach(browser => {
-        updateBreakdownBar(browser, browsers[browser], totalBrowserUsers);
-    });
+    setElementValue('chromeValue', browsers.chrome.toLocaleString());
+    setElementValue('chromePercent', `65%`);
+    
+    setElementValue('safariValue', browsers.safari.toLocaleString());
+    setElementValue('safariPercent', `20%`);
+    
+    setElementValue('firefoxValue', browsers.firefox.toLocaleString());
+    setElementValue('firefoxPercent', `8%`);
+    
+    setElementValue('edgeValue', browsers.edge.toLocaleString());
+    setElementValue('edgePercent', `5%`);
+    
+    setElementValue('otherBrowserValue', browsers.otherBrowser.toLocaleString());
+    setElementValue('otherBrowserPercent', `2%`);
     
     // Session Duration Breakdown
     const sessionDistribution = generateDistribution(4, totalBrowserUsers);
-    updateBreakdownBar('session0to5', sessionDistribution[0], totalBrowserUsers);
-    updateBreakdownBar('session5to15', sessionDistribution[1], totalBrowserUsers);
-    updateBreakdownBar('session15to30', sessionDistribution[2], totalBrowserUsers);
-    updateBreakdownBar('session30plus', sessionDistribution[3], totalBrowserUsers);
+    
+    setElementValue('session0to5Value', sessionDistribution[0].toLocaleString());
+    setElementValue('session0to5Percent', `${((sessionDistribution[0] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    
+    setElementValue('session5to15Value', sessionDistribution[1].toLocaleString());
+    setElementValue('session5to15Percent', `${((sessionDistribution[1] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    
+    setElementValue('session15to30Value', sessionDistribution[2].toLocaleString());
+    setElementValue('session15to30Percent', `${((sessionDistribution[2] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    
+    setElementValue('session30plusValue', sessionDistribution[3].toLocaleString());
+    setElementValue('session30plusPercent', `${((sessionDistribution[3] / totalBrowserUsers) * 100).toFixed(0)}%`);
     
     setElementValue('avgSessionOverlayDisplay', '8m 34s');
     
@@ -5195,16 +5234,16 @@ function populateStorageUsageData(data) {
     
     // Media Uploads Breakdown
     const mediaDistribution = {
-        profilePhotos: { count: 4567, size: storageGB * 0.21 },
-        gigPhotos: { count: 6234, size: storageGB * 0.34 },
-        idVerifications: { count: 1255, size: storageGB * 0.05 },
-        otherFiles: { count: 400, size: storageGB * 0.03 }
+        profilePhotos: { count: 4567, size: storageGB * 0.21, percent: 21 },
+        gigPhotos: { count: 6234, size: storageGB * 0.34, percent: 34 },
+        idVerifications: { count: 1255, size: storageGB * 0.05, percent: 5 },
+        otherFiles: { count: 400, size: storageGB * 0.03, percent: 3 }
     };
     
     Object.keys(mediaDistribution).forEach(type => {
         const item = mediaDistribution[type];
-        updateBreakdownBar(type, item.size, storageGB);
         setElementValue(`${type}Value`, `${item.count.toLocaleString()} (${item.size.toFixed(1)} GB)`);
+        setElementValue(`${type}Percent`, `${item.percent}%`);
     });
     
     // Storage Growth
@@ -5267,18 +5306,18 @@ function populateTrafficCostsData(data) {
     setElementValue('trafficOverlayWrites', writes >= 1000 ? `${(writes/1000).toFixed(0)}K` : writes.toString());
     setElementValue('trafficOverlayCost', `$${totalCost.toFixed(2)}`);
     
-    // Cost Breakdown
-    updateBreakdownBar('dbOperationsCost', dbCost, totalCost);
+    // Cost Breakdown with percentages
     setElementValue('dbOperationsCostValue', `$${dbCost.toFixed(2)}`);
+    setElementValue('dbOperationsCostPercent', `${((dbCost / totalCost) * 100).toFixed(0)}%`);
     
-    updateBreakdownBar('storageCost', storageCost, totalCost);
     setElementValue('storageCostValue', `$${storageCost.toFixed(2)}`);
+    setElementValue('storageCostPercent', `${((storageCost / totalCost) * 100).toFixed(0)}%`);
     
-    updateBreakdownBar('bandwidthCost', bandwidthCost, totalCost);
     setElementValue('bandwidthCostValue', `$${bandwidthCost.toFixed(2)}`);
+    setElementValue('bandwidthCostPercent', `${((bandwidthCost / totalCost) * 100).toFixed(0)}%`);
     
-    updateBreakdownBar('authCost', authCost, totalCost);
     setElementValue('authCostValue', `$${authCost.toFixed(2)}`);
+    setElementValue('authCostPercent', `${((authCost / totalCost) * 100).toFixed(0)}%`);
     
     // Traffic Trends
     setElementValue('trafficDailyAvg', `${(bandwidth / 30).toFixed(0)} MB`);

@@ -665,54 +665,50 @@
 
                             <!-- Report Reasons -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="reportReasonsBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">📋 Report Reasons</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content" id="reportReasonsBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Inappropriate Content</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="inappropriateContentBar"></div>
+                                <div class="breakdown-content expanded" id="reportReasonsBreakdown">
+                                    <div class="revenue-showcase" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">🔞</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Inappropriate</div>
+                                                <div class="revenue-amount" id="inappropriateContentValue">0</div>
+                                                <div class="revenue-percent" id="inappropriateContentPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="inappropriateContentValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Scam/Fraud</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="scamFraudBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">🎣</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Scam/Fraud</div>
+                                                <div class="revenue-amount" id="scamFraudValue">0</div>
+                                                <div class="revenue-percent" id="scamFraudPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="scamFraudValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Misleading Info</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="misleadingInfoBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ec4899);">❌</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Misleading Info</div>
+                                                <div class="revenue-amount" id="misleadingInfoValue">0</div>
+                                                <div class="revenue-percent" id="misleadingInfoPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="misleadingInfoValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Duplicate Posting</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="duplicatePostingBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">📑</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Duplicate Post</div>
+                                                <div class="revenue-amount" id="duplicatePostingValue">0</div>
+                                                <div class="revenue-percent" id="duplicatePostingPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="duplicatePostingValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Other</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="otherReasonBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #6b7280);">📝</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Other Reasons</div>
+                                                <div class="revenue-amount" id="otherReasonValue">0</div>
+                                                <div class="revenue-percent" id="otherReasonPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="otherReasonValue">0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -720,36 +716,34 @@
 
                             <!-- Report Status -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="reportStatusBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">✅ Report Status</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content" id="reportStatusBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Pending Review</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill orange" id="pendingReviewBar"></div>
+                                <div class="breakdown-content expanded" id="reportStatusBreakdown">
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">⏳</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Pending Review</div>
+                                                <div class="revenue-amount" style="color: #fbbf24;" id="pendingReviewValue">0</div>
+                                                <div class="revenue-percent" id="pendingReviewPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="pendingReviewValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Ignored</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="ignoredReportsBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">✖️</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Ignored</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="ignoredReportsValue">0</div>
+                                                <div class="revenue-percent" id="ignoredReportsPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="ignoredReportsValue">0</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Suspended</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill red" id="suspendedReportsBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">🚫</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Suspended</div>
+                                                <div class="revenue-amount" style="color: #ef4444;" id="suspendedReportsValue">0</div>
+                                                <div class="revenue-percent" id="suspendedReportsPercent">0%</div>
                                             </div>
-                                            <div class="breakdown-value" id="suspendedReportsValue">0</div>
                                         </div>
                                     </div>
                                 </div>
@@ -803,27 +797,26 @@
 
                             <!-- Mobile Platform Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="mobilePlatformBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">📱 Mobile Platforms</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content" id="mobilePlatformBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">🤖 Android</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="androidBreakdownBar" style="background: #3ddc84;"></div>
+                                <div class="breakdown-content expanded" id="mobilePlatformBreakdown">
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3ddc84);">🤖</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Android</div>
+                                                <div class="revenue-amount" style="color: #3ddc84;" id="androidBreakdownValue">847</div>
+                                                <div class="revenue-percent" id="androidBreakdownPercent">68%</div>
                                             </div>
-                                            <div class="breakdown-value" id="androidBreakdownValue">847</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">🍎 iPhone</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="iphoneBreakdownBar" style="background: #000;"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a3a3a3);">🍎</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">iPhone</div>
+                                                <div class="revenue-amount" style="color: #a3a3a3;" id="iphoneBreakdownValue">398</div>
+                                                <div class="revenue-percent" id="iphoneBreakdownPercent">32%</div>
                                             </div>
-                                            <div class="breakdown-value" id="iphoneBreakdownValue">398</div>
                                         </div>
                                     </div>
                                 </div>
@@ -831,54 +824,50 @@
 
                             <!-- Browser Distribution -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="browserDistributionBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">🌐 Browser Distribution</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content expanded" id="browserDistributionBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Chrome</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="chromeBar" style="background: #4285f4;"></div>
+                                    <div class="revenue-showcase" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #4285f4);">🔵</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Chrome</div>
+                                                <div class="revenue-amount" style="color: #4285f4;" id="chromeValue">1,192</div>
+                                                <div class="revenue-percent" id="chromePercent">65%</div>
                                             </div>
-                                            <div class="breakdown-value" id="chromeValue">1,192</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Safari</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="safariBar" style="background: #000;"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a3a3a3);">🧭</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Safari</div>
+                                                <div class="revenue-amount" style="color: #a3a3a3;" id="safariValue">367</div>
+                                                <div class="revenue-percent" id="safariPercent">20%</div>
                                             </div>
-                                            <div class="breakdown-value" id="safariValue">367</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Firefox</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="firefoxBar" style="background: #ff7139;"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ff7139);">🦊</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Firefox</div>
+                                                <div class="revenue-amount" style="color: #ff7139;" id="firefoxValue">147</div>
+                                                <div class="revenue-percent" id="firefoxPercent">8%</div>
                                             </div>
-                                            <div class="breakdown-value" id="firefoxValue">147</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Edge</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="edgeBar" style="background: #0078d7;"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #0078d7);">🌊</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Edge</div>
+                                                <div class="revenue-amount" style="color: #0078d7;" id="edgeValue">92</div>
+                                                <div class="revenue-percent" id="edgePercent">5%</div>
                                             </div>
-                                            <div class="breakdown-value" id="edgeValue">92</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Other</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="otherBrowserBar" style="background: #888;"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #888);">🌐</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Other</div>
+                                                <div class="revenue-amount" style="color: #888;" id="otherBrowserValue">34</div>
+                                                <div class="revenue-percent" id="otherBrowserPercent">2%</div>
                                             </div>
-                                            <div class="breakdown-value" id="otherBrowserValue">34</div>
                                         </div>
                                     </div>
                                 </div>
@@ -886,45 +875,42 @@
 
                             <!-- Session Duration Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="sessionDurationBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">⏱️ Session Duration Analysis</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content" id="sessionDurationBreakdown">
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">0-5 minutes</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill red" id="session0to5Bar"></div>
+                                <div class="breakdown-content expanded" id="sessionDurationBreakdown">
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">⚡</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">0-5 minutes</div>
+                                                <div class="revenue-amount" style="color: #ef4444;" id="session0to5Value">342</div>
+                                                <div class="revenue-percent" id="session0to5Percent">19%</div>
                                             </div>
-                                            <div class="breakdown-value" id="session0to5Value">342</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">5-15 minutes</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill yellow" id="session5to15Bar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">⏱️</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">5-15 minutes</div>
+                                                <div class="revenue-amount" style="color: #fbbf24;" id="session5to15Value">687</div>
+                                                <div class="revenue-percent" id="session5to15Percent">38%</div>
                                             </div>
-                                            <div class="breakdown-value" id="session5to15Value">687</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">15-30 minutes</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="session15to30Bar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">⏲️</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">15-30 minutes</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="session15to30Value">456</div>
+                                                <div class="revenue-percent" id="session15to30Percent">25%</div>
                                             </div>
-                                            <div class="breakdown-value" id="session15to30Value">456</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">30+ minutes</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="session30plusBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">⌛</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">30+ minutes</div>
+                                                <div class="revenue-amount" style="color: #3b82f6;" id="session30plusValue">347</div>
+                                                <div class="revenue-percent" id="session30plusPercent">19%</div>
                                             </div>
-                                            <div class="breakdown-value" id="session30plusValue">347</div>
                                         </div>
                                     </div>
                                     <div class="session-avg-display">
@@ -1214,46 +1200,43 @@
 
                             <!-- Media Uploads Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="mediaUploadsBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">📷 Media Uploads by Type</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content expanded" id="mediaUploadsBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/storage/mediaTypes -->
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Profile Photos</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="profilePhotosBar"></div>
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">👤</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Profile Photos</div>
+                                                <div class="revenue-amount" style="color: #8b5cf6;" id="profilePhotosValue">4,567 (0.8 GB)</div>
+                                                <div class="revenue-percent" id="profilePhotosPercent">21%</div>
                                             </div>
-                                            <div class="breakdown-value" id="profilePhotosValue">4,567 (0.8 GB)</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Gig Photos</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="gigPhotosBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">💼</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Gig Photos</div>
+                                                <div class="revenue-amount" style="color: #3b82f6;" id="gigPhotosValue">6,234 (1.3 GB)</div>
+                                                <div class="revenue-percent" id="gigPhotosPercent">34%</div>
                                             </div>
-                                            <div class="breakdown-value" id="gigPhotosValue">6,234 (1.3 GB)</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">ID Verifications</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="idVerificationsBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">🆔</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">ID Verifications</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="idVerificationsValue">1,255 (0.2 GB)</div>
+                                                <div class="revenue-percent" id="idVerificationsPercent">5%</div>
                                             </div>
-                                            <div class="breakdown-value" id="idVerificationsValue">1,255 (0.2 GB)</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Other Files</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="otherFilesBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #6b7280);">📁</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Other Files</div>
+                                                <div class="revenue-amount" style="color: #6b7280;" id="otherFilesValue">400 (0.1 GB)</div>
+                                                <div class="revenue-percent" id="otherFilesPercent">3%</div>
                                             </div>
-                                            <div class="breakdown-value" id="otherFilesValue">400 (0.1 GB)</div>
                                         </div>
                                     </div>
                                 </div>
@@ -1340,46 +1323,43 @@
 
                             <!-- Cost Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header expandable" data-target="firebaseCostBreakdown">
+                                <div class="breakdown-header">
                                     <span class="breakdown-title">💵 Firebase Cost Breakdown</span>
-                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content expanded" id="firebaseCostBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/traffic/costs -->
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Database Operations</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="dbOperationsCostBar"></div>
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">📊</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Database Operations</div>
+                                                <div class="revenue-amount" style="color: #3b82f6;" id="dbOperationsCostValue">$1.80</div>
+                                                <div class="revenue-percent" id="dbOperationsCostPercent">56%</div>
                                             </div>
-                                            <div class="breakdown-value" id="dbOperationsCostValue">$1.80</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Storage Costs</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="storageCostBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">💾</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Storage Costs</div>
+                                                <div class="revenue-amount" style="color: #8b5cf6;" id="storageCostValue">$0.80</div>
+                                                <div class="revenue-percent" id="storageCostPercent">25%</div>
                                             </div>
-                                            <div class="breakdown-value" id="storageCostValue">$0.80</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Bandwidth Egress</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="bandwidthCostBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">🌐</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Bandwidth Egress</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="bandwidthCostValue">$0.40</div>
+                                                <div class="revenue-percent" id="bandwidthCostPercent">13%</div>
                                             </div>
-                                            <div class="breakdown-value" id="bandwidthCostValue">$0.40</div>
                                         </div>
-                                    </div>
-                                    <div class="breakdown-item">
-                                        <div class="breakdown-bar-container">
-                                            <div class="breakdown-label">Authentication</div>
-                                            <div class="breakdown-bar">
-                                                <div class="breakdown-bar-fill" id="authCostBar"></div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">🔐</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Authentication</div>
+                                                <div class="revenue-amount" style="color: #f59e0b;" id="authCostValue">$0.20</div>
+                                                <div class="revenue-percent" id="authCostPercent">6%</div>
                                             </div>
-                                            <div class="breakdown-value" id="authCostValue">$0.20</div>
                                         </div>
                                     </div>
                                 </div>
