@@ -5182,44 +5182,70 @@ function populateGigsAnalyticsData(data) {
     setElementValue('gigsOverlayTotalApplicants', totalApps);
     setElementValue('gigsOverlayAvgPerGig', avgPerGig);
     
-    // Gigs Posted by Category (percentages of total gigs)
+    // Gigs Posted by Category (percentages of total gigs) - Top 15 + Other
     const gigsDistribution = {
-        gigsDriver: Math.round(totalGigs * 0.155),
-        gigsCarpenter: Math.round(totalGigs * 0.133),
-        gigsElectrician: Math.round(totalGigs * 0.107),
-        gigsPlumber: Math.round(totalGigs * 0.095),
-        gigsMechanic: Math.round(totalGigs * 0.083),
-        gigsTutor: Math.round(totalGigs * 0.077),
-        gigsClerical: Math.round(totalGigs * 0.069),
-        gigsOther: 0
+        driver: Math.round(totalGigs * 0.14),      // 14%
+        carpenter: Math.round(totalGigs * 0.11),   // 11%
+        limfyo: Math.round(totalGigs * 0.10),      // 10% (Limpyo - cleaning) - BOOSTED TO TOP 3
+        electrician: Math.round(totalGigs * 0.08), // 8%
+        plumber: Math.round(totalGigs * 0.07),     // 7%
+        mechanic: Math.round(totalGigs * 0.06),    // 6%
+        bantay: Math.round(totalGigs * 0.06),      // 6%
+        luto: Math.round(totalGigs * 0.06),        // 6% (cooking)
+        tutor: Math.round(totalGigs * 0.05),       // 5%
+        nurse: Math.round(totalGigs * 0.05),       // 5%
+        painter: Math.round(totalGigs * 0.04),     // 4%
+        clerical: Math.round(totalGigs * 0.04),    // 4%
+        hatod: Math.round(totalGigs * 0.03),       // 3% (delivery/transport)
+        hakot: Math.round(totalGigs * 0.03),       // 3% (hauling/moving)
+        builder: Math.round(totalGigs * 0.02),     // 2%
+        other: 0  // Will be calculated as remainder (10+ other categories, ~6-7%)
     };
     
-    // Calculate "Other" as remainder
+    // Calculate "Other" as remainder (combines 10+ other categories)
     const gigsSum = Object.values(gigsDistribution).reduce((a, b) => a + b, 0);
-    gigsDistribution.gigsOther = totalGigs - gigsSum;
+    gigsDistribution.other = totalGigs - gigsSum;
     
+    // Populate Gigs Posted by Category with counts and percentages
     Object.keys(gigsDistribution).forEach(category => {
-        updateBreakdownBar(category, gigsDistribution[category], totalGigs);
+        const count = gigsDistribution[category];
+        const percent = ((count / totalGigs) * 100).toFixed(0);
+        
+        setElementValue(`gigs${category.charAt(0).toUpperCase() + category.slice(1)}Value`, count.toLocaleString());
+        setElementValue(`gigs${category.charAt(0).toUpperCase() + category.slice(1)}Percent`, `${percent}%`);
     });
     
-    // Applications by Category (higher multipliers for popular categories)
+    // Applications by Category (higher application rates for popular categories)
     const appsDistribution = {
-        appsDriver: Math.round(totalApps * 0.173),
-        appsCarpenter: Math.round(totalApps * 0.152),
-        appsElectrician: Math.round(totalApps * 0.111),
-        appsPlumber: Math.round(totalApps * 0.097),
-        appsMechanic: Math.round(totalApps * 0.087),
-        appsTutor: Math.round(totalApps * 0.077),
-        appsClerical: Math.round(totalApps * 0.071),
-        appsOther: 0
+        driver: Math.round(totalApps * 0.14),      // 14%
+        carpenter: Math.round(totalApps * 0.11),   // 11%
+        electrician: Math.round(totalApps * 0.09), // 9%
+        plumber: Math.round(totalApps * 0.08),     // 8%
+        mechanic: Math.round(totalApps * 0.07),    // 7%
+        bantay: Math.round(totalApps * 0.07),      // 7%
+        limfyo: Math.round(totalApps * 0.06),      // 6% (Limpyo - cleaning)
+        luto: Math.round(totalApps * 0.06),        // 6% (cooking)
+        tutor: Math.round(totalApps * 0.05),       // 5%
+        nurse: Math.round(totalApps * 0.05),       // 5%
+        painter: Math.round(totalApps * 0.04),     // 4%
+        clerical: Math.round(totalApps * 0.04),    // 4%
+        hatod: Math.round(totalApps * 0.03),       // 3% (delivery/transport)
+        hakot: Math.round(totalApps * 0.03),       // 3% (hauling/moving)
+        builder: Math.round(totalApps * 0.02),     // 2%
+        other: 0  // Will be calculated as remainder (10+ other categories, ~6-7%)
     };
     
-    // Calculate "Other" as remainder
+    // Calculate "Other" as remainder (combines 10+ other categories)
     const appsSum = Object.values(appsDistribution).reduce((a, b) => a + b, 0);
-    appsDistribution.appsOther = totalApps - appsSum;
+    appsDistribution.other = totalApps - appsSum;
     
+    // Populate Applications by Category with counts and percentages
     Object.keys(appsDistribution).forEach(category => {
-        updateBreakdownBar(category, appsDistribution[category], totalApps);
+        const count = appsDistribution[category];
+        const percent = ((count / totalApps) * 100).toFixed(0);
+        
+        setElementValue(`apps${category.charAt(0).toUpperCase() + category.slice(1)}Value`, count.toLocaleString());
+        setElementValue(`apps${category.charAt(0).toUpperCase() + category.slice(1)}Percent`, `${percent}%`);
     });
 }
 

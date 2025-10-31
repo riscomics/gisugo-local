@@ -5934,7 +5934,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .breakdown-content.expanded {
-    max-height: 1000px;
+    max-height: 1500px;
     padding: 1rem 1.5rem;
 }
 
