@@ -831,7 +831,7 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="browserDistributionBreakdown">
-                                    <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
+                                    <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 12px rgba(251, 188, 5, 0.9));">🟡</div>
                                             <div class="revenue-details">
@@ -891,7 +891,7 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="sessionDurationBreakdown">
-                                    <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
+                                    <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">⚡</div>
                                             <div class="revenue-details">
@@ -939,28 +939,37 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="peakUsageBreakdown">
-                                    <div class="peak-usage-display">
-                                        <div class="peak-usage-primary">
-                                            <div class="peak-badge">🔥 PEAK TIME</div>
-                                            <div class="peak-time">6:00 PM - 9:00 PM</div>
-                                            <div class="peak-count" id="peakUsageCount">487</div>
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">🌅</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Morning</div>
+                                                <div class="revenue-sublabel">6AM - 12PM</div>
+                                                <div class="revenue-amount" style="color: #fbbf24;" id="morningUsersCount">245</div>
+                                            </div>
                                         </div>
-                                        <div class="peak-usage-secondary">
-                                            <div class="peak-secondary-item">
-                                                <span class="peak-secondary-label">Morning (6AM-12PM):</span>
-                                                <span class="peak-secondary-value" id="morningUsersCount">245</span>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">☀️</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Afternoon</div>
+                                                <div class="revenue-sublabel">12PM - 6PM</div>
+                                                <div class="revenue-amount" style="color: #f59e0b;" id="afternoonUsersCount">389</div>
                                             </div>
-                                            <div class="peak-secondary-item">
-                                                <span class="peak-secondary-label">Afternoon (12PM-6PM):</span>
-                                                <span class="peak-secondary-value" id="afternoonUsersCount">389</span>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 12px #ef4444);">🔥</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Evening 🏆</div>
+                                                <div class="revenue-sublabel">6PM - 12AM</div>
+                                                <div class="revenue-amount" style="color: #ef4444;" id="eveningUsersCount">487</div>
                                             </div>
-                                            <div class="peak-secondary-item">
-                                                <span class="peak-secondary-label">Evening (6PM-12AM):</span>
-                                                <span class="peak-secondary-value" id="eveningUsersCount">487</span>
-                                            </div>
-                                            <div class="peak-secondary-item">
-                                                <span class="peak-secondary-label">Night (12AM-6AM):</span>
-                                                <span class="peak-secondary-value" id="nightUsersCount">112</span>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">🌙</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Night</div>
+                                                <div class="revenue-sublabel">12AM - 6AM</div>
+                                                <div class="revenue-amount" style="color: #8b5cf6;" id="nightUsersCount">112</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1012,7 +1021,7 @@
                                 </div>
                                 <div class="breakdown-content" id="gigsPostedBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/gigs/byCategory -->
-                                    <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
+                                    <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">🚗</div>
                                             <div class="revenue-details">
@@ -1153,7 +1162,7 @@
                                 </div>
                                 <div class="breakdown-content" id="applicationsBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/applications/byCategory -->
-                                    <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
+                                    <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">🚗</div>
                                             <div class="revenue-details">
@@ -1382,18 +1391,34 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="storageGrowthBreakdown">
-                                    <div class="storage-growth-info">
-                                        <div class="growth-stat">
-                                            <span class="growth-label">This Month:</span>
-                                            <span class="growth-value" id="storageGrowthMonth">+0.4 GB</span>
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">📅</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">This Month</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="storageGrowthMonth">+0.4 GB</div>
+                                            </div>
                                         </div>
-                                        <div class="growth-stat">
-                                            <span class="growth-label">Average Monthly:</span>
-                                            <span class="growth-value" id="storageGrowthAvg">+0.5 GB</span>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">📊</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Average Monthly</div>
+                                                <div class="revenue-amount" style="color: #3b82f6;" id="storageGrowthAvg">+0.5 GB</div>
+                                            </div>
                                         </div>
-                                        <div class="growth-stat">
-                                            <span class="growth-label">Projected Full:</span>
-                                            <span class="growth-value" id="storageProjectedFull">12 months</span>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">🌟</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">All Time</div>
+                                                <div class="revenue-amount" style="color: #8b5cf6;" id="storageGrowthAllTime">3.8 GB</div>
+                                            </div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">⏱️</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Projected Full</div>
+                                                <div class="revenue-amount" style="color: #f59e0b;" id="storageProjectedFull">12 months</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1507,18 +1532,34 @@
                                     <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="trafficTrendsBreakdown">
-                                    <div class="traffic-trends-info">
-                                        <div class="trend-stat">
-                                            <span class="trend-label">Daily Average:</span>
-                                            <span class="trend-value" id="trafficDailyAvg">412 MB</span>
+                                    <div class="revenue-showcase">
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">📈</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Daily Average</div>
+                                                <div class="revenue-amount" style="color: #3b82f6;" id="trafficDailyAvg">412 MB</div>
+                                            </div>
                                         </div>
-                                        <div class="trend-stat">
-                                            <span class="trend-label">Peak Day:</span>
-                                            <span class="trend-value" id="trafficPeakDay">847 MB</span>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #f59e0b);">🔥</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Peak Day</div>
+                                                <div class="revenue-amount" style="color: #f59e0b;" id="trafficPeakDay">847 MB</div>
+                                            </div>
                                         </div>
-                                        <div class="trend-stat">
-                                            <span class="trend-label">vs Last Period:</span>
-                                            <span class="trend-value green" id="trafficGrowthRate">+18%</span>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">📉</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Lowest Day</div>
+                                                <div class="revenue-amount" style="color: #ef4444;" id="trafficLowestDay">89 MB</div>
+                                            </div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">📊</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">vs Last Period</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="trafficGrowthRate">+18%</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -6729,6 +6729,82 @@ body.admin-dashboard::-webkit-scrollbar {
     #applicationsBreakdown .revenue-label {
         font-size: 0.75rem !important;
     }
+    
+    /* Force 2 columns on mobile for these sections */
+    #browserDistributionBreakdown .revenue-showcase,
+    #sessionDurationBreakdown .revenue-showcase,
+    #gigsPostedBreakdown .revenue-showcase,
+    #applicationsBreakdown .revenue-showcase,
+    #storageGrowthBreakdown .revenue-showcase,
+    #trafficTrendsBreakdown .revenue-showcase,
+    #peakUsageBreakdown .revenue-showcase {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* Tablet range - vertical stacking for ALL overlay cards */
+@media (min-width: 769px) and (max-width: 1023px) {
+    /* All overlay cards need vertical stacking in tablet range */
+    #browserDistributionBreakdown .revenue-card,
+    #sessionDurationBreakdown .revenue-card,
+    #gigsPostedBreakdown .revenue-card,
+    #applicationsBreakdown .revenue-card,
+    #mediaUploadsBreakdown .revenue-card,
+    #storageGrowthBreakdown .revenue-card,
+    #firebaseCostBreakdown .revenue-card,
+    #trafficTrendsBreakdown .revenue-card,
+    #peakUsageBreakdown .revenue-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0.75rem 0.5rem !important;
+        gap: 0.35rem !important;
+    }
+    
+    #browserDistributionBreakdown .revenue-details,
+    #sessionDurationBreakdown .revenue-details,
+    #gigsPostedBreakdown .revenue-details,
+    #applicationsBreakdown .revenue-details,
+    #mediaUploadsBreakdown .revenue-details,
+    #storageGrowthBreakdown .revenue-details,
+    #firebaseCostBreakdown .revenue-details,
+    #trafficTrendsBreakdown .revenue-details,
+    #peakUsageBreakdown .revenue-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+    
+    /* Proper grid layouts for tablet */
+    #browserDistributionBreakdown .revenue-showcase {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+    
+    #sessionDurationBreakdown .revenue-showcase {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    #gigsPostedBreakdown .revenue-showcase,
+    #applicationsBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    #mediaUploadsBreakdown .revenue-showcase,
+    #firebaseCostBreakdown .revenue-showcase {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    #storageGrowthBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    #trafficTrendsBreakdown .revenue-showcase,
+    #peakUsageBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
 }
 
 /* Additional override for inline styles at all mobile sizes */
@@ -6744,16 +6820,104 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.6rem 0.4rem !important;
     }
     
-    /* Sections with 4 items - display 2 cards per row on mobile for readability */
+    /* Sections with multiple items - display 2 cards per row on mobile for readability */
     #mediaUploadsBreakdown .revenue-showcase,
-    #firebaseCostBreakdown .revenue-showcase {
+    #storageGrowthBreakdown .revenue-showcase,
+    #firebaseCostBreakdown .revenue-showcase,
+    #trafficTrendsBreakdown .revenue-showcase,
+    #peakUsageBreakdown .revenue-showcase {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 0.5rem;
     }
     
     #mediaUploadsBreakdown .revenue-card,
-    #firebaseCostBreakdown .revenue-card {
+    #storageGrowthBreakdown .revenue-card,
+    #firebaseCostBreakdown .revenue-card,
+    #trafficTrendsBreakdown .revenue-card,
+    #peakUsageBreakdown .revenue-card {
         min-width: 0; /* Allow cards to shrink */
+    }
+}
+
+/* Desktop-only: Expand grids to fit more cards per row */
+@media (min-width: 1024px) {
+    /* Browser Distribution - 6 cards in one row */
+    #browserDistributionBreakdown .revenue-showcase {
+        grid-template-columns: repeat(6, 1fr) !important;
+    }
+    
+    /* Session Duration - 4 cards in one row */
+    #sessionDurationBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    /* Gigs Posted by Category - 8 cards per row */
+    #gigsPostedBreakdown .revenue-showcase {
+        grid-template-columns: repeat(8, 1fr) !important;
+    }
+    
+    /* Applications by Category - 8 cards per row */
+    #applicationsBreakdown .revenue-showcase {
+        grid-template-columns: repeat(8, 1fr) !important;
+    }
+    
+    /* Media Uploads by Type - 2 cards per row */
+    #mediaUploadsBreakdown .revenue-showcase {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    /* Storage Growth - 4 cards per row */
+    #storageGrowthBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    /* Firebase Cost Breakdown - 4 cards per row */
+    #firebaseCostBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    /* Traffic Trends - 4 cards per row */
+    #trafficTrendsBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    /* Peak Usage Hours - 4 cards per row */
+    #peakUsageBreakdown .revenue-showcase {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+    
+    /* Force vertical layout for ALL cards on desktop */
+    #browserDistributionBreakdown .revenue-card,
+    #sessionDurationBreakdown .revenue-card,
+    #gigsPostedBreakdown .revenue-card,
+    #applicationsBreakdown .revenue-card,
+    #mediaUploadsBreakdown .revenue-card,
+    #storageGrowthBreakdown .revenue-card,
+    #firebaseCostBreakdown .revenue-card,
+    #trafficTrendsBreakdown .revenue-card,
+    #peakUsageBreakdown .revenue-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0.75rem 0.5rem !important;
+        gap: 0.35rem !important;
+    }
+    
+    #browserDistributionBreakdown .revenue-details,
+    #sessionDurationBreakdown .revenue-details,
+    #gigsPostedBreakdown .revenue-details,
+    #applicationsBreakdown .revenue-details,
+    #mediaUploadsBreakdown .revenue-details,
+    #storageGrowthBreakdown .revenue-details,
+    #firebaseCostBreakdown .revenue-details,
+    #trafficTrendsBreakdown .revenue-details,
+    #peakUsageBreakdown .revenue-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
     }
 }
 
