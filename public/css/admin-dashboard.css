@@ -2888,6 +2888,26 @@ body.admin-dashboard::-webkit-scrollbar {
         gap: 1rem;
     }
     
+    /* Analytics items: reduce padding to prevent wrapping */
+    .analytics-item {
+        padding: 0.45rem 0.2rem !important;
+    }
+    
+    .analytics-label {
+        font-size: 0.75rem !important;
+    }
+    
+    .analytics-value {
+        font-size: 1.2rem !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Peak Hours: smaller font to fit 11AM-2PM without wrapping */
+    #peakHoursDisplay {
+        font-size: 0.95rem !important;
+        letter-spacing: -0.02em !important;
+    }
+    
     .dashboard-card {
         width: 100%;
         max-width: 100%;
@@ -3440,22 +3460,23 @@ body.admin-dashboard::-webkit-scrollbar {
     
     /* Analytics items: reduce padding for double-digit times (11AM-2PM) */
     .analytics-item {
-        padding: 0.5rem 0.3rem !important;
+        padding: 0.4rem 0.15rem !important;
     }
     
     .analytics-label {
-        font-size: 0.75rem !important;
-        margin-bottom: 0.35rem !important;
+        font-size: 0.7rem !important;
+        margin-bottom: 0.3rem !important;
     }
     
     .analytics-value {
-        font-size: 1.25rem !important;
+        font-size: 1.15rem !important;
         white-space: nowrap !important;
     }
     
-    /* Peak Hours: even smaller font for double-digit times */
+    /* Peak Hours: much smaller font for double-digit times like 11AM-2PM */
     #peakHoursDisplay {
-        font-size: 1.05rem !important;
+        font-size: 0.9rem !important;
+        letter-spacing: -0.02em !important;
     }
     
     /* Activity time: scales from 0.85rem to 0.75rem */
@@ -3918,20 +3939,21 @@ body.admin-dashboard::-webkit-scrollbar {
     
     /* Analytics items: even tighter padding for smaller screens */
     .analytics-item {
-        padding: 0.4rem 0.25rem !important;
+        padding: 0.35rem 0.1rem !important;
     }
     
     .analytics-label {
-        font-size: 0.7rem !important;
+        font-size: 0.65rem !important;
     }
     
     .analytics-value {
-        font-size: 1.15rem !important;
+        font-size: 1.05rem !important;
     }
     
     /* Peak Hours: smaller font for double-digit times */
     #peakHoursDisplay {
-        font-size: 0.95rem !important;
+        font-size: 0.8rem !important;
+        letter-spacing: -0.03em !important;
     }
     
     .admin-main {
@@ -4025,20 +4047,21 @@ body.admin-dashboard::-webkit-scrollbar {
     
     /* Analytics items: minimal padding for smallest screens */
     .analytics-item {
-        padding: 0.35rem 0.2rem !important;
+        padding: 0.3rem 0.08rem !important;
     }
     
     .analytics-label {
-        font-size: 0.65rem !important;
+        font-size: 0.6rem !important;
     }
     
     .analytics-value {
-        font-size: 1.05rem !important;
+        font-size: 0.95rem !important;
     }
     
     /* Peak Hours: smallest font for double-digit times */
     #peakHoursDisplay {
-        font-size: 0.85rem !important;
+        font-size: 0.75rem !important;
+        letter-spacing: -0.04em !important;
     }
     
     .panel-header {
