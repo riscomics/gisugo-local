@@ -3968,14 +3968,43 @@ function generateInitialMockData() {
     
     const gigsReported = Math.floor(Math.random() * 10) + 10; // 10-19
     
-    // New analytics metrics
-    const androidUsers = Math.floor(Math.random() * 200) + 750; // 750-949
-    const iphoneUsers = Math.floor(Math.random() * 100) + 350; // 350-449
-    const totalGigs = Math.floor(Math.random() * 200) + 1750; // 1750-1949
-    const totalApplicants = Math.round(totalGigs * (Math.random() * 0.5 + 2.8)); // 2.8-3.3x gigs
-    const storageUsed = (Math.random() * 1.5 + 2.5).toFixed(1); // 2.5-4.0 GB
-    const bandwidthMTD = (Math.random() * 3 + 10).toFixed(1); // 10-13 GB
-    const firebaseCostMTD = (Math.random() * 1 + 2.5).toFixed(2); // $2.50-$3.50
+    // New analytics metrics - CALCULATED FROM TOTAL USERS
+    // Mobile: 88%, Android: 78% of mobile, iPhone: 22% of mobile
+    const mobileUsers = Math.round(totalUsers * 0.88);
+    const androidUsers = Math.round(mobileUsers * 0.78);
+    const iphoneUsers = Math.round(mobileUsers * 0.22);
+    
+    // Total Gigs: 68-75% of total users
+    const gigsPercentage = 0.68 + (Math.random() * 0.07); // 68-75%
+    const totalGigs = Math.round(totalUsers * gigsPercentage);
+    
+    // Applications: 2-3x gigs
+    const applicationsMultiplier = 2 + (Math.random() * 1); // 2.0-3.0x
+    const totalApplicants = Math.round(totalGigs * applicationsMultiplier);
+    
+    // Storage: Calculate based on users, gigs, and verifications
+    // Profile Photos: 100% of users (MANDATORY) @ 350 KB each
+    const profileStorage = (totalUsers * 0.00035);
+    // Gig Photos: Avg 1.5 photos per gig @ 500 KB each
+    const gigStorage = (totalGigs * 1.5 * 0.0005);
+    // ID Verifications: 100% of verified @ 750 KB each
+    const idStorage = (verifications * 0.00075);
+    // Other Files: ~5% of users @ 1 MB each
+    const otherStorage = (totalUsers * 0.05 * 0.001);
+    const storageUsed = parseFloat((profileStorage + gigStorage + idStorage + otherStorage).toFixed(2));
+    
+    // Traffic & Costs: Calculate based on users and activity
+    const activeUsers = Math.round(totalUsers * 0.20); // 20% active users
+    const bandwidthMTD = parseFloat(((activeUsers * 0.032) + (storageUsed * 0.1)).toFixed(1)); // GB
+    
+    // Calculate Firebase costs
+    const monthlyReads = Math.round(activeUsers * 11250);
+    const monthlyWrites = Math.round((activeUsers * 13) + (totalUsers * 0.10 * 8));
+    const dbCost = ((monthlyReads / 100000) * 0.036) + ((monthlyWrites / 100000) * 0.108);
+    const storageCost = storageUsed * 0.026;
+    const bandwidthCost = bandwidthMTD * 0.12;
+    const authCost = activeUsers * 0.0055;
+    const firebaseCostMTD = parseFloat((dbCost + storageCost + bandwidthCost + authCost).toFixed(2));
     
     // Initialize simulation start time and empty revenue history
     const now = Date.now();
@@ -3995,6 +4024,9 @@ function generateInitialMockData() {
     
     console.log(`🎬 Simulation started! Date: Jan 8, 2025 (7 days in), All Time Revenue: ₱${allTimeRevenue.toLocaleString()}`);
     console.log(`📊 User Activity Percentages: Mobile ${(mobilePercent*100).toFixed(0)}%, Android ${(androidPercent*100).toFixed(0)}%, Repeat ${(repeatUserPercent*100).toFixed(0)}%, Bounce ${(bounceRate*100).toFixed(0)}%`);
+    console.log(`💼 Gigs Analytics: ${totalGigs} gigs (${(gigsPercentage*100).toFixed(0)}% of users), ${totalApplicants} applications (${applicationsMultiplier.toFixed(1)}x gigs)`);
+    console.log(`💾 Storage Usage: ${storageUsed.toFixed(2)} GB | Profile: ${((profileStorage/storageUsed)*100).toFixed(0)}%, Gigs: ${((gigStorage/storageUsed)*100).toFixed(0)}%, ID: ${((idStorage/storageUsed)*100).toFixed(0)}%`);
+    console.log(`📡 Traffic & Costs: ${bandwidthMTD.toFixed(1)} GB bandwidth | ${(monthlyReads/1000).toFixed(0)}K reads | ${(monthlyWrites/1000).toFixed(0)}K writes | $${firebaseCostMTD.toFixed(2)} total`);
     
     return {
         totalUsers,
@@ -4005,9 +4037,9 @@ function generateInitialMockData() {
         iphoneUsers,
         totalGigs,
         totalApplicants,
-        storageUsed: parseFloat(storageUsed),
-        bandwidthMTD: parseFloat(bandwidthMTD),
-        firebaseCostMTD: parseFloat(firebaseCostMTD),
+        storageUsed,
+        bandwidthMTD,
+        firebaseCostMTD,
         timestamp: now,
         mobilePercent,
         androidPercent,
@@ -4463,6 +4495,209 @@ function startMainDashboardCounting() {
         }, 1000); // Every 1 second
     }
     
+    // Gigs Analytics: increment based on total users
+    // Total Gigs = 68-75% of total users
+    // Applications = 2-3x gigs
+    // Avg per Gig = 3-8
+    const totalGigsEl = document.getElementById('totalGigsPosted');
+    const totalApplicantsEl = document.getElementById('totalApplicants');
+    const avgPerGigEl = document.getElementById('avgApplicantsPerGig');
+    
+    if (totalGigsEl && totalApplicantsEl && totalUsersEl) {
+        let gigsSecondsCounter = 0;
+        
+        // Combined timer for gigs and applications
+        if (totalGigsEl._dashboardTimer) {
+            clearInterval(totalGigsEl._dashboardTimer);
+        }
+        
+        totalGigsEl._dashboardTimer = setInterval(() => {
+            const currentTotalUsers = totalUsersEl._currentValue || 200;
+            
+            // Target gigs: 68-75% of total users (pick a stable percentage)
+            const gigsPercentage = 0.68 + (Math.random() * 0.07); // 68-75%
+            const targetGigs = Math.round(currentTotalUsers * gigsPercentage);
+            
+            // Gradually move towards target
+            const currentGigs = totalGigsEl._currentValue || targetGigs;
+            let newGigs;
+            
+            if (currentGigs < targetGigs) {
+                // Increment by 1-5 if below target
+                const increment = Math.floor(Math.random() * 5) + 1;
+                newGigs = Math.min(targetGigs, currentGigs + increment);
+            } else if (currentGigs > targetGigs) {
+                // Stay at current level (don't decrease)
+                newGigs = currentGigs;
+            } else {
+                // Occasionally add 1-2 new gigs
+                const shouldAdd = Math.random() > 0.7; // 30% chance
+                newGigs = shouldAdd ? currentGigs + Math.floor(Math.random() * 2) + 1 : currentGigs;
+            }
+            
+            totalGigsEl._currentValue = newGigs;
+            totalGigsEl.textContent = newGigs.toLocaleString();
+            
+            // Applications: 2-3x gigs, ensuring avg per gig is 3-8
+            const applicationsMultiplier = 2 + (Math.random() * 1); // 2.0-3.0x
+            const targetApplications = Math.round(newGigs * applicationsMultiplier);
+            
+            // Gradually move towards target
+            const currentApplications = totalApplicantsEl._currentValue || targetApplications;
+            let newApplications;
+            
+            if (currentApplications < targetApplications) {
+                // Increment by 3-15 if below target
+                const increment = Math.floor(Math.random() * 13) + 3;
+                newApplications = Math.min(targetApplications, currentApplications + increment);
+            } else if (currentApplications > targetApplications) {
+                // Stay at current level
+                newApplications = currentApplications;
+            } else {
+                // Occasionally add 2-10 new applications
+                const shouldAdd = Math.random() > 0.6; // 40% chance
+                newApplications = shouldAdd ? currentApplications + Math.floor(Math.random() * 9) + 2 : currentApplications;
+            }
+            
+            totalApplicantsEl._currentValue = newApplications;
+            totalApplicantsEl.textContent = newApplications.toLocaleString();
+            
+            // Update avg per gig (should be 3-8)
+            const avgPerGig = (newApplications / newGigs).toFixed(1);
+            if (avgPerGigEl) {
+                avgPerGigEl.textContent = avgPerGig;
+            }
+            
+            // Save to localStorage every 5 seconds
+            gigsSecondsCounter++;
+            if (gigsSecondsCounter >= 5) {
+                gigsSecondsCounter = 0;
+                const currentData = loadMockDataFromStorage();
+                currentData.totalGigs = newGigs;
+                currentData.totalApplicants = newApplications;
+                saveMockDataToStorage(currentData);
+            }
+            
+            console.log(`💼 Gigs: ${newGigs.toLocaleString()} (${(newGigs/currentTotalUsers*100).toFixed(1)}% of users) | Apps: ${newApplications.toLocaleString()} | Avg: ${avgPerGig}`);
+        }, 1000); // Every 1 second
+    }
+    
+    // Storage Usage: calculate based on users, gigs, and verifications (updates every 10 seconds)
+    const storageEl = document.getElementById('totalStorageUsed');
+    const storageProgressEl = document.getElementById('storageProgressFill');
+    
+    if (storageEl && totalUsersEl && totalGigsEl) {
+        let storageSecondsCounter = 0;
+        
+        if (storageEl._dashboardTimer) {
+            clearInterval(storageEl._dashboardTimer);
+        }
+        
+        storageEl._dashboardTimer = setInterval(() => {
+            const currentUsers = totalUsersEl._currentValue || 100;
+            const currentGigs = totalGigsEl._currentValue || 50;
+            const currentVerifications = verificationsEl ? verificationsEl._currentValue || 10 : 10;
+            
+            // Calculate expected storage based on activity
+            // Profile Photos: 100% of users (MANDATORY) @ 350 KB each
+            const profileStorage = (currentUsers * 0.00035);
+            
+            // Gig Photos: Avg 1.5 photos per gig @ 500 KB each (will eventually surpass profile photos)
+            const gigStorage = (currentGigs * 1.5 * 0.0005);
+            
+            // ID Verifications: 100% of verified @ 750 KB each
+            const idStorage = (currentVerifications * 0.00075);
+            
+            // Other Files: ~5% of users @ 1 MB each
+            const otherStorage = (currentUsers * 0.05 * 0.001);
+            
+            // Total calculated storage
+            const calculatedStorage = profileStorage + gigStorage + idStorage + otherStorage;
+            
+            // Initialize or gradually move toward calculated value
+            if (!storageEl._currentValue) {
+                storageEl._currentValue = calculatedStorage;
+            } else {
+                // Smoothly adjust toward calculated value
+                const difference = calculatedStorage - storageEl._currentValue;
+                if (Math.abs(difference) > 0.001) {
+                    storageEl._currentValue += difference * 0.3; // 30% adjustment per update
+                }
+            }
+            
+            // Update display
+            storageEl.textContent = `${storageEl._currentValue.toFixed(1)} GB`;
+            
+            // Update progress bar (10 GB limit)
+            if (storageProgressEl) {
+                const percentage = (storageEl._currentValue / 10) * 100;
+                storageProgressEl.style.width = `${percentage}%`;
+            }
+            
+            // Save to localStorage every 10 updates (every 10 seconds)
+            storageSecondsCounter++;
+            if (storageSecondsCounter >= 1) { // Update every cycle (10s)
+                storageSecondsCounter = 0;
+                const currentData = loadMockDataFromStorage();
+                currentData.storageUsed = storageEl._currentValue;
+                saveMockDataToStorage(currentData);
+            }
+            
+            const gigPercentage = ((gigStorage / calculatedStorage) * 100).toFixed(0);
+            console.log(`💾 Storage: ${storageEl._currentValue.toFixed(2)} GB | Gig Photos: ${gigPercentage}% (${(currentGigs * 1.5).toFixed(0)} files)`);
+        }, 10000); // Every 10 seconds (slower growth)
+    }
+    
+    // Traffic & Costs: calculate based on users and activity (updates every 10 seconds)
+    const bandwidthEl = document.getElementById('bandwidthUsageMTD');
+    const firebaseCostEl = document.getElementById('firebaseCostMTD');
+    
+    if (bandwidthEl && firebaseCostEl && totalUsersEl) {
+        let trafficSecondsCounter = 0;
+        
+        if (bandwidthEl._dashboardTimer) {
+            clearInterval(bandwidthEl._dashboardTimer);
+        }
+        
+        bandwidthEl._dashboardTimer = setInterval(() => {
+            const currentUsers = totalUsersEl._currentValue || 100;
+            const currentStorage = storageEl ? storageEl._currentValue || 0.5 : 0.5;
+            
+            // Calculate monthly bandwidth (month-to-date simulation)
+            // Active users: 20% of total
+            const activeUsers = Math.round(currentUsers * 0.20);
+            // Average 32 MB per active user + 10% of storage for uploads
+            const monthlyBandwidth = (activeUsers * 0.032) + (currentStorage * 0.1);
+            
+            // Calculate monthly reads and writes for cost
+            const monthlyReads = Math.round(activeUsers * 11250);
+            const monthlyWrites = Math.round((activeUsers * 13) + (currentUsers * 0.10 * 8));
+            
+            // Calculate Firebase costs
+            const dbCost = ((monthlyReads / 100000) * 0.036) + ((monthlyWrites / 100000) * 0.108);
+            const storageCost = currentStorage * 0.026;
+            const bandwidthCost = monthlyBandwidth * 0.12;
+            const authCost = activeUsers * 0.0055;
+            const totalCost = dbCost + storageCost + bandwidthCost + authCost;
+            
+            // Update displays
+            bandwidthEl.textContent = `${monthlyBandwidth.toFixed(1)} GB`;
+            firebaseCostEl.textContent = `$${totalCost.toFixed(2)}`;
+            
+            // Save to localStorage every update (10s)
+            trafficSecondsCounter++;
+            if (trafficSecondsCounter >= 1) {
+                trafficSecondsCounter = 0;
+                const currentData = loadMockDataFromStorage();
+                currentData.bandwidthMTD = monthlyBandwidth;
+                currentData.firebaseCostMTD = totalCost;
+                saveMockDataToStorage(currentData);
+            }
+            
+            console.log(`📡 Traffic MTD: ${monthlyBandwidth.toFixed(2)} GB | Firebase: $${totalCost.toFixed(2)} (${activeUsers} active users)`);
+        }, 10000); // Every 10 seconds
+    }
+    
     // Verifications: increment by random 5-20 every 1 second
     if (verificationsEl) {
         let secondsCounter = 0;
@@ -4711,6 +4946,36 @@ function openStatOverlay(type) {
                 const data = loadMockDataFromStorage();
                 populateUserActivityData(data);
             }, 1000); // Update every second to sync with overview card
+        } else if (type === 'gigsAnalytics') {
+            // Start real-time updates for Gigs Analytics overlay
+            if (overlay._overlayTimer) {
+                clearInterval(overlay._overlayTimer);
+            }
+            
+            overlay._overlayTimer = setInterval(() => {
+                const data = loadMockDataFromStorage();
+                populateGigsAnalyticsData(data);
+            }, 1000); // Update every second to sync with overview card
+        } else if (type === 'storageUsage') {
+            // Start real-time updates for Storage Usage overlay
+            if (overlay._overlayTimer) {
+                clearInterval(overlay._overlayTimer);
+            }
+            
+            overlay._overlayTimer = setInterval(() => {
+                const data = loadMockDataFromStorage();
+                populateStorageUsageData(data);
+            }, 3000); // Update every 3 seconds for responsive overlay
+        } else if (type === 'trafficCosts') {
+            // Start real-time updates for Traffic & Costs overlay
+            if (overlay._overlayTimer) {
+                clearInterval(overlay._overlayTimer);
+            }
+            
+            overlay._overlayTimer = setInterval(() => {
+                const data = loadMockDataFromStorage();
+                populateTrafficCostsData(data);
+            }, 5000); // Update every 5 seconds (balance between responsiveness and performance)
         }
         
         // Populate overlay data
@@ -5440,12 +5705,12 @@ function populateUserActivityData(data) {
 
 // Populate Gigs Analytics overlay data
 function populateGigsAnalyticsData(data) {
-    // Get values from main dashboard
+    // Get values from main dashboard (real-time from elements)
     const totalGigsEl = document.getElementById('totalGigsPosted');
     const totalAppsEl = document.getElementById('totalApplicants');
     
-    const totalGigs = totalGigsEl && totalGigsEl._currentValue ? Math.round(totalGigsEl._currentValue) : 1847;
-    const totalApps = totalAppsEl && totalAppsEl._currentValue ? Math.round(totalAppsEl._currentValue) : 5624;
+    const totalGigs = totalGigsEl && totalGigsEl._currentValue ? Math.round(totalGigsEl._currentValue) : (data.totalGigs || 1847);
+    const totalApps = totalAppsEl && totalAppsEl._currentValue ? Math.round(totalAppsEl._currentValue) : (data.totalApplicants || 5624);
     
     const avgPerGig = (totalApps / totalGigs).toFixed(1);
     
@@ -5454,23 +5719,42 @@ function populateGigsAnalyticsData(data) {
     setElementValue('gigsOverlayTotalApplicants', totalApps);
     setElementValue('gigsOverlayAvgPerGig', avgPerGig);
     
-    // Gigs Posted by Category (percentages of total gigs) - Top 15 + Other
+    // Gigs Posted by Category (percentages with slight variation to simulate demand changes)
+    // Base percentages with ±0.5-1% random variation
+    const gigsBasePercent = {
+        driver: 0.14 + (Math.random() - 0.5) * 0.01,      // 13.5-14.5%
+        carpenter: 0.11 + (Math.random() - 0.5) * 0.01,   // 10.5-11.5%
+        limfyo: 0.10 + (Math.random() - 0.5) * 0.01,      // 9.5-10.5% (Limpyo - cleaning)
+        electrician: 0.08 + (Math.random() - 0.5) * 0.01, // 7.5-8.5%
+        plumber: 0.07 + (Math.random() - 0.5) * 0.01,     // 6.5-7.5%
+        mechanic: 0.06 + (Math.random() - 0.5) * 0.01,    // 5.5-6.5%
+        bantay: 0.06 + (Math.random() - 0.5) * 0.01,      // 5.5-6.5%
+        luto: 0.06 + (Math.random() - 0.5) * 0.01,        // 5.5-6.5% (cooking)
+        tutor: 0.05 + (Math.random() - 0.5) * 0.01,       // 4.5-5.5%
+        nurse: 0.05 + (Math.random() - 0.5) * 0.01,       // 4.5-5.5%
+        painter: 0.04 + (Math.random() - 0.5) * 0.01,     // 3.5-4.5%
+        clerical: 0.04 + (Math.random() - 0.5) * 0.01,    // 3.5-4.5%
+        hatod: 0.03 + (Math.random() - 0.5) * 0.01,       // 2.5-3.5% (delivery/transport)
+        hakot: 0.03 + (Math.random() - 0.5) * 0.01,       // 2.5-3.5% (hauling/moving)
+        builder: 0.02 + (Math.random() - 0.5) * 0.01      // 1.5-2.5%
+    };
+    
     const gigsDistribution = {
-        driver: Math.round(totalGigs * 0.14),      // 14%
-        carpenter: Math.round(totalGigs * 0.11),   // 11%
-        limfyo: Math.round(totalGigs * 0.10),      // 10% (Limpyo - cleaning) - BOOSTED TO TOP 3
-        electrician: Math.round(totalGigs * 0.08), // 8%
-        plumber: Math.round(totalGigs * 0.07),     // 7%
-        mechanic: Math.round(totalGigs * 0.06),    // 6%
-        bantay: Math.round(totalGigs * 0.06),      // 6%
-        luto: Math.round(totalGigs * 0.06),        // 6% (cooking)
-        tutor: Math.round(totalGigs * 0.05),       // 5%
-        nurse: Math.round(totalGigs * 0.05),       // 5%
-        painter: Math.round(totalGigs * 0.04),     // 4%
-        clerical: Math.round(totalGigs * 0.04),    // 4%
-        hatod: Math.round(totalGigs * 0.03),       // 3% (delivery/transport)
-        hakot: Math.round(totalGigs * 0.03),       // 3% (hauling/moving)
-        builder: Math.round(totalGigs * 0.02),     // 2%
+        driver: Math.round(totalGigs * gigsBasePercent.driver),
+        carpenter: Math.round(totalGigs * gigsBasePercent.carpenter),
+        limfyo: Math.round(totalGigs * gigsBasePercent.limfyo),
+        electrician: Math.round(totalGigs * gigsBasePercent.electrician),
+        plumber: Math.round(totalGigs * gigsBasePercent.plumber),
+        mechanic: Math.round(totalGigs * gigsBasePercent.mechanic),
+        bantay: Math.round(totalGigs * gigsBasePercent.bantay),
+        luto: Math.round(totalGigs * gigsBasePercent.luto),
+        tutor: Math.round(totalGigs * gigsBasePercent.tutor),
+        nurse: Math.round(totalGigs * gigsBasePercent.nurse),
+        painter: Math.round(totalGigs * gigsBasePercent.painter),
+        clerical: Math.round(totalGigs * gigsBasePercent.clerical),
+        hatod: Math.round(totalGigs * gigsBasePercent.hatod),
+        hakot: Math.round(totalGigs * gigsBasePercent.hakot),
+        builder: Math.round(totalGigs * gigsBasePercent.builder),
         other: 0  // Will be calculated as remainder (10+ other categories, ~6-7%)
     };
     
@@ -5487,23 +5771,42 @@ function populateGigsAnalyticsData(data) {
         setElementValue(`gigs${category.charAt(0).toUpperCase() + category.slice(1)}Percent`, `${percent}%`);
     });
     
-    // Applications by Category (higher application rates for popular categories)
+    // Applications by Category (percentages with slight variation to simulate demand changes)
+    // Base percentages with ±0.5-1% random variation
+    const appsBasePercent = {
+        driver: 0.14 + (Math.random() - 0.5) * 0.01,      // 13.5-14.5%
+        carpenter: 0.11 + (Math.random() - 0.5) * 0.01,   // 10.5-11.5%
+        electrician: 0.09 + (Math.random() - 0.5) * 0.01, // 8.5-9.5%
+        plumber: 0.08 + (Math.random() - 0.5) * 0.01,     // 7.5-8.5%
+        mechanic: 0.07 + (Math.random() - 0.5) * 0.01,    // 6.5-7.5%
+        bantay: 0.07 + (Math.random() - 0.5) * 0.01,      // 6.5-7.5%
+        limfyo: 0.06 + (Math.random() - 0.5) * 0.01,      // 5.5-6.5% (Limpyo - cleaning)
+        luto: 0.06 + (Math.random() - 0.5) * 0.01,        // 5.5-6.5% (cooking)
+        tutor: 0.05 + (Math.random() - 0.5) * 0.01,       // 4.5-5.5%
+        nurse: 0.05 + (Math.random() - 0.5) * 0.01,       // 4.5-5.5%
+        painter: 0.04 + (Math.random() - 0.5) * 0.01,     // 3.5-4.5%
+        clerical: 0.04 + (Math.random() - 0.5) * 0.01,    // 3.5-4.5%
+        hatod: 0.03 + (Math.random() - 0.5) * 0.01,       // 2.5-3.5% (delivery/transport)
+        hakot: 0.03 + (Math.random() - 0.5) * 0.01,       // 2.5-3.5% (hauling/moving)
+        builder: 0.02 + (Math.random() - 0.5) * 0.01      // 1.5-2.5%
+    };
+    
     const appsDistribution = {
-        driver: Math.round(totalApps * 0.14),      // 14%
-        carpenter: Math.round(totalApps * 0.11),   // 11%
-        electrician: Math.round(totalApps * 0.09), // 9%
-        plumber: Math.round(totalApps * 0.08),     // 8%
-        mechanic: Math.round(totalApps * 0.07),    // 7%
-        bantay: Math.round(totalApps * 0.07),      // 7%
-        limfyo: Math.round(totalApps * 0.06),      // 6% (Limpyo - cleaning)
-        luto: Math.round(totalApps * 0.06),        // 6% (cooking)
-        tutor: Math.round(totalApps * 0.05),       // 5%
-        nurse: Math.round(totalApps * 0.05),       // 5%
-        painter: Math.round(totalApps * 0.04),     // 4%
-        clerical: Math.round(totalApps * 0.04),    // 4%
-        hatod: Math.round(totalApps * 0.03),       // 3% (delivery/transport)
-        hakot: Math.round(totalApps * 0.03),       // 3% (hauling/moving)
-        builder: Math.round(totalApps * 0.02),     // 2%
+        driver: Math.round(totalApps * appsBasePercent.driver),
+        carpenter: Math.round(totalApps * appsBasePercent.carpenter),
+        electrician: Math.round(totalApps * appsBasePercent.electrician),
+        plumber: Math.round(totalApps * appsBasePercent.plumber),
+        mechanic: Math.round(totalApps * appsBasePercent.mechanic),
+        bantay: Math.round(totalApps * appsBasePercent.bantay),
+        limfyo: Math.round(totalApps * appsBasePercent.limfyo),
+        luto: Math.round(totalApps * appsBasePercent.luto),
+        tutor: Math.round(totalApps * appsBasePercent.tutor),
+        nurse: Math.round(totalApps * appsBasePercent.nurse),
+        painter: Math.round(totalApps * appsBasePercent.painter),
+        clerical: Math.round(totalApps * appsBasePercent.clerical),
+        hatod: Math.round(totalApps * appsBasePercent.hatod),
+        hakot: Math.round(totalApps * appsBasePercent.hakot),
+        builder: Math.round(totalApps * appsBasePercent.builder),
         other: 0  // Will be calculated as remainder (10+ other categories, ~6-7%)
     };
     
@@ -5519,30 +5822,82 @@ function populateGigsAnalyticsData(data) {
         setElementValue(`apps${category.charAt(0).toUpperCase() + category.slice(1)}Value`, count.toLocaleString());
         setElementValue(`apps${category.charAt(0).toUpperCase() + category.slice(1)}Percent`, `${percent}%`);
     });
+    
+    // Log top 3 categories for monitoring
+    console.log(`💼 Gigs by Category: Driver ${((gigsDistribution.driver/totalGigs)*100).toFixed(1)}%, Carpenter ${((gigsDistribution.carpenter/totalGigs)*100).toFixed(1)}%, Limpyo ${((gigsDistribution.limfyo/totalGigs)*100).toFixed(1)}%`);
 }
 
 // Populate Storage Usage overlay data
 function populateStorageUsageData(data) {
-    // Get storage from main dashboard
-    const storageEl = document.getElementById('totalStorageUsed');
-    const storageValue = storageEl ? storageEl.textContent : '3.8 GB';
+    // Calculate storage based on actual users and gigs
+    const totalUsersEl = document.getElementById('totalUsersNumber');
+    const totalGigsEl = document.getElementById('totalGigsPosted');
+    const verificationsEl = document.getElementById('verificationsNumber');
     
-    // Parse GB value
-    const storageGB = parseFloat(storageValue);
-    const storageCost = (storageGB * 0.026).toFixed(2); // $0.026 per GB per month (Firebase pricing)
+    const totalUsers = totalUsersEl && totalUsersEl._currentValue ? totalUsersEl._currentValue : (data.totalUsers || 100);
+    const totalGigs = totalGigsEl && totalGigsEl._currentValue ? totalGigsEl._currentValue : (data.totalGigs || 1847);
+    const verifiedUsers = verificationsEl && verificationsEl._currentValue ? verificationsEl._currentValue : (data.verifications || 500);
+    
+    // Calculate realistic storage based on platform activity
+    // FILE SIZE AVERAGES:
+    // - Profile Photo: 350 KB (compressed, mandatory for all users)
+    // - Gig Photo: 500 KB (avg 1.5 photos per gig, will grow over time)
+    // - ID Verification: 750 KB (selfie + ID photo for verified users)
+    // - Other Files: 1 MB (occasional docs, ~5% of users)
+    
+    // Profile Photos: 100% of users (MANDATORY)
+    const profilePhotoCount = totalUsers;
+    const profilePhotoSize = (profilePhotoCount * 0.00035); // 350 KB each in GB
+    
+    // Gig Photos: Average 1.5 photos per gig (will eventually surpass profile photos)
+    const avgPhotosPerGig = 1.5;
+    const gigPhotoCount = Math.round(totalGigs * avgPhotosPerGig);
+    const gigPhotoSize = (gigPhotoCount * 0.0005); // 500 KB each in GB
+    
+    // ID Verifications: 100% of verified users upload ID photos
+    const idVerificationCount = verifiedUsers;
+    const idVerificationSize = (idVerificationCount * 0.00075); // 750 KB each in GB
+    
+    // Other Files: ~5% of users upload additional documents
+    const otherFilesCount = Math.round(totalUsers * 0.05);
+    const otherFilesSize = (otherFilesCount * 0.001); // 1 MB each in GB
+    
+    // Calculate total storage
+    const calculatedStorage = profilePhotoSize + gigPhotoSize + idVerificationSize + otherFilesSize;
+    
+    // Get or set current storage (gradually moves toward calculated value)
+    const storageEl = document.getElementById('totalStorageUsed');
+    let currentStorage = data.storageUsed || calculatedStorage;
+    
+    // If storage is far from calculated value, gradually adjust it
+    if (Math.abs(currentStorage - calculatedStorage) > 0.1) {
+        currentStorage = calculatedStorage;
+    }
+    
+    const storageCost = (currentStorage * 0.026).toFixed(2); // $0.026 per GB per month (Firebase pricing)
+    
+    // Calculate total media count and size
+    const totalMediaCount = profilePhotoCount + gigPhotoCount + idVerificationCount + otherFilesCount;
+    const totalMediaSize = profilePhotoSize + gigPhotoSize + idVerificationSize + otherFilesSize;
     
     // Populate top showcase cards
-    setElementValue('storageOverlayTotal', `${storageGB.toFixed(1)} GB`);
-    setElementValue('storageOverlayMediaCount', '12,456');
-    setElementValue('storageOverlayMediaSize', `${(storageGB * 0.63).toFixed(1)} GB`);
+    setElementValue('storageOverlayTotal', `${currentStorage.toFixed(1)} GB`);
+    setElementValue('storageOverlayMediaCount', totalMediaCount.toLocaleString());
+    setElementValue('storageOverlayMediaSize', `${totalMediaSize.toFixed(1)} GB`);
     setElementValue('storageOverlayCost', `$${storageCost}`);
+    
+    // Calculate percentages for media distribution
+    const profilePercent = ((profilePhotoSize / totalMediaSize) * 100).toFixed(0);
+    const gigPercent = ((gigPhotoSize / totalMediaSize) * 100).toFixed(0);
+    const idPercent = ((idVerificationSize / totalMediaSize) * 100).toFixed(0);
+    const otherPercent = ((otherFilesSize / totalMediaSize) * 100).toFixed(0);
     
     // Media Uploads Breakdown
     const mediaDistribution = {
-        profilePhotos: { count: 4567, size: storageGB * 0.21, percent: 21 },
-        gigPhotos: { count: 6234, size: storageGB * 0.34, percent: 34 },
-        idVerifications: { count: 1255, size: storageGB * 0.05, percent: 5 },
-        otherFiles: { count: 400, size: storageGB * 0.03, percent: 3 }
+        profilePhotos: { count: profilePhotoCount, size: profilePhotoSize, percent: profilePercent },
+        gigPhotos: { count: gigPhotoCount, size: gigPhotoSize, percent: gigPercent },
+        idVerifications: { count: idVerificationCount, size: idVerificationSize, percent: idPercent },
+        otherFiles: { count: otherFilesCount, size: otherFilesSize, percent: otherPercent }
     };
     
     Object.keys(mediaDistribution).forEach(type => {
@@ -5552,12 +5907,21 @@ function populateStorageUsageData(data) {
         setElementValue(`${type}Percent`, `${item.percent}%`);
     });
     
-    // Storage Growth
-    setElementValue('storageGrowthMonth', `+${(storageGB * 0.105).toFixed(1)} GB`);
-    setElementValue('storageGrowthAvg', `+${(storageGB * 0.132).toFixed(1)} GB`);
+    // Storage Growth (estimate based on current growth rate)
+    // This Month: ~10% of current storage
+    // Average Monthly: ~13% of current storage
+    // All Time: Current total
+    setElementValue('storageGrowthMonth', `${(currentStorage * 0.10).toFixed(2)} GB`);
+    setElementValue('storageGrowthAvg', `${(currentStorage * 0.13).toFixed(2)} GB`);
+    setElementValue('storageGrowthAllTime', `${currentStorage.toFixed(1)} GB`);
     
-    const monthsToFull = Math.round((10 - storageGB) / (storageGB * 0.132));
-    setElementValue('storageProjectedFull', `${monthsToFull} months`);
+    // Projected Full (assuming 10 GB limit)
+    const storageLimit = 10; // GB
+    const avgMonthlyGrowth = currentStorage * 0.13;
+    const monthsToFull = avgMonthlyGrowth > 0 ? Math.max(1, Math.round((storageLimit - currentStorage) / avgMonthlyGrowth)) : 999;
+    setElementValue('storageProjectedFull', monthsToFull > 100 ? '∞' : `${monthsToFull} mo`);
+    
+    console.log(`💾 Storage: ${currentStorage.toFixed(2)} GB | Profile: ${profilePercent}% (${profilePhotoCount}), Gigs: ${gigPercent}% (${gigPhotoCount})`);
 }
 
 // Populate Traffic & Costs overlay data
@@ -5566,44 +5930,92 @@ function populateTrafficCostsData(data) {
     const periodSelect = document.getElementById('trafficPeriodSelect');
     const period = periodSelect ? periodSelect.value : 'month';
     
-    // Base values (for "month")
-    let bandwidth = 12.4; // GB
-    let reads = 342000;
-    let writes = 87000;
+    // Get real-time data from dashboard
+    const totalUsersEl = document.getElementById('totalUsersNumber');
+    const totalGigsEl = document.getElementById('totalGigsPosted');
+    const totalAppsEl = document.getElementById('totalApplicants');
+    const storageEl = document.getElementById('totalStorageUsed');
     
-    // Adjust based on period
+    const totalUsers = totalUsersEl && totalUsersEl._currentValue ? totalUsersEl._currentValue : (data.totalUsers || 100);
+    const totalGigs = totalGigsEl && totalGigsEl._currentValue ? totalGigsEl._currentValue : (data.totalGigs || 70);
+    const totalApps = totalAppsEl && totalAppsEl._currentValue ? totalAppsEl._currentValue : (data.totalApplicants || 200);
+    const storageGB = storageEl && storageEl._currentValue ? storageEl._currentValue : (data.storageUsed || 0.5);
+    
+    // Calculate MONTHLY base traffic based on user activity
+    // BANDWIDTH: Image downloads, API responses, page loads
+    // - Average user views 20 gigs/month, each with 1.5 photos @ 500 KB = ~15 MB
+    // - Profile photo views: ~50 views/month @ 350 KB = ~17.5 MB
+    // - Total per active user: ~32 MB/month
+    // Active users: 15-25% of total (using 20%)
+    const activeUsers = Math.round(totalUsers * 0.20);
+    const monthlyBandwidth = (activeUsers * 0.032) + (storageGB * 0.1); // GB (32 MB per active user + 10% of storage for uploads)
+    
+    // DATABASE READS: Profile views, gig browsing, searches, list loading
+    // - Active user browses 100 gigs/month = ~100 reads per gig (list + details) = 10,000 reads/user
+    // - Profile views: ~50/month @ 5 reads each = 250 reads/user
+    // - Search queries: ~20/month @ 50 reads each = 1,000 reads/user
+    // Total: ~11,250 reads per active user per month
+    const monthlyReads = Math.round(activeUsers * 11250);
+    
+    // DATABASE WRITES: New users, gig posts, applications, profile updates
+    // - New users: totalUsers growth = ~10% per month (optimistic growth)
+    // - Gig posts: each user posts 0.5 gigs/month @ 5 writes = 2.5 writes/user
+    // - Applications: each user applies 1.5x/month @ 3 writes = 4.5 writes/user
+    // - Profile updates: ~2/month @ 3 writes = 6 writes/user
+    // Total: ~13 writes per active user per month + new user signups
+    const newUsersPerMonth = Math.round(totalUsers * 0.10);
+    const monthlyWrites = Math.round((activeUsers * 13) + (newUsersPerMonth * 8)); // 8 writes per signup
+    
+    // Adjust based on selected period
+    let bandwidth, reads, writes;
+    
     switch(period) {
         case 'today':
-            bandwidth *= 0.033; // ~1 day
-            reads = Math.round(reads * 0.033);
-            writes = Math.round(writes * 0.033);
+            bandwidth = monthlyBandwidth / 30; // Daily
+            reads = Math.round(monthlyReads / 30);
+            writes = Math.round(monthlyWrites / 30);
             break;
         case 'week':
-            bandwidth *= 0.233; // ~7 days
-            reads = Math.round(reads * 0.233);
-            writes = Math.round(writes * 0.233);
+            bandwidth = (monthlyBandwidth / 30) * 7; // Weekly
+            reads = Math.round((monthlyReads / 30) * 7);
+            writes = Math.round((monthlyWrites / 30) * 7);
             break;
         case 'month':
-            // Keep base values
+            bandwidth = monthlyBandwidth;
+            reads = monthlyReads;
+            writes = monthlyWrites;
             break;
         case 'year':
-            bandwidth *= 12;
-            reads = Math.round(reads * 12);
-            writes = Math.round(writes * 12);
+            bandwidth = monthlyBandwidth * 12;
+            reads = Math.round(monthlyReads * 12);
+            writes = Math.round(monthlyWrites * 12);
             break;
         case 'all':
-            bandwidth *= 18; // Assume 18 months all-time
-            reads = Math.round(reads * 18);
-            writes = Math.round(writes * 18);
+            // Assume platform has been running for simulation time
+            // Use 7 days of accumulated data as "all time"
+            bandwidth = monthlyBandwidth * 0.233; // ~7 days worth
+            reads = Math.round(monthlyReads * 0.233);
+            writes = Math.round(monthlyWrites * 0.233);
             break;
+        default:
+            bandwidth = monthlyBandwidth;
+            reads = monthlyReads;
+            writes = monthlyWrites;
     }
     
-    // Calculate Firebase cost (simplified pricing model)
-    // Storage: $0.026/GB, Reads: $0.06/100K, Writes: $0.18/100K, Bandwidth: $0.12/GB
-    const dbCost = ((reads / 100000) * 0.06) + ((writes / 100000) * 0.18);
-    const storageCost = 0.80; // From storage analysis (relatively constant)
-    const bandwidthCost = bandwidth * 0.012;
-    const authCost = 0.20; // Relatively constant
+    // Calculate Firebase cost (actual Firebase pricing)
+    // Reads: $0.036/100K (Firestore document reads)
+    // Writes: $0.108/100K (Firestore document writes)
+    // Storage: $0.026/GB/month
+    // Bandwidth (egress): $0.12/GB
+    // Authentication: ~$0.0055 per monthly active user (rounded to flat rate)
+    const readCost = (reads / 100000) * 0.036;
+    const writeCost = (writes / 100000) * 0.108;
+    const dbCost = readCost + writeCost;
+    
+    const storageCost = storageGB * 0.026; // $0.026 per GB per month
+    const bandwidthCost = bandwidth * 0.12; // $0.12 per GB
+    const authCost = activeUsers * 0.0055; // $0.0055 per monthly active user
     const totalCost = dbCost + storageCost + bandwidthCost + authCost;
     
     // Populate top showcase cards
@@ -5625,16 +6037,25 @@ function populateTrafficCostsData(data) {
     setElementValue('authCostValue', `$${authCost.toFixed(2)}`);
     setElementValue('authCostPercent', `${((authCost / totalCost) * 100).toFixed(0)}%`);
     
-    // Traffic Trends
-    setElementValue('trafficDailyAvg', `${(bandwidth / 30).toFixed(0)} MB`);
-    setElementValue('trafficPeakDay', `${(bandwidth / 30 * 2.05).toFixed(0)} MB`);
-    setElementValue('trafficGrowthRate', '+18%');
+    // Traffic Trends (calculated from bandwidth)
+    const daysInPeriod = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : period === 'year' ? 365 : 7;
+    const dailyAvgMB = (bandwidth / daysInPeriod) * 1024; // Convert GB to MB
+    const peakDayMB = dailyAvgMB * (1.8 + (Math.random() * 0.4)); // 1.8-2.2x daily avg
+    const lowestDayMB = dailyAvgMB * (0.4 + (Math.random() * 0.2)); // 0.4-0.6x daily avg
+    const growthRate = 15 + Math.floor(Math.random() * 10); // 15-25% growth
+    
+    setElementValue('trafficDailyAvg', dailyAvgMB >= 1024 ? `${(dailyAvgMB/1024).toFixed(1)} GB` : `${dailyAvgMB.toFixed(0)} MB`);
+    setElementValue('trafficPeakDay', peakDayMB >= 1024 ? `${(peakDayMB/1024).toFixed(1)} GB` : `${peakDayMB.toFixed(0)} MB`);
+    setElementValue('trafficLowestDay', lowestDayMB >= 1024 ? `${(lowestDayMB/1024).toFixed(1)} GB` : `${lowestDayMB.toFixed(0)} MB`);
+    setElementValue('trafficGrowthRate', `+${growthRate}%`);
     
     // Add period change listener
     if (periodSelect && !periodSelect._listenerAttached) {
         periodSelect.addEventListener('change', () => populateTrafficCostsData(data));
         periodSelect._listenerAttached = true;
     }
+    
+    console.log(`📊 Traffic [${period}]: ${bandwidth.toFixed(2)} GB BW | ${(reads/1000).toFixed(0)}K reads | ${(writes/1000).toFixed(0)}K writes | $${totalCost.toFixed(2)} cost`);
 }
 
 // Helper: Set element value safely
@@ -6408,7 +6829,7 @@ function initializeResetButton() {
     if (resetBtn) {
         resetBtn.addEventListener('click', function() {
             // Confirm before resetting
-            if (confirm('⚠️ Are you sure you want to reset all analytics data?\n\nThis will clear:\n• Total Users count\n• Verification Submissions\n• Monthly Revenue\n• Gigs Reported\n\nThe page will refresh with new baseline values.')) {
+            if (confirm('⚠️ Are you sure you want to reset all analytics data?\n\nThis will clear:\n• Total Users count\n• User Activity metrics\n• Verification Submissions\n• Total Revenue\n• Gigs Analytics (Gigs & Applications)\n• Gigs Reported\n\nThe page will refresh with new baseline values.')) {
                 // Call the reset function
                 window.resetAdminMockData();
                 
@@ -6434,7 +6855,11 @@ window.resetAdminMockData = function() {
     });
     
     console.log('🔄 Mock data reset! Refresh the page to generate new baseline values.');
-    console.log('💡 New revenue will start between ₱10,000 - ₱15,000');
+    console.log('💡 New baseline:');
+    console.log('   • Total Users: 50-99');
+    console.log('   • Revenue: ₱10,000 - ₱15,000');
+    console.log('   • Gigs: 68-75% of users');
+    console.log('   • Applications: 2-3x gigs');
 };
 
 // ===== ADMIN PROFILE DROPDOWN =====
