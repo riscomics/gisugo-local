@@ -3727,7 +3727,12 @@ const STORAGE_KEYS = {
     storageUsed: 'admin_mock_storage_used',      // 🔥 Firebase: /admin/analytics/storage/used (GB)
     bandwidthMTD: 'admin_mock_bandwidth_mtd',    // 🔥 Firebase: /admin/analytics/traffic/bandwidth (GB)
     firebaseCostMTD: 'admin_mock_firebase_cost_mtd', // 🔥 Firebase: /admin/analytics/traffic/cost
-    lastUpdate: 'admin_mock_last_update'         // 🔥 Firebase: /admin/analytics/lastUpdate
+    lastUpdate: 'admin_mock_last_update',         // 🔥 Firebase: /admin/analytics/lastUpdate
+    // User Activity Base Percentages (slowly drifting over time)
+    mobilePercent: 'admin_mock_mobile_percent',       // % of active users on mobile (slowly trends up)
+    androidPercent: 'admin_mock_android_percent',     // % of mobile users on Android
+    repeatUserPercent: 'admin_mock_repeat_percent',   // % of total users that are repeat users
+    bounceRate: 'admin_mock_bounce_rate'              // % bounce rate (slowly trends down as app improves)
 };
 
 // ===== TIME-BASED SIMULATION HELPERS =====
@@ -3977,7 +3982,19 @@ function generateInitialMockData() {
     localStorage.setItem(STORAGE_KEYS.simulationStartTime, now);
     localStorage.setItem(STORAGE_KEYS.revenueHistory, JSON.stringify([]));
     
+    // Initialize User Activity Base Percentages (realistic starting values for Filipino market)
+    const mobilePercent = 0.88;     // 88% mobile users (Philippines is mobile-first)
+    const androidPercent = 0.78;    // 78% of mobile are Android (Android dominates in PH)
+    const repeatUserPercent = 0.50; // 50% repeat users
+    const bounceRate = 0.25;        // 25% bounce rate
+    
+    localStorage.setItem(STORAGE_KEYS.mobilePercent, mobilePercent);
+    localStorage.setItem(STORAGE_KEYS.androidPercent, androidPercent);
+    localStorage.setItem(STORAGE_KEYS.repeatUserPercent, repeatUserPercent);
+    localStorage.setItem(STORAGE_KEYS.bounceRate, bounceRate);
+    
     console.log(`🎬 Simulation started! Date: Jan 8, 2025 (7 days in), All Time Revenue: ₱${allTimeRevenue.toLocaleString()}`);
+    console.log(`📊 User Activity Percentages: Mobile ${(mobilePercent*100).toFixed(0)}%, Android ${(androidPercent*100).toFixed(0)}%, Repeat ${(repeatUserPercent*100).toFixed(0)}%, Bounce ${(bounceRate*100).toFixed(0)}%`);
     
     return {
         totalUsers,
@@ -3991,7 +4008,11 @@ function generateInitialMockData() {
         storageUsed: parseFloat(storageUsed),
         bandwidthMTD: parseFloat(bandwidthMTD),
         firebaseCostMTD: parseFloat(firebaseCostMTD),
-        timestamp: now
+        timestamp: now,
+        mobilePercent,
+        androidPercent,
+        repeatUserPercent,
+        bounceRate
     };
 }
 
@@ -4056,6 +4077,11 @@ function saveMockDataToStorage(data) {
         localStorage.setItem(STORAGE_KEYS.bandwidthMTD, data.bandwidthMTD);
         localStorage.setItem(STORAGE_KEYS.firebaseCostMTD, data.firebaseCostMTD);
         localStorage.setItem(STORAGE_KEYS.lastUpdate, data.timestamp);
+        // User Activity Percentages
+        if (data.mobilePercent !== undefined) localStorage.setItem(STORAGE_KEYS.mobilePercent, data.mobilePercent);
+        if (data.androidPercent !== undefined) localStorage.setItem(STORAGE_KEYS.androidPercent, data.androidPercent);
+        if (data.repeatUserPercent !== undefined) localStorage.setItem(STORAGE_KEYS.repeatUserPercent, data.repeatUserPercent);
+        if (data.bounceRate !== undefined) localStorage.setItem(STORAGE_KEYS.bounceRate, data.bounceRate);
         // Note: simulationStartTime and revenueHistory are saved separately
     } catch (e) {
         console.error('❌ localStorage not available:', e.message);
@@ -4081,7 +4107,11 @@ function loadMockDataFromStorage() {
             storageUsed: parseFloat(localStorage.getItem(STORAGE_KEYS.storageUsed)) || 3.8,
             bandwidthMTD: parseFloat(localStorage.getItem(STORAGE_KEYS.bandwidthMTD)) || 12.4,
             firebaseCostMTD: parseFloat(localStorage.getItem(STORAGE_KEYS.firebaseCostMTD)) || 3.20,
-            timestamp: parseInt(localStorage.getItem(STORAGE_KEYS.lastUpdate)) || Date.now()
+            timestamp: parseInt(localStorage.getItem(STORAGE_KEYS.lastUpdate)) || Date.now(),
+            mobilePercent: parseFloat(localStorage.getItem(STORAGE_KEYS.mobilePercent)) || 0.88,
+            androidPercent: parseFloat(localStorage.getItem(STORAGE_KEYS.androidPercent)) || 0.78,
+            repeatUserPercent: parseFloat(localStorage.getItem(STORAGE_KEYS.repeatUserPercent)) || 0.50,
+            bounceRate: parseFloat(localStorage.getItem(STORAGE_KEYS.bounceRate)) || 0.25
         };
     } catch (e) {
         console.error('❌ localStorage not available:', e.message);
@@ -4097,8 +4127,163 @@ function loadMockDataFromStorage() {
             storageUsed: 3.8,
             bandwidthMTD: 12.4,
             firebaseCostMTD: 3.20,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            mobilePercent: 0.88,
+            androidPercent: 0.78,
+            repeatUserPercent: 0.50,
+            bounceRate: 0.25
         };
+    }
+}
+
+// ===== USER ACTIVITY CALCULATION HELPERS =====
+
+/**
+ * Calculate active users (15-25% of total users are "active" at any given time)
+ * This simulates realistic concurrent user activity
+ */
+function calculateActiveUsers(totalUsers) {
+    const activePercentage = 0.15 + (Math.random() * 0.10); // 15-25%
+    return Math.floor(totalUsers * activePercentage);
+}
+
+/**
+ * Apply tiny drift to base percentages to simulate realistic trends over time
+ * Mobile: slowly trending up (85-92%) - Philippines is mobile-first
+ * Android: relatively stable (75-82%) - Android dominates in PH
+ * Repeat Users: slowly increasing (40-60%)
+ * Bounce Rate: slowly decreasing (20-30%)
+ */
+function applyPercentageDrift(percentages) {
+    // ±0.1-0.5% drift per update (very gradual)
+    const drift = (Math.random() - 0.5) * 0.005; // -0.0025 to +0.0025
+    
+    // Mobile trending up slowly (88% → 92% ceiling)
+    percentages.mobilePercent += drift + 0.0001; // slight upward bias
+    percentages.mobilePercent = Math.max(0.85, Math.min(0.92, percentages.mobilePercent));
+    
+    // Android relatively stable (78% ± 3-4%)
+    percentages.androidPercent += drift;
+    percentages.androidPercent = Math.max(0.75, Math.min(0.82, percentages.androidPercent));
+    
+    // Repeat Users increasing slowly (good for business!)
+    percentages.repeatUserPercent += drift + 0.0002; // slight upward bias
+    percentages.repeatUserPercent = Math.max(0.40, Math.min(0.60, percentages.repeatUserPercent));
+    
+    // Bounce Rate decreasing slowly (app improving!)
+    percentages.bounceRate += drift - 0.0002; // slight downward bias  
+    percentages.bounceRate = Math.max(0.20, Math.min(0.30, percentages.bounceRate));
+    
+    return percentages;
+}
+
+/**
+ * Calculate all User Activity metrics based on totalUsers and base percentages
+ * Returns calculated counts and percentages ready for display
+ */
+function calculateUserActivityMetrics(totalUsers, percentages) {
+    // Calculate active users (15-25% of total) - used for overlay data like browsers, sessions
+    const activeUsers = calculateActiveUsers(totalUsers);
+    
+    // ===== OVERVIEW CARD METRICS (based on TOTAL USERS) =====
+    // These represent all registered users' device types, not just currently active
+    
+    // Total Mobile vs Desktop distribution
+    const totalMobileCount = Math.floor(totalUsers * percentages.mobilePercent);
+    const totalDesktopCount = totalUsers - totalMobileCount;
+    
+    // Android vs iPhone (of all mobile users)
+    const androidCount = Math.floor(totalMobileCount * percentages.androidPercent);
+    const iphoneCount = totalMobileCount - androidCount;
+    const androidPercent = totalMobileCount > 0 ? Math.round((androidCount / totalMobileCount) * 100) : 0;
+    const iphonePercent = totalMobileCount > 0 ? (100 - androidPercent) : 0;
+    
+    // ===== OVERLAY METRICS (based on ACTIVE USERS for realism) =====
+    // Mobile/Desktop for overlay display
+    const activeMobileCount = Math.floor(activeUsers * percentages.mobilePercent);
+    const activeDesktopCount = activeUsers - activeMobileCount;
+    const mobilePercent = Math.round((activeMobileCount / activeUsers) * 100);
+    const desktopPercent = 100 - mobilePercent;
+    
+    // Repeat users (of total users, not active)
+    const repeatCount = Math.floor(totalUsers * percentages.repeatUserPercent);
+    const repeatPercent = Math.round(percentages.repeatUserPercent * 100);
+    
+    // Bounce rate (percentage)
+    const bounceRate = Math.round(percentages.bounceRate * 100);
+    
+    return {
+        activeUsers,
+        // Overview card data (TOTAL users)
+        androidCount,        // All Android users
+        iphoneCount,         // All iPhone users  
+        androidPercent,      // % of mobile that are Android
+        iphonePercent,       // % of mobile that are iPhone
+        totalMobileCount,    // Total mobile users
+        totalDesktopCount,   // Total desktop users
+        // Overlay data (ACTIVE users)
+        mobileCount: activeMobileCount,      // Currently active mobile
+        desktopCount: activeDesktopCount,    // Currently active desktop
+        mobilePercent,       // % of active that are mobile
+        desktopPercent,      // % of active that are desktop
+        repeatCount,
+        repeatPercent,
+        bounceRate
+    };
+}
+
+/**
+ * Update User Activity overview card displays with new metrics
+ * Updates the counts and percentages on the main dashboard
+ */
+function updateUserActivityOverviewCards(metrics) {
+    // Android count and percentage
+    const androidValueEl = document.getElementById('androidDeviceCount');
+    if (androidValueEl) {
+        androidValueEl.textContent = metrics.androidCount.toLocaleString();
+        // Update the percentage sibling element
+        const androidPercentEl = androidValueEl.nextElementSibling;
+        if (androidPercentEl && androidPercentEl.classList.contains('analytics-percent')) {
+            androidPercentEl.textContent = `${metrics.androidPercent}%`;
+        }
+    }
+    
+    // iPhone count and percentage
+    const iphoneValueEl = document.getElementById('iphoneDeviceCount');
+    if (iphoneValueEl) {
+        iphoneValueEl.textContent = metrics.iphoneCount.toLocaleString();
+        // Update the percentage sibling element
+        const iphonePercentEl = iphoneValueEl.nextElementSibling;
+        if (iphonePercentEl && iphonePercentEl.classList.contains('analytics-percent')) {
+            iphonePercentEl.textContent = `${metrics.iphonePercent}%`;
+        }
+    }
+    
+    // Average Session Duration (varies slightly 7-10 minutes)
+    const avgSessionEl = document.getElementById('avgSessionDuration');
+    if (avgSessionEl) {
+        // Calculate from session distribution with slight random variation
+        const baseMinutes = (0.19 * 2.5) + (0.38 * 10) + (0.25 * 22.5) + (0.18 * 40); // ~13.5 min
+        const variation = (Math.random() - 0.5) * 2; // ±1 minute
+        const totalMinutes = baseMinutes + variation;
+        const minutes = Math.floor(totalMinutes);
+        const seconds = Math.floor((totalMinutes - minutes) * 60);
+        avgSessionEl.textContent = `${minutes}m ${seconds}s`;
+    }
+    
+    // Peak Hours (alternates between lunch rush 11AM-2PM and after work 4PM-7PM)
+    const peakHoursEl = document.getElementById('peakHoursDisplay');
+    if (peakHoursEl) {
+        // Randomly pick between two peak periods (weighted 60/40 for afternoon peak)
+        const peakPeriods = [
+            { text: '11AM-2PM', weight: 0.40 },  // Lunch rush
+            { text: '4PM-7PM', weight: 0.60 }    // After work/school (more common)
+        ];
+        
+        // Use Math.random() to select weighted
+        const rand = Math.random();
+        const selectedPeak = rand < 0.40 ? peakPeriods[0].text : peakPeriods[1].text;
+        peakHoursEl.textContent = selectedPeak;
     }
 }
 
@@ -4170,6 +4355,16 @@ function updateStatCardsDisplay() {
         avgPerGigEl.textContent = avg;
     }
     
+    // Update User Activity metrics (Android/iPhone overview cards)
+    const percentages = {
+        mobilePercent: data.mobilePercent,
+        androidPercent: data.androidPercent,
+        repeatUserPercent: data.repeatUserPercent,
+        bounceRate: data.bounceRate
+    };
+    const activityMetrics = calculateUserActivityMetrics(data.totalUsers, percentages);
+    updateUserActivityOverviewCards(activityMetrics);
+    
     // Update Storage Used
     const storageEl = document.getElementById('totalStorageUsed');
     if (storageEl) {
@@ -4222,6 +4417,7 @@ function startMainDashboardCounting() {
     });
     
     // Total Users: increment by random 1-25 every 1 second
+    // Also updates User Activity metrics based on new total
     if (totalUsersEl) {
         let secondsCounter = 0;
         totalUsersEl._dashboardTimer = setInterval(() => {
@@ -4229,16 +4425,41 @@ function startMainDashboardCounting() {
             totalUsersEl._currentValue += randomIncrease;
             totalUsersEl.textContent = totalUsersEl._currentValue.toLocaleString();
             
+            // Update User Activity metrics based on new Total Users
+            const currentData = loadMockDataFromStorage();
+            
+            // Apply tiny drift to base percentages
+            const percentages = {
+                mobilePercent: currentData.mobilePercent,
+                androidPercent: currentData.androidPercent,
+                repeatUserPercent: currentData.repeatUserPercent,
+                bounceRate: currentData.bounceRate
+            };
+            const driftedPercentages = applyPercentageDrift(percentages);
+            
+            // Calculate new metrics
+            const metrics = calculateUserActivityMetrics(totalUsersEl._currentValue, driftedPercentages);
+            
+            // Update overview card displays
+            updateUserActivityOverviewCards(metrics);
+            
             // Save to localStorage every 5 seconds to prevent data loss on refresh
             secondsCounter++;
             if (secondsCounter >= 5) {
                 secondsCounter = 0;
-                const currentData = loadMockDataFromStorage();
                 currentData.totalUsers = totalUsersEl._currentValue;
+                currentData.mobilePercent = driftedPercentages.mobilePercent;
+                currentData.androidPercent = driftedPercentages.androidPercent;
+                currentData.repeatUserPercent = driftedPercentages.repeatUserPercent;
+                currentData.bounceRate = driftedPercentages.bounceRate;
+                currentData.androidUsers = metrics.androidCount;
+                currentData.iphoneUsers = metrics.iphoneCount;
                 saveMockDataToStorage(currentData);
+                
+                console.log(`📊 User Activity %: Mobile ${metrics.mobilePercent}%, Android ${metrics.androidPercent}%, Repeat ${metrics.repeatPercent}%, Bounce ${metrics.bounceRate}%`);
             }
             
-            console.log(`👥 Total Users increased by ${randomIncrease} to:`, totalUsersEl._currentValue);
+            console.log(`👥 Total Users +${randomIncrease} → ${totalUsersEl._currentValue.toLocaleString()} (Active: ${metrics.activeUsers.toLocaleString()})`);
         }, 1000); // Every 1 second
     }
     
@@ -4480,6 +4701,16 @@ function openStatOverlay(type) {
                 clearInterval(usersCard._dashboardTimer);
                 usersCard._dashboardTimer = null;
             }
+        } else if (type === 'userActivity') {
+            // Start real-time updates for User Activity overlay
+            if (overlay._overlayTimer) {
+                clearInterval(overlay._overlayTimer);
+            }
+            
+            overlay._overlayTimer = setInterval(() => {
+                const data = loadMockDataFromStorage();
+                populateUserActivityData(data);
+            }, 1000); // Update every second to sync with overview card
         }
         
         // Populate overlay data
@@ -4499,6 +4730,12 @@ function closeStatOverlay(overlayId) {
         countingElements.forEach(element => {
             stopCountingAnimation(element);
         });
+        
+        // Clear overlay-specific timers
+        if (overlay._overlayTimer) {
+            clearInterval(overlay._overlayTimer);
+            overlay._overlayTimer = null;
+        }
         
         overlay.classList.remove('active');
         document.body.style.overflow = ''; // Restore scroll
@@ -5088,82 +5325,117 @@ function populateGigsReportedData(data) {
 
 // Populate User Activity overlay data
 function populateUserActivityData(data) {
-    // Get Android and iPhone counts from main dashboard
-    const androidEl = document.getElementById('androidDeviceCount');
-    const iphoneEl = document.getElementById('iphoneDeviceCount');
+    // Get current total users and base percentages
+    const totalUsers = data.totalUsers || 100;
+    const percentages = {
+        mobilePercent: data.mobilePercent || 0.88,
+        androidPercent: data.androidPercent || 0.78,
+        repeatUserPercent: data.repeatUserPercent || 0.50,
+        bounceRate: data.bounceRate || 0.25
+    };
     
-    const androidCount = androidEl && androidEl._currentValue ? Math.round(androidEl._currentValue) : 847;
-    const iphoneCount = iphoneEl && iphoneEl._currentValue ? Math.round(iphoneEl._currentValue) : 398;
+    // Calculate all metrics using the helper function
+    // NOTE: Overview cards (Android/iPhone) use TOTAL users
+    //       Overlay cards (Mobile/Desktop/Repeat/Bounce) use ACTIVE users (15-25% of total)
+    const metrics = calculateUserActivityMetrics(totalUsers, percentages);
     
-    const totalMobile = androidCount + iphoneCount;
-    const desktop = Math.round(totalMobile * 0.47); // Desktop is ~47% of mobile
+    // Populate top showcase cards (Mobile, Desktop, Repeat, Bounce)
+    setElementValue('userActivityMobileCount', metrics.mobileCount.toLocaleString());
+    setElementValue('userActivityMobilePercent', `${metrics.mobilePercent}%`);
+    setElementValue('userActivityDesktopCount', metrics.desktopCount.toLocaleString());
+    setElementValue('userActivityDesktopPercent', `${metrics.desktopPercent}%`);
+    setElementValue('userActivityRepeatPercent', `${metrics.repeatPercent}%`);
+    setElementValue('userActivityBounceRate', `${metrics.bounceRate}%`);
     
-    // Populate top showcase cards
-    setElementValue('userActivityMobileCount', totalMobile);
-    setElementValue('userActivityDesktopCount', desktop);
-    setElementValue('userActivityRepeatPercent', '42%');
-    setElementValue('userActivityBounceRate', '28%');
+    // Mobile Platform Breakdown (Android vs iPhone)
+    setElementValue('androidBreakdownValue', metrics.androidCount.toLocaleString());
+    setElementValue('androidBreakdownPercent', `${metrics.androidPercent}%`);
     
-    // Mobile Platform Breakdown
-    setElementValue('androidBreakdownValue', androidCount.toLocaleString());
-    setElementValue('androidBreakdownPercent', `${((androidCount / totalMobile) * 100).toFixed(0)}%`);
+    setElementValue('iphoneBreakdownValue', metrics.iphoneCount.toLocaleString());
+    setElementValue('iphoneBreakdownPercent', `${metrics.iphonePercent}%`);
     
-    setElementValue('iphoneBreakdownValue', iphoneCount.toLocaleString());
-    setElementValue('iphoneBreakdownPercent', `${((iphoneCount / totalMobile) * 100).toFixed(0)}%`);
+    // Browser Distribution (reflects 88% mobile, 78% Android reality)
+    // Chrome dominates (Android default + some desktop)
+    // Safari lower (only 22% iPhone users)
+    const totalActiveUsers = metrics.activeUsers;
     
-    // Browser Distribution (percentages of total users)
-    const totalBrowserUsers = totalMobile + desktop;
+    // Add slight variation to browser percentages (±0.5%)
+    const chromePercent = 74 + (Math.random() - 0.5);
+    const safariPercent = 15 + (Math.random() - 0.5);
+    const firefoxPercent = 4 + (Math.random() - 0.5);
+    const edgePercent = 2 + (Math.random() - 0.5);
+    const messengerPercent = 4 + (Math.random() - 0.5);
+    const otherBrowserPercent = 1 + (Math.random() - 0.5);
+    
     const browsers = {
-        chrome: Math.round(totalBrowserUsers * 0.65),
-        safari: Math.round(totalBrowserUsers * 0.20),
-        firefox: Math.round(totalBrowserUsers * 0.08),
-        edge: Math.round(totalBrowserUsers * 0.05),
-        messenger: Math.round(totalBrowserUsers * 0.02),
-        otherBrowser: Math.round(totalBrowserUsers * 0.01)
+        chrome: Math.round(totalActiveUsers * (chromePercent / 100)),
+        safari: Math.round(totalActiveUsers * (safariPercent / 100)),
+        firefox: Math.round(totalActiveUsers * (firefoxPercent / 100)),
+        edge: Math.round(totalActiveUsers * (edgePercent / 100)),
+        messenger: Math.round(totalActiveUsers * (messengerPercent / 100)),
+        otherBrowser: Math.round(totalActiveUsers * (otherBrowserPercent / 100))
     };
     
     setElementValue('chromeValue', browsers.chrome.toLocaleString());
-    setElementValue('chromePercent', `65%`);
+    setElementValue('chromePercent', `${chromePercent.toFixed(1)}%`);
     
     setElementValue('safariValue', browsers.safari.toLocaleString());
-    setElementValue('safariPercent', `20%`);
+    setElementValue('safariPercent', `${safariPercent.toFixed(1)}%`);
     
     setElementValue('firefoxValue', browsers.firefox.toLocaleString());
-    setElementValue('firefoxPercent', `8%`);
+    setElementValue('firefoxPercent', `${firefoxPercent.toFixed(1)}%`);
     
     setElementValue('edgeValue', browsers.edge.toLocaleString());
-    setElementValue('edgePercent', `5%`);
+    setElementValue('edgePercent', `${edgePercent.toFixed(1)}%`);
     
     setElementValue('messengerValue', browsers.messenger.toLocaleString());
-    setElementValue('messengerPercent', `2%`);
+    setElementValue('messengerPercent', `${messengerPercent.toFixed(1)}%`);
     
     setElementValue('otherBrowserValue', browsers.otherBrowser.toLocaleString());
-    setElementValue('otherBrowserPercent', `1%`);
+    setElementValue('otherBrowserPercent', `${otherBrowserPercent.toFixed(1)}%`);
     
-    // Session Duration Breakdown
-    const sessionDistribution = generateDistribution(4, totalBrowserUsers);
+    // Session Duration Breakdown (with slight variation)
+    const session0to5Percent = 19 + (Math.random() - 0.5);
+    const session5to15Percent = 38 + (Math.random() - 0.5);
+    const session15to30Percent = 25 + (Math.random() - 0.5);
+    const session30plusPercent = 18 + (Math.random() - 0.5);
     
-    setElementValue('session0to5Value', sessionDistribution[0].toLocaleString());
-    setElementValue('session0to5Percent', `${((sessionDistribution[0] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    setElementValue('session0to5Value', Math.round(totalActiveUsers * (session0to5Percent / 100)).toLocaleString());
+    setElementValue('session0to5Percent', `${session0to5Percent.toFixed(1)}%`);
     
-    setElementValue('session5to15Value', sessionDistribution[1].toLocaleString());
-    setElementValue('session5to15Percent', `${((sessionDistribution[1] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    setElementValue('session5to15Value', Math.round(totalActiveUsers * (session5to15Percent / 100)).toLocaleString());
+    setElementValue('session5to15Percent', `${session5to15Percent.toFixed(1)}%`);
     
-    setElementValue('session15to30Value', sessionDistribution[2].toLocaleString());
-    setElementValue('session15to30Percent', `${((sessionDistribution[2] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    setElementValue('session15to30Value', Math.round(totalActiveUsers * (session15to30Percent / 100)).toLocaleString());
+    setElementValue('session15to30Percent', `${session15to30Percent.toFixed(1)}%`);
     
-    setElementValue('session30plusValue', sessionDistribution[3].toLocaleString());
-    setElementValue('session30plusPercent', `${((sessionDistribution[3] / totalBrowserUsers) * 100).toFixed(0)}%`);
+    setElementValue('session30plusValue', Math.round(totalActiveUsers * (session30plusPercent / 100)).toLocaleString());
+    setElementValue('session30plusPercent', `${session30plusPercent.toFixed(1)}%`);
     
-    setElementValue('avgSessionOverlayDisplay', '8m 34s');
+    // Average Session Duration (calculated from current distribution)
+    const avgMinutes = ((session0to5Percent/100) * 2.5) + ((session5to15Percent/100) * 10) + 
+                       ((session15to30Percent/100) * 22.5) + ((session30plusPercent/100) * 40);
+    const minutes = Math.floor(avgMinutes);
+    const seconds = Math.floor((avgMinutes - minutes) * 60);
+    setElementValue('avgSessionOverlayDisplay', `${minutes}m ${seconds}s`);
     
-    // Peak Usage Hours
-    const peakUsers = Math.round(totalBrowserUsers * 0.27); // 27% active at peak
-    setElementValue('peakUsageCount', `${peakUsers}`);
-    setElementValue('morningUsersCount', `${Math.round(totalBrowserUsers * 0.13)}`);
-    setElementValue('afternoonUsersCount', `${Math.round(totalBrowserUsers * 0.21)}`);
-    setElementValue('eveningUsersCount', `${peakUsers}`);
-    setElementValue('nightUsersCount', `${Math.round(totalBrowserUsers * 0.06)}`);
+    // Peak Usage Hours (reflects Filipino work/school schedule)
+    // Uses TOTAL USERS (not just active) to show realistic peak traffic
+    // Morning (6AM-12PM): Commute + early work - 50-55% of total users
+    // Afternoon (12PM-6PM): Lunch break + after work - PEAK 70-78% of total users
+    // Evening (6PM-12AM): Dinner + leisure - 55-62% of total users
+    // Night (12AM-6AM): Very low - 8-12% of total users
+    const morningPeak = 0.50 + (Math.random() * 0.05);  // 50-55%
+    const afternoonPeak = 0.70 + (Math.random() * 0.08); // 70-78%
+    const eveningPeak = 0.55 + (Math.random() * 0.07);  // 55-62%
+    const nightPeak = 0.08 + (Math.random() * 0.04);    // 8-12%
+    
+    setElementValue('morningUsersCount', `${Math.round(totalUsers * morningPeak)}`);
+    setElementValue('afternoonUsersCount', `${Math.round(totalUsers * afternoonPeak)}`);
+    setElementValue('eveningUsersCount', `${Math.round(totalUsers * eveningPeak)}`);
+    setElementValue('nightUsersCount', `${Math.round(totalUsers * nightPeak)}`);
+    
+    console.log(`📊 User Activity Overlay populated: ${totalActiveUsers.toLocaleString()} active users (${Math.round((totalActiveUsers/totalUsers)*100)}% of ${totalUsers.toLocaleString()} total)`);
 }
 
 // Populate Gigs Analytics overlay data
