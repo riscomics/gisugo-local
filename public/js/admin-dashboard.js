@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize reset button
     initializeResetButton();
+    
+    // Initialize admin profile dropdown
+    initializeAdminDropdown();
 });
 
 // ===== SIDEBAR TOGGLE SYSTEM =====
@@ -5115,7 +5118,8 @@ function populateUserActivityData(data) {
         safari: Math.round(totalBrowserUsers * 0.20),
         firefox: Math.round(totalBrowserUsers * 0.08),
         edge: Math.round(totalBrowserUsers * 0.05),
-        otherBrowser: Math.round(totalBrowserUsers * 0.02)
+        messenger: Math.round(totalBrowserUsers * 0.02),
+        otherBrowser: Math.round(totalBrowserUsers * 0.01)
     };
     
     setElementValue('chromeValue', browsers.chrome.toLocaleString());
@@ -5130,8 +5134,11 @@ function populateUserActivityData(data) {
     setElementValue('edgeValue', browsers.edge.toLocaleString());
     setElementValue('edgePercent', `5%`);
     
+    setElementValue('messengerValue', browsers.messenger.toLocaleString());
+    setElementValue('messengerPercent', `2%`);
+    
     setElementValue('otherBrowserValue', browsers.otherBrowser.toLocaleString());
-    setElementValue('otherBrowserPercent', `2%`);
+    setElementValue('otherBrowserPercent', `1%`);
     
     // Session Duration Breakdown
     const sessionDistribution = generateDistribution(4, totalBrowserUsers);
@@ -5152,11 +5159,11 @@ function populateUserActivityData(data) {
     
     // Peak Usage Hours
     const peakUsers = Math.round(totalBrowserUsers * 0.27); // 27% active at peak
-    setElementValue('peakUsageCount', `~${peakUsers} active users`);
-    setElementValue('morningUsersCount', `~${Math.round(totalBrowserUsers * 0.13)} users`);
-    setElementValue('afternoonUsersCount', `~${Math.round(totalBrowserUsers * 0.21)} users`);
-    setElementValue('eveningUsersCount', `~${peakUsers} users`);
-    setElementValue('nightUsersCount', `~${Math.round(totalBrowserUsers * 0.06)} users`);
+    setElementValue('peakUsageCount', `${peakUsers}`);
+    setElementValue('morningUsersCount', `${Math.round(totalBrowserUsers * 0.13)}`);
+    setElementValue('afternoonUsersCount', `${Math.round(totalBrowserUsers * 0.21)}`);
+    setElementValue('eveningUsersCount', `${peakUsers}`);
+    setElementValue('nightUsersCount', `${Math.round(totalBrowserUsers * 0.06)}`);
 }
 
 // Populate Gigs Analytics overlay data
@@ -6130,6 +6137,41 @@ window.resetAdminMockData = function() {
     console.log('🔄 Mock data reset! Refresh the page to generate new baseline values.');
     console.log('💡 New revenue will start between ₱10,000 - ₱15,000');
 };
+
+// ===== ADMIN PROFILE DROPDOWN =====
+function initializeAdminDropdown() {
+    const profileBtn = document.getElementById('adminProfileBtn');
+    const dropdown = document.getElementById('adminDropdown');
+    const logoutBtn = document.getElementById('logoutBtn');
+    
+    if (!profileBtn || !dropdown || !logoutBtn) {
+        console.warn('⚠️ Admin dropdown elements not found');
+        return;
+    }
+    
+    // Toggle dropdown on profile click
+    profileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdown.classList.toggle('active');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!profileBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('active');
+        }
+    });
+    
+    // Handle logout
+    logoutBtn.addEventListener('click', function() {
+        console.log('🚪 Logging out...');
+        // TODO: FIREBASE - Implement Firebase signOut()
+        // For now, redirect to landing page
+        window.location.href = 'landing.html';
+    });
+    
+    console.log('✅ Admin dropdown initialized');
+}
 
 // ===== INITIALIZATION COMPLETE =====
 console.log('✅ Admin Dashboard JavaScript loaded successfully');

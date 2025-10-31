@@ -110,37 +110,12 @@ body.admin-dashboard::-webkit-scrollbar {
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
-.search-btn {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.3s ease;
-}
-
-.search-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-}
-
-.search-btn img {
-    width: 16px;
-    height: 16px;
-    filter: brightness(0) invert(1);
-}
 
 .admin-header-right {
     display: flex;
     align-items: center;
     gap: 1.5rem;
+    position: relative;
 }
 
 .notification-btn {
@@ -192,6 +167,7 @@ body.admin-dashboard::-webkit-scrollbar {
     padding: 0.5rem;
     border-radius: 25px;
     transition: background 0.3s ease;
+    position: relative;
 }
 
 .admin-profile:hover {
@@ -211,6 +187,52 @@ body.admin-dashboard::-webkit-scrollbar {
     color: white;
     font-weight: 500;
     font-size: 0.95rem;
+}
+
+.admin-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: #2d3748;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 150px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    z-index: 1000;
+}
+
+.admin-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.admin-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    color: #e6d6ae;
+    font-weight: 500;
+}
+
+.admin-dropdown-item:hover {
+    background: rgba(255, 71, 87, 0.15);
+}
+
+.dropdown-icon {
+    font-size: 1.1rem;
+}
+
+.dropdown-text {
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
 }
 
 /* ===== MAIN LAYOUT ===== */
@@ -2942,13 +2964,6 @@ body.admin-dashboard::-webkit-scrollbar {
         height: 36px; /* Reduced height */
     }
     
-    .search-btn {
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        font-size: 0.8rem;
-    }
-    
     .admin-header-right {
         gap: 1rem; /* Reduced gap */
     }
@@ -3504,12 +3519,6 @@ body.admin-dashboard::-webkit-scrollbar {
         height: 32px;
     }
     
-    .search-btn {
-        width: 32px;
-        height: 32px;
-        font-size: 0.75rem;
-    }
-    
     .admin-header-right {
         gap: 0.75rem;
     }
@@ -3660,13 +3669,6 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.25rem 0.4rem;
         height: 28px;
         min-width: 80px; /* Minimum width to stay functional */
-    }
-    
-    .search-btn {
-        width: 28px;
-        height: 28px;
-        font-size: 0.7rem;
-        flex-shrink: 0; /* Don't shrink the button */
     }
     
     .admin-header-right {
@@ -6110,7 +6112,7 @@ body.admin-dashboard::-webkit-scrollbar {
     border-radius: 16px;
     padding: 1.5rem;
     display: flex;
-    gap: 1rem; /* Base gap - overridden by media queries */
+    gap: 0.75rem; /* Base gap - overridden by media queries */
     align-items: flex-start;
     transition: all 0.3s ease;
     position: relative;
@@ -6426,14 +6428,14 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Tablet: Increase icon-content gap */
 @media (min-width: 601px) and (max-width: 1500px) {
     .revenue-card {
-        gap: clamp(2rem, 5vw, 3.5rem);
+        gap: clamp(1rem, 3vw, 1.5rem);
     }
 }
 
 /* Desktop: Tight gap when switching to row layout (1501px+) */
 @media (min-width: 1501px) {
     .revenue-card {
-        gap: 1.5rem; /* Can afford more gap now that content stacks vertically */
+        gap: 1rem; /* Tighter spacing */
     }
     
     /* Stack unverified/verified numbers vertically */
@@ -6453,21 +6455,21 @@ body.admin-dashboard::-webkit-scrollbar {
 /* Desktop: Gradually increase gap as viewport widens */
 @media (min-width: 1600px) {
     .revenue-card {
-        gap: clamp(1.75rem, 3vw, 2.25rem);
+        gap: 1.25rem;
     }
 }
 
 /* Large Desktop: More breathing room */
 @media (min-width: 1800px) {
     .revenue-card {
-        gap: clamp(2rem, 4vw, 3rem);
+        gap: 1.5rem;
     }
 }
 
 /* Ultra-wide: Maximum spacing for very large monitors */
 @media (min-width: 2000px) {
     .revenue-card {
-        gap: clamp(2.5rem, 5vw, 4rem);
+        gap: 1.75rem;
     }
 }
 
@@ -6536,7 +6538,7 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .revenue-card {
-        gap: clamp(1.25rem, 5vw, 2rem); /* Noticeable gap even on mobile */
+        gap: clamp(0.75rem, 3vw, 1rem); /* Tighter gap on mobile */
     }
 
     .stat-filter-section {

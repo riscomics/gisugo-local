@@ -18,16 +18,19 @@
             <div class="admin-header-center">
                 <div class="admin-search">
                     <input type="text" placeholder="Search..." class="search-input">
-                    <button class="search-btn">
-                        <img src="public/icons/search.png" alt="Search">
-                    </button>
                 </div>
             </div>
             
             <div class="admin-header-right">
-                <div class="admin-profile">
+                <div class="admin-profile" id="adminProfileBtn">
                     <img src="public/users/Peter-J-Ang-User-01.jpg" alt="Peter J. Ang" class="admin-avatar">
                     <span class="admin-name">Peter J. Ang</span>
+                </div>
+                <div class="admin-dropdown" id="adminDropdown">
+                    <div class="admin-dropdown-item" id="logoutBtn">
+                        <span class="dropdown-icon">🚪</span>
+                        <span class="dropdown-text">LOG OUT</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -668,7 +671,7 @@
                                 <div class="breakdown-header">
                                     <span class="breakdown-title">📋 Report Reasons</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="reportReasonsBreakdown">
+                                <div class="breakdown-content" id="reportReasonsBreakdown">
                                     <div class="revenue-showcase" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">🔞</div>
@@ -719,7 +722,7 @@
                                 <div class="breakdown-header">
                                     <span class="breakdown-title">✅ Report Status</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="reportStatusBreakdown">
+                                <div class="breakdown-content" id="reportStatusBreakdown">
                                     <div class="revenue-showcase">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">⏳</div>
@@ -761,24 +764,48 @@
                         </div>
 
                         <div class="stat-overlay-body">
-                            <!-- Device Distribution -->
-                            <div class="revenue-showcase">
+                            <!-- Device Distribution Row -->
+                            <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
                                 <div class="revenue-card">
-                                    <div class="revenue-icon">📱</div>
+                                    <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #00d4ff);">📱</div>
                                     <div class="revenue-details">
-                                        <div class="revenue-label">Mobile Devices</div>
-                                        <div class="revenue-amount" id="userActivityMobileCount">1,245</div>
-                                        <div class="revenue-percent">68%</div>
+                                        <div class="revenue-label">Mobile</div>
+                                        <div class="revenue-amount" style="color: #00d4ff; display: none;" id="userActivityMobileCount">1,245</div>
+                                        <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #00d4ff;">68%</div>
                                     </div>
                                 </div>
                                 <div class="revenue-card">
-                                    <div class="revenue-icon">💻</div>
+                                    <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a3a3a3);">💻</div>
                                     <div class="revenue-details">
-                                        <div class="revenue-label">Desktop Users</div>
-                                        <div class="revenue-amount" id="userActivityDesktopCount">587</div>
-                                        <div class="revenue-percent">32%</div>
+                                        <div class="revenue-label">Desktop</div>
+                                        <div class="revenue-amount" style="color: #a3a3a3; display: none;" id="userActivityDesktopCount">587</div>
+                                        <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #a3a3a3;">32%</div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Mobile Platform Row -->
+                            <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
+                                <div class="revenue-card">
+                                    <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3ddc84);">🤖</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">Android</div>
+                                        <div class="revenue-amount" style="color: #3ddc84; display: none;" id="androidBreakdownValue">847</div>
+                                        <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #3ddc84;" id="androidBreakdownPercent">68%</div>
+                                    </div>
+                                </div>
+                                <div class="revenue-card">
+                                    <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a3a3a3);">🍎</div>
+                                    <div class="revenue-details">
+                                        <div class="revenue-label">iPhone</div>
+                                        <div class="revenue-amount" style="color: #a3a3a3; display: none;" id="iphoneBreakdownValue">398</div>
+                                        <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #a3a3a3;" id="iphoneBreakdownPercent">32%</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- User Behavior Row -->
+                            <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
                                 <div class="revenue-card">
                                     <div class="revenue-icon">🔄</div>
                                     <div class="revenue-details">
@@ -795,78 +822,60 @@
                                 </div>
                             </div>
 
-                            <!-- Mobile Platform Breakdown -->
-                            <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
-                                    <span class="breakdown-title">📱 Mobile Platforms</span>
-                                </div>
-                                <div class="breakdown-content expanded" id="mobilePlatformBreakdown">
-                                    <div class="revenue-showcase">
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3ddc84);">🤖</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">Android</div>
-                                                <div class="revenue-amount" style="color: #3ddc84;" id="androidBreakdownValue">847</div>
-                                                <div class="revenue-percent" id="androidBreakdownPercent">68%</div>
-                                            </div>
-                                        </div>
-                                        <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a3a3a3);">🍎</div>
-                                            <div class="revenue-details">
-                                                <div class="revenue-label">iPhone</div>
-                                                <div class="revenue-amount" style="color: #a3a3a3;" id="iphoneBreakdownValue">398</div>
-                                                <div class="revenue-percent" id="iphoneBreakdownPercent">32%</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- Browser Distribution -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="browserDistributionBreakdown">
                                     <span class="breakdown-title">🌐 Browser Distribution</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="browserDistributionBreakdown">
-                                    <div class="revenue-showcase" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                                <div class="breakdown-content" id="browserDistributionBreakdown">
+                                    <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
                                         <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #4285f4);">🔵</div>
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.8)) drop-shadow(0 0 4px rgba(234, 67, 53, 0.5)) drop-shadow(0 0 4px rgba(251, 188, 5, 0.5)) drop-shadow(0 0 4px rgba(52, 168, 83, 0.5));">🌐</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Chrome</div>
-                                                <div class="revenue-amount" style="color: #4285f4;" id="chromeValue">1,192</div>
-                                                <div class="revenue-percent" id="chromePercent">65%</div>
+                                                <div class="revenue-amount" style="color: #4285f4; display: none;" id="chromeValue">1,192</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #4285f4;" id="chromePercent">65%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #a3a3a3);">🧭</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Safari</div>
-                                                <div class="revenue-amount" style="color: #a3a3a3;" id="safariValue">367</div>
-                                                <div class="revenue-percent" id="safariPercent">20%</div>
+                                                <div class="revenue-amount" style="color: #a3a3a3; display: none;" id="safariValue">367</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #a3a3a3;" id="safariPercent">20%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ff7139);">🦊</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Firefox</div>
-                                                <div class="revenue-amount" style="color: #ff7139;" id="firefoxValue">147</div>
-                                                <div class="revenue-percent" id="firefoxPercent">8%</div>
+                                                <div class="revenue-amount" style="color: #ff7139; display: none;" id="firefoxValue">147</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #ff7139;" id="firefoxPercent">8%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #0078d7);">🌊</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Edge</div>
-                                                <div class="revenue-amount" style="color: #0078d7;" id="edgeValue">92</div>
-                                                <div class="revenue-percent" id="edgePercent">5%</div>
+                                                <div class="revenue-amount" style="color: #0078d7; display: none;" id="edgeValue">92</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #0078d7;" id="edgePercent">5%</div>
+                                            </div>
+                                        </div>
+                                        <div class="revenue-card">
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #0084ff);">💬</div>
+                                            <div class="revenue-details">
+                                                <div class="revenue-label">Messenger</div>
+                                                <div class="revenue-amount" style="color: #0084ff; display: none;" id="messengerValue">28</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #0084ff;" id="messengerPercent">2%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #888);">🌐</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Other</div>
-                                                <div class="revenue-amount" style="color: #888;" id="otherBrowserValue">34</div>
-                                                <div class="revenue-percent" id="otherBrowserPercent">2%</div>
+                                                <div class="revenue-amount" style="color: #888; display: none;" id="otherBrowserValue">6</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #888;" id="otherBrowserPercent">1%</div>
                                             </div>
                                         </div>
                                     </div>
@@ -875,41 +884,42 @@
 
                             <!-- Session Duration Breakdown -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="sessionDurationBreakdown">
                                     <span class="breakdown-title">⏱️ Session Duration Analysis</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="sessionDurationBreakdown">
-                                    <div class="revenue-showcase">
+                                <div class="breakdown-content" id="sessionDurationBreakdown">
+                                    <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #ef4444);">⚡</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">0-5 minutes</div>
-                                                <div class="revenue-amount" style="color: #ef4444;" id="session0to5Value">342</div>
-                                                <div class="revenue-percent" id="session0to5Percent">19%</div>
+                                                <div class="revenue-amount" style="color: #ef4444; display: none;" id="session0to5Value">342</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #ef4444;" id="session0to5Percent">19%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #fbbf24);">⏱️</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">5-15 minutes</div>
-                                                <div class="revenue-amount" style="color: #fbbf24;" id="session5to15Value">687</div>
-                                                <div class="revenue-percent" id="session5to15Percent">38%</div>
+                                                <div class="revenue-amount" style="color: #fbbf24; display: none;" id="session5to15Value">687</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #fbbf24;" id="session5to15Percent">38%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">⏲️</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">15-30 minutes</div>
-                                                <div class="revenue-amount" style="color: #10b981;" id="session15to30Value">456</div>
-                                                <div class="revenue-percent" id="session15to30Percent">25%</div>
+                                                <div class="revenue-amount" style="color: #10b981; display: none;" id="session15to30Value">456</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #10b981;" id="session15to30Percent">25%</div>
                                             </div>
                                         </div>
                                         <div class="revenue-card">
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">⌛</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">30+ minutes</div>
-                                                <div class="revenue-amount" style="color: #3b82f6;" id="session30plusValue">347</div>
-                                                <div class="revenue-percent" id="session30plusPercent">19%</div>
+                                                <div class="revenue-amount" style="color: #3b82f6; display: none;" id="session30plusValue">347</div>
+                                                <div class="revenue-percent" style="font-size: 2rem; font-weight: 700; color: #3b82f6;" id="session30plusPercent">19%</div>
                                             </div>
                                         </div>
                                     </div>
@@ -922,32 +932,33 @@
 
                             <!-- Peak Usage Hours -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="peakUsageBreakdown">
                                     <span class="breakdown-title">🕐 Peak Usage Hours (24h)</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="peakUsageBreakdown">
+                                <div class="breakdown-content" id="peakUsageBreakdown">
                                     <div class="peak-usage-display">
                                         <div class="peak-usage-primary">
                                             <div class="peak-badge">🔥 PEAK TIME</div>
                                             <div class="peak-time">6:00 PM - 9:00 PM</div>
-                                            <div class="peak-count" id="peakUsageCount">~487 active users</div>
+                                            <div class="peak-count" id="peakUsageCount">487</div>
                                         </div>
                                         <div class="peak-usage-secondary">
                                             <div class="peak-secondary-item">
                                                 <span class="peak-secondary-label">Morning (6AM-12PM):</span>
-                                                <span class="peak-secondary-value" id="morningUsersCount">~245 users</span>
+                                                <span class="peak-secondary-value" id="morningUsersCount">245</span>
                                             </div>
                                             <div class="peak-secondary-item">
                                                 <span class="peak-secondary-label">Afternoon (12PM-6PM):</span>
-                                                <span class="peak-secondary-value" id="afternoonUsersCount">~389 users</span>
+                                                <span class="peak-secondary-value" id="afternoonUsersCount">389</span>
                                             </div>
                                             <div class="peak-secondary-item">
                                                 <span class="peak-secondary-label">Evening (6PM-12AM):</span>
-                                                <span class="peak-secondary-value" id="eveningUsersCount">~487 users</span>
+                                                <span class="peak-secondary-value" id="eveningUsersCount">487</span>
                                             </div>
                                             <div class="peak-secondary-item">
                                                 <span class="peak-secondary-label">Night (12AM-6AM):</span>
-                                                <span class="peak-secondary-value" id="nightUsersCount">~112 users</span>
+                                                <span class="peak-secondary-value" id="nightUsersCount">112</span>
                                             </div>
                                         </div>
                                     </div>
@@ -997,7 +1008,7 @@
                                     <span class="breakdown-title">📝 Gigs Posted by Category</span>
                                     <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="gigsPostedBreakdown">
+                                <div class="breakdown-content" id="gigsPostedBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/gigs/byCategory -->
                                     <div class="breakdown-item">
                                         <div class="breakdown-bar-container">
@@ -1203,7 +1214,7 @@
                                     <span class="breakdown-title">📷 Media Uploads by Type</span>
                                     <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="mediaUploadsBreakdown">
+                                <div class="breakdown-content" id="mediaUploadsBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/storage/mediaTypes -->
                                     <div class="revenue-showcase">
                                         <div class="revenue-card">
@@ -1248,7 +1259,7 @@
                                     <span class="breakdown-title">📈 Storage Growth</span>
                                     <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="storageGrowthBreakdown">
+                                <div class="breakdown-content" id="storageGrowthBreakdown">
                                     <div class="storage-growth-info">
                                         <div class="growth-stat">
                                             <span class="growth-label">This Month:</span>
@@ -1328,7 +1339,7 @@
                                     <span class="breakdown-title">💵 Firebase Cost Breakdown</span>
                                     <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="firebaseCostBreakdown">
+                                <div class="breakdown-content" id="firebaseCostBreakdown">
                                     <!-- FIREBASE TODO: Fetch from /admin/analytics/traffic/costs -->
                                     <div class="revenue-showcase">
                                         <div class="revenue-card">
@@ -1373,7 +1384,7 @@
                                     <span class="breakdown-title">📊 Traffic Trends</span>
                                     <span class="expand-icon">▼</span>
                                 </div>
-                                <div class="breakdown-content expanded" id="trafficTrendsBreakdown">
+                                <div class="breakdown-content" id="trafficTrendsBreakdown">
                                     <div class="traffic-trends-info">
                                         <div class="trend-stat">
                                             <span class="trend-label">Daily Average:</span>
