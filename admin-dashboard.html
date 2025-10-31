@@ -513,7 +513,7 @@
                                     </div>
                                 </div>
                                 <div class="revenue-card usd-card">
-                                    <div class="revenue-icon">💵</div>
+                                    <div class="revenue-icon" style="font-size: 4rem; filter: drop-shadow(0 0 12px #00d4ff);">💰</div>
                                     <div class="revenue-content">
                                         <div class="revenue-label">US Dollar <span style="font-size: 0.8em; color: rgba(255,255,255,0.6);">@ ₱57 = $1</span></div>
                                         <div class="revenue-amount counting" id="revenueUSDDisplay" data-target="8.77">$8.77</div>
@@ -668,8 +668,9 @@
 
                             <!-- Report Reasons -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="reportReasonsBreakdown">
                                     <span class="breakdown-title">📋 Report Reasons</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="reportReasonsBreakdown">
                                     <div class="revenue-showcase" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
@@ -719,8 +720,9 @@
 
                             <!-- Report Status -->
                             <div class="stat-breakdown-section">
-                                <div class="breakdown-header">
+                                <div class="breakdown-header expandable" data-target="reportStatusBreakdown">
                                     <span class="breakdown-title">✅ Report Status</span>
+                                    <span class="expand-icon">▼</span>
                                 </div>
                                 <div class="breakdown-content" id="reportStatusBreakdown">
                                     <div class="revenue-showcase">
@@ -831,7 +833,7 @@
                                 <div class="breakdown-content" id="browserDistributionBreakdown">
                                     <div class="revenue-showcase" style="grid-template-columns: 1fr 1fr !important;">
                                         <div class="revenue-card">
-                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 8px rgba(66, 133, 244, 0.8)) drop-shadow(0 0 4px rgba(234, 67, 53, 0.5)) drop-shadow(0 0 4px rgba(251, 188, 5, 0.5)) drop-shadow(0 0 4px rgba(52, 168, 83, 0.5));">🌐</div>
+                                            <div class="revenue-icon" style="filter: drop-shadow(0 0 12px rgba(251, 188, 5, 0.9));">🟡</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Chrome</div>
                                                 <div class="revenue-amount" style="color: #4285f4; display: none;" id="chromeValue">1,192</div>
@@ -1337,7 +1339,8 @@
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #8b5cf6);">👤</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Profile Photos</div>
-                                                <div class="revenue-amount" style="color: #8b5cf6;" id="profilePhotosValue">4,567 (0.8 GB)</div>
+                                                <div class="revenue-amount" style="color: #8b5cf6;" id="profilePhotosCount">4,567</div>
+                                                <div class="revenue-sublabel" id="profilePhotosSize">(0.8 GB)</div>
                                                 <div class="revenue-percent" id="profilePhotosPercent">21%</div>
                                             </div>
                                         </div>
@@ -1345,7 +1348,8 @@
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #3b82f6);">💼</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Gig Photos</div>
-                                                <div class="revenue-amount" style="color: #3b82f6;" id="gigPhotosValue">6,234 (1.3 GB)</div>
+                                                <div class="revenue-amount" style="color: #3b82f6;" id="gigPhotosCount">6,234</div>
+                                                <div class="revenue-sublabel" id="gigPhotosSize">(1.3 GB)</div>
                                                 <div class="revenue-percent" id="gigPhotosPercent">34%</div>
                                             </div>
                                         </div>
@@ -1353,7 +1357,8 @@
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #10b981);">🆔</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">ID Verifications</div>
-                                                <div class="revenue-amount" style="color: #10b981;" id="idVerificationsValue">1,255 (0.2 GB)</div>
+                                                <div class="revenue-amount" style="color: #10b981;" id="idVerificationsCount">1,255</div>
+                                                <div class="revenue-sublabel" id="idVerificationsSize">(0.2 GB)</div>
                                                 <div class="revenue-percent" id="idVerificationsPercent">5%</div>
                                             </div>
                                         </div>
@@ -1361,7 +1366,8 @@
                                             <div class="revenue-icon" style="filter: drop-shadow(0 0 8px #6b7280);">📁</div>
                                             <div class="revenue-details">
                                                 <div class="revenue-label">Other Files</div>
-                                                <div class="revenue-amount" style="color: #6b7280;" id="otherFilesValue">400 (0.1 GB)</div>
+                                                <div class="revenue-amount" style="color: #6b7280;" id="otherFilesCount">400</div>
+                                                <div class="revenue-sublabel" id="otherFilesSize">(0.1 GB)</div>
                                                 <div class="revenue-percent" id="otherFilesPercent">3%</div>
                                             </div>
                                         </div>

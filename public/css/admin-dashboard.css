@@ -3463,6 +3463,82 @@ body.admin-dashboard::-webkit-scrollbar {
     .panel-title {
         font-size: clamp(1rem, 2.6vw, 1.1rem);
     }
+    
+    /* ===== OVERLAY MOBILE OPTIMIZATIONS (411px and below) ===== */
+    
+    /* Reduce icon size by 20% in overlays */
+    .revenue-icon {
+        font-size: 2rem; /* Down from 2.5rem (20% reduction) */
+        width: 48px;
+        height: 48px;
+    }
+    
+    /* Completely restructure cards for mobile */
+    .revenue-card {
+        flex-direction: column !important; /* Stack vertically */
+        align-items: center !important; /* Center everything */
+        justify-content: center !important;
+        text-align: center !important;
+        gap: 0.25rem !important;
+        padding: 0.5rem 0.25rem !important; /* Minimal padding */
+    }
+    
+    .revenue-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+    
+    /* Remove all margins for full width */
+    .stat-breakdown-section {
+        margin: 0.5rem 0;
+    }
+    
+    .breakdown-header {
+        padding: 0.75rem 0.5rem; /* Minimal horizontal padding */
+        margin: 0;
+    }
+    
+    .revenue-showcase {
+        padding: 0.5rem 0.25rem; /* Minimal padding */
+        margin: 0;
+    }
+    
+    .breakdown-content.expanded {
+        padding: 0.5rem 0.25rem; /* Minimal padding */
+    }
+    
+    .stat-overlay-content {
+        padding: 0.5rem 0.25rem;
+    }
+    
+    .stat-overlay-body {
+        padding: 0.5rem 0.25rem; /* Minimal padding to prevent edge touching */
+    }
+    
+    /* Reduce revenue card label sizes for better fit */
+    .revenue-label {
+        font-size: 0.7rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    
+    .revenue-amount {
+        font-size: 1.4rem;
+    }
+    
+    .revenue-percent {
+        font-size: 1.6rem; /* Make percentage prominent */
+        font-weight: 700;
+    }
+    
+    .revenue-sublabel {
+        font-size: 0.6rem;
+    }
 }
 
 /* Phone Optimizations (400px and below) */
@@ -3838,6 +3914,69 @@ body.admin-dashboard::-webkit-scrollbar {
     .search-input-small {
         width: 90px;
     }
+    
+    /* ===== OVERLAY OPTIMIZATIONS FOR SMALL SCREENS (375px) ===== */
+    .revenue-icon {
+        font-size: 1.75rem;
+        width: 42px;
+        height: 42px;
+    }
+    
+    .revenue-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        gap: 0.2rem !important;
+        padding: 0.4rem 0.2rem !important;
+    }
+    
+    .revenue-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .stat-breakdown-section {
+        margin: 0.4rem 0;
+    }
+    
+    .breakdown-header {
+        padding: 0.65rem 0.4rem;
+        margin: 0;
+    }
+    
+    .revenue-showcase {
+        padding: 0.4rem 0.2rem;
+        margin: 0;
+    }
+    
+    .breakdown-content.expanded {
+        padding: 0.4rem 0.2rem;
+    }
+    
+    .stat-overlay-content {
+        padding: 0.4rem 0.2rem;
+    }
+    
+    .stat-overlay-body {
+        padding: 0.4rem 0.2rem;
+    }
+    
+    .revenue-label {
+        font-size: 0.65rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    
+    .revenue-percent {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
 }
 
 /* Ultra Small Screens (320px and below) */
@@ -3860,6 +3999,77 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .section-subtitle {
         font-size: 0.85rem;
+    }
+    
+    /* ===== OVERLAY OPTIMIZATIONS FOR ULTRA SMALL SCREENS (320px) ===== */
+    .revenue-icon {
+        font-size: 1.5rem;
+        width: 36px;
+        height: 36px;
+    }
+    
+    .revenue-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        gap: 0.15rem !important;
+        padding: 0.35rem 0.15rem !important;
+    }
+    
+    .revenue-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .stat-breakdown-section {
+        margin: 0.3rem 0;
+    }
+    
+    .breakdown-header {
+        padding: 0.5rem 0.3rem;
+        margin: 0;
+    }
+    
+    .revenue-showcase {
+        padding: 0.3rem 0.15rem;
+        margin: 0;
+    }
+    
+    .breakdown-content.expanded {
+        padding: 0.3rem 0.15rem;
+    }
+    
+    .revenue-label {
+        font-size: 0.6rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    
+    .revenue-amount {
+        font-size: 1.1rem;
+    }
+    
+    .revenue-percent {
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+    
+    .revenue-sublabel {
+        font-size: 0.55rem;
+    }
+    
+    .stat-overlay-content {
+        padding: 0.3rem 0.15rem;
+    }
+    
+    .stat-overlay-body {
+        padding: 0.3rem 0.15rem;
     }
     
     /* Extremely compact controls */
@@ -6470,6 +6680,80 @@ body.admin-dashboard::-webkit-scrollbar {
 @media (min-width: 2000px) {
     .revenue-card {
         gap: 1.75rem;
+    }
+}
+
+/* Mobile overlay card restructure - applies to tablets and phones */
+@media (max-width: 768px) {
+    .stat-overlay .revenue-card,
+    #gigsAnalyticsOverlay .revenue-card,
+    #userActivityOverlay .revenue-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0.75rem 0.5rem !important;
+        gap: 0.35rem !important;
+    }
+    
+    .stat-overlay .revenue-details,
+    #gigsAnalyticsOverlay .revenue-details,
+    #userActivityOverlay .revenue-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .stat-overlay .revenue-label {
+        font-size: 0.75rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    
+    .stat-overlay .revenue-percent {
+        font-size: 1.75rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Override inline styles on gigs/apps category cards */
+    #gigsPostedBreakdown .revenue-percent[style],
+    #applicationsBreakdown .revenue-percent[style] {
+        font-size: 1.75rem !important;
+    }
+    
+    #gigsPostedBreakdown .revenue-label,
+    #applicationsBreakdown .revenue-label {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* Additional override for inline styles at all mobile sizes */
+@media (max-width: 600px) {
+    .stat-overlay .revenue-percent[style*="font-size"] {
+        font-size: 1.5rem !important;
+    }
+    
+    .breakdown-content .revenue-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        padding: 0.6rem 0.4rem !important;
+    }
+    
+    /* Sections with 4 items - display 2 cards per row on mobile for readability */
+    #mediaUploadsBreakdown .revenue-showcase,
+    #firebaseCostBreakdown .revenue-showcase {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem;
+    }
+    
+    #mediaUploadsBreakdown .revenue-card,
+    #firebaseCostBreakdown .revenue-card {
+        min-width: 0; /* Allow cards to shrink */
     }
 }
 

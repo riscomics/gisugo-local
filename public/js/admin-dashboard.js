@@ -5275,7 +5275,8 @@ function populateStorageUsageData(data) {
     
     Object.keys(mediaDistribution).forEach(type => {
         const item = mediaDistribution[type];
-        setElementValue(`${type}Value`, `${item.count.toLocaleString()} (${item.size.toFixed(1)} GB)`);
+        setElementValue(`${type}Count`, item.count.toLocaleString());
+        setElementValue(`${type}Size`, `(${item.size.toFixed(1)} GB)`);
         setElementValue(`${type}Percent`, `${item.percent}%`);
     });
     
