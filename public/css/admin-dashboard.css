@@ -3438,6 +3438,21 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: clamp(0.875rem, 2.4vw, 1rem);
     }
     
+    /* Analytics items: reduce padding for double-digit times (11AM-2PM) */
+    .analytics-item {
+        padding: 0.5rem 0.4rem !important;
+    }
+    
+    .analytics-label {
+        font-size: 0.75rem !important;
+        margin-bottom: 0.35rem !important;
+    }
+    
+    .analytics-value {
+        font-size: 1.25rem !important;
+        white-space: nowrap !important;
+    }
+    
     /* Activity time: scales from 0.85rem to 0.75rem */
     .activity-time {
         font-size: clamp(0.75rem, 2vw, 0.85rem);
@@ -3896,6 +3911,19 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0 0.75rem;
     }
     
+    /* Analytics items: even tighter padding for smaller screens */
+    .analytics-item {
+        padding: 0.4rem 0.3rem !important;
+    }
+    
+    .analytics-label {
+        font-size: 0.7rem !important;
+    }
+    
+    .analytics-value {
+        font-size: 1.15rem !important;
+    }
+    
     .admin-main {
         padding: 0.75rem;
     }
@@ -3983,6 +4011,19 @@ body.admin-dashboard::-webkit-scrollbar {
 @media (max-width: 320px) {
     .admin-main {
         padding: 0.75rem;
+    }
+    
+    /* Analytics items: minimal padding for smallest screens */
+    .analytics-item {
+        padding: 0.35rem 0.25rem !important;
+    }
+    
+    .analytics-label {
+        font-size: 0.65rem !important;
+    }
+    
+    .analytics-value {
+        font-size: 1.05rem !important;
     }
     
     .panel-header {

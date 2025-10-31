@@ -4406,7 +4406,7 @@ function updateStatCardsDisplay() {
     // Update Storage Progress Bar
     const storageProgressEl = document.getElementById('storageProgressFill');
     if (storageProgressEl) {
-        const percentage = (data.storageUsed / 10) * 100; // Out of 10 GB
+        const percentage = (data.storageUsed / 500) * 100; // Out of 500 GB
         storageProgressEl.style.width = `${percentage}%`;
     }
     
@@ -5915,8 +5915,8 @@ function populateStorageUsageData(data) {
     setElementValue('storageGrowthAvg', `${(currentStorage * 0.13).toFixed(2)} GB`);
     setElementValue('storageGrowthAllTime', `${currentStorage.toFixed(1)} GB`);
     
-    // Projected Full (assuming 10 GB limit)
-    const storageLimit = 10; // GB
+    // Projected Full (assuming 500 GB limit)
+    const storageLimit = 500; // GB
     const avgMonthlyGrowth = currentStorage * 0.13;
     const monthsToFull = avgMonthlyGrowth > 0 ? Math.max(1, Math.round((storageLimit - currentStorage) / avgMonthlyGrowth)) : 999;
     setElementValue('storageProjectedFull', monthsToFull > 100 ? '∞' : `${monthsToFull} mo`);
