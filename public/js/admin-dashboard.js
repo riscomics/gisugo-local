@@ -5083,10 +5083,10 @@ function populateTotalUsersData(data) {
     // Store the exact total value to ensure consistency across all displays
     const exactTotal = Math.round(total);
     
-    // Calculate new members (70-80% of total, unverified) and verified members (remaining)
+    // Calculate new members (70-80% of total, unverified) and verified members (65% of new members)
     const newMemberPercent = 0.70 + (Math.random() * 0.10); // 70-80%
     const newMemberCount = Math.round(exactTotal * newMemberPercent);
-    const verifiedMemberCount = exactTotal - newMemberCount; // Remaining are verified (Pro + Business)
+    const verifiedMemberCount = Math.round(newMemberCount * 0.65); // 65% of new members get verified
     
     // Start counting animations (ultra fast: 150ms)
     
@@ -5178,13 +5178,13 @@ function populateTotalUsersData(data) {
     
     // Account types - Realistic distribution (New Members are majority)
     // Use the same newMemberCount and verifiedMemberCount calculated above for consistency
-    // Pro + Business should equal verifiedMemberCount (which is displayed in New Members section)
+    // Pro + Business = verifiedMemberCount (which is 65% of new members)
     const proPercentOfVerified = 0.70 + (Math.random() * 0.10); // 70-80% of verified are Pro
     const proVerifiedCount = Math.round(verifiedMemberCount * proPercentOfVerified);
     const businessVerifiedCount = verifiedMemberCount - proVerifiedCount; // Remaining verified are Business
     
-    // Verify: newMemberCount + proVerifiedCount + businessVerifiedCount should equal exactTotal
-    console.log(`👥 Account Types Check: ${newMemberCount} (New) + ${proVerifiedCount} (Pro) + ${businessVerifiedCount} (Business) = ${newMemberCount + proVerifiedCount + businessVerifiedCount} (should be ${exactTotal})`)
+    // Log account type distribution
+    console.log(`👥 Account Types: ${newMemberCount} (New Members) | ${verifiedMemberCount} (Verified, 65% of New) → ${proVerifiedCount} (Pro) + ${businessVerifiedCount} (Business)`)
     
     // Update donut chart with more contrasting colors
     updatePieChart('accountTypePieChart', [
@@ -5193,11 +5193,12 @@ function populateTotalUsersData(data) {
         { value: businessVerifiedCount, color: '#ff6b6b' }  // Red for Business
     ]);
     
-    // Update donut chart center total with counting animation - use exactTotal for consistency
+    // Update donut chart center total with counting animation - use sum of account types
+    const accountTypesTotal = newMemberCount + proVerifiedCount + businessVerifiedCount;
     const accountPieTotal = document.getElementById('accountTypePieTotal');
     if (accountPieTotal) {
         const currentAccountTotal = accountPieTotal._currentValue || 0;
-        startCountingAnimation(accountPieTotal, currentAccountTotal, exactTotal, '', 150, 0);
+        startCountingAnimation(accountPieTotal, currentAccountTotal, accountTypesTotal, '', 150, 0);
         
         // Store percentage ratios for dynamic updates
         accountPieTotal._newMemberPercent = newMemberPercent;
@@ -6261,7 +6262,7 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                     saveMockDataToStorage(currentData);
                 }
                 
-                // Also update New Members (70-80% of total) and Verified Members (remaining)
+                // Also update New Members (70-80% of total) and Verified Members (65% of new members)
                 const newDisplay = document.getElementById('usersNewDisplay');
                 const verifiedDisplay = document.getElementById('usersVerifiedDisplay');
                 if (newDisplay) {
@@ -6271,9 +6272,9 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                     newDisplay._currentValue = newValue;
                     newDisplay.textContent = newValue.toLocaleString('en-US');
                     
-                    // Update Verified Members (total - new)
+                    // Update Verified Members (65% of new members)
                     if (verifiedDisplay) {
-                        const verifiedValue = element._unroundedValue - newValue;
+                        const verifiedValue = Math.round(newValue * 0.65);
                         verifiedDisplay._unroundedValue = verifiedValue;
                         verifiedDisplay._currentValue = verifiedValue;
                         verifiedDisplay.textContent = verifiedValue.toLocaleString('en-US');
@@ -6291,25 +6292,30 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                 }
                 
                 if (accountTypePieTotal) {
-                    accountTypePieTotal._unroundedValue = element._unroundedValue;
-                    accountTypePieTotal._currentValue = element._unroundedValue;
-                    accountTypePieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
+                    // Calculate account types total as sum of segments (not equal to total users anymore)
+                    const newMembers = newDisplay ? newDisplay._currentValue : 0;
+                    const verifiedMembers = verifiedDisplay ? verifiedDisplay._currentValue : 0;
+                    const accountTypesSum = newMembers + verifiedMembers;
                     
-                    // Also update Account Types legend values based on stored percentages
-                    if (accountTypePieTotal._newMemberPercent && accountTypePieTotal._proPercentOfVerified) {
-                        const currentTotal = accountTypePieTotal._unroundedValue;
+                    accountTypePieTotal._unroundedValue = accountTypesSum;
+                    accountTypePieTotal._currentValue = accountTypesSum;
+                    accountTypePieTotal.textContent = accountTypesSum.toLocaleString('en-US');
+                    
+                    // Also update Account Types legend values
+                    if (accountTypePieTotal._proPercentOfVerified) {
                         const newMemberLegend = document.getElementById('newMemberLegend');
                         const proVerifiedLegend = document.getElementById('proVerifiedLegend');
                         const businessVerifiedLegend = document.getElementById('businessVerifiedLegend');
                         
                         if (newMemberLegend && newMemberLegend._syncWithPieChart) {
-                            const newMemberValue = Math.round(currentTotal * accountTypePieTotal._newMemberPercent);
+                            // New Members come directly from newDisplay
+                            const newMemberValue = newMembers;
                             newMemberLegend._unroundedValue = newMemberValue;
                             newMemberLegend._currentValue = newMemberValue;
                             newMemberLegend.textContent = newMemberValue.toLocaleString('en-US');
                             
-                            // Calculate verified total
-                            const verifiedTotal = currentTotal - newMemberValue;
+                            // Verified total comes directly from verifiedDisplay
+                            const verifiedTotal = verifiedMembers;
                             
                             // Update Pro (percentage of verified)
                             if (proVerifiedLegend && proVerifiedLegend._syncWithPieChart) {
@@ -6619,7 +6625,7 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                         saveMockDataToStorage(currentData);
                     }
                     
-                    // Also update New Members (70-80% of total) and Verified Members (remaining)
+                    // Also update New Members (70-80% of total) and Verified Members (65% of new members)
                     const newDisplay = document.getElementById('usersNewDisplay');
                     const verifiedDisplay = document.getElementById('usersVerifiedDisplay');
                     if (newDisplay) {
@@ -6629,9 +6635,9 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                         newDisplay._currentValue = newValue;
                         newDisplay.textContent = newValue.toLocaleString('en-US');
                         
-                        // Update Verified Members (total - new)
+                        // Update Verified Members (65% of new members)
                         if (verifiedDisplay) {
-                            const verifiedValue = element._unroundedValue - newValue;
+                            const verifiedValue = Math.round(newValue * 0.65);
                             verifiedDisplay._unroundedValue = verifiedValue;
                             verifiedDisplay._currentValue = verifiedValue;
                             verifiedDisplay.textContent = verifiedValue.toLocaleString('en-US');
@@ -6649,25 +6655,30 @@ function startCountingAnimation(element, start, end, prefix = '', duration = 150
                     }
                     
                     if (accountTypePieTotal) {
-                        accountTypePieTotal._unroundedValue = element._unroundedValue;
-                        accountTypePieTotal._currentValue = element._unroundedValue;
-                        accountTypePieTotal.textContent = element._unroundedValue.toLocaleString('en-US');
+                        // Calculate account types total as sum of segments (not equal to total users anymore)
+                        const newMembers = newDisplay ? newDisplay._currentValue : 0;
+                        const verifiedMembers = verifiedDisplay ? verifiedDisplay._currentValue : 0;
+                        const accountTypesSum = newMembers + verifiedMembers;
                         
-                        // Also update Account Types legend values based on stored percentages
-                        if (accountTypePieTotal._newMemberPercent && accountTypePieTotal._proPercentOfVerified) {
-                            const currentTotal = accountTypePieTotal._unroundedValue;
+                        accountTypePieTotal._unroundedValue = accountTypesSum;
+                        accountTypePieTotal._currentValue = accountTypesSum;
+                        accountTypePieTotal.textContent = accountTypesSum.toLocaleString('en-US');
+                        
+                        // Also update Account Types legend values
+                        if (accountTypePieTotal._proPercentOfVerified) {
                             const newMemberLegend = document.getElementById('newMemberLegend');
                             const proVerifiedLegend = document.getElementById('proVerifiedLegend');
                             const businessVerifiedLegend = document.getElementById('businessVerifiedLegend');
                             
                             if (newMemberLegend && newMemberLegend._syncWithPieChart) {
-                                const newMemberValue = Math.round(currentTotal * accountTypePieTotal._newMemberPercent);
+                                // New Members come directly from newDisplay
+                                const newMemberValue = newMembers;
                                 newMemberLegend._unroundedValue = newMemberValue;
                                 newMemberLegend._currentValue = newMemberValue;
                                 newMemberLegend.textContent = newMemberValue.toLocaleString('en-US');
                                 
-                                // Calculate verified total
-                                const verifiedTotal = currentTotal - newMemberValue;
+                                // Verified total comes directly from verifiedDisplay
+                                const verifiedTotal = verifiedMembers;
                                 
                                 // Update Pro (percentage of verified)
                                 if (proVerifiedLegend && proVerifiedLegend._syncWithPieChart) {
