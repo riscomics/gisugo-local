@@ -4628,9 +4628,9 @@ function startMainDashboardCounting() {
             // Update display
             storageEl.textContent = `${storageEl._currentValue.toFixed(1)} GB`;
             
-            // Update progress bar (10 GB limit)
+            // Update progress bar (500 GB limit)
             if (storageProgressEl) {
-                const percentage = (storageEl._currentValue / 10) * 100;
+                const percentage = (storageEl._currentValue / 500) * 100;
                 storageProgressEl.style.width = `${percentage}%`;
             }
             
