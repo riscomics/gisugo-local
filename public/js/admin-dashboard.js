@@ -3978,8 +3978,8 @@ function generateInitialMockData() {
     const gigsPercentage = 0.68 + (Math.random() * 0.07); // 68-75%
     const totalGigs = Math.round(totalUsers * gigsPercentage);
     
-    // Applications: 2-3x gigs
-    const applicationsMultiplier = 2 + (Math.random() * 1); // 2.0-3.0x
+    // Applications: 5-15 average per gig
+    const applicationsMultiplier = 5 + (Math.random() * 10); // 5-15 average per gig
     const totalApplicants = Math.round(totalGigs * applicationsMultiplier);
     
     // Storage: Calculate based on users, gigs, and verifications
@@ -3997,13 +3997,21 @@ function generateInitialMockData() {
     const activeUsers = Math.round(totalUsers * 0.20); // 20% active users
     const bandwidthMTD = parseFloat(((activeUsers * 0.032) + (storageUsed * 0.1)).toFixed(1)); // GB
     
-    // Calculate Firebase costs
+    // Calculate Firebase costs (prorated for 7 days of simulation)
+    const daysInSimulation = 7; // Jan 1 - Jan 8
+    const daysInMonth = 30;
     const monthlyReads = Math.round(activeUsers * 11250);
     const monthlyWrites = Math.round((activeUsers * 13) + (totalUsers * 0.10 * 8));
-    const dbCost = ((monthlyReads / 100000) * 0.036) + ((monthlyWrites / 100000) * 0.108);
-    const storageCost = storageUsed * 0.026;
+    
+    // Prorate reads/writes to 7 days for MTD
+    const mtdReads = Math.round((monthlyReads / daysInMonth) * daysInSimulation);
+    const mtdWrites = Math.round((monthlyWrites / daysInMonth) * daysInSimulation);
+    const dbCost = ((mtdReads / 100000) * 0.036) + ((mtdWrites / 100000) * 0.108);
+    
+    // Prorate storage and auth costs to 7 days for MTD
+    const storageCost = storageUsed * 0.026 * (daysInSimulation / daysInMonth);
     const bandwidthCost = bandwidthMTD * 0.12;
-    const authCost = activeUsers * 0.0055;
+    const authCost = activeUsers * 0.0055 * (daysInSimulation / daysInMonth);
     const firebaseCostMTD = parseFloat((dbCost + storageCost + bandwidthCost + authCost).toFixed(2));
     
     // Initialize simulation start time and empty revenue history
@@ -4024,9 +4032,9 @@ function generateInitialMockData() {
     
     console.log(`🎬 Simulation started! Date: Jan 8, 2025 (7 days in), All Time Revenue: ₱${allTimeRevenue.toLocaleString()}`);
     console.log(`📊 User Activity Percentages: Mobile ${(mobilePercent*100).toFixed(0)}%, Android ${(androidPercent*100).toFixed(0)}%, Repeat ${(repeatUserPercent*100).toFixed(0)}%, Bounce ${(bounceRate*100).toFixed(0)}%`);
-    console.log(`💼 Gigs Analytics: ${totalGigs} gigs (${(gigsPercentage*100).toFixed(0)}% of users), ${totalApplicants} applications (${applicationsMultiplier.toFixed(1)}x gigs)`);
+    console.log(`💼 Gigs Analytics: ${totalGigs} gigs (${(gigsPercentage*100).toFixed(0)}% of users), ${totalApplicants} applications (${applicationsMultiplier.toFixed(1)} avg per gig)`);
     console.log(`💾 Storage Usage: ${storageUsed.toFixed(2)} GB | Profile: ${((profileStorage/storageUsed)*100).toFixed(0)}%, Gigs: ${((gigStorage/storageUsed)*100).toFixed(0)}%, ID: ${((idStorage/storageUsed)*100).toFixed(0)}%`);
-    console.log(`📡 Traffic & Costs: ${bandwidthMTD.toFixed(1)} GB bandwidth | ${(monthlyReads/1000).toFixed(0)}K reads | ${(monthlyWrites/1000).toFixed(0)}K writes | $${firebaseCostMTD.toFixed(2)} total`);
+    console.log(`📡 Traffic & Costs MTD (7 days): ${bandwidthMTD.toFixed(1)} GB bandwidth | ${(mtdReads/1000).toFixed(0)}K reads | ${(mtdWrites/1000).toFixed(0)}K writes | $${firebaseCostMTD.toFixed(2)} total`);
     
     return {
         totalUsers,
@@ -4497,8 +4505,7 @@ function startMainDashboardCounting() {
     
     // Gigs Analytics: increment based on total users
     // Total Gigs = 68-75% of total users
-    // Applications = 2-3x gigs
-    // Avg per Gig = 3-8
+    // Applications = 5-15x gigs (Average per Gig: 5-15)
     const totalGigsEl = document.getElementById('totalGigsPosted');
     const totalApplicantsEl = document.getElementById('totalApplicants');
     const avgPerGigEl = document.getElementById('avgApplicantsPerGig');
@@ -4538,31 +4545,31 @@ function startMainDashboardCounting() {
             totalGigsEl._currentValue = newGigs;
             totalGigsEl.textContent = newGigs.toLocaleString();
             
-            // Applications: 2-3x gigs, ensuring avg per gig is 3-8
-            const applicationsMultiplier = 2 + (Math.random() * 1); // 2.0-3.0x
-            const targetApplications = Math.round(newGigs * applicationsMultiplier);
+            // Applications: avg per gig should be 5-15
+            const avgPerGigTarget = 5 + (Math.random() * 10); // 5-15 average per gig
+            const targetApplications = Math.round(newGigs * avgPerGigTarget);
             
             // Gradually move towards target
             const currentApplications = totalApplicantsEl._currentValue || targetApplications;
             let newApplications;
             
             if (currentApplications < targetApplications) {
-                // Increment by 3-15 if below target
-                const increment = Math.floor(Math.random() * 13) + 3;
+                // Increment by 5-25 if below target (faster growth for higher averages)
+                const increment = Math.floor(Math.random() * 21) + 5;
                 newApplications = Math.min(targetApplications, currentApplications + increment);
             } else if (currentApplications > targetApplications) {
-                // Stay at current level
+                // Stay at current level (never decrease)
                 newApplications = currentApplications;
             } else {
-                // Occasionally add 2-10 new applications
+                // Occasionally add 5-20 new applications
                 const shouldAdd = Math.random() > 0.6; // 40% chance
-                newApplications = shouldAdd ? currentApplications + Math.floor(Math.random() * 9) + 2 : currentApplications;
+                newApplications = shouldAdd ? currentApplications + Math.floor(Math.random() * 16) + 5 : currentApplications;
             }
             
             totalApplicantsEl._currentValue = newApplications;
             totalApplicantsEl.textContent = newApplications.toLocaleString();
             
-            // Update avg per gig (should be 3-8)
+            // Calculate current avg per gig (should fluctuate between 5-15)
             const avgPerGig = (newApplications / newGigs).toFixed(1);
             if (avgPerGigEl) {
                 avgPerGigEl.textContent = avgPerGig;
@@ -4663,25 +4670,31 @@ function startMainDashboardCounting() {
             const currentUsers = totalUsersEl._currentValue || 100;
             const currentStorage = storageEl ? storageEl._currentValue || 0.5 : 0.5;
             
-            // Calculate monthly bandwidth (month-to-date simulation)
+            // Calculate MTD bandwidth (7 days of simulation)
+            const daysInSimulation = 7; // Jan 1 - Jan 8
+            const daysInMonth = 30;
+            
             // Active users: 20% of total
             const activeUsers = Math.round(currentUsers * 0.20);
             // Average 32 MB per active user + 10% of storage for uploads
             const monthlyBandwidth = (activeUsers * 0.032) + (currentStorage * 0.1);
+            const mtdBandwidth = (monthlyBandwidth / daysInMonth) * daysInSimulation; // 7 days worth
             
-            // Calculate monthly reads and writes for cost
+            // Calculate MTD reads and writes (prorated to 7 days)
             const monthlyReads = Math.round(activeUsers * 11250);
             const monthlyWrites = Math.round((activeUsers * 13) + (currentUsers * 0.10 * 8));
+            const mtdReads = Math.round((monthlyReads / daysInMonth) * daysInSimulation);
+            const mtdWrites = Math.round((monthlyWrites / daysInMonth) * daysInSimulation);
             
-            // Calculate Firebase costs
-            const dbCost = ((monthlyReads / 100000) * 0.036) + ((monthlyWrites / 100000) * 0.108);
-            const storageCost = currentStorage * 0.026;
-            const bandwidthCost = monthlyBandwidth * 0.12;
-            const authCost = activeUsers * 0.0055;
+            // Calculate Firebase costs (prorated to 7 days for MTD)
+            const dbCost = ((mtdReads / 100000) * 0.036) + ((mtdWrites / 100000) * 0.108);
+            const storageCost = currentStorage * 0.026 * (daysInSimulation / daysInMonth);
+            const bandwidthCost = mtdBandwidth * 0.12;
+            const authCost = activeUsers * 0.0055 * (daysInSimulation / daysInMonth);
             const totalCost = dbCost + storageCost + bandwidthCost + authCost;
             
             // Update displays
-            bandwidthEl.textContent = `${monthlyBandwidth.toFixed(1)} GB`;
+            bandwidthEl.textContent = `${mtdBandwidth.toFixed(1)} GB`;
             firebaseCostEl.textContent = `$${totalCost.toFixed(2)}`;
             
             // Save to localStorage every update (10s)
@@ -4689,12 +4702,12 @@ function startMainDashboardCounting() {
             if (trafficSecondsCounter >= 1) {
                 trafficSecondsCounter = 0;
                 const currentData = loadMockDataFromStorage();
-                currentData.bandwidthMTD = monthlyBandwidth;
+                currentData.bandwidthMTD = mtdBandwidth;
                 currentData.firebaseCostMTD = totalCost;
                 saveMockDataToStorage(currentData);
             }
             
-            console.log(`📡 Traffic MTD: ${monthlyBandwidth.toFixed(2)} GB | Firebase: $${totalCost.toFixed(2)} (${activeUsers} active users)`);
+            console.log(`📡 Traffic MTD: ${mtdBandwidth.toFixed(2)} GB | Firebase: $${totalCost.toFixed(2)} (${activeUsers} active users)`);
         }, 10000); // Every 10 seconds
     }
     
@@ -5105,17 +5118,25 @@ function populateTotalUsersData(data) {
         startCountingAnimation(verifiedDisplay, currentVerified, verifiedMemberCount, '', 150, 0);
     }
     
-    // Calculate growth rate (mock)
-    const growthRate = ((Math.random() * 5) + 1).toFixed(1);
+    // Calculate growth rate based on simulation timeline
+    // 🔥 FIREBASE TODO: Fetch from /analytics/users/growthRate
+    // We're 7 days into simulation with exponential growth
+    // Daily growth rate: users increase by ~20-100 per second
+    // At ~200 users start, growing to potentially 1000+ in 7 days = ~400% weekly growth
+    // Daily: ~28% average, Weekly: ~200-400%
+    const dailyGrowthRate = 25 + (Math.random() * 8); // 25-33% daily growth
+    const growthRate = dailyGrowthRate.toFixed(1);
     if (growthDisplay) {
         growthDisplay.setAttribute('data-target', growthRate);
         startCountingAnimation(growthDisplay, currentGrowth, parseFloat(growthRate), '+', 150, 1, '%');
         growthDisplay.className = 'revenue-amount growth-positive counting';
     }
     
-    // Age distribution (percentages that add to 100)
+    // Age distribution with realistic weights
     // 🔥 FIREBASE TODO: Fetch from /analytics/users/ageGroups/{18-25, 26-40, 41-59, 60+}
-    const ageDistribution = generateDistribution(4, exactTotal); // Changed from 5 to 4 groups
+    // 26-40 is overwhelming majority (62%), 60+ is minority (6%)
+    const ageWeights = [0.20, 0.62, 0.12, 0.06]; // 18-25: 20%, 26-40: 62%, 41-59: 12%, 60+: 6%
+    const ageDistribution = generateWeightedDistribution(ageWeights, exactTotal);
     
     // Get age elements and their current values
     const age18_25El = document.getElementById('age18_25Value');
@@ -5141,8 +5162,10 @@ function populateTotalUsersData(data) {
         startCountingAnimation(age60PlusEl, current, ageDistribution[3], '', 150, 0);
     }
     
-    // Regional distribution (Luzon, Visayas, Mindanao)
-    const regionDistribution = generateDistribution(3, exactTotal);
+    // Regional distribution with Visayas as majority
+    // Visayas: 52%, Luzon: 30%, Mindanao: 18%
+    const regionWeights = [0.30, 0.52, 0.18]; // Luzon, Visayas, Mindanao
+    const regionDistribution = generateWeightedDistribution(regionWeights, exactTotal);
     
     // Update pie chart with more contrasting colors
     updatePieChart('regionPieChart', [
@@ -5916,6 +5939,14 @@ function populateStorageUsageData(data) {
     setElementValue('storageGrowthAvg', `${(currentStorage * 0.13).toFixed(2)} GB`);
     setElementValue('storageGrowthAllTime', `${currentStorage.toFixed(1)} GB`);
     
+    // Calculate All Time storage cost
+    // Assuming 7 days of usage (as per simulation timeline), prorated monthly cost
+    // Firebase storage cost: $0.026 per GB per month
+    const storageCostPerGB = 0.026; // $ per GB per month
+    const daysInSimulation = 7; // Simulation starts Jan 1, current is Jan 8
+    const allTimeStorageCost = (currentStorage * storageCostPerGB * daysInSimulation) / 30; // Prorated for 7 days
+    setElementValue('storageAllTimeCost', `($${allTimeStorageCost.toFixed(2)})`);
+    
     // Projected Full (assuming 500 GB limit)
     const storageLimit = 500; // GB
     const avgMonthlyGrowth = currentStorage * 0.13;
@@ -5970,53 +6001,80 @@ function populateTrafficCostsData(data) {
     // Adjust based on selected period
     let bandwidth, reads, writes;
     
+    // Simulation timeline: Started Jan 1, currently Jan 8 (7 days in)
+    const daysInSimulation = 7;
+    const daysInMonth = 30;
+    
     switch(period) {
         case 'today':
-            bandwidth = monthlyBandwidth / 30; // Daily
-            reads = Math.round(monthlyReads / 30);
-            writes = Math.round(monthlyWrites / 30);
+            bandwidth = monthlyBandwidth / daysInMonth; // Daily average
+            reads = Math.round(monthlyReads / daysInMonth);
+            writes = Math.round(monthlyWrites / daysInMonth);
             break;
         case 'week':
-            bandwidth = (monthlyBandwidth / 30) * 7; // Weekly
-            reads = Math.round((monthlyReads / 30) * 7);
-            writes = Math.round((monthlyWrites / 30) * 7);
+            bandwidth = (monthlyBandwidth / daysInMonth) * 7; // Weekly
+            reads = Math.round((monthlyReads / daysInMonth) * 7);
+            writes = Math.round((monthlyWrites / daysInMonth) * 7);
             break;
         case 'month':
-            bandwidth = monthlyBandwidth;
-            reads = monthlyReads;
-            writes = monthlyWrites;
+            // Month To Date: Show accumulated data for current month (7 days so far)
+            bandwidth = (monthlyBandwidth / daysInMonth) * daysInSimulation;
+            reads = Math.round((monthlyReads / daysInMonth) * daysInSimulation);
+            writes = Math.round((monthlyWrites / daysInMonth) * daysInSimulation);
             break;
         case 'year':
+            // Project full year based on current monthly rate
             bandwidth = monthlyBandwidth * 12;
             reads = Math.round(monthlyReads * 12);
             writes = Math.round(monthlyWrites * 12);
             break;
         case 'all':
-            // Assume platform has been running for simulation time
-            // Use 7 days of accumulated data as "all time"
-            bandwidth = monthlyBandwidth * 0.233; // ~7 days worth
-            reads = Math.round(monthlyReads * 0.233);
-            writes = Math.round(monthlyWrites * 0.233);
+            // All Time: Same as Month To Date since simulation started on Jan 1
+            bandwidth = (monthlyBandwidth / daysInMonth) * daysInSimulation;
+            reads = Math.round((monthlyReads / daysInMonth) * daysInSimulation);
+            writes = Math.round((monthlyWrites / daysInMonth) * daysInSimulation);
             break;
         default:
-            bandwidth = monthlyBandwidth;
-            reads = monthlyReads;
+            bandwidth = (monthlyBandwidth / daysInMonth) * daysInSimulation;
+            reads = Math.round((monthlyReads / daysInMonth) * daysInSimulation);
             writes = monthlyWrites;
     }
     
     // Calculate Firebase cost (actual Firebase pricing)
     // Reads: $0.036/100K (Firestore document reads)
     // Writes: $0.108/100K (Firestore document writes)
-    // Storage: $0.026/GB/month
+    // Storage: $0.026/GB/month (prorated by period)
     // Bandwidth (egress): $0.12/GB
-    // Authentication: ~$0.0055 per monthly active user (rounded to flat rate)
+    // Authentication: ~$0.0055 per monthly active user (prorated by period)
     const readCost = (reads / 100000) * 0.036;
     const writeCost = (writes / 100000) * 0.108;
     const dbCost = readCost + writeCost;
     
-    const storageCost = storageGB * 0.026; // $0.026 per GB per month
-    const bandwidthCost = bandwidth * 0.12; // $0.12 per GB
-    const authCost = activeUsers * 0.0055; // $0.0055 per monthly active user
+    // Prorate storage and auth costs based on period
+    let periodMultiplier;
+    switch(period) {
+        case 'today':
+            periodMultiplier = 1 / daysInMonth; // 1 day
+            break;
+        case 'week':
+            periodMultiplier = 7 / daysInMonth; // 7 days
+            break;
+        case 'month':
+            periodMultiplier = daysInSimulation / daysInMonth; // 7 days (Month To Date)
+            break;
+        case 'year':
+            periodMultiplier = 12; // 12 months
+            break;
+        case 'all':
+            periodMultiplier = daysInSimulation / daysInMonth; // 7 days (All Time = MTD)
+            break;
+        default:
+            periodMultiplier = daysInSimulation / daysInMonth;
+    }
+    
+    const storageCost = storageGB * 0.026 * periodMultiplier; // Prorated monthly cost
+    const bandwidthCost = bandwidth * 0.12; // $0.12 per GB (usage-based, no proration needed)
+    const authCost = activeUsers * 0.0055 * periodMultiplier; // Prorated monthly cost
     const totalCost = dbCost + storageCost + bandwidthCost + authCost;
     
     // Populate top showcase cards
@@ -6039,7 +6097,7 @@ function populateTrafficCostsData(data) {
     setElementValue('authCostPercent', `${((authCost / totalCost) * 100).toFixed(0)}%`);
     
     // Traffic Trends (calculated from bandwidth)
-    const daysInPeriod = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? 30 : period === 'year' ? 365 : 7;
+    const daysInPeriod = period === 'today' ? 1 : period === 'week' ? 7 : period === 'month' ? daysInSimulation : period === 'year' ? 365 : daysInSimulation;
     const dailyAvgMB = (bandwidth / daysInPeriod) * 1024; // Convert GB to MB
     const peakDayMB = dailyAvgMB * (1.8 + (Math.random() * 0.4)); // 1.8-2.2x daily avg
     const lowestDayMB = dailyAvgMB * (0.4 + (Math.random() * 0.2)); // 0.4-0.6x daily avg
@@ -6078,6 +6136,27 @@ function generateDistribution(count, total) {
         remaining -= value;
     }
     
+    distribution.push(remaining);
+    return distribution;
+}
+
+// Helper: Generate weighted distribution based on specified weights
+function generateWeightedDistribution(weights, total) {
+    const distribution = [];
+    let remaining = total;
+    
+    // Normalize weights to sum to 1
+    const sumWeights = weights.reduce((a, b) => a + b, 0);
+    const normalizedWeights = weights.map(w => w / sumWeights);
+    
+    // Distribute based on weights, keeping track of exact values
+    for (let i = 0; i < weights.length - 1; i++) {
+        const value = Math.round(total * normalizedWeights[i]);
+        distribution.push(value);
+        remaining -= value;
+    }
+    
+    // Last value gets the remainder to ensure exact total
     distribution.push(remaining);
     return distribution;
 }
