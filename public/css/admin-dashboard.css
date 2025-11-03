@@ -7939,7 +7939,7 @@ body.admin-dashboard::-webkit-scrollbar {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 10000;
+    z-index: 10002;
     padding: 2rem;
 }
 
@@ -8014,7 +8014,7 @@ body.admin-dashboard::-webkit-scrollbar {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 9999;
+    z-index: 10001;
     padding: 1rem;
 }
 
