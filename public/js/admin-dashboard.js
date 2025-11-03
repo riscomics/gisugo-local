@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize gig moderation system
     initializeGigModeration();
     
+    // Initialize user management system
+    initializeUserManagement();
+    
     // Initialize stat overlay system
     initializeStatOverlays();
     
@@ -6982,6 +6985,1264 @@ function initializeAdminDropdown() {
     });
     
     console.log('✅ Admin dropdown initialized');
+}
+
+// ===== USER MANAGEMENT SYSTEM =====
+
+let currentUserTab = 'new'; // Track current tab: 'new', 'pending', 'verified', 'suspended'
+let currentUserData = null; // Track currently selected user
+let allUsers = []; // Store all user data
+
+function initializeUserManagement() {
+    console.log('👥 Initializing User Management system');
+    
+    // Generate mock user data
+    generateMockUserData();
+    
+    // Initialize tab buttons
+    initializeUserTabs();
+    
+    // Initialize search
+    initializeUserSearch();
+    
+    // Initialize action buttons (desktop)
+    initializeUserActions();
+    
+    // Initialize contact overlay
+    initializeContactUserOverlay();
+    
+    // Initialize confirmation overlays
+    initializeUserConfirmationOverlays();
+    
+    // Initialize mobile overlay
+    initializeUserDetailOverlay();
+    
+    // Initialize image lightbox
+    initializeImageLightbox();
+    
+    // Load initial users (new tab)
+    loadUserCards('new');
+    
+    console.log('✅ User Management initialized');
+}
+
+function generateMockUserData() {
+    // Sample Filipino names
+    const firstNames = ['Maria', 'Jose', 'Juan', 'Ana', 'Pedro', 'Rosa', 'Miguel', 'Carmen', 'Luis', 'Sofia', 'Carlos', 'Isabel', 'Roberto', 'Teresa', 'Diego', 'Elena', 'Manuel', 'Patricia', 'Antonio', 'Luz', 'Fernando', 'Gloria', 'Rafael', 'Angelica', 'Gabriel', 'Cristina', 'Pablo', 'Mariana', 'Ricardo', 'Beatriz', 'Jorge', 'Valentina', 'Andres', 'Victoria', 'Francisco', 'Adriana', 'Javier', 'Monica', 'Eduardo', 'Camila', 'Daniel', 'Andrea', 'Alejandro', 'Sandra', 'Marcos', 'Natalia', 'Raul', 'Claudia', 'Sergio', 'Laura', 'Oscar', 'Veronica', 'Enrique', 'Diana', 'Gustavo'];
+    
+    const lastNames = ['Santos', 'Reyes', 'Cruz', 'Bautista', 'Ocampo', 'Garcia', 'Mendoza', 'Torres', 'Gonzales', 'Lopez', 'Ramos', 'Flores', 'Rivera', 'Gomez', 'Fernandez', 'Martinez', 'Rodriguez', 'Hernandez', 'Castillo', 'Morales', 'Aquino', 'Jimenez', 'Romero', 'Salazar', 'Villanueva', 'Castro', 'Santiago', 'Perez', 'Diaz', 'Alvarez', 'Rojas', 'Gutierrez', 'Navarro', 'Pascual', 'Del Rosario', 'San Jose', 'Mercado', 'Aguilar', 'Valdez', 'Corpuz'];
+    
+    const cities = ['Cebu City', 'Mandaue City', 'Lapu-Lapu City', 'Talisay City', 'Toledo City', 'Danao City', 'Naga City', 'Carcar City', 'Bogo City', 'Tagbilaran City', 'Tacloban City', 'Ormoc City', 'Bacolod City', 'Dumaguete City', 'Iloilo City', 'Cagayan de Oro', 'Davao City', 'Manila', 'Quezon City', 'Makati'];
+    
+    const regions = ['CEBU', 'BOHOL', 'LEYTE', 'NEGROS', 'PANAY', 'SAMAR', 'MASBATE', 'DAVAO', 'MANILA'];
+    
+    const educationLevels = ['No Highschool', 'Highschool Diploma', 'Associates', 'Bachelors', 'Masters', 'Doctorate'];
+    
+    const introductions = [
+        "Hello! I'm a reliable and hardworking individual with experience in various service jobs. I take great pride in delivering quality work and building lasting relationships with clients.",
+        "Hi there! I'm passionate about helping others and providing excellent service. I have strong communication skills and always strive to exceed expectations.",
+        "Greetings! I'm a dedicated professional with a positive attitude and strong work ethic. I believe in doing every job with excellence and integrity.",
+        "Welcome! I'm an experienced worker who values punctuality and attention to detail. I'm always ready to learn new skills and take on new challenges.",
+        "Hey! I'm a friendly and approachable person who loves connecting with people. I have diverse experience and enjoy making a positive impact through my work."
+    ];
+    
+    // Generate Philippine public IP addresses
+    function generatePhilippineIP() {
+        // Common Philippine ISP ranges
+        const ranges = [
+            [112, 198], [112, 199], [112, 200], [112, 201], // PLDT
+            [180, 190], [180, 191], [180, 192], [180, 193], // Globe
+            [120, 28], [120, 29], [120, 30], // Smart
+            [203, 177], [203, 178], [203, 179], // Converge
+            [49, 144], [49, 145], [49, 146] // Various ISPs
+        ];
+        const range = ranges[Math.floor(Math.random() * ranges.length)];
+        const third = Math.floor(Math.random() * 256);
+        const fourth = Math.floor(Math.random() * 256);
+        return `${range[0]}.${range[1]}.${third}.${fourth}`;
+    }
+    
+    // Generate users
+    const totalUsers = 55;
+    
+    for (let i = 0; i < totalUsers; i++) {
+        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const fullName = `${firstName} ${lastName}`;
+        
+        // Status distribution
+        let status, verificationStatus;
+        if (i < 8) {
+            status = 'new';
+            verificationStatus = 'NEW MEMBER';
+        } else if (i < 11) {
+            status = 'pending';
+            verificationStatus = 'NEW MEMBER';
+        } else if (i < 53) {
+            status = 'verified';
+            // 70% PRO, 30% BUSINESS
+            verificationStatus = Math.random() < 0.7 ? 'PRO VERIFIED' : 'BUSINESS VERIFIED';
+        } else {
+            status = 'suspended';
+            verificationStatus = Math.random() < 0.5 ? 'NEW MEMBER' : 'PRO VERIFIED';
+        }
+        
+        // Reviews and rating (only for verified users with some history)
+        let reviewCount = 0;
+        let rating = 0;
+        if (status === 'verified' || status === 'suspended') {
+            reviewCount = Math.floor(Math.random() * 30) + (Math.random() < 0.3 ? 0 : 1);
+            if (reviewCount > 0) {
+                rating = Math.random() < 0.8 ? 
+                    (Math.random() * 1.5 + 3.5) : // 80% good ratings (3.5-5)
+                    (Math.random() * 3 + 1); // 20% lower ratings (1-4)
+            }
+        }
+        
+        // Age (18-65)
+        const age = Math.floor(Math.random() * 47) + 18;
+        const birthYear = 2025 - age;
+        const birthMonth = Math.floor(Math.random() * 12) + 1;
+        const birthDay = Math.floor(Math.random() * 28) + 1;
+        const birthdate = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
+        
+        // Registration date (within last 3 months for new, older for others)
+        const regDaysAgo = status === 'new' ? 
+            Math.floor(Math.random() * 7) : 
+            Math.floor(Math.random() * 365);
+        const registeredDate = new Date();
+        registeredDate.setDate(registeredDate.getDate() - regDaysAgo);
+        
+        // Social media (60% have at least one)
+        const hasSocialMedia = Math.random() < 0.6;
+        const socialMediaLinks = hasSocialMedia ? {
+            facebook: Math.random() < 0.9 ? `https://facebook.com/${firstName.toLowerCase()}${lastName.toLowerCase()}` : null,
+            instagram: Math.random() < 0.5 ? `https://instagram.com/${firstName.toLowerCase()}_${lastName.toLowerCase()}` : null,
+            linkedin: Math.random() < 0.3 ? `https://linkedin.com/in/${firstName.toLowerCase()}-${lastName.toLowerCase()}` : null
+        } : {};
+        
+        // Gigs and applications (higher for verified users)
+        const gigsListed = status === 'verified' ? Math.floor(Math.random() * 15) + 1 : Math.floor(Math.random() * 3);
+        const applications = status === 'verified' ? Math.floor(Math.random() * 25) + 5 : Math.floor(Math.random() * 8);
+        
+        // Region and City
+        const region = regions[Math.floor(Math.random() * regions.length)];
+        const city = cities[Math.floor(Math.random() * cities.length)];
+        
+        // Education
+        const education = educationLevels[Math.floor(Math.random() * educationLevels.length)];
+        
+        // Introduction
+        const introduction = introductions[Math.floor(Math.random() * introductions.length)];
+        
+        // Avatar (cycle through available user images)
+        const avatarNum = (i % 11) + 1;
+        const avatar = avatarNum === 1 ? 'public/users/Peter-J-Ang-User-01.jpg' : `public/users/User-${String(avatarNum).padStart(2, '0')}.jpg`;
+        
+        // Verification images (for pending users)
+        const verificationImages = status === 'pending' ? {
+            idImage: `public/images/Selfie-ID.jpg`, // Mock ID image
+            selfieImage: `public/images/Selfie-ID.jpg` // Mock selfie image
+        } : null;
+        
+        // Suspended info (for suspended users)
+        const suspendedInfo = status === 'suspended' ? {
+            suspendedBy: 'Admin: Peter J. Ang',
+            suspensionDate: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        } : null;
+        
+        allUsers.push({
+            id: `user-${i + 1}`,
+            fullName,
+            avatar,
+            verificationStatus,
+            status,
+            reviewCount,
+            rating,
+            age,
+            birthdate,
+            registeredDate,
+            socialMediaLinks,
+            gigsListed,
+            applications,
+            region,
+            city,
+            education,
+            introduction,
+            ipAddress: generatePhilippineIP(),
+            verificationImages,
+            suspendedInfo
+        });
+    }
+    
+    console.log(`📊 Generated ${allUsers.length} mock users`);
+}
+
+function initializeUserTabs() {
+    const tabButtons = [
+        { id: 'usersNewBtn', tab: 'new' },
+        { id: 'usersPendingBtn', tab: 'pending' },
+        { id: 'usersVerifiedBtn', tab: 'verified' },
+        { id: 'usersSuspendedBtn', tab: 'suspended' }
+    ];
+    
+    tabButtons.forEach(({ id, tab }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', () => switchUserTab(tab));
+        }
+    });
+}
+
+function switchUserTab(tabType) {
+    currentUserTab = tabType;
+    
+    // Update active tab button
+    document.querySelectorAll('.user-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeBtn = document.querySelector(`[data-tab="${tabType}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+    
+    // Clear selection
+    currentUserData = null;
+    const userDetail = document.getElementById('userDetail');
+    const userContent = document.getElementById('userContent');
+    if (userDetail) userDetail.style.display = 'flex';
+    if (userContent) userContent.style.display = 'none';
+    
+    // Load users for this tab
+    loadUserCards(tabType);
+}
+
+function loadUserCards(tabType) {
+    const userCardsList = document.getElementById('userCardsList');
+    if (!userCardsList) return;
+    
+    // Filter users by tab type
+    let filteredUsers;
+    
+    if (tabType === 'new') {
+        filteredUsers = allUsers.filter(user => user.status === 'new');
+    } else if (tabType === 'pending') {
+        filteredUsers = allUsers.filter(user => user.status === 'pending');
+    } else if (tabType === 'verified') {
+        filteredUsers = allUsers.filter(user => user.status === 'verified');
+    } else if (tabType === 'suspended') {
+        filteredUsers = allUsers.filter(user => user.status === 'suspended');
+    }
+    
+    // Update tab counts
+    updateUserTabCounts();
+    
+    // Generate HTML
+    userCardsList.innerHTML = filteredUsers.map(user => generateUserCardHTML(user)).join('');
+    
+    // Update stats
+    const usersStats = document.getElementById('usersStats');
+    if (usersStats) {
+        usersStats.textContent = `Showing ${filteredUsers.length} users`;
+    }
+    
+    // Attach click handlers
+    attachUserCardHandlers();
+}
+
+function generateUserCardHTML(user) {
+    // Format registration date
+    const regDate = new Date(user.registeredDate);
+    const now = new Date();
+    const diffTime = Math.abs(now - regDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let timeAgo;
+    if (diffDays === 0) {
+        timeAgo = 'Today';
+    } else if (diffDays === 1) {
+        timeAgo = '1 day ago';
+    } else if (diffDays < 7) {
+        timeAgo = `${diffDays} days ago`;
+    } else if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        timeAgo = weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+    } else if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        timeAgo = months === 1 ? '1 month ago' : `${months} months ago`;
+    } else {
+        const years = Math.floor(diffDays / 365);
+        timeAgo = years === 1 ? '1 year ago' : `${years} years ago`;
+    }
+    
+    // Generate stars
+    const fullStars = Math.floor(user.rating);
+    const hasHalfStar = user.rating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    
+    let starsHTML = '';
+    for (let i = 0; i < fullStars; i++) {
+        starsHTML += '<span class="user-card-star filled"></span>';
+    }
+    if (hasHalfStar) {
+        starsHTML += '<span class="user-card-star filled"></span>';
+    }
+    for (let i = 0; i < emptyStars; i++) {
+        starsHTML += '<span class="user-card-star gray"></span>';
+    }
+    
+    // Status class
+    let statusClass = 'new';
+    if (user.verificationStatus === 'PRO VERIFIED') {
+        statusClass = 'pro';
+    } else if (user.verificationStatus === 'BUSINESS VERIFIED') {
+        statusClass = 'business';
+    }
+    
+    return `
+        <div class="user-card" data-user-id="${user.id}">
+            <img src="${user.avatar}" alt="${user.fullName}" class="user-card-avatar">
+            <div class="user-card-info">
+                <div class="user-card-header">
+                    <div class="user-card-name">${user.fullName}</div>
+                    <div class="user-card-status ${statusClass}">${user.verificationStatus}</div>
+                </div>
+                <div class="user-card-rating">
+                    <span class="user-card-reviews">${user.reviewCount}</span>
+                    <div class="user-card-stars">
+                        ${starsHTML}
+                    </div>
+                </div>
+                <div class="user-card-details">
+                    <div class="user-card-detail-item">
+                        <span class="user-card-detail-icon">📅</span>
+                        <span>${timeAgo}</span>
+                    </div>
+                    <div class="user-card-detail-item">
+                        <span class="user-card-detail-icon">🎂</span>
+                        <span>${user.age} years old</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function updateUserTabCounts() {
+    const newCount = allUsers.filter(u => u.status === 'new').length;
+    const pendingCount = allUsers.filter(u => u.status === 'pending').length;
+    const verifiedCount = allUsers.filter(u => u.status === 'verified').length;
+    const suspendedCount = allUsers.filter(u => u.status === 'suspended').length;
+    
+    const newCountEl = document.getElementById('newUsersCount');
+    const pendingCountEl = document.getElementById('pendingUsersCount');
+    const verifiedCountEl = document.getElementById('verifiedUsersCount');
+    const suspendedCountEl = document.getElementById('suspendedUsersCount');
+    
+    if (newCountEl) newCountEl.textContent = newCount;
+    if (pendingCountEl) pendingCountEl.textContent = pendingCount;
+    if (verifiedCountEl) verifiedCountEl.textContent = verifiedCount;
+    if (suspendedCountEl) suspendedCountEl.textContent = suspendedCount;
+}
+
+function attachUserCardHandlers() {
+    const cards = document.querySelectorAll('.user-card');
+    cards.forEach(card => {
+        card.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const user = allUsers.find(u => u.id === userId);
+            if (user) {
+                selectUser(user);
+            }
+        });
+    });
+}
+
+function selectUser(user) {
+    currentUserData = user;
+    
+    // Update selected state on cards
+    document.querySelectorAll('.user-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    const selectedCard = document.querySelector(`[data-user-id="${user.id}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+    
+    // Check viewport width
+    const isMobile = window.innerWidth <= 887;
+    
+    if (isMobile) {
+        // Show mobile overlay
+        showUserDetailOverlay(user);
+    } else {
+        // Show desktop detail panel
+        displayUserDetails(user);
+    }
+}
+
+function displayUserDetails(user) {
+    const userDetail = document.getElementById('userDetail');
+    const userContent = document.getElementById('userContent');
+    
+    if (!userContent) return;
+    
+    // Hide "no user selected", show content
+    if (userDetail) userDetail.style.display = 'none';
+    userContent.style.display = 'flex';
+    
+    // Update header (name and rating)
+    document.getElementById('userName').textContent = user.fullName;
+    document.getElementById('userReviewsCount').textContent = user.reviewCount;
+    updateStars('userStars', user.rating);
+    
+    // Update profile photo in body
+    document.getElementById('userProfilePhoto').src = user.avatar;
+    
+    // Update status badge
+    document.getElementById('userStatusBadge').textContent = user.verificationStatus;
+    
+    // Update social links (always show all 3 icons)
+    const socialLinksContainer = document.getElementById('userSocialLinks');
+    socialLinksContainer.innerHTML = '';
+    
+    // Facebook - always show, clickable if link exists
+    if (user.socialMediaLinks.facebook) {
+        socialLinksContainer.innerHTML += `<a href="${user.socialMediaLinks.facebook}" target="_blank" class="user-social-link"><img src="public/icons/FB.png" alt="Facebook"></a>`;
+    } else {
+        socialLinksContainer.innerHTML += `<span class="user-social-link user-social-link-inactive"><img src="public/icons/FB.png" alt="Facebook"></span>`;
+    }
+    
+    // Instagram - always show, clickable if link exists
+    if (user.socialMediaLinks.instagram) {
+        socialLinksContainer.innerHTML += `<a href="${user.socialMediaLinks.instagram}" target="_blank" class="user-social-link"><img src="public/icons/IG.png" alt="Instagram"></a>`;
+    } else {
+        socialLinksContainer.innerHTML += `<span class="user-social-link user-social-link-inactive"><img src="public/icons/IG.png" alt="Instagram"></span>`;
+    }
+    
+    // LinkedIn - always show, clickable if link exists
+    if (user.socialMediaLinks.linkedin) {
+        socialLinksContainer.innerHTML += `<a href="${user.socialMediaLinks.linkedin}" target="_blank" class="user-social-link"><img src="public/icons/IN.png" alt="LinkedIn"></a>`;
+    } else {
+        socialLinksContainer.innerHTML += `<span class="user-social-link user-social-link-inactive"><img src="public/icons/IN.png" alt="LinkedIn"></span>`;
+    }
+    
+    // Update user info
+    document.getElementById('userRegisteredSince').textContent = user.registeredDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('userBirthdate').textContent = new Date(user.birthdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('userAge').textContent = `${user.age} years old`;
+    document.getElementById('userEducation').textContent = user.education;
+    document.getElementById('userRegion').textContent = user.region;
+    document.getElementById('userCity').textContent = user.city;
+    document.getElementById('userGigsListed').textContent = user.gigsListed;
+    document.getElementById('userApplications').textContent = user.applications;
+    document.getElementById('userIntro').textContent = user.introduction;
+    
+    // Update action buttons based on tab
+    updateUserActionButtons(user);
+    
+    // Update footer sections based on tab
+    updateUserFooterSections(user);
+}
+
+function updateStars(containerId, rating) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.setAttribute('data-rating', rating);
+    
+    const stars = container.querySelectorAll('.detail-star, .overlay-star');
+    const fullStars = Math.floor(rating);
+    
+    stars.forEach((star, index) => {
+        star.classList.remove('filled', 'gray');
+        if (index < fullStars) {
+            star.classList.add('filled');
+        } else {
+            star.classList.add('gray');
+        }
+    });
+}
+
+function updateUserActionButtons(user) {
+    const suspendBtn = document.getElementById('suspendUserBtn');
+    const restoreBtn = document.getElementById('restoreUserBtn');
+    
+    if (user.status === 'suspended') {
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (restoreBtn) restoreBtn.style.display = 'inline-block';
+    } else {
+        if (suspendBtn) suspendBtn.style.display = 'inline-block';
+        if (restoreBtn) restoreBtn.style.display = 'none';
+    }
+}
+
+function updateUserFooterSections(user) {
+    // Hide all footer sections first
+    const verificationImagesSection = document.getElementById('verificationImagesSection');
+    const bigApproveSection = document.getElementById('bigApproveSection');
+    const bigRevokeSection = document.getElementById('bigRevokeSection');
+    const suspendedInfoSection = document.getElementById('suspendedInfoSection');
+    const permBanSection = document.getElementById('permBanSection');
+    
+    if (verificationImagesSection) verificationImagesSection.style.display = 'none';
+    if (bigApproveSection) bigApproveSection.style.display = 'none';
+    if (bigRevokeSection) bigRevokeSection.style.display = 'none';
+    if (suspendedInfoSection) suspendedInfoSection.style.display = 'none';
+    if (permBanSection) permBanSection.style.display = 'none';
+    
+    // Show relevant sections based on status
+    if (user.status === 'pending') {
+        // Show verification images and approve button
+        if (verificationImagesSection && user.verificationImages) {
+            verificationImagesSection.style.display = 'block';
+            document.getElementById('idImage').src = user.verificationImages.idImage;
+            document.getElementById('selfieImage').src = user.verificationImages.selfieImage;
+        }
+        if (bigApproveSection) bigApproveSection.style.display = 'block';
+    } else if (user.status === 'verified') {
+        // Show revoke button
+        if (bigRevokeSection) bigRevokeSection.style.display = 'block';
+    } else if (user.status === 'suspended') {
+        // Show suspended info and permanent ban section
+        if (suspendedInfoSection && user.suspendedInfo) {
+            suspendedInfoSection.style.display = 'block';
+            document.getElementById('suspendedBy').textContent = user.suspendedInfo.suspendedBy;
+            document.getElementById('suspensionDate').textContent = user.suspendedInfo.suspensionDate;
+        }
+        if (permBanSection) {
+            permBanSection.style.display = 'block';
+            document.getElementById('userIpAddress').textContent = user.ipAddress;
+        }
+    }
+}
+
+function initializeUserActions() {
+    // Contact button
+    const contactBtn = document.getElementById('contactUserBtn');
+    if (contactBtn) {
+        contactBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showContactUserOverlay();
+            }
+        });
+    }
+    
+    // Suspend button
+    const suspendBtn = document.getElementById('suspendUserBtn');
+    if (suspendBtn) {
+        suspendBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showSuspendUserConfirmation();
+            }
+        });
+    }
+    
+    // Restore button
+    const restoreBtn = document.getElementById('restoreUserBtn');
+    if (restoreBtn) {
+        restoreBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showRestoreUserConfirmation();
+            }
+        });
+    }
+    
+    // Close button
+    const closeBtn = document.getElementById('closeUserBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            closeUserDetail();
+        });
+    }
+    
+    // View Profile button
+    const viewProfileBtn = document.getElementById('viewProfileBtn');
+    if (viewProfileBtn) {
+        viewProfileBtn.addEventListener('click', () => {
+            // TODO: Navigate to profile page
+            showToast('View Profile feature coming soon!', 'info');
+        });
+    }
+    
+    // Big Approve button
+    const bigApproveBtn = document.getElementById('bigApproveUserBtn');
+    if (bigApproveBtn) {
+        bigApproveBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showApproveVerificationConfirmation();
+            }
+        });
+    }
+    
+    // Big Revoke button
+    const bigRevokeBtn = document.getElementById('bigRevokeUserBtn');
+    if (bigRevokeBtn) {
+        bigRevokeBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showRevokeVerificationConfirmation();
+            }
+        });
+    }
+    
+    // Permanent Ban button
+    const permBanBtn = document.getElementById('permBanUserBtn');
+    if (permBanBtn) {
+        permBanBtn.addEventListener('click', () => {
+            if (currentUserData) {
+                showPermBanUserConfirmation();
+            }
+        });
+    }
+}
+
+function closeUserDetail() {
+    currentUserData = null;
+    
+    // Clear card selection
+    document.querySelectorAll('.user-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Hide content, show "no user selected"
+    const userDetail = document.getElementById('userDetail');
+    const userContent = document.getElementById('userContent');
+    if (userDetail) userDetail.style.display = 'flex';
+    if (userContent) userContent.style.display = 'none';
+}
+
+function initializeUserSearch() {
+    const searchInput = document.getElementById('usersSearchInput');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (query === '') {
+            // Show all users in current tab
+            loadUserCards(currentUserTab);
+            return;
+        }
+        
+        // Filter users in current tab
+        let filteredUsers = allUsers.filter(user => {
+            return user.status === currentUserTab &&
+                   (user.fullName.toLowerCase().includes(query) ||
+                    user.region.toLowerCase().includes(query) ||
+                    user.city.toLowerCase().includes(query));
+        });
+        
+        // Update display
+        const userCardsList = document.getElementById('userCardsList');
+        if (userCardsList) {
+            userCardsList.innerHTML = filteredUsers.map(user => generateUserCardHTML(user)).join('');
+            attachUserCardHandlers();
+        }
+        
+        const usersStats = document.getElementById('usersStats');
+        if (usersStats) {
+            usersStats.textContent = `Showing ${filteredUsers.length} of ${allUsers.filter(u => u.status === currentUserTab).length} users`;
+        }
+    });
+}
+
+function initializeImageLightbox() {
+    const lightboxOverlay = document.getElementById('imageLightboxOverlay');
+    const lightboxClose = document.getElementById('lightboxCloseBtn');
+    const lightboxImage = document.getElementById('lightboxImage');
+    const lightboxLabel = document.getElementById('lightboxLabel');
+    
+    // View ID button
+    const viewIdBtn = document.getElementById('viewIdBtn');
+    if (viewIdBtn) {
+        viewIdBtn.addEventListener('click', () => {
+            if (currentUserData && currentUserData.verificationImages) {
+                lightboxImage.src = currentUserData.verificationImages.idImage;
+                lightboxLabel.textContent = 'Government ID';
+                lightboxOverlay.classList.add('active');
+            }
+        });
+    }
+    
+    // View Selfie button
+    const viewSelfieBtn = document.getElementById('viewSelfieBtn');
+    if (viewSelfieBtn) {
+        viewSelfieBtn.addEventListener('click', () => {
+            if (currentUserData && currentUserData.verificationImages) {
+                lightboxImage.src = currentUserData.verificationImages.selfieImage;
+                lightboxLabel.textContent = 'Selfie with ID';
+                lightboxOverlay.classList.add('active');
+            }
+        });
+    }
+    
+    // Download ID button
+    const downloadIdBtn = document.getElementById('downloadIdBtn');
+    if (downloadIdBtn) {
+        downloadIdBtn.addEventListener('click', () => {
+            if (currentUserData && currentUserData.verificationImages) {
+                downloadImage(currentUserData.verificationImages.idImage, `${currentUserData.fullName}_ID.jpg`);
+            }
+        });
+    }
+    
+    // Download Selfie button
+    const downloadSelfieBtn = document.getElementById('downloadSelfieBtn');
+    if (downloadSelfieBtn) {
+        downloadSelfieBtn.addEventListener('click', () => {
+            if (currentUserData && currentUserData.verificationImages) {
+                downloadImage(currentUserData.verificationImages.selfieImage, `${currentUserData.fullName}_Selfie.jpg`);
+            }
+        });
+    }
+    
+    // Close lightbox
+    if (lightboxClose) {
+        lightboxClose.addEventListener('click', () => {
+            lightboxOverlay.classList.remove('active');
+        });
+    }
+    
+    // Close on background click
+    if (lightboxOverlay) {
+        lightboxOverlay.addEventListener('click', (e) => {
+            if (e.target === lightboxOverlay) {
+                lightboxOverlay.classList.remove('active');
+            }
+        });
+    }
+}
+
+function downloadImage(imageUrl, filename) {
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast(`Downloading ${filename}`, 'success');
+}
+
+function initializeContactUserOverlay() {
+    const overlay = document.getElementById('contactUserOverlay');
+    const closeBtn = document.getElementById('closeContactUserModal');
+    const cancelBtn = document.getElementById('cancelContactUserBtn');
+    const sendBtn = document.getElementById('sendContactUserBtn');
+    const messageInput = document.getElementById('contactUserMessageInput');
+    const attachBtn = document.getElementById('contactUserAttachBtn');
+    const attachmentInput = document.getElementById('contactUserAttachmentInput');
+    const attachmentPreview = document.getElementById('contactUserAttachmentPreview');
+    const attachmentImg = document.getElementById('contactUserAttachmentImg');
+    const removeAttachment = document.getElementById('removeContactUserAttachment');
+    
+    // Close overlay
+    const closeOverlay = () => {
+        overlay.classList.remove('active');
+        messageInput.value = '';
+        attachmentPreview.style.display = 'none';
+        attachmentInput.value = '';
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeOverlay);
+    
+    // Attach image
+    if (attachBtn && attachmentInput) {
+        attachBtn.addEventListener('click', () => {
+            attachmentInput.click();
+        });
+        
+        attachmentInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    attachmentImg.src = e.target.result;
+                    attachmentPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+    
+    // Remove attachment
+    if (removeAttachment) {
+        removeAttachment.addEventListener('click', () => {
+            attachmentPreview.style.display = 'none';
+            attachmentInput.value = '';
+        });
+    }
+    
+    // Send message
+    if (sendBtn) {
+        sendBtn.addEventListener('click', () => {
+            const message = messageInput.value.trim();
+            if (!message) {
+                showToast('Please enter a message', 'error');
+                return;
+            }
+            
+            // TODO: Send message via Firebase
+            showToast(`Message sent to ${currentUserData.fullName}`, 'success');
+            closeOverlay();
+        });
+    }
+}
+
+function showContactUserOverlay() {
+    const overlay = document.getElementById('contactUserOverlay');
+    const userInfoDisplay = document.getElementById('contactUserInfoDisplay');
+    
+    if (userInfoDisplay && currentUserData) {
+        userInfoDisplay.innerHTML = `
+            <img src="${currentUserData.avatar}" alt="${currentUserData.fullName}">
+            <div class="contact-user-info-name">${currentUserData.fullName}</div>
+        `;
+    }
+    
+    overlay.classList.add('active');
+}
+
+function initializeUserConfirmationOverlays() {
+    // Suspend User
+    const suspendConfirm = document.getElementById('confirmSuspendUserBtn');
+    const suspendCancel = document.getElementById('cancelSuspendUserBtn');
+    
+    if (suspendConfirm) {
+        suspendConfirm.addEventListener('click', () => {
+            suspendUser(currentUserData);
+            document.getElementById('suspendUserConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    if (suspendCancel) {
+        suspendCancel.addEventListener('click', () => {
+            document.getElementById('suspendUserConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    // Restore User
+    const restoreConfirm = document.getElementById('confirmRestoreUserBtn');
+    const restoreCancel = document.getElementById('cancelRestoreUserBtn');
+    
+    if (restoreConfirm) {
+        restoreConfirm.addEventListener('click', () => {
+            restoreUser(currentUserData);
+            document.getElementById('restoreUserConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    if (restoreCancel) {
+        restoreCancel.addEventListener('click', () => {
+            document.getElementById('restoreUserConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    // Approve Verification
+    const approveConfirm = document.getElementById('confirmApproveVerificationBtn');
+    const approveCancel = document.getElementById('cancelApproveVerificationBtn');
+    
+    if (approveConfirm) {
+        approveConfirm.addEventListener('click', () => {
+            approveVerification(currentUserData);
+            document.getElementById('approveVerificationConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    if (approveCancel) {
+        approveCancel.addEventListener('click', () => {
+            document.getElementById('approveVerificationConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    // Revoke Verification
+    const revokeConfirm = document.getElementById('confirmRevokeVerificationBtn');
+    const revokeCancel = document.getElementById('cancelRevokeVerificationBtn');
+    
+    if (revokeConfirm) {
+        revokeConfirm.addEventListener('click', () => {
+            revokeVerification(currentUserData);
+            document.getElementById('revokeVerificationConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    if (revokeCancel) {
+        revokeCancel.addEventListener('click', () => {
+            document.getElementById('revokeVerificationConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    // Permanent Ban
+    const permBanConfirm = document.getElementById('confirmPermBanUserBtn');
+    const permBanCancel = document.getElementById('cancelPermBanUserBtn');
+    
+    if (permBanConfirm) {
+        permBanConfirm.addEventListener('click', () => {
+            permanentlyBanUser(currentUserData);
+            document.getElementById('permBanUserConfirmOverlay').classList.remove('active');
+        });
+    }
+    
+    if (permBanCancel) {
+        permBanCancel.addEventListener('click', () => {
+            document.getElementById('permBanUserConfirmOverlay').classList.remove('active');
+        });
+    }
+}
+
+function showSuspendUserConfirmation() {
+    const overlay = document.getElementById('suspendUserConfirmOverlay');
+    overlay.classList.add('active');
+}
+
+function showRestoreUserConfirmation() {
+    const overlay = document.getElementById('restoreUserConfirmOverlay');
+    overlay.classList.add('active');
+}
+
+function showApproveVerificationConfirmation() {
+    const overlay = document.getElementById('approveVerificationConfirmOverlay');
+    overlay.classList.add('active');
+}
+
+function showRevokeVerificationConfirmation() {
+    const overlay = document.getElementById('revokeVerificationConfirmOverlay');
+    overlay.classList.add('active');
+}
+
+function showPermBanUserConfirmation() {
+    const overlay = document.getElementById('permBanUserConfirmOverlay');
+    overlay.classList.add('active');
+}
+
+function suspendUser(user) {
+    // Update user status
+    user.status = 'suspended';
+    user.suspendedInfo = {
+        suspendedBy: 'Admin: Peter J. Ang',
+        suspensionDate: new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+    };
+    
+    // Reload current tab
+    loadUserCards(currentUserTab);
+    closeUserDetail();
+    
+    showToast(`${user.fullName} has been suspended`, 'success', 2000);
+}
+
+function restoreUser(user) {
+    // Restore to previous status (assume PRO VERIFIED for simplicity)
+    user.status = 'verified';
+    if (user.verificationStatus === 'NEW MEMBER') {
+        user.verificationStatus = 'PRO VERIFIED';
+    }
+    user.suspendedInfo = null;
+    
+    // Reload current tab
+    loadUserCards(currentUserTab);
+    closeUserDetail();
+    
+    showToast(`${user.fullName} has been restored`, 'success', 2000);
+}
+
+function approveVerification(user) {
+    // Approve verification
+    user.status = 'verified';
+    user.verificationStatus = 'PRO VERIFIED';
+    user.verificationImages = null;
+    
+    // Reload current tab
+    loadUserCards(currentUserTab);
+    closeUserDetail();
+    
+    showToast(`${user.fullName}'s verification has been approved`, 'success', 2000);
+}
+
+function revokeVerification(user) {
+    // Revoke verification
+    user.verificationStatus = 'NEW MEMBER';
+    
+    // Update display
+    if (currentUserData && currentUserData.id === user.id) {
+        displayUserDetails(user);
+    }
+    
+    // Reload cards to update badge
+    loadUserCards(currentUserTab);
+    
+    showToast(`${user.fullName}'s verification has been revoked`, 'success', 2000);
+}
+
+function permanentlyBanUser(user) {
+    // Remove user from array (permanent ban)
+    const index = allUsers.findIndex(u => u.id === user.id);
+    if (index !== -1) {
+        allUsers.splice(index, 1);
+    }
+    
+    // TODO: Add IP to banned list in Firebase
+    
+    // Reload current tab
+    loadUserCards(currentUserTab);
+    closeUserDetail();
+    
+    showToast(`${user.fullName} has been permanently banned (IP: ${user.ipAddress})`, 'success', 3000);
+}
+
+function initializeUserDetailOverlay() {
+    const overlay = document.getElementById('userDetailOverlay');
+    const closeBtn = document.getElementById('userOverlayCloseBtnX');
+    const closeFooterBtn = document.getElementById('userOverlayCloseBtn');
+    
+    // Close overlay
+    const closeOverlay = () => {
+        overlay.classList.remove('active');
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+    if (closeFooterBtn) closeFooterBtn.addEventListener('click', closeOverlay);
+    
+    // Mobile action buttons
+    const contactBtn = document.getElementById('userOverlayContactBtn');
+    const suspendBtn = document.getElementById('userOverlaySuspendBtn');
+    const restoreBtn = document.getElementById('userOverlayRestoreBtn');
+    
+    if (contactBtn) {
+        contactBtn.addEventListener('click', () => {
+            showContactUserOverlay();
+        });
+    }
+    
+    if (suspendBtn) {
+        suspendBtn.addEventListener('click', () => {
+            showSuspendUserConfirmation();
+        });
+    }
+    
+    if (restoreBtn) {
+        restoreBtn.addEventListener('click', () => {
+            showRestoreUserConfirmation();
+        });
+    }
+}
+
+function showUserDetailOverlay(user) {
+    const overlay = document.getElementById('userDetailOverlay');
+    const overlayBody = overlay.querySelector('.overlay-body');
+    
+    // Update header (name, rating, status, and social links)
+    document.getElementById('userOverlayName').textContent = user.fullName;
+    document.getElementById('userOverlayReviewsCount').textContent = user.reviewCount;
+    updateStars('userOverlayStars', user.rating);
+    document.getElementById('userOverlayStatusBadge').textContent = user.verificationStatus;
+    
+    // Update social links in header (always show all 3 icons)
+    const overlaySocialLinksContainer = document.getElementById('userOverlaySocialLinks');
+    overlaySocialLinksContainer.innerHTML = '';
+    
+    // Facebook - always show, clickable if link exists
+    if (user.socialMediaLinks.facebook) {
+        overlaySocialLinksContainer.innerHTML += `<a href="${user.socialMediaLinks.facebook}" target="_blank" class="user-social-link"><img src="public/icons/FB.png" alt="Facebook"></a>`;
+    } else {
+        overlaySocialLinksContainer.innerHTML += `<span class="user-social-link user-social-link-inactive"><img src="public/icons/FB.png" alt="Facebook"></span>`;
+    }
+    
+    // Instagram - always show, clickable if link exists
+    if (user.socialMediaLinks.instagram) {
+        overlaySocialLinksContainer.innerHTML += `<a href="${user.socialMediaLinks.instagram}" target="_blank" class="user-social-link"><img src="public/icons/IG.png" alt="Instagram"></a>`;
+    } else {
+        overlaySocialLinksContainer.innerHTML += `<span class="user-social-link user-social-link-inactive"><img src="public/icons/IG.png" alt="Instagram"></span>`;
+    }
+    
+    // LinkedIn - always show, clickable if link exists
+    if (user.socialMediaLinks.linkedin) {
+        overlaySocialLinksContainer.innerHTML += `<a href="${user.socialMediaLinks.linkedin}" target="_blank" class="user-social-link"><img src="public/icons/IN.png" alt="LinkedIn"></a>`;
+    } else {
+        overlaySocialLinksContainer.innerHTML += `<span class="user-social-link user-social-link-inactive"><img src="public/icons/IN.png" alt="LinkedIn"></span>`;
+    }
+    
+    // Update action buttons
+    const suspendBtn = document.getElementById('userOverlaySuspendBtn');
+    const restoreBtn = document.getElementById('userOverlayRestoreBtn');
+    
+    if (user.status === 'suspended') {
+        if (suspendBtn) suspendBtn.style.display = 'none';
+        if (restoreBtn) restoreBtn.style.display = 'inline-block';
+    } else {
+        if (suspendBtn) suspendBtn.style.display = 'inline-block';
+        if (restoreBtn) restoreBtn.style.display = 'none';
+    }
+    
+    // Build body content (photo, info boxes, intro)
+    let bodyHTML = `
+        <!-- User Profile Photo (large, like gig photo) -->
+        <div class="user-profile-photo-container">
+            <img src="${user.avatar}" alt="${user.fullName}" class="user-profile-photo">
+        </div>
+        
+        <!-- User Information Boxes (like gig info boxes) -->
+        <div class="user-info-section">
+            <div class="user-info-row">
+                <div class="user-info-item">
+                    <div class="user-info-label">REGISTERED SINCE:</div>
+                    <div class="user-info-value">${user.registeredDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                </div>
+                <div class="user-info-item">
+                    <div class="user-info-label">BIRTHDATE:</div>
+                    <div class="user-info-value">${new Date(user.birthdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                </div>
+            </div>
+            <div class="user-info-row">
+                <div class="user-info-item">
+                    <div class="user-info-label">AGE:</div>
+                    <div class="user-info-value">${user.age} years old</div>
+                </div>
+                <div class="user-info-item">
+                    <div class="user-info-label">EDUCATION:</div>
+                    <div class="user-info-value">${user.education}</div>
+                </div>
+            </div>
+            <div class="user-info-row">
+                <div class="user-info-item">
+                    <div class="user-info-label">REGION:</div>
+                    <div class="user-info-value">${user.region}</div>
+                </div>
+                <div class="user-info-item">
+                    <div class="user-info-label">CITY:</div>
+                    <div class="user-info-value">${user.city}</div>
+                </div>
+            </div>
+            <div class="user-info-row">
+                <div class="user-info-item">
+                    <div class="user-info-label">GIGS LISTED:</div>
+                    <div class="user-info-value">${user.gigsListed}</div>
+                </div>
+                <div class="user-info-item">
+                    <div class="user-info-label">APPLICATIONS:</div>
+                    <div class="user-info-value">${user.applications}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="user-intro-section">
+            <div class="user-intro-label">INTRODUCTION:</div>
+            <div class="user-intro-text">${user.introduction}</div>
+        </div>
+        
+        <div class="user-profile-section">
+            <button class="view-profile-btn" onclick="showToast('View Profile feature coming soon!', 'info')">
+                <span class="profile-btn-icon">👤</span>
+                <span>VIEW PROFILE</span>
+            </button>
+        </div>
+    `;
+    
+    // Add footer sections based on status
+    if (user.status === 'pending' && user.verificationImages) {
+        bodyHTML += `
+            <div class="user-detail-footer" style="margin-top: 1rem;">
+                <div class="verification-images-section" style="display: block;">
+                    <div class="verification-images-label">VERIFICATION DOCUMENTS:</div>
+                    <div class="verification-images-grid">
+                        <div class="verification-image-item">
+                            <div class="verification-image-preview">
+                                <img src="${user.verificationImages.idImage}" alt="ID">
+                            </div>
+                            <div class="verification-image-actions">
+                                <button class="verification-view-btn" onclick="viewVerificationImage('${user.verificationImages.idImage}', 'Government ID')">👁️ View</button>
+                                <button class="verification-download-btn" onclick="downloadImage('${user.verificationImages.idImage}', '${user.fullName}_ID.jpg')">⬇️ Download</button>
+                            </div>
+                            <div class="verification-image-label">Government ID</div>
+                        </div>
+                        <div class="verification-image-item">
+                            <div class="verification-image-preview">
+                                <img src="${user.verificationImages.selfieImage}" alt="Selfie with ID">
+                            </div>
+                            <div class="verification-image-actions">
+                                <button class="verification-view-btn" onclick="viewVerificationImage('${user.verificationImages.selfieImage}', 'Selfie with ID')">👁️ View</button>
+                                <button class="verification-download-btn" onclick="downloadImage('${user.verificationImages.selfieImage}', '${user.fullName}_Selfie.jpg')">⬇️ Download</button>
+                            </div>
+                            <div class="verification-image-label">Selfie with ID</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="big-approve-section" style="display: block;">
+                    <div class="big-approve-message">
+                        <div class="big-approve-icon">✅</div>
+                        <div class="big-approve-text">
+                            <strong>Action Required:</strong> Review the verification documents and approve this user's identity verification request.
+                        </div>
+                    </div>
+                    <button class="big-approve-btn" onclick="showApproveVerificationConfirmation()">APPROVE VERIFICATION</button>
+                </div>
+            </div>
+        `;
+    } else if (user.status === 'verified') {
+        bodyHTML += `
+            <div class="user-detail-footer" style="margin-top: 1rem;">
+                <div class="big-revoke-section" style="display: block;">
+                    <div class="big-revoke-warning">
+                        <div class="big-revoke-icon">⚠️</div>
+                        <div class="big-revoke-text">
+                            <strong>Revoke Verification:</strong> This will remove the user's verified status and badge. They will need to re-submit documents to regain verification.
+                        </div>
+                    </div>
+                    <button class="big-revoke-btn" onclick="showRevokeVerificationConfirmation()">REVOKE VERIFICATION</button>
+                </div>
+            </div>
+        `;
+    } else if (user.status === 'suspended' && user.suspendedInfo) {
+        bodyHTML += `
+            <div class="user-detail-footer" style="margin-top: 1rem;">
+                <div class="suspended-info-section" style="display: block;">
+                    <div class="suspended-info-label">SUSPENDED BY:</div>
+                    <div class="suspended-info-text">${user.suspendedInfo.suspendedBy}</div>
+                    <div class="suspended-info-label" style="margin-top: 1rem;">SUSPENSION DATE:</div>
+                    <div class="suspended-info-text">${user.suspendedInfo.suspensionDate}</div>
+                </div>
+                <div class="perm-ban-section" style="display: block;">
+                    <div class="perm-ban-warning">
+                        <div class="perm-ban-icon">🚫</div>
+                        <div class="perm-ban-text">
+                            <strong>Danger Zone:</strong> This action cannot be undone. The user will be permanently banned and their IP address will be blocked from creating new accounts.
+                        </div>
+                    </div>
+                    <div class="perm-ban-ip-display">
+                        <div class="perm-ban-ip-label">IP Address:</div>
+                        <div class="perm-ban-ip-value">${user.ipAddress}</div>
+                    </div>
+                    <button class="perm-ban-btn" onclick="showPermBanUserConfirmation()">PERMANENTLY BAN USER</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    overlayBody.innerHTML = bodyHTML;
+    overlay.classList.add('active');
+}
+
+// Global helper function for mobile overlay buttons
+function viewVerificationImage(imageUrl, label) {
+    const lightboxImage = document.getElementById('lightboxImage');
+    const lightboxLabel = document.getElementById('lightboxLabel');
+    const lightboxOverlay = document.getElementById('imageLightboxOverlay');
+    
+    lightboxImage.src = imageUrl;
+    lightboxLabel.textContent = label;
+    lightboxOverlay.classList.add('active');
 }
 
 // ===== INITIALIZATION COMPLETE =====

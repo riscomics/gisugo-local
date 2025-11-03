@@ -1684,17 +1684,401 @@
                     <p class="section-subtitle">Manage users, verifications, and account actions</p>
                 </div>
                 
-                <div class="placeholder-content">
-                    <div class="placeholder-icon">👥</div>
-                    <h3>User Management Features</h3>
-                    <ul>
-                        <li>ID Verification Queue</li>
-                        <li>User Search & Profiles</li>
-                        <li>Account Actions (Suspend/Ban)</li>
-                        <li>Behavior Analytics</li>
-                    </ul>
+                <div class="user-management-layout">
+                    <!-- Left Panel: User Navigation -->
+                    <div class="user-nav-panel">
+                        <div class="panel-header">
+                            <div class="user-controls">
+                                <!-- First Row: NEW, PENDING, VERIFIED -->
+                                <div class="user-tabs-row">
+                                    <button class="user-tab-btn active" id="usersNewBtn" data-tab="new">
+                                        NEW <span class="tab-count" id="newUsersCount">8</span>
+                                    </button>
+                                    <button class="user-tab-btn" id="usersPendingBtn" data-tab="pending">
+                                        PENDING <span class="tab-count" id="pendingUsersCount">3</span>
+                                    </button>
+                                    <button class="user-tab-btn" id="usersVerifiedBtn" data-tab="verified">
+                                        VERIFIED <span class="tab-count" id="verifiedUsersCount">42</span>
+                                    </button>
+                                </div>
+                                <!-- Second Row: SUSPENDED, SEARCH -->
+                                <div class="user-tabs-row user-tabs-row-bottom">
+                                    <button class="user-tab-btn" id="usersSuspendedBtn" data-tab="suspended">
+                                        SUSPENDED <span class="tab-count" id="suspendedUsersCount">2</span>
+                                    </button>
+                                    <div class="user-search">
+                                        <input type="text" placeholder="Search users..." class="search-input-small" id="usersSearchInput">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scrollable User Cards Container -->
+                        <div class="user-cards-container">
+                            <div class="user-cards-list" id="userCardsList">
+                                <!-- User cards will be populated here by JavaScript -->
+                            </div>
+                            
+                            <!-- Pagination Controls -->
+                            <div class="user-pagination">
+                                <div class="loading-indicator" id="usersLoading">Loading more users...</div>
+                                <button class="load-more-btn" id="loadMoreUsersBtn">Load More Users</button>
+                                <div class="user-stats" id="usersStats">Showing 20 of 55 users</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: User Details -->
+                    <div class="user-detail-panel">
+                        <div class="user-detail" id="userDetail">
+                            <div class="no-user-selected">
+                                <div class="no-user-icon">👤</div>
+                                <h4>Select a user to view details</h4>
+                                <p>Choose a user from the left to review and take action</p>
+                            </div>
+                        </div>
+
+                        <!-- User Detail Content (hidden initially) -->
+                        <div class="user-content" id="userContent" style="display: none;">
+                            <!-- Fixed Header -->
+                            <div class="user-detail-header">
+                                <div class="detail-user-name-rating">
+                                    <div class="detail-user-name" id="userName">User Name</div>
+                                    <div class="detail-user-rating">
+                                        <span class="detail-reviews-count" id="userReviewsCount">0</span>
+                                        <div class="detail-stars-container" id="userStars" data-rating="0">
+                                            <span class="detail-star"></span>
+                                            <span class="detail-star"></span>
+                                            <span class="detail-star"></span>
+                                            <span class="detail-star"></span>
+                                            <span class="detail-star"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="detail-actions">
+                                    <button class="user-action-btn contact-btn" id="contactUserBtn">CONTACT</button>
+                                    <button class="user-action-btn suspend-btn" id="suspendUserBtn">SUSPEND</button>
+                                    <button class="user-action-btn restore-btn" id="restoreUserBtn" style="display: none;">RESTORE</button>
+                                    <button class="user-action-btn close-btn" id="closeUserBtn">CLOSE</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Scrollable Body -->
+                            <div class="user-content-inner">
+                                <div class="user-detail-body">
+                                    <!-- User Profile Photo -->
+                                    <div class="user-profile-photo-container">
+                                        <img src="public/users/User-02.jpg" alt="User" class="user-profile-photo" id="userProfilePhoto">
+                                    </div>
+                                    
+                                    <!-- Status Badge and Social Icons (centered below photo) -->
+                                    <div class="user-status-social-row">
+                                        <div class="user-status-badge" id="userStatusBadge">NEW MEMBER</div>
+                                        <div class="user-social-links" id="userSocialLinks">
+                                            <!-- Social icons populated by JS if linked -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- User Info Grid -->
+                                    <div class="user-info-section">
+                                        <div class="user-info-row">
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">REGISTERED SINCE:</div>
+                                                <div class="user-info-value" id="userRegisteredSince">Loading...</div>
+                                            </div>
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">BIRTHDATE:</div>
+                                                <div class="user-info-value" id="userBirthdate">Loading...</div>
+                                            </div>
+                                        </div>
+                                        <div class="user-info-row">
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">AGE:</div>
+                                                <div class="user-info-value" id="userAge">Loading...</div>
+                                            </div>
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">EDUCATION:</div>
+                                                <div class="user-info-value" id="userEducation">Loading...</div>
+                                            </div>
+                                        </div>
+                                        <div class="user-info-row">
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">REGION:</div>
+                                                <div class="user-info-value" id="userRegion">Loading...</div>
+                                            </div>
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">CITY:</div>
+                                                <div class="user-info-value" id="userCity">Loading...</div>
+                                            </div>
+                                        </div>
+                                        <div class="user-info-row">
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">GIGS LISTED:</div>
+                                                <div class="user-info-value" id="userGigsListed">0</div>
+                                            </div>
+                                            <div class="user-info-item">
+                                                <div class="user-info-label">APPLICATIONS:</div>
+                                                <div class="user-info-value" id="userApplications">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Introduction -->
+                                    <div class="user-intro-section">
+                                        <div class="user-intro-label">INTRODUCTION:</div>
+                                        <div class="user-intro-text" id="userIntro">Loading...</div>
+                                    </div>
+                                    
+                                    <!-- View Profile Button -->
+                                    <div class="user-profile-section">
+                                        <button class="view-profile-btn" id="viewProfileBtn">
+                                            <span class="profile-btn-icon">👤</span>
+                                            <span>VIEW PROFILE</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Footer: Action-specific sections -->
+                                <div class="user-detail-footer">
+                                    <!-- Verification Images Section (for PENDING tab only) -->
+                                    <div class="verification-images-section" id="verificationImagesSection" style="display: none;">
+                                        <div class="verification-images-label">VERIFICATION DOCUMENTS:</div>
+                                        <div class="verification-images-grid">
+                                            <div class="verification-image-item">
+                                                <div class="verification-image-preview" id="idImagePreview">
+                                                    <img src="" alt="ID" id="idImage">
+                                                </div>
+                                                <div class="verification-image-actions">
+                                                    <button class="verification-view-btn" id="viewIdBtn">👁️ View</button>
+                                                    <button class="verification-download-btn" id="downloadIdBtn">⬇️ Download</button>
+                                                </div>
+                                                <div class="verification-image-label">Government ID</div>
+                                            </div>
+                                            <div class="verification-image-item">
+                                                <div class="verification-image-preview" id="selfieImagePreview">
+                                                    <img src="" alt="Selfie with ID" id="selfieImage">
+                                                </div>
+                                                <div class="verification-image-actions">
+                                                    <button class="verification-view-btn" id="viewSelfieBtn">👁️ View</button>
+                                                    <button class="verification-download-btn" id="downloadSelfieBtn">⬇️ Download</button>
+                                                </div>
+                                                <div class="verification-image-label">Selfie with ID</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Big Approve Section (for PENDING tab only) -->
+                                    <div class="big-approve-section" id="bigApproveSection" style="display: none;">
+                                        <div class="big-approve-message">
+                                            <div class="big-approve-icon">✅</div>
+                                            <div class="big-approve-text">
+                                                <strong>Action Required:</strong> Review the verification documents and approve this user's identity verification request.
+                                            </div>
+                                        </div>
+                                        <button class="big-approve-btn" id="bigApproveUserBtn">APPROVE VERIFICATION</button>
+                                    </div>
+                                    
+                                    <!-- Big Revoke Section (for VERIFIED tab only) -->
+                                    <div class="big-revoke-section" id="bigRevokeSection" style="display: none;">
+                                        <div class="big-revoke-warning">
+                                            <div class="big-revoke-icon">⚠️</div>
+                                            <div class="big-revoke-text">
+                                                <strong>Revoke Verification:</strong> This will remove the user's verified status and badge. They will need to re-submit documents to regain verification.
+                                            </div>
+                                        </div>
+                                        <button class="big-revoke-btn" id="bigRevokeUserBtn">REVOKE VERIFICATION</button>
+                                    </div>
+                                    
+                                    <!-- Suspended Info Section (for SUSPENDED tab only) -->
+                                    <div class="suspended-info-section" id="suspendedInfoSection" style="display: none;">
+                                        <div class="suspended-info-label">SUSPENDED BY:</div>
+                                        <div class="suspended-info-text" id="suspendedBy"></div>
+                                        <div class="suspended-info-label" style="margin-top: 1rem;">SUSPENSION DATE:</div>
+                                        <div class="suspended-info-text" id="suspensionDate"></div>
+                                    </div>
+                                    
+                                    <!-- Permanent Ban Section (for SUSPENDED tab only) -->
+                                    <div class="perm-ban-section" id="permBanSection" style="display: none;">
+                                        <div class="perm-ban-warning">
+                                            <div class="perm-ban-icon">🚫</div>
+                                            <div class="perm-ban-text">
+                                                <strong>Danger Zone:</strong> This action cannot be undone. The user will be permanently banned and their IP address will be blocked from creating new accounts.
+                                            </div>
+                                        </div>
+                                        <div class="perm-ban-ip-display">
+                                            <div class="perm-ban-ip-label">IP Address:</div>
+                                            <div class="perm-ban-ip-value" id="userIpAddress">Loading...</div>
+                                        </div>
+                                        <button class="perm-ban-btn" id="permBanUserBtn">PERMANENTLY BAN USER</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
+
+            <!-- User Detail Overlay (for screens 888px and below) -->
+            <div id="userDetailOverlay" class="user-detail-overlay">
+                <div class="user-detail-overlay-content">
+                    <div class="overlay-header">
+                        <button class="overlay-close-btn" id="userOverlayCloseBtnX">✕</button>
+                        <div class="overlay-header-content">
+                            <div class="overlay-user-name-rating">
+                                <div class="overlay-user-name" id="userOverlayName">User Name</div>
+                                <div class="overlay-user-rating">
+                                    <span class="overlay-reviews-count" id="userOverlayReviewsCount">0</span>
+                                    <div class="overlay-stars-container" id="userOverlayStars" data-rating="0">
+                                        <span class="overlay-star"></span>
+                                        <span class="overlay-star"></span>
+                                        <span class="overlay-star"></span>
+                                        <span class="overlay-star"></span>
+                                        <span class="overlay-star"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="overlay-status-social-row">
+                                <div class="user-status-badge" id="userOverlayStatusBadge">NEW MEMBER</div>
+                                <div class="user-social-links" id="userOverlaySocialLinks">
+                                    <!-- Social icons populated by JS if linked -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overlay-body">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                    <div class="overlay-footer">
+                        <button class="user-action-btn contact-btn" id="userOverlayContactBtn">CONTACT</button>
+                        <button class="user-action-btn suspend-btn" id="userOverlaySuspendBtn">SUSPEND</button>
+                        <button class="user-action-btn restore-btn" id="userOverlayRestoreBtn" style="display: none;">RESTORE</button>
+                        <button class="user-action-btn close-btn" id="userOverlayCloseBtn">CLOSE</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Lightbox Modal -->
+            <div class="image-lightbox-overlay" id="imageLightboxOverlay">
+                <div class="lightbox-content">
+                    <button class="lightbox-close-btn" id="lightboxCloseBtn">✕</button>
+                    <div class="lightbox-image-container">
+                        <img src="" alt="Verification Document" id="lightboxImage">
+                    </div>
+                    <div class="lightbox-label" id="lightboxLabel">Document</div>
+                </div>
+            </div>
+
+            <!-- Suspend User Confirmation Overlay -->
+            <div class="confirm-overlay" id="suspendUserConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon suspend-icon">⚠️</div>
+                    <h3 class="confirm-title">Suspend This User?</h3>
+                    <p class="confirm-message" id="suspendUserConfirmMessage">
+                        This will move the user to the "Suspended" tab and prevent them from accessing their account.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelSuspendUserBtn">Cancel</button>
+                        <button class="confirm-btn confirm-suspend-btn" id="confirmSuspendUserBtn">Suspend User</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restore User Confirmation Overlay -->
+            <div class="confirm-overlay" id="restoreUserConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon restore-icon">✓</div>
+                    <h3 class="confirm-title">Restore This User?</h3>
+                    <p class="confirm-message" id="restoreUserConfirmMessage">
+                        This will restore the user's account and move them back to their previous status.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelRestoreUserBtn">Cancel</button>
+                        <button class="confirm-btn confirm-restore-btn" id="confirmRestoreUserBtn">Restore User</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approve Verification Confirmation Overlay -->
+            <div class="confirm-overlay" id="approveVerificationConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon approve-icon">✅</div>
+                    <h3 class="confirm-title">Approve Verification?</h3>
+                    <p class="confirm-message" id="approveVerificationConfirmMessage">
+                        This will grant the user verified status and their profile will display a verified badge.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelApproveVerificationBtn">Cancel</button>
+                        <button class="confirm-btn confirm-approve-btn" id="confirmApproveVerificationBtn">Approve Verification</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revoke Verification Confirmation Overlay -->
+            <div class="confirm-overlay" id="revokeVerificationConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon revoke-icon">⚠️</div>
+                    <h3 class="confirm-title">Revoke Verification?</h3>
+                    <p class="confirm-message" id="revokeVerificationConfirmMessage">
+                        This will remove the user's verified status. They will need to re-submit documents to regain verification.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelRevokeVerificationBtn">Cancel</button>
+                        <button class="confirm-btn confirm-revoke-btn" id="confirmRevokeVerificationBtn">Revoke Verification</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permanent Ban Confirmation Overlay -->
+            <div class="confirm-overlay" id="permBanUserConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon ban-icon">🚫</div>
+                    <h3 class="confirm-title">Permanently Ban This User?</h3>
+                    <p class="confirm-message" id="permBanUserConfirmMessage">
+                        <strong>⚠️ Warning:</strong> This action cannot be undone. The user will be permanently banned and their IP address will be blocked from creating new accounts.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelPermBanUserBtn">Cancel</button>
+                        <button class="confirm-btn confirm-ban-btn" id="confirmPermBanUserBtn">Permanently Ban</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact User Overlay -->
+            <div class="contact-user-overlay" id="contactUserOverlay">
+                <div class="contact-user-modal">
+                    <div class="contact-user-header">
+                        <h3 class="contact-user-title">Contact User</h3>
+                        <button class="contact-user-close" id="closeContactUserModal">×</button>
+                    </div>
+                    <div class="contact-user-body">
+                        <div class="contact-user-info" id="contactUserInfoDisplay">
+                            <!-- Will show user name and avatar -->
+                        </div>
+                        <div class="contact-form-group">
+                            <label class="contact-form-label">Message:</label>
+                            <textarea class="contact-message-input" id="contactUserMessageInput" placeholder="Type your message here..." rows="6"></textarea>
+                        </div>
+                        <div class="contact-form-group">
+                            <label class="contact-form-label">Attachment (Optional):</label>
+                            <div class="contact-attachment-area">
+                                <input type="file" id="contactUserAttachmentInput" accept="image/*" style="display: none;">
+                                <button class="contact-attach-btn" id="contactUserAttachBtn">
+                                    <span class="attach-icon">📎</span>
+                                    <span>Attach Image</span>
+                                </button>
+                                <div class="contact-attachment-preview" id="contactUserAttachmentPreview" style="display: none;">
+                                    <img src="" alt="Preview" id="contactUserAttachmentImg">
+                                    <button class="remove-attachment-btn" id="removeContactUserAttachment">×</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="contact-user-footer">
+                        <button class="contact-cancel-btn" id="cancelContactUserBtn">Cancel</button>
+                        <button class="contact-send-btn" id="sendContactUserBtn">Send Message</button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Messages Management Section -->
             <section id="messages" class="content-section">
@@ -2231,14 +2615,12 @@
                                         <div class="detail-posted-time" id="gigPostedTime">Posted 2 hours ago</div>
                                     </div>
                                 </div>
-                                <div class="detail-actions-section">
-                                    <div class="detail-actions">
-                                        <button class="gig-action-btn suspend-btn" id="suspendGigBtn">SUSPEND</button>
-                                        <button class="gig-action-btn ignore-btn" id="ignoreGigBtn" style="display: none;">IGNORE</button>
-                                        <button class="gig-action-btn relist-btn" id="relistGigBtn" style="display: none;">RELIST</button>
-                                        <button class="gig-action-btn contact-btn" id="contactGigBtn">CONTACT</button>
-                                        <button class="gig-action-btn close-btn" id="closeGigBtn">CLOSE</button>
-                                    </div>
+                                <div class="detail-actions">
+                                    <button class="gig-action-btn suspend-btn" id="suspendGigBtn">SUSPEND</button>
+                                    <button class="gig-action-btn ignore-btn" id="ignoreGigBtn" style="display: none;">IGNORE</button>
+                                    <button class="gig-action-btn relist-btn" id="relistGigBtn" style="display: none;">RELIST</button>
+                                    <button class="gig-action-btn contact-btn" id="contactGigBtn">CONTACT</button>
+                                    <button class="gig-action-btn close-btn" id="closeGigBtn">CLOSE</button>
                                 </div>
                             </div>
                             
