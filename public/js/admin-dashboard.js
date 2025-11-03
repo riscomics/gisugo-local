@@ -8245,6 +8245,25 @@ function viewVerificationImage(imageUrl, label) {
     lightboxOverlay.classList.add('active');
 }
 
+// Resize listener for User Management - switch between panel and overlay
+window.addEventListener('resize', () => {
+    const userOverlay = document.getElementById('userDetailOverlay');
+    
+    if (window.innerWidth >= 888 && userOverlay && userOverlay.classList.contains('active')) {
+        // Switched to desktop - hide overlay and show in panel
+        userOverlay.classList.remove('active');
+        
+        if (currentUserData) {
+            displayUserDetails(currentUserData);
+        }
+    } else if (window.innerWidth < 888 && currentUserData && document.getElementById('userContent')?.style.display !== 'none') {
+        // Switched to mobile - hide panel and show overlay
+        if (currentUserData) {
+            showUserDetailOverlay(currentUserData);
+        }
+    }
+});
+
 // ===== INITIALIZATION COMPLETE =====
 console.log('✅ Admin Dashboard JavaScript loaded successfully');
 console.log('🎮 Keyboard shortcuts: Alt+1-6 (navigation), Ctrl+K (search)');
