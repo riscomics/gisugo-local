@@ -2680,8 +2680,14 @@ function loadGigDetails(gigId) {
 function populateGigDetailPanel(gig) {
     const gigContent = document.getElementById('gigContent');
     const gigDetail = document.getElementById('gigDetail');
+    const gigContentInner = document.querySelector('.gig-content-inner');
     
     if (!gigContent) return;
+    
+    // Reset scroll position to top
+    if (gigContentInner) {
+        gigContentInner.scrollTop = 0;
+    }
     
     // Hide "no selection" message
     if (gigDetail) {
@@ -3383,6 +3389,11 @@ function showGigOverlay(gig) {
     // Show overlay
     overlay.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    
+    // Reset scroll position to top (after overlay is visible)
+    if (overlayBody) {
+        overlayBody.scrollTop = 0;
+    }
     
     console.log(`📱 Showing gig overlay for ${gig.gigId}`);
 }
@@ -7392,8 +7403,14 @@ function selectUser(user) {
 function displayUserDetails(user) {
     const userDetail = document.getElementById('userDetail');
     const userContent = document.getElementById('userContent');
+    const userContentInner = document.querySelector('.user-content-inner');
     
     if (!userContent) return;
+    
+    // Reset scroll position to top
+    if (userContentInner) {
+        userContentInner.scrollTop = 0;
+    }
     
     // Hide "no user selected", show content
     if (userDetail) userDetail.style.display = 'none';
@@ -8231,7 +8248,15 @@ function showUserDetailOverlay(user) {
     }
     
     overlayBody.innerHTML = bodyHTML;
+    
     overlay.classList.add('active');
+    
+    // Reset scroll position to top (after overlay is visible)
+    setTimeout(() => {
+        if (overlayBody) {
+            overlayBody.scrollTop = 0;
+        }
+    }, 0);
 }
 
 // Global helper function for mobile overlay buttons
