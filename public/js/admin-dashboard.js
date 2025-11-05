@@ -1163,11 +1163,17 @@ function updateReplyStatus(status) {
 }
 
 // ===== ADMIN CHATS SYSTEM =====
+// Global variable to track current chat data for responsive switching
+let currentChatData = null;
+
 function initializeAdminChats() {
     console.log('💭 Initializing Admin Chats System');
     
     // Initialize chat thread handlers  
     initializeChatThreads();
+    
+    // Initialize chat overlay close buttons
+    initializeChatOverlay();
     
     console.log('✅ Admin Chats System initialized');
 }
@@ -1247,21 +1253,33 @@ function loadChatConversation(threadElement) {
         isDisputed: threadElement.classList.contains('disputed')
     };
     
-    // Populate chat view in right panel
-    populateChatView(threadData);
-    
-    // Show chat content panel
-    document.getElementById('chatDetail').style.display = 'none';
-    document.getElementById('chatContent').style.display = 'block';
+    // Store current chat data for responsive switching
+    currentChatData = threadData;
     
     // Highlight selected thread
     document.querySelectorAll('#chats .conversation-thread').forEach(t => t.classList.remove('selected'));
     threadElement.classList.add('selected');
     
+    // Check viewport width to decide between panel or overlay
+    if (window.innerWidth >= 888) {
+        // Desktop: Show in right panel
+        populateChatPanel(threadData);
+    } else {
+        // Mobile: Show in overlay
+        showChatOverlay(threadData);
+    }
+    
     console.log('💭 Chat conversation loaded:', threadId);
 }
 
-function populateChatView(data) {
+function populateChatPanel(data) {
+    const chatBubblesContainer = document.querySelector('#chatContent .chat-bubbles-container');
+    
+    // Reset scroll position to top
+    if (chatBubblesContainer) {
+        chatBubblesContainer.scrollTop = 0;
+    }
+    
     const customer = data.participants.find(p => p.role.toLowerCase() === 'customer') || data.participants[0];
     const worker = data.participants.find(p => p.role.toLowerCase() === 'worker') || data.participants[1];
     
@@ -1285,6 +1303,10 @@ function populateChatView(data) {
     
     // Update admin controls based on status
     updateChatControls(data);
+    
+    // Show chat content panel
+    document.getElementById('chatDetail').style.display = 'none';
+    document.getElementById('chatContent').style.display = 'block';
 }
 
 function generateChatBubbles(data, customer, worker) {
@@ -1401,6 +1423,126 @@ function archiveChat(threadId) {
         // Update UI and backend here
     }
 }
+
+// ===== CHAT OVERLAY FUNCTIONALITY =====
+function initializeChatOverlay() {
+    const overlay = document.getElementById('chatDetailOverlay');
+    const closeBtnX = document.getElementById('chatOverlayCloseBtnX');
+    const closeBtnFooter = document.getElementById('chatOverlayCloseBtn');
+    const flagBtn = document.getElementById('chatOverlayFlagBtn');
+    const archiveBtn = document.getElementById('chatOverlayArchiveBtn');
+    
+    // Close buttons
+    if (closeBtnX) {
+        closeBtnX.addEventListener('click', hideChatOverlay);
+    }
+    if (closeBtnFooter) {
+        closeBtnFooter.addEventListener('click', hideChatOverlay);
+    }
+    
+    // Click outside to close
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                hideChatOverlay();
+            }
+        });
+    }
+    
+    // Action buttons
+    if (flagBtn) {
+        flagBtn.addEventListener('click', function() {
+            if (currentChatData) {
+                toggleChatFlag(currentChatData.id, currentChatData.isDisputed);
+            }
+        });
+    }
+    
+    if (archiveBtn) {
+        archiveBtn.addEventListener('click', function() {
+            if (currentChatData) {
+                archiveChat(currentChatData.id);
+            }
+        });
+    }
+    
+    console.log('💬 Chat overlay initialized');
+}
+
+function showChatOverlay(data) {
+    const overlay = document.getElementById('chatDetailOverlay');
+    const overlayBody = document.getElementById('chatOverlayBody');
+    
+    if (!overlay || !overlayBody) return;
+    
+    const customer = data.participants.find(p => p.role.toLowerCase() === 'customer') || data.participants[0];
+    const worker = data.participants.find(p => p.role.toLowerCase() === 'worker') || data.participants[1];
+    
+    // Update header participants
+    document.getElementById('chatOverlayCustomerAvatar').src = customer?.avatar || 'public/users/User-02.jpg';
+    document.getElementById('chatOverlayCustomerName').textContent = customer?.name || 'Customer';
+    document.getElementById('chatOverlayWorkerAvatar').src = worker?.avatar || 'public/users/User-03.jpg';
+    document.getElementById('chatOverlayWorkerName').textContent = worker?.name || 'Worker';
+    document.getElementById('chatOverlayJobTitle').textContent = data.jobTitle;
+    
+    // Update status badge
+    const statusBadge = document.getElementById('chatOverlayStatusBadge');
+    if (statusBadge) {
+        statusBadge.textContent = data.status;
+        statusBadge.className = `chat-overlay-status-badge ${data.status.toLowerCase()}`;
+    }
+    
+    // Update action buttons
+    const flagBtn = document.getElementById('chatOverlayFlagBtn');
+    if (flagBtn) {
+        flagBtn.textContent = data.isDisputed ? 'Remove Flag' : 'Flag';
+    }
+    
+    // Generate and populate chat bubbles
+    const chatBubbles = generateChatBubbles(data, customer, worker);
+    overlayBody.innerHTML = chatBubbles;
+    
+    // Show overlay
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Reset scroll position to top (after overlay is visible)
+    setTimeout(() => {
+        if (overlayBody) {
+            overlayBody.scrollTop = 0;
+        }
+    }, 0);
+    
+    console.log(`📱 Showing chat overlay for ${data.id}`);
+}
+
+function hideChatOverlay() {
+    const overlay = document.getElementById('chatDetailOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    console.log('📱 Chat overlay hidden');
+}
+
+// Handle resize to switch between overlay/panel views for chats
+window.addEventListener('resize', () => {
+    const chatOverlay = document.getElementById('chatDetailOverlay');
+    
+    if (window.innerWidth >= 888 && chatOverlay && chatOverlay.classList.contains('active')) {
+        // Switched to desktop - hide overlay and show in panel
+        hideChatOverlay();
+        
+        if (currentChatData) {
+            populateChatPanel(currentChatData);
+        }
+    } else if (window.innerWidth < 888 && currentChatData && document.getElementById('chatContent')?.style.display !== 'none') {
+        // Switched to mobile - hide panel and show overlay
+        if (currentChatData) {
+            showChatOverlay(currentChatData);
+        }
+    }
+});
 
 // ===== FLOATING REPLY MODAL SYSTEM =====
 function initializeReplyModal() {

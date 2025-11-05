@@ -2510,6 +2510,47 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Chat Detail Overlay (Mobile) -->
+                <div id="chatDetailOverlay" class="chat-detail-overlay">
+                    <div class="chat-overlay-content">
+                        <div class="chat-overlay-header">
+                            <button class="overlay-close-btn" id="chatOverlayCloseBtnX">✕</button>
+                            <div class="chat-overlay-participants">
+                                <div class="chat-overlay-participant">
+                                    <img src="public/users/User-02.jpg" alt="Customer" class="chat-overlay-avatar" id="chatOverlayCustomerAvatar">
+                                    <div class="chat-overlay-participant-info">
+                                        <span class="chat-overlay-name" id="chatOverlayCustomerName">Customer</span>
+                                        <span class="chat-overlay-role">Customer</span>
+                                    </div>
+                                </div>
+                                <div class="chat-overlay-vs">vs</div>
+                                <div class="chat-overlay-participant">
+                                    <img src="public/users/User-03.jpg" alt="Worker" class="chat-overlay-avatar" id="chatOverlayWorkerAvatar">
+                                    <div class="chat-overlay-participant-info">
+                                        <span class="chat-overlay-name" id="chatOverlayWorkerName">Worker</span>
+                                        <span class="chat-overlay-role">Worker</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chat-overlay-job-title" id="chatOverlayJobTitle">Job Title</div>
+                        </div>
+                        <div class="chat-overlay-body" id="chatOverlayBody">
+                            <!-- Chat bubbles will be populated here -->
+                        </div>
+                        <div class="chat-overlay-footer">
+                            <div class="chat-overlay-status-info">
+                                <span class="chat-overlay-status-label">Status:</span>
+                                <span class="chat-overlay-status-badge" id="chatOverlayStatusBadge">Active</span>
+                            </div>
+                            <div class="chat-overlay-actions">
+                                <button class="chat-overlay-action-btn" id="chatOverlayFlagBtn">Flag</button>
+                                <button class="chat-overlay-action-btn" id="chatOverlayArchiveBtn">Archive</button>
+                                <button class="chat-overlay-action-btn close-btn" id="chatOverlayCloseBtn">CLOSE</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Financial Management Section -->
