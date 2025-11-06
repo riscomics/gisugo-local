@@ -4023,26 +4023,6 @@ body:has(.selection-controls[style*="display: flex"]) {
     background: #2c5282;
 }
 
-.compose-btn-small {
-    background: #10b981;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    white-space: nowrap;
-    transition: background 0.2s ease;
-}
-
-.compose-btn-small:hover {
-    background: #059669;
-}
-
 .type-dropdown {
     flex: 0 0 auto;
     width: auto;
