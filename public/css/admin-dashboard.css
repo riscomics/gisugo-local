@@ -3243,6 +3243,12 @@ body.admin-dashboard::-webkit-scrollbar {
     min-width: clamp(60px, 12vw, 100px); /* Width scales dramatically */
 }
 
+/* COMPOSE BUTTON - Match inbox tab scaling */
+.messages-left-panel .compose-btn {
+    padding: clamp(0.4rem, 1.5vw, 0.8rem) clamp(0.6rem, 3vw, 0.8rem);
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+}
+
 /* Search input already defined above - no duplicate needed */
 
 .topic-dropdown {
@@ -3306,6 +3312,13 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.4rem 0.6rem;
         font-size: 0.75rem;
         min-width: 70px;
+        height: 32px;
+        flex-shrink: 0;
+    }
+    
+    .compose-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.95rem;
         height: 32px;
         flex-shrink: 0;
     }
@@ -3781,6 +3794,11 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.5rem 0.75rem;
         font-size: 0.8rem;
     }
+    
+    .compose-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 1rem;
+    }
 }
 
 /* ===== COMPACT MOBILE: 450px and below ===== */
@@ -3822,6 +3840,12 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.35rem 0.5rem;
         font-size: 0.7rem;
         min-width: 60px;
+        height: 30px;
+    }
+    
+    .compose-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9rem;
         height: 30px;
     }
     
@@ -4174,6 +4198,11 @@ body.admin-dashboard::-webkit-scrollbar {
         min-width: 50px;
     }
     
+    .compose-btn {
+        padding: 0.3rem 0.5rem;
+        font-size: 0.9rem;
+    }
+    
     .search-input-small {
         font-size: 0.7rem;
         padding: 0.3rem 0.4rem;
@@ -4272,6 +4301,12 @@ body.admin-dashboard::-webkit-scrollbar {
         height: 28px;
     }
     
+    .compose-btn {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.85rem;
+        height: 28px;
+    }
+    
     .search-input-small {
         font-size: 0.65rem;
         padding: 0.3rem 0.4rem;
@@ -4326,6 +4361,11 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.25rem 0.4rem;
         font-size: 0.65rem;
         min-width: 45px;
+    }
+    
+    .compose-btn {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.85rem;
     }
     
     .search-input-small {
@@ -4387,6 +4427,11 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.75rem;
         min-width: 60px;
     }
+    
+    .compose-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.95rem;
+    }
 }
 
 /* iPhone 7 and Similar (375px and below) */
@@ -4418,6 +4463,11 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.35rem 0.5rem;
         font-size: 0.7rem;
         min-width: 55px;
+    }
+    
+    .compose-btn {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9rem;
     }
     
     .search-input-small {
@@ -4600,6 +4650,11 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.3rem 0.4rem;
         font-size: 0.65rem;
         min-width: 50px;
+    }
+    
+    .compose-btn {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.85rem;
     }
     
     .search-input-small {
