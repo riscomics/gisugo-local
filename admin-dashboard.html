@@ -1587,9 +1587,9 @@
                                     <div class="analytics-label">🍎 iPhone</div>
                                     <div class="analytics-value" id="iphoneDeviceCount">398</div>
                                     <div class="analytics-percent">32%</div>
+                            </div>
                                 </div>
                             </div>
-                        </div>
 
                         <div class="analytics-section">
                             <div class="analytics-row">
@@ -1615,11 +1615,11 @@
                                 <div class="analytics-item">
                                     <div class="analytics-label">📝 Total Gigs</div>
                                     <div class="analytics-value" id="totalGigsPosted">1,847</div>
-                                </div>
+                            </div>
                                 <div class="analytics-item">
                                     <div class="analytics-label">👥 Applications</div>
                                     <div class="analytics-value" id="totalApplicants">5,624</div>
-                                </div>
+                            </div>
                             </div>
                             <div class="ratio-display">
                                 <span class="ratio-label">Average per Gig:</span>
@@ -3086,6 +3086,20 @@
                 <span class="toast-icon">✅</span>
                 <span class="toast-message" id="toastMessage">Message moved to Old inbox</span>
             </div>
+
+    <!-- Viewport Debug Tool -->
+    <div id="vp-debug"></div>
+    <script>
+        // Viewport debug tool - shows current viewport width
+        (function() {
+            const vpDebug = document.getElementById('vp-debug');
+            function updateViewport() {
+                vpDebug.textContent = 'Viewport: ' + window.innerWidth + 'px';
+            }
+            updateViewport();
+            window.addEventListener('resize', updateViewport);
+        })();
+    </script>
 
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
