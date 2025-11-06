@@ -414,6 +414,29 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ===== ADMIN MESSAGES SYSTEM =====
+
+// Storage for sent public messages
+const sentPublicMessages = {
+    'pub_001': {
+        category: 'system-updates',
+        subject: 'Scheduled System Maintenance - December 15, 2025',
+        message: 'Dear GISUGO users, we will be performing scheduled system maintenance on December 15, 2025, from 2:00 AM to 6:00 AM PHT. During this time, the platform will be temporarily unavailable. We apologize for any inconvenience this may cause and appreciate your understanding as we work to improve our services.',
+        recipients: 'All Users'
+    },
+    'pub_002': {
+        category: 'platform-updates',
+        subject: 'Exciting New Features: AI Job Matching & In-App Chat',
+        message: 'We\'re excited to announce new features that will improve your GISUGO experience! Starting today, you\'ll have access to AI-powered job matching that suggests relevant opportunities based on your skills and preferences. Additionally, our new in-app chat system allows for seamless communication between job posters and workers. Update your app to access these features!',
+        recipients: 'All Users'
+    },
+    'pub_003': {
+        category: 'promotions',
+        subject: 'Holiday Special: Get 20% Bonus G-Coins!',
+        message: 'Celebrate the holidays with GISUGO! For a limited time, receive 20% bonus G-Coins on all top-ups of ₱500 or more. Offer valid until December 31, 2025. Simply top up your account through any of our payment channels to receive your bonus instantly. Terms and conditions apply. Happy holidays from the GISUGO team!',
+        recipients: 'All Users'
+    }
+};
+
 function initializeAdminMessages() {
     console.log('💬 Initializing Admin Messages System');
     
@@ -530,14 +553,17 @@ function loadPublicMessageDetails(messageElement) {
     const messageId = messageElement.getAttribute('data-message-id');
     const topic = messageElement.getAttribute('data-topic');
     
-    // Extract public message data
+    // Check if we have stored data for this message
+    const storedMessage = sentPublicMessages[messageId];
+    
+    // Extract public message data (use stored data if available)
     const sentMessage = {
         id: messageId,
-        category: getCategoryFromTopic(messageElement),
-        subject: messageElement.querySelector('.message-subject').textContent,
-        message: getFullPublicMessageContent(messageId),
+        category: storedMessage ? storedMessage.category : getCategoryFromTopic(messageElement),
+        subject: storedMessage ? storedMessage.subject : messageElement.querySelector('.message-subject').textContent,
+        message: storedMessage ? storedMessage.message : getFullPublicMessageContent(messageId),
         timeAgo: messageElement.querySelector('.message-time').textContent,
-        recipients: messageElement.querySelector('.sender-email').textContent,
+        recipients: storedMessage ? storedMessage.recipients : messageElement.querySelector('.sender-email').textContent,
         status: 'sent'
     };
     
@@ -572,15 +598,14 @@ function getCategoryFromTopic(messageElement) {
 }
 
 function getFullPublicMessageContent(messageId) {
-    // In a real app, this would fetch from backend
-    // For now, return sample content based on message ID
-    const contents = {
-        'pub_001': 'Dear GISUGO users, we will be performing scheduled system maintenance on December 15, 2025, from 2:00 AM to 6:00 AM PHT. During this time, the platform will be temporarily unavailable. We apologize for any inconvenience this may cause and appreciate your understanding as we work to improve our services.',
-        'pub_002': 'We\'re excited to announce new features that will improve your GISUGO experience! Starting today, you\'ll have access to AI-powered job matching that suggests relevant opportunities based on your skills and preferences. Additionally, our new in-app chat system allows for seamless communication between job posters and workers. Update your app to access these features!',
-        'pub_003': 'Celebrate the holidays with GISUGO! For a limited time, receive 20% bonus G-Coins on all top-ups of ₱500 or more. Offer valid until December 31, 2025. Simply top up your account through any of our payment channels to receive your bonus instantly. Terms and conditions apply. Happy holidays from the GISUGO team!'
-    };
+    // Check if message exists in storage
+    if (sentPublicMessages[messageId]) {
+        return sentPublicMessages[messageId].message;
+    }
     
-    return contents[messageId] || messageElement.querySelector('.message-excerpt').textContent;
+    // Fallback for messages not in storage
+    console.warn('Message content not found for:', messageId);
+    return 'Message content not available.';
 }
 
 function populateMessageDetail(data) {
@@ -2265,6 +2290,14 @@ function sendPublicMessage(category, subject, message) {
         status: 'sent'
     };
     
+    // Store the full message data for retrieval
+    sentPublicMessages[messageId] = {
+        category: category,
+        subject: subject,
+        message: message,
+        recipients: 'All Users'
+    };
+    
     // Add to sent messages list
     addSentMessageToList(sentMessage);
     
@@ -2510,6 +2543,7 @@ function confirmUnsendMessage() {
     if (messageElement) {
         messageElement.remove();
         delete messageStates[messageIdToUnsend];
+        delete sentPublicMessages[messageIdToUnsend]; // Remove from storage
         showToast('Public message unsent successfully', 'success');
         
         // Clear message content for desktop
