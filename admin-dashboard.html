@@ -3090,6 +3090,21 @@
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
     
+    <!-- Viewport Debug Tool -->
+    <div id="vp-debug"></div>
+    <script>
+        (function() {
+            const vpDebug = document.getElementById('vp-debug');
+            
+            function updateViewport() {
+                vpDebug.textContent = 'Viewport: ' + window.innerWidth + 'px';
+            }
+            
+            updateViewport();
+            window.addEventListener('resize', updateViewport);
+        })();
+    </script>
+    
 </body>
 </html>
 
