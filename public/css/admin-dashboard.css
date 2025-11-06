@@ -1363,11 +1363,14 @@ body.admin-dashboard::-webkit-scrollbar {
     .messages-left-panel .inbox-tabs {
         justify-content: flex-start;
         width: 100%;
+        gap: 0.25rem;
     }
     
     .messages-left-panel .inbox-tab-btn {
         flex: 1;
         min-width: 0;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
     }
     
     .messages-left-panel .compose-btn {
@@ -3308,13 +3311,13 @@ body.admin-dashboard::-webkit-scrollbar {
         display: flex !important;
         flex-direction: row !important;
         justify-content: flex-start;
-        gap: 0.5rem;
+        gap: 0.25rem;
         width: 100% !important;
         margin-bottom: 0; /* Ensure no unwanted spacing */
     }
     
     .inbox-tab-btn {
-        padding: 0.4rem 0.6rem;
+        padding: 0.4rem 0.3rem;
         font-size: 0.75rem;
         min-width: 0;
         height: 32px;
@@ -3834,12 +3837,12 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .inbox-tabs {
-        gap: 0.4rem;
+        gap: 0.2rem;
         justify-content: flex-start;
     }
     
     .inbox-tab-btn {
-        padding: 0.35rem 0.5rem;
+        padding: 0.35rem 0.3rem;
         font-size: 0.7rem;
         min-width: 0;
         height: 30px;
@@ -4291,12 +4294,12 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .inbox-tabs {
-        gap: 0.3rem;
+        gap: 0.15rem;
         justify-content: flex-start;
     }
     
     .inbox-tab-btn {
-        padding: 0.3rem 0.4rem;
+        padding: 0.3rem 0.25rem;
         font-size: 0.65rem;
         min-width: 0;
         height: 28px;
