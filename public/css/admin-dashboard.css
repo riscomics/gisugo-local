@@ -3335,6 +3335,12 @@ body.admin-dashboard::-webkit-scrollbar {
         flex-shrink: 0;
     }
     
+    .compose-btn {
+        padding: 0.4rem 0.5rem;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
     .panel-header {
         padding: 0.6rem;
     }
@@ -3839,6 +3845,12 @@ body.admin-dashboard::-webkit-scrollbar {
         min-width: 45px;
     }
     
+    .compose-btn {
+        padding: 0.35rem 0.45rem;
+        height: 30px;
+        font-size: 0.95rem;
+    }
+    
     .panel-header {
         padding: 0.5rem;
     }
@@ -4284,6 +4296,12 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.65rem;
         height: 28px;
         min-width: 40px;
+    }
+    
+    .compose-btn {
+        padding: 0.3rem 0.4rem;
+        height: 28px;
+        font-size: 0.9rem;
     }
     
     .panel-header {
