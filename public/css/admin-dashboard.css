@@ -1361,7 +1361,8 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .messages-left-panel .inbox-tabs {
-        justify-content: center;
+        justify-content: space-between;
+        width: 100%;
     }
     
     .messages-left-panel .inbox-search {
@@ -3167,7 +3168,8 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .messages-left-panel .inbox-tabs {
-        justify-content: center;
+        justify-content: space-between;
+        width: 100%;
     }
     
     .messages-left-panel .inbox-search {
@@ -3292,11 +3294,11 @@ body.admin-dashboard::-webkit-scrollbar {
         align-items: stretch;
     }
     
-    /* First row: New/Old buttons */
+    /* First row: New/Old buttons - span same width as search bar */
     .messages-left-panel .inbox-tabs {
         display: flex !important;
         flex-direction: row !important;
-        justify-content: flex-start;
+        justify-content: space-between;
         gap: 0.5rem;
         width: 100% !important;
         margin-bottom: 0; /* Ensure no unwanted spacing */
@@ -3822,6 +3824,7 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .inbox-tabs {
         gap: 0.4rem;
+        justify-content: space-between;
     }
     
     .inbox-tab-btn {
@@ -4275,6 +4278,7 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .inbox-tabs {
         gap: 0.3rem;
+        justify-content: space-between;
     }
     
     .inbox-tab-btn {
