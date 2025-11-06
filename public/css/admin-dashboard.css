@@ -1361,8 +1361,17 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     .messages-left-panel .inbox-tabs {
-        justify-content: space-between;
+        justify-content: flex-start;
         width: 100%;
+    }
+    
+    .messages-left-panel .inbox-tab-btn {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .messages-left-panel .compose-btn {
+        flex: 0 0 auto;
     }
     
     .messages-left-panel .inbox-search {
@@ -3298,7 +3307,7 @@ body.admin-dashboard::-webkit-scrollbar {
     .messages-left-panel .inbox-tabs {
         display: flex !important;
         flex-direction: row !important;
-        justify-content: space-between;
+        justify-content: flex-start;
         gap: 0.5rem;
         width: 100% !important;
         margin-bottom: 0; /* Ensure no unwanted spacing */
@@ -3307,9 +3316,9 @@ body.admin-dashboard::-webkit-scrollbar {
     .inbox-tab-btn {
         padding: 0.4rem 0.6rem;
         font-size: 0.75rem;
-        min-width: 70px;
+        min-width: 0;
         height: 32px;
-        flex-shrink: 0;
+        flex: 1;
     }
     
     /* Second row: Search bar */
@@ -3341,6 +3350,8 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.4rem 0.5rem;
         height: 32px;
         font-size: 1rem;
+        flex: 0 0 auto;
+        width: 44px;
     }
     
     .panel-header {
@@ -3824,14 +3835,15 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .inbox-tabs {
         gap: 0.4rem;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
     
     .inbox-tab-btn {
         padding: 0.35rem 0.5rem;
         font-size: 0.7rem;
-        min-width: 60px;
+        min-width: 0;
         height: 30px;
+        flex: 1;
     }
     
     .search-input-small {
@@ -3852,6 +3864,8 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.35rem 0.45rem;
         height: 30px;
         font-size: 0.95rem;
+        flex: 0 0 auto;
+        width: 40px;
     }
     
     .panel-header {
@@ -4278,14 +4292,15 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .inbox-tabs {
         gap: 0.3rem;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
     
     .inbox-tab-btn {
         padding: 0.3rem 0.4rem;
         font-size: 0.65rem;
-        min-width: 55px;
+        min-width: 0;
         height: 28px;
+        flex: 1;
     }
     
     .search-input-small {
@@ -4306,6 +4321,8 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.3rem 0.4rem;
         height: 28px;
         font-size: 0.9rem;
+        flex: 0 0 auto;
+        width: 38px;
     }
     
     .panel-header {
