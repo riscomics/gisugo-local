@@ -200,6 +200,7 @@ function initializeResponsive() {
     // Handle window resize
     window.addEventListener('resize', function() {
         handleResponsiveLayout();
+        repositionTopicBadge(); // Reposition topic badge on resize
     });
     
     // Initial check
@@ -416,6 +417,9 @@ document.addEventListener('keydown', function(e) {
 function initializeAdminMessages() {
     console.log('💬 Initializing Admin Messages System');
     
+    // Store original message content HTML for restoration
+    storeOriginalMessageHTML();
+    
     // Initialize customer message handlers
     initializeCustomerMessages();
     
@@ -463,51 +467,60 @@ function loadMessageDetails(messageElement) {
     
     console.log(`🖱️ Loading message ${messageId} at ${window.innerWidth}px`);
     
-    // Check if it's a public message (sent message)
-    if (messageId.startsWith('pub_')) {
-        console.log('📢 Loading public message');
-        loadPublicMessageDetails(messageElement);
-        return;
+    try {
+        // Check if it's a public message (sent message)
+        if (messageId.startsWith('pub_')) {
+            console.log('📢 Loading public message');
+            loadPublicMessageDetails(messageElement);
+            return;
+        }
+        
+        // Check screen size and use appropriate method
+        if (window.innerWidth <= 887) {
+            // Use overlay for mobile/tablet (887px and below)
+            console.log('📱 Using overlay mode');
+            showMessageOverlay(messageId);
+            return;
+        }
+        
+        // Continue with desktop panel mode (888px and above)
+        console.log('🖥️ Using panel mode');
+        const topic = messageElement.getAttribute('data-topic');
+        
+        // Extract message data
+        const messageData = {
+            id: messageId,
+            topic: topic,
+            sender: {
+                name: messageElement.querySelector('.sender-name').textContent,
+                email: messageElement.querySelector('.sender-email').textContent,
+                avatar: messageElement.querySelector('.sender-avatar').src
+            },
+            subject: messageElement.querySelector('.message-subject').textContent,
+            content: getFullMessageContent(messageId), // This would come from backend
+            time: messageElement.querySelector('.message-time').textContent,
+            hasAttachment: messageElement.querySelector('.message-attachment') !== null
+        };
+        
+        // Populate message detail panel
+        populateMessageDetail(messageData);
+        
+        // Show message content panel
+        const messageDetail = document.getElementById('messageDetail');
+        const messageContent = document.getElementById('messageContent');
+        
+        if (messageDetail) messageDetail.style.display = 'none';
+        if (messageContent) messageContent.style.display = 'block';
+        
+        // Mark as read
+        messageElement.classList.remove('unread');
+        
+        console.log('📧 Message loaded:', messageId);
+    } catch (error) {
+        console.error('❌ Error loading message:', error);
+        console.error('Message element:', messageElement);
+        console.error('Message ID:', messageId);
     }
-    
-    // Check screen size and use appropriate method
-    if (window.innerWidth <= 887) {
-        // Use overlay for mobile/tablet (887px and below)
-        console.log('📱 Using overlay mode');
-        showMessageOverlay(messageId);
-        return;
-    }
-    
-    // Continue with desktop panel mode (888px and above)
-    console.log('🖥️ Using panel mode');
-    const topic = messageElement.getAttribute('data-topic');
-    
-    // Extract message data
-    const messageData = {
-        id: messageId,
-        topic: topic,
-        sender: {
-            name: messageElement.querySelector('.sender-name').textContent,
-            email: messageElement.querySelector('.sender-email').textContent,
-            avatar: messageElement.querySelector('.sender-avatar').src
-        },
-        subject: messageElement.querySelector('.message-subject').textContent,
-        content: getFullMessageContent(messageId), // This would come from backend
-        time: messageElement.querySelector('.message-time').textContent,
-        hasAttachment: messageElement.querySelector('.message-attachment') !== null
-    };
-    
-    // Populate message detail panel
-    populateMessageDetail(messageData);
-    
-    // Show message content panel
-    document.getElementById('messageDetail').style.display = 'none';
-    document.getElementById('messageContent').style.display = 'block';
-    
-    // Mark as read
-    messageElement.classList.remove('unread');
-    
-    console.log('📧 Message loaded:', messageId);
 }
 
 function loadPublicMessageDetails(messageElement) {
@@ -525,8 +538,16 @@ function loadPublicMessageDetails(messageElement) {
         status: 'sent'
     };
     
-    // Show public message detail
-    showPublicMessageDetail(sentMessage);
+    // Check screen size and use appropriate method
+    if (window.innerWidth <= 887) {
+        // Use overlay for mobile/tablet (887px and below)
+        console.log('📱 Using overlay mode for public message');
+        showPublicMessageOverlay(sentMessage);
+    } else {
+        // Use desktop panel for larger screens (888px and above)
+        console.log('🖥️ Using panel mode for public message');
+        showPublicMessageDetail(sentMessage);
+    }
     
     console.log('📢 Public message loaded:', messageId);
 }
@@ -560,6 +581,9 @@ function getFullPublicMessageContent(messageId) {
 }
 
 function populateMessageDetail(data) {
+    // Restore original HTML structure if it was replaced by SENT message
+    restoreOriginalMessageHTML();
+    
     // Update avatar and sender info
     document.getElementById('detailAvatar').src = data.sender.avatar;
     document.getElementById('detailSenderName').textContent = data.sender.name;
@@ -591,6 +615,30 @@ function populateMessageDetail(data) {
         // Would populate attachment details from backend
     } else {
         attachmentElement.style.display = 'none';
+    }
+    
+    // Position topic badge based on viewport
+    repositionTopicBadge();
+}
+
+function repositionTopicBadge() {
+    const topicElement = document.getElementById('detailTopic');
+    const subjectElement = document.getElementById('detailSubject');
+    const topicSection = document.querySelector('.detail-topic-section');
+    
+    if (!topicElement || !subjectElement || !topicSection) return;
+    
+    // Check viewport width (desktop detail panel only, not overlay)
+    if (window.innerWidth >= 888 && window.innerWidth <= 1050) {
+        // Move topic below subject
+        if (topicElement.parentElement !== subjectElement.parentElement) {
+            subjectElement.parentElement.insertBefore(topicElement, subjectElement.nextSibling);
+        }
+    } else {
+        // Move topic back to header
+        if (topicElement.parentElement !== topicSection) {
+            topicSection.insertBefore(topicElement, topicSection.firstChild);
+        }
     }
 }
 
@@ -1616,6 +1664,12 @@ function initializeReplyModal() {
     // Open reply modal
     if (openReplyBtn) {
         openReplyBtn.addEventListener('click', function() {
+            // Reset context for regular customer inquiry reply
+            currentReplyContext = null;
+            const replyModalTitle = document.querySelector('.reply-modal-title');
+            if (replyModalTitle) {
+                replyModalTitle.textContent = 'Reply to Customer Inquiry';
+            }
             replyOverlay.classList.add('show');
             document.getElementById('floatingReplyTextarea').focus();
         });
@@ -1860,6 +1914,9 @@ function initializeInboxToggle() {
         closeBtn.addEventListener('click', closeCurrentMessage);
     }
     
+    // Update counts on initial load
+    updateInboxCount();
+    
     console.log('✅ Inbox Toggle System initialized');
 }
 
@@ -1886,6 +1943,21 @@ function switchInbox(type) {
     document.getElementById('newInboxBtn').classList.toggle('active', type === 'new');
     document.getElementById('oldInboxBtn').classList.toggle('active', type === 'old');
     document.getElementById('sentInboxBtn').classList.toggle('active', type === 'sent');
+    
+    // Clear any selected message
+    const selectedMessages = document.querySelectorAll('.customer-message-item.selected');
+    selectedMessages.forEach(msg => msg.classList.remove('selected'));
+    
+    // Restore original HTML structure if it was replaced by SENT message
+    restoreOriginalMessageHTML();
+    
+    // Reset message panels to default state
+    const messageDetail = document.getElementById('messageDetail');
+    const messageContent = document.getElementById('messageContent');
+    if (messageDetail) messageDetail.style.display = 'block';
+    if (messageContent) {
+        messageContent.style.display = 'none';
+    }
     
     // Filter messages based on type
     filterMessagesByInboxType(type);
@@ -1950,10 +2022,13 @@ function closeMessageDirectly(messageId) {
         };
     }
     
-    const wasAlreadyOld = messageStates[messageId].status === 'old';
+    const previousStatus = messageStates[messageId].status;
     
-    // Move to old inbox (or keep it there if already old)
-    messageStates[messageId].status = 'old';
+    // Only move NEW messages to OLD - keep SENT and OLD as they are
+    if (previousStatus === 'new') {
+        messageStates[messageId].status = 'old';
+    }
+    // If status is 'old' or 'sent', it stays the same
     
     // Hide message detail panels (for desktop view)
     const messageDetail = document.getElementById('messageDetail');
@@ -1965,13 +2040,13 @@ function closeMessageDirectly(messageId) {
     filterMessagesByInboxType(currentInboxType);
     updateInboxCount();
     
-    // Show appropriate toast based on action
-    if (wasAlreadyOld) {
-        console.log('📧 Message closed (was already in old inbox):', messageId);
-        showToast('Message closed', 'info', 1000);
-    } else {
+    // Only show toast when moving NEW messages to OLD
+    if (previousStatus === 'new') {
         console.log('📧 Message moved to old inbox:', messageId);
         showToast('Message moved to Old inbox');
+    } else {
+        console.log('📧 Message closed (status unchanged):', messageId);
+        // No toast for OLD or SENT messages
     }
 }
 
@@ -2019,11 +2094,21 @@ function markMessageAsNewFromUser(messageId) {
 
 function updateInboxCount() {
     const newCount = Object.values(messageStates).filter(state => state.status === 'new').length;
+    const oldCount = Object.values(messageStates).filter(state => state.status === 'old').length;
+    const sentCount = Object.values(messageStates).filter(state => state.status === 'sent').length;
     
-    const newCountElement = document.getElementById('newCount');
+    const newCountElement = document.getElementById('newCountLabel');
+    const oldCountElement = document.getElementById('oldCountLabel');
+    const sentCountElement = document.getElementById('sentCountLabel');
     
     if (newCountElement) {
         newCountElement.textContent = formatCount(newCount);
+    }
+    if (oldCountElement) {
+        oldCountElement.textContent = formatCount(oldCount);
+    }
+    if (sentCountElement) {
+        sentCountElement.textContent = formatCount(sentCount);
     }
 }
 
@@ -2033,11 +2118,13 @@ function formatCount(count) {
         const remainder = count % 1000;
         
         if (remainder === 0) {
-            return `${thousands}K`;
+            return `${thousands}K+`;
         } else {
             // Show one decimal place if needed (e.g., 1.2K)
-            return `${(count / 1000).toFixed(1)}K`;
+            return `${(count / 1000).toFixed(1)}K+`;
         }
+    } else if (count >= 100) {
+        return '100+';
     }
     
     return count.toString();
@@ -2185,6 +2272,9 @@ function sendPublicMessage(category, subject, message) {
         isReplied: false
     };
     
+    // Update inbox counts
+    updateInboxCount();
+    
     // Show success message
     showToast(`Public message sent to all users: "${subject}"`, 'success', 3000);
     
@@ -2253,12 +2343,34 @@ function getCategoryInfo(category) {
 function showPublicMessageDetail(sentMessage) {
     const categoryInfo = getCategoryInfo(sentMessage.category);
     const messageContent = document.getElementById('messageContent');
+    const messageDetail = document.getElementById('messageDetail');
+    
+    // Store original HTML before replacing it
+    storeOriginalMessageHTML();
+    
+    // Clear previous selection
+    const previouslySelected = document.querySelector('.customer-message-item.selected');
+    if (previouslySelected) {
+        previouslySelected.classList.remove('selected');
+    }
+    
+    // Mark the current message as selected
+    const currentMessage = document.querySelector(`[data-message-id="${sentMessage.id}"]`);
+    if (currentMessage) {
+        currentMessage.classList.add('selected');
+    }
     
     if (messageContent) {
         messageContent.innerHTML = `
-            <div class="message-detail-header">
-                <div class="message-detail-topic ${sentMessage.category}">${categoryInfo.emoji} ${categoryInfo.label}</div>
-                <div class="message-detail-meta">
+            <div class="message-detail-header sent-message-header">
+                <div class="sent-header-row-1">
+                    <div class="message-detail-topic ${sentMessage.category}">${categoryInfo.emoji} ${categoryInfo.label}</div>
+                    <div class="detail-actions">
+                        <button class="message-action-btn reply-btn" id="replySentMessageBtn">Reply</button>
+                        <button class="message-action-btn close-btn" id="closeSentMessageBtn">Close</button>
+                    </div>
+                </div>
+                <div class="sent-header-row-2">
                     <span class="message-detail-time">${sentMessage.timeAgo}</span>
                 </div>
             </div>
@@ -2285,8 +2397,96 @@ function showPublicMessageDetail(sentMessage) {
         `;
         
         messageContent.style.display = 'block';
-        document.getElementById('messageDetail').style.display = 'none';
+        if (messageDetail) {
+            messageDetail.style.display = 'none';
+        }
+        
+        // Attach reply button handler
+        const replyBtn = document.getElementById('replySentMessageBtn');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', function() {
+                openPublicMessageReplyForm(sentMessage);
+            });
+        }
+        
+        // Attach close button handler
+        const closeSentBtn = document.getElementById('closeSentMessageBtn');
+        if (closeSentBtn) {
+            closeSentBtn.addEventListener('click', function() {
+                // Clear selection
+                const selectedMessage = document.querySelector('.customer-message-item.selected');
+                if (selectedMessage) {
+                    selectedMessage.classList.remove('selected');
+                }
+                
+                // Restore original HTML structure
+                restoreOriginalMessageHTML();
+                
+                // Hide message content and show message detail placeholder
+                messageContent.style.display = 'none';
+                if (messageDetail) {
+                    messageDetail.style.display = 'block';
+                }
+                
+                console.log('📧 Sent message closed');
+            });
+        }
     }
+}
+
+function showPublicMessageOverlay(sentMessage) {
+    const overlay = document.getElementById('messageDetailOverlay');
+    const overlayBody = overlay.querySelector('.overlay-body');
+    
+    if (!overlay || !overlayBody) {
+        console.error('❌ Overlay elements not found');
+        return;
+    }
+    
+    // Store message ID for tracking
+    overlay.dataset.messageId = sentMessage.id;
+    
+    // Generate public message overlay content
+    const categoryInfo = getCategoryInfo(sentMessage.category);
+    
+    overlayBody.innerHTML = `
+        <div class="message-detail-header">
+            <div class="overlay-header-layout">
+                <div class="sender-avatar-large" style="background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; border-radius: 50%; font-size: 1.5rem;">
+                    📢
+                </div>
+                <div class="overlay-sender-details">
+                    <div class="overlay-name-row">
+                        <h3 class="detail-sender-name">Public Announcement</h3>
+                    </div>
+                    <div class="overlay-email-time-row">
+                        <p class="detail-sender-email">${sentMessage.recipients}</p>
+                        <span class="detail-timestamp">${sentMessage.timeAgo}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="message-detail-body">
+            <h2 class="detail-subject overlay-subject">${sentMessage.subject}</h2>
+            <div class="message-content-inner">
+                <p>${sentMessage.message}</p>
+            </div>
+            <div class="message-actions">
+                <button class="message-action-btn unsend-btn" onclick="unsendPublicMessage('${sentMessage.id}')">
+                    🗑️ Unsend Message
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Show overlay
+    overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    document.body.style.overflow = 'hidden';
+    
+    console.log('✅ Public message overlay displayed');
 }
 
 window.unsendPublicMessage = function(messageId) {
@@ -2297,10 +2497,16 @@ window.unsendPublicMessage = function(messageId) {
             delete messageStates[messageId];
             showToast('Public message unsent successfully', 'success');
             
-            // Clear message content
+            // Clear message content for desktop
             const messageContent = document.getElementById('messageContent');
             if (messageContent) {
                 messageContent.style.display = 'none';
+            }
+            
+            // Close overlay if open
+            const overlay = document.getElementById('messageDetailOverlay');
+            if (overlay && overlay.style.display === 'flex') {
+                hideMessageOverlay();
                 messageContent.innerHTML = '';
             }
             
@@ -2310,6 +2516,81 @@ window.unsendPublicMessage = function(messageId) {
         }
     }
 };
+
+// Store reply context
+let currentReplyContext = null;
+
+// Store original message content HTML to restore after SENT messages
+let originalMessageContentHTML = null;
+
+function storeOriginalMessageHTML() {
+    if (!originalMessageContentHTML) {
+        const messageContent = document.getElementById('messageContent');
+        if (messageContent) {
+            originalMessageContentHTML = messageContent.innerHTML;
+        }
+    }
+}
+
+function restoreOriginalMessageHTML() {
+    if (originalMessageContentHTML) {
+        const messageContent = document.getElementById('messageContent');
+        if (messageContent) {
+            messageContent.innerHTML = originalMessageContentHTML;
+            
+            // Re-attach event listeners after restoring HTML
+            const openReplyBtn = document.getElementById('openReplyBtn');
+            const closeBtn = document.getElementById('closeMessageBtn');
+            
+            if (openReplyBtn) {
+                openReplyBtn.addEventListener('click', function() {
+                    // Reset context for regular customer inquiry reply
+                    currentReplyContext = null;
+                    const replyModalTitle = document.querySelector('.reply-modal-title');
+                    if (replyModalTitle) {
+                        replyModalTitle.textContent = 'Reply to Customer Inquiry';
+                    }
+                    const replyOverlay = document.getElementById('replyOverlay');
+                    if (replyOverlay) {
+                        replyOverlay.classList.add('show');
+                        document.getElementById('floatingReplyTextarea')?.focus();
+                    }
+                });
+            }
+            
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closeCurrentMessage);
+            }
+        }
+    }
+}
+
+function openPublicMessageReplyForm(sentMessage) {
+    const replyOverlay = document.getElementById('replyOverlay');
+    const replyModalTitle = document.querySelector('.reply-modal-title');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    
+    if (replyOverlay && replyModalTitle) {
+        // Set context for follow-up message
+        currentReplyContext = {
+            type: 'follow-up',
+            originalMessageId: sentMessage.id,
+            originalSubject: sentMessage.subject,
+            category: sentMessage.category
+        };
+        
+        // Update modal title
+        replyModalTitle.textContent = 'Post Follow Up Message';
+        
+        // Open reply modal
+        replyOverlay.classList.add('show');
+        if (replyTextarea) {
+            replyTextarea.focus();
+        }
+        
+        console.log('📤 Follow-up message composer opened for:', sentMessage.id);
+    }
+}
 
 // ===== INBOX SEARCH SYSTEM =====
 function initializeInboxSearch() {
@@ -2429,13 +2710,39 @@ function initializeMessageOverlay() {
             e.preventDefault();
             e.stopPropagation();
             console.log('🖱️ Overlay Reply button clicked');
-            const replyOverlay = document.getElementById('replyOverlay');
-            if (replyOverlay) {
-                replyOverlay.classList.add('show');
-                document.getElementById('floatingReplyTextarea')?.focus();
-                console.log('📤 Reply modal opened from overlay');
+            
+            // Check if this is a follow-up reply from overlay
+            const overlay = document.getElementById('messageDetailOverlay');
+            const currentMessageId = overlay?.dataset.messageId;
+            
+            // Check if it's a public message (sent message)
+            if (currentMessageId && currentMessageId.startsWith('pub_')) {
+                // Get the sent message data
+                const messageElement = document.querySelector(`[data-message-id="${currentMessageId}"]`);
+                if (messageElement) {
+                    const sentMessage = {
+                        id: currentMessageId,
+                        category: getCategoryFromTopic(messageElement),
+                        subject: messageElement.querySelector('.message-subject').textContent
+                    };
+                    openPublicMessageReplyForm(sentMessage);
+                }
             } else {
-                console.error('❌ Reply overlay not found');
+                // Regular customer inquiry reply
+                const replyOverlay = document.getElementById('replyOverlay');
+                const replyModalTitle = document.querySelector('.reply-modal-title');
+                if (replyOverlay) {
+                    // Reset context for regular reply
+                    currentReplyContext = null;
+                    if (replyModalTitle) {
+                        replyModalTitle.textContent = 'Reply to Customer Inquiry';
+                    }
+                    replyOverlay.classList.add('show');
+                    document.getElementById('floatingReplyTextarea')?.focus();
+                    console.log('📤 Reply modal opened from overlay');
+                } else {
+                    console.error('❌ Reply overlay not found');
+                }
             }
         }
         
@@ -2534,23 +2841,22 @@ function generateMessageDetailContent(messageId) {
     
     return `
         <div class="message-detail-header">
-            <div class="header-main">
-                <div class="sender-info">
-                    <img src="${senderAvatar}" alt="User Avatar" class="detail-avatar">
-                    <div class="sender-details">
+            <div class="overlay-header-layout">
+                <img src="${senderAvatar}" alt="User Avatar" class="overlay-avatar">
+                <div class="overlay-sender-details">
+                    <div class="overlay-name-row">
                         <h3 class="detail-sender-name">${senderName}</h3>
+                    </div>
+                    <div class="overlay-email-time-row">
                         <p class="detail-sender-email">${senderEmail}</p>
+                        <span class="detail-timestamp">${timestamp}</span>
                     </div>
                 </div>
-                <div class="message-timestamp-attachment">
-                    <span class="detail-timestamp">${timestamp}</span>
-                    ${hasAttachment ? '<span class="detail-attachment-icon" title="Has photo attachment">🖼️</span>' : ''}
-                </div>
             </div>
-            <h2 class="detail-subject">${subject}</h2>
         </div>
         
         <div class="message-detail-body">
+            <h2 class="detail-subject overlay-subject">${subject}</h2>
             <div class="message-content-inner">
                 <p>${fullContent}</p>
                 ${replyThreadHTML}

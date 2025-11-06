@@ -1404,6 +1404,8 @@ body.admin-dashboard::-webkit-scrollbar {
 .inbox-tabs {
     display: flex;
     gap: 0.75rem;
+    justify-content: space-between;
+    flex-wrap: nowrap;
 }
 
 .inbox-search {
@@ -1460,9 +1462,17 @@ body.admin-dashboard::-webkit-scrollbar {
     font-weight: 500;
     font-size: 0.85rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.35rem;
+    justify-content: center;
+    gap: 0.25rem;
     white-space: nowrap;
+    flex: 1;
+}
+
+.tab-label {
+    font-size: inherit;
+    line-height: 1;
 }
 
 .inbox-tab-btn.active {
@@ -1477,18 +1487,11 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .tab-count {
-    background: rgba(255, 255, 255, 0.2);
     color: inherit;
-    padding: 0.1rem 0.4rem;
-    border-radius: 10px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    min-width: 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
     text-align: center;
-}
-
-.inbox-tab-btn.active .tab-count {
-    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Compose Public Message Button */
@@ -1896,6 +1899,72 @@ body.admin-dashboard::-webkit-scrollbar {
     background: #363f4f; /* Match panel background */
     flex-shrink: 0; /* Don't shrink */
     margin-bottom: 0.5rem; /* Reduced spacing */
+}
+
+/* SENT MESSAGE HEADER - Two row layout */
+.sent-message-header {
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sent-header-row-1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.sent-header-row-2 {
+    display: flex;
+    align-items: center;
+}
+
+.sent-header-row-2 .message-detail-time {
+    color: #a0aec0;
+    font-size: 0.85rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* SENT MESSAGE HEADER - Button styles */
+.sent-message-header .detail-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.sent-message-header .message-action-btn.reply-btn {
+    background: #10b981;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.sent-message-header .message-action-btn.reply-btn:hover {
+    background: #0d9668;
+}
+
+.sent-message-header .message-action-btn.close-btn {
+    background: #718096;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.sent-message-header .message-action-btn.close-btn:hover {
+    background: #5a6578;
 }
 
 .detail-sender {
@@ -3120,8 +3189,64 @@ body.admin-dashboard::-webkit-scrollbar {
     padding: clamp(0.75rem, 2.5vw, 1.2rem); /* Scales from 0.75rem to 1.2rem */
 }
 
-/* INBOX HEADER LAYOUT ADJUSTMENTS - Stack when tight (only above 551px) */
-@media (min-width: 551px) {
+/* ===== MESSAGE DETAIL PANEL: 1050px to 887px - Restructure header ===== */
+@media (max-width: 1050px) and (min-width: 888px) {
+    .message-detail-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .detail-topic-section {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+    }
+    
+    .detail-actions {
+        margin-top: 0;
+    }
+    
+    /* When topic is moved to body below subject */
+    .message-detail-body .detail-topic {
+        display: inline-block;
+        margin: 0.75rem 0 1.5rem 0;
+    }
+    
+    /* SENT MESSAGE - Stack buttons vertically at smaller viewports */
+    .sent-message-header .sent-header-row-1 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .sent-message-header .detail-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+/* RESPONSIVE WIDTH: 887px to 801px - Make admin-main shrink properly */
+@media (max-width: 887px) and (min-width: 801px) {
+    .admin-main {
+        width: calc(100vw - 70px);
+        max-width: calc(100vw - 70px);
+        padding: 1rem;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+    
+    .content-section {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+}
+
+/* INBOX HEADER LAYOUT ADJUSTMENTS - Stack when tight (only above 801px) */
+@media (min-width: 801px) {
     .messages-left-panel .inbox-controls {
         flex-direction: row; /* Default row layout */
         gap: clamp(0.5rem, 2vw, 1rem); /* Shrinking gap */
@@ -3282,13 +3407,39 @@ body.admin-dashboard::-webkit-scrollbar {
     min-width: clamp(75px, 16vw, 80px); /* Scales from 75px to 80px */
 }
 
-/* ===== MEDIUM MOBILE: 550px and below ===== */
-@media (max-width: 550px) {
+/* ===== TABLET: 801px to 887px - Responsive tab sizing before stacking ===== */
+@media (max-width: 887px) and (min-width: 801px) {
+    .messages-left-panel .inbox-tabs {
+        gap: clamp(0.4rem, 1.5vw, 0.6rem);
+    }
+    
+    .inbox-tab-btn {
+        padding: clamp(0.5rem, 1.5vw, 0.6rem) clamp(0.7rem, 2vw, 1rem);
+        font-size: clamp(0.7rem, 2vw, 0.8rem);
+        flex: 1;
+    }
+    
+    .tab-label {
+        font-size: clamp(0.7rem, 2vw, 0.8rem);
+    }
+    
+    .tab-count {
+        font-size: clamp(0.75rem, 2.2vw, 0.8rem);
+    }
+    
+    .compose-btn {
+        padding: clamp(0.5rem, 1.5vw, 0.6rem) clamp(0.6rem, 1.8vw, 0.8rem);
+        font-size: clamp(1rem, 3vw, 1.2rem);
+    }
+}
+
+/* ===== MEDIUM MOBILE: 800px and below - Stack inbox controls ===== */
+@media (max-width: 800px) {
     /* Stack inbox controls vertically - use high specificity */
     .messages-left-panel .inbox-controls {
         flex-direction: column !important;
-        gap: 0.6rem;
-        padding: 0 0.5rem;
+        gap: clamp(0.35rem, 2vw, 0.6rem);
+        padding: 0 clamp(0.3rem, 1.5vw, 0.5rem);
         width: 100%;
         box-sizing: border-box;
         align-items: stretch;
@@ -3299,56 +3450,67 @@ body.admin-dashboard::-webkit-scrollbar {
         display: flex !important;
         flex-direction: row !important;
         justify-content: space-between;
-        gap: 0.5rem;
+        gap: clamp(0.25rem, 1.5vw, 0.5rem);
         width: 100% !important;
         margin-bottom: 0; /* Ensure no unwanted spacing */
     }
     
     .inbox-tab-btn {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.75rem;
-        min-width: 70px;
-        height: 32px;
-        flex-shrink: 0;
+        padding: clamp(0.4rem, 2vw, 0.6rem) clamp(0.6rem, 3vw, 1rem);
+        font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+        height: auto;
+        flex: 1;
+        gap: clamp(0.15rem, 0.8vw, 0.25rem);
+    }
+    
+    .tab-label {
+        font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+    }
+    
+    .tab-count {
+        font-size: clamp(0.7rem, 2.8vw, 0.8rem);
+        font-weight: 700;
     }
     
     /* Second row: Search bar */
     .messages-left-panel .inbox-search {
         display: flex !important;
-        gap: 0.5rem;
+        gap: clamp(0.3rem, 1.5vw, 0.5rem);
         width: 100% !important;
         align-items: center;
         flex-shrink: 0;
     }
     
     .search-input-small {
-        font-size: 0.75rem;
-        padding: 0.6rem 0.8rem;
+        font-size: clamp(0.65rem, 2.5vw, 0.75rem);
+        padding: clamp(0.4rem, 2vw, 0.6rem) clamp(0.5rem, 2.5vw, 0.8rem);
         height: auto;
         flex: 1; /* Take available space */
-        min-width: 100px;
+        min-width: clamp(80px, 25vw, 100px);
     }
     
     .search-btn-small {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.75rem;
-        height: 32px;
-        min-width: 50px;
-        flex-shrink: 0;
+        padding: clamp(0.25rem, 1.5vw, 0.4rem) clamp(0.4rem, 2vw, 0.6rem);
+        font-size: clamp(0.65rem, 2.5vw, 0.75rem);
+        height: clamp(26px, 8.5vw, 32px);
+        min-width: clamp(45px, 13vw, 50px);
+        flex-shrink: 1;
     }
     
     .compose-btn {
-        padding: 0.4rem 0.5rem;
-        height: 32px;
-        font-size: 1rem;
+        padding: clamp(0.4rem, 2vw, 0.6rem) clamp(0.6rem, 2.5vw, 0.8rem);
+        height: auto;
+        font-size: clamp(0.9rem, 3.5vw, 1.2rem);
+        flex-shrink: 0;
+        min-width: clamp(45px, 12vw, 55px);
     }
     
     .panel-header {
-        padding: 0.6rem;
+        padding: clamp(0.4rem, 2vw, 0.6rem);
     }
     
     .panel-title {
-        font-size: 0.9rem;
+        font-size: clamp(0.8rem, 2.8vw, 0.9rem);
     }
 }
 
@@ -3776,19 +3938,7 @@ body.admin-dashboard::-webkit-scrollbar {
         height: 32px;
     }
     
-    .panel-title {
-        font-size: 1rem;
-    }
-    
-    /* Compact controls */
-    .search-input-small {
-        width: 120px;
-    }
-    
-    .inbox-tab-btn {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.8rem;
-    }
+    /* Removed fixed inbox control sizes - using responsive clamp() from 600px breakpoint */
 }
 
 /* ===== COMPACT MOBILE: 450px and below ===== */
@@ -3816,51 +3966,7 @@ body.admin-dashboard::-webkit-scrollbar {
         margin-top: 0.5rem;
     }
     
-    /* Keep column layout but make elements smaller */
-    .messages-left-panel .inbox-controls {
-        gap: 0.5rem !important;
-        padding: 0 0.4rem;
-    }
-    
-    .inbox-tabs {
-        gap: 0.4rem;
-        justify-content: space-between;
-    }
-    
-    .inbox-tab-btn {
-        padding: 0.35rem 0.5rem;
-        font-size: 0.7rem;
-        min-width: 60px;
-        height: 30px;
-    }
-    
-    .search-input-small {
-        font-size: 0.7rem;
-        padding: 0.4rem 0.5rem;
-        height: auto;
-        min-width: 80px;
-    }
-    
-    .search-btn-small {
-        padding: 0.35rem 0.5rem;
-        font-size: 0.7rem;
-        height: 30px;
-        min-width: 45px;
-    }
-    
-    .compose-btn {
-        padding: 0.35rem 0.45rem;
-        height: 30px;
-        font-size: 0.95rem;
-    }
-    
-    .panel-header {
-        padding: 0.5rem;
-    }
-    
-    .panel-title {
-        font-size: 0.85rem;
-    }
+    /* Removed fixed inbox control sizes - using responsive clamp() from 600px breakpoint */
 }
 
 /* ===== GRADUAL SIDEBAR SCALING: 800px to 320px ===== */
@@ -4178,26 +4284,7 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.6rem;
     }
     
-    /* Compact controls */
-    .inbox-controls {
-        padding: 0 0.25rem;
-    }
-    
-    .inbox-tab-btn {
-        padding: 0.3rem 0.5rem;
-        font-size: 0.7rem;
-        min-width: 50px;
-    }
-    
-    .search-input-small {
-        font-size: 0.7rem;
-        padding: 0.3rem 0.4rem;
-    }
-    
-    .search-btn-small {
-        padding: 0.3rem 0.5rem;
-        font-size: 0.7rem;
-    }
+    /* Removed fixed inbox control sizes - using responsive clamp() from 600px breakpoint */
     
     /* Section titles */
     .section-title {
@@ -4206,14 +4293,6 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .section-subtitle {
         font-size: 0.8rem;
-    }
-    
-    .panel-title {
-        font-size: 0.9rem;
-    }
-    
-    .panel-header {
-        padding: 0.5rem;
     }
 }
 
@@ -4271,50 +4350,7 @@ body.admin-dashboard::-webkit-scrollbar {
     }
     
     /* Ultra compact inbox controls - maintain column layout */
-    .messages-left-panel .inbox-controls {
-        gap: 0.4rem !important;
-        padding: 0 0.3rem;
-    }
-    
-    .inbox-tabs {
-        gap: 0.3rem;
-        justify-content: space-between;
-    }
-    
-    .inbox-tab-btn {
-        padding: 0.3rem 0.4rem;
-        font-size: 0.65rem;
-        min-width: 55px;
-        height: 28px;
-    }
-    
-    .search-input-small {
-        font-size: 0.65rem;
-        padding: 0.3rem 0.4rem;
-        height: auto;
-        min-width: 70px;
-    }
-    
-    .search-btn-small {
-        padding: 0.3rem 0.4rem;
-        font-size: 0.65rem;
-        height: 28px;
-        min-width: 40px;
-    }
-    
-    .compose-btn {
-        padding: 0.3rem 0.4rem;
-        height: 28px;
-        font-size: 0.9rem;
-    }
-    
-    .panel-header {
-        padding: 0.4rem;
-    }
-    
-    .panel-title {
-        font-size: 0.8rem;
-    }
+    /* Removed fixed inbox control sizes - using responsive clamp() from 600px breakpoint */
     
     /* Ultra compact everything */
     .customer-message-item {
@@ -4344,28 +4380,10 @@ body.admin-dashboard::-webkit-scrollbar {
         line-height: 1.1;
     }
     
-    .inbox-tab-btn {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.65rem;
-        min-width: 45px;
-    }
-    
-    .search-input-small {
-        font-size: 0.65rem;
-        padding: 0.25rem 0.3rem;
-    }
-    
-    .search-btn-small {
-        padding: 0.25rem 0.4rem;
-        font-size: 0.65rem;
-    }
+    /* Removed fixed inbox control sizes - using responsive clamp() from 600px breakpoint */
     
     .section-title {
         font-size: 1.2rem;
-    }
-    
-    .panel-title {
-        font-size: 0.85rem;
     }
     
     /* Mobile sidebar behavior - width handled by gradual scaling */
@@ -4398,17 +4416,7 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.9rem;
     }
     
-    /* Very compact controls */
-    .search-input-small {
-        width: 100px;
-        font-size: 0.75rem;
-    }
-    
-    .inbox-tab-btn {
-        padding: 0.4rem 0.6rem;
-        font-size: 0.75rem;
-        min-width: 60px;
-    }
+    /* Removed fixed inbox control sizes - using responsive clamp() from 600px breakpoint */
 }
 
 /* iPhone 7 and Similar (375px and below) */
@@ -4774,6 +4782,110 @@ body.admin-dashboard::-webkit-scrollbar {
     flex: 1;
     height: 44px;
     font-size: 0.9rem;
+}
+
+/* Message Overlay - Header Layout */
+.overlay-header-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.overlay-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.overlay-sender-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.overlay-name-row {
+    display: flex;
+    align-items: center;
+}
+
+.overlay-name-row .detail-sender-name {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.overlay-email-time-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.overlay-email-time-row .detail-sender-email {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.overlay-email-time-row .detail-timestamp {
+    font-size: 0.85rem;
+    color: #a0aec0;
+}
+
+.overlay-email-time-row .detail-attachment-icon {
+    font-size: 1.1rem;
+}
+
+/* Message Overlay - Subject in Body */
+.overlay-subject {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Responsive overlay header for smaller screens */
+@media (max-width: 500px) {
+    .overlay-avatar {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .overlay-name-row .detail-sender-name {
+        font-size: 1rem;
+    }
+    
+    .overlay-email-time-row .detail-sender-email {
+        font-size: 0.85rem;
+    }
+    
+    .overlay-email-time-row .detail-timestamp {
+        font-size: 0.75rem;
+    }
+    
+    .overlay-subject {
+        margin-left: 1rem;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .overlay-avatar {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .overlay-name-row .detail-sender-name {
+        font-size: 0.95rem;
+    }
+    
+    .overlay-email-time-row {
+        gap: 0.75rem;
+    }
+    
+    .overlay-subject {
+        margin-left: 0.75rem;
+        font-size: 1rem;
+    }
 }
 
 /* ===== GIG MODERATION SYSTEM ===== */
@@ -8859,7 +8971,7 @@ body.admin-dashboard::-webkit-scrollbar {
 /* ===== NARROWER NAV: 888px to 1088px ===== */
 @media (min-width: 888px) and (max-width: 1088px) {
     .user-management-layout {
-        grid-template-columns: minmax(420px, 1fr) 1.6fr;
+        grid-template-columns: minmax(300px, 1fr) 1.6fr;
     }
     
     .user-nav-panel .user-controls {
@@ -8982,6 +9094,11 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== MOBILE PHONES: 600px and below ===== */
 @media (max-width: 600px) {
+    /* Stack search bar below tabs */
+    .user-nav-panel .user-tabs-row-bottom {
+        grid-template-columns: 1fr;
+    }
+    
     .user-nav-panel .user-tab-btn {
         padding: 0.5rem 0.35rem;
         font-size: 0.7rem;
@@ -9036,10 +9153,6 @@ body.admin-dashboard::-webkit-scrollbar {
         padding: 0.1rem 0.3rem;
         min-width: 18px;
     }
-    
-    .user-nav-panel .user-tabs-row-bottom {
-        grid-template-columns: 1fr 1.2fr;
-    }
 }
 
 /* ===== EXTRA SMALL MOBILE: 400px and below ===== */
@@ -9060,10 +9173,6 @@ body.admin-dashboard::-webkit-scrollbar {
         font-size: 0.55rem;
         padding: 0.1rem 0.25rem;
         min-width: 16px;
-    }
-    
-    .user-nav-panel .user-tabs-row-bottom {
-        grid-template-columns: 1fr 1fr;
     }
 }
 
