@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize inbox toggle system
     initializeInboxToggle();
     
+    // Initialize public message compose overlay
+    initializePublicMessageOverlay();
+    
     // Initialize inbox search
     initializeInboxSearch();
     
@@ -460,6 +463,13 @@ function loadMessageDetails(messageElement) {
     
     console.log(`🖱️ Loading message ${messageId} at ${window.innerWidth}px`);
     
+    // Check if it's a public message (sent message)
+    if (messageId.startsWith('pub_')) {
+        console.log('📢 Loading public message');
+        loadPublicMessageDetails(messageElement);
+        return;
+    }
+    
     // Check screen size and use appropriate method
     if (window.innerWidth <= 887) {
         // Use overlay for mobile/tablet (887px and below)
@@ -498,6 +508,55 @@ function loadMessageDetails(messageElement) {
     messageElement.classList.remove('unread');
     
     console.log('📧 Message loaded:', messageId);
+}
+
+function loadPublicMessageDetails(messageElement) {
+    const messageId = messageElement.getAttribute('data-message-id');
+    const topic = messageElement.getAttribute('data-topic');
+    
+    // Extract public message data
+    const sentMessage = {
+        id: messageId,
+        category: getCategoryFromTopic(messageElement),
+        subject: messageElement.querySelector('.message-subject').textContent,
+        message: getFullPublicMessageContent(messageId),
+        timeAgo: messageElement.querySelector('.message-time').textContent,
+        recipients: messageElement.querySelector('.sender-email').textContent,
+        status: 'sent'
+    };
+    
+    // Show public message detail
+    showPublicMessageDetail(sentMessage);
+    
+    console.log('📢 Public message loaded:', messageId);
+}
+
+function getCategoryFromTopic(messageElement) {
+    const topicElement = messageElement.querySelector('.message-topic');
+    if (!topicElement) return 'important-notices';
+    
+    const classList = Array.from(topicElement.classList);
+    const categoryClasses = ['important-notices', 'platform-updates', 'system-updates', 'promotions'];
+    
+    for (const cls of categoryClasses) {
+        if (classList.includes(cls)) {
+            return cls;
+        }
+    }
+    
+    return 'important-notices';
+}
+
+function getFullPublicMessageContent(messageId) {
+    // In a real app, this would fetch from backend
+    // For now, return sample content based on message ID
+    const contents = {
+        'pub_001': 'Dear GISUGO users, we will be performing scheduled system maintenance on December 15, 2025, from 2:00 AM to 6:00 AM PHT. During this time, the platform will be temporarily unavailable. We apologize for any inconvenience this may cause and appreciate your understanding as we work to improve our services.',
+        'pub_002': 'We\'re excited to announce new features that will improve your GISUGO experience! Starting today, you\'ll have access to AI-powered job matching that suggests relevant opportunities based on your skills and preferences. Additionally, our new in-app chat system allows for seamless communication between job posters and workers. Update your app to access these features!',
+        'pub_003': 'Celebrate the holidays with GISUGO! For a limited time, receive 20% bonus G-Coins on all top-ups of ₱500 or more. Offer valid until December 31, 2025. Simply top up your account through any of our payment channels to receive your bonus instantly. Terms and conditions apply. Happy holidays from the GISUGO team!'
+    };
+    
+    return contents[messageId] || messageElement.querySelector('.message-excerpt').textContent;
 }
 
 function populateMessageDetail(data) {
@@ -1777,6 +1836,7 @@ function initializeInboxToggle() {
     
     const newBtn = document.getElementById('newInboxBtn');
     const oldBtn = document.getElementById('oldInboxBtn');
+    const sentBtn = document.getElementById('sentInboxBtn');
     const closeBtn = document.getElementById('closeMessageBtn');
     
     // Initialize message states for existing messages
@@ -1789,6 +1849,10 @@ function initializeInboxToggle() {
     
     if (oldBtn) {
         oldBtn.addEventListener('click', () => switchInbox('old'));
+    }
+    
+    if (sentBtn) {
+        sentBtn.addEventListener('click', () => switchInbox('sent'));
     }
     
     // Handle close message button
@@ -1804,10 +1868,12 @@ function initializeMessageStates() {
     messages.forEach(message => {
         const messageId = message.getAttribute('data-message-id');
         if (!messageStates[messageId]) {
+            // Check if it's a public message (sent message)
+            const isPublicMessage = messageId.startsWith('pub_');
             messageStates[messageId] = {
-                status: 'new',
+                status: isPublicMessage ? 'sent' : 'new',
                 isReplied: false,
-                isRead: false
+                isRead: isPublicMessage ? true : false
             };
         }
     });
@@ -1819,6 +1885,7 @@ function switchInbox(type) {
     // Update button states
     document.getElementById('newInboxBtn').classList.toggle('active', type === 'new');
     document.getElementById('oldInboxBtn').classList.toggle('active', type === 'old');
+    document.getElementById('sentInboxBtn').classList.toggle('active', type === 'sent');
     
     // Filter messages based on type
     filterMessagesByInboxType(type);
@@ -1850,9 +1917,12 @@ function filterMessagesByInboxType(type) {
         if (type === 'new') {
             // Show new/unread messages
             message.style.display = messageState.status === 'new' ? 'block' : 'none';
-        } else {
+        } else if (type === 'old') {
             // Show old/replied/closed messages
             message.style.display = messageState.status === 'old' ? 'block' : 'none';
+        } else if (type === 'sent') {
+            // Show sent public messages only
+            message.style.display = messageState.status === 'sent' ? 'block' : 'none';
         }
     });
 }
@@ -1981,6 +2051,265 @@ function handleReplySuccess(replyContent = '') {
         markMessageAsReplied(messageId, replyContent);
     }
 }
+
+// ===== PUBLIC MESSAGE COMPOSE OVERLAY =====
+function initializePublicMessageOverlay() {
+    console.log('📧 Initializing Public Message Overlay');
+    
+    const composeBtn = document.getElementById('composePublicMessageBtn');
+    const overlay = document.getElementById('publicMessageOverlay');
+    const closeBtn = document.getElementById('closePublicMessageModal');
+    const cancelBtn = document.getElementById('cancelPublicMessageBtn');
+    const sendBtn = document.getElementById('sendPublicMessageBtn');
+    const categorySelect = document.getElementById('publicCategorySelect');
+    const subjectInput = document.getElementById('publicSubjectInput');
+    const messageTextarea = document.getElementById('publicMessageTextarea');
+    const subjectCharCounter = document.getElementById('subjectCharCounter');
+    const messageCharCounter = document.getElementById('messageCharCounter');
+    
+    // Open overlay
+    if (composeBtn) {
+        composeBtn.addEventListener('click', () => {
+            overlay.classList.add('show');
+            console.log('📧 Public message overlay opened');
+        });
+    }
+    
+    // Close overlay
+    const closeOverlay = () => {
+        overlay.classList.remove('show');
+        resetPublicMessageForm();
+        console.log('📧 Public message overlay closed');
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeOverlay);
+    
+    // Close on background click
+    if (overlay) {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeOverlay();
+            }
+        });
+    }
+    
+    // Character counters
+    if (subjectInput && subjectCharCounter) {
+        subjectInput.addEventListener('input', () => {
+            const count = subjectInput.value.length;
+            subjectCharCounter.textContent = `${count}/100`;
+        });
+    }
+    
+    if (messageTextarea && messageCharCounter) {
+        messageTextarea.addEventListener('input', () => {
+            const count = messageTextarea.value.length;
+            messageCharCounter.textContent = `${count}/1000`;
+        });
+    }
+    
+    // Send public message
+    if (sendBtn) {
+        sendBtn.addEventListener('click', () => {
+            const category = categorySelect.value;
+            const subject = subjectInput.value.trim();
+            const message = messageTextarea.value.trim();
+            
+            // Validation
+            if (!category) {
+                showToast('Please select a message category', 'error');
+                return;
+            }
+            
+            if (!subject) {
+                showToast('Please enter a message subject', 'error');
+                return;
+            }
+            
+            if (!message) {
+                showToast('Please enter a message', 'error');
+                return;
+            }
+            
+            // Send public message
+            sendPublicMessage(category, subject, message);
+            closeOverlay();
+        });
+    }
+    
+    console.log('✅ Public Message Overlay initialized');
+}
+
+function resetPublicMessageForm() {
+    const categorySelect = document.getElementById('publicCategorySelect');
+    const subjectInput = document.getElementById('publicSubjectInput');
+    const messageTextarea = document.getElementById('publicMessageTextarea');
+    const subjectCharCounter = document.getElementById('subjectCharCounter');
+    const messageCharCounter = document.getElementById('messageCharCounter');
+    
+    if (categorySelect) categorySelect.value = '';
+    if (subjectInput) subjectInput.value = '';
+    if (messageTextarea) messageTextarea.value = '';
+    if (subjectCharCounter) subjectCharCounter.textContent = '0/100';
+    if (messageCharCounter) messageCharCounter.textContent = '0/1000';
+}
+
+function sendPublicMessage(category, subject, message) {
+    console.log('📧 Sending public message:', { category, subject, message });
+    
+    // Generate unique message ID
+    const messageId = `pub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const timestamp = new Date().toISOString();
+    const timeAgo = 'Just now';
+    
+    // Create sent message data
+    const sentMessage = {
+        id: messageId,
+        category: category,
+        subject: subject,
+        message: message,
+        timestamp: timestamp,
+        timeAgo: timeAgo,
+        recipients: 'All Users',
+        status: 'sent'
+    };
+    
+    // Add to sent messages list
+    addSentMessageToList(sentMessage);
+    
+    // Update message states
+    messageStates[messageId] = {
+        status: 'sent',
+        isRead: true,
+        isReplied: false
+    };
+    
+    // Show success message
+    showToast(`Public message sent to all users: "${subject}"`, 'success', 3000);
+    
+    console.log('✅ Public message sent successfully:', messageId);
+}
+
+function addSentMessageToList(sentMessage) {
+    const messagesList = document.getElementById('customerMessagesList');
+    if (!messagesList) return;
+    
+    // Get category emoji and label
+    const categoryInfo = getCategoryInfo(sentMessage.category);
+    
+    // Create message HTML
+    const messageHTML = `
+        <div class="customer-message-item" data-message-id="${sentMessage.id}" data-topic="public-message">
+            <div class="message-topic ${sentMessage.category}">${categoryInfo.emoji} ${categoryInfo.label}</div>
+            <div class="message-content-area">
+                <div class="message-header">
+                    <div class="message-sender">
+                        <div class="sender-avatar" style="background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;">
+                            📢
+                        </div>
+                        <div class="sender-info">
+                            <div class="sender-name">Public Announcement</div>
+                            <div class="sender-email">${sentMessage.recipients}</div>
+                        </div>
+                    </div>
+                    <div class="message-meta">
+                        <div class="message-time">${sentMessage.timeAgo}</div>
+                    </div>
+                </div>
+                <div class="message-preview">
+                    <div class="message-subject">${sentMessage.subject}</div>
+                    <div class="message-excerpt">${sentMessage.message.substring(0, 100)}${sentMessage.message.length > 100 ? '...' : ''}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add to top of list
+    messagesList.insertAdjacentHTML('afterbegin', messageHTML);
+    
+    // Add click handler for the new message
+    const newMessageElement = messagesList.firstElementChild;
+    if (newMessageElement) {
+        newMessageElement.addEventListener('click', function() {
+            showPublicMessageDetail(sentMessage);
+        });
+    }
+    
+    console.log('📧 Sent message added to list:', sentMessage.id);
+}
+
+function getCategoryInfo(category) {
+    const categories = {
+        'important-notices': { emoji: '🔴', label: 'Important Notices' },
+        'platform-updates': { emoji: '🔵', label: 'Platform Updates' },
+        'system-updates': { emoji: '⚙️', label: 'System Updates' },
+        'promotions': { emoji: '🎁', label: 'Promotions' }
+    };
+    
+    return categories[category] || { emoji: '📢', label: 'Public Message' };
+}
+
+function showPublicMessageDetail(sentMessage) {
+    const categoryInfo = getCategoryInfo(sentMessage.category);
+    const messageContent = document.getElementById('messageContent');
+    
+    if (messageContent) {
+        messageContent.innerHTML = `
+            <div class="message-detail-header">
+                <div class="message-detail-topic ${sentMessage.category}">${categoryInfo.emoji} ${categoryInfo.label}</div>
+                <div class="message-detail-meta">
+                    <span class="message-detail-time">${sentMessage.timeAgo}</span>
+                </div>
+            </div>
+            <div class="message-detail-sender">
+                <div class="sender-avatar-large" style="background: #10b981; color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; border-radius: 50%; font-size: 1.5rem;">
+                    📢
+                </div>
+                <div class="sender-detail-info">
+                    <h3 class="sender-detail-name">Public Announcement</h3>
+                    <p class="sender-detail-email">${sentMessage.recipients}</p>
+                </div>
+            </div>
+            <div class="message-detail-subject">
+                <h2>${sentMessage.subject}</h2>
+            </div>
+            <div class="message-detail-body">
+                <p>${sentMessage.message}</p>
+            </div>
+            <div class="message-actions">
+                <button class="message-action-btn unsend-btn" onclick="unsendPublicMessage('${sentMessage.id}')">
+                    🗑️ Unsend Message
+                </button>
+            </div>
+        `;
+        
+        messageContent.style.display = 'block';
+        document.getElementById('messageDetail').style.display = 'none';
+    }
+}
+
+window.unsendPublicMessage = function(messageId) {
+    if (confirm('Are you sure you want to unsend this public message? This action cannot be undone.')) {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.remove();
+            delete messageStates[messageId];
+            showToast('Public message unsent successfully', 'success');
+            
+            // Clear message content
+            const messageContent = document.getElementById('messageContent');
+            if (messageContent) {
+                messageContent.style.display = 'none';
+                messageContent.innerHTML = '';
+            }
+            
+            document.getElementById('messageDetail').style.display = 'block';
+            
+            console.log('🗑️ Public message unsent:', messageId);
+        }
+    }
+};
 
 // ===== INBOX SEARCH SYSTEM =====
 function initializeInboxSearch() {

@@ -1490,6 +1490,32 @@ body.admin-dashboard::-webkit-scrollbar {
     background: rgba(255, 255, 255, 0.3);
 }
 
+/* Compose Public Message Button */
+.compose-btn {
+    padding: 0.6rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #10b981;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+}
+
+.compose-btn:hover {
+    background: #059669;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.compose-btn:active {
+    transform: scale(0.98);
+}
+
 .panel-title {
     color: #e6d6ae;
     font-weight: 600;
@@ -1729,6 +1755,12 @@ body.admin-dashboard::-webkit-scrollbar {
 .message-topic.safety-security { background: #e17055; }
 .message-topic.payment-billing { background: #00b894; }
 .message-topic.other { background: #636e72; }
+
+/* Public Message Categories */
+.message-topic.important-notices { background: #ef4444; }
+.message-topic.platform-updates { background: #3b82f6; }
+.message-topic.system-updates { background: #8b5cf6; }
+.message-topic.promotions { background: #10b981; }
 
 .message-preview {
     margin-bottom: 0.5rem;
@@ -2182,6 +2214,241 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .reply-modal-btn.send:hover {
     background: #0d9668;
+}
+
+/* ===== PUBLIC MESSAGE OVERLAY ===== */
+.public-message-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    z-index: 10002;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+}
+
+.public-message-overlay.show {
+    display: flex;
+}
+
+.public-message-modal {
+    background: #363f4f;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    position: relative;
+    margin: 0 auto;
+}
+
+.public-message-header {
+    background: #2d3748;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.public-message-title {
+    color: #e6d6ae;
+    font-weight: 600;
+    font-size: 1.1rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.public-message-close {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.public-message-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e6d6ae;
+}
+
+.public-message-body {
+    padding: 1.5rem;
+    max-height: calc(80vh - 180px);
+    overflow-y: auto;
+}
+
+.public-form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.public-form-label {
+    display: block;
+    color: #e6d6ae;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.public-category-select {
+    width: 100%;
+    background: #4a5568;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.public-category-select:focus {
+    outline: none;
+    border-color: #10b981;
+}
+
+.public-subject-input {
+    width: 100%;
+    background: #4a5568;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.75rem;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.public-subject-input:focus {
+    outline: none;
+    border-color: #10b981;
+}
+
+.public-subject-input::placeholder {
+    color: #a0aec0;
+}
+
+.public-message-textarea {
+    width: 100%;
+    min-height: 150px;
+    background: #4a5568;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 1rem;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.public-message-textarea:focus {
+    outline: none;
+    border-color: #10b981;
+}
+
+.public-message-textarea::placeholder {
+    color: #a0aec0;
+}
+
+.char-counter {
+    display: block;
+    text-align: right;
+    color: #a0aec0;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.public-message-footer {
+    background: #2d3748;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+}
+
+.public-modal-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.public-modal-btn.cancel {
+    background: #4a5568;
+    color: #e6d6ae;
+}
+
+.public-modal-btn.cancel:hover {
+    background: #5a6578;
+}
+
+.public-modal-btn.send {
+    background: #10b981;
+    color: white;
+}
+
+.public-modal-btn.send:hover {
+    background: #0d9668;
+}
+
+/* ===== MESSAGE ACTIONS (Unsend Button) ===== */
+.message-actions {
+    margin-top: 2rem;
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-start;
+}
+
+.message-action-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.message-action-btn.unsend-btn {
+    background: #ef4444;
+    color: white;
+}
+
+.message-action-btn.unsend-btn:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.message-action-btn.unsend-btn:active {
+    transform: translateY(0);
 }
 
 /* ===== CHATS LEFT PANEL: Conversation Threads ===== */
