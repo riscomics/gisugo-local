@@ -3090,19 +3090,20 @@
                 <span class="toast-message" id="toastMessage">Message moved to Old inbox</span>
             </div>
 
-    <!-- Viewport Debug Tool -->
-    <div id="vp-debug"></div>
-    <script>
-        // Viewport debug tool - shows current viewport width
-    (function() {
-        const vpDebug = document.getElementById('vp-debug');
-        function updateViewport() {
-                vpDebug.textContent = 'Viewport: ' + window.innerWidth + 'px';
-        }
-        updateViewport();
-        window.addEventListener('resize', updateViewport);
-    })();
-    </script>
+            <!-- Unsend Message Confirmation Overlay -->
+            <div class="confirm-overlay" id="unsendMessageConfirmOverlay">
+                <div class="confirm-modal">
+                    <div class="confirm-icon delete-icon">🗑️</div>
+                    <h3 class="confirm-title">Unsend This Message?</h3>
+                    <p class="confirm-message" id="unsendMessageConfirmMessage">
+                        This will permanently delete the public message. This action cannot be undone.
+                    </p>
+                    <div class="confirm-actions">
+                        <button class="confirm-btn cancel-btn" id="cancelUnsendMessageBtn">Cancel</button>
+                        <button class="confirm-btn confirm-delete-btn" id="confirmUnsendMessageBtn">Unsend Message</button>
+                    </div>
+                </div>
+            </div>
 
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>

@@ -429,6 +429,9 @@ function initializeAdminMessages() {
     // Initialize reply functionality
     initializeReplySystem();
     
+    // Initialize unsend confirmation
+    initializeUnsendConfirmation();
+    
     console.log('✅ Admin Messages System initialized');
 }
 
@@ -2318,13 +2321,8 @@ function addSentMessageToList(sentMessage) {
     // Add to top of list
     messagesList.insertAdjacentHTML('afterbegin', messageHTML);
     
-    // Add click handler for the new message
-    const newMessageElement = messagesList.firstElementChild;
-    if (newMessageElement) {
-        newMessageElement.addEventListener('click', function() {
-            showPublicMessageDetail(sentMessage);
-        });
-    }
+    // The click handler will be handled by the event delegation in initializeCustomerMessages()
+    // No need to add individual click handlers here
     
     console.log('📧 Sent message added to list:', sentMessage.id);
 }
@@ -2489,33 +2487,95 @@ function showPublicMessageOverlay(sentMessage) {
     console.log('✅ Public message overlay displayed');
 }
 
+// Store the message ID to be unsent
+let messageIdToUnsend = null;
+
 window.unsendPublicMessage = function(messageId) {
-    if (confirm('Are you sure you want to unsend this public message? This action cannot be undone.')) {
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (messageElement) {
-            messageElement.remove();
-            delete messageStates[messageId];
-            showToast('Public message unsent successfully', 'success');
-            
-            // Clear message content for desktop
-            const messageContent = document.getElementById('messageContent');
-            if (messageContent) {
-                messageContent.style.display = 'none';
-            }
-            
-            // Close overlay if open
-            const overlay = document.getElementById('messageDetailOverlay');
-            if (overlay && overlay.style.display === 'flex') {
-                hideMessageOverlay();
-                messageContent.innerHTML = '';
-            }
-            
-            document.getElementById('messageDetail').style.display = 'block';
-            
-            console.log('🗑️ Public message unsent:', messageId);
-        }
+    // Store the message ID for the confirmation handler
+    messageIdToUnsend = messageId;
+    
+    // Show confirmation overlay
+    const confirmOverlay = document.getElementById('unsendMessageConfirmOverlay');
+    if (confirmOverlay) {
+        confirmOverlay.style.display = 'flex';
+        confirmOverlay.style.visibility = 'visible';
+        confirmOverlay.style.opacity = '1';
     }
 };
+
+function confirmUnsendMessage() {
+    if (!messageIdToUnsend) return;
+    
+    const messageElement = document.querySelector(`[data-message-id="${messageIdToUnsend}"]`);
+    if (messageElement) {
+        messageElement.remove();
+        delete messageStates[messageIdToUnsend];
+        showToast('Public message unsent successfully', 'success');
+        
+        // Clear message content for desktop
+        const messageContent = document.getElementById('messageContent');
+        const messageDetail = document.getElementById('messageDetail');
+        
+        if (messageContent) {
+            restoreOriginalMessageHTML();
+            messageContent.style.display = 'none';
+        }
+        if (messageDetail) {
+            messageDetail.style.display = 'block';
+        }
+        
+        // Close overlay if open
+        const overlay = document.getElementById('messageDetailOverlay');
+        if (overlay && overlay.style.display === 'flex') {
+            hideMessageOverlay();
+        }
+        
+        // Update inbox count
+        updateInboxCount();
+        
+        console.log('🗑️ Public message unsent:', messageIdToUnsend);
+    }
+    
+    // Hide confirmation overlay
+    hideUnsendConfirmOverlay();
+    messageIdToUnsend = null;
+}
+
+function hideUnsendConfirmOverlay() {
+    const confirmOverlay = document.getElementById('unsendMessageConfirmOverlay');
+    if (confirmOverlay) {
+        confirmOverlay.style.opacity = '0';
+        confirmOverlay.style.visibility = 'hidden';
+        setTimeout(() => {
+            confirmOverlay.style.display = 'none';
+        }, 300);
+    }
+}
+
+function initializeUnsendConfirmation() {
+    const confirmBtn = document.getElementById('confirmUnsendMessageBtn');
+    const cancelBtn = document.getElementById('cancelUnsendMessageBtn');
+    const confirmOverlay = document.getElementById('unsendMessageConfirmOverlay');
+    
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', confirmUnsendMessage);
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideUnsendConfirmOverlay);
+    }
+    
+    // Close on outside click
+    if (confirmOverlay) {
+        confirmOverlay.addEventListener('click', function(e) {
+            if (e.target === confirmOverlay) {
+                hideUnsendConfirmOverlay();
+            }
+        });
+    }
+    
+    console.log('✅ Unsend confirmation overlay initialized');
+}
 
 // Store reply context
 let currentReplyContext = null;
