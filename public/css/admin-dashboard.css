@@ -3321,8 +3321,8 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .search-input-small {
         font-size: 0.75rem;
-        padding: 0.4rem 0.5rem;
-        height: 32px;
+        padding: 0.6rem 0.8rem;
+        height: auto;
         flex: 1; /* Take available space */
         min-width: 100px;
     }
@@ -3833,8 +3833,8 @@ body.admin-dashboard::-webkit-scrollbar {
     
     .search-input-small {
         font-size: 0.7rem;
-        padding: 0.35rem 0.45rem;
-        height: 30px;
+        padding: 0.4rem 0.5rem;
+        height: auto;
         min-width: 80px;
     }
     
@@ -4287,7 +4287,7 @@ body.admin-dashboard::-webkit-scrollbar {
     .search-input-small {
         font-size: 0.65rem;
         padding: 0.3rem 0.4rem;
-        height: 28px;
+        height: auto;
         min-width: 70px;
     }
     
