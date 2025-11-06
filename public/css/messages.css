@@ -4293,6 +4293,11 @@ body:has(.selection-controls[style*="display: flex"]) {
         padding: 0.375rem;
         font-size: 0.8rem;
     }
+    
+    .search-btn-small {
+        padding: 0.375rem;
+        font-size: 0.8rem;
+    }
 }
 
 /* ===== RESPONSIVE FIXES FOR SEARCH CONTROLS (420px-320px) ===== */
@@ -4382,6 +4387,7 @@ body:has(.selection-controls[style*="display: flex"]) {
         padding: clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.4rem, 2vw, 0.6rem);
         font-size: clamp(0.65rem, 2.5vw, 0.75rem);
         min-width: clamp(40px, 12vw, 50px);
+        height: clamp(28px, 8vw, 32px);
         flex-shrink: 0;
     }
     
@@ -4414,6 +4420,7 @@ body:has(.selection-controls[style*="display: flex"]) {
         padding: 0.35rem 0.5rem;
         font-size: 0.7rem;
         min-width: 45px;
+        height: 30px;
     }
     
     .inbox-tab-btn {
@@ -4440,6 +4447,7 @@ body:has(.selection-controls[style*="display: flex"]) {
         padding: 0.3rem 0.45rem;
         font-size: 0.65rem;
         min-width: 40px;
+        height: 28px;
     }
     
     .inbox-tab-btn {
