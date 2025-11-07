@@ -1987,17 +1987,19 @@ function switchInbox(type) {
         messageContent.style.display = 'none';
     }
     
-    // Reset scroll position to top when switching tabs
-    const messagesListContainer = document.querySelector('.messages-list-container');
-    if (messagesListContainer) {
-        messagesListContainer.scrollTop = 0;
-    }
-    
     // Filter messages based on type
     filterMessagesByInboxType(type);
     
     // Update inbox count
     updateInboxCount();
+    
+    // Reset scroll position to top AFTER filtering (using setTimeout to ensure DOM is updated)
+    setTimeout(() => {
+        const messagesListContainer = document.querySelector('.messages-list-container');
+        if (messagesListContainer) {
+            messagesListContainer.scrollTop = 0;
+        }
+    }, 0);
     
     console.log('📧 Switched to', type, 'inbox');
 }
@@ -3457,14 +3459,16 @@ function switchGigTab(tabType) {
     // Clear detail view
     clearGigDetail();
     
-    // Reset scroll position to top when switching tabs
-    const gigCardsContainer = document.querySelector('.gig-cards-container');
-    if (gigCardsContainer) {
-        gigCardsContainer.scrollTop = 0;
-    }
-    
     // Load gigs for this tab
     loadGigCards(tabType);
+    
+    // Reset scroll position to top AFTER loading content (using setTimeout to ensure DOM is updated)
+    setTimeout(() => {
+        const gigCardsContainer = document.querySelector('.gig-cards-container');
+        if (gigCardsContainer) {
+            gigCardsContainer.scrollTop = 0;
+        }
+    }, 0);
 }
 
 function loadGigCards(tabType) {
@@ -8114,14 +8118,16 @@ function switchUserTab(tabType) {
     if (userDetail) userDetail.style.display = 'flex';
     if (userContent) userContent.style.display = 'none';
     
-    // Reset scroll position to top when switching tabs
-    const userCardsList = document.querySelector('.user-cards-list');
-    if (userCardsList) {
-        userCardsList.scrollTop = 0;
-    }
-    
     // Load users for this tab
     loadUserCards(tabType);
+    
+    // Reset scroll position to top AFTER loading content (using setTimeout to ensure DOM is updated)
+    setTimeout(() => {
+        const userCardsList = document.querySelector('.user-cards-list');
+        if (userCardsList) {
+            userCardsList.scrollTop = 0;
+        }
+    }, 0);
 }
 
 function loadUserCards(tabType) {
