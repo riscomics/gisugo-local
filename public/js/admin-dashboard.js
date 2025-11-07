@@ -921,21 +921,9 @@ function filterThreadsByStatus(status) {
 }
 
 function initializeThreadActions() {
-    const viewButtons = document.querySelectorAll('.thread-action-btn.view');
-    const flagButtons = document.querySelectorAll('.thread-action-btn.flag');
     const priorityButtons = document.querySelectorAll('.thread-action-btn.priority');
     const archiveButtons = document.querySelectorAll('.thread-action-btn.archive');
     const conversationThreads = document.querySelectorAll('.conversation-thread');
-    
-    // View conversation handlers (both button click and thread click)
-    viewButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const thread = this.closest('.conversation-thread');
-            const threadId = thread.getAttribute('data-thread-id');
-            loadConversationThread(thread);
-        });
-    });
     
     // Make entire conversation thread clickable
     conversationThreads.forEach(thread => {
@@ -944,16 +932,6 @@ function initializeThreadActions() {
             if (!e.target.closest('.thread-action-btn')) {
                 loadConversationThread(this);
             }
-        });
-    });
-    
-    // Flag conversation handlers
-    flagButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const thread = this.closest('.conversation-thread');
-            const threadId = thread.getAttribute('data-thread-id');
-            flagConversation(threadId);
         });
     });
     
@@ -1011,15 +989,18 @@ function loadConversationThread(threadElement) {
 }
 
 function extractParticipantData(threadElement) {
-    const participants = threadElement.querySelectorAll('.participant');
+    const participantRows = threadElement.querySelectorAll('.participant-row');
     const participantData = [];
     
-    participants.forEach(participant => {
-        const avatar = participant.querySelector('.participant-avatar').src;
-        const name = participant.querySelector('.participant-name').textContent;
-        const role = participant.querySelector('.participant-role').textContent;
+    participantRows.forEach(row => {
+        const name = row.querySelector('.participant-name')?.textContent || '';
+        const role = row.querySelector('.participant-role')?.textContent || '';
         
-        participantData.push({ avatar, name, role });
+        participantData.push({ 
+            avatar: 'public/users/User-02.jpg', // Default avatar for compatibility
+            name, 
+            role 
+        });
     });
     
     return participantData;
@@ -1354,17 +1335,16 @@ function initializeChatThreads() {
     console.log('💬 Chat threads initialized');
 }
 
-function extractParticipantData(threadElement) {
+function extractChatParticipantData(threadElement) {
     const participants = [];
-    const participantElements = threadElement.querySelectorAll('.participant');
+    const participantRows = threadElement.querySelectorAll('.participant-row');
     
-    participantElements.forEach(participant => {
-        const avatar = participant.querySelector('.participant-avatar')?.src || '';
-        const name = participant.querySelector('.participant-name')?.textContent || '';
-        const role = participant.querySelector('.participant-role')?.textContent || '';
+    participantRows.forEach(row => {
+        const name = row.querySelector('.participant-name')?.textContent || '';
+        const role = row.querySelector('.participant-role')?.textContent || '';
         
         participants.push({
-            avatar: avatar,
+            avatar: 'public/users/User-02.jpg', // Default avatar for compatibility
             name: name,
             role: role
         });
@@ -1381,7 +1361,7 @@ function loadChatConversation(threadElement) {
     const threadData = {
         id: threadId,
         jobTitle: jobTitle,
-        participants: extractParticipantData(threadElement),
+        participants: extractChatParticipantData(threadElement),
         status: threadElement.querySelector('.thread-status').textContent.trim(),
         messageCount: threadElement.querySelector('.message-count').textContent,
         startDate: threadElement.querySelector('.thread-date').textContent,

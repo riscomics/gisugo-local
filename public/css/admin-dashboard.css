@@ -2624,10 +2624,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .thread-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .thread-title {
@@ -2639,12 +2636,14 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .thread-status {
+    display: inline-block;
     font-size: 0.7rem;
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin-bottom: 0.75rem;
 }
 
 .thread-status.active {
@@ -2664,9 +2663,15 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .thread-participants {
     display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.participant-row {
+    display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.75rem;
 }
 
 .participant {
@@ -2684,7 +2689,7 @@ body.admin-dashboard::-webkit-scrollbar {
 }
 
 .participant-name {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: #e6d6ae;
     font-weight: 500;
     font-family: Arial, Helvetica, sans-serif;
@@ -2692,8 +2697,14 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .participant-role {
     font-size: 0.7rem;
-    color: #a0aec0;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
     font-family: Arial, Helvetica, sans-serif;
+    background: #4a5568;
+    color: #a0aec0;
 }
 
 .conversation-arrow {
@@ -6383,7 +6394,7 @@ body.admin-dashboard::-webkit-scrollbar {
     border-top: 2px solid #e5e7eb;
 }
 
-.thread-title {
+.reply-thread .thread-title {
     font-size: 1.1rem;
     font-weight: 600;
     color: #374151;
@@ -6393,7 +6404,7 @@ body.admin-dashboard::-webkit-scrollbar {
     gap: 0.5rem;
 }
 
-.thread-title::before {
+.reply-thread .thread-title::before {
     content: "💬";
     font-size: 1rem;
 }
@@ -6476,7 +6487,7 @@ body.admin-dashboard::-webkit-scrollbar {
         padding-top: 1rem;
     }
     
-    .thread-title {
+    .reply-thread .thread-title {
         font-size: 1rem;
         margin-bottom: 0.75rem;
     }
