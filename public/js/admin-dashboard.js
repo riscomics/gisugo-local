@@ -1987,6 +1987,12 @@ function switchInbox(type) {
         messageContent.style.display = 'none';
     }
     
+    // Reset scroll position to top when switching tabs
+    const messagesListContainer = document.querySelector('.messages-list-container');
+    if (messagesListContainer) {
+        messagesListContainer.scrollTop = 0;
+    }
+    
     // Filter messages based on type
     filterMessagesByInboxType(type);
     
@@ -3450,6 +3456,12 @@ function switchGigTab(tabType) {
     
     // Clear detail view
     clearGigDetail();
+    
+    // Reset scroll position to top when switching tabs
+    const gigCardsContainer = document.querySelector('.gig-cards-container');
+    if (gigCardsContainer) {
+        gigCardsContainer.scrollTop = 0;
+    }
     
     // Load gigs for this tab
     loadGigCards(tabType);
@@ -8101,6 +8113,12 @@ function switchUserTab(tabType) {
     const userContent = document.getElementById('userContent');
     if (userDetail) userDetail.style.display = 'flex';
     if (userContent) userContent.style.display = 'none';
+    
+    // Reset scroll position to top when switching tabs
+    const userCardsList = document.querySelector('.user-cards-list');
+    if (userCardsList) {
+        userCardsList.scrollTop = 0;
+    }
     
     // Load users for this tab
     loadUserCards(tabType);
