@@ -18,8 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize admin messages system
     initializeAdminMessages();
     
-    // Initialize admin chats system
-    initializeAdminChats();
+    // CHATS SYSTEM DELETED - READY TO REBUILD
     
     // Initialize reply modal system
     initializeReplyModal();
@@ -196,13 +195,7 @@ function cleanupSectionOverlays() {
         document.body.style.overflow = '';
     }
     
-    // Hide chat overlay
-    const chatOverlay = document.getElementById('chatDetailOverlay');
-    if (chatOverlay) {
-        chatOverlay.style.display = '';
-        chatOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
+    // CHAT OVERLAY DELETED
     
     // Hide gig overlay
     const gigOverlay = document.getElementById('gigDetailOverlay');
@@ -1295,6 +1288,16 @@ function sendAdminReply() {
     // Update message status with reply content
     handleReplySuccess(replyText);
     
+    // Refresh the message view to show the new reply in the thread
+    const activeMessage = document.querySelector('.customer-message-item.selected');
+    if (activeMessage) {
+        const messageId = activeMessage.getAttribute('data-message-id');
+        // Reload the message to display the updated conversation thread
+        setTimeout(() => {
+            activeMessage.click();
+        }, 300);
+    }
+    
     // Clear the form
     textarea.value = '';
     removeReplyAttachment();
@@ -1322,389 +1325,7 @@ function updateReplyStatus(status) {
     }
 }
 
-// ===== ADMIN CHATS SYSTEM =====
-// Global variable to track current chat data for responsive switching
-let currentChatData = null;
-
-function initializeAdminChats() {
-    console.log('💭 Initializing Admin Chats System');
-    
-    // Initialize chat thread handlers  
-    initializeChatThreads();
-    
-    // Initialize chat overlay close buttons
-    initializeChatOverlay();
-    
-    console.log('✅ Admin Chats System initialized');
-}
-
-// ===== CHAT THREADS FUNCTIONALITY =====
-function initializeChatThreads() {
-    // Get all conversation threads in the chats section
-    const chatThreads = document.querySelectorAll('#chats .conversation-thread');
-    const chatSearchInput = document.getElementById('chatsThreadSearchInput');
-    const chatSearchBtn = document.getElementById('chatsThreadSearchBtn');
-    const chatStatusFilter = document.getElementById('chatsThreadStatusFilter');
-    
-    // Handle thread clicking
-    chatThreads.forEach(thread => {
-        thread.addEventListener('click', function(e) {
-            // Don't trigger if clicking on action buttons
-            if (!e.target.closest('.thread-action-btn')) {
-                loadChatConversation(this);
-            }
-        });
-    });
-    
-    // Handle search functionality
-    if (chatSearchInput && chatSearchBtn) {
-        chatSearchBtn.addEventListener('click', function() {
-            performChatSearch(chatSearchInput.value);
-        });
-        
-        chatSearchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                performChatSearch(this.value);
-            }
-        });
-    }
-    
-    // Handle status filtering
-    if (chatStatusFilter) {
-        chatStatusFilter.addEventListener('change', function() {
-            filterChatsByStatus(this.value);
-        });
-    }
-    
-    console.log('💬 Chat threads initialized');
-}
-
-function extractChatParticipantData(threadElement) {
-    const participants = [];
-    const participantRows = threadElement.querySelectorAll('.participant-row');
-    
-    participantRows.forEach(row => {
-        const name = row.querySelector('.participant-name')?.textContent || '';
-        const role = row.querySelector('.participant-role')?.textContent || '';
-        
-        participants.push({
-            avatar: 'public/users/User-02.jpg', // Default avatar for compatibility
-            name: name,
-            role: role
-        });
-    });
-    
-    return participants;
-}
-
-function loadChatConversation(threadElement) {
-    const threadId = threadElement.getAttribute('data-thread-id');
-    const jobTitle = threadElement.getAttribute('data-job-title');
-    
-    // Extract thread data
-    const threadData = {
-        id: threadId,
-        jobTitle: jobTitle,
-        participants: extractChatParticipantData(threadElement),
-        status: threadElement.querySelector('.thread-status').textContent.trim(),
-        messageCount: threadElement.querySelector('.message-count').textContent,
-        startDate: threadElement.querySelector('.thread-date').textContent,
-        isDisputed: threadElement.classList.contains('disputed')
-    };
-    
-    // Store current chat data for responsive switching
-    currentChatData = threadData;
-    
-    // Highlight selected thread
-    document.querySelectorAll('#chats .conversation-thread').forEach(t => t.classList.remove('selected'));
-    threadElement.classList.add('selected');
-    
-    // Check viewport width to decide between panel or overlay
-    if (window.innerWidth >= 888) {
-        // Desktop: Show in right panel
-        populateChatPanel(threadData);
-    } else {
-        // Mobile: Show in overlay
-        showChatOverlay(threadData);
-    }
-    
-    console.log('💭 Chat conversation loaded:', threadId);
-}
-
-function populateChatPanel(data) {
-    const chatBubblesContainer = document.querySelector('#chatContent .chat-bubbles-container');
-    
-    // Reset scroll position to top
-    if (chatBubblesContainer) {
-        chatBubblesContainer.scrollTop = 0;
-    }
-    
-    const customer = data.participants.find(p => p.role.toLowerCase() === 'customer') || data.participants[0];
-    const worker = data.participants.find(p => p.role.toLowerCase() === 'worker') || data.participants[1];
-    
-    // Update chat header
-    document.getElementById('chatCustomerAvatar').src = customer?.avatar || 'public/users/User-02.jpg';
-    document.getElementById('chatCustomerName').textContent = customer?.name || 'Customer';
-    document.getElementById('chatWorkerAvatar').src = worker?.avatar || 'public/users/User-03.jpg';
-    document.getElementById('chatWorkerName').textContent = worker?.name || 'Worker';
-    document.getElementById('chatJobTitle').textContent = data.jobTitle;
-    
-    // Update status badge
-    const statusBadge = document.getElementById('chatStatusBadge');
-    if (statusBadge) {
-        statusBadge.textContent = data.status;
-        statusBadge.className = `chat-status-badge ${data.status.toLowerCase()}`;
-    }
-    
-    // Generate and populate chat bubbles
-    const chatBubbles = generateChatBubbles(data, customer, worker);
-    document.getElementById('chatBubblesContainer').innerHTML = chatBubbles;
-    
-    // Update admin controls based on status
-    updateChatControls(data);
-    
-    // Show chat content panel
-    document.getElementById('chatDetail').style.display = 'none';
-    document.getElementById('chatContent').style.display = 'block';
-}
-
-function generateChatBubbles(data, customer, worker) {
-    // Get conversation based on job title
-    const conversations = {
-        'Deep Clean My 3-Bedroom House': [
-            { sender: customer, content: "Hi Ana! I saw your application for my house cleaning job. When would you be available?", time: "2 hours ago", direction: "incoming" },
-            { sender: worker, content: "Hello! I'm available this weekend. I have experience with deep cleaning and can bring all supplies. What's your budget?", time: "1 hour ago", direction: "outgoing" },
-            { sender: customer, content: "That sounds perfect. My budget is ₱800 as posted. Can you start Saturday morning?", time: "45 minutes ago", direction: "incoming" },
-            { sender: worker, content: "Yes, Saturday 9 AM works for me. I'll need about 4-5 hours for a thorough deep clean. See you then!", time: "30 minutes ago", direction: "outgoing" }
-        ],
-        'Plumbing repair - kitchen sink leak': [
-            { sender: customer, content: "My kitchen sink has been leaking for 2 days. Can you help with this?", time: "1 day ago", direction: "incoming" },
-            { sender: worker, content: "Good morning! I can definitely help. I have 8 years experience with sink repairs. When would be good to check it?", time: "1 day ago", direction: "outgoing" },
-            { sender: customer, content: "How about this afternoon after 2 PM? What's your rate?", time: "20 hours ago", direction: "incoming" },
-            { sender: worker, content: "Perfect! I can come at 3 PM. My rate is ₱800 for standard repairs including parts.", time: "19 hours ago", direction: "outgoing" },
-            { sender: customer, content: "Sounds good. I'll be here. Address is 123 Main St, Quezon City.", time: "18 hours ago", direction: "incoming" }
-        ],
-        'Garden maintenance and lawn mowing': [
-            { sender: worker, content: "Hi! I saw your garden maintenance job. I can do weekly lawn mowing and basic garden care.", time: "3 days ago", direction: "outgoing" },
-            { sender: customer, content: "Great! How much do you charge for weekly service?", time: "3 days ago", direction: "incoming" },
-            { sender: worker, content: "For your garden size, ₱600 per week including mowing, trimming, and basic weeding.", time: "2 days ago", direction: "outgoing" },
-            { sender: customer, content: "That's reasonable. Can you start this weekend?", time: "2 days ago", direction: "incoming" },
-            { sender: worker, content: "Absolutely! I'll come Saturday morning around 8 AM. Thank you!", time: "2 days ago", direction: "outgoing" }
-        ]
-    };
-    
-    // Get conversation or create a generic one
-    const messages = conversations[data.jobTitle] || [
-        { sender: customer, content: `Hi! I'm interested in discussing the "${data.jobTitle}" job with you.`, time: "2 hours ago", direction: "incoming" },
-        { sender: worker, content: "Hello! I'd be happy to help with this job. When would be a good time to discuss details?", time: "1 hour ago", direction: "outgoing" },
-        { sender: customer, content: "How about we discuss the timeline and pricing?", time: "45 minutes ago", direction: "incoming" }
-    ];
-    
-    return messages.map(msg => `
-        <div class="chat-bubble ${msg.direction}">
-            <div class="bubble-header">
-                <img src="${msg.sender.avatar}" alt="${msg.sender.name}" class="bubble-avatar">
-                <span class="bubble-sender">${msg.sender.name}</span>
-                <span class="bubble-time">${msg.time}</span>
-            </div>
-            <div class="bubble-content">${msg.content}</div>
-        </div>
-    `).join('');
-}
-
-function updateChatControls(data) {
-    const flagBtn = document.getElementById('flagChatBtn');
-    const archiveBtn = document.getElementById('archiveChatBtn');
-    
-    if (flagBtn) {
-        flagBtn.textContent = data.isDisputed ? 'Remove Flag' : 'Flag for Review';
-        flagBtn.onclick = () => toggleChatFlag(data.id, data.isDisputed);
-    }
-    
-    if (archiveBtn) {
-        archiveBtn.onclick = () => archiveChat(data.id);
-    }
-}
-
-function performChatSearch(query) {
-    const threads = document.querySelectorAll('#chats .conversation-thread');
-    const searchTerm = query.toLowerCase().trim();
-    
-    threads.forEach(thread => {
-        const title = thread.getAttribute('data-job-title').toLowerCase();
-        const participants = thread.querySelectorAll('.participant-name');
-        let participantNames = '';
-        
-        participants.forEach(participant => {
-            participantNames += participant.textContent.toLowerCase() + ' ';
-        });
-        
-        const isMatch = title.includes(searchTerm) || participantNames.includes(searchTerm);
-        thread.style.display = isMatch ? 'block' : 'none';
-    });
-    
-    console.log('🔍 Chat search performed:', query);
-}
-
-function filterChatsByStatus(status) {
-    const threads = document.querySelectorAll('#chats .conversation-thread');
-    
-    threads.forEach(thread => {
-        const threadStatus = thread.querySelector('.thread-status').textContent.toLowerCase();
-        
-        if (status === 'all' || threadStatus === status) {
-            thread.style.display = 'block';
-        } else {
-            thread.style.display = 'none';
-        }
-    });
-    
-    console.log('🔍 Chats filtered by status:', status);
-}
-
-function toggleChatFlag(threadId, isCurrentlyFlagged) {
-    const action = isCurrentlyFlagged ? 'remove flag from' : 'flag';
-    const confirmed = confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} this conversation?`);
-    
-    if (confirmed) {
-        console.log(`🚩 ${action} conversation:`, threadId);
-        alert(`Conversation ${isCurrentlyFlagged ? 'flag removed' : 'flagged for review'}.`);
-        // Update UI and backend here
-    }
-}
-
-function archiveChat(threadId) {
-    const confirmed = confirm('Archive this conversation?\n\nArchived conversations can be restored later.');
-    
-    if (confirmed) {
-        console.log('📁 Archiving chat:', threadId);
-        alert('Conversation archived successfully.');
-        // Update UI and backend here
-    }
-}
-
-// ===== CHAT OVERLAY FUNCTIONALITY =====
-function initializeChatOverlay() {
-    const overlay = document.getElementById('chatDetailOverlay');
-    const closeBtnX = document.getElementById('chatOverlayCloseBtnX');
-    const closeBtnFooter = document.getElementById('chatOverlayCloseBtn');
-    const flagBtn = document.getElementById('chatOverlayFlagBtn');
-    const archiveBtn = document.getElementById('chatOverlayArchiveBtn');
-    
-    // Close buttons
-    if (closeBtnX) {
-        closeBtnX.addEventListener('click', hideChatOverlay);
-    }
-    if (closeBtnFooter) {
-        closeBtnFooter.addEventListener('click', hideChatOverlay);
-    }
-    
-    // Click outside to close
-    if (overlay) {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === overlay) {
-                hideChatOverlay();
-            }
-        });
-    }
-    
-    // Action buttons
-    if (flagBtn) {
-        flagBtn.addEventListener('click', function() {
-            if (currentChatData) {
-                toggleChatFlag(currentChatData.id, currentChatData.isDisputed);
-            }
-        });
-    }
-    
-    if (archiveBtn) {
-        archiveBtn.addEventListener('click', function() {
-            if (currentChatData) {
-                archiveChat(currentChatData.id);
-            }
-        });
-    }
-    
-    console.log('💬 Chat overlay initialized');
-}
-
-function showChatOverlay(data) {
-    const overlay = document.getElementById('chatDetailOverlay');
-    const overlayBody = document.getElementById('chatOverlayBody');
-    
-    if (!overlay || !overlayBody) return;
-    
-    const customer = data.participants.find(p => p.role.toLowerCase() === 'customer') || data.participants[0];
-    const worker = data.participants.find(p => p.role.toLowerCase() === 'worker') || data.participants[1];
-    
-    // Update header participants
-    document.getElementById('chatOverlayCustomerAvatar').src = customer?.avatar || 'public/users/User-02.jpg';
-    document.getElementById('chatOverlayCustomerName').textContent = customer?.name || 'Customer';
-    document.getElementById('chatOverlayWorkerAvatar').src = worker?.avatar || 'public/users/User-03.jpg';
-    document.getElementById('chatOverlayWorkerName').textContent = worker?.name || 'Worker';
-    document.getElementById('chatOverlayJobTitle').textContent = data.jobTitle;
-    
-    // Update status badge
-    const statusBadge = document.getElementById('chatOverlayStatusBadge');
-    if (statusBadge) {
-        statusBadge.textContent = data.status;
-        statusBadge.className = `chat-overlay-status-badge ${data.status.toLowerCase()}`;
-    }
-    
-    // Update action buttons
-    const flagBtn = document.getElementById('chatOverlayFlagBtn');
-    if (flagBtn) {
-        flagBtn.textContent = data.isDisputed ? 'Remove Flag' : 'Flag';
-    }
-    
-    // Generate and populate chat bubbles
-    const chatBubbles = generateChatBubbles(data, customer, worker);
-    overlayBody.innerHTML = chatBubbles;
-    
-    // Show overlay
-    overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    
-    // Reset scroll position to top (after overlay is visible)
-    setTimeout(() => {
-        if (overlayBody) {
-            overlayBody.scrollTop = 0;
-        }
-    }, 0);
-    
-    console.log(`📱 Showing chat overlay for ${data.id}`);
-}
-
-function hideChatOverlay() {
-    const overlay = document.getElementById('chatDetailOverlay');
-    if (overlay) {
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    console.log('📱 Chat overlay hidden');
-}
-
-// Handle resize to switch between overlay/panel views for chats
-window.addEventListener('resize', () => {
-    // Only handle chats section resizing if chats is active
-    if (currentActiveSection !== 'chats') return;
-    
-    const chatOverlay = document.getElementById('chatDetailOverlay');
-    
-    if (window.innerWidth >= 888 && chatOverlay && chatOverlay.classList.contains('active')) {
-        // Switched to desktop - hide overlay and show in panel
-        hideChatOverlay();
-        
-        if (currentChatData) {
-            populateChatPanel(currentChatData);
-        }
-    } else if (window.innerWidth < 888 && currentChatData && document.getElementById('chatContent')?.style.display !== 'none') {
-        // Switched to mobile - hide panel and show overlay
-        if (currentChatData) {
-            showChatOverlay(currentChatData);
-        }
-    }
-});
+// ===== CHATS SYSTEM - DELETED - READY TO REBUILD =====
 
 // ===== FLOATING REPLY MODAL SYSTEM =====
 function initializeReplyModal() {
@@ -1770,6 +1391,14 @@ function initializeReplyModal() {
                 
                 // Mark as replied but keep in thread
                 handleReplySuccess(replyText);
+                
+                // Refresh the message view to show the new reply in the thread
+                const activeMessage = document.querySelector('.customer-message-item.selected');
+                if (activeMessage) {
+                    setTimeout(() => {
+                        activeMessage.click();
+                    }, 300);
+                }
             } else {
                 alert('Please enter a reply message.');
             }
@@ -1972,6 +1601,9 @@ function initializeInboxToggle() {
     // Update counts on initial load
     updateInboxCount();
     
+    // Apply initial filter to show only NEW messages on page load
+    filterMessagesByInboxType('new');
+    
     console.log('✅ Inbox Toggle System initialized');
 }
 
@@ -2002,6 +1634,12 @@ function switchInbox(type) {
     // Clear any selected message
     const selectedMessages = document.querySelectorAll('.customer-message-item.selected');
     selectedMessages.forEach(msg => msg.classList.remove('selected'));
+    
+    // Clear search input when switching tabs
+    const searchInput = document.getElementById('messagesSearchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
     
     // Restore original HTML structure if it was replaced by SENT message
     restoreOriginalMessageHTML();
@@ -2454,6 +2092,7 @@ function showPublicMessageDetail(sentMessage) {
             </div>
             <div class="message-detail-body">
                 <p>${sentMessage.message}</p>
+                ${generateReplyThreadHTML(sentMessage.id)}
             </div>
             <div class="message-actions">
                 <button class="message-action-btn unsend-btn" onclick="unsendPublicMessage('${sentMessage.id}')">
@@ -2537,6 +2176,7 @@ function showPublicMessageOverlay(sentMessage) {
             <h2 class="detail-subject overlay-subject">${sentMessage.subject}</h2>
             <div class="message-content-inner">
                 <p>${sentMessage.message}</p>
+                ${generateReplyThreadHTML(sentMessage.id)}
             </div>
             <div class="message-actions">
                 <button class="message-action-btn unsend-btn" onclick="unsendPublicMessage('${sentMessage.id}')">
@@ -2726,11 +2366,13 @@ function initializeInboxSearch() {
     const searchInput = document.getElementById('messagesSearchInput');
     const searchBtn = document.getElementById('messagesSearchBtn');
     
-    if (searchInput && searchBtn) {
-        // Search on button click
-        searchBtn.addEventListener('click', () => {
-            performInboxSearch(searchInput.value.trim());
-        });
+    if (searchInput) {
+        // Search on button click (if button exists)
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => {
+                performInboxSearch(searchInput.value.trim());
+            });
+        }
         
         // Search on Enter key
         searchInput.addEventListener('keypress', (e) => {
@@ -2739,16 +2381,28 @@ function initializeInboxSearch() {
             }
         });
         
-        // Clear search when input is empty
+        // Live search as user types
         searchInput.addEventListener('input', (e) => {
-            if (e.target.value.trim() === '') {
+            const query = e.target.value.trim();
+            if (query === '') {
                 clearInboxSearch();
+            } else {
+                performInboxSearch(query);
             }
         });
+        
+        console.log('✅ Inbox search initialized');
     }
 }
 
 function performInboxSearch(query) {
+    // TODO: BACKEND INTEGRATION - When implementing Firebase:
+    // 1. Query Firebase for matching messages in current inbox type
+    // 2. Return all results (not just lazy-loaded ones)
+    // 3. Clear messagesList and populate with search results
+    // 4. Handle pagination for large result sets
+    
+    // CURRENT: Search only DOM-loaded messages (fine for prototype)
     const messageItems = document.querySelectorAll('.customer-message-item');
     let visibleCount = 0;
     
@@ -2758,12 +2412,25 @@ function performInboxSearch(query) {
     }
     
     messageItems.forEach(item => {
-        const senderName = item.querySelector('.message-sender-name')?.textContent.toLowerCase() || '';
+        const messageId = item.getAttribute('data-message-id');
+        const messageState = messageStates[messageId];
+        
+        // Check if message belongs to current inbox type
+        const belongsToCurrentInbox = messageState && messageState.status === currentInboxType;
+        
+        if (!belongsToCurrentInbox) {
+            item.style.display = 'none';
+            return;
+        }
+        
+        // Search within message content
+        const senderName = item.querySelector('.sender-name')?.textContent.toLowerCase() || '';
+        const senderEmail = item.querySelector('.sender-email')?.textContent.toLowerCase() || '';
         const subject = item.querySelector('.message-subject')?.textContent.toLowerCase() || '';
-        const preview = item.querySelector('.message-preview')?.textContent.toLowerCase() || '';
+        const excerpt = item.querySelector('.message-excerpt')?.textContent.toLowerCase() || '';
         const topic = item.querySelector('.message-topic')?.textContent.toLowerCase() || '';
         
-        const searchText = `${senderName} ${subject} ${preview} ${topic}`.toLowerCase();
+        const searchText = `${senderName} ${senderEmail} ${subject} ${excerpt} ${topic}`.toLowerCase();
         const matches = searchText.includes(query.toLowerCase());
         
         if (matches) {
@@ -2776,18 +2443,19 @@ function performInboxSearch(query) {
     
     // Update search feedback
     updateSearchFeedback(query, visibleCount);
-    console.log(`🔍 Search for "${query}" found ${visibleCount} results`);
+    console.log(`🔍 Search in ${currentInboxType.toUpperCase()} inbox for "${query}" found ${visibleCount} results`);
 }
 
 function clearInboxSearch() {
-    const messageItems = document.querySelectorAll('.customer-message-item');
-    messageItems.forEach(item => {
-        item.style.display = 'block';
-    });
+    // Restore the current inbox filter instead of showing all messages
+    filterMessagesByInboxType(currentInboxType);
+    
+    // Count visible messages in current inbox
+    const visibleCount = Object.values(messageStates).filter(state => state.status === currentInboxType).length;
     
     // Clear search feedback
-    updateSearchFeedback('', messageItems.length);
-    console.log('🔍 Search cleared - showing all messages');
+    updateSearchFeedback('', visibleCount);
+    console.log(`🔍 Search cleared - showing ${currentInboxType.toUpperCase()} inbox (${visibleCount} messages)`);
 }
 
 function updateSearchFeedback(query, resultCount) {
