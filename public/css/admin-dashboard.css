@@ -1321,7 +1321,7 @@ body.admin-dashboard::-webkit-scrollbar {
     
     /* Hide right panels - use overlay instead */
     .messages-right-panel, .chats-right-panel {
-        display: none;
+        display: none !important;
     }
     
     /* Make left panels full width */
@@ -2661,6 +2661,11 @@ body.admin-dashboard::-webkit-scrollbar {
     color: white;
 }
 
+.thread-status.locked {
+    background: #8b0000;
+    color: white;
+}
+
 .thread-participants {
     display: flex;
     flex-direction: column;
@@ -2832,11 +2837,38 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+.chat-content {
+    flex: 1; /* Take available space */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent container overflow */
+}
+
 .chat-bubbles-container {
     flex: 1;
     padding: 1rem;
     overflow-y: auto;
-    max-height: 400px;
+    max-height: calc(100vh - 410px); /* Match messages panel height */
+    min-height: 0; /* Allow flex shrinking */
+}
+
+/* Custom scrollbar for chat bubbles container */
+.chat-bubbles-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.chat-bubbles-container::-webkit-scrollbar-track {
+    background: #2d3748;
+    border-radius: 3px;
+}
+
+.chat-bubbles-container::-webkit-scrollbar-thumb {
+    background: #4a5568;
+    border-radius: 3px;
+}
+
+.chat-bubbles-container::-webkit-scrollbar-thumb:hover {
+    background: #5a6578;
 }
 
 .chat-admin-controls {

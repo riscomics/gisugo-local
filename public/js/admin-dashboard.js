@@ -146,6 +146,9 @@ function handleResponsiveSidebar() {
 }
 
 // ===== NAVIGATION SYSTEM =====
+// Global variable to track current active section
+let currentActiveSection = 'overview';
+
 function initializeNavigation() {
     const menuItems = document.querySelectorAll('.menu-item');
     const contentSections = document.querySelectorAll('.content-section');
@@ -153,6 +156,12 @@ function initializeNavigation() {
     menuItems.forEach(item => {
         item.addEventListener('click', function() {
             const targetSection = this.getAttribute('data-section');
+            
+            // Cleanup overlays from previous section
+            cleanupSectionOverlays();
+            
+            // Update current active section
+            currentActiveSection = targetSection;
             
             // Remove active class from all menu items
             menuItems.forEach(menu => menu.classList.remove('active'));
@@ -175,6 +184,41 @@ function initializeNavigation() {
             console.log(`📱 Navigated to: ${targetSection}`);
         });
     });
+}
+
+// Cleanup function to hide all overlays when switching sections
+function cleanupSectionOverlays() {
+    // Hide message overlay
+    const messageOverlay = document.getElementById('messageDetailOverlay');
+    if (messageOverlay) {
+        messageOverlay.style.display = '';
+        messageOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    // Hide chat overlay
+    const chatOverlay = document.getElementById('chatDetailOverlay');
+    if (chatOverlay) {
+        chatOverlay.style.display = '';
+        chatOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    // Hide gig overlay
+    const gigOverlay = document.getElementById('gigDetailOverlay');
+    if (gigOverlay) {
+        gigOverlay.style.display = '';
+        document.body.style.overflow = '';
+    }
+    
+    // Hide user overlay
+    const userOverlay = document.getElementById('userDetailOverlay');
+    if (userOverlay) {
+        userOverlay.style.display = '';
+        document.body.style.overflow = '';
+    }
+    
+    console.log('🧹 Cleaned up all section overlays');
 }
 
 // Update page title based on current section
@@ -1642,6 +1686,9 @@ function hideChatOverlay() {
 
 // Handle resize to switch between overlay/panel views for chats
 window.addEventListener('resize', () => {
+    // Only handle chats section resizing if chats is active
+    if (currentActiveSection !== 'chats') return;
+    
     const chatOverlay = document.getElementById('chatDetailOverlay');
     
     if (window.innerWidth >= 888 && chatOverlay && chatOverlay.classList.contains('active')) {
@@ -2957,8 +3004,11 @@ function generateMessageDetailContent(messageId) {
     `;
 }
 
-// Handle resize to switch between overlay/panel views
+// Handle resize to switch between overlay/panel views for Messages
 window.addEventListener('resize', () => {
+    // Only handle messages section resizing if messages is active
+    if (currentActiveSection !== 'messages') return;
+    
     const overlay = document.getElementById('messageDetailOverlay');
     
     if (window.innerWidth >= 888 && overlay && overlay.style.display === 'flex') {
@@ -4509,8 +4559,11 @@ function updateTabCounts() {
     document.getElementById('suspendedCount').textContent = suspendedCount;
 }
 
-// Handle resize to switch between overlay/panel views
+// Handle resize to switch between overlay/panel views for Gig Moderation
 window.addEventListener('resize', () => {
+    // Only handle gig moderation section resizing if moderation is active
+    if (currentActiveSection !== 'moderation') return;
+    
     const gigOverlay = document.getElementById('gigDetailOverlay');
     
     if (window.innerWidth >= 888 && gigOverlay && gigOverlay.style.display === 'flex') {
@@ -4530,6 +4583,12 @@ window.addEventListener('resize', () => {
 
 // Helper function to switch sections (used for Contact -> Messages flow)
 function switchAdminSection(sectionId) {
+    // Cleanup overlays from previous section
+    cleanupSectionOverlays();
+    
+    // Update current active section
+    currentActiveSection = sectionId;
+    
     // Hide all sections
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
