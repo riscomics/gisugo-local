@@ -1833,7 +1833,7 @@ function selectChat(chatId) {
     document.querySelector(`[data-chat-id="${chatId}"]`)?.classList.add('selected');
     
     // Check viewport to determine window or overlay
-    if (window.innerWidth <= 600) {
+    if (window.innerWidth <= 820) {
         showChatOverlay(chat);
     } else {
         showChatDetailWindow(chat);
