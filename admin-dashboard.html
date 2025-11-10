@@ -2799,7 +2799,12 @@
                         <div class="public-form-group">
                             <label class="public-form-label">Message Content:</label>
                             <textarea class="public-message-textarea" id="publicMessageTextarea" placeholder="Type your message to all users..." maxlength="1000"></textarea>
-                            <span class="char-counter" id="messageCharCounter">0/1000</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                                <span style="font-size: 0.75rem; color: rgba(230, 214, 174, 0.6);">
+                                    Formatting: **bold** | *italic* | Enter for line breaks
+                                </span>
+                                <span class="char-counter" id="messageCharCounter">0/1000</span>
+                            </div>
                         </div>
                     </div>
                     <div class="public-message-footer">

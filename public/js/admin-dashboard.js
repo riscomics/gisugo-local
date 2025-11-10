@@ -1943,6 +1943,26 @@ function resetPublicMessageForm() {
     if (messageCharCounter) messageCharCounter.textContent = '0/1000';
 }
 
+// ===== TEXT FORMATTING UTILITIES =====
+function formatMessageText(text) {
+    // Convert plain text to HTML with basic formatting
+    // Note: Since users can only type ** and * (no < or >), we don't need to escape HTML
+    
+    let formatted = text;
+    
+    // 1. Convert **bold** to <strong>
+    formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // 2. Convert *italic* to <em>
+    formatted = formatted.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    
+    // 3. Convert ALL newlines to <br> tags (preserves all line breaks)
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    // 4. Wrap in paragraph tag
+    return `<p>${formatted}</p>`;
+}
+
 function sendPublicMessage(category, subject, message) {
     console.log('📧 Sending public message:', { category, subject, message });
     
@@ -1951,12 +1971,15 @@ function sendPublicMessage(category, subject, message) {
     const timestamp = new Date().toISOString();
     const timeAgo = 'Just now';
     
+    // Format message text with HTML
+    const formattedMessage = formatMessageText(message);
+    
     // Create sent message data
     const sentMessage = {
         id: messageId,
         category: category,
         subject: subject,
-        message: message,
+        message: formattedMessage, // Use formatted HTML
         timestamp: timestamp,
         timeAgo: timeAgo,
         recipients: 'All Users',
@@ -1967,7 +1990,7 @@ function sendPublicMessage(category, subject, message) {
     sentPublicMessages[messageId] = {
         category: category,
         subject: subject,
-        message: message,
+        message: formattedMessage, // Store formatted version
         recipients: 'All Users'
     };
     
@@ -2091,7 +2114,7 @@ function showPublicMessageDetail(sentMessage) {
                 <h2>${sentMessage.subject}</h2>
             </div>
             <div class="message-detail-body">
-                <p>${sentMessage.message}</p>
+                ${sentMessage.message}
                 ${generateReplyThreadHTML(sentMessage.id)}
             </div>
             <div class="message-actions">
@@ -2175,7 +2198,7 @@ function showPublicMessageOverlay(sentMessage) {
         <div class="message-detail-body">
             <h2 class="detail-subject overlay-subject">${sentMessage.subject}</h2>
             <div class="message-content-inner">
-                <p>${sentMessage.message}</p>
+                ${sentMessage.message}
                 ${generateReplyThreadHTML(sentMessage.id)}
             </div>
             <div class="message-actions">
