@@ -2502,6 +2502,11 @@ NAVIGATION IMPORTANCE:
 */
 
 // Mock Messages Data (Firebase-ready structure)
+/**
+ * FIREBASE NOTE: This chat structure feeds into Admin Dashboard User Chats
+ * See admin-dashboard.js (line ~1330) for mapping details when implementing Firebase
+ * Key: threadId → admin.id, jobTitle → admin.gigTitle, content → admin.text, senderType → admin.sender
+ */
 const MOCK_MESSAGES = [
     {
         threadId: 1,

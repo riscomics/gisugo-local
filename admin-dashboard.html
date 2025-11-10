@@ -2417,8 +2417,56 @@
 
             <!-- Chats Management Section -->
             <section id="chats" class="content-section">
-                <h1 style="color: #10b981; text-align: center; padding: 4rem;">🚀 EMPTY - READY TO BUILD FROM SCRATCH</h1>
+                <div class="section-header">
+                    <h1 class="section-title">User Chats</h1>
+                    <p class="section-subtitle">Monitor and manage user-to-user conversations</p>
+                </div>
+
+                <div class="user-chats-layout">
+                    <!-- Left Panel: Chat List -->
+                    <div class="user-chats-left-panel">
+                        <!-- Chat Categories -->
+                        <div class="chat-categories">
+                            <button class="chat-category-btn active" data-category="new">
+                                CHATS <span class="category-count" id="newChatsCount">0</span>
+                            </button>
+                            <button class="chat-category-btn" data-category="flagged">
+                                FLAGGED <span class="category-count" id="flaggedChatsCount">0</span>
+                            </button>
+                            <button class="chat-category-btn" data-category="locked">
+                                LOCKED <span class="category-count" id="lockedChatsCount">0</span>
+                            </button>
+                        </div>
+
+                        <!-- Search Bar -->
+                        <div class="chat-search-bar">
+                            <input type="text" id="chatSearchInput" placeholder="Search by gig title..." class="chat-search-input">
+                        </div>
+
+                        <!-- Chat List Container (Scrollable) -->
+                        <div class="chat-list-container" id="chatListContainer">
+                            <!-- Chat items will be populated here by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Chat Details Window -->
+                    <div class="user-chats-right-panel">
+                        <div class="chat-detail-window" id="chatDetailWindow">
+                            <div class="chat-detail-placeholder">
+                                <div class="placeholder-icon">💬</div>
+                                <p>Select a chat to view conversation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
+
+            <!-- Chat Detail Overlay (Mobile) -->
+            <div id="chatDetailOverlay" class="chat-detail-overlay">
+                <div class="chat-overlay-content">
+                    <!-- Content will be dynamically populated -->
+                </div>
+            </div>
 
             <!-- Financial Management Section -->
             <section id="finance" class="content-section">

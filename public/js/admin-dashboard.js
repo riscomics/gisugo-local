@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize admin messages system
     initializeAdminMessages();
     
-    // CHATS SYSTEM DELETED - READY TO REBUILD
+    // Initialize user chats system
+    initializeUserChats();
     
     // Initialize reply modal system
     initializeReplyModal();
@@ -1325,7 +1326,1051 @@ function updateReplyStatus(status) {
     }
 }
 
-// ===== CHATS SYSTEM - DELETED - READY TO REBUILD =====
+// ===== USER CHATS SYSTEM =====
+
+/**
+ * FIREBASE BACKEND INTEGRATION NOTES:
+ * 
+ * CURRENT STRUCTURE (Mock Data):
+ * - id: Unique chat identifier
+ * - gigTitle: Job/gig title (55 char limit)
+ * - participants: Array[2] with {name, role, avatar}
+ * - initiator: 'customer' or 'worker' (who started chat)
+ * - dateCreated: ISO timestamp
+ * - status: 'new' | 'flagged' | 'locked'
+ * - messages: Array with {sender, senderName, text, time, photo (optional)}
+ * 
+ * FIREBASE MAPPING REQUIRED:
+ * - Firestore threadId → id
+ * - Firestore jobTitle → gigTitle
+ * - Firestore participants (UIDs array) → expand to full participant objects with names/avatars
+ * - Firestore message.content → text
+ * - Firestore message.senderType → sender
+ * - Firestore message.timestamp → time (ISO string)
+ * - Firestore message.photoURL → photo (if exists)
+ * 
+ * FIRESTORE STRUCTURE NEEDED:
+ * conversations/{threadId}
+ *   - jobId, jobTitle, participants[], createdAt, adminStatus ('new'|'flagged'|'locked')
+ *   - messages/{messageId}: senderId, senderType, content, timestamp, photoURL
+ * 
+ * See messages.js lines ~2515-2620 for customer/worker chat structure reference
+ */
+
+// Mock User Chat Data
+const userChatsData = [
+    {
+        id: 'chat_001',
+        gigTitle: 'Professional Deep House Cleaning - 3BR/2BA Downtown',
+        participants: [
+            { name: 'Maria Rodriguez', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=1' },
+            { name: 'Sofia Chen', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=5' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-11-08T14:30:00',
+        status: 'new',
+        messages: [
+            { sender: 'customer', senderName: 'Maria Rodriguez', text: 'Hi! I saw your profile and would like to hire you for a house cleaning job this weekend.', time: '2024-11-08T14:30:00' },
+            { sender: 'worker', senderName: 'Sofia Chen', text: 'Hello! Thank you for reaching out. I\'d be happy to help. What day were you thinking?', time: '2024-11-08T14:35:00' },
+            { sender: 'customer', senderName: 'Maria Rodriguez', text: 'Saturday morning around 9 AM would be perfect. The house is about 1,500 sq ft.', time: '2024-11-08T14:40:00' },
+            { sender: 'worker', senderName: 'Sofia Chen', text: 'That works for me! I charge $150 for a 3BR/2BA deep clean. Does that sound reasonable?', time: '2024-11-08T14:45:00' },
+            { sender: 'customer', senderName: 'Maria Rodriguez', text: 'Yes, that\'s perfect! I\'ll send you the address. See you Saturday!', time: '2024-11-08T14:50:00' },
+            { sender: 'worker', senderName: 'Sofia Chen', text: 'Great! Looking forward to it. I\'ll bring my own supplies.', time: '2024-11-08T14:52:00' },
+            { sender: 'customer', senderName: 'Maria Rodriguez', text: 'Do you do windows too?', time: '2024-11-08T14:55:00' },
+            { sender: 'worker', senderName: 'Sofia Chen', text: 'Yes! Window cleaning is included in the deep clean package.', time: '2024-11-08T14:58:00' },
+            { sender: 'customer', senderName: 'Maria Rodriguez', text: 'Perfect! Here\'s a photo of the house exterior for reference.', time: '2024-11-08T15:00:00', photo: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=400' },
+            { sender: 'worker', senderName: 'Sofia Chen', text: 'Beautiful home! I\'ll make it shine.', time: '2024-11-08T15:02:00' },
+            { sender: 'customer', senderName: 'Maria Rodriguez', text: 'Thank you! See you Saturday at 9 AM sharp.', time: '2024-11-08T15:05:00' }
+        ]
+    },
+    {
+        id: 'chat_002',
+        gigTitle: 'Weekly Lawn Mowing, Edging & Yard Maintenance Service',
+        participants: [
+            { name: 'James Wilson', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=12' },
+            { name: 'Linda Thompson', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=10' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-11-09T10:15:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'James Wilson', text: 'Hi Linda! I noticed you posted a job for lawn maintenance. I have 5 years of experience and can start this week.', time: '2024-11-09T10:15:00' },
+            { sender: 'customer', senderName: 'Linda Thompson', text: 'Great! What are your rates?', time: '2024-11-09T10:20:00' },
+            { sender: 'worker', senderName: 'James Wilson', text: 'For weekly mowing, edging, and basic trimming, I charge $60 per visit. Your yard looks about average size.', time: '2024-11-09T10:25:00' },
+            { sender: 'customer', senderName: 'Linda Thompson', text: 'That sounds fair. Can you come by Thursday to take a look at the backyard too?', time: '2024-11-09T10:30:00' },
+            { sender: 'worker', senderName: 'James Wilson', text: 'Absolutely! I can stop by Thursday afternoon around 2 PM. What\'s the address?', time: '2024-11-09T10:35:00' },
+            { sender: 'customer', senderName: 'Linda Thompson', text: '1425 Maple Street. There\'s a side gate you can use to access the backyard.', time: '2024-11-09T10:40:00' },
+            { sender: 'worker', senderName: 'James Wilson', text: 'Perfect! I\'ll bring my equipment and give you a quote after seeing the full property.', time: '2024-11-09T10:42:00' },
+            { sender: 'customer', senderName: 'Linda Thompson', text: 'Sounds good. See you Thursday!', time: '2024-11-09T10:45:00' }
+        ]
+    },
+    {
+        id: 'chat_003',
+        gigTitle: 'Professional Dog Walking - Golden Retriever (3x Weekly)',
+        participants: [
+            { name: 'Emma Davis', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=9' },
+            { name: 'Alex Martinez', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=13' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-11-07T16:45:00',
+        status: 'flagged',
+        messages: [
+            { sender: 'customer', senderName: 'Emma Davis', text: 'Hi! I need someone to walk my dog 3 times a week. Are you available?', time: '2024-11-07T16:45:00' },
+            { sender: 'worker', senderName: 'Alex Martinez', text: 'Yes! I love dogs. What breed?', time: '2024-11-07T16:50:00' },
+            { sender: 'customer', senderName: 'Emma Davis', text: 'He\'s a 2-year-old Golden Retriever named Max. Very friendly!', time: '2024-11-07T16:55:00' },
+            { sender: 'customer', senderName: 'Emma Davis', text: 'Here\'s a photo of him!', time: '2024-11-07T16:56:00', photo: 'https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400' },
+            { sender: 'worker', senderName: 'Alex Martinez', text: 'Aww, what a cutie! Perfect! I charge $25 per walk (30 minutes). When do you need me to start?', time: '2024-11-07T17:00:00' },
+            { sender: 'customer', senderName: 'Emma Davis', text: 'Can you start tomorrow? Also, can you do off-leash training?', time: '2024-11-07T17:05:00' },
+            { sender: 'worker', senderName: 'Alex Martinez', text: 'I\'m not certified for training, but I know someone who is. Want their contact?', time: '2024-11-07T17:10:00' },
+            { sender: 'customer', senderName: 'Emma Davis', text: 'Sure, that would be great! For the walks, Monday-Wednesday-Friday work?', time: '2024-11-07T17:15:00' },
+            { sender: 'worker', senderName: 'Alex Martinez', text: 'Perfect schedule! I\'ll text you my friend\'s number for training.', time: '2024-11-07T17:20:00' }
+        ]
+    },
+    {
+        id: 'chat_004',
+        gigTitle: 'Expert IKEA Furniture Assembly - Full Bedroom Set Install',
+        participants: [
+            { name: 'Michael Brown', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=14' },
+            { name: 'Sarah Johnson', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=16' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-11-06T13:20:00',
+        status: 'locked',
+        messages: [
+            { sender: 'worker', senderName: 'Michael Brown', text: 'Hey! I saw you need help with furniture assembly. I\'ve built over 200 IKEA pieces.', time: '2024-11-06T13:20:00' },
+            { sender: 'customer', senderName: 'Sarah Johnson', text: 'That\'s impressive! How much do you charge?', time: '2024-11-06T13:25:00' },
+            { sender: 'worker', senderName: 'Michael Brown', text: 'I charge $40/hour. A bedroom set usually takes 3-4 hours.', time: '2024-11-06T13:30:00' },
+            { sender: 'customer', senderName: 'Sarah Johnson', text: 'Sounds good. Can you come this Saturday?', time: '2024-11-06T13:35:00' },
+            { sender: 'worker', senderName: 'Michael Brown', text: 'Actually, I need payment upfront via Venmo. Is that cool?', time: '2024-11-06T13:40:00' },
+            { sender: 'customer', senderName: 'Sarah Johnson', text: 'I prefer to pay through the platform for security.', time: '2024-11-06T13:45:00' },
+            { sender: 'worker', senderName: 'Michael Brown', text: 'The platform takes too much commission. I only do direct payment.', time: '2024-11-06T13:50:00' },
+            { sender: 'customer', senderName: 'Sarah Johnson', text: 'I understand but I\'m not comfortable with that. Can we stick to the platform?', time: '2024-11-06T13:55:00' },
+            { sender: 'worker', senderName: 'Michael Brown', text: 'Sorry, that\'s my policy. Best of luck finding someone else.', time: '2024-11-06T14:00:00' }
+        ]
+    },
+    {
+        id: 'chat_005',
+        gigTitle: 'High School Algebra II & Calculus Tutoring Sessions',
+        participants: [
+            { name: 'Dr. Jennifer Lee', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=20' },
+            { name: 'Robert Kim', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=15' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-11-10T09:00:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Dr. Jennifer Lee', text: 'Hello! I\'m a certified math teacher with a PhD. I saw your request for Algebra II tutoring.', time: '2024-11-10T09:00:00' },
+            { sender: 'customer', senderName: 'Robert Kim', text: 'Yes! My son is struggling with quadratic equations. Can you help?', time: '2024-11-10T09:05:00' },
+            { sender: 'worker', senderName: 'Dr. Jennifer Lee', text: 'Absolutely! I specialize in Algebra and have 10+ years of tutoring experience. I charge $50 per hour.', time: '2024-11-10T09:10:00' },
+            { sender: 'customer', senderName: 'Robert Kim', text: 'That\'s reasonable. Are you available weekday evenings?', time: '2024-11-10T09:15:00' },
+            { sender: 'worker', senderName: 'Dr. Jennifer Lee', text: 'Yes! I\'m free Monday-Thursday from 4-7 PM. We can do in-person or online sessions.', time: '2024-11-10T09:20:00' },
+            { sender: 'customer', senderName: 'Robert Kim', text: 'Online would be great. Do you use Zoom?', time: '2024-11-10T09:25:00' },
+            { sender: 'worker', senderName: 'Dr. Jennifer Lee', text: 'Yes, I use Zoom with a digital whiteboard. Very interactive!', time: '2024-11-10T09:30:00' },
+            { sender: 'customer', senderName: 'Robert Kim', text: 'Perfect! Can we start Monday at 5 PM?', time: '2024-11-10T09:35:00' }
+        ]
+    },
+    {
+        id: 'chat_006',
+        gigTitle: 'Professional Moving Service - 2BR Apartment with Truck',
+        participants: [
+            { name: 'Carlos Mendoza', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=17' },
+            { name: 'Tom Anderson', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=18' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-11-05T11:30:00',
+        status: 'locked',
+        messages: [
+            { sender: 'customer', senderName: 'Carlos Mendoza', text: 'Hi! I need help moving next weekend. Can you assist?', time: '2024-11-05T11:30:00' },
+            { sender: 'worker', senderName: 'Tom Anderson', text: 'Sure! How many bedrooms and do you have heavy furniture?', time: '2024-11-05T11:35:00' },
+            { sender: 'customer', senderName: 'Carlos Mendoza', text: '2 bedrooms, a couch, dining table, and bed. All going to a place 10 miles away.', time: '2024-11-05T11:40:00' },
+            { sender: 'worker', senderName: 'Tom Anderson', text: 'I can do it for $200 with my truck. Takes about 4 hours.', time: '2024-11-05T11:45:00' },
+            { sender: 'customer', senderName: 'Carlos Mendoza', text: 'Can we do $150? I\'m on a tight budget.', time: '2024-11-05T11:50:00' },
+            { sender: 'worker', senderName: 'Tom Anderson', text: 'Sorry man, my lowest is $180. Gas and insurance aren\'t cheap.', time: '2024-11-05T11:55:00' },
+            { sender: 'customer', senderName: 'Carlos Mendoza', text: 'I understand. $180 works. What time Saturday?', time: '2024-11-05T12:00:00' },
+            { sender: 'worker', senderName: 'Tom Anderson', text: 'How about 9 AM? We\'ll be done by lunch.', time: '2024-11-05T12:05:00' }
+        ]
+    },
+    {
+        id: 'chat_007',
+        gigTitle: 'Weekend Pet Sitting - Two Indoor Cats (Fri-Sun)',
+        participants: [
+            { name: 'Rachel Green', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=19' },
+            { name: 'David Park', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=11' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-11-09T15:00:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Rachel Green', text: 'Hi David! I\'m an experienced pet sitter and saw you need someone for your cats this weekend.', time: '2024-11-09T15:00:00' },
+            { sender: 'customer', senderName: 'David Park', text: 'Yes! I\'ll be out of town Friday-Sunday. They need feeding and litter box cleaning.', time: '2024-11-09T15:05:00' },
+            { sender: 'worker', senderName: 'Rachel Green', text: 'I can visit twice daily (morning and evening) for $35 per day. Total would be $105.', time: '2024-11-09T15:10:00' },
+            { sender: 'customer', senderName: 'David Park', text: 'Perfect! They\'re very friendly. Do you need a key or should I leave it with the neighbor?', time: '2024-11-09T15:15:00' },
+            { sender: 'worker', senderName: 'Rachel Green', text: 'I can pick up the key from you before you leave. When do you depart?', time: '2024-11-09T15:20:00' },
+            { sender: 'customer', senderName: 'David Park', text: 'Friday morning around 7 AM. Can you stop by Thursday evening?', time: '2024-11-09T15:25:00' },
+            { sender: 'worker', senderName: 'Rachel Green', text: 'Absolutely! I\'ll come by around 6 PM Thursday. See you then!', time: '2024-11-09T15:30:00' }
+        ]
+    },
+    {
+        id: 'chat_008',
+        gigTitle: 'Weekly Grocery Shopping & Home Delivery (Whole Foods)',
+        participants: [
+            { name: 'Patricia Martinez', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=25' },
+            { name: 'Kevin Nguyen', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=27' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-11-08T08:45:00',
+        status: 'flagged',
+        messages: [
+            { sender: 'customer', senderName: 'Patricia Martinez', text: 'I need someone to do my grocery shopping every Tuesday. Are you available?', time: '2024-11-08T08:45:00' },
+            { sender: 'worker', senderName: 'Kevin Nguyen', text: 'Yes! I do weekly grocery runs for several clients. What store do you prefer?', time: '2024-11-08T08:50:00' },
+            { sender: 'customer', senderName: 'Patricia Martinez', text: 'Whole Foods, please. Usually around $150-200 worth of items.', time: '2024-11-08T08:55:00' },
+            { sender: 'worker', senderName: 'Kevin Nguyen', text: 'I charge $25 for shopping + delivery. You cover the groceries separately of course.', time: '2024-11-08T09:00:00' },
+            { sender: 'customer', senderName: 'Patricia Martinez', text: 'That\'s fine. Can you start this week?', time: '2024-11-08T09:05:00' },
+            { sender: 'worker', senderName: 'Kevin Nguyen', text: 'Sure! Just send me your list and I\'ll grab everything. Also, tip me well please :)', time: '2024-11-08T09:10:00' },
+            { sender: 'customer', senderName: 'Patricia Martinez', text: 'That last comment seems inappropriate. I\'ll tip based on service quality.', time: '2024-11-08T09:15:00' },
+            { sender: 'worker', senderName: 'Kevin Nguyen', text: 'Just kidding! I always provide great service. Send me the list!', time: '2024-11-08T09:20:00' }
+        ]
+    },
+    {
+        id: 'chat_009',
+        gigTitle: 'Website Design & Development - Small Business Portfolio',
+        participants: [
+            { name: 'Olivia Turner', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=29' },
+            { name: 'Marcus Johnson', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=30' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-11-04T14:20:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Olivia Turner', text: 'Hi Marcus! I saw you need a website for your photography business. I specialize in portfolio websites.', time: '2024-11-04T14:20:00' },
+            { sender: 'customer', senderName: 'Marcus Johnson', text: 'Yes! I need something clean and modern to showcase my work.', time: '2024-11-04T14:25:00' },
+            { sender: 'worker', senderName: 'Olivia Turner', text: 'I can create a responsive portfolio with galleries, contact form, and blog. Takes 2-3 weeks.', time: '2024-11-04T14:30:00' },
+            { sender: 'customer', senderName: 'Marcus Johnson', text: 'Perfect! What\'s your rate?', time: '2024-11-04T14:35:00' },
+            { sender: 'worker', senderName: 'Olivia Turner', text: 'For a basic portfolio: $800. Includes hosting setup and 2 rounds of revisions.', time: '2024-11-04T14:40:00' }
+        ]
+    },
+    {
+        id: 'chat_010',
+        gigTitle: 'Car Detailing & Deep Interior Cleaning (SUV)',
+        participants: [
+            { name: 'Brandon Lee', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=31' },
+            { name: 'Tyler Santos', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=32' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-11-03T11:45:00',
+        status: 'new',
+        messages: [
+            { sender: 'customer', senderName: 'Brandon Lee', text: 'I need my SUV detailed. It hasn\'t been cleaned in months.', time: '2024-11-03T11:45:00' },
+            { sender: 'worker', senderName: 'Tyler Santos', text: 'I do full detailing! Interior, exterior, wax, everything. What model SUV?', time: '2024-11-03T11:50:00' },
+            { sender: 'customer', senderName: 'Brandon Lee', text: '2020 Honda CR-V. Lots of pet hair and some stains.', time: '2024-11-03T11:55:00' },
+            { sender: 'worker', senderName: 'Tyler Santos', text: 'No problem! I have a pet hair vacuum and stain removers. $180 for full detail.', time: '2024-11-03T12:00:00' }
+        ]
+    },
+    {
+        id: 'chat_011',
+        gigTitle: 'Personal Training Sessions - Weight Loss & Cardio Focus',
+        participants: [
+            { name: 'Jessica Williams', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=33' },
+            { name: 'Amanda Clark', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=34' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-11-02T16:30:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Jessica Williams', text: 'Hi Amanda! I\'m a certified personal trainer. I saw you\'re looking for weight loss support.', time: '2024-11-02T16:30:00' },
+            { sender: 'customer', senderName: 'Amanda Clark', text: 'Yes! I need to lose 30 pounds and get back in shape.', time: '2024-11-02T16:35:00' },
+            { sender: 'worker', senderName: 'Jessica Williams', text: 'I can help! I offer customized workout plans + nutrition guidance. 3 sessions/week recommended.', time: '2024-11-02T16:40:00' },
+            { sender: 'customer', senderName: 'Amanda Clark', text: 'How much per session?', time: '2024-11-02T16:45:00' },
+            { sender: 'worker', senderName: 'Jessica Williams', text: '$60/session. I also offer packages: 12 sessions for $600 (save $120!)', time: '2024-11-02T16:50:00' }
+        ]
+    },
+    {
+        id: 'chat_012',
+        gigTitle: 'Photo Editing & Retouching - Wedding Album (200+ Photos)',
+        participants: [
+            { name: 'Daniel Park', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=35' },
+            { name: 'Nina Rodriguez', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=36' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-11-01T09:15:00',
+        status: 'flagged',
+        messages: [
+            { sender: 'customer', senderName: 'Daniel Park', text: 'I need professional editing for my wedding photos. About 250 photos total.', time: '2024-11-01T09:15:00' },
+            { sender: 'worker', senderName: 'Nina Rodriguez', text: 'Congratulations! I do wedding photo editing. Color correction, skin retouching, the works.', time: '2024-11-01T09:20:00' },
+            { sender: 'customer', senderName: 'Daniel Park', text: 'Great! Timeline and pricing?', time: '2024-11-01T09:25:00' },
+            { sender: 'worker', senderName: 'Nina Rodriguez', text: 'For 250 photos: $500. Takes 10-14 days. I\'ll need 50% upfront.', time: '2024-11-01T09:30:00' },
+            { sender: 'customer', senderName: 'Daniel Park', text: 'Upfront payment makes me nervous. Can we do payment on delivery?', time: '2024-11-01T09:35:00' },
+            { sender: 'worker', senderName: 'Nina Rodriguez', text: 'I understand, but it\'s industry standard. I can show you my portfolio and references.', time: '2024-11-01T09:40:00' }
+        ]
+    },
+    {
+        id: 'chat_013',
+        gigTitle: 'Event Planning & Coordination - 50th Birthday Party',
+        participants: [
+            { name: 'Michelle Chen', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=37' },
+            { name: 'Robert Miller', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=38' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-10-31T13:00:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Michelle Chen', text: 'Hello Robert! I\'m an event planner and saw you need help with a 50th birthday party.', time: '2024-10-31T13:00:00' },
+            { sender: 'customer', senderName: 'Robert Miller', text: 'Yes! It\'s for my wife. Want to make it special but don\'t know where to start.', time: '2024-10-31T13:05:00' },
+            { sender: 'worker', senderName: 'Michelle Chen', text: 'I can handle everything: venue, catering, decorations, entertainment. How many guests?', time: '2024-10-31T13:10:00' },
+            { sender: 'customer', senderName: 'Robert Miller', text: 'Around 60-70 people. Budget is $5,000.', time: '2024-10-31T13:15:00' },
+            { sender: 'worker', senderName: 'Michelle Chen', text: 'Perfect budget! I charge 15% of total budget for planning. Let\'s set up a consultation call.', time: '2024-10-31T13:20:00' }
+        ]
+    },
+    {
+        id: 'chat_014',
+        gigTitle: 'Plumbing Repair - Kitchen Sink Leak & Garbage Disposal',
+        participants: [
+            { name: 'Steve Martinez', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=39' },
+            { name: 'Mike Thompson', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=40' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-10-30T08:30:00',
+        status: 'locked',
+        messages: [
+            { sender: 'customer', senderName: 'Steve Martinez', text: 'My kitchen sink has been leaking under the cabinet. Also garbage disposal isn\'t working.', time: '2024-10-30T08:30:00' },
+            { sender: 'worker', senderName: 'Mike Thompson', text: 'I\'m a licensed plumber. Sounds like you might need new pipes and disposal replacement.', time: '2024-10-30T08:35:00' },
+            { sender: 'customer', senderName: 'Steve Martinez', text: 'How soon can you come look at it?', time: '2024-10-30T08:40:00' },
+            { sender: 'worker', senderName: 'Mike Thompson', text: 'I can come today at 2 PM. $80 service call, then parts + labor for repairs.', time: '2024-10-30T08:45:00' },
+            { sender: 'customer', senderName: 'Steve Martinez', text: 'See you at 2 PM. My address is 742 Oak Drive.', time: '2024-10-30T08:50:00' }
+        ]
+    },
+    {
+        id: 'chat_015',
+        gigTitle: 'Logo Design & Brand Identity - Tech Startup Package',
+        participants: [
+            { name: 'Chris Wong', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=41' },
+            { name: 'Sarah Anderson', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=42' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-10-29T10:45:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Chris Wong', text: 'Hi Sarah! I\'m a graphic designer and saw you need a logo for your tech startup.', time: '2024-10-29T10:45:00' },
+            { sender: 'customer', senderName: 'Sarah Anderson', text: 'Yes! We\'re launching an AI productivity app. Need logo + brand colors.', time: '2024-10-29T10:50:00' },
+            { sender: 'worker', senderName: 'Chris Wong', text: 'Exciting! I can create a modern logo with brand style guide. What\'s your timeline?', time: '2024-10-29T10:55:00' },
+            { sender: 'customer', senderName: 'Sarah Anderson', text: 'Need it in 3 weeks max. We\'re launching beta soon.', time: '2024-10-29T11:00:00' },
+            { sender: 'worker', senderName: 'Chris Wong', text: '3 weeks works! Package: logo + color palette + typography guide = $1,200', time: '2024-10-29T11:05:00' },
+            { sender: 'customer', senderName: 'Sarah Anderson', text: 'Can I see your portfolio first?', time: '2024-10-29T11:10:00' },
+            { sender: 'worker', senderName: 'Chris Wong', text: 'Of course! Here are some recent tech logos I designed.', time: '2024-10-29T11:12:00', photo: 'https://images.unsplash.com/photo-1626785774573-4b799315345d?w=400' }
+        ]
+    },
+    {
+        id: 'chat_016',
+        gigTitle: 'Electrical Work - Install Ceiling Fans & Outdoor Lighting',
+        participants: [
+            { name: 'Linda Garcia', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=43' },
+            { name: 'James Cooper', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=44' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-10-28T14:15:00',
+        status: 'new',
+        messages: [
+            { sender: 'customer', senderName: 'Linda Garcia', text: 'I need 3 ceiling fans installed and some outdoor security lights.', time: '2024-10-28T14:15:00' },
+            { sender: 'worker', senderName: 'James Cooper', text: 'Licensed electrician here! I can do both. Do you already have the fans and lights?', time: '2024-10-28T14:20:00' },
+            { sender: 'customer', senderName: 'Linda Garcia', text: 'Yes, I bought everything from Home Depot already.', time: '2024-10-28T14:25:00' },
+            { sender: 'worker', senderName: 'James Cooper', text: 'Perfect! Installation only: $250 for 3 fans + $150 for outdoor lights. Takes one day.', time: '2024-10-28T14:30:00' }
+        ]
+    },
+    {
+        id: 'chat_017',
+        gigTitle: 'Social Media Management - Instagram & TikTok (Monthly)',
+        participants: [
+            { name: 'Emma Davis', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=45' },
+            { name: 'Jason Taylor', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=46' }
+        ],
+        initiator: 'worker',
+        dateCreated: '2024-10-27T16:50:00',
+        status: 'new',
+        messages: [
+            { sender: 'worker', senderName: 'Emma Davis', text: 'Hi Jason! I manage social media for small businesses. Saw you need help with Instagram & TikTok.', time: '2024-10-27T16:50:00' },
+            { sender: 'customer', senderName: 'Jason Taylor', text: 'Yes! My coffee shop needs more online presence. No time to post regularly.', time: '2024-10-27T16:55:00' },
+            { sender: 'worker', senderName: 'Emma Davis', text: 'I can post 4x/week on each platform. Content creation, scheduling, engagement. $600/month.', time: '2024-10-27T17:00:00' },
+            { sender: 'customer', senderName: 'Jason Taylor', text: 'Will you create the content or do I need to provide photos?', time: '2024-10-27T17:05:00' },
+            { sender: 'worker', senderName: 'Emma Davis', text: 'I can work with your existing photos or come take new ones monthly. Included in price!', time: '2024-10-27T17:10:00' }
+        ]
+    },
+    {
+        id: 'chat_018',
+        gigTitle: 'Piano Lessons - Beginner Adult Student (Weekly Sessions)',
+        participants: [
+            { name: 'Michael Brown', role: 'customer', avatar: 'https://i.pravatar.cc/150?img=47' },
+            { name: 'Grace Kim', role: 'worker', avatar: 'https://i.pravatar.cc/150?img=48' }
+        ],
+        initiator: 'customer',
+        dateCreated: '2024-10-26T12:20:00',
+        status: 'new',
+        messages: [
+            { sender: 'customer', senderName: 'Michael Brown', text: 'I\'m 35 and always wanted to learn piano. Is it too late?', time: '2024-10-26T12:20:00' },
+            { sender: 'worker', senderName: 'Grace Kim', text: 'Never too late! I teach adults all the time. It\'s actually very rewarding.', time: '2024-10-26T12:25:00' },
+            { sender: 'customer', senderName: 'Michael Brown', text: 'Great! I don\'t have a piano yet though.', time: '2024-10-26T12:30:00' },
+            { sender: 'worker', senderName: 'Grace Kim', text: 'You can start with a keyboard. I recommend Yamaha P-45 for beginners (~$500).', time: '2024-10-26T12:35:00' },
+            { sender: 'customer', senderName: 'Michael Brown', text: 'Perfect! Once I get one, what are your rates?', time: '2024-10-26T12:40:00' },
+            { sender: 'worker', senderName: 'Grace Kim', text: '$45 for 1-hour lessons. Weekly is best for building skills consistently.', time: '2024-10-26T12:45:00' }
+        ]
+    }
+];
+
+// Chat State Management
+let currentChatCategory = 'new';
+let chatStates = {};
+
+// Initialize chat states from mock data
+function initializeChatStates() {
+    userChatsData.forEach(chat => {
+        chatStates[chat.id] = {
+            status: chat.status,
+            isFlagged: chat.status === 'flagged',
+            isLocked: chat.status === 'locked'
+        };
+    });
+}
+
+// Initialize User Chats System
+function initializeUserChats() {
+    console.log('🚀 Initializing User Chats System...');
+    
+    initializeChatStates();
+    renderChatList();
+    initializeChatCategoryToggle();
+    initializeChatSearch();
+    updateChatCategoryCounts();
+    
+    console.log('✅ User Chats System initialized');
+}
+
+// Render Chat List
+function renderChatList() {
+    const chatListContainer = document.getElementById('chatListContainer');
+    if (!chatListContainer) return;
+    
+    // Filter chats by current category
+    const filteredChats = userChatsData.filter(chat => {
+        const state = chatStates[chat.id];
+        if (currentChatCategory === 'new') {
+            return state.status === 'new';
+        } else if (currentChatCategory === 'flagged') {
+            return state.isFlagged;
+        } else if (currentChatCategory === 'locked') {
+            return state.isLocked;
+        }
+        return false;
+    });
+    
+    // Sort by date created (newest first)
+    filteredChats.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
+    
+    // Render chat items
+    chatListContainer.innerHTML = filteredChats.map(chat => {
+        const state = chatStates[chat.id];
+        const dateFormatted = new Date(chat.dateCreated).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        let statusBadges = '';
+        if (state.isFlagged) {
+            statusBadges += '<span class="chat-status-badge flagged">FLAGGED</span>';
+        }
+        if (state.isLocked) {
+            statusBadges += '<span class="chat-status-badge locked">LOCKED</span>';
+        }
+        
+        return `
+            <div class="chat-item-card" data-chat-id="${chat.id}">
+                <div class="chat-item-header">
+                    <div class="chat-gig-title">${chat.gigTitle}</div>
+                    <div class="chat-item-date">${dateFormatted}</div>
+                </div>
+                <div class="chat-participants">
+                    ${chat.participants.map(p => `
+                        <div class="chat-participant">
+                            ${p.avatar.startsWith('http') ? 
+                                `<img src="${p.avatar}" class="participant-avatar" alt="${p.name}" />` : 
+                                `<div class="participant-avatar">${p.avatar}</div>`}
+                            <span>${p.name}</span>
+                            <span class="participant-role ${p.role}">${p.role}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                ${statusBadges ? `<div class="chat-status-badges">${statusBadges}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+    
+    // Add lazy loading indicator (placeholder for backend pagination)
+    if (filteredChats.length > 0) {
+        chatListContainer.innerHTML += `
+            <div style="padding: 1rem; text-align: center; color: rgba(230, 214, 174, 0.5); font-size: 0.85rem;">
+                <!-- Lazy loading will fetch more chats from backend -->
+            </div>
+        `;
+    }
+    
+    // Add click handlers to chat cards
+    const chatCards = chatListContainer.querySelectorAll('.chat-item-card');
+    chatCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const chatId = card.getAttribute('data-chat-id');
+            selectChat(chatId);
+        });
+    });
+}
+
+// Select and Display Chat
+function selectChat(chatId) {
+    const chat = userChatsData.find(c => c.id === chatId);
+    if (!chat) return;
+    
+    // Update selected state
+    document.querySelectorAll('.chat-item-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    document.querySelector(`[data-chat-id="${chatId}"]`)?.classList.add('selected');
+    
+    // Check viewport to determine window or overlay
+    if (window.innerWidth <= 600) {
+        showChatOverlay(chat);
+    } else {
+        showChatDetailWindow(chat);
+    }
+}
+
+// Show Chat in Detail Window (Desktop)
+function showChatDetailWindow(chat) {
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (!chatDetailWindow) return;
+    
+    const state = chatStates[chat.id];
+    const dateFormatted = new Date(chat.dateCreated).toLocaleString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+    
+    chatDetailWindow.innerHTML = `
+        <div class="chat-detail-header">
+            <div class="chat-detail-title">${chat.gigTitle}</div>
+            <div class="chat-detail-participants">
+                ${chat.participants.map(p => `
+                    <div class="chat-detail-participant">
+                        ${p.avatar.startsWith('http') ? 
+                            `<img src="${p.avatar}" class="participant-avatar-large" alt="${p.name}" />` : 
+                            `<div class="participant-avatar-large">${p.avatar}</div>`}
+                        <div class="participant-info">
+                            <span class="participant-name">${p.name}</span>
+                            <span class="participant-role ${p.role}">${p.role}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="chat-detail-date">Created: ${dateFormatted}</div>
+        </div>
+        
+        <div class="chat-messages-body">
+            ${chat.messages.map(msg => {
+                const msgTime = new Date(msg.time).toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit' 
+                });
+                return `
+                    <div class="chat-message-bubble sender-${msg.sender}">
+                        <div class="chat-message-meta">
+                            <span class="chat-message-sender">${msg.senderName}</span>
+                            <span class="chat-message-time">${msgTime}</span>
+                        </div>
+                        <div class="chat-message-text">${msg.text}</div>
+                        ${msg.photo ? `<div class="chat-message-photo"><img src="${msg.photo}" alt="Shared photo" /></div>` : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        
+        <div class="chat-detail-footer">
+            ${currentChatCategory === 'flagged' ? `
+                <button class="chat-action-btn ignore" data-chat-id="${chat.id}">
+                    Ignore
+                </button>
+            ` : `
+                <button class="chat-action-btn flag ${state.isFlagged ? 'flagged' : ''}" data-chat-id="${chat.id}">
+                    ${state.isFlagged ? '🚩 Flagged' : 'Flag'}
+                </button>
+            `}
+            ${currentChatCategory === 'locked' ? `
+                <button class="chat-action-btn unlock" data-chat-id="${chat.id}">
+                    🔓 Unlock
+                </button>
+            ` : `
+                <button class="chat-action-btn lock ${state.isLocked ? 'locked' : ''}" data-chat-id="${chat.id}">
+                    ${state.isLocked ? '🔒 Locked' : 'Lock'}
+                </button>
+            `}
+            <button class="chat-action-btn close" data-chat-id="${chat.id}">
+                Close
+            </button>
+        </div>
+    `;
+    
+    // Add action button handlers
+    attachChatActionHandlers();
+}
+
+// Show Chat in Overlay (Mobile)
+function showChatOverlay(chat) {
+    const overlay = document.getElementById('chatDetailOverlay');
+    const overlayContent = overlay.querySelector('.chat-overlay-content');
+    if (!overlay || !overlayContent) return;
+    
+    const state = chatStates[chat.id];
+    const dateFormatted = new Date(chat.dateCreated).toLocaleString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+    
+    overlayContent.innerHTML = `
+        <div class="chat-detail-header">
+            <div class="chat-detail-title">${chat.gigTitle}</div>
+            <div class="chat-detail-participants">
+                ${chat.participants.map(p => `
+                    <div class="chat-detail-participant">
+                        ${p.avatar.startsWith('http') ? 
+                            `<img src="${p.avatar}" class="participant-avatar-large" alt="${p.name}" />` : 
+                            `<div class="participant-avatar-large">${p.avatar}</div>`}
+                        <div class="participant-info">
+                            <span class="participant-name">${p.name}</span>
+                            <span class="participant-role ${p.role}">${p.role}</span>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="chat-detail-date">Created: ${dateFormatted}</div>
+        </div>
+        
+        <div class="chat-messages-body">
+            ${chat.messages.map(msg => {
+                const msgTime = new Date(msg.time).toLocaleTimeString('en-US', { 
+                    hour: 'numeric', 
+                    minute: '2-digit' 
+                });
+                return `
+                    <div class="chat-message-bubble sender-${msg.sender}">
+                        <div class="chat-message-meta">
+                            <span class="chat-message-sender">${msg.senderName}</span>
+                            <span class="chat-message-time">${msgTime}</span>
+                        </div>
+                        <div class="chat-message-text">${msg.text}</div>
+                        ${msg.photo ? `<div class="chat-message-photo"><img src="${msg.photo}" alt="Shared photo" /></div>` : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        
+        <div class="chat-detail-footer">
+            ${currentChatCategory === 'flagged' ? `
+                <button class="chat-action-btn ignore" data-chat-id="${chat.id}">
+                    Ignore
+                </button>
+            ` : `
+                <button class="chat-action-btn flag ${state.isFlagged ? 'flagged' : ''}" data-chat-id="${chat.id}">
+                    ${state.isFlagged ? '🚩 Flagged' : 'Flag'}
+                </button>
+            `}
+            ${currentChatCategory === 'locked' ? `
+                <button class="chat-action-btn unlock" data-chat-id="${chat.id}">
+                    🔓 Unlock
+                </button>
+            ` : `
+                <button class="chat-action-btn lock ${state.isLocked ? 'locked' : ''}" data-chat-id="${chat.id}">
+                    ${state.isLocked ? '🔒 Locked' : 'Lock'}
+                </button>
+            `}
+            <button class="chat-action-btn close" data-chat-id="${chat.id}">
+                Close
+            </button>
+        </div>
+    `;
+    
+    overlay.classList.add('active');
+    
+    // Add action button handlers
+    attachChatActionHandlers();
+    
+    // Add overlay close handler (click outside)
+    setTimeout(() => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeChatOverlay();
+            }
+        });
+    }, 100);
+}
+
+// Close Chat Overlay
+function closeChatOverlay() {
+    const overlay = document.getElementById('chatDetailOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+}
+
+// Attach Chat Action Handlers
+function attachChatActionHandlers() {
+    // Flag button
+    document.querySelectorAll('.chat-action-btn.flag').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chatId = btn.getAttribute('data-chat-id');
+            toggleChatFlag(chatId);
+        });
+    });
+    
+    // Ignore button (in Flagged tab)
+    document.querySelectorAll('.chat-action-btn.ignore').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chatId = btn.getAttribute('data-chat-id');
+            ignoreChat(chatId);
+        });
+    });
+    
+    // Lock button
+    document.querySelectorAll('.chat-action-btn.lock').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chatId = btn.getAttribute('data-chat-id');
+            toggleChatLock(chatId);
+        });
+    });
+    
+    // Unlock button (in Locked tab)
+    document.querySelectorAll('.chat-action-btn.unlock').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chatId = btn.getAttribute('data-chat-id');
+            unlockChat(chatId);
+        });
+    });
+    
+    // Close button
+    document.querySelectorAll('.chat-action-btn.close').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chatId = btn.getAttribute('data-chat-id');
+            closeChat(chatId);
+        });
+    });
+}
+
+// Toggle Chat Flag (from Chats tab)
+function toggleChatFlag(chatId) {
+    const state = chatStates[chatId];
+    const chat = userChatsData.find(c => c.id === chatId);
+    
+    // Flag the chat and move to Flagged tab
+    state.isFlagged = true;
+    state.isLocked = false;
+    chat.status = 'flagged';
+    console.log(`🚩 Chat ${chatId} flagged`);
+    
+    // Close the detail window/overlay
+    closeChatOverlay();
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (chatDetailWindow) {
+        chatDetailWindow.innerHTML = `
+            <div class="chat-detail-placeholder">
+                <div class="placeholder-icon">💬</div>
+                <p>Select a chat to view conversation</p>
+            </div>
+        `;
+    }
+    
+    // Switch to flagged tab
+    switchChatCategory('flagged');
+    
+    // Refresh display
+    renderChatList();
+    updateChatCategoryCounts();
+}
+
+// Ignore Chat (from Flagged tab - restore to Chats)
+function ignoreChat(chatId) {
+    const state = chatStates[chatId];
+    const chat = userChatsData.find(c => c.id === chatId);
+    
+    // Unflag and restore to Chats tab
+    state.isFlagged = false;
+    state.isLocked = false;
+    chat.status = 'new';
+    console.log(`✅ Chat ${chatId} ignored (restored to Chats)`);
+    
+    // Close the detail window/overlay
+    closeChatOverlay();
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (chatDetailWindow) {
+        chatDetailWindow.innerHTML = `
+            <div class="chat-detail-placeholder">
+                <div class="placeholder-icon">💬</div>
+                <p>Select a chat to view conversation</p>
+            </div>
+        `;
+    }
+    
+    // Switch to chats tab
+    switchChatCategory('new');
+    
+    // Refresh display
+    renderChatList();
+    updateChatCategoryCounts();
+}
+
+// Toggle Chat Lock (from Chats tab)
+function toggleChatLock(chatId) {
+    const state = chatStates[chatId];
+    const chat = userChatsData.find(c => c.id === chatId);
+    
+    // Lock the chat and move to Locked tab
+    state.isLocked = true;
+    state.isFlagged = false;
+    chat.status = 'locked';
+    console.log(`🔒 Chat ${chatId} locked`);
+    
+    // Close the detail window/overlay
+    closeChatOverlay();
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (chatDetailWindow) {
+        chatDetailWindow.innerHTML = `
+            <div class="chat-detail-placeholder">
+                <div class="placeholder-icon">💬</div>
+                <p>Select a chat to view conversation</p>
+            </div>
+        `;
+    }
+    
+    // Switch to locked tab
+    switchChatCategory('locked');
+    
+    // Refresh display
+    renderChatList();
+    updateChatCategoryCounts();
+}
+
+// Unlock Chat (from Locked tab - restore to Chats)
+function unlockChat(chatId) {
+    const state = chatStates[chatId];
+    const chat = userChatsData.find(c => c.id === chatId);
+    
+    // Unlock and restore to Chats tab
+    state.isLocked = false;
+    state.isFlagged = false;
+    chat.status = 'new';
+    console.log(`🔓 Chat ${chatId} unlocked (restored to Chats)`);
+    
+    // Close the detail window/overlay
+    closeChatOverlay();
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (chatDetailWindow) {
+        chatDetailWindow.innerHTML = `
+            <div class="chat-detail-placeholder">
+                <div class="placeholder-icon">💬</div>
+                <p>Select a chat to view conversation</p>
+            </div>
+        `;
+    }
+    
+    // Switch to chats tab
+    switchChatCategory('new');
+    
+    // Refresh display
+    renderChatList();
+    updateChatCategoryCounts();
+}
+
+// Close Chat (Delete)
+function closeChat(chatId) {
+    // Just close the overlay/window, don't delete
+    console.log(`📕 Closing chat ${chatId} detail view`);
+    
+    // Close overlay if open
+    closeChatOverlay();
+    
+    // Reset detail window
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (chatDetailWindow) {
+        chatDetailWindow.innerHTML = `
+            <div class="chat-detail-placeholder">
+                <div class="placeholder-icon">💬</div>
+                <p>Select a chat to view conversation</p>
+            </div>
+        `;
+    }
+    
+    // Remove selected state from chat cards
+    document.querySelectorAll('.chat-item-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+}
+
+// Initialize Chat Category Toggle
+function initializeChatCategoryToggle() {
+    const categoryBtns = document.querySelectorAll('.chat-category-btn');
+    
+    categoryBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const category = btn.getAttribute('data-category');
+            switchChatCategory(category);
+        });
+    });
+}
+
+// Switch Chat Category
+function switchChatCategory(category) {
+    currentChatCategory = category;
+    
+    // Update button states
+    document.querySelectorAll('.chat-category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-category="${category}"]`)?.classList.add('active');
+    
+    // Clear search
+    const searchInput = document.getElementById('chatSearchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // Render filtered list
+    renderChatList();
+    
+    // Reset detail window
+    const chatDetailWindow = document.getElementById('chatDetailWindow');
+    if (chatDetailWindow) {
+        chatDetailWindow.innerHTML = `
+            <div class="chat-detail-placeholder">
+                <div class="placeholder-icon">💬</div>
+                <p>Select a chat to view conversation</p>
+            </div>
+        `;
+    }
+    
+    console.log(`📂 Switched to ${category} chats`);
+}
+
+// Update Chat Category Counts
+function updateChatCategoryCounts() {
+    const newCount = userChatsData.filter(c => chatStates[c.id].status === 'new').length;
+    const flaggedCount = userChatsData.filter(c => chatStates[c.id].isFlagged).length;
+    const lockedCount = userChatsData.filter(c => chatStates[c.id].isLocked).length;
+    
+    document.getElementById('newChatsCount').textContent = newCount;
+    document.getElementById('flaggedChatsCount').textContent = flaggedCount;
+    document.getElementById('lockedChatsCount').textContent = lockedCount;
+}
+
+// Initialize Chat Search
+function initializeChatSearch() {
+    const searchInput = document.getElementById('chatSearchInput');
+    
+    if (searchInput) {
+        // Live search as user types
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            if (query === '') {
+                renderChatList(); // Show all if search is cleared
+            } else {
+                performChatSearch(query);
+            }
+        });
+        
+        console.log('✅ Chat search initialized');
+    }
+}
+
+// Perform Chat Search (by gig title only)
+function performChatSearch(query) {
+    const chatListContainer = document.getElementById('chatListContainer');
+    if (!chatListContainer) return;
+    
+    // Filter chats by current category first
+    const filteredChats = userChatsData.filter(chat => {
+        const state = chatStates[chat.id];
+        let belongsToCategory = false;
+        
+        if (currentChatCategory === 'new') {
+            belongsToCategory = state.status === 'new';
+        } else if (currentChatCategory === 'flagged') {
+            belongsToCategory = state.isFlagged;
+        } else if (currentChatCategory === 'locked') {
+            belongsToCategory = state.isLocked;
+        }
+        
+        // Then filter by search query (gig title only)
+        const matchesSearch = chat.gigTitle.toLowerCase().includes(query);
+        
+        return belongsToCategory && matchesSearch;
+    });
+    
+    // Sort by date created (newest first)
+    filteredChats.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
+    
+    // Render filtered results
+    if (filteredChats.length === 0) {
+        chatListContainer.innerHTML = `
+            <div style="text-align: center; color: rgba(230, 214, 174, 0.5); padding: 2rem;">
+                <p>No chats found matching "${query}"</p>
+            </div>
+        `;
+    } else {
+        chatListContainer.innerHTML = filteredChats.map(chat => {
+            const state = chatStates[chat.id];
+            const dateFormatted = new Date(chat.dateCreated).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            let statusBadges = '';
+            if (state.isFlagged) {
+                statusBadges += '<span class="chat-status-badge flagged">FLAGGED</span>';
+            }
+            if (state.isLocked) {
+                statusBadges += '<span class="chat-status-badge locked">LOCKED</span>';
+            }
+            
+            return `
+                <div class="chat-item-card" data-chat-id="${chat.id}">
+                    <div class="chat-item-header">
+                        <div class="chat-gig-title">${chat.gigTitle}</div>
+                        <div class="chat-item-date">${dateFormatted}</div>
+                    </div>
+                    <div class="chat-participants">
+                        ${chat.participants.map(p => `
+                            <div class="chat-participant">
+                                <div class="participant-avatar">${p.avatar}</div>
+                                <span>${p.name}</span>
+                                <span class="participant-role ${p.role}">${p.role}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${statusBadges ? `<div class="chat-status-badges">${statusBadges}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+        
+        // Re-attach click handlers
+        const chatCards = chatListContainer.querySelectorAll('.chat-item-card');
+        chatCards.forEach(card => {
+            card.addEventListener('click', () => {
+                const chatId = card.getAttribute('data-chat-id');
+                selectChat(chatId);
+            });
+        });
+    }
+    
+    console.log(`🔍 Search: "${query}" - ${filteredChats.length} results`);
+}
 
 // ===== FLOATING REPLY MODAL SYSTEM =====
 function initializeReplyModal() {
