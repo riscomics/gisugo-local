@@ -2520,15 +2520,15 @@ body.admin-dashboard::-webkit-scrollbar {
 
 /* ===== USER CHATS SECTION ===== */
 
-/* Chats Section Container */
-#chats.content-section {
+/* Chats Section Container - ONLY when active */
+#chats.content-section.active {
     overflow: hidden;
     height: calc(100vh - 150px);
     display: flex;
     flex-direction: column;
 }
 
-#chats .section-header {
+#chats.content-section.active .section-header {
     flex-shrink: 0;
 }
 
