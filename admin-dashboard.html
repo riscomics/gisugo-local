@@ -2055,6 +2055,27 @@
                             <!-- Will show user name and avatar -->
                         </div>
                         <div class="contact-form-group">
+                            <label class="contact-form-label">Topic:</label>
+                            <select class="contact-topic-select" id="contactUserTopicSelect">
+                                <option value="">Select topic...</option>
+                                <option value="account-verification">Account Verification</option>
+                                <option value="account-suspension">Account Suspension</option>
+                                <option value="policy-violation">Policy Violation</option>
+                                <option value="payment-issue">Payment Issue</option>
+                                <option value="gig-inquiry">Gig Inquiry</option>
+                                <option value="verification-request">Verification Request</option>
+                                <option value="general-inquiry">General Inquiry</option>
+                                <option value="security-alert">Security Alert</option>
+                                <option value="important-notice">Important Notice</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="contact-form-group">
+                            <label class="contact-form-label">Subject:</label>
+                            <input type="text" class="contact-subject-input" id="contactUserSubjectInput" placeholder="Enter message subject..." maxlength="100">
+                            <span class="char-counter" id="contactSubjectCharCounter">0/100</span>
+                        </div>
+                        <div class="contact-form-group">
                             <label class="contact-form-label">Message:</label>
                             <textarea class="contact-message-input" id="contactUserMessageInput" placeholder="Type your message here..." rows="6"></textarea>
                         </div>

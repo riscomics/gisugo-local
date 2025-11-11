@@ -4512,6 +4512,80 @@ body:has(.selection-controls[style*="display: flex"]) {
 .message-topic.updates { background: #10b981; }
 .message-topic.promotions { background: #ed8936; }
 
+/* Public broadcast categories */
+.message-topic.important-notices { background: #e53e3e; }
+.message-topic.platform-updates { background: #3182ce; }
+.message-topic.system-updates { background: #805ad5; }
+
+/* Direct message topics */
+.message-topic.account-verification { background: #10b981; }
+.message-topic.account-suspension { background: #e53e3e; }
+.message-topic.policy-violation { background: #f59e0b; }
+.message-topic.payment-issue { background: #3182ce; }
+.message-topic.gig-inquiry { background: #8b5cf6; }
+.message-topic.verification-request { background: #10b981; }
+.message-topic.general-inquiry { background: #6b7280; }
+.message-topic.security-alert { background: #ef4444; }
+.message-topic.important-notice { background: #f59e0b; }
+.message-topic.other { background: #6b7280; }
+
+/* Message Type Indicator */
+.message-type-indicator {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 2;
+}
+
+.message-type-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.message-type-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.message-type-badge.badge-public {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.message-type-badge.badge-direct {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+/* Visual distinction for message types */
+.admin-message-item.message-type-public {
+    border-left: 3px solid #3b82f6;
+}
+
+.admin-message-item.message-type-direct {
+    border-left: 3px solid #10b981;
+}
+
+.admin-message-item.message-type-public.unread {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.admin-message-item.message-type-direct.unread {
+    background: rgba(16, 185, 129, 0.05);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
 /* Message content area */
 .admin-message-item .message-content-area {
     padding: 1rem;
@@ -5787,7 +5861,6 @@ body:has(.selection-controls[style*="display: flex"]) {
         margin-top: -0.75rem; /* Counteract overlay padding on mobile */
         padding-top: 0.25rem;
     }
-}
     
     .thread-title {
         font-size: 0.8rem;

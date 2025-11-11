@@ -7691,11 +7691,75 @@ function createPhotoMessageHTML(thumbnailUrl, fullSizeUrl, direction, senderName
 
 // ===== MOCK MESSAGE DATA FOR ADMIN COMMUNICATIONS =====
 
+/*
+=== FIREBASE/FIRESTORE INTEGRATION STRUCTURE ===
+
+Collection: "adminMessages"
+
+Message Types:
+1. PUBLIC BROADCAST ("public") - Sent to ALL users via Compose Public Message
+2. DIRECT MESSAGE ("direct") - Sent to specific user via Contact User form
+
+Data Structure:
+{
+  messageId: "msg_12345",
+  messageType: "public" | "direct",  // KEY DIFFERENTIATOR
+  
+  // Common fields (both types)
+  from: {
+    adminId: "admin_001",
+    adminName: "Peter J. Ang",
+    adminEmail: "admin@gisugo.com",
+    role: "admin"
+  },
+  subject: "Message subject",
+  content: "Message body text...",
+  timestamp: Firestore.Timestamp,
+  attachments: [],
+  isRead: false,
+  readAt: null,
+  
+  // PUBLIC message specific fields
+  category: "important-notices" | "platform-updates" | "system-updates" | "promotions",
+  targetAudience: "all" | "customers" | "workers" | "verified-only",
+  
+  // DIRECT message specific fields
+  to: {
+    userId: "user_12345",
+    userName: "John Doe",
+    userEmail: "john@example.com"
+  },
+  topic: "account-verification" | "account-suspension" | "policy-violation" | "payment-issue" | 
+         "gig-inquiry" | "verification-request" | "general-inquiry" | "security-alert" | 
+         "important-notice" | "other",
+  priority: "normal" | "high" | "urgent",
+  
+  // Metadata
+  replies: [],
+  repliedAt: null
+}
+
+Firestore Queries:
+- User's public messages: adminMessages.where('messageType', '==', 'public')
+- User's direct messages: adminMessages.where('messageType', '==', 'direct').where('to.userId', '==', userId)
+- Combined inbox: Use composite query or client-side merge
+
+Security Rules:
+- Public messages: readable by all authenticated users
+- Direct messages: readable only by intended recipient (to.userId)
+
+UI Display:
+- 📢 icon + blue badge for PUBLIC broadcasts
+- 📨 icon + green badge for DIRECT messages
+- Filter by type or show unified inbox
+*/
+
 const MOCK_ADMIN_MESSAGES = {
     customer: [
         {
             id: 'msg_cust_001',
-            topic: 'support',
+            messageType: 'direct', // DIRECT MESSAGE (admin → specific user)
+            topic: 'account-verification',
             subject: 'Account Verification Complete',
             excerpt: 'Your GISUGO account has been successfully verified. You can now post jobs and hire workers.',
             content: `Dear Valued Customer,
@@ -7723,7 +7787,8 @@ The GISUGO Team`,
         },
         {
             id: 'msg_cust_002',
-            topic: 'support',
+            messageType: 'direct', // DIRECT MESSAGE
+            topic: 'payment-issue',
             subject: 'G-Coins Wallet Issue Resolution',
             excerpt: 'We have resolved the wallet connectivity issue you reported. Your G-Coins balance is now accessible.',
             content: `Dear Customer,
@@ -7756,8 +7821,9 @@ support@gisugo.com`,
             attachmentName: 'wallet-resolution-receipt.pdf'
         },
         {
-            id: 'msg_cust_005',
-            topic: 'notifications',
+            id: 'msg_cust_003',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'important-notices',
             subject: 'Important: Updated Terms of Service',
             excerpt: 'Please review our updated Terms of Service, effective November 1st, 2025.',
             content: `Important Notice: Updated Terms of Service
@@ -7795,8 +7861,9 @@ legal@gisugo.com`,
             attachmentName: 'updated-terms-of-service.pdf'
         },
         {
-            id: 'msg_cust_007',
-            topic: 'updates',
+            id: 'msg_cust_004',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'platform-updates',
             subject: 'New Feature: Advanced Job Matching',
             excerpt: 'Introducing AI-powered job matching to help you find the perfect workers faster.',
             content: `Exciting News: Advanced Job Matching is Here!
@@ -7838,8 +7905,9 @@ GISUGO Product Team`,
             hasAttachment: false
         },
         {
-            id: 'msg_cust_009',
-            topic: 'promotions',
+            id: 'msg_cust_005',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
             subject: 'Limited Time: 20% Bonus on G-Coins Purchase',
             excerpt: 'Get 20% extra G-Coins when you top up ₱500 or more. Offer valid until October 31st.',
             content: `🎉 Special Promotion: 20% Bonus G-Coins!
@@ -7881,8 +7949,9 @@ GISUGO Promotions Team`,
             hasAttachment: false
         },
         {
-            id: 'msg_cust_010',
-            topic: 'promotions',
+            id: 'msg_cust_006',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
             subject: 'Refer Friends and Earn G-Coins',
             excerpt: 'Invite friends to GISUGO and earn ₱100 G-Coins for each successful referral.',
             content: `💸 Earn G-Coins by Referring Friends!
@@ -7934,7 +8003,8 @@ GISUGO Referral Team`,
     worker: [
         {
             id: 'msg_work_001',
-            topic: 'support',
+            messageType: 'direct', // DIRECT MESSAGE
+            topic: 'account-verification',
             subject: 'Profile Verification Approved',
             excerpt: 'Congratulations! Your worker profile has been verified and you can now accept job applications.',
             content: `Congratulations! Profile Verification Complete
@@ -7979,7 +8049,8 @@ GISUGO Verification Team`,
         },
         {
             id: 'msg_work_002',
-            topic: 'support',
+            messageType: 'direct', // DIRECT MESSAGE
+            topic: 'payment-issue',
             subject: 'Payment Issue Resolved',
             excerpt: 'The delayed payment for Job #JOB-2025-1234 has been processed and credited to your account.',
             content: `Payment Issue Resolution - Job #JOB-2025-1234
@@ -8021,7 +8092,8 @@ GISUGO Payments Team`,
         },
         {
             id: 'msg_work_003',
-            topic: 'system',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'important-notices',
             subject: 'New Worker Safety Guidelines',
             excerpt: 'Updated safety protocols and guidelines for all GISUGO workers, effective immediately.',
             content: `Important: Updated Worker Safety Guidelines
@@ -8073,7 +8145,8 @@ GISUGO Safety Team`,
         },
         {
             id: 'msg_work_004',
-            topic: 'system',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'system-updates',
             subject: 'Worker App Performance Improvements',
             excerpt: 'Recent updates to improve app performance and reduce job notification delays.',
             content: `Worker App Performance Update
@@ -8123,7 +8196,8 @@ GISUGO Technical Team`,
         },
         {
             id: 'msg_work_005',
-            topic: 'notifications',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'important-notices',
             subject: 'Tax Information for 2025',
             excerpt: 'Important tax information for GISUGO workers and year-end documentation requirements.',
             content: `Important: 2025 Tax Information for Workers
@@ -8177,7 +8251,8 @@ GISUGO Finance Team`,
         },
         {
             id: 'msg_work_006',
-            topic: 'notifications',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
             subject: 'Worker Recognition Program Launch',
             excerpt: 'Introducing the GISUGO Excellence Awards - monthly recognition and rewards for top-performing workers.',
             content: `🏆 Introducing GISUGO Excellence Awards!
@@ -8232,7 +8307,8 @@ GISUGO Recognition Team`,
         },
         {
             id: 'msg_work_007',
-            topic: 'updates',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'platform-updates',
             subject: 'New Skill Categories Available',
             excerpt: 'Expand your opportunities with newly added skill categories: Tech Support, Event Planning, and Pet Training.',
             content: `🚀 New Skill Categories Now Available!
@@ -8298,7 +8374,8 @@ GISUGO Skills Team`,
         },
         {
             id: 'msg_work_008',
-            topic: 'updates',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'platform-updates',
             subject: 'Enhanced Worker Dashboard Features',
             excerpt: 'New dashboard features including earnings analytics, job history search, and customer feedback insights.',
             content: `📊 Enhanced Worker Dashboard is Here!
@@ -8363,7 +8440,8 @@ GISUGO Product Team`,
         },
         {
             id: 'msg_work_009',
-            topic: 'promotions',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
             subject: 'Double G-Coins Weekend Special',
             excerpt: 'Earn double G-Coins on all completed jobs this weekend! October 21-22, 2025.',
             content: `💰 DOUBLE G-COINS WEEKEND SPECIAL! 💰
@@ -8415,7 +8493,8 @@ GISUGO Promotions Team`,
         },
         {
             id: 'msg_work_010',
-            topic: 'promotions',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
             subject: 'Worker Referral Bonus Program',
             excerpt: 'Refer skilled workers to GISUGO and earn ₱200 for each successful referral who completes 5 jobs.',
             content: `👥 Worker Referral Bonus Program!
@@ -8555,14 +8634,28 @@ function loadWorkerMessages() {
 
 // Generate admin message HTML
 function generateAdminMessageHTML(message, role) {
-    const topicClass = message.topic.toLowerCase().replace(/\s+/g, '-');
-    const topicLabel = getTopicLabel(message.topic);
+    // Determine if this is a public broadcast or direct message
+    const isPublic = message.messageType === 'public';
+    const messageTypeClass = isPublic ? 'message-type-public' : 'message-type-direct';
+    const messageTypeIcon = isPublic ? '📢' : '📨';
+    const messageTypeBadge = isPublic ? 'PUBLIC' : 'DIRECT';
+    const messageTypeBadgeClass = isPublic ? 'badge-public' : 'badge-direct';
+    
+    // Get the appropriate category/topic for classification
+    const topicOrCategory = isPublic ? message.category : message.topic;
+    const topicClass = (topicOrCategory || 'general').toLowerCase().replace(/\s+/g, '-');
+    const topicLabel = getTopicLabel(topicOrCategory, isPublic);
     const timeAgo = formatTimeAgo(message.timestamp);
     
     return `
-        <div class="admin-message-item ${!message.isRead ? 'unread' : ''}" 
+        <div class="admin-message-item ${!message.isRead ? 'unread' : ''} ${messageTypeClass}" 
              data-message-id="${message.id}" 
-             data-topic="${message.topic}">
+             data-message-type="${message.messageType}"
+             data-topic="${topicOrCategory || 'general'}">
+            <div class="message-type-indicator" title="${isPublic ? 'Public Broadcast to all users' : 'Direct message to you'}">
+                <span class="message-type-icon">${messageTypeIcon}</span>
+                <span class="message-type-badge ${messageTypeBadgeClass}">${messageTypeBadge}</span>
+            </div>
             <div class="message-topic ${topicClass}">${topicLabel}</div>
             <div class="message-content-area">
                 <div class="message-header">
@@ -8587,16 +8680,39 @@ function generateAdminMessageHTML(message, role) {
     `;
 }
 
-// Get topic label for display
-function getTopicLabel(topic) {
-    const labels = {
+// Get topic label for display (handles both direct message topics and public message categories)
+function getTopicLabel(topicOrCategory, isPublic = false) {
+    // Labels for PUBLIC broadcast categories
+    const publicLabels = {
+        'important-notices': '🔴 Important Notices',
+        'platform-updates': '🔵 Platform Updates',
+        'system-updates': '⚙️ System Updates',
+        'promotions': '🎁 Promotions'
+    };
+    
+    // Labels for DIRECT message topics
+    const directLabels = {
+        'account-verification': 'Account Verification',
+        'account-suspension': 'Account Suspension',
+        'policy-violation': 'Policy Violation',
+        'payment-issue': 'Payment Issue',
+        'gig-inquiry': 'Gig Inquiry',
+        'verification-request': 'Verification Request',
+        'general-inquiry': 'General Inquiry',
+        'security-alert': 'Security Alert',
+        'important-notice': 'Important Notice',
+        'other': 'Other',
+        // Legacy support for old topic names
         'support': 'Support Responses',
         'system': 'System Updates', 
         'notifications': 'Important Notices',
         'updates': 'Platform Updates',
         'promotions': 'Promotions'
     };
-    return labels[topic] || topic;
+    
+    // Choose the appropriate label set based on message type
+    const labels = isPublic ? publicLabels : directLabels;
+    return labels[topicOrCategory] || topicOrCategory;
 }
 
 // Format timestamp to relative time

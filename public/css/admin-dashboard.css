@@ -6511,6 +6511,7 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+.contact-topic-select,
 .contact-recipient-select {
     width: 100%;
     padding: 0.75rem;
@@ -6523,9 +6524,31 @@ body.admin-dashboard::-webkit-scrollbar {
     box-sizing: border-box;
 }
 
+.contact-topic-select:focus,
 .contact-recipient-select:focus {
     outline: none;
     border-color: #10b981;
+}
+
+.contact-subject-input {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4a5568;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+.contact-subject-input:focus {
+    outline: none;
+    border-color: #10b981;
+}
+
+.contact-subject-input::placeholder {
+    color: #718096;
 }
 
 .contact-message-input {

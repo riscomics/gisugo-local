@@ -2892,6 +2892,74 @@ function handleReplySuccess(replyContent = '') {
 }
 
 // ===== PUBLIC MESSAGE COMPOSE OVERLAY =====
+/*
+=== FIREBASE INTEGRATION: ADMIN MESSAGING SYSTEMS ===
+
+Two distinct messaging systems with unified backend structure:
+
+1. COMPOSE PUBLIC MESSAGE (Messages Section)
+   - messageType: "public"
+   - Broadcasts to ALL users
+   - Uses category field: "important-notices" | "platform-updates" | "system-updates" | "promotions"
+   - Firestore Collection: adminMessages
+   - Target audience: "all" | "customers" | "workers" | "verified-only"
+
+2. CONTACT USER (User Management)
+   - messageType: "direct"
+   - Sends to INDIVIDUAL user
+   - Uses topic field: "account-verification" | "account-suspension" | "policy-violation" | etc.
+   - Firestore Collection: adminMessages (same collection, different messageType)
+   - Target: specific userId
+
+Unified Firestore Document Structure:
+{
+  messageId: auto-generated,
+  messageType: "public" | "direct",
+  
+  // Common fields
+  from: {
+    adminId: currentUser.uid,
+    adminName: "Peter J. Ang",
+    adminEmail: "admin@gisugo.com",
+    role: "admin"
+  },
+  subject: string,
+  content: string,
+  timestamp: Firestore.Timestamp.now(),
+  attachments: [],
+  isRead: false,
+  readAt: null,
+  
+  // Public-specific
+  category: string (only if messageType === "public"),
+  targetAudience: "all" | "customers" | "workers" (only if messageType === "public"),
+  
+  // Direct-specific
+  to: {
+    userId: string,
+    userName: string,
+    userEmail: string
+  } (only if messageType === "direct"),
+  topic: string (only if messageType === "direct"),
+  priority: "normal" | "high" | "urgent" (only if messageType === "direct")
+}
+
+Firestore Security Rules:
+- Public messages: readable by all authenticated users
+- Direct messages: readable only by to.userId
+- Only admins can write to this collection
+
+User-side queries (messages.html):
+- Public: adminMessages.where('messageType', '==', 'public')
+- Direct: adminMessages.where('messageType', '==', 'direct').where('to.userId', '==', currentUserId)
+- Combined: Client-side merge or composite query
+
+Visual distinction in messages.html:
+- 📢 icon + blue badge for PUBLIC broadcasts
+- 📨 icon + green badge for DIRECT messages
+- Left border color coding
+*/
+
 function initializePublicMessageOverlay() {
     console.log('📧 Initializing Public Message Overlay');
     
@@ -9726,6 +9794,9 @@ function initializeContactUserOverlay() {
     const closeBtn = document.getElementById('closeContactUserModal');
     const cancelBtn = document.getElementById('cancelContactUserBtn');
     const sendBtn = document.getElementById('sendContactUserBtn');
+    const topicSelect = document.getElementById('contactUserTopicSelect');
+    const subjectInput = document.getElementById('contactUserSubjectInput');
+    const subjectCharCounter = document.getElementById('contactSubjectCharCounter');
     const messageInput = document.getElementById('contactUserMessageInput');
     const attachBtn = document.getElementById('contactUserAttachBtn');
     const attachmentInput = document.getElementById('contactUserAttachmentInput');
@@ -9733,9 +9804,26 @@ function initializeContactUserOverlay() {
     const attachmentImg = document.getElementById('contactUserAttachmentImg');
     const removeAttachment = document.getElementById('removeContactUserAttachment');
     
+    // Subject character counter
+    if (subjectInput && subjectCharCounter) {
+        subjectInput.addEventListener('input', () => {
+            const count = subjectInput.value.length;
+            subjectCharCounter.textContent = `${count}/100`;
+            if (count >= 95) {
+                subjectCharCounter.style.color = '#f59e0b';
+            } else {
+                subjectCharCounter.style.color = '#a0aec0';
+            }
+        });
+    }
+    
     // Close overlay
     const closeOverlay = () => {
         overlay.classList.remove('active');
+        topicSelect.value = '';
+        subjectInput.value = '';
+        subjectCharCounter.textContent = '0/100';
+        subjectCharCounter.style.color = '#a0aec0';
         messageInput.value = '';
         attachmentPreview.style.display = 'none';
         attachmentInput.value = '';
@@ -9773,7 +9861,20 @@ function initializeContactUserOverlay() {
     // Send message
     if (sendBtn) {
         sendBtn.addEventListener('click', () => {
+            const topic = topicSelect.value;
+            const subject = subjectInput.value.trim();
             const message = messageInput.value.trim();
+            
+            if (!topic) {
+                showToast('Please select a topic', 'error');
+                return;
+            }
+            
+            if (!subject) {
+                showToast('Please enter a subject', 'error');
+                return;
+            }
+            
             if (!message) {
                 showToast('Please enter a message', 'error');
                 return;
