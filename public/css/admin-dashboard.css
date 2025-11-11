@@ -1210,6 +1210,319 @@ body.admin-dashboard::-webkit-scrollbar {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ===== SETTINGS PAGE ===== */
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.settings-category {
+    background: #363f4f;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.category-header {
+    background: #2d3748;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.category-header:hover {
+    background: #374151;
+}
+
+.category-header-text {
+    flex: 1;
+}
+
+.category-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #10b981;
+    margin-bottom: 0.25rem;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.category-subtitle {
+    font-size: 0.875rem;
+    color: rgba(230, 214, 174, 0.6);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.category-toggle {
+    font-size: 1.5rem;
+    color: #10b981;
+    transition: transform 0.3s ease;
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.settings-category.collapsed .category-toggle {
+    transform: rotate(-90deg);
+}
+
+.category-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-height: 5000px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.settings-category.collapsed .category-content {
+    max-height: 0;
+    opacity: 0;
+    padding: 0 1.5rem;
+}
+
+.settings-category.collapsed .category-header {
+    border-bottom: none;
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.setting-row:hover {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.setting-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.setting-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #e6d6ae;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.setting-description {
+    font-size: 0.875rem;
+    color: rgba(230, 214, 174, 0.6);
+    line-height: 1.4;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4a5568;
+    transition: 0.3s;
+    border-radius: 28px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #10b981;
+    border-color: #10b981;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-slider:hover {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* Setting Inputs */
+.setting-input,
+.setting-select {
+    padding: 0.5rem 0.75rem;
+    background: #2d3748;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e6d6ae;
+    font-size: 0.95rem;
+    font-family: Arial, Helvetica, sans-serif;
+    min-width: 120px;
+    transition: all 0.2s ease;
+}
+
+.setting-input:focus,
+.setting-select:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.setting-textarea {
+    padding: 0.75rem;
+    background: #2d3748;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #e6d6ae;
+    font-size: 0.95rem;
+    font-family: Arial, Helvetica, sans-serif;
+    min-height: 100px;
+    resize: vertical;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.setting-textarea:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.setting-textarea::placeholder {
+    color: rgba(230, 214, 174, 0.4);
+}
+
+/* Settings Actions */
+.settings-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    padding: 2rem 0;
+    margin-top: 1rem;
+}
+
+.settings-save-btn,
+.settings-reset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.settings-save-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.settings-save-btn:hover {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.settings-reset-btn {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
+}
+
+.settings-reset-btn:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(113, 128, 150, 0.4);
+}
+
+.settings-save-btn:active,
+.settings-reset-btn:active {
+    transform: translateY(0);
+}
+
+.btn-icon {
+    font-size: 1.25rem;
+}
+
+/* Maintenance Time Row (conditionally shown) */
+.maintenance-time {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.maintenance-time .setting-input {
+    width: 100%;
+    max-width: 300px;
+}
+
+/* Responsive Settings */
+@media (max-width: 768px) {
+    .setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .toggle-switch {
+        align-self: flex-end;
+    }
+    
+    .setting-input,
+    .setting-select {
+        width: 100%;
+    }
+    
+    .settings-actions {
+        flex-direction: column;
+    }
+    
+    .settings-save-btn,
+    .settings-reset-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 /* ===== SETTINGS DANGER ZONE ===== */
 .settings-danger-zone {
     margin-top: 3rem;

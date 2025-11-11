@@ -2869,15 +2869,563 @@
                     <p class="section-subtitle">Configure platform settings and features</p>
                 </div>
                 
-                <div class="placeholder-content">
-                    <div class="placeholder-icon">⚙️</div>
-                    <h3>Settings Features</h3>
-                    <ul>
-                        <li>Platform Configuration</li>
-                        <li>Notification Templates</li>
-                        <li>Feature Flags</li>
-                        <li>API Management</li>
-                    </ul>
+                <div class="settings-container">
+                    <!-- System Status (Emergency Controls) -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">🚨 System Status</h2>
+                                <span class="category-subtitle">Emergency controls and maintenance mode</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Suspend New Gig Posts</label>
+                                    <span class="setting-description">Temporarily prevent users from posting new gigs</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="suspendGigs">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Suspend User Chats</label>
+                                    <span class="setting-description">Temporarily disable all chat communications between users</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="suspendChats">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Suspend Incoming Messages</label>
+                                    <span class="setting-description">Temporarily block users from sending messages to admin</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="suspendMessages">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Suspend G Coin Purchases</label>
+                                    <span class="setting-description">Temporarily disable all G Coin purchases</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="suspendCoins">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Technical Difficulties Warning</label>
+                                    <span class="setting-description">Display warning popup to all users about site instability</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="techDifficulties">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Scheduled Maintenance Mode</label>
+                                    <span class="setting-description">Cover entire site with scheduled update message</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="maintenanceMode">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row maintenance-time" id="maintenanceTimeRow" style="display: none;">
+                                <div class="setting-info">
+                                    <label class="setting-label">Resume Time</label>
+                                    <span class="setting-description">Expected time when maintenance will be complete</span>
+                                </div>
+                                <input type="datetime-local" id="maintenanceResumeTime" class="setting-input">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Management & Verification -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">👥 User Management & Verification</h2>
+                                <span class="category-subtitle">Registration, verification, and account controls</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">New User Registration</label>
+                                    <span class="setting-description">Allow new users to create accounts</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="allowRegistration" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Email Verification Required</label>
+                                    <span class="setting-description">Users must verify email before posting gigs</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="requireEmailVerify" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Phone Verification Required</label>
+                                    <span class="setting-description">Users must verify phone before accepting jobs</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="requirePhoneVerify">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">ID Verification Threshold</label>
+                                    <span class="setting-description">Require ID upload after this amount in earnings (USD)</span>
+                                </div>
+                                <input type="number" id="idVerifyThreshold" class="setting-input" value="500" min="0" step="50">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Auto-Ban Threshold</label>
+                                    <span class="setting-description">Auto-ban users after this many flagged reports</span>
+                                </div>
+                                <input type="number" id="autoBanThreshold" class="setting-input" value="5" min="1" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Account Deletion Grace Period</label>
+                                    <span class="setting-description">Days before permanent account deletion</span>
+                                </div>
+                                <input type="number" id="deletionGracePeriod" class="setting-input" value="30" min="0" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gig & Content Moderation -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">📝 Gig & Content Moderation</h2>
+                                <span class="category-subtitle">Content approval, limits, and filtering</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">First-Time Gig Approval</label>
+                                    <span class="setting-description">Require manual approval for user's first gig post</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="firstGigApproval" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Maximum Active Gigs Per User</label>
+                                    <span class="setting-description">Limit concurrent active gigs to prevent spam</span>
+                                </div>
+                                <input type="number" id="maxActiveGigs" class="setting-input" value="10" min="1" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Minimum Gig Price (USD)</label>
+                                    <span class="setting-description">Set floor price for all gigs</span>
+                                </div>
+                                <input type="number" id="minGigPrice" class="setting-input" value="5" min="0" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Maximum Gig Price (USD)</label>
+                                    <span class="setting-description">Set ceiling price for all gigs</span>
+                                </div>
+                                <input type="number" id="maxGigPrice" class="setting-input" value="10000" min="1" step="100">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Auto-Flag Keywords</label>
+                                    <span class="setting-description">Comma-separated list of keywords that auto-flag gigs</span>
+                                </div>
+                                <textarea id="autoFlagKeywords" class="setting-textarea" placeholder="drugs, weapons, illegal, scam, fraud"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Controls -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">💰 Financial & Transaction Controls</h2>
+                                <span class="category-subtitle">Commissions, payouts, and G Coin settings</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Platform Commission Rate (%)</label>
+                                    <span class="setting-description">Percentage taken per transaction</span>
+                                </div>
+                                <input type="number" id="commissionRate" class="setting-input" value="15" min="0" max="100" step="0.5">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Show Service Fees to Users</label>
+                                    <span class="setting-description">Display service fees breakdown during checkout</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="showServiceFees" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Payout Frequency</label>
+                                    <span class="setting-description">How often users can withdraw earnings</span>
+                                </div>
+                                <select id="payoutFrequency" class="setting-select">
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly" selected>Weekly</option>
+                                    <option value="biweekly">Bi-Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Minimum Payout Amount (USD)</label>
+                                    <span class="setting-description">Users can't withdraw until reaching this threshold</span>
+                                </div>
+                                <input type="number" id="minPayoutAmount" class="setting-input" value="25" min="1" step="5">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Refund Auto-Approval Threshold (USD)</label>
+                                    <span class="setting-description">Auto-approve refunds under this amount</span>
+                                </div>
+                                <input type="number" id="refundAutoApproval" class="setting-input" value="50" min="0" step="5">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">G Coin to USD Conversion Rate</label>
+                                    <span class="setting-description">How many G Coins equal $1 USD</span>
+                                </div>
+                                <input type="number" id="gCoinRate" class="setting-input" value="100" min="1" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Daily G Coin Purchase Limit (USD)</label>
+                                    <span class="setting-description">Maximum G Coin purchases per user per day</span>
+                                </div>
+                                <input type="number" id="dailyCoinLimit" class="setting-input" value="1000" min="0" step="50">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Communication Controls -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">💬 Communication & Chat Controls</h2>
+                                <span class="category-subtitle">Message limits, file uploads, and spam detection</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Maximum Message Length (characters)</label>
+                                    <span class="setting-description">Character limit for chat messages</span>
+                                </div>
+                                <input type="number" id="maxMessageLength" class="setting-input" value="2000" min="100" step="100">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">File Upload in Chats</label>
+                                    <span class="setting-description">Allow users to upload files in chat messages</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="allowChatUploads" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Max File Upload Size (MB)</label>
+                                    <span class="setting-description">Maximum file size for chat uploads</span>
+                                </div>
+                                <input type="number" id="maxFileSize" class="setting-input" value="5" min="1" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Profanity Filter</label>
+                                    <span class="setting-description">Auto-censor profanity in chats and messages</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="profanityFilter" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Spam Detection Threshold</label>
+                                    <span class="setting-description">Auto-flag users sending X messages in 60 seconds</span>
+                                </div>
+                                <input type="number" id="spamThreshold" class="setting-input" value="10" min="1" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security & Access -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">🔒 Security & Access</h2>
+                                <span class="category-subtitle">Login security, sessions, and authentication</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Login Attempt Limit</label>
+                                    <span class="setting-description">Lock account after X failed login attempts</span>
+                                </div>
+                                <input type="number" id="loginAttemptLimit" class="setting-input" value="5" min="1" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Session Timeout (minutes)</label>
+                                    <span class="setting-description">Auto-logout after X minutes of inactivity</span>
+                                </div>
+                                <input type="number" id="sessionTimeout" class="setting-input" value="60" min="5" step="5">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Two-Factor Authentication</label>
+                                    <span class="setting-description">Require 2FA for all users</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="require2FA">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Blocked IP Addresses</label>
+                                    <span class="setting-description">One IP per line, supports CIDR notation</span>
+                                </div>
+                                <textarea id="blockedIPs" class="setting-textarea" placeholder="192.168.1.1&#10;10.0.0.0/24"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications & Alerts -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">🔔 Notifications & Alerts</h2>
+                                <span class="category-subtitle">Email, push notifications, and admin alerts</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Email Notifications</label>
+                                    <span class="setting-description">Send email notifications to users</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="emailNotifications" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Push Notifications</label>
+                                    <span class="setting-description">Enable browser/mobile push notifications</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pushNotifications" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Admin Alert: Flagged Content Threshold</label>
+                                    <span class="setting-description">Email admin when X new flags received</span>
+                                </div>
+                                <input type="number" id="flaggedAlertThreshold" class="setting-input" value="5" min="1" step="1">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Maintenance Notification Lead Time (hours)</label>
+                                    <span class="setting-description">Notify users X hours before scheduled maintenance</span>
+                                </div>
+                                <input type="number" id="maintenanceLeadTime" class="setting-input" value="24" min="1" step="1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Performance & Data -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">⚡ Performance & Data</h2>
+                                <span class="category-subtitle">Rate limiting, lazy loading, and data retention</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Rate Limiting (API calls/minute)</label>
+                                    <span class="setting-description">Maximum API calls per user per minute</span>
+                                </div>
+                                <input type="number" id="rateLimit" class="setting-input" value="100" min="1" step="10">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Search Results Per Page</label>
+                                    <span class="setting-description">Number of results loaded per lazy loading batch</span>
+                                </div>
+                                <input type="number" id="searchResultsPerPage" class="setting-input" value="20" min="5" step="5">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Data Retention Period (days)</label>
+                                    <span class="setting-description">Auto-delete old chats/messages after X days</span>
+                                </div>
+                                <input type="number" id="dataRetentionPeriod" class="setting-input" value="365" min="30" step="30">
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Database Backup Frequency</label>
+                                    <span class="setting-description">Automated backup schedule</span>
+                                </div>
+                                <select id="backupFrequency" class="setting-select">
+                                    <option value="hourly">Hourly</option>
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature Toggles -->
+                    <div class="settings-category">
+                        <div class="category-header">
+                            <div class="category-header-text">
+                                <h2 class="category-title">🎯 Feature Toggles</h2>
+                                <span class="category-subtitle">Beta features and optional functionality</span>
+                            </div>
+                            <span class="category-toggle">▼</span>
+                        </div>
+                        <div class="category-content">
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Featured Gigs Carousel</label>
+                                    <span class="setting-description">Display featured gigs on homepage</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="featuredGigs" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Reviews & Ratings System</label>
+                                    <span class="setting-description">Enable user reviews and ratings for completed gigs</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="reviewsSystem" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Direct Messaging</label>
+                                    <span class="setting-description">Allow DMs between users (vs gig-only chats)</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="directMessaging">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label class="setting-label">Dark Mode</label>
+                                    <span class="setting-description">Enable dark mode theme for users</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="darkMode" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div class="settings-actions">
+                        <button class="settings-save-btn" id="saveSettingsBtn">
+                            <span class="btn-icon">💾</span>
+                            <span class="btn-text">Save All Settings</span>
+                        </button>
+                        <button class="settings-reset-btn" id="resetSettingsBtn">
+                            <span class="btn-icon">↺</span>
+                            <span class="btn-text">Reset to Defaults</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- Data Management Section -->

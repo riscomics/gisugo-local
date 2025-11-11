@@ -51,6 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize reset button
     initializeResetButton();
     
+    // Initialize system settings
+    initializeSystemSettings();
+    
     // Initialize admin profile dropdown
     initializeAdminDropdown();
 });
@@ -8624,6 +8627,222 @@ window.resetAdminMockData = function() {
     console.log('   • Gigs: 68-75% of users');
     console.log('   • Applications: 2-3x gigs');
 };
+
+// ===== SYSTEM SETTINGS =====
+const SETTINGS_STORAGE_KEY = 'gisugo_admin_settings';
+
+// Default settings values
+const DEFAULT_SETTINGS = {
+    // System Status
+    suspendGigs: false,
+    suspendChats: false,
+    suspendMessages: false,
+    suspendCoins: false,
+    techDifficulties: false,
+    maintenanceMode: false,
+    maintenanceResumeTime: '',
+    
+    // User Management
+    allowRegistration: true,
+    requireEmailVerify: true,
+    requirePhoneVerify: false,
+    idVerifyThreshold: 500,
+    autoBanThreshold: 5,
+    deletionGracePeriod: 30,
+    
+    // Gig Moderation
+    firstGigApproval: true,
+    maxActiveGigs: 10,
+    minGigPrice: 5,
+    maxGigPrice: 10000,
+    autoFlagKeywords: '',
+    
+    // Financial Controls
+    commissionRate: 15,
+    showServiceFees: true,
+    payoutFrequency: 'weekly',
+    minPayoutAmount: 25,
+    refundAutoApproval: 50,
+    gCoinRate: 100,
+    dailyCoinLimit: 1000,
+    
+    // Communication Controls
+    maxMessageLength: 2000,
+    allowChatUploads: true,
+    maxFileSize: 5,
+    profanityFilter: true,
+    spamThreshold: 10,
+    
+    // Security
+    loginAttemptLimit: 5,
+    sessionTimeout: 60,
+    require2FA: false,
+    blockedIPs: '',
+    
+    // Notifications
+    emailNotifications: true,
+    pushNotifications: true,
+    flaggedAlertThreshold: 5,
+    maintenanceLeadTime: 24,
+    
+    // Performance
+    rateLimit: 100,
+    searchResultsPerPage: 20,
+    dataRetentionPeriod: 365,
+    backupFrequency: 'daily',
+    
+    // Feature Toggles
+    featuredGigs: true,
+    reviewsSystem: true,
+    directMessaging: false,
+    darkMode: true
+};
+
+function initializeSystemSettings() {
+    console.log('⚙️ Initializing System Settings...');
+    
+    // Load saved settings or use defaults
+    loadSettings();
+    
+    // Initialize collapsible categories
+    initializeCollapsibleCategories();
+    
+    // Initialize maintenance mode toggle handler
+    const maintenanceModeToggle = document.getElementById('maintenanceMode');
+    const maintenanceTimeRow = document.getElementById('maintenanceTimeRow');
+    
+    if (maintenanceModeToggle && maintenanceTimeRow) {
+        maintenanceModeToggle.addEventListener('change', function() {
+            maintenanceTimeRow.style.display = this.checked ? 'flex' : 'none';
+        });
+        
+        // Set initial state
+        maintenanceTimeRow.style.display = maintenanceModeToggle.checked ? 'flex' : 'none';
+    }
+    
+    // Initialize save button
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveSettings);
+    }
+    
+    // Initialize reset button
+    const resetBtn = document.getElementById('resetSettingsBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetSettings);
+    }
+    
+    console.log('✅ System Settings initialized');
+}
+
+function initializeCollapsibleCategories() {
+    const categories = document.querySelectorAll('.settings-category');
+    
+    categories.forEach((category, index) => {
+        const header = category.querySelector('.category-header');
+        
+        if (!header) return;
+        
+        // Collapse all categories except the first one (System Status)
+        if (index !== 0) {
+            category.classList.add('collapsed');
+        }
+        
+        // Add click handler
+        header.addEventListener('click', function() {
+            category.classList.toggle('collapsed');
+            
+            // Log for debugging
+            const title = category.querySelector('.category-title')?.textContent;
+            const isCollapsed = category.classList.contains('collapsed');
+            console.log(`${isCollapsed ? '📕' : '📖'} ${title} ${isCollapsed ? 'collapsed' : 'expanded'}`);
+        });
+    });
+    
+    console.log('✅ Collapsible categories initialized (first section open)');
+}
+
+function loadSettings() {
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const settings = savedSettings ? JSON.parse(savedSettings) : DEFAULT_SETTINGS;
+    
+    // Apply settings to form elements
+    Object.keys(settings).forEach(key => {
+        const element = document.getElementById(key);
+        if (!element) return;
+        
+        if (element.type === 'checkbox') {
+            element.checked = settings[key];
+        } else if (element.type === 'number' || element.type === 'text' || element.type === 'datetime-local') {
+            element.value = settings[key];
+        } else if (element.tagName === 'SELECT') {
+            element.value = settings[key];
+        } else if (element.tagName === 'TEXTAREA') {
+            element.value = settings[key];
+        }
+    });
+    
+    console.log('📥 Settings loaded from storage');
+}
+
+function saveSettings() {
+    const settings = {};
+    
+    // Collect all settings from form elements
+    Object.keys(DEFAULT_SETTINGS).forEach(key => {
+        const element = document.getElementById(key);
+        if (!element) return;
+        
+        if (element.type === 'checkbox') {
+            settings[key] = element.checked;
+        } else if (element.type === 'number') {
+            settings[key] = parseFloat(element.value) || 0;
+        } else if (element.type === 'text' || element.type === 'datetime-local') {
+            settings[key] = element.value;
+        } else if (element.tagName === 'SELECT') {
+            settings[key] = element.value;
+        } else if (element.tagName === 'TEXTAREA') {
+            settings[key] = element.value;
+        }
+    });
+    
+    // Save to localStorage
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    
+    console.log('💾 Settings saved:', settings);
+    
+    // Show success feedback
+    showSettingsSaveConfirmation();
+}
+
+function resetSettings() {
+    if (confirm('⚠️ Are you sure you want to reset all settings to their default values?\n\nThis action cannot be undone.')) {
+        // Clear saved settings
+        localStorage.removeItem(SETTINGS_STORAGE_KEY);
+        
+        // Reload default settings
+        loadSettings();
+        
+        console.log('🔄 Settings reset to defaults');
+        
+        // Show success feedback
+        alert('✅ Settings have been reset to default values!');
+    }
+}
+
+function showSettingsSaveConfirmation() {
+    const saveBtn = document.getElementById('saveSettingsBtn');
+    if (!saveBtn) return;
+    
+    const originalText = saveBtn.innerHTML;
+    
+    saveBtn.innerHTML = '<span class="btn-icon">✅</span><span class="btn-text">Settings Saved!</span>';
+    saveBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+    
+    setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+    }, 2000);
+}
 
 // ===== ADMIN PROFILE DROPDOWN =====
 function initializeAdminDropdown() {
