@@ -9601,6 +9601,12 @@ function closeUserDetail() {
     const userContent = document.getElementById('userContent');
     if (userDetail) userDetail.style.display = 'flex';
     if (userContent) userContent.style.display = 'none';
+    
+    // Close overlay (for mobile/tablet view)
+    const overlay = document.getElementById('userDetailOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
 }
 
 function initializeUserSearch() {
@@ -9879,6 +9885,21 @@ function initializeUserConfirmationOverlays() {
             document.getElementById('permBanUserConfirmOverlay').classList.remove('active');
         });
     }
+    
+    // Click outside to close overlays
+    const approveOverlay = document.getElementById('approveVerificationConfirmOverlay');
+    const revokeOverlay = document.getElementById('revokeVerificationConfirmOverlay');
+    const permBanOverlay = document.getElementById('permBanUserConfirmOverlay');
+    
+    [approveOverlay, revokeOverlay, permBanOverlay].forEach(overlay => {
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    overlay.classList.remove('active');
+                }
+            });
+        }
+    });
 }
 
 function showSuspendUserConfirmation() {
@@ -9948,24 +9969,26 @@ function approveVerification(user) {
     user.verificationStatus = 'PRO VERIFIED';
     user.verificationImages = null;
     
-    // Reload current tab
-    loadUserCards(currentUserTab);
+    // Close detail overlay
     closeUserDetail();
+    
+    // Switch to verified tab
+    switchUserTab('verified');
     
     showToast(`${user.fullName}'s verification has been approved`, 'success', 2000);
 }
 
 function revokeVerification(user) {
-    // Revoke verification
+    // Revoke verification - user needs to resubmit documents
+    user.status = 'pending';
     user.verificationStatus = 'NEW MEMBER';
+    // Keep verification images so admin can see what was rejected
     
-    // Update display
-    if (currentUserData && currentUserData.id === user.id) {
-        displayUserDetails(user);
-    }
+    // Close detail overlay
+    closeUserDetail();
     
-    // Reload cards to update badge
-    loadUserCards(currentUserTab);
+    // Switch to pending tab
+    switchUserTab('pending');
     
     showToast(`${user.fullName}'s verification has been revoked`, 'success', 2000);
 }
