@@ -181,6 +181,9 @@ function initializeNavigation() {
                 targetElement.classList.add('active');
             }
             
+            // Reset scroll position to top when switching sections
+            window.scrollTo(0, 0);
+            
             // Update page title
             updatePageTitle(targetSection);
             
@@ -8743,10 +8746,8 @@ function initializeCollapsibleCategories() {
         
         if (!header) return;
         
-        // Collapse all categories except the first one (System Status)
-        if (index !== 0) {
-            category.classList.add('collapsed');
-        }
+        // Collapse all categories by default
+        category.classList.add('collapsed');
         
         // Add click handler
         header.addEventListener('click', function() {
@@ -8759,7 +8760,7 @@ function initializeCollapsibleCategories() {
         });
     });
     
-    console.log('✅ Collapsible categories initialized (first section open)');
+    console.log('✅ Collapsible categories initialized (all collapsed by default)');
 }
 
 function loadSettings() {
@@ -8786,48 +8787,66 @@ function loadSettings() {
 }
 
 function saveSettings() {
-    const settings = {};
-    
-    // Collect all settings from form elements
-    Object.keys(DEFAULT_SETTINGS).forEach(key => {
-        const element = document.getElementById(key);
-        if (!element) return;
-        
-        if (element.type === 'checkbox') {
-            settings[key] = element.checked;
-        } else if (element.type === 'number') {
-            settings[key] = parseFloat(element.value) || 0;
-        } else if (element.type === 'text' || element.type === 'datetime-local') {
-            settings[key] = element.value;
-        } else if (element.tagName === 'SELECT') {
-            settings[key] = element.value;
-        } else if (element.tagName === 'TEXTAREA') {
-            settings[key] = element.value;
+    showSettingsConfirmation(
+        '💾 Save All Settings',
+        'This will save all current settings. Continue?',
+        () => {
+            const settings = {};
+            
+            // Collect all settings from form elements
+            Object.keys(DEFAULT_SETTINGS).forEach(key => {
+                const element = document.getElementById(key);
+                if (!element) return;
+                
+                if (element.type === 'checkbox') {
+                    settings[key] = element.checked;
+                } else if (element.type === 'number') {
+                    settings[key] = parseFloat(element.value) || 0;
+                } else if (element.type === 'text' || element.type === 'datetime-local') {
+                    settings[key] = element.value;
+                } else if (element.tagName === 'SELECT') {
+                    settings[key] = element.value;
+                } else if (element.tagName === 'TEXTAREA') {
+                    settings[key] = element.value;
+                }
+            });
+            
+            // Save to localStorage
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+            
+            console.log('💾 Settings saved:', settings);
+            
+            // Show success feedback
+            showSettingsSaveConfirmation();
         }
-    });
-    
-    // Save to localStorage
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-    
-    console.log('💾 Settings saved:', settings);
-    
-    // Show success feedback
-    showSettingsSaveConfirmation();
+    );
 }
 
 function resetSettings() {
-    if (confirm('⚠️ Are you sure you want to reset all settings to their default values?\n\nThis action cannot be undone.')) {
-        // Clear saved settings
-        localStorage.removeItem(SETTINGS_STORAGE_KEY);
-        
-        // Reload default settings
-        loadSettings();
-        
-        console.log('🔄 Settings reset to defaults');
-        
-        // Show success feedback
-        alert('✅ Settings have been reset to default values!');
-    }
+    showSettingsConfirmation(
+        '↺ Reset to Defaults',
+        'This will reset all settings to their default values. This action cannot be undone.',
+        () => {
+            // Clear saved settings
+            localStorage.removeItem(SETTINGS_STORAGE_KEY);
+            
+            // Reload default settings
+            loadSettings();
+            
+            console.log('🔄 Settings reset to defaults');
+            
+            // Show success feedback (reuse the save confirmation but with custom message)
+            const saveBtn = document.getElementById('saveSettingsBtn');
+            if (saveBtn) {
+                const originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<span class="btn-icon">✅</span><span class="btn-text">Reset Complete!</span>';
+                saveBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                setTimeout(() => {
+                    saveBtn.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+    );
 }
 
 function showSettingsSaveConfirmation() {
@@ -8842,6 +8861,65 @@ function showSettingsSaveConfirmation() {
     setTimeout(() => {
         saveBtn.innerHTML = originalText;
     }, 2000);
+}
+
+function showSettingsConfirmation(title, message, onConfirm) {
+    // Create overlay if it doesn't exist
+    let overlay = document.getElementById('settingsConfirmOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'settingsConfirmOverlay';
+        overlay.className = 'settings-confirm-overlay';
+        overlay.innerHTML = `
+            <div class="settings-confirm-dialog">
+                <div class="settings-confirm-title" id="confirmTitle"></div>
+                <div class="settings-confirm-message" id="confirmMessage"></div>
+                <div class="settings-confirm-actions">
+                    <button class="settings-confirm-btn cancel" id="confirmCancel">Cancel</button>
+                    <button class="settings-confirm-btn confirm" id="confirmOk">Confirm</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    
+    // Update content
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    
+    // Show overlay
+    overlay.classList.add('active');
+    
+    // Handle confirm
+    const confirmBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    
+    const handleConfirm = () => {
+        overlay.classList.remove('active');
+        if (onConfirm) onConfirm();
+        cleanup();
+    };
+    
+    const handleCancel = () => {
+        overlay.classList.remove('active');
+        cleanup();
+    };
+    
+    const cleanup = () => {
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        overlay.removeEventListener('click', handleOverlayClick);
+    };
+    
+    const handleOverlayClick = (e) => {
+        if (e.target === overlay) {
+            handleCancel();
+        }
+    };
+    
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
+    overlay.addEventListener('click', handleOverlayClick);
 }
 
 // ===== ADMIN PROFILE DROPDOWN =====
