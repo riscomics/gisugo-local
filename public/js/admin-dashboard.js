@@ -2354,7 +2354,9 @@ function performChatSearch(query) {
                     <div class="chat-participants">
                         ${chat.participants.map(p => `
                             <div class="chat-participant">
-                                <div class="participant-avatar">${p.avatar}</div>
+                                ${p.avatar.startsWith('http') ? 
+                                    `<img src="${p.avatar}" class="participant-avatar" alt="${p.name}" />` : 
+                                    `<div class="participant-avatar">${p.avatar}</div>`}
                                 <span>${p.name}</span>
                                 <span class="participant-role ${p.role}">${p.role}</span>
                             </div>
