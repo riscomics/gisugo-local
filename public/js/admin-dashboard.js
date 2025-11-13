@@ -2862,6 +2862,24 @@ function updateInboxCount() {
     if (sentCountElement) {
         sentCountElement.textContent = formatCount(sentCount);
     }
+    
+    // Also update the navigation panel badge
+    updateNavigationMessageBadge(newCount);
+}
+
+// Update the Messages navigation badge to reflect current new message count
+function updateNavigationMessageBadge(count) {
+    const navBadge = document.querySelector('.menu-item[data-section="messages"] .menu-notification-badge');
+    if (navBadge) {
+        navBadge.textContent = count;
+        
+        // Hide badge if count is 0
+        if (count === 0) {
+            navBadge.style.display = 'none';
+        } else {
+            navBadge.style.display = 'inline-flex';
+        }
+    }
 }
 
 function formatCount(count) {
