@@ -8823,6 +8823,12 @@ function initializeSystemSettings() {
         resetBtn.addEventListener('click', resetSettings);
     }
     
+    // Initialize technical warning composer
+    initializeTechWarningComposer();
+    
+    // Initialize maintenance mode composer
+    initializeMaintenanceComposer();
+    
     console.log('✅ System Settings initialized');
 }
 
@@ -9008,6 +9014,425 @@ function showSettingsConfirmation(title, message, onConfirm) {
     confirmBtn.addEventListener('click', handleConfirm);
     cancelBtn.addEventListener('click', handleCancel);
     overlay.addEventListener('click', handleOverlayClick);
+}
+
+// ===== TECHNICAL WARNING COMPOSER =====
+function initializeTechWarningComposer() {
+    const composeBtn = document.getElementById('composeTechWarningBtn');
+    const overlay = document.getElementById('techWarningComposeOverlay');
+    const closeBtn = document.getElementById('closeTechWarningCompose');
+    const cancelBtn = document.getElementById('cancelTechWarningCompose');
+    const saveBtn = document.getElementById('saveTechWarningCompose');
+    
+    // Form fields
+    const titleInput = document.getElementById('techWarningTitle');
+    const messageTextarea = document.getElementById('techWarningMessage');
+    const severitySelect = document.getElementById('techWarningSeverity');
+    const etaInput = document.getElementById('techWarningETA');
+    
+    // Character counters
+    const titleCounter = document.getElementById('techWarningTitleCounter');
+    const messageCounter = document.getElementById('techWarningMessageCounter');
+    
+    // Preview elements
+    const previewTitle = document.querySelector('.preview-warning-title');
+    const previewMessage = document.querySelector('.preview-warning-message');
+    const previewEta = document.querySelector('.preview-warning-eta');
+    const previewIcon = document.querySelector('.preview-warning-icon');
+    const previewBox = document.querySelector('.compose-preview-box');
+    
+    if (!composeBtn || !overlay) return;
+    
+    // Load saved warning data
+    let savedWarning = loadTechWarningData();
+    
+    // Open overlay
+    if (composeBtn) {
+        composeBtn.addEventListener('click', () => {
+            // Load saved data into form
+            if (savedWarning) {
+                titleInput.value = savedWarning.title || '';
+                messageTextarea.value = savedWarning.message || '';
+                severitySelect.value = savedWarning.severity || 'medium';
+                etaInput.value = savedWarning.eta || '';
+            }
+            
+            // Update character counters
+            updateCharCounter(titleInput, titleCounter, 60);
+            updateCharCounter(messageTextarea, messageCounter, 500);
+            
+            // Update preview
+            updatePreview();
+            
+            overlay.classList.add('active');
+        });
+    }
+    
+    // Close overlay
+    const closeOverlay = () => {
+        overlay.classList.remove('active');
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeOverlay);
+    
+    // Click outside to close
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            closeOverlay();
+        }
+    });
+    
+    // Character counters
+    if (titleInput && titleCounter) {
+        titleInput.addEventListener('input', () => {
+            updateCharCounter(titleInput, titleCounter, 60);
+            updatePreview();
+        });
+    }
+    
+    if (messageTextarea && messageCounter) {
+        messageTextarea.addEventListener('input', () => {
+            updateCharCounter(messageTextarea, messageCounter, 500);
+            updatePreview();
+        });
+    }
+    
+    // Update preview on any field change
+    if (severitySelect) {
+        severitySelect.addEventListener('change', updatePreview);
+    }
+    
+    if (etaInput) {
+        etaInput.addEventListener('input', updatePreview);
+    }
+    
+    // Save warning
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            const title = titleInput.value.trim();
+            const message = messageTextarea.value.trim();
+            
+            // Validation
+            if (!title) {
+                showToast('Please enter a warning title', 'error');
+                return;
+            }
+            
+            if (!message) {
+                showToast('Please enter a warning message', 'error');
+                return;
+            }
+            
+            // Save warning data
+            const warningData = {
+                title: title,
+                message: message,
+                severity: severitySelect.value,
+                eta: etaInput.value.trim(),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            saveTechWarningData(warningData);
+            
+            // Show success feedback
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<span style="margin-right: 0.5rem;">✅</span> Saved!';
+            saveBtn.style.background = '#0d9668';
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.style.background = '';
+                closeOverlay();
+            }, 1500);
+            
+            showToast('Technical warning message saved successfully', 'success');
+            
+            console.log('💾 Technical warning saved:', warningData);
+        });
+    }
+    
+    // Update preview function
+    function updatePreview() {
+        const title = titleInput.value.trim() || 'Technical Difficulties';
+        const message = messageTextarea.value.trim() || "We're experiencing technical issues. Some features may be temporarily unavailable.";
+        const severity = severitySelect.value;
+        const eta = etaInput.value.trim() || 'Under investigation';
+        
+        // Update preview content
+        if (previewTitle) previewTitle.textContent = title;
+        if (previewMessage) previewMessage.textContent = message;
+        if (previewEta) previewEta.textContent = `Expected resolution: ${eta}`;
+        
+        // Update preview styling based on severity
+        if (previewBox) {
+            // Remove all severity classes
+            previewBox.className = 'compose-preview-box';
+            
+            // Update border color and icon based on severity
+            const severityStyles = {
+                low: { border: '#10b981', icon: 'ℹ️' },
+                medium: { border: '#f59e0b', icon: '⚠️' },
+                high: { border: '#ef4444', icon: '⚠️' },
+                critical: { border: '#dc2626', icon: '🚨' }
+            };
+            
+            const style = severityStyles[severity] || severityStyles.medium;
+            previewBox.style.borderColor = style.border;
+            
+            if (previewIcon) {
+                previewIcon.textContent = style.icon;
+            }
+        }
+    }
+    
+    console.log('✅ Technical Warning Composer initialized');
+}
+
+// Update character counter helper
+function updateCharCounter(input, counter, maxLength) {
+    const count = input.value.length;
+    counter.textContent = `${count}/${maxLength}`;
+    
+    if (count >= maxLength * 0.9) {
+        counter.style.color = '#f59e0b';
+    } else {
+        counter.style.color = '#a0aec0';
+    }
+}
+
+// Save technical warning data to localStorage
+function saveTechWarningData(data) {
+    localStorage.setItem('techWarningData', JSON.stringify(data));
+}
+
+// Load technical warning data from localStorage
+function loadTechWarningData() {
+    const saved = localStorage.getItem('techWarningData');
+    return saved ? JSON.parse(saved) : null;
+}
+
+// ===== MAINTENANCE MODE COMPOSER =====
+function initializeMaintenanceComposer() {
+    const composeBtn = document.getElementById('composeMaintenanceBtn');
+    const overlay = document.getElementById('maintenanceComposeOverlay');
+    const closeBtn = document.getElementById('closeMaintenanceCompose');
+    const cancelBtn = document.getElementById('cancelMaintenanceCompose');
+    const saveBtn = document.getElementById('saveMaintenanceCompose');
+    
+    // Form fields
+    const titleInput = document.getElementById('maintenanceTitle');
+    const messageTextarea = document.getElementById('maintenanceMessage');
+    const startTimeInput = document.getElementById('maintenanceStartTime');
+    const endTimeInput = document.getElementById('maintenanceEndTime');
+    const contactInput = document.getElementById('maintenanceContact');
+    
+    // Character counters
+    const titleCounter = document.getElementById('maintenanceTitleCounter');
+    const messageCounter = document.getElementById('maintenanceMessageCounter');
+    
+    // Preview elements
+    const previewTitle = document.querySelector('.preview-maintenance-title');
+    const previewMessage = document.querySelector('.preview-maintenance-message');
+    const previewTimeItems = document.querySelectorAll('.preview-time-item .time-value');
+    const previewContact = document.querySelector('.preview-maintenance-contact');
+    
+    if (!composeBtn || !overlay) return;
+    
+    // Load saved maintenance data
+    let savedMaintenance = loadMaintenanceData();
+    
+    // Open overlay
+    if (composeBtn) {
+        composeBtn.addEventListener('click', () => {
+            // Load saved data into form
+            if (savedMaintenance) {
+                titleInput.value = savedMaintenance.title || '';
+                messageTextarea.value = savedMaintenance.message || '';
+                startTimeInput.value = savedMaintenance.startTime || '';
+                endTimeInput.value = savedMaintenance.endTime || '';
+                contactInput.value = savedMaintenance.contact || '';
+            }
+            
+            // Update character counters
+            updateCharCounter(titleInput, titleCounter, 60);
+            updateCharCounter(messageTextarea, messageCounter, 500);
+            
+            // Update preview
+            updateMaintenancePreview();
+            
+            overlay.classList.add('active');
+        });
+    }
+    
+    // Close overlay
+    const closeOverlay = () => {
+        overlay.classList.remove('active');
+    };
+    
+    if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeOverlay);
+    
+    // Click outside to close
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            closeOverlay();
+        }
+    });
+    
+    // Character counters
+    if (titleInput && titleCounter) {
+        titleInput.addEventListener('input', () => {
+            updateCharCounter(titleInput, titleCounter, 60);
+            updateMaintenancePreview();
+        });
+    }
+    
+    if (messageTextarea && messageCounter) {
+        messageTextarea.addEventListener('input', () => {
+            updateCharCounter(messageTextarea, messageCounter, 500);
+            updateMaintenancePreview();
+        });
+    }
+    
+    // Update preview on any field change
+    if (startTimeInput) {
+        startTimeInput.addEventListener('change', updateMaintenancePreview);
+    }
+    
+    if (endTimeInput) {
+        endTimeInput.addEventListener('change', updateMaintenancePreview);
+    }
+    
+    if (contactInput) {
+        contactInput.addEventListener('input', updateMaintenancePreview);
+    }
+    
+    // Save maintenance
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            const title = titleInput.value.trim();
+            const message = messageTextarea.value.trim();
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+            
+            // Validation
+            if (!title) {
+                showToast('Please enter a maintenance title', 'error');
+                return;
+            }
+            
+            if (!message) {
+                showToast('Please enter a maintenance message', 'error');
+                return;
+            }
+            
+            if (!startTime) {
+                showToast('Please select a start time', 'error');
+                return;
+            }
+            
+            if (!endTime) {
+                showToast('Please select an expected end time', 'error');
+                return;
+            }
+            
+            // Validate end time is after start time
+            if (new Date(endTime) <= new Date(startTime)) {
+                showToast('End time must be after start time', 'error');
+                return;
+            }
+            
+            // Save maintenance data
+            const maintenanceData = {
+                title: title,
+                message: message,
+                startTime: startTime,
+                endTime: endTime,
+                contact: contactInput.value.trim(),
+                lastUpdated: new Date().toISOString()
+            };
+            
+            saveMaintenanceData(maintenanceData);
+            
+            // Show success feedback
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<span style="margin-right: 0.5rem;">✅</span> Saved!';
+            saveBtn.style.background = '#0d9668';
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = originalText;
+                saveBtn.style.background = '';
+                closeOverlay();
+            }, 1500);
+            
+            showToast('Maintenance message saved successfully', 'success');
+            
+            console.log('💾 Maintenance data saved:', maintenanceData);
+        });
+    }
+    
+    // Update preview function
+    function updateMaintenancePreview() {
+        const title = titleInput.value.trim() || 'Scheduled Maintenance';
+        const message = messageTextarea.value.trim() || "We're performing scheduled maintenance to improve our services. The platform will be temporarily unavailable.";
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        const contact = contactInput.value.trim() || 'support@gisugo.com';
+        
+        // Update preview content
+        if (previewTitle) previewTitle.textContent = title;
+        if (previewMessage) previewMessage.textContent = message;
+        
+        // Update time displays
+        if (previewTimeItems.length >= 2) {
+            // Format start time
+            if (startTime) {
+                const startDate = new Date(startTime);
+                previewTimeItems[0].textContent = startDate.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } else {
+                previewTimeItems[0].textContent = 'Not set';
+            }
+            
+            // Format end time
+            if (endTime) {
+                const endDate = new Date(endTime);
+                previewTimeItems[1].textContent = endDate.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } else {
+                previewTimeItems[1].textContent = 'Not set';
+            }
+        }
+        
+        // Update contact
+        if (previewContact) {
+            previewContact.textContent = `Contact: ${contact}`;
+        }
+    }
+    
+    console.log('✅ Maintenance Mode Composer initialized');
+}
+
+// Save maintenance data to localStorage
+function saveMaintenanceData(data) {
+    localStorage.setItem('maintenanceData', JSON.stringify(data));
+}
+
+// Load maintenance data from localStorage
+function loadMaintenanceData() {
+    const saved = localStorage.getItem('maintenanceData');
+    return saved ? JSON.parse(saved) : null;
 }
 
 // ===== ADMIN PROFILE DROPDOWN =====

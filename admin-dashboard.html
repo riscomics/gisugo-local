@@ -2995,10 +2995,16 @@
                                     <label class="setting-label">Technical Difficulties Warning</label>
                                     <span class="setting-description">Display warning popup to all users about site instability</span>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="techDifficulties">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                                <div class="setting-controls">
+                                    <button class="compose-message-btn" id="composeTechWarningBtn">
+                                        <span>📝</span>
+                                        <span>Compose Message</span>
+                                    </button>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="techDifficulties">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
                             </div>
                             
                             <div class="setting-row">
@@ -3006,10 +3012,16 @@
                                     <label class="setting-label">Scheduled Maintenance Mode</label>
                                     <span class="setting-description">Cover entire site with scheduled update message</span>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="maintenanceMode">
-                                    <span class="toggle-slider"></span>
-                                </label>
+                                <div class="setting-controls">
+                                    <button class="compose-message-btn" id="composeMaintenanceBtn">
+                                        <span>📝</span>
+                                        <span>Compose Message</span>
+                                    </button>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="maintenanceMode">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
                             </div>
                             
                             <div class="setting-row maintenance-time" id="maintenanceTimeRow" style="display: none;">
@@ -3505,6 +3517,128 @@
                 </div>
             </section>
         </main>
+        
+        <!-- Maintenance Mode Compose Overlay -->
+        <div class="settings-compose-overlay" id="maintenanceComposeOverlay">
+            <div class="settings-compose-modal">
+                <div class="settings-compose-header">
+                    <h3 class="settings-compose-title">Compose Maintenance Message</h3>
+                    <button class="settings-compose-close" id="closeMaintenanceCompose">×</button>
+                </div>
+                <div class="settings-compose-body">
+                    <p class="settings-compose-description">
+                        This message will be displayed as a full-page overlay to all users when Scheduled Maintenance Mode is enabled. Use this to inform users about planned updates, system improvements, or scheduled downtime.
+                    </p>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Maintenance Title: <span style="color: #ef4444;">*</span></label>
+                        <input type="text" class="compose-form-input" id="maintenanceTitle" placeholder="e.g., Scheduled Maintenance" maxlength="60">
+                        <span class="char-counter" id="maintenanceTitleCounter">0/60</span>
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Maintenance Message: <span style="color: #ef4444;">*</span></label>
+                        <textarea class="compose-form-textarea" id="maintenanceMessage" rows="6" placeholder="Explain what maintenance is being performed and what to expect..." maxlength="500"></textarea>
+                        <span class="char-counter" id="maintenanceMessageCounter">0/500</span>
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Start Time: <span style="color: #ef4444;">*</span></label>
+                        <input type="datetime-local" class="compose-form-input" id="maintenanceStartTime">
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Expected End Time: <span style="color: #ef4444;">*</span></label>
+                        <input type="datetime-local" class="compose-form-input" id="maintenanceEndTime">
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Contact Information: <span style="color: #a0aec0; font-size: 0.85rem;">(Optional)</span></label>
+                        <input type="text" class="compose-form-input" id="maintenanceContact" placeholder="e.g., support@gisugo.com or +63-917-XXX-XXXX">
+                    </div>
+                    
+                    <div class="compose-preview-section">
+                        <div class="compose-preview-label">Preview:</div>
+                        <div class="compose-preview-box maintenance-preview" id="maintenancePreview">
+                            <div class="preview-maintenance-icon">🔧</div>
+                            <div class="preview-maintenance-title">Scheduled Maintenance</div>
+                            <div class="preview-maintenance-message">We're performing scheduled maintenance to improve our services. The platform will be temporarily unavailable.</div>
+                            <div class="preview-maintenance-time">
+                                <div class="preview-time-item">
+                                    <span class="time-label">Start:</span>
+                                    <span class="time-value">Not set</span>
+                                </div>
+                                <div class="preview-time-item">
+                                    <span class="time-label">Expected End:</span>
+                                    <span class="time-value">Not set</span>
+                                </div>
+                            </div>
+                            <div class="preview-maintenance-contact">Contact: support@gisugo.com</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-compose-footer">
+                    <button class="settings-compose-cancel" id="cancelMaintenanceCompose">Cancel</button>
+                    <button class="settings-compose-save" id="saveMaintenanceCompose">Save Message</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Technical Difficulties Warning Compose Overlay -->
+        <div class="settings-compose-overlay" id="techWarningComposeOverlay">
+            <div class="settings-compose-modal">
+                <div class="settings-compose-header">
+                    <h3 class="settings-compose-title">Compose Technical Difficulties Warning</h3>
+                    <button class="settings-compose-close" id="closeTechWarningCompose">×</button>
+                </div>
+                <div class="settings-compose-body">
+                    <p class="settings-compose-description">
+                        This message will be displayed as a warning popup to all users when the Technical Difficulties Warning toggle is enabled. Use this to inform users about site instability, server issues, or ongoing technical problems.
+                    </p>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Warning Title: <span style="color: #ef4444;">*</span></label>
+                        <input type="text" class="compose-form-input" id="techWarningTitle" placeholder="e.g., Technical Difficulties" maxlength="60">
+                        <span class="char-counter" id="techWarningTitleCounter">0/60</span>
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Warning Message: <span style="color: #ef4444;">*</span></label>
+                        <textarea class="compose-form-textarea" id="techWarningMessage" rows="6" placeholder="Describe the technical issue and what users should expect..." maxlength="500"></textarea>
+                        <span class="char-counter" id="techWarningMessageCounter">0/500</span>
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Severity Level:</label>
+                        <select class="compose-form-select" id="techWarningSeverity">
+                            <option value="low">Low - Minor issues, site mostly functional</option>
+                            <option value="medium" selected>Medium - Some features affected</option>
+                            <option value="high">High - Major issues, expect disruptions</option>
+                            <option value="critical">Critical - Severe problems, limited functionality</option>
+                        </select>
+                    </div>
+                    
+                    <div class="compose-form-group">
+                        <label class="compose-form-label">Expected Resolution: <span style="color: #a0aec0; font-size: 0.85rem;">(Optional)</span></label>
+                        <input type="text" class="compose-form-input" id="techWarningETA" placeholder="e.g., Within 2 hours, By 5:00 PM, Under investigation">
+                    </div>
+                    
+                    <div class="compose-preview-section">
+                        <div class="compose-preview-label">Preview:</div>
+                        <div class="compose-preview-box" id="techWarningPreview">
+                            <div class="preview-warning-icon">⚠️</div>
+                            <div class="preview-warning-title">Technical Difficulties</div>
+                            <div class="preview-warning-message">We're experiencing technical issues. Some features may be temporarily unavailable.</div>
+                            <div class="preview-warning-eta">Expected resolution: Under investigation</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-compose-footer">
+                    <button class="settings-compose-cancel" id="cancelTechWarningCompose">Cancel</button>
+                    <button class="settings-compose-save" id="saveTechWarningCompose">Save Message</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Floating Reply Modal -->
