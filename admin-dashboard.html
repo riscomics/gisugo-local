@@ -1893,8 +1893,18 @@
                                     <div class="suspended-info-section" id="suspendedInfoSection" style="display: none;">
                                         <div class="suspended-info-label">SUSPENDED BY:</div>
                                         <div class="suspended-info-text" id="suspendedBy"></div>
+                                        
                                         <div class="suspended-info-label" style="margin-top: 1rem;">SUSPENSION DATE:</div>
                                         <div class="suspended-info-text" id="suspensionDate"></div>
+                                        
+                                        <div class="suspended-info-label" style="margin-top: 1rem;">REASON:</div>
+                                        <div class="suspended-info-text" id="suspensionReason"></div>
+                                        
+                                        <div class="suspended-info-label" style="margin-top: 1rem;">DURATION:</div>
+                                        <div class="suspended-info-text" id="suspensionDuration"></div>
+                                        
+                                        <div class="suspended-info-label" style="margin-top: 1rem;" id="suspensionNotesLabel">ADDITIONAL NOTES:</div>
+                                        <div class="suspended-info-text" id="suspensionNotes" style="white-space: pre-wrap; line-height: 1.5;"></div>
                                     </div>
                                     
                                     <!-- Permanent Ban Section (for SUSPENDED tab only) -->
@@ -1970,12 +1980,47 @@
 
             <!-- Suspend User Confirmation Overlay -->
             <div class="confirm-overlay" id="suspendUserConfirmOverlay">
-                <div class="confirm-modal">
+                <div class="confirm-modal confirm-modal-form">
                     <div class="confirm-icon suspend-icon">⚠️</div>
                     <h3 class="confirm-title">Suspend This User?</h3>
                     <p class="confirm-message" id="suspendUserConfirmMessage">
                         This will move the user to the "Suspended" tab and prevent them from accessing their account.
                     </p>
+                    
+                    <!-- Suspension Form Fields -->
+                    <div class="confirm-form-fields">
+                        <div class="confirm-form-group">
+                            <label class="confirm-form-label">Suspension Reason: <span style="color: #ef4444;">*</span></label>
+                            <select class="confirm-form-select" id="suspensionReasonSelect">
+                                <option value="">Select reason...</option>
+                                <option value="Policy Violation">Policy Violation</option>
+                                <option value="Inappropriate Content">Inappropriate Content</option>
+                                <option value="Terms of Service Breach">Terms of Service Breach</option>
+                                <option value="User Reports/Complaints">User Reports/Complaints</option>
+                                <option value="Fraudulent Activity">Fraudulent Activity</option>
+                                <option value="Spam/Scam Behavior">Spam/Scam Behavior</option>
+                                <option value="Safety Concerns">Safety Concerns</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="confirm-form-group">
+                            <label class="confirm-form-label">Additional Notes: <span style="color: #a0aec0; font-size: 0.85rem;">(Optional)</span></label>
+                            <textarea class="confirm-form-textarea" id="suspensionNotesTextarea" rows="3" placeholder="Add any additional details about this suspension..."></textarea>
+                        </div>
+                        
+                        <div class="confirm-form-group">
+                            <label class="confirm-form-label">Duration:</label>
+                            <select class="confirm-form-select" id="suspensionDurationSelect">
+                                <option value="indefinite">Indefinite (until restored)</option>
+                                <option value="7-days">7 Days</option>
+                                <option value="14-days">14 Days</option>
+                                <option value="30-days">30 Days</option>
+                                <option value="90-days">90 Days</option>
+                            </select>
+                        </div>
+                    </div>
+                    
                     <div class="confirm-actions">
                         <button class="confirm-btn cancel-btn" id="cancelSuspendUserBtn">Cancel</button>
                         <button class="confirm-btn confirm-suspend-btn" id="confirmSuspendUserBtn">Suspend User</button>

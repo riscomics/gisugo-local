@@ -9204,6 +9204,7 @@ function generateMockUserData() {
         } : null;
         
         // Suspended info (for suspended users)
+        // FIREBASE PREP: Store previousStatus for proper restoration
         const suspendedInfo = status === 'suspended' ? {
             suspendedBy: 'Admin: Peter J. Ang',
             suspensionDate: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', {
@@ -9212,7 +9213,11 @@ function generateMockUserData() {
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
-            })
+            }),
+            reason: ['Policy violation', 'Inappropriate content', 'Terms of service breach', 'User report'][Math.floor(Math.random() * 4)],
+            // CRITICAL: Store what status the user had before suspension
+            previousStatus: verificationStatus === 'PRO VERIFIED' ? 'verified' : (Math.random() < 0.3 ? 'pending' : 'new'),
+            previousVerificationStatus: verificationStatus
         } : null;
         
         allUsers.push({
@@ -9589,6 +9594,33 @@ function updateUserFooterSections(user) {
             suspendedInfoSection.style.display = 'block';
             document.getElementById('suspendedBy').textContent = user.suspendedInfo.suspendedBy;
             document.getElementById('suspensionDate').textContent = user.suspendedInfo.suspensionDate;
+            
+            // Display reason
+            const reasonEl = document.getElementById('suspensionReason');
+            if (reasonEl) {
+                reasonEl.textContent = user.suspendedInfo.reason || 'Not specified';
+            }
+            
+            // Display duration with expiry date if applicable
+            const durationEl = document.getElementById('suspensionDuration');
+            if (durationEl) {
+                const durationText = formatSuspensionDuration(user.suspendedInfo);
+                durationEl.innerHTML = durationText;
+            }
+            
+            // Display notes (only if they exist)
+            const notesEl = document.getElementById('suspensionNotes');
+            const notesLabelEl = document.getElementById('suspensionNotesLabel');
+            if (notesEl && notesLabelEl) {
+                if (user.suspendedInfo.notes && user.suspendedInfo.notes.trim()) {
+                    notesEl.textContent = user.suspendedInfo.notes;
+                    notesEl.style.display = 'block';
+                    notesLabelEl.style.display = 'block';
+                } else {
+                    notesEl.style.display = 'none';
+                    notesLabelEl.style.display = 'none';
+                }
+            }
         }
         if (permBanSection) {
             permBanSection.style.display = 'block';
@@ -9925,17 +9957,55 @@ function initializeUserConfirmationOverlays() {
     // Suspend User
     const suspendConfirm = document.getElementById('confirmSuspendUserBtn');
     const suspendCancel = document.getElementById('cancelSuspendUserBtn');
+    const suspendOverlay = document.getElementById('suspendUserConfirmOverlay');
     
     if (suspendConfirm) {
         suspendConfirm.addEventListener('click', () => {
-            suspendUser(currentUserData);
-            document.getElementById('suspendUserConfirmOverlay').classList.remove('active');
+            // Get form values
+            const reasonSelect = document.getElementById('suspensionReasonSelect');
+            const notesTextarea = document.getElementById('suspensionNotesTextarea');
+            const durationSelect = document.getElementById('suspensionDurationSelect');
+            
+            const reason = reasonSelect ? reasonSelect.value : '';
+            const notes = notesTextarea ? notesTextarea.value.trim() : '';
+            const duration = durationSelect ? durationSelect.value : 'indefinite';
+            
+            // Validate required fields
+            if (!reason) {
+                showToast('Please select a suspension reason', 'error');
+                return;
+            }
+            
+            // Build suspension data object
+            const suspensionData = {
+                reason: reason,
+                notes: notes,
+                duration: duration
+            };
+            
+            // Suspend user with captured data
+            suspendUser(currentUserData, suspensionData);
+            
+            // Close overlay and reset form
+            suspendOverlay.classList.remove('active');
+            resetSuspendForm();
         });
     }
     
     if (suspendCancel) {
         suspendCancel.addEventListener('click', () => {
-            document.getElementById('suspendUserConfirmOverlay').classList.remove('active');
+            suspendOverlay.classList.remove('active');
+            resetSuspendForm();
+        });
+    }
+    
+    // Close suspend overlay when clicking outside
+    if (suspendOverlay) {
+        suspendOverlay.addEventListener('click', (e) => {
+            if (e.target === suspendOverlay) {
+                suspendOverlay.classList.remove('active');
+                resetSuspendForm();
+            }
         });
     }
     
@@ -10048,40 +10118,310 @@ function showPermBanUserConfirmation() {
     overlay.classList.add('active');
 }
 
-function suspendUser(user) {
-    // Update user status
+// Reset suspend form fields
+function resetSuspendForm() {
+    const reasonSelect = document.getElementById('suspensionReasonSelect');
+    const notesTextarea = document.getElementById('suspensionNotesTextarea');
+    const durationSelect = document.getElementById('suspensionDurationSelect');
+    
+    if (reasonSelect) reasonSelect.value = '';
+    if (notesTextarea) notesTextarea.value = '';
+    if (durationSelect) durationSelect.value = 'indefinite';
+}
+
+// Format suspension duration for display
+function formatSuspensionDuration(suspendedInfo) {
+    const duration = suspendedInfo.duration || 'indefinite';
+    
+    if (duration === 'indefinite') {
+        return '<span style="color: #ef4444; font-weight: 600;">Indefinite</span><br><span style="font-size: 0.85rem; color: #a0aec0;">Until manually restored by admin</span>';
+    }
+    
+    // Calculate expiry date based on suspension date and duration
+    // Parse suspension date (format: "Month Day, Year, Time")
+    const suspensionDateStr = suspendedInfo.suspensionDate;
+    let suspensionDate;
+    
+    try {
+        // Try to parse the date string
+        suspensionDate = new Date(suspensionDateStr);
+    } catch (e) {
+        console.error('Failed to parse suspension date:', e);
+        return `<span style="color: #f59e0b;">${duration}</span>`;
+    }
+    
+    // Calculate days to add based on duration
+    let daysToAdd = 0;
+    let durationLabel = '';
+    
+    switch(duration) {
+        case '7-days':
+            daysToAdd = 7;
+            durationLabel = '7 Days';
+            break;
+        case '14-days':
+            daysToAdd = 14;
+            durationLabel = '14 Days';
+            break;
+        case '30-days':
+            daysToAdd = 30;
+            durationLabel = '30 Days';
+            break;
+        case '90-days':
+            daysToAdd = 90;
+            durationLabel = '90 Days';
+            break;
+        default:
+            return `<span style="color: #f59e0b;">${duration}</span>`;
+    }
+    
+    // Calculate expiry date
+    const expiryDate = new Date(suspensionDate);
+    expiryDate.setDate(expiryDate.getDate() + daysToAdd);
+    
+    // Format expiry date
+    const expiryDateStr = expiryDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    // Calculate time remaining
+    const now = new Date();
+    const timeRemaining = expiryDate - now;
+    const daysRemaining = Math.ceil(timeRemaining / (1000 * 60 * 60 * 24));
+    
+    let statusColor = '#f59e0b'; // orange default
+    let statusText = '';
+    
+    if (daysRemaining <= 0) {
+        // Suspension expired - should be auto-restored
+        statusColor = '#10b981'; // green
+        statusText = '<br><span style="color: #10b981; font-weight: 600;">⚠️ EXPIRED - Should be restored</span>';
+    } else if (daysRemaining <= 2) {
+        statusColor = '#ef4444'; // red for urgent
+        statusText = `<br><span style="color: #ef4444; font-weight: 600;">Expires in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}</span>`;
+    } else {
+        statusText = `<br><span style="color: #a0aec0; font-size: 0.85rem;">Expires in ${daysRemaining} days</span>`;
+    }
+    
+    return `<span style="color: ${statusColor}; font-weight: 600;">${durationLabel}</span><br><span style="font-size: 0.85rem; color: #a0aec0;">Until: ${expiryDateStr}</span>${statusText}`;
+}
+
+/*
+=== FIREBASE INTEGRATION: USER SUSPENSION LOGIC ===
+
+When suspending a user, we MUST store their current status so we can properly
+restore them later. Don't just overwrite status - save it first!
+
+CRITICAL: Store previousStatus before suspension for proper restoration
+*/
+
+function suspendUser(user, suspensionData) {
+    console.log('🚫 Suspending user:', user.fullName);
+    console.log('   Suspension data:', suspensionData);
+    
+    // FIREBASE CRITICAL: Store current status BEFORE changing to 'suspended'
+    const previousStatus = user.status;  // 'verified', 'pending', or 'new'
+    const previousVerificationStatus = user.verificationStatus;
+    
+    console.log(`  → Previous status: ${previousStatus} (${previousVerificationStatus})`);
+    console.log(`  → Reason: ${suspensionData.reason}`);
+    console.log(`  → Duration: ${suspensionData.duration}`);
+    if (suspensionData.notes) {
+        console.log(`  → Notes: ${suspensionData.notes}`);
+    }
+    
+    // Update user status to suspended
     user.status = 'suspended';
+    
+    // Store suspension data including PREVIOUS STATUS for restoration
     user.suspendedInfo = {
-        suspendedBy: 'Admin: Peter J. Ang',
+        suspendedBy: 'Admin: Peter J. Ang',  // FIREBASE TODO: Get from currentAdmin.displayName
+        suspendedByUid: 'admin_001',  // FIREBASE TODO: Get from currentAdmin.uid
         suspensionDate: new Date().toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
-        })
+        }),
+        // CRITICAL FOR FIREBASE: Store original status for restoration
+        previousStatus: previousStatus,  // <- KEY FIELD
+        previousVerificationStatus: previousVerificationStatus,
+        // Admin-provided suspension details
+        reason: suspensionData.reason,
+        notes: suspensionData.notes || '',
+        duration: suspensionData.duration
     };
     
-    // Reload current tab
-    loadUserCards(currentUserTab);
+    // FIREBASE TODO: Update Firestore document
+    // Calculate expiry timestamp if duration is not indefinite
+    // let expiresAt = null;
+    // if (suspensionData.duration !== 'indefinite') {
+    //     const daysMap = {
+    //         '7-days': 7,
+    //         '14-days': 14,
+    //         '30-days': 30,
+    //         '90-days': 90
+    //     };
+    //     const days = daysMap[suspensionData.duration];
+    //     if (days) {
+    //         expiresAt = firebase.firestore.Timestamp.fromDate(
+    //             new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    //         );
+    //     }
+    // }
+    //
+    // await db.collection('users').doc(user.userId).update({
+    //     status: 'suspended',
+    //     suspensionData: {
+    //         suspendedAt: firebase.firestore.Timestamp.now(),
+    //         suspendedBy: currentAdmin.uid,
+    //         suspendedByName: currentAdmin.displayName,
+    //         reason: suspensionData.reason,  // From form dropdown
+    //         notes: suspensionData.notes,  // From form textarea
+    //         duration: suspensionData.duration,  // From form dropdown
+    //         expiresAt: expiresAt,  // <- Calculated timestamp for timed suspensions
+    //         previousStatus: previousStatus,  // <- CRITICAL: Store for restoration
+    //         previousVerificationStatus: previousVerificationStatus
+    //     }
+    // });
+    //
+    // FIREBASE CLOUD FUNCTION: Auto-restore expired suspensions
+    // Create a scheduled function that runs daily (or hourly) to check for expired suspensions:
+    //
+    // exports.autoRestoreExpiredSuspensions = functions.pubsub
+    //     .schedule('every 1 hours')
+    //     .onRun(async (context) => {
+    //         const now = admin.firestore.Timestamp.now();
+    //         const expiredUsers = await db.collection('users')
+    //             .where('status', '==', 'suspended')
+    //             .where('suspensionData.expiresAt', '<=', now)
+    //             .where('suspensionData.expiresAt', '!=', null)
+    //             .get();
+    //
+    //         const batch = db.batch();
+    //         expiredUsers.forEach(doc => {
+    //             const userData = doc.data();
+    //             batch.update(doc.ref, {
+    //                 status: userData.suspensionData.previousStatus,
+    //                 verificationStatus: userData.suspensionData.previousVerificationStatus,
+    //                 suspensionData: admin.firestore.FieldValue.delete(),
+    //                 restoredAt: admin.firestore.Timestamp.now(),
+    //                 restoredBy: 'system-auto-restore'
+    //             });
+    //         });
+    //
+    //         await batch.commit();
+    //         console.log(`Auto-restored ${expiredUsers.size} users with expired suspensions`);
+    //     });
+    
+    // Close detail overlay
     closeUserDetail();
+    
+    // Switch to suspended tab to show where user was moved
+    switchUserTab('suspended');
     
     showToast(`${user.fullName} has been suspended`, 'success', 2000);
+    console.log('✅ User suspended and moved to Suspended tab');
 }
 
-function restoreUser(user) {
-    // Restore to previous status (assume PRO VERIFIED for simplicity)
-    user.status = 'verified';
-    if (user.verificationStatus === 'NEW MEMBER') {
-        user.verificationStatus = 'PRO VERIFIED';
-    }
-    user.suspendedInfo = null;
+/*
+=== FIREBASE INTEGRATION: USER RESTORATION LOGIC ===
+
+When a suspended user is restored, we need to restore them to their PREVIOUS status
+before they were suspended, not just assume 'verified'.
+
+FIRESTORE DATA STRUCTURE FOR SUSPENDED USERS:
+{
+  userId: "user_123",
+  status: "suspended",
+  verificationStatus: "PRO VERIFIED" | "NEW MEMBER",
+  
+  // CRITICAL: Store pre-suspension state for proper restoration
+  suspensionData: {
+    suspendedAt: Firestore.Timestamp,
+    suspendedBy: "admin_id",
+    reason: "Policy violation...",
+    duration: "7 days" | "permanent",
     
-    // Reload current tab
-    loadUserCards(currentUserTab);
+    // STORE ORIGINAL STATUS BEFORE SUSPENSION
+    previousStatus: "verified" | "pending" | "new",  // <- KEY FIELD
+    previousVerificationStatus: "PRO VERIFIED" | "NEW MEMBER"
+  }
+}
+
+RESTORATION LOGIC:
+1. Read suspensionData.previousStatus
+2. Restore user to that status:
+   - If previousStatus === "verified" → Move to Verified tab
+   - If previousStatus === "pending" → Move to Pending tab (with verification images intact)
+   - If previousStatus === "new" → Move to New tab
+3. Clear suspensionData field
+4. Update Firestore document
+5. Switch admin view to appropriate tab
+
+EDGE CASES:
+- User suspended before verification completed → Restore to 'pending' with verification images
+- User suspended after being verified → Restore to 'verified'
+- User never verified → Restore to 'new'
+*/
+
+function restoreUser(user) {
+    console.log('🔄 Restoring user from suspension:', user.fullName);
+    
+    let restoredStatus;
+    let restoredVerificationStatus;
+    let targetTab;
+    
+    // FIREBASE: Read previousStatus from suspendedInfo (or suspensionData in Firestore)
+    if (user.suspendedInfo && user.suspendedInfo.previousStatus) {
+        // Use stored previousStatus (proper restoration)
+        restoredStatus = user.suspendedInfo.previousStatus;
+        restoredVerificationStatus = user.suspendedInfo.previousVerificationStatus || user.verificationStatus;
+        targetTab = restoredStatus; // 'verified', 'pending', or 'new'
+        console.log(`  → Restoring to ${restoredStatus.toUpperCase()} status (stored previousStatus)`);
+    } else {
+        // Fallback: determine from verification status (for older data without previousStatus)
+        console.warn('  ⚠️ No previousStatus found - using fallback logic');
+        if (user.verificationStatus === 'PRO VERIFIED') {
+            restoredStatus = 'verified';
+            restoredVerificationStatus = 'PRO VERIFIED';
+            targetTab = 'verified';
+            console.log('  → Restoring to VERIFIED status (fallback: had PRO VERIFIED)');
+        } else {
+            restoredStatus = 'pending';
+            restoredVerificationStatus = 'NEW MEMBER';
+            targetTab = 'pending';
+            console.log('  → Restoring to PENDING status (fallback: had NEW MEMBER)');
+        }
+    }
+    
+    // Update user status
+    user.status = restoredStatus;
+    user.verificationStatus = restoredVerificationStatus;
+    user.suspendedInfo = null; // Clear suspension data
+    
+    // FIREBASE TODO: Update Firestore document
+    // await db.collection('users').doc(user.userId).update({
+    //     status: restoredStatus,
+    //     verificationStatus: restoredVerificationStatus,
+    //     suspensionData: firebase.firestore.FieldValue.delete(),
+    //     restoredAt: firebase.firestore.Timestamp.now(),
+    //     restoredBy: currentAdmin.uid
+    // });
+    
+    // Close detail overlay
     closeUserDetail();
     
-    showToast(`${user.fullName} has been restored`, 'success', 2000);
+    // Switch to the appropriate tab where user now belongs
+    switchUserTab(targetTab);
+    
+    showToast(`${user.fullName} has been restored to ${targetTab} users`, 'success', 2000);
+    console.log(`✅ User restored successfully to ${targetTab} tab`);
 }
 
 function approveVerification(user) {
@@ -10333,13 +10673,33 @@ function showUserDetailOverlay(user) {
             </div>
         `;
     } else if (user.status === 'suspended' && user.suspendedInfo) {
+        // Format duration for display
+        const durationText = formatSuspensionDuration(user.suspendedInfo);
+        
+        // Build notes HTML only if notes exist
+        let notesHTML = '';
+        if (user.suspendedInfo.notes && user.suspendedInfo.notes.trim()) {
+            notesHTML = `
+                <div class="suspended-info-label" style="margin-top: 1rem;">ADDITIONAL NOTES:</div>
+                <div class="suspended-info-text" style="white-space: pre-wrap; line-height: 1.5;">${user.suspendedInfo.notes}</div>
+            `;
+        }
+        
         bodyHTML += `
             <div class="user-detail-footer" style="margin-top: 1rem;">
                 <div class="suspended-info-section" style="display: block;">
                     <div class="suspended-info-label">SUSPENDED BY:</div>
                     <div class="suspended-info-text">${user.suspendedInfo.suspendedBy}</div>
+                    
                     <div class="suspended-info-label" style="margin-top: 1rem;">SUSPENSION DATE:</div>
                     <div class="suspended-info-text">${user.suspendedInfo.suspensionDate}</div>
+                    
+                    <div class="suspended-info-label" style="margin-top: 1rem;">REASON:</div>
+                    <div class="suspended-info-text">${user.suspendedInfo.reason || 'Not specified'}</div>
+                    
+                    <div class="suspended-info-label" style="margin-top: 1rem;">DURATION:</div>
+                    <div class="suspended-info-text">${durationText}</div>
+                    ${notesHTML}
                 </div>
                 <div class="perm-ban-section" style="display: block;">
                     <div class="perm-ban-warning">
