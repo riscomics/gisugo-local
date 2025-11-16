@@ -1,0 +1,1290 @@
+// ========================== NEW POST 2 - EXPERIMENTAL REDESIGN ==========================
+// Modern, step-by-step job posting flow with admin dashboard-inspired UI
+
+// ========================== STATE MANAGEMENT ==========================
+
+const np2State = {
+  currentStep: 1,
+  selectedCategory: null,
+  selectedRegion: 'CEBU',
+  selectedCity: null,
+  extras1Value: null,
+  extras2Value: null,
+  jobTitle: '',
+  jobDate: '',
+  startHour: null,
+  startPeriod: 'AM',
+  endHour: null,
+  endPeriod: 'PM',
+  photoFile: null,
+  photoDataUrl: null,
+  jobDescription: '',
+  paymentType: 'Per Job',
+  paymentAmount: ''
+};
+
+// ========================== LOCATION DATA ==========================
+
+const locationData = {
+  "CEBU": [
+    "Alcantara", "Alcoy", "Alegria", "Aloguinsan", "Argao", "Asturias", "Badian", "Balamban", "Bantayan", "Barili", "Bogo", "Boljoon", "Borbon", "Carcar", "Carmen", "Catmon", "CEBU CITY", "Compostela", "Consolacion", "Cordova", "Daanbantayan", "Dalaguete", "Danao", "Dumanjug", "Ginatilan", "Lapu-Lapu", "Liloan", "Madridejos", "Malabuyoc", "Mandaue", "Medellin", "Minglanilla", "Moalboal", "Naga City", "Oslob", "Pilar", "Pinamungajan", "Poro", "Ronda", "Samboan", "SanFernando", "San Francisco", "San Remigio", "Santa Fe", "Santander", "Sibonga", "Sogod", "Tabogon", "Tabuelan", "Talisay", "Toledo City", "Tuburan", "Tudela"
+  ],
+  "BOHOL": ["Tagbilaran City", "Alburquerque", "Alicia", "Anda", "Antequera", "Baclayon", "Balilihan", "Batuan", "Bien Unido", "Bilar", "Buenavista", "Calape", "Candijay", "Carmen", "Catigbian", "Clarin", "Corella", "Cortes", "Dagohoy", "Danao", "Dauis", "Dimiao", "Duero", "Garcia Hernandez", "Guindulman", "Inabanga", "Jagna", "Jetafe", "Lila", "Loay", "Loboc", "Loon", "Mabini", "Maribojoc", "Panglao", "Pilar", "Pres. Carlos P. Garcia", "Sagbayan", "San Isidro", "San Miguel", "Sevilla", "Sierra Bullones", "Sikatuna", "Talibon", "Trinidad", "Tubigon", "Ubay", "Valencia"],
+  "LEYTE": [
+    "Tacloban City", "Ormoc City", "Baybay City", "Abuyog", "Alangalang", "Albuera", "Babatngon", "Barugo", "Bato", "Burauen", "Calubian", "Capoocan", "Carigara", "Dagami", "Dulag", "Hilongos", "Hindang", "Inopacan", "Isabel", "Jaro", "Javier", "Julita", "Kananga", "La Paz", "Leyte", "MacArthur", "Mahaplag", "Matag-ob", "Matalom", "Mayorga", "Merida", "Palo", "Palompon", "Pastrana", "San Isidro", "San Miguel", "Santa Fe", "Tabango", "Tabontabon", "Tanauan", "Tolosa", "Tunga", "Villaba*", "Maasin City", "Anahawan", "Bontoc", "Hinunangan", "Hinundayan", "Libagon", "Liloan", "Limasawa", "Macrohon", "Malitbog", "Pintuyan", "Saint Bernard", "San Francisco", "San Juan Kabalian", "San Ricardo", "Silago", "Sogod", "Tomas Oppus"
+  ],
+  "MASBATE": ["Masbate City", "Aroroy", "Baleno", "Balud", "Batuan", "Cataingan", "Cawayan", "Claveria", "Dimasalang", "Esperanza", "Mandaon", "Milagros", "Mobo", "Monreal", "Palanas", "Pio V. Corpuz", "Placer", "San Fernando", "San Jacinto", "San Pascual", "Uson"],
+  "NEGROS": ["Bacolod City", "Bago City", "Binalbagan", "Cadiz City", "Calatrava", "Cauayan", "Enrique B. Magalona", "Escalante City", "Himamaylan City", "Hinigaran", "Hinoba-an", "Ilog", "Isabela", "Kabankalan City", "La Carlota City", "La Castellana", "Manapla", "Moises Padilla", "Murcia", "Pontevedra", "Pulupandan", "Sagay City", "Salvador Benedicto", "San Carlos City", "San Enrique", "Silay City", "Sipalay City", "Talisay City", "Toboso", "Valladolid", "Victorias City"],
+  "PANAY": [
+    "Altavas", "Balete", "Banga", "Batan", "Buruanga", "Ibajay", "Kalibo", "Lezo", "Libacao", "Madalag", "Makato", "Malay", "Malinao", "Nabas", "New Washington", "Numancia", "Tangalan",
+    "Anini-y", "Barbaza", "Belison", "Bugasong", "Caluya", "Culasi", "Hamtic", "Laua-an", "Libertad", "Pandan", "Patnongon", "San Jose de Buenavista", "San Remigio", "Sebaste", "Sibalom", "Tibiao", "Tobias Fornier", "Valderrama",
+    "Cuartero", "Dao", "Dumalag", "Dumarao", "Ivisan", "Jamindan", "Maayon", "Mambusao", "Panay", "Panitan", "Pilar", "Pontevedra", "President Roxas", "Roxas City", "Sapian", "Sigma", "Tapaz",
+    "Ajuy", "Alimodian", "Anilao", "Badiangan", "Balasan", "Banate", "Barotac Nuevo", "Barotac Viejo", "Batad", "Bingawan", "Cabatuan", "Calinog", "Carles", "Concepcion", "Dingle", "Dueñas", "Dumangas", "Estancia", "Guimbal", "Igbaras", "Iloilo City", "Janiuay", "Lambunao", "Leganes", "Lemery", "Leon", "Maasin", "Miagao", "Mina", "New Lucena", "Oton", "Passi City", "Pavia", "Pototan", "San Dionisio", "San Enrique", "San Joaquin", "San Miguel", "San Rafael", "Santa Barbara", "Sara", "Tigbauan", "Tubungan", "Zarraga",
+    "Buenavista", "Jordan", "Nueva Valencia", "San Lorenzo", "Sibunag"
+  ],
+  "SAMAR": [
+    "Catbalogan City", "Calbayog City", "Almagro", "Basey", "Calbiga", "Daram", "Gandara", "Hinabangan", "Jiabong", "Marabut", "Matuguinao", "Motiong", "Pagsanghan", "Paranas", "Pinabacdao", "San Jorge", "San Jose de Buan", "San Sebastian", "Santa Margarita", "Santa Rita", "Santo Niño", "Tagapul-an", "Talalora", "Tarangnan", "Villareal", "Zumarraga"
+  ],
+  "DAVAO": [
+    "Davao City", "Digos City", "Mati City", "Panabo City", "Samal City", "Tagum City",
+    "Compostela", "Laak", "Mabini", "Maco", "Maragusan", "Mawab", "Monkayo", "Montevista", "Nabunturan", "New Bataan", "Pantukan",
+    "Asuncion", "Braulio E. Dujali", "Carmen", "Kapalong", "New Corella", "San Isidro", "Santo Tomas", "Talaingod",
+    "Bansalan", "Don Marcelino", "Hagonoy", "Jose Abad Santos", "Kiblawan", "Magsaysay", "Malalag", "Malita", "Matanao",
+    "Don Marcelino", "Jose Abad Santos", "Malita", "Santa Maria", "Sulop",
+    "Baganga", "Banaybanay", "Boston", "Caraga", "Cateel", "Governor Generoso", "Lupon", "Manay", "San Isidro", "Tarragona"
+  ],
+  "MANILA": ["Manila", "Quezon City", "Caloocan", "Las Piñas", "Makati", "Malabon", "Mandaluyong", "Marikina", "Muntinlupa", "Navotas", "Parañaque", "Pasay", "Pasig", "Pateros", "San Juan", "Taguig", "Valenzuela"]
+};
+
+// Barangay data for major cities (simplified - can be expanded)
+const barangaysByCity = {
+  "CEBU CITY": [
+    "Adlaon", "Apas", "Bacayan", "Banilad", "Busay", "Calamba", "Capitol Site", "Lahug", 
+    "Mabolo", "Talamban", "Guadalupe", "Labangon", "Pardo", "Bulacao", "Tisa"
+  ],
+  "Lapu-Lapu": [
+    "Agus", "Basak", "Buaya", "Gun-ob", "Looc", "Mactan", "Maribago", "Pajo", "Poblacion", "Pusok"
+  ],
+  "Mandaue": [
+    "Banilad", "Basak", "Cabancalan", "Centro", "Guizo", "Maguikay", "Mantuyong", "Subangdaku", "Tabok"
+  ],
+  "Talisay": [
+    "Bulacao", "Dumlog", "Lagtang", "Lawaan", "Linao", "Maghaway", "Poblacion", "Pooc", "Tabunoc", "Tangke"
+  ],
+  "Minglanilla": [
+    "Poblacion Ward I", "Poblacion Ward II", "Tungkil", "Tunga", "Lipata", "Calajoan", "Tunghaan"
+  ]
+};
+
+// ========================== EXTRAS CONFIGURATION ==========================
+
+const menuTypes = {
+  location: {
+    getOptions: function() {
+      return getBarangaysForCurrentCity();
+    }
+  },
+  supplies: {
+    options: ["PROVIDED", "REQUIRED"]
+  },
+  subject: {
+    getOptions: function() {
+      if (np2State.selectedCategory === 'trainer') {
+        return ["Strength", "Cardio", "Sports", "Therapy", "Dancing", "Martial Arts", "Yoga", "Other"];
+      }
+      return ["Math", "Science", "Computer", "Language", "Other"];
+    }
+  },
+  position: {
+    options: ["In-Person", "Virtual"]
+  },
+  budget: {
+    options: ["Cash-Advance", "Paid-After"]
+  }
+};
+
+const extrasConfig = {
+  hatod: { field1: { label: "Pickup at:", menuType: "location" }, field2: { label: "Deliver to:", menuType: "location" } },
+  hakot: { field1: { label: "Load at:", menuType: "location" }, field2: { label: "Unload at:", menuType: "location" } },
+  kompra: { field1: { label: "Shop at:", menuType: "location" }, field2: { label: "Deliver to:", menuType: "location" } },
+  luto: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  hugas: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  laba: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  limpyo: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  tindera: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  bantay: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  painter: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  carpenter: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  plumber: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  security: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  driver: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Location:", menuType: "location" } },
+  tutor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Subject:", menuType: "subject" } },
+  clerical: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  builder: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  reception: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  nurse: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  doctor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  lawyer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  mechanic: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  electrician: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  tailor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  trainer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Subject:", menuType: "subject" } },
+  staff: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  petcare: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  photographer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  videographer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  musician: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  creative: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  editor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  artist: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  researcher: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  social: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  secretary: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  consultant: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  engineer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  programmer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  therapist: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  marketer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+};
+
+// ========================== HELPER FUNCTIONS ==========================
+
+function getBarangaysForCurrentCity() {
+  if (!np2State.selectedCity) return null;
+  const barangays = barangaysByCity[np2State.selectedCity];
+  return (barangays && barangays.length > 0) ? barangays : null;
+}
+
+function cityHasBarangayData(city) {
+  return barangaysByCity[city] && barangaysByCity[city].length > 0;
+}
+
+function getCategoryDisplayName(category) {
+  const categoryMap = {
+    hatod: 'Hatod Jobs',
+    hakot: 'Hakot Jobs',
+    kompra: 'Kompra Jobs',
+    luto: 'Luto Jobs',
+    hugas: 'Hugas Jobs',
+    laba: 'Laba Jobs',
+    limpyo: 'Limpyo Jobs',
+    tindera: 'Tindera Jobs',
+    bantay: 'Bantay Jobs',
+    trainer: 'Trainer Jobs',
+    staff: 'Staff Jobs',
+    reception: 'Reception Jobs',
+    driver: 'Driver Jobs',
+    security: 'Security Jobs',
+    plumber: 'Plumber Jobs',
+    builder: 'Builder Jobs',
+    painter: 'Painter Jobs',
+    carpenter: 'Carpenter Jobs',
+    creative: 'Creative Jobs',
+    editor: 'Editor Jobs',
+    artist: 'Artist Jobs',
+    petcare: 'Pet Care Jobs',
+    researcher: 'Researcher Jobs',
+    social: 'Social Jobs',
+    photographer: 'Photographer Jobs',
+    videographer: 'Videographer Jobs',
+    musician: 'Musician Jobs',
+    secretary: 'Secretary Jobs',
+    tutor: 'Tutor Jobs',
+    clerical: 'Clerical Jobs',
+    nurse: 'Nurse Jobs',
+    doctor: 'Doctor Jobs',
+    lawyer: 'Lawyer Jobs',
+    mechanic: 'Mechanic Jobs',
+    electrician: 'Electrician Jobs',
+    tailor: 'Tailor Jobs',
+    consultant: 'Consultant Jobs',
+    engineer: 'Engineer Jobs',
+    programmer: 'Programmer Jobs',
+    therapist: 'Therapist Jobs',
+    marketer: 'Marketer Jobs'
+  };
+  return categoryMap[category] || category;
+}
+
+// ========================== UI HELPER FUNCTIONS ==========================
+
+function showToast(message, type = 'info') {
+  // Create toast element if it doesn't exist
+  let toast = document.getElementById('np2-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'np2-toast';
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s ease;
+    `;
+    document.body.appendChild(toast);
+  }
+  
+  toast.textContent = message;
+  toast.style.background = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6';
+  
+  // Show toast
+  setTimeout(() => {
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateY(0)';
+  }, 10);
+  
+  // Hide toast after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+  }, 3000);
+}
+
+function updateProgressIndicator() {
+  const steps = [1, 2, 3, 4];
+  steps.forEach(step => {
+    const circle = document.getElementById(`progressStep${step}`);
+    const line = document.getElementById(`progressLine${step}`);
+    
+    if (step < np2State.currentStep) {
+      circle.classList.add('completed');
+      circle.classList.remove('active');
+      if (line) line.classList.add('completed');
+    } else if (step === np2State.currentStep) {
+      circle.classList.add('active');
+      circle.classList.remove('completed');
+    } else {
+      circle.classList.remove('active', 'completed');
+      if (line) line.classList.remove('completed');
+    }
+  });
+}
+
+function showSection(step) {
+  // Hide all sections
+  document.querySelectorAll('.np2-section').forEach(section => {
+    section.style.display = 'none';
+  });
+  
+  // Show current section
+  const sections = {
+    1: 'section-category',
+    2: 'section-location',
+    3: 'section-details',
+    4: 'section-payment'
+  };
+  
+  const sectionId = sections[step];
+  const section = document.getElementById(sectionId);
+  if (section) {
+    section.style.display = 'block';
+  }
+  
+  // Update buttons
+  const backBtn = document.getElementById('backBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const previewBtn = document.getElementById('previewBtn');
+  
+  if (step === 1) {
+    backBtn.style.display = 'none';
+    nextBtn.style.display = 'inline-flex';
+    previewBtn.style.display = 'none';
+  } else if (step === 4) {
+    backBtn.style.display = 'inline-flex';
+    nextBtn.style.display = 'none';
+    previewBtn.style.display = 'inline-flex';
+  } else {
+    backBtn.style.display = 'inline-flex';
+    nextBtn.style.display = 'inline-flex';
+    previewBtn.style.display = 'none';
+  }
+  
+  updateProgressIndicator();
+}
+
+function validateCurrentStep() {
+  switch (np2State.currentStep) {
+    case 1:
+      if (!np2State.selectedCategory) {
+        showToast('Please select a job category', 'error');
+        return false;
+      }
+      return true;
+      
+    case 2:
+      if (!np2State.selectedRegion) {
+        showToast('Please select a region', 'error');
+        return false;
+      }
+      if (!np2State.selectedCity) {
+        showToast('Please select a city', 'error');
+        return false;
+      }
+      if (!np2State.extras1Value) {
+        showToast('Please select the first option', 'error');
+        return false;
+      }
+      if (!np2State.extras2Value) {
+        showToast('Please select the second option', 'error');
+        return false;
+      }
+      return true;
+      
+    case 3:
+      if (!np2State.jobTitle.trim()) {
+        showToast('Please enter a job title', 'error');
+        return false;
+      }
+      if (!np2State.jobDate) {
+        showToast('Please select a job date', 'error');
+        return false;
+      }
+      if (!np2State.startHour) {
+        showToast('Please select start time', 'error');
+        return false;
+      }
+      if (!np2State.endHour) {
+        showToast('Please select end time', 'error');
+        return false;
+      }
+      if (!np2State.jobDescription.trim()) {
+        showToast('Please enter a job description', 'error');
+        return false;
+      }
+      return true;
+      
+    case 4:
+      if (!np2State.paymentAmount || np2State.paymentAmount <= 0) {
+        showToast('Please enter a payment amount', 'error');
+        return false;
+      }
+      return true;
+      
+    default:
+      return true;
+  }
+}
+
+// ========================== DROPDOWN SYSTEM ==========================
+
+function initializeDropdowns() {
+  // Map select elements to their overlay IDs
+  const dropdownMappings = {
+    'jobCategorySelect': 'jobCategoryOverlay',
+    'regionSelect': 'regionOverlay',
+    'citySelect': 'cityOverlay',
+    'extrasField1Select': 'extrasField1Overlay',
+    'extrasField2Select': 'extrasField2Overlay',
+    'startHourSelect': 'startHourOverlay',
+    'startPeriodSelect': 'startPeriodOverlay',
+    'endHourSelect': 'endHourOverlay',
+    'endPeriodSelect': 'endPeriodOverlay',
+    'paymentTypeSelect': 'paymentTypeOverlay'
+  };
+  
+  // Handle select clicks to open overlays
+  document.querySelectorAll('.np2-select').forEach(select => {
+    select.addEventListener('click', function(e) {
+      e.stopPropagation();
+      
+      const overlayId = dropdownMappings[this.id];
+      if (!overlayId) return;
+      
+      const overlay = document.getElementById(overlayId);
+      if (overlay) {
+        overlay.classList.add('show');
+        this.classList.add('active');
+      }
+    });
+  });
+  
+  // Handle close button clicks
+  document.querySelectorAll('.np2-dropdown-close').forEach(closeBtn => {
+    closeBtn.addEventListener('click', function() {
+      const overlay = this.closest('.np2-dropdown-overlay');
+      if (overlay) {
+        overlay.classList.remove('show');
+        // Remove active class from all selects
+        document.querySelectorAll('.np2-select.active').forEach(s => s.classList.remove('active'));
+      }
+    });
+  });
+  
+  // Handle clicking on overlay backdrop to close
+  document.querySelectorAll('.np2-dropdown-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('show');
+        document.querySelectorAll('.np2-select.active').forEach(s => s.classList.remove('active'));
+      }
+    });
+  });
+}
+
+function populateDropdown(dropdownId, options, selectedValue = null) {
+  const dropdown = document.getElementById(dropdownId);
+  if (!dropdown) return;
+  
+  dropdown.innerHTML = '';
+  
+  if (Array.isArray(options)) {
+    options.forEach(option => {
+      const div = document.createElement('div');
+      div.className = 'np2-dropdown-option';
+      div.dataset.value = option;
+      div.textContent = option;
+      if (option === selectedValue) {
+        div.classList.add('selected');
+      }
+      dropdown.appendChild(div);
+    });
+  }
+}
+
+// ========================== JOB CATEGORY ==========================
+
+function initializeJobCategory() {
+  const categorySelect = document.getElementById('jobCategorySelect');
+  const categoryDropdown = document.getElementById('jobCategoryDropdown');
+  const categoryValue = document.getElementById('jobCategoryValue');
+  const searchInput = document.getElementById('categorySearchInput');
+  
+  // Handle category card clicks
+  categoryDropdown.addEventListener('click', function(e) {
+    const card = e.target.closest('.np2-category-card');
+    if (card) {
+      const value = card.dataset.value;
+      const label = card.querySelector('.np2-category-label').textContent;
+      
+      console.log('📦 Category selected:', value, '(' + label + ')');
+      
+      np2State.selectedCategory = value;
+      categoryValue.textContent = label;
+      categoryValue.classList.remove('placeholder');
+      
+      // Close overlay instead of dropdown
+      const overlay = document.getElementById('jobCategoryOverlay');
+      if (overlay) overlay.classList.remove('show');
+      categorySelect.classList.remove('active');
+      
+      console.log('✅ State updated. Current category:', np2State.selectedCategory);
+      
+      // Update extras for this category
+      updateExtrasForCategory(value);
+    }
+  });
+  
+  // Search functionality
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const cards = categoryDropdown.querySelectorAll('.np2-category-card');
+      
+      cards.forEach(card => {
+        const label = card.querySelector('.np2-category-label').textContent.toLowerCase();
+        const value = card.dataset.value.toLowerCase();
+        if (label.includes(searchTerm) || value.includes(searchTerm)) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    });
+  }
+}
+
+// ========================== LOCATION (REGION & CITY) ==========================
+
+function initializeRegion() {
+  const regionSelect = document.getElementById('regionSelect');
+  const regionDropdown = document.getElementById('regionDropdown');
+  const regionValue = document.getElementById('regionValue');
+  
+  // Populate regions
+  const regions = Object.keys(locationData);
+  populateDropdown('regionDropdown', regions, np2State.selectedRegion);
+  
+  // Handle region selection
+  regionDropdown.addEventListener('click', function(e) {
+    const option = e.target.closest('.np2-dropdown-option');
+    if (option) {
+      const value = option.dataset.value;
+      np2State.selectedRegion = value;
+      regionValue.textContent = value;
+      regionValue.classList.remove('placeholder');
+      
+      // Close overlay
+      const overlay = document.getElementById('regionOverlay');
+      if (overlay) overlay.classList.remove('show');
+      regionSelect.classList.remove('active');
+      
+      // Update cities
+      updateCityOptions();
+      
+      // Reset city and extras
+      np2State.selectedCity = null;
+      np2State.extras1Value = null;
+      np2State.extras2Value = null;
+      document.getElementById('cityValue').textContent = 'Select city...';
+      document.getElementById('cityValue').classList.add('placeholder');
+    }
+  });
+}
+
+function initializeCity() {
+  const citySelect = document.getElementById('citySelect');
+  const cityDropdown = document.getElementById('cityDropdown');
+  const cityValue = document.getElementById('cityValue');
+  
+  // Handle city selection
+  cityDropdown.addEventListener('click', function(e) {
+    const option = e.target.closest('.np2-dropdown-option');
+    if (option) {
+      const value = option.dataset.value;
+      np2State.selectedCity = value;
+      cityValue.textContent = value;
+      cityValue.classList.remove('placeholder');
+      
+      // Close overlay
+      const overlay = document.getElementById('cityOverlay');
+      if (overlay) overlay.classList.remove('show');
+      citySelect.classList.remove('active');
+      
+      // Update extras if category uses location
+      if (np2State.selectedCategory) {
+        updateExtrasForCategory(np2State.selectedCategory);
+      }
+    }
+  });
+}
+
+function updateCityOptions() {
+  const cities = locationData[np2State.selectedRegion] || [];
+  populateDropdown('cityDropdown', cities);
+}
+
+// ========================== EXTRAS SYSTEM ==========================
+
+function updateExtrasForCategory(category) {
+  const config = extrasConfig[category];
+  if (!config) {
+    document.getElementById('extrasContainer').style.display = 'none';
+    return;
+  }
+  
+  document.getElementById('extrasContainer').style.display = 'block';
+  
+  // Update Field 1
+  updateExtrasField(1, config.field1);
+  
+  // Update Field 2
+  updateExtrasField(2, config.field2);
+}
+
+function updateExtrasField(fieldNumber, fieldConfig) {
+  const container = document.getElementById(`extrasField${fieldNumber}Container`);
+  const label = document.getElementById(`extrasField${fieldNumber}Label`);
+  const select = document.getElementById(`extrasField${fieldNumber}Select`);
+  const value = document.getElementById(`extrasField${fieldNumber}Value`);
+  const dropdown = document.getElementById(`extrasField${fieldNumber}Dropdown`);
+  const input = document.getElementById(`extrasField${fieldNumber}Input`);
+  
+  if (!container || !label || !select || !value || !dropdown) return;
+  
+  // Update label
+  label.innerHTML = fieldConfig.label + '<span class="np2-required">*</span>';
+  
+  // Get menu type config
+  const menuTypeConfig = menuTypes[fieldConfig.menuType];
+  if (!menuTypeConfig) return;
+  
+  // Get options
+  let options = null;
+  if (menuTypeConfig.getOptions) {
+    options = menuTypeConfig.getOptions();
+  } else if (menuTypeConfig.options) {
+    options = menuTypeConfig.options;
+  }
+  
+  // Check if this is a location field and city doesn't have barangay data
+  if (fieldConfig.menuType === 'location' && !options && np2State.selectedCity) {
+    // Show input field instead of dropdown
+    select.style.display = 'none';
+    if (input) {
+      input.style.display = 'block';
+      input.placeholder = 'Enter barangay/area...';
+    }
+    return;
+  }
+  
+  // Show dropdown, hide input
+  select.style.display = 'flex';
+  if (input) {
+    input.style.display = 'none';
+  }
+  
+  // Populate dropdown
+  if (options) {
+    dropdown.innerHTML = '';
+    options.forEach(option => {
+      const div = document.createElement('div');
+      div.className = 'np2-dropdown-option';
+      div.dataset.value = option;
+      div.textContent = option;
+      dropdown.appendChild(div);
+    });
+    
+    // Reset value
+    value.textContent = 'Select option...';
+    value.classList.add('placeholder');
+    
+    // Clear state
+    if (fieldNumber === 1) np2State.extras1Value = null;
+    if (fieldNumber === 2) np2State.extras2Value = null;
+  }
+}
+
+function initializeExtras() {
+  // Handle extras dropdown clicks
+  [1, 2].forEach(fieldNumber => {
+    const dropdown = document.getElementById(`extrasField${fieldNumber}Dropdown`);
+    const value = document.getElementById(`extrasField${fieldNumber}Value`);
+    const select = document.getElementById(`extrasField${fieldNumber}Select`);
+    const input = document.getElementById(`extrasField${fieldNumber}Input`);
+    
+    if (dropdown) {
+      dropdown.addEventListener('click', function(e) {
+        const option = e.target.closest('.np2-dropdown-option');
+        if (option) {
+          const optionValue = option.dataset.value;
+          value.textContent = optionValue;
+          value.classList.remove('placeholder');
+          
+          // Close overlay
+          const overlayId = `extrasField${fieldNumber}Overlay`;
+          const overlay = document.getElementById(overlayId);
+          if (overlay) overlay.classList.remove('show');
+          select.classList.remove('active');
+          
+          // Update state
+          if (fieldNumber === 1) np2State.extras1Value = optionValue;
+          if (fieldNumber === 2) np2State.extras2Value = optionValue;
+        }
+      });
+    }
+    
+    // Handle input field changes
+    if (input) {
+      input.addEventListener('input', function() {
+        if (fieldNumber === 1) np2State.extras1Value = this.value;
+        if (fieldNumber === 2) np2State.extras2Value = this.value;
+      });
+    }
+  });
+}
+
+// ========================== JOB DETAILS ==========================
+
+function initializeJobDetails() {
+  const titleInput = document.getElementById('jobTitleInput');
+  const titleCharCount = document.getElementById('titleCharCount');
+  const dateInput = document.getElementById('jobDateInput');
+  const descriptionTextarea = document.getElementById('jobDescriptionTextarea');
+  
+  // Title input with character counter
+  if (titleInput && titleCharCount) {
+    titleInput.addEventListener('input', function() {
+      np2State.jobTitle = this.value;
+      titleCharCount.textContent = this.value.length;
+    });
+  }
+  
+  // Date input
+  if (dateInput) {
+    dateInput.addEventListener('change', function() {
+      np2State.jobDate = this.value;
+    });
+  }
+  
+  // Description textarea
+  if (descriptionTextarea) {
+    descriptionTextarea.addEventListener('input', function() {
+      np2State.jobDescription = this.value;
+    });
+  }
+  
+  // Initialize time selectors
+  initializeTimeSelectors();
+  
+  // Initialize photo upload
+  initializePhotoUpload();
+}
+
+function initializeTimeSelectors() {
+  // Start Hour
+  const startHourDropdown = document.getElementById('startHourDropdown');
+  const startHourValue = document.getElementById('startHourValue');
+  const startHourSelect = document.getElementById('startHourSelect');
+  
+  if (startHourDropdown) {
+    startHourDropdown.addEventListener('click', function(e) {
+      const option = e.target.closest('.np2-dropdown-option');
+      if (option) {
+        const value = option.dataset.value;
+        np2State.startHour = value;
+        startHourValue.textContent = value;
+        startHourValue.classList.remove('placeholder');
+        
+        // Close overlay
+        const overlay = document.getElementById('startHourOverlay');
+        if (overlay) overlay.classList.remove('show');
+        startHourSelect.classList.remove('active');
+      }
+    });
+  }
+  
+  // Start Period
+  const startPeriodDropdown = document.getElementById('startPeriodDropdown');
+  const startPeriodValue = document.getElementById('startPeriodValue');
+  const startPeriodSelect = document.getElementById('startPeriodSelect');
+  
+  if (startPeriodDropdown) {
+    startPeriodDropdown.addEventListener('click', function(e) {
+      const option = e.target.closest('.np2-dropdown-option');
+      if (option) {
+        const value = option.dataset.value;
+        np2State.startPeriod = value;
+        startPeriodValue.textContent = value;
+        
+        // Close overlay
+        const overlay = document.getElementById('startPeriodOverlay');
+        if (overlay) overlay.classList.remove('show');
+        startPeriodSelect.classList.remove('active');
+      }
+    });
+  }
+  
+  // End Hour
+  const endHourDropdown = document.getElementById('endHourDropdown');
+  const endHourValue = document.getElementById('endHourValue');
+  const endHourSelect = document.getElementById('endHourSelect');
+  
+  if (endHourDropdown) {
+    endHourDropdown.addEventListener('click', function(e) {
+      const option = e.target.closest('.np2-dropdown-option');
+      if (option) {
+        const value = option.dataset.value;
+        np2State.endHour = value;
+        endHourValue.textContent = value;
+        endHourValue.classList.remove('placeholder');
+        
+        // Close overlay
+        const overlay = document.getElementById('endHourOverlay');
+        if (overlay) overlay.classList.remove('show');
+        endHourSelect.classList.remove('active');
+      }
+    });
+  }
+  
+  // End Period
+  const endPeriodDropdown = document.getElementById('endPeriodDropdown');
+  const endPeriodValue = document.getElementById('endPeriodValue');
+  const endPeriodSelect = document.getElementById('endPeriodSelect');
+  
+  if (endPeriodDropdown) {
+    endPeriodDropdown.addEventListener('click', function(e) {
+      const option = e.target.closest('.np2-dropdown-option');
+      if (option) {
+        const value = option.dataset.value;
+        np2State.endPeriod = value;
+        endPeriodValue.textContent = value;
+        
+        // Close overlay
+        const overlay = document.getElementById('endPeriodOverlay');
+        if (overlay) overlay.classList.remove('show');
+        endPeriodSelect.classList.remove('active');
+      }
+    });
+  }
+}
+
+function initializePhotoUpload() {
+  const photoInput = document.getElementById('jobPhotoInput');
+  const uploadArea = document.getElementById('photoUploadArea');
+  const preview = document.getElementById('photoPreview');
+  const previewImage = document.getElementById('photoPreviewImage');
+  const removeBtn = document.getElementById('photoRemoveBtn');
+  
+  if (uploadArea) {
+    uploadArea.addEventListener('click', function() {
+      photoInput.click();
+    });
+  }
+  
+  if (photoInput) {
+    photoInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+          showToast('Image size must be less than 5MB', 'error');
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          np2State.photoFile = file;
+          np2State.photoDataUrl = event.target.result;
+          previewImage.src = event.target.result;
+          uploadArea.style.display = 'none';
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+  
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      np2State.photoFile = null;
+      np2State.photoDataUrl = null;
+      previewImage.src = '';
+      photoInput.value = '';
+      preview.style.display = 'none';
+      uploadArea.style.display = 'block';
+    });
+  }
+}
+
+// ========================== PAYMENT ==========================
+
+function initializePayment() {
+  const typeDropdown = document.getElementById('paymentTypeDropdown');
+  const typeValue = document.getElementById('paymentTypeValue');
+  const typeSelect = document.getElementById('paymentTypeSelect');
+  const amountInput = document.getElementById('paymentAmountInput');
+  
+  // Payment type dropdown
+  if (typeDropdown) {
+    typeDropdown.addEventListener('click', function(e) {
+      const option = e.target.closest('.np2-dropdown-option');
+      if (option) {
+        const value = option.dataset.value;
+        np2State.paymentType = value;
+        typeValue.textContent = value;
+        
+        // Close overlay
+        const overlay = document.getElementById('paymentTypeOverlay');
+        if (overlay) overlay.classList.remove('show');
+        typeSelect.classList.remove('active');
+      }
+    });
+  }
+  
+  // Payment amount input
+  if (amountInput) {
+    amountInput.addEventListener('input', function() {
+      np2State.paymentAmount = this.value;
+    });
+  }
+}
+
+// ========================== NAVIGATION ==========================
+
+function initializeNavigation() {
+  const backBtn = document.getElementById('backBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const previewBtn = document.getElementById('previewBtn');
+  
+  console.log('🔧 Initializing navigation...');
+  console.log('Back button:', backBtn);
+  console.log('Next button:', nextBtn);
+  console.log('Preview button:', previewBtn);
+  
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      console.log('⬅️ Back button clicked');
+      if (np2State.currentStep > 1) {
+        np2State.currentStep--;
+        showSection(np2State.currentStep);
+        window.scrollTo(0, 0);
+      }
+    });
+  } else {
+    console.warn('⚠️ Back button not found!');
+  }
+  
+  if (nextBtn) {
+    console.log('✅ Continue button found, adding click listener...');
+    nextBtn.addEventListener('click', function(e) {
+      console.log('🔵 ========== CONTINUE BUTTON CLICKED ==========');
+      console.log('Event:', e);
+      console.log('Current step:', np2State.currentStep);
+      console.log('Selected category:', np2State.selectedCategory);
+      console.log('Full state:', JSON.stringify(np2State, null, 2));
+      
+      const validationResult = validateCurrentStep();
+      console.log('Validation result:', validationResult);
+      
+      if (validationResult) {
+        console.log('✅ Validation passed! Moving to next step...');
+        if (np2State.currentStep < 4) {
+          np2State.currentStep++;
+          console.log('New step:', np2State.currentStep);
+          showSection(np2State.currentStep);
+          window.scrollTo(0, 0);
+        }
+      } else {
+        console.log('❌ Validation failed');
+      }
+    });
+    console.log('✅ Click listener attached to Continue button');
+  } else {
+    console.error('❌ Continue button NOT FOUND! ID: nextBtn');
+  }
+  
+  if (previewBtn) {
+    previewBtn.addEventListener('click', function() {
+      if (validateCurrentStep()) {
+        showPreview();
+      }
+    });
+  }
+}
+
+// ========================== PREVIEW OVERLAY ==========================
+
+function showPreview() {
+  const overlay = document.getElementById('previewOverlay');
+  
+  // Update preview content
+  document.getElementById('previewCategory').textContent = getCategoryDisplayName(np2State.selectedCategory);
+  document.getElementById('previewLocation').textContent = `${np2State.selectedCity}, ${np2State.selectedRegion}`;
+  document.getElementById('previewTitle').textContent = np2State.jobTitle;
+  
+  // Photo
+  const photoContainer = document.getElementById('previewPhotoContainer');
+  const photo = document.getElementById('previewPhoto');
+  if (np2State.photoDataUrl) {
+    photo.src = np2State.photoDataUrl;
+    photoContainer.style.display = 'block';
+  } else {
+    photoContainer.style.display = 'none';
+  }
+  
+  // Date
+  const date = new Date(np2State.jobDate);
+  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  document.getElementById('previewDate').textContent = dateStr;
+  
+  // Time
+  document.getElementById('previewTime').textContent = `${np2State.startHour}${np2State.startPeriod} - ${np2State.endHour}${np2State.endPeriod}`;
+  
+  // Extras
+  const config = extrasConfig[np2State.selectedCategory];
+  if (config) {
+    const extras1Container = document.getElementById('previewExtras1Container');
+    const extras2Container = document.getElementById('previewExtras2Container');
+    
+    if (np2State.extras1Value) {
+      document.getElementById('previewExtras1Label').textContent = config.field1.label.toUpperCase();
+      document.getElementById('previewExtras1Value').textContent = np2State.extras1Value;
+      extras1Container.style.display = 'block';
+    }
+    
+    if (np2State.extras2Value) {
+      document.getElementById('previewExtras2Label').textContent = config.field2.label.toUpperCase();
+      document.getElementById('previewExtras2Value').textContent = np2State.extras2Value;
+      extras2Container.style.display = 'block';
+    }
+  }
+  
+  // Description
+  document.getElementById('previewDescription').textContent = np2State.jobDescription;
+  
+  // Payment
+  document.getElementById('previewPaymentAmount').textContent = `₱${np2State.paymentAmount}`;
+  document.getElementById('previewPaymentType').textContent = np2State.paymentType;
+  
+  // Show overlay
+  overlay.classList.add('show');
+}
+
+function initializePreviewOverlay() {
+  const overlay = document.getElementById('previewOverlay');
+  const closeBtn = document.getElementById('previewCloseBtn');
+  const editBtn = document.getElementById('previewEditBtn');
+  const postBtn = document.getElementById('previewPostBtn');
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      overlay.classList.remove('show');
+    });
+  }
+  
+  if (editBtn) {
+    editBtn.addEventListener('click', function() {
+      overlay.classList.remove('show');
+    });
+  }
+  
+  if (postBtn) {
+    postBtn.addEventListener('click', function() {
+      postJob();
+    });
+  }
+  
+  // Close on overlay click
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      overlay.classList.remove('show');
+    }
+  });
+}
+
+// ========================== POST JOB ==========================
+
+function postJob() {
+  // Create job object
+  const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const job = {
+    jobId: jobId,
+    jobNumber: Date.now(),
+    posterId: 'user_peter_ang_001', // From jobs.js
+    posterName: 'Peter J. Ang',
+    title: np2State.jobTitle,
+    description: np2State.jobDescription,
+    category: np2State.selectedCategory,
+    thumbnail: np2State.photoDataUrl || 'public/mock/mock-limpyo-post1.jpg',
+    jobDate: np2State.jobDate,
+    dateNeeded: np2State.jobDate,
+    startTime: `${np2State.startHour}${np2State.startPeriod}`,
+    endTime: `${np2State.endHour}${np2State.endPeriod}`,
+    priceOffer: np2State.paymentAmount,
+    paymentAmount: np2State.paymentAmount,
+    paymentType: np2State.paymentType.toLowerCase().replace(' ', ''),
+    region: np2State.selectedRegion,
+    city: np2State.selectedCity,
+    extras: [np2State.extras1Value, np2State.extras2Value],
+    status: 'active',
+    datePosted: new Date().toISOString(),
+    applicationCount: 0,
+    applicationIds: [],
+    jobPageUrl: `${np2State.selectedCategory}.html`,
+    updatedAt: new Date().toISOString()
+  };
+  
+  // Save to localStorage
+  try {
+    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    if (!allJobs[np2State.selectedCategory]) {
+      allJobs[np2State.selectedCategory] = [];
+    }
+    allJobs[np2State.selectedCategory].push(job);
+    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+    
+    // Close preview overlay
+    document.getElementById('previewOverlay').classList.remove('show');
+    
+    // Show success overlay
+    showSuccessOverlay();
+  } catch (error) {
+    console.error('Error saving job:', error);
+    showToast('Failed to post job. Please try again.', 'error');
+  }
+}
+
+function showSuccessOverlay() {
+  const overlay = document.getElementById('successOverlay');
+  const locationText = document.getElementById('successLocation');
+  
+  locationText.textContent = `Your job is now live and visible to workers in ${np2State.selectedCity}, ${np2State.selectedRegion}.`;
+  
+  overlay.classList.add('show');
+  
+  // Trigger confetti animation
+  triggerConfetti();
+}
+
+// Confetti Animation
+function triggerConfetti() {
+  const duration = 2000;
+  const particleCount = 80;
+  const colors = ['#10b981', '#4CAF50', '#2ecc71', '#27ae60', '#3d8b40', '#fbbf24', '#f59e0b'];
+  
+  // Center point (middle of screen)
+  const originX = window.innerWidth / 2;
+  const originY = window.innerHeight / 2;
+
+  // Create burst of confetti from center point
+  for (let i = 0; i < particleCount; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti-particle';
+    
+    // Random angle and velocity for explosion effect
+    const angle = (Math.PI * 2 * i) / particleCount + (Math.random() - 0.5) * 0.5;
+    const velocity = Math.random() * 300 + 200;
+    const size = Math.random() * 10 + 5;
+    
+    // Calculate final position
+    const deltaX = Math.cos(angle) * velocity;
+    const deltaY = Math.sin(angle) * velocity - 100; // Bias upward
+    
+    confetti.style.cssText = `
+      position: fixed;
+      width: ${size}px;
+      height: ${size}px;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      left: ${originX}px;
+      top: ${originY}px;
+      opacity: 1;
+      border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+      transform: translate(-50%, -50%) rotate(${Math.random() * 360}deg);
+      z-index: 10001;
+      pointer-events: none;
+      transition: all ${duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    `;
+    
+    document.body.appendChild(confetti);
+    
+    // Trigger explosion animation
+    setTimeout(() => {
+      confetti.style.transform = `
+        translate(${deltaX}px, ${deltaY}px) 
+        rotate(${Math.random() * 720}deg) 
+        scale(0.5)
+      `;
+      confetti.style.opacity = '0';
+    }, 50);
+    
+    // Remove after animation
+    setTimeout(() => confetti.remove(), duration + 100);
+  }
+}
+
+function initializeSuccessOverlay() {
+  const overlay = document.getElementById('successOverlay');
+  const messagesBtn = document.getElementById('goToMessagesBtn');
+  const viewJobBtn = document.getElementById('viewJobPostBtn');
+  const gotItBtn = document.getElementById('gotItBtn');
+  
+  if (messagesBtn) {
+    messagesBtn.addEventListener('click', function() {
+      window.location.href = 'messages.html';
+    });
+  }
+  
+  if (viewJobBtn) {
+    viewJobBtn.addEventListener('click', function() {
+      // Navigate to the category page (e.g., hatod.html, limpyo.html)
+      if (np2State.selectedCategory) {
+        window.location.href = `${np2State.selectedCategory}.html`;
+      } else {
+        window.location.href = 'jobs.html';
+      }
+    });
+  }
+  
+  if (gotItBtn) {
+    gotItBtn.addEventListener('click', function() {
+      overlay.classList.remove('show');
+      // Navigate to the category page
+      if (np2State.selectedCategory) {
+        window.location.href = `${np2State.selectedCategory}.html`;
+      } else {
+        // Reset form and go back to step 1
+        resetForm();
+      }
+    });
+  }
+}
+
+function resetForm() {
+  // Reset state
+  np2State.currentStep = 1;
+  np2State.selectedCategory = null;
+  np2State.selectedRegion = 'CEBU';
+  np2State.selectedCity = null;
+  np2State.extras1Value = null;
+  np2State.extras2Value = null;
+  np2State.jobTitle = '';
+  np2State.jobDate = '';
+  np2State.startHour = null;
+  np2State.startPeriod = 'AM';
+  np2State.endHour = null;
+  np2State.endPeriod = 'PM';
+  np2State.photoFile = null;
+  np2State.photoDataUrl = null;
+  np2State.jobDescription = '';
+  np2State.paymentType = 'Per Job';
+  np2State.paymentAmount = '';
+  
+  // Reset UI
+  document.getElementById('jobCategoryValue').textContent = 'Select job category...';
+  document.getElementById('jobCategoryValue').classList.add('placeholder');
+  document.getElementById('cityValue').textContent = 'Select city...';
+  document.getElementById('cityValue').classList.add('placeholder');
+  document.getElementById('jobTitleInput').value = '';
+  document.getElementById('titleCharCount').textContent = '0';
+  document.getElementById('jobDateInput').value = '';
+  document.getElementById('jobDescriptionTextarea').value = '';
+  document.getElementById('paymentAmountInput').value = '';
+  
+  // Reset photo
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('photoUploadArea').style.display = 'block';
+  
+  // Show first section
+  showSection(1);
+  window.scrollTo(0, 0);
+}
+
+// ========================== INITIALIZATION ==========================
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 ========== NEW POST 2 LOADING ==========');
+  console.log('Current URL:', window.location.href);
+  console.log('Initial state:', JSON.stringify(np2State, null, 2));
+  
+  // Initialize all components
+  console.log('📌 Initializing dropdowns...');
+  initializeDropdowns();
+  console.log('📌 Initializing job category...');
+  initializeJobCategory();
+  console.log('📌 Initializing region...');
+  initializeRegion();
+  console.log('📌 Initializing city...');
+  initializeCity();
+  console.log('📌 Initializing extras...');
+  initializeExtras();
+  console.log('📌 Initializing job details...');
+  initializeJobDetails();
+  console.log('📌 Initializing payment...');
+  initializePayment();
+  console.log('📌 Initializing navigation...');
+  initializeNavigation();
+  console.log('📌 Initializing preview overlay...');
+  initializePreviewOverlay();
+  console.log('📌 Initializing success overlay...');
+  initializeSuccessOverlay();
+  
+  // Show first section
+  console.log('📌 Showing section 1...');
+  showSection(1);
+  
+  // Initialize city options for default region (CEBU)
+  console.log('📌 Updating city options...');
+  updateCityOptions();
+  
+  console.log('✅ ========== NEW POST 2 FULLY LOADED ==========');
+});
+

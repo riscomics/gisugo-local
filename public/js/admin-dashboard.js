@@ -1954,8 +1954,8 @@ function showChatOverlay(chat) {
                         <div class="participant-info">
                             <span class="participant-name">${p.name}</span>
                             <span class="participant-role ${p.role}">${p.role}</span>
-                        </div>
-                    </div>
+            </div>
+        </div>
                 `).join('')}
             </div>
             <div class="chat-detail-date">Created: ${dateFormatted}</div>
@@ -3531,9 +3531,9 @@ function initializeInboxSearch() {
     if (searchInput) {
         // Search on button click (if button exists)
         if (searchBtn) {
-            searchBtn.addEventListener('click', () => {
-                performInboxSearch(searchInput.value.trim());
-            });
+        searchBtn.addEventListener('click', () => {
+            performInboxSearch(searchInput.value.trim());
+        });
         }
         
         // Search on Enter key
