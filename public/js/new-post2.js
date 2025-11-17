@@ -7,7 +7,7 @@ const np2State = {
   currentStep: 1,
   selectedCategory: null,
   selectedRegion: 'CEBU',
-  selectedCity: null,
+  selectedCity: 'CEBU CITY',  // Default city for default region
   extras1Value: null,
   extras2Value: null,
   jobTitle: '',
@@ -58,21 +58,56 @@ const locationData = {
 
 // Barangay data for major cities (simplified - can be expanded)
 const barangaysByCity = {
+  // CEBU PROVINCE
   "CEBU CITY": [
-    "Adlaon", "Apas", "Bacayan", "Banilad", "Busay", "Calamba", "Capitol Site", "Lahug", 
-    "Mabolo", "Talamban", "Guadalupe", "Labangon", "Pardo", "Bulacao", "Tisa"
+    "Adlaon", "Agsungot", "Apas", "Bacayan", "Banilad", "Binaliw", "Budla-an", "Buhisan", "Bulacao", "Busay", "Calamba", "Cambinocot", "Capitol Site", "Carreta", "Cogon Pardo", "Cogon Ramos", "Colon", "Day-as", "Duljo Fatima", "Ermita", "Guba", "Guadalupe", "Hipodromo", "Inayawan", "Kamagayan", "Kamputhaw", "Kasambagan", "Kinasang-an", "Labangon", "Lahug", "Lorega San Miguel", "Luz", "Mabini", "Mabolo", "Malubog", "Mambaling", "Pahina Central", "Pahina San Nicolas", "Pardo", "Pasil", "Pit-os", "Pulangbato", "Punta Princesa", "Pung-ol Sibugay", "Quiot", "Sambag I", "Sambag II", "San Antonio", "San Jose", "San Nicolas Proper", "San Roque", "Santa Cruz", "Santo Niño", "Sawang Calero", "Sinsin", "Sirao", "Suba", "Sudlon I", "Sudlon II", "Tabunan", "Tagba-o", "Talamban", "Taptap", "Tejero", "Tinago", "Tisa", "To-ong", "Zapatera"
   ],
   "Lapu-Lapu": [
-    "Agus", "Basak", "Buaya", "Gun-ob", "Looc", "Mactan", "Maribago", "Pajo", "Poblacion", "Pusok"
+    "Agus", "Babag", "Bankal", "Baring", "Basak", "Buaya", "Canjulao", "Caw-oy", "Caubian", "Gun-ob", "Ibo", "Looc", "Mactan", "Maribago", "Marigondon", "Pajac", "Pajo", "Poblacion", "Punta Engaño", "Pusok", "Sabang", "Santa Rosa", "Subabasbas", "Talima", "Tingo", "Tugbok"
   ],
   "Mandaue": [
-    "Banilad", "Basak", "Cabancalan", "Centro", "Guizo", "Maguikay", "Mantuyong", "Subangdaku", "Tabok"
+    "Alang-alang", "Bakilid", "Banilad", "Basak", "Cabancalan", "Cambaro", "Canduman", "Casili", "Casuntingan", "Centro", "Cubacub", "Guizo", "Ibabao-Estancia", "Jagobiao", "Labogon", "Looc", "Maguikay", "Mantuyong", "Opao", "Pakna-an", "Pagsabungan", "San Jose", "Subangdaku", "Tabok", "Tawason", "Tipolo", "Umapad"
   ],
   "Talisay": [
-    "Bulacao", "Dumlog", "Lagtang", "Lawaan", "Linao", "Maghaway", "Poblacion", "Pooc", "Tabunoc", "Tangke"
+    "Biasong", "Bulacao", "Cadulawan", "Camp Lapu-Lapu", "Candulawan", "Cansojong", "Dumlog", "Lagtang", "Lawaan I", "Lawaan II", "Lawaan III", "Linao", "Maghaway", "Manipis", "Mohon", "Poblacion", "Pooc", "San Isidro", "San Roque", "Tabunoc", "Tangke", "Tapul"
   ],
   "Minglanilla": [
-    "Poblacion Ward I", "Poblacion Ward II", "Tungkil", "Tunga", "Lipata", "Calajoan", "Tunghaan"
+    "Calajoan", "Cambulo", "Cuanos", "Guindaruhan", "Lipata", "Linao", "Pakigne", "Poblacion Ward I", "Poblacion Ward II", "Tunghaan", "Tungkil", "Tubod", "Vito"
+  ],
+  "Consolation": [
+    "Cabangahan", "Cansaga", "Casili", "Danlag", "Garing", "Jugan", "Lamac", "Lanipga", "Nangka", "Pitogo", "Poblacion Occidental", "Poblacion Oriental", "Pulpogan", "Sacsac", "Tayud", "Tilhaong", "Tolotolo", "Tugbongan"
+  ],
+  "Cordova": [
+    "Alegria", "Bangbang", "Buagsong", "Catarman", "Day-as", "Gabi", "Gilutongan", "Ibabao", "Pilipog", "Poblacion"
+  ],
+  "Danao": [
+    "Bayabas", "Binlod", "Cagat-lamac", "Cambanay", "Cambubho", "Cogon-cruz", "Danao", "Dungga", "Dunggoan", "Guinacot", "Guinsay", "Ibo", "Langosig", "Lawaan", "Licos", "Looc", "Magtagobtob", "Malapoc", "Mambalili", "Masaba", "Maslog", "Manlayag", "Nangka", "Oguis", "Pili", "Poblacion", "Sabang", "Sacsac", "Sandayong", "Santa Rosa", "Santican", "Sibayon", "Suba", "Taboc", "Tabok", "Togonon", "Tuburan"
+  ],
+
+  // BOHOL PROVINCE
+  "Tagbilaran City": [
+    "Bool", "Booy", "Cabawan", "Cogon", "Dampas", "Dao", "Mansasa", "Poblacion I", "Poblacion II", "Poblacion III", "San Isidro", "Taloto", "Tiptip", "Ubujan"
+  ],
+
+  // LEYTE PROVINCE
+  "Tacloban City": [
+    "Abucay", "Apitong", "Bagacay", "Baras", "Bliss", "Buri", "Cabalawan", "Caibaan", "Camanchile", "Cancadarag", "Catagbacan", "Diit", "Downtown", "Fatima", "Guardia", "Humuya", "Lanzones", "Magsaysay", "Marasbaras", "New Kawayan", "Old Kawayan", "Palanog", "Pitogo", "Poblacion", "Rawis", "Sagkahan", "San Jose", "San Roque", "Santa Elena", "Santo Niño", "Suhi", "Tagpuro", "Tanghas", "V&G Subdivision", "Sto. Niño"
+  ],
+  "Ormoc City": [
+    "Alegria", "Alta Vista", "Bagong Buhay", "Bantigue", "Barangay Poblacion", "Batuan", "Bato", "Bayog", "Biliboy", "Cabingtan", "Cabulihan", "Catmon", "Cogon Combado", "Concepcion", "Curva", "Danao", "Dolores", "Don Felipe Larrazabal", "Donghol", "Flores", "Gaas", "Green Valley", "Guintigui-an", "Hibunawon", "Ipil", "Labrador", "Lao", "Licuma", "Linao", "Luna", "Magaswi", "Mahayag", "Mahayahay", "Malbog", "Margen", "Mas-in", "Milagro", "Mim-osa", "Naungan", "Nichols", "Patag", "Pilar", "Puente", "Quezon Jr.", "Rufina", "Sabang Bao", "Salvacion", "San Isidro", "San Pablo", "Sibucao", "Simion", "Tambulilid", "Tongonan", "Tugbong", "Valencia", "Veloso"
+  ],
+
+  // DAVAO REGION
+  "Davao City": [
+    "Acacia", "Agdao", "Alambre", "Angalan", "Angliongto", "Aparicio", "Apo Sandawa", "Apokon", "Artiaga", "Atan-awe", "Badjao", "Bago Aplaya", "Bago Gallera", "Bago Oshiro", "Baguio", "Balamban", "Baracatan", "Barang", "Bato", "Binugao", "Bucana", "Buhangin", "Bunawan", "Cabantian", "Cadalian", "Cagayan de Oro", "Callawa", "Camansi", "Carmen", "Catalunan Grande", "Catalunan Pequeño", "Catigan", "Cawayan", "Centro", "Daliao", "Daliaon Plantation", "Dominga", "Eden", "Ecoland", "Fatima", "Gatungan", "Gov. Paciano Bangoy", "Gov. Generoso", "Guadalupe", "Gunong", "Hizon", "Ilang", "Indangan", "Kilate", "Lacson", "Lamanan", "Lampianao", "Langub", "Leon Garcia", "Lizada", "Los Amigos", "Lubogan", "Lumiad", "Ma-a", "Mabuhay", "Magsaysay", "Malabog", "Malamba", "Manambulan", "Mandug", "Manuel Guianga", "Marapangi", "Marilog", "Matina Aplaya", "Matina Crossing", "Matina Pangi", "Megkawayan", "Mintal", "Mudiang", "Mulig", "New Carmen", "New Valencia", "Obrero", "Pampanga", "Panacan", "Panalum", "Pangyan", "Paquibato", "Paradise Embac", "Poblacion", "Rafael Castillo", "Riverside", "Sabang", "Salapawan", "Salaysay", "Saloy", "San Antonio", "San Isidro", "Santo Tomas", "Sasa", "Sibulan", "Sirawan", "Suawan", "Subasta", "Sumimao", "Tacunan", "Tagakpan", "Tagurano", "Talandang", "Talomo", "Tamayong", "Tambobong", "Tapak", "Tawan-tawan", "Tibuloy", "Tibungco", "Tigatto", "Toril", "Tugbok", "Tule", "Tungkalan", "Ubalde", "Ula", "Vicente Hizon Sr.", "Waan", "Wangan", "Wilfredo Aquino"
+  ],
+
+  // METRO MANILA
+  "Manila": [
+    "Baseco Compound", "Binondo", "Ermita", "Intramuros", "Malate", "Paco", "Pandacan", "Port Area", "Quiapo", "Sampaloc", "San Andres", "San Miguel", "San Nicolas", "Santa Ana", "Santa Cruz", "Santa Mesa", "Tondo"
+  ],
+  "Quezon City": [
+    "Alicia", "Amihan", "Apolonio Samson", "Aurora", "Baesa", "Bagong Lipunan ng Crame", "Bagong Pag-asa", "Bagong Silangan", "Bagumbayan", "Bagumbuhay", "Balingasa", "Balintawak", "Balong Bato", "Barangka", "Batasan Hills", "Botocan", "Bungad", "Camp Aguinaldo", "Central", "Claro", "Commonwealth", "Culiat", "Cubao", "Damayan", "Del Monte", "Diliman", "Don Manuel", "Dona Aurora", "Dona Imelda", "Dona Josefa", "Duyan-duyan", "E. Rodriguez", "East Kamias", "Escopa", "Fairview", "Galas", "Gulod", "Holy Spirit", "Horseshoe", "Immaculate Conception", "Kaligayahan", "Kalusugan", "Kamuning", "Katipunan", "Kaunlaran", "Kristong Hari", "Krus na Ligas", "Laging Handa", "Libis", "Lourdes", "Loyola Heights", "Lucban", "Maharlika", "Malaya", "Manresa", "Mariblo", "Marilag", "Masagana", "Masambong", "Matandang Balara", "Milagrosa", "N.S. Amoranto", "Nagkaisang Nayon", "Nayong Kanluran", "New Era", "North Fairview", "Novaliches Proper", "Obrero", "Old Balara", "Paang Bundok", "Pag-ibig sa Nayon", "Pagkakaisa", "Paligsahan", "Paltok", "Paraiso", "Pasong Putik Proper", "Pasong Tamo", "Payatas", "Phil-Am", "Pinagkaisahan", "Pinyahan", "Project 6", "Project 7", "Project 8", "Quirino 2-A", "Quirino 2-B", "Quirino 2-C", "Quirino 3-A", "Ramón Magsaysay", "Sacred Heart", "Salvacion", "San Antonio", "San Bartolome", "San Isidro", "San Jose", "San Martin de Porres", "San Roque", "San Vicente", "Sangandaan", "Santa Lucia", "Santa Monica", "Santa Teresita", "Santo Cristo", "Santo Domingo", "Santo Niño", "Santol", "Sauyo", "Sienna", "Silangan", "Socorro", "South Triangle", "St. Ignatius", "St. Peter", "Tagumpay", "Talayan", "Tatalon", "Teachers Village East", "Teachers Village West", "Ugong Norte", "Unang Sigaw", "UP Campus", "UP Village", "Valencia", "Vasra", "Veterans Village", "Villa Maria Clara", "West Kamias", "West Triangle", "White Plains"
   ]
 };
 
@@ -287,14 +322,6 @@ function showSection(step) {
   const section = document.getElementById(sectionId);
   if (section) {
     section.style.display = 'block';
-  }
-  
-  // Show/hide category icon display for step 2
-  const iconDisplay = document.getElementById('categoryIconDisplay');
-  if (step === 2 && np2State.categoryIcon) {
-    if (iconDisplay) iconDisplay.style.display = 'flex';
-  } else {
-    if (iconDisplay) iconDisplay.style.display = 'none';
   }
   
   // Update buttons
@@ -578,12 +605,40 @@ function initializeRegion() {
       // Update cities
       updateCityOptions();
       
-      // Reset city and extras
-      np2State.selectedCity = null;
-      np2State.extras1Value = null;
-      np2State.extras2Value = null;
-      document.getElementById('cityValue').textContent = 'Select city...';
-      document.getElementById('cityValue').classList.add('placeholder');
+      // Set default city based on region
+      const defaultCities = {
+        'CEBU': 'CEBU CITY',
+        'BOHOL': 'Tagbilaran City',
+        'LEYTE': 'Tacloban City',
+        'MASBATE': 'Masbate City',
+        'NEGROS': 'Bacolod City',
+        'PANAY': 'Iloilo City',
+        'SAMAR': 'Catbalogan City',
+        'SIQUIJOR': 'Siquijor',
+        'BILIRAN': 'Naval',
+        'CAMIGUIN': 'Mambajao',
+        'DINAGAT': 'San Jose',
+        'SOUTHERN LEYTE': 'Maasin City',
+        'DAVAO': 'Davao City',
+        'MANILA': 'Manila'
+      };
+      
+      const defaultCity = defaultCities[value];
+      
+      if (defaultCity) {
+        // Use generic handler to update city AND extras/barangays
+        handleCityChange(defaultCity);
+      } else {
+        // No default city - reset
+        np2State.selectedCity = null;
+        np2State.extras1Value = null;
+        np2State.extras2Value = null;
+        const cityValueElement = document.getElementById('cityValue');
+        if (cityValueElement) {
+          cityValueElement.textContent = 'Select city...';
+          cityValueElement.classList.add('placeholder');
+        }
+      }
     }
   });
 }
@@ -598,19 +653,14 @@ function initializeCity() {
     const option = e.target.closest('.np2-dropdown-option');
     if (option) {
       const value = option.dataset.value;
-      np2State.selectedCity = value;
-      cityValue.textContent = value;
-      cityValue.classList.remove('placeholder');
       
       // Close overlay
       const overlay = document.getElementById('cityOverlay');
       if (overlay) overlay.classList.remove('show');
       citySelect.classList.remove('active');
       
-      // Update extras if category uses location
-      if (np2State.selectedCategory) {
-        updateExtrasForCategory(np2State.selectedCategory);
-      }
+      // Use generic handler to update city AND extras/barangays
+      handleCityChange(value);
     }
   });
 }
@@ -618,6 +668,33 @@ function initializeCity() {
 function updateCityOptions() {
   const cities = locationData[np2State.selectedRegion] || [];
   populateDropdown('cityDropdown', cities);
+}
+
+// Generic function to handle city changes (manual or automatic)
+function handleCityChange(city) {
+  if (!city) return;
+  
+  console.log('🏙️ City changed to:', city);
+  
+  // Update state
+  np2State.selectedCity = city;
+  
+  // Update UI
+  const cityValueElement = document.getElementById('cityValue');
+  if (cityValueElement) {
+    cityValueElement.textContent = city;
+    cityValueElement.classList.remove('placeholder');
+  }
+  
+  // Clear extras state
+  np2State.extras1Value = null;
+  np2State.extras2Value = null;
+  
+  // Update extras for current category (this will refresh barangays if applicable)
+  if (np2State.selectedCategory) {
+    updateExtrasForCategory(np2State.selectedCategory);
+    console.log('✅ Updated extras/barangays for city:', city);
+  }
 }
 
 // ========================== EXTRAS SYSTEM ==========================
@@ -775,6 +852,9 @@ function initializeJobDetails() {
   
   // Initialize photo upload
   initializePhotoUpload();
+  
+  // Initialize textarea auto-scroll for mobile
+  initializeTextareaAutoScroll();
 }
 
 function initializeTimeSelectors() {
@@ -891,9 +971,16 @@ function initializePhotoUpload() {
         reader.onload = function(event) {
           np2State.photoFile = file;
           np2State.photoDataUrl = event.target.result;
-          previewImage.src = event.target.result;
-          uploadArea.style.display = 'none';
-          preview.style.display = 'block';
+          
+          // Prevent flickering by using requestAnimationFrame
+          requestAnimationFrame(() => {
+            previewImage.src = event.target.result;
+            // Wait for image to load before changing display
+            previewImage.onload = function() {
+              uploadArea.style.display = 'none';
+              preview.style.display = 'block';
+            };
+          });
         };
         reader.readAsDataURL(file);
       }
@@ -909,6 +996,21 @@ function initializePhotoUpload() {
       photoInput.value = '';
       preview.style.display = 'none';
       uploadArea.style.display = 'block';
+    });
+  }
+}
+
+// Initialize textarea auto-scroll on mobile
+function initializeTextareaAutoScroll() {
+  const textarea = document.getElementById('jobDescriptionTextarea');
+  if (textarea) {
+    textarea.addEventListener('focus', function() {
+      // Only on mobile devices (viewport width <= 600px)
+      if (window.innerWidth <= 600) {
+        setTimeout(() => {
+          this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300); // Delay to allow keyboard to appear
+      }
     });
   }
 }
@@ -1313,6 +1415,14 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeRegion();
   console.log('📌 Initializing city...');
   initializeCity();
+  
+  // Initialize default city's barangays/extras if a category is already selected
+  // This ensures CEBU CITY's barangays load on page load
+  if (np2State.selectedCity && np2State.selectedCategory) {
+    console.log('📌 Loading initial barangays for:', np2State.selectedCity);
+    updateExtrasForCategory(np2State.selectedCategory);
+  }
+  
   console.log('📌 Initializing extras...');
   initializeExtras();
   console.log('📌 Initializing job details...');

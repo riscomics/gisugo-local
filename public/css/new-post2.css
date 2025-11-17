@@ -225,6 +225,7 @@
   font-family: inherit;
   transition: all 0.3s ease;
   box-sizing: border-box;
+  margin-bottom: 20px;
 }
 
 .np2-textarea:focus {
@@ -692,27 +693,11 @@
   margin-left: 8px;
 }
 
-/* CATEGORY ICON DISPLAY (Step 2) */
-.np2-category-icon-display {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 20px;
-}
+/* CATEGORY ICON DISPLAY (Step 2) - REMOVED PER USER REQUEST */
 
-.np2-category-icon-large {
-  font-size: 72px;
-  animation: iconGlow 2s ease-in-out infinite;
-}
-
-@keyframes iconGlow {
-  0%, 100% {
-    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.6));
-  }
-  50% {
-    filter: drop-shadow(0 0 40px rgba(16, 185, 129, 1));
-  }
+/* PAYMENT SECTION - Extra spacing */
+#section-payment .np2-card-body {
+  padding-top: 40px;
 }
 
 /* PAYMENT TYPE SELECTOR (Graphic Icons) */
@@ -720,11 +705,12 @@
   display: flex;
   gap: 16px;
   margin-top: 8px;
+  margin-bottom: 40px;
 }
 
 .np2-payment-type-option {
   flex: 1;
-  padding: 24px;
+  padding: 28px;
   background: rgba(255, 255, 255, 0.05);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
@@ -763,7 +749,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 16px;
 }
 
 .np2-payment-currency-large {
@@ -802,6 +788,10 @@
   border: 2px solid rgba(16, 185, 129, 0.5);
   border-radius: 12px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .np2-preview-payment-amount {
@@ -809,12 +799,14 @@
   font-weight: 700;
   color: rgba(16, 185, 129, 1);
   margin-bottom: 8px;
+  text-align: center;
 }
 
 .np2-preview-payment-type {
   font-size: 20px;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 600;
+  text-align: center;
 }
 
 /* NAVIGATION BUTTONS */
@@ -923,6 +915,7 @@
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s ease;
 }
@@ -1077,6 +1070,7 @@
   font-size: 15px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9); /* Light text */
+  text-align: center;
 }
 
 .np2-preview-section {
@@ -1104,8 +1098,9 @@
 
 .np2-preview-payment {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
   padding: 20px;
   border-radius: 12px;
@@ -1142,6 +1137,7 @@
 .np2-overlay-success {
   max-width: 600px;
   text-align: center;
+  overflow-x: hidden;
 }
 
 .np2-success-icon {
@@ -1452,7 +1448,7 @@
 
   .np2-preview-payment {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
   }
 
