@@ -565,6 +565,7 @@
   display: block;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  transition: opacity 0.15s ease; /* Smooth fade for mobile */
 }
 
 .np2-photo-remove {
@@ -956,7 +957,7 @@
   border-radius: 16px;
   max-width: 700px;
   width: 90%;
-  max-height: 70vh; /* Match step dropdowns */
+  max-height: 80vh; /* Taller for preview content */
   overflow-y: auto;
   overflow-x: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -1181,7 +1182,7 @@
 /* SUCCESS OVERLAY */
 .np2-overlay-success {
   max-width: 600px;
-  max-height: 70vh; /* Match step dropdowns */
+  max-height: 80vh; /* Taller for success content */
   overflow-y: auto;
   overflow-x: hidden;
   text-align: center;
@@ -1474,11 +1475,11 @@
 
   .np2-overlay-container {
     width: 95%;
-    max-height: 70vh !important; /* Match step overlays */
+    max-height: 80vh !important; /* Taller for mobile */
   }
   
   .np2-overlay-success {
-    max-height: 70vh !important; /* Match step overlays */
+    max-height: 80vh !important; /* Taller for mobile */
     width: 95%;
   }
 

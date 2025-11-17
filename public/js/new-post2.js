@@ -983,14 +983,19 @@ function initializePhotoUpload() {
           np2State.photoFile = file;
           np2State.photoDataUrl = event.target.result;
           
-          // Mobile-optimized: Hide upload area first, then load image
-          uploadArea.style.display = 'none';
-          preview.style.display = 'block';
+          // MOBILE FIX: Use visibility instead of display to prevent layout reflow
+          previewImage.style.opacity = '0';
+          previewImage.src = event.target.result;
           
-          // Set image source after display change to prevent flicker
-          setTimeout(() => {
-            previewImage.src = event.target.result;
-          }, 10); // Tiny delay ensures display changes are rendered first
+          previewImage.onload = function() {
+            // Swap visibility in single frame to prevent flicker
+            uploadArea.style.display = 'none';
+            preview.style.display = 'block';
+            // Force reflow
+            preview.offsetHeight;
+            // Fade in
+            previewImage.style.opacity = '1';
+          };
         };
         reader.readAsDataURL(file);
       }
@@ -1323,26 +1328,36 @@ function saveToJobPreviewCards(job) {
       previewCards[job.category] = [];
     }
     
-    // Create preview card format matching listing.js expectations
+    // Format date to match new-post.js format (e.g., "Nov 21")
+    const date = new Date(job.jobDate);
+    const options = { month: 'short', day: 'numeric' };
+    const formattedDate = date.toLocaleDateString('en-US', options);
+    
+    // Extract extras as separate fields (listing.js expects extra1, extra2)
+    const extra1 = job.extras && job.extras[0] ? job.extras[0] : '';
+    const extra2 = job.extras && job.extras[1] ? job.extras[1] : '';
+    
+    // CRITICAL: Match exact field names from new-post.js
     const previewCard = {
-      id: job.jobId,
+      jobNumber: job.jobNumber,
       title: job.title,
-      poster: job.posterName,
+      extra1: extra1,
+      extra2: extra2,
+      price: `₱${job.paymentAmount}`, // Must include ₱ symbol
+      rate: job.paymentType,
+      date: formattedDate, // Formatted like "Nov 21"
+      time: `${job.startTime} - ${job.endTime}`,
+      photo: job.thumbnail, // Use 'photo' not 'thumbnail'
+      templateUrl: `dynamic-job.html?category=${job.category}&jobNumber=${job.jobNumber}`,
       region: job.region,
       city: job.city,
-      date: job.jobDate,
-      time: `${job.startTime} - ${job.endTime}`,
-      amount: job.paymentAmount,
-      rate: job.paymentType, // "Per Job" or "Per Hour"
-      extras: job.extras || [],
-      thumbnail: job.thumbnail,
-      category: job.category,
-      jobNumber: job.jobNumber
+      createdAt: new Date().toISOString()
     };
     
-    previewCards[job.category].push(previewCard);
+    // Add to beginning (newest first, matching new-post.js behavior)
+    previewCards[job.category].unshift(previewCard);
     localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-    console.log('✅ Job preview card saved for listing page!');
+    console.log('✅ Job preview card saved for listing page:', previewCard);
   } catch (error) {
     console.error('❌ Error saving job preview card:', error);
     // Don't throw error - this is supplementary data
