@@ -1181,8 +1181,10 @@
 /* SUCCESS OVERLAY */
 .np2-overlay-success {
   max-width: 600px;
-  text-align: center;
+  max-height: 90vh;
+  overflow-y: auto;
   overflow-x: hidden;
+  text-align: center;
 }
 
 .np2-success-icon {
@@ -1472,7 +1474,12 @@
 
   .np2-overlay-container {
     width: 95%;
-    max-height: 95vh;
+    max-height: 85vh !important; /* Match step overlays */
+  }
+  
+  .np2-overlay-success {
+    max-height: 85vh !important; /* Match step overlays */
+    width: 95%;
   }
 
   .np2-overlay-header {
