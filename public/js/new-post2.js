@@ -289,6 +289,14 @@ function showSection(step) {
     section.style.display = 'block';
   }
   
+  // Show/hide category icon display for step 2
+  const iconDisplay = document.getElementById('categoryIconDisplay');
+  if (step === 2 && np2State.categoryIcon) {
+    if (iconDisplay) iconDisplay.style.display = 'flex';
+  } else {
+    if (iconDisplay) iconDisplay.style.display = 'none';
+  }
+  
   // Update buttons
   const backBtn = document.getElementById('backBtn');
   const nextBtn = document.getElementById('nextBtn');
@@ -464,12 +472,24 @@ function initializeJobCategory() {
     if (card) {
       const value = card.dataset.value;
       const label = card.querySelector('.np2-category-label').textContent;
+      const icon = card.dataset.icon;
+      const color = card.dataset.color;
       
       console.log('📦 Category selected:', value, '(' + label + ')');
       
       np2State.selectedCategory = value;
+      np2State.categoryLabel = label;
+      np2State.categoryIcon = icon;
+      np2State.categoryColor = color;
+      
       categoryValue.textContent = label;
       categoryValue.classList.remove('placeholder');
+      
+      // Update headers for all steps
+      updateCategoryHeaders(label);
+      
+      // Update icon display for step 2
+      updateCategoryIconDisplay(icon, color);
       
       // Close overlay instead of dropdown
       const overlay = document.getElementById('jobCategoryOverlay');
@@ -499,6 +519,34 @@ function initializeJobCategory() {
         }
       });
     });
+  }
+}
+
+// Helper function to update category headers
+function updateCategoryHeaders(label) {
+  const header2 = document.getElementById('headerCategory2');
+  const header3 = document.getElementById('headerCategory3');
+  const header4 = document.getElementById('headerCategory4');
+  
+  const displayText = `(${label})`;
+  
+  if (header2) header2.textContent = displayText;
+  if (header3) header3.textContent = displayText;
+  if (header4) header4.textContent = displayText;
+  
+  console.log('📋 Updated category headers:', displayText);
+}
+
+// Helper function to update category icon display
+function updateCategoryIconDisplay(icon, color) {
+  const iconDisplay = document.getElementById('categoryIconDisplay');
+  const iconLarge = document.getElementById('categoryIconLarge');
+  
+  if (iconDisplay && iconLarge) {
+    iconLarge.textContent = icon;
+    iconLarge.style.filter = `drop-shadow(0 0 20px ${color})`;
+    iconDisplay.style.display = 'flex';
+    console.log('✨ Updated category icon:', icon);
   }
 }
 
@@ -868,25 +916,26 @@ function initializePhotoUpload() {
 // ========================== PAYMENT ==========================
 
 function initializePayment() {
-  const typeDropdown = document.getElementById('paymentTypeDropdown');
-  const typeValue = document.getElementById('paymentTypeValue');
-  const typeSelect = document.getElementById('paymentTypeSelect');
+  const perJobOption = document.getElementById('paymentPerJob');
+  const perHourOption = document.getElementById('paymentPerHour');
   const amountInput = document.getElementById('paymentAmountInput');
   
-  // Payment type dropdown
-  if (typeDropdown) {
-    typeDropdown.addEventListener('click', function(e) {
-      const option = e.target.closest('.np2-dropdown-option');
-      if (option) {
-        const value = option.dataset.value;
-        np2State.paymentType = value;
-        typeValue.textContent = value;
-        
-        // Close overlay
-        const overlay = document.getElementById('paymentTypeOverlay');
-        if (overlay) overlay.classList.remove('show');
-        typeSelect.classList.remove('active');
-      }
+  // Payment type graphic selector
+  if (perJobOption) {
+    perJobOption.addEventListener('click', function() {
+      np2State.paymentType = 'Per Job';
+      perJobOption.classList.add('active');
+      if (perHourOption) perHourOption.classList.remove('active');
+      console.log('💼 Payment type: Per Job');
+    });
+  }
+  
+  if (perHourOption) {
+    perHourOption.addEventListener('click', function() {
+      np2State.paymentType = 'Per Hour';
+      perHourOption.classList.add('active');
+      if (perJobOption) perJobOption.classList.remove('active');
+      console.log('⏱️ Payment type: Per Hour');
     });
   }
   
@@ -1173,13 +1222,13 @@ function triggerConfetti() {
 
 function initializeSuccessOverlay() {
   const overlay = document.getElementById('successOverlay');
-  const messagesBtn = document.getElementById('goToMessagesBtn');
+  const gigsManagerBtn = document.getElementById('goToGigsManagerBtn');
   const viewJobBtn = document.getElementById('viewJobPostBtn');
   const gotItBtn = document.getElementById('gotItBtn');
   
-  if (messagesBtn) {
-    messagesBtn.addEventListener('click', function() {
-      window.location.href = 'messages.html';
+  if (gigsManagerBtn) {
+    gigsManagerBtn.addEventListener('click', function() {
+      window.location.href = 'jobs.html';
     });
   }
   

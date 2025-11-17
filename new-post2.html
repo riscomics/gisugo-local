@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create New Job Post - GISUGO</title>
+  <title>Create New Gig Post - GISUGO</title>
   <!-- UNIFORM HEADER SYSTEM (shared) -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2.1">
   <!-- NEW POST 2 STYLES (experimental redesign) -->
-  <link rel="stylesheet" href="public/css/new-post2.css?v=16.0">
+  <link rel="stylesheet" href="public/css/new-post2.css?v=21.0">
 </head>
 <body class="page-post2">
 
@@ -18,7 +18,7 @@
         <img src="public/icons/back.png" alt="Back">
         <span>Back</span>
       </button>
-      <div class="uniform-header-title">Create Job Post</div>
+      <div class="uniform-header-title">Create Gig Post</div>
       <button class="uniform-header-btn menu" id="uniformMenuBtn" aria-label="Menu">
         <img src="public/icons/menu.png" alt="Menu">
         <div>Menu</div>
@@ -64,20 +64,45 @@
     <div class="np2-section" id="section-category">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Select Job Category</div>
+          <div class="np2-card-title">Select Gig Category</div>
           <div class="np2-card-subtitle">Choose the type of work you need help with</div>
         </div>
         <div class="np2-card-body">
           <div class="np2-form-group">
-            <label class="np2-label">Job Type<span class="np2-required">*</span></label>
+            <label class="np2-label">Gig Type<span class="np2-required">*</span></label>
             <div class="np2-select-wrapper">
               <div class="np2-select" id="jobCategorySelect" tabindex="0">
-                <div class="np2-select-value placeholder" id="jobCategoryValue">Select job category...</div>
+                <div class="np2-select-value placeholder" id="jobCategoryValue">Select gig category...</div>
                 <div class="np2-select-arrow">▼</div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+      
+      <!-- DISCLAIMER SECTION (Separate from category card) -->
+      <div class="np2-disclaimer-section">
+        <div class="np2-disclaimer-icon-top">⚠️</div>
+        <div class="np2-disclaimer-title">Before You Continue</div>
+        <div class="np2-disclaimer-content">
+          <div class="np2-disclaimer-item">
+            <span class="np2-disclaimer-bullet">•</span>
+            <span>GISUGO connects you with workers in your area and facilitates job postings.</span>
+          </div>
+          <div class="np2-disclaimer-item">
+            <span class="np2-disclaimer-bullet">•</span>
+            <span>You are responsible for verifying workers' qualifications and ensuring your own safety.</span>
+          </div>
+          <div class="np2-disclaimer-item">
+            <span class="np2-disclaimer-bullet">•</span>
+            <span>Your phone number will only be shared with workers you hire.</span>
+          </div>
+          <div class="np2-disclaimer-item">
+            <span class="np2-disclaimer-bullet">•</span>
+            <span>Post responsibly and exercise caution when meeting in person.</span>
+          </div>
+        </div>
+        <div class="np2-disclaimer-icon-bottom">🤝</div>
       </div>
     </div>
 
@@ -85,10 +110,14 @@
     <div class="np2-section" id="section-location" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Location & Job Specifics</div>
+          <div class="np2-card-title">Location & Job Specifics <span class="np2-header-category" id="headerCategory2"></span></div>
           <div class="np2-card-subtitle">Where will this job take place?</div>
         </div>
         <div class="np2-card-body">
+          <!-- Category Icon Display -->
+          <div class="np2-category-icon-display" id="categoryIconDisplay" style="display: none;">
+            <div class="np2-category-icon-large" id="categoryIconLarge">📦</div>
+          </div>
           <!-- Region Selection -->
           <div class="np2-form-group">
             <label class="np2-label">Region<span class="np2-required">*</span></label>
@@ -147,7 +176,7 @@
     <div class="np2-section" id="section-details" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Job Details</div>
+          <div class="np2-card-title">Job Details <span class="np2-header-category" id="headerCategory3"></span></div>
           <div class="np2-card-subtitle">Provide information about the job</div>
         </div>
         <div class="np2-card-body">
@@ -226,26 +255,31 @@
     <div class="np2-section" id="section-payment" style="display: none;">
       <div class="np2-card">
         <div class="np2-card-header">
-          <div class="np2-card-title">Payment Offer</div>
+          <div class="np2-card-title">Payment Offer <span class="np2-header-category" id="headerCategory4"></span></div>
           <div class="np2-card-subtitle">How much will you pay for this work?</div>
         </div>
         <div class="np2-card-body">
-          <div class="np2-form-row">
-            <div class="np2-form-group np2-form-group-half">
-              <label class="np2-label">Payment Type<span class="np2-required">*</span></label>
-              <div class="np2-select-wrapper">
-                <div class="np2-select" id="paymentTypeSelect" tabindex="0">
-                  <div class="np2-select-value" id="paymentTypeValue">Per Job</div>
-                  <div class="np2-select-arrow">▼</div>
-                </div>
+          <!-- Payment Type Selection (Graphic Icons) -->
+          <div class="np2-form-group">
+            <label class="np2-label">Payment Type<span class="np2-required">*</span></label>
+            <div class="np2-payment-type-selector">
+              <div class="np2-payment-type-option active" data-value="Per Job" id="paymentPerJob">
+                <div class="np2-payment-type-icon">💼</div>
+                <div class="np2-payment-type-label">Per Job</div>
+              </div>
+              <div class="np2-payment-type-option" data-value="Per Hour" id="paymentPerHour">
+                <div class="np2-payment-type-icon">⏱️</div>
+                <div class="np2-payment-type-label">Per Hour</div>
               </div>
             </div>
-            <div class="np2-form-group np2-form-group-half">
-              <label class="np2-label">Amount<span class="np2-required">*</span></label>
-              <div class="np2-payment-input-wrapper">
-                <span class="np2-payment-currency">₱</span>
-                <input type="number" class="np2-input np2-payment-input" id="paymentAmountInput" placeholder="0" min="0" max="9999" step="1" autocomplete="off">
-              </div>
+          </div>
+          
+          <!-- Amount Input (Larger) -->
+          <div class="np2-form-group">
+            <label class="np2-label">Amount<span class="np2-required">*</span></label>
+            <div class="np2-payment-input-wrapper-large">
+              <span class="np2-payment-currency-large">₱</span>
+              <input type="number" class="np2-input np2-payment-input-large" id="paymentAmountInput" placeholder="0" min="0" max="9999" step="1" autocomplete="off">
             </div>
           </div>
         </div>
@@ -332,15 +366,15 @@
   <div class="np2-overlay" id="successOverlay">
     <div class="np2-overlay-container np2-overlay-success">
       <div class="np2-success-icon">✅</div>
-      <div class="np2-success-title">Job Posted Successfully!</div>
-      <div class="np2-success-subtitle" id="successLocation">Your job is now live and visible to workers.</div>
+      <div class="np2-success-title">Gig Posted Successfully!</div>
+      <div class="np2-success-subtitle" id="successLocation">Your gig is now live and visible to workers.</div>
       
       <div class="np2-success-content">
         <div class="np2-success-section">
           <div class="np2-success-section-title">🔄 What happens next:</div>
           <div class="np2-success-section-text">
             • Workers will submit applications<br>
-            • Review applications in MESSAGES<br>
+            • Review applications in GIGS MANAGER<br>
             • Your phone number is shared ONLY with hired workers
           </div>
         </div>
@@ -355,14 +389,14 @@
         <div class="np2-success-section">
           <div class="np2-success-section-title">⚠️ Disclaimer:</div>
           <div class="np2-success-section-text">
-            GISUGO will not be held responsible for job outcomes or disputes. Exercise caution and prioritize your safety when meeting workers.
+            GISUGO will not be held responsible for gig outcomes or disputes. Exercise caution and prioritize your safety when meeting workers.
           </div>
         </div>
       </div>
       
       <div class="np2-overlay-actions">
-        <button class="np2-btn np2-btn-primary" id="goToMessagesBtn">Go to Messages</button>
-        <button class="np2-btn np2-btn-secondary" id="viewJobPostBtn">View My Job Post</button>
+        <button class="np2-btn np2-btn-primary" id="goToGigsManagerBtn">Go to Gigs Manager</button>
+        <button class="np2-btn np2-btn-secondary" id="viewJobPostBtn">View My Gig Post</button>
         <button class="np2-btn np2-btn-secondary" id="gotItBtn">Got It</button>
       </div>
     </div>
@@ -374,7 +408,7 @@
   <div class="np2-dropdown-overlay" id="jobCategoryOverlay">
     <div class="np2-dropdown np2-category-grid-modal">
       <div class="np2-dropdown-header">
-        <div class="np2-dropdown-title">Select Job Category</div>
+        <div class="np2-dropdown-title">Select Gig Category</div>
         <button class="np2-dropdown-close" id="jobCategoryCloseBtn">×</button>
       </div>
       <div class="np2-dropdown-body np2-category-grid-body" id="jobCategoryDropdown">
@@ -717,7 +751,7 @@
   <!-- SCRIPTS -->
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/jobs.js?v=14"></script>
-  <script src="public/js/new-post2.js?v=10.0"></script>
+  <script src="public/js/new-post2.js?v=11.0"></script>
 
 </body>
 </html>
