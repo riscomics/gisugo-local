@@ -323,11 +323,13 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
-  animation: fadeIn 0.2s ease;
+  opacity: 0;
+  transition: opacity 0.1s ease;
 }
 
 .np2-dropdown-overlay.show {
   display: flex;
+  opacity: 1;
 }
 
 .np2-dropdown {
@@ -889,13 +891,35 @@
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(8px);
   z-index: 10000;
-  animation: fadeIn 0.3s ease;
+  opacity: 0;
+  transition: opacity 0.1s ease;
 }
 
 .np2-overlay.show {
   display: flex;
   align-items: center;
+  opacity: 1;
   justify-content: center;
+}
+
+/* Mobile-specific: Disable heavy animations and backdrop-filter */
+@media (max-width: 600px) {
+  .np2-overlay,
+  .np2-dropdown-overlay {
+    backdrop-filter: none; /* Remove blur on mobile for performance */
+    transition: none; /* Instant show/hide on mobile */
+  }
+  
+  .np2-dropdown-overlay.show,
+  .np2-overlay.show {
+    opacity: 1;
+  }
+  
+  /* Ensure overlay containers are properly constrained on mobile */
+  .np2-overlay-container {
+    max-height: 85vh; /* Tighter constraint on mobile */
+    width: 95%;
+  }
 }
 
 @keyframes fadeIn {
@@ -917,7 +941,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: slideUp 0.3s ease;
+  transform: translateY(0);
+  will-change: auto;
 }
 
 @keyframes slideUp {
@@ -1127,6 +1152,7 @@
   position: sticky;
   bottom: 0;
   background: #2d3748; /* Dark mode background */
+  flex-shrink: 0; /* Prevent actions from being compressed */
 }
 
 .np2-overlay-actions .np2-btn {

@@ -305,45 +305,53 @@ function updateProgressIndicator() {
 }
 
 function showSection(step) {
-  // Hide all sections
-  document.querySelectorAll('.np2-section').forEach(section => {
-    section.style.display = 'none';
+  // Use requestAnimationFrame to batch DOM updates and prevent flickering
+  requestAnimationFrame(() => {
+    // Hide all sections
+    const allSections = document.querySelectorAll('.np2-section');
+    allSections.forEach(section => {
+      section.style.display = 'none';
+    });
+    
+    // Show current section
+    const sections = {
+      1: 'section-category',
+      2: 'section-location',
+      3: 'section-details',
+      4: 'section-payment'
+    };
+    
+    const sectionId = sections[step];
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.style.display = 'block';
+    }
+    
+    // Update buttons
+    const backBtn = document.getElementById('backBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const previewBtn = document.getElementById('previewBtn');
+    
+    if (step === 1) {
+      backBtn.style.display = 'none';
+      nextBtn.style.display = 'inline-flex';
+      previewBtn.style.display = 'none';
+    } else if (step === 4) {
+      backBtn.style.display = 'inline-flex';
+      nextBtn.style.display = 'none';
+      previewBtn.style.display = 'inline-flex';
+    } else {
+      backBtn.style.display = 'inline-flex';
+      nextBtn.style.display = 'inline-flex';
+      previewBtn.style.display = 'none';
+    }
+    
+    // Update progress indicators
+    updateProgressIndicator();
+    
+    // Scroll to top of page smoothly
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
-  
-  // Show current section
-  const sections = {
-    1: 'section-category',
-    2: 'section-location',
-    3: 'section-details',
-    4: 'section-payment'
-  };
-  
-  const sectionId = sections[step];
-  const section = document.getElementById(sectionId);
-  if (section) {
-    section.style.display = 'block';
-  }
-  
-  // Update buttons
-  const backBtn = document.getElementById('backBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const previewBtn = document.getElementById('previewBtn');
-  
-  if (step === 1) {
-    backBtn.style.display = 'none';
-    nextBtn.style.display = 'inline-flex';
-    previewBtn.style.display = 'none';
-  } else if (step === 4) {
-    backBtn.style.display = 'inline-flex';
-    nextBtn.style.display = 'none';
-    previewBtn.style.display = 'inline-flex';
-  } else {
-    backBtn.style.display = 'inline-flex';
-    nextBtn.style.display = 'inline-flex';
-    previewBtn.style.display = 'none';
-  }
-  
-  updateProgressIndicator();
 }
 
 function validateCurrentStep() {
@@ -436,8 +444,11 @@ function initializeDropdowns() {
       
       const overlay = document.getElementById(overlayId);
       if (overlay) {
-        overlay.classList.add('show');
-        this.classList.add('active');
+        // Use requestAnimationFrame to prevent flickering
+        requestAnimationFrame(() => {
+          overlay.classList.add('show');
+          this.classList.add('active');
+        });
       }
     });
   });
@@ -1046,6 +1057,14 @@ function initializePayment() {
     amountInput.addEventListener('input', function() {
       np2State.paymentAmount = this.value;
     });
+    
+    // Close mobile keyboard on Enter key
+    amountInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        this.blur(); // Close mobile keyboard
+      }
+    });
   }
 }
 
@@ -1240,12 +1259,22 @@ function postJob() {
   
   // Save to localStorage
   try {
+    console.log('📝 Attempting to save job:', job);
+    console.log('📝 Job category:', np2State.selectedCategory);
+    
     const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    console.log('📝 Existing jobs:', allJobs);
+    
     if (!allJobs[np2State.selectedCategory]) {
       allJobs[np2State.selectedCategory] = [];
+      console.log('📝 Created new category array');
     }
+    
     allJobs[np2State.selectedCategory].push(job);
+    console.log('📝 Job added to array. Total jobs in category:', allJobs[np2State.selectedCategory].length);
+    
     localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+    console.log('✅ Job saved to localStorage successfully!');
     
     // Close preview overlay
     document.getElementById('previewOverlay').classList.remove('show');
@@ -1253,7 +1282,10 @@ function postJob() {
     // Show success overlay
     showSuccessOverlay();
   } catch (error) {
-    console.error('Error saving job:', error);
+    console.error('❌ Error saving job:', error);
+    console.error('❌ Error details:', error.message);
+    console.error('❌ Stack trace:', error.stack);
+    alert(`Failed to post job: ${error.message}`);
     showToast('Failed to post job. Please try again.', 'error');
   }
 }
