@@ -11,7 +11,7 @@ const MENU_ITEMS = [
   {
     icon: 'public/icons/Post.png',
     text: 'Post',
-    link: 'new-post.html'
+    link: 'new-post2.html'
   },
   {
     icon: 'public/icons/Messages.png',

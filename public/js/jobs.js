@@ -2046,7 +2046,7 @@ async function loadListingsContent() {
                 <div class="empty-state-icon">📋</div>
                 <div class="empty-state-title">No active job listings yet</div>
                 <div class="empty-state-message">Ready to post your first job? Create a listing and start finding help!</div>
-                <button class="empty-state-btn" onclick="window.location.href='new-post.html'">
+                <button class="empty-state-btn" onclick="window.location.href='new-post2.html'">
                     Post Your First Job
                 </button>
             </div>
@@ -3488,8 +3488,8 @@ function initializeRelistJobConfirmationHandlers() {
                     // In Firebase, this would create a new job document with status: 'draft'
                     showSuccessNotification(`Job draft created! You can now edit details and repost "${jobTitle}".`);
                     
-                    // Navigate to new-post.html with pre-filled data for editing
-                    // In real implementation: window.location.href = `/new-post.html?draft=${newDraftId}`;
+                    // Navigate to new-post2.html with pre-filled data for editing
+                    // In real implementation: window.location.href = `/new-post2.html?draft=${newDraftId}`;
                     setTimeout(() => {
                         showSuccessNotification('Draft feature not yet implemented - would redirect to edit page');
                     }, 2000);
@@ -5402,8 +5402,8 @@ function handleRelistCompletedJob(jobData) {
     console.log(`🔄 RELIST completed job: ${jobData.jobId}`);
     hidePreviousOptionsOverlay();
     
-    // Navigate directly to new-post.html with relist mode
-    const relistUrl = `new-post.html?relist=${jobData.jobId}&category=${jobData.category}`;
+    // Navigate directly to new-post2.html with relist mode
+    const relistUrl = `new-post2.html?relist=${jobData.jobId}&category=${jobData.category}`;
     console.log(`📝 Navigating to relist mode: ${relistUrl}`);
     
     // Firebase data mapping for relist mode:
@@ -7050,8 +7050,8 @@ function handleModifyJob(jobData) {
     console.log(`✏️ MODIFY job: ${jobData.jobId}`);
     hideListingOptionsOverlay();
     
-    // Navigate to new-post.html with edit mode
-    const editUrl = `new-post.html?edit=${jobData.jobId}&category=${jobData.category}`;
+    // Navigate to new-post2.html with edit mode
+    const editUrl = `new-post2.html?edit=${jobData.jobId}&category=${jobData.category}`;
     console.log(`📝 Navigating to edit mode: ${editUrl}`);
     
     // Firebase data mapping for edit mode:
@@ -7409,7 +7409,7 @@ function showEmptyListingsState() {
                 You haven't posted any jobs yet.<br>
                 Start by creating your first job posting.
             </div>
-            <a href="new-post.html" class="empty-state-btn">Post Your First Job</a>
+            <a href="new-post2.html" class="empty-state-btn">Post Your First Job</a>
         </div>
     `;
 }

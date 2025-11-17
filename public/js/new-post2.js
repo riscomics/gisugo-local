@@ -1205,32 +1205,36 @@ function initializePreviewOverlay() {
 // ========================== POST JOB ==========================
 
 function postJob() {
-  // Create job object
-  const jobId = `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Generate job number from timestamp
+  const jobNumber = Date.now();
+  
+  // Create job object matching new-post.js format EXACTLY
   const job = {
-    jobId: jobId,
-    jobNumber: Date.now(),
-    posterId: 'user_peter_ang_001', // From jobs.js
+    jobId: `${np2State.selectedCategory}_job_2025_${jobNumber}`,
+    jobNumber: jobNumber,
+    posterId: 'user_peter_ang_001',
     posterName: 'Peter J. Ang',
     title: np2State.jobTitle,
     description: np2State.jobDescription,
     category: np2State.selectedCategory,
-    thumbnail: np2State.photoDataUrl || 'public/mock/mock-limpyo-post1.jpg',
+    thumbnail: np2State.photoDataUrl || `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`,
+    originalPhoto: np2State.photoDataUrl || null,
     jobDate: np2State.jobDate,
     dateNeeded: np2State.jobDate,
-    startTime: `${np2State.startHour}${np2State.startPeriod}`,
-    endTime: `${np2State.endHour}${np2State.endPeriod}`,
+    startTime: `${np2State.startHour} ${np2State.startPeriod}`,
+    endTime: `${np2State.endHour} ${np2State.endPeriod}`,
     priceOffer: np2State.paymentAmount,
     paymentAmount: np2State.paymentAmount,
-    paymentType: np2State.paymentType.toLowerCase().replace(' ', ''),
+    paymentType: np2State.paymentType, // Keep "Per Job" or "Per Hour" format
     region: np2State.selectedRegion,
     city: np2State.selectedCity,
-    extras: [np2State.extras1Value, np2State.extras2Value],
+    extras: [np2State.extras1Value, np2State.extras2Value].filter(Boolean), // Remove null values
     status: 'active',
-    datePosted: new Date().toISOString(),
     applicationCount: 0,
     applicationIds: [],
+    datePosted: new Date().toISOString(),
     jobPageUrl: `${np2State.selectedCategory}.html`,
+    createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
   
