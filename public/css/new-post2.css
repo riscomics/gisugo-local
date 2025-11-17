@@ -906,19 +906,38 @@
 @media (max-width: 600px) {
   .np2-overlay,
   .np2-dropdown-overlay {
-    backdrop-filter: none; /* Remove blur on mobile for performance */
-    transition: none; /* Instant show/hide on mobile */
+    backdrop-filter: none !important; /* Remove blur on mobile for performance */
+    animation: none !important; /* Remove all animations */
   }
   
-  .np2-dropdown-overlay.show,
+  .np2-dropdown-overlay {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  
+  .np2-dropdown-overlay.show {
+    display: flex !important;
+  }
+  
+  .np2-overlay {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  
   .np2-overlay.show {
-    opacity: 1;
+    display: flex !important;
   }
   
   /* Ensure overlay containers are properly constrained on mobile */
   .np2-overlay-container {
     max-height: 85vh; /* Tighter constraint on mobile */
     width: 95%;
+    animation: none !important;
+    transform: none !important;
+  }
+  
+  .np2-dropdown {
+    animation: none !important;
   }
 }
 

@@ -1228,6 +1228,8 @@ function postJob() {
   const jobNumber = Date.now();
   
   // Create job object matching new-post.js format EXACTLY
+  // CRITICAL: DO NOT save photoDataUrl (base64) to localStorage - it's too large!
+  // Use mock path instead to prevent quota exceeded errors on mobile
   const job = {
     jobId: `${np2State.selectedCategory}_job_2025_${jobNumber}`,
     jobNumber: jobNumber,
@@ -1236,8 +1238,8 @@ function postJob() {
     title: np2State.jobTitle,
     description: np2State.jobDescription,
     category: np2State.selectedCategory,
-    thumbnail: np2State.photoDataUrl || `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`,
-    originalPhoto: np2State.photoDataUrl || null,
+    thumbnail: `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`, // Always use mock path
+    originalPhoto: null, // Don't store base64 images in localStorage
     jobDate: np2State.jobDate,
     dateNeeded: np2State.jobDate,
     startTime: `${np2State.startHour} ${np2State.startPeriod}`,
@@ -1262,7 +1264,7 @@ function postJob() {
     console.log('📝 Attempting to save job:', job);
     console.log('📝 Job category:', np2State.selectedCategory);
     
-    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    let allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
     console.log('📝 Existing jobs:', allJobs);
     
     if (!allJobs[np2State.selectedCategory]) {
@@ -1270,11 +1272,31 @@ function postJob() {
       console.log('📝 Created new category array');
     }
     
+    // Add new job
     allJobs[np2State.selectedCategory].push(job);
     console.log('📝 Job added to array. Total jobs in category:', allJobs[np2State.selectedCategory].length);
     
-    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-    console.log('✅ Job saved to localStorage successfully!');
+    // Try to save
+    try {
+      localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+      console.log('✅ Job saved to localStorage successfully!');
+    } catch (quotaError) {
+      // If quota exceeded, clean up old jobs and try again
+      console.warn('⚠️ localStorage quota exceeded, cleaning up old jobs...');
+      
+      // Keep only the 10 most recent jobs per category
+      Object.keys(allJobs).forEach(category => {
+        if (allJobs[category].length > 10) {
+          allJobs[category] = allJobs[category]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 10);
+        }
+      });
+      
+      // Try saving again
+      localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
+      console.log('✅ Job saved after cleanup!');
+    }
     
     // Close preview overlay
     document.getElementById('previewOverlay').classList.remove('show');
@@ -1285,7 +1307,7 @@ function postJob() {
     console.error('❌ Error saving job:', error);
     console.error('❌ Error details:', error.message);
     console.error('❌ Stack trace:', error.stack);
-    alert(`Failed to post job: ${error.message}`);
+    alert(`Failed to post job: ${error.message}\n\nTry clearing old jobs from localStorage.`);
     showToast('Failed to post job. Please try again.', 'error');
   }
 }
