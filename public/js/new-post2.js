@@ -983,15 +983,14 @@ function initializePhotoUpload() {
           np2State.photoFile = file;
           np2State.photoDataUrl = event.target.result;
           
-          // Prevent flickering by using requestAnimationFrame
-          requestAnimationFrame(() => {
+          // Mobile-optimized: Hide upload area first, then load image
+          uploadArea.style.display = 'none';
+          preview.style.display = 'block';
+          
+          // Set image source after display change to prevent flicker
+          setTimeout(() => {
             previewImage.src = event.target.result;
-            // Wait for image to load before changing display
-            previewImage.onload = function() {
-              uploadArea.style.display = 'none';
-              preview.style.display = 'block';
-            };
-          });
+          }, 10); // Tiny delay ensures display changes are rendered first
         };
         reader.readAsDataURL(file);
       }
@@ -1298,6 +1297,9 @@ function postJob() {
       console.log('✅ Job saved after cleanup!');
     }
     
+    // CRITICAL: Also save to jobPreviewCards for listing pages
+    saveToJobPreviewCards(job);
+    
     // Close preview overlay
     document.getElementById('previewOverlay').classList.remove('show');
     
@@ -1309,6 +1311,41 @@ function postJob() {
     console.error('❌ Stack trace:', error.stack);
     alert(`Failed to post job: ${error.message}\n\nTry clearing old jobs from localStorage.`);
     showToast('Failed to post job. Please try again.', 'error');
+  }
+}
+
+// Save job to jobPreviewCards format for listing pages
+function saveToJobPreviewCards(job) {
+  try {
+    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+    
+    if (!previewCards[job.category]) {
+      previewCards[job.category] = [];
+    }
+    
+    // Create preview card format matching listing.js expectations
+    const previewCard = {
+      id: job.jobId,
+      title: job.title,
+      poster: job.posterName,
+      region: job.region,
+      city: job.city,
+      date: job.jobDate,
+      time: `${job.startTime} - ${job.endTime}`,
+      amount: job.paymentAmount,
+      rate: job.paymentType, // "Per Job" or "Per Hour"
+      extras: job.extras || [],
+      thumbnail: job.thumbnail,
+      category: job.category,
+      jobNumber: job.jobNumber
+    };
+    
+    previewCards[job.category].push(previewCard);
+    localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
+    console.log('✅ Job preview card saved for listing page!');
+  } catch (error) {
+    console.error('❌ Error saving job preview card:', error);
+    // Don't throw error - this is supplementary data
   }
 }
 
