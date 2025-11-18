@@ -72,17 +72,21 @@
         </div>
         <div class="jobcat-headerbuttons">
           <div class="jobcat-headerbutton">
-            <a href="new-post.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
-              <div><img src="public/icons/Post.png" alt="Post"></div>
+            <a href="new-post2.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+              <div class="jobcat-icon-emoji">✏️</div>
               <div class="posttext">Post</div>
             </a>
           </div>
           <div class="jobcat-headerbutton">
-            <div><img src="public/icons/search.png" alt="Search"></div>
+            <div class="jobcat-icon-emoji">🔍</div>
             <div>Search</div>
           </div>
           <div class="jobcat-headerbutton jobcat-menu-btn">
-            <div><img src="public/icons/menu.png" alt="Menu"></div>
+            <div class="jobcat-icon-hamburger">
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+              <span class="hamburger-line"></span>
+            </div>
             <div>Menu</div>
           </div>
         </div>
@@ -215,6 +219,22 @@
       btn.addEventListener('mouseleave', () => {
         btn.style.opacity = '1';
       });
+    </script>
+
+    <!-- Viewport Debug Tool -->
+    <div id="vp-debug"></div>
+    <script>
+      (function() {
+        const vpDebug = document.getElementById('vp-debug');
+        vpDebug.style.cssText = 'position:fixed; bottom:0; left:0; background:#000; color:#fff; padding:4px 8px; font-size:12px; opacity:0.6; z-index:9999; font-family:monospace; border-radius: 0 4px 0 0; pointer-events: none;';
+        
+        function updateViewport() {
+          vpDebug.textContent = 'Viewport: ' + window.innerWidth + 'px';
+        }
+        
+        updateViewport();
+        window.addEventListener('resize', updateViewport);
+      })();
     </script>
 
     <script src="public/js/shared-menu.js"></script>
