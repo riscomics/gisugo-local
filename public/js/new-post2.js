@@ -1,6 +1,114 @@
 // ========================== NEW POST 2 - EXPERIMENTAL REDESIGN ==========================
 // Modern, step-by-step job posting flow with admin dashboard-inspired UI
 
+// ========================== MOBILE KEYBOARD HANDLING ==========================
+
+function initializeMobileKeyboardHandling() {
+  let initialViewportHeight = window.innerHeight;
+  let keyboardVisible = false;
+  let focusedElement = null;
+  
+  // Detect keyboard visibility by monitoring viewport height changes
+  function detectKeyboardVisibility() {
+    const currentViewportHeight = window.innerHeight;
+    const heightDifference = initialViewportHeight - currentViewportHeight;
+    
+    // Keyboard is considered visible if viewport height decreased by more than 150px
+    const newKeyboardVisible = heightDifference > 150;
+    
+    if (newKeyboardVisible !== keyboardVisible) {
+      keyboardVisible = newKeyboardVisible;
+      
+      if (keyboardVisible && focusedElement) {
+        // Keyboard appeared - scroll focused element into view
+        setTimeout(() => {
+          scrollElementIntoView(focusedElement);
+        }, 100); // Small delay to ensure keyboard animation is complete
+      }
+    }
+  }
+  
+  // Scroll element into view with proper positioning
+  function scrollElementIntoView(element) {
+    if (!element) return;
+    
+    const rect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const keyboardHeight = initialViewportHeight - viewportHeight;
+    
+    // Calculate if element is covered by keyboard
+    const elementBottom = rect.bottom;
+    const availableHeight = viewportHeight - keyboardHeight;
+    
+    if (elementBottom > availableHeight) {
+      // Element is covered by keyboard - scroll it into view
+      const scrollAmount = elementBottom - availableHeight + 20; // 20px buffer
+      window.scrollBy({
+        top: scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  }
+  
+  // Track focused elements
+  document.addEventListener('focusin', function(e) {
+    focusedElement = e.target;
+    
+    // If keyboard is already visible, scroll immediately
+    if (keyboardVisible) {
+      setTimeout(() => {
+        scrollElementIntoView(focusedElement);
+      }, 50);
+    }
+  });
+  
+  // Handle input focus events specifically
+  const inputElements = document.querySelectorAll('input, textarea');
+  inputElements.forEach(input => {
+    input.addEventListener('focus', function() {
+      focusedElement = this;
+      
+      // For Chrome Android, also check if we need to scroll on focus
+      setTimeout(() => {
+        if (window.innerHeight < initialViewportHeight) {
+          keyboardVisible = true;
+          scrollElementIntoView(this);
+        }
+      }, 300); // Longer delay for Chrome Android
+    });
+  });
+  
+  // Monitor viewport height changes
+  window.addEventListener('resize', function() {
+    clearTimeout(window.resizeTimeout);
+    window.resizeTimeout = setTimeout(detectKeyboardVisibility, 100);
+  });
+  
+  // Update initial height on orientation change
+  window.addEventListener('orientationchange', function() {
+    setTimeout(() => {
+      initialViewportHeight = window.innerHeight;
+      keyboardVisible = false;
+    }, 500);
+  });
+  
+  // Handle virtual keyboard events (for better Chrome Android support)
+  if ('virtualKeyboard' in navigator) {
+    navigator.virtualKeyboard.addEventListener('geometrychange', function() {
+      const keyboardHeight = navigator.virtualKeyboard.boundingRect.height;
+      keyboardVisible = keyboardHeight > 0;
+      
+      if (keyboardVisible && focusedElement) {
+        setTimeout(() => {
+          scrollElementIntoView(focusedElement);
+        }, 50);
+      }
+    });
+  }
+  
+  console.log('⌨️ Mobile keyboard handling initialized');
+}
+
 // ========================== STATE MANAGEMENT ==========================
 
 const np2State = {
@@ -20,7 +128,14 @@ const np2State = {
   photoDataUrl: null,
   jobDescription: '',
   paymentType: 'Per Job',
-  paymentAmount: ''
+  paymentAmount: '',
+  // Edit/Relist mode tracking
+  mode: 'new', // 'new', 'edit', or 'relist'
+  editJobId: null,
+  relistJobId: null,
+  categoryLabel: '',
+  categoryIcon: '',
+  categoryColor: ''
 };
 
 // ========================== LOCATION DATA ==========================
@@ -188,6 +303,143 @@ function getBarangaysForCurrentCity() {
   if (!np2State.selectedCity) return null;
   const barangays = barangaysByCity[np2State.selectedCity];
   return (barangays && barangays.length > 0) ? barangays : null;
+}
+
+function convertTo24Hour(hour, period) {
+  // Convert 12-hour format to 24-hour format
+  let hour24 = parseInt(hour);
+  if (period === 'PM' && hour24 !== 12) {
+    hour24 += 12;
+  } else if (period === 'AM' && hour24 === 12) {
+    hour24 = 0;
+  }
+  return hour24;
+}
+
+// ========================== IMAGE PROCESSING ==========================
+
+// Global variable to store processed image data
+let processedJobPhoto = null;
+
+function processImageWithSmartStorage(file, callback) {
+  const img = new Image();
+  
+  img.onload = function() {
+    // Calculate aspect ratios
+    const originalRatio = img.width / img.height;
+    const targetRatio = 16/9;
+    const aspectDifference = Math.abs(originalRatio - targetRatio);
+    const needsOriginal = aspectDifference > 0.3;
+    
+    console.log(`📐 Photo analysis:`, {
+      dimensions: `${img.width}×${img.height}`,
+      aspectRatio: originalRatio.toFixed(2),
+      difference: aspectDifference.toFixed(2),
+      needsOriginal: needsOriginal
+    });
+    
+    // Always create cropped version (500×281 for page display)
+    createCroppedVersion(img, function(croppedDataURL) {
+      if (needsOriginal) {
+        // Create compressed original (720px max width, maintain aspect ratio)
+        createCompressedOriginal(img, function(originalDataURL) {
+          // Store both versions
+          processedJobPhoto = {
+            cropped: croppedDataURL,
+            original: originalDataURL,
+            hasOriginal: true,
+            originalFile: file,
+            aspectRatio: originalRatio,
+            dimensions: `${img.width}×${img.height}`
+          };
+          
+          console.log('📸 Smart storage: DUAL versions created');
+          callback(croppedDataURL);
+        });
+      } else {
+        // Store only cropped version
+        processedJobPhoto = {
+          cropped: croppedDataURL,
+          hasOriginal: false,
+          originalFile: file,
+          aspectRatio: originalRatio,
+          dimensions: `${img.width}×${img.height}`
+        };
+        
+        console.log('📸 Smart storage: CROP only (close to 16:9)');
+        callback(croppedDataURL);
+      }
+    });
+  };
+  
+  // Load the image
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Helper function to create cropped 16:9 version (500×281)
+function createCroppedVersion(img, callback) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Target dimensions: 500px width, 16:9 ratio (281px height)
+  const targetWidth = 500;
+  const targetHeight = 281;
+  
+  // Calculate scaling to maintain aspect ratio while fitting in target dimensions
+  const scale = Math.max(targetWidth / img.width, targetHeight / img.height);
+  const scaledWidth = img.width * scale;
+  const scaledHeight = img.height * scale;
+  
+  // Calculate crop offsets to center the image
+  const offsetX = (scaledWidth - targetWidth) / 2;
+  const offsetY = (scaledHeight - targetHeight) / 2;
+  
+  // Set canvas dimensions
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  
+  // Draw the scaled and cropped image
+  ctx.drawImage(
+    img, 
+    -offsetX, -offsetY, 
+    scaledWidth, scaledHeight
+  );
+  
+  // Convert to data URL with 75% quality
+  const croppedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+  callback(croppedDataURL);
+}
+
+// Helper function to create compressed original (max 720px width, maintain ratio)
+function createCompressedOriginal(img, callback) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Calculate dimensions (max 720px width, maintain aspect ratio)
+  const maxWidth = 720;
+  let newWidth = img.width;
+  let newHeight = img.height;
+  
+  if (img.width > maxWidth) {
+    const scale = maxWidth / img.width;
+    newWidth = maxWidth;
+    newHeight = Math.round(img.height * scale);
+  }
+  
+  // Set canvas dimensions
+  canvas.width = newWidth;
+  canvas.height = newHeight;
+  
+  // Draw the resized image (no cropping, maintain original aspect ratio)
+  ctx.drawImage(img, 0, 0, newWidth, newHeight);
+  
+  // Convert to data URL with 75% quality
+  const originalDataURL = canvas.toDataURL('image/jpeg', 0.75);
+  callback(originalDataURL);
 }
 
 function cityHasBarangayData(city) {
@@ -387,8 +639,21 @@ function validateCurrentStep() {
         showToast('Please enter a job title', 'error');
         return false;
       }
+      // Validate title length (max 45 characters)
+      if (np2State.jobTitle.length > 45) {
+        showToast('Job title must be 45 characters or less', 'error');
+        return false;
+      }
       if (!np2State.jobDate) {
         showToast('Please select a job date', 'error');
+        return false;
+      }
+      // Validate date is not in the past
+      const selectedDate = new Date(np2State.jobDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        showToast('Job date cannot be in the past', 'error');
         return false;
       }
       if (!np2State.startHour) {
@@ -399,8 +664,20 @@ function validateCurrentStep() {
         showToast('Please select end time', 'error');
         return false;
       }
+      // Validate time range (end time must be after start time)
+      const startHour24 = convertTo24Hour(parseInt(np2State.startHour), np2State.startPeriod);
+      const endHour24 = convertTo24Hour(parseInt(np2State.endHour), np2State.endPeriod);
+      if (endHour24 <= startHour24) {
+        showToast('End time must be after start time', 'error');
+        return false;
+      }
       if (!np2State.jobDescription.trim()) {
         showToast('Please enter a job description', 'error');
+        return false;
+      }
+      // Validate description length
+      if (np2State.jobDescription.length > 500) {
+        showToast('Description must be 500 characters or less', 'error');
         return false;
       }
       return true;
@@ -408,6 +685,20 @@ function validateCurrentStep() {
     case 4:
       if (!np2State.paymentAmount || np2State.paymentAmount <= 0) {
         showToast('Please enter a payment amount', 'error');
+        return false;
+      }
+      // Validate payment amount range
+      const amount = parseFloat(np2State.paymentAmount);
+      if (isNaN(amount)) {
+        showToast('Please enter a valid payment amount', 'error');
+        return false;
+      }
+      if (amount < 50) {
+        showToast('Payment amount must be at least ₱50', 'error');
+        return false;
+      }
+      if (amount > 100000) {
+        showToast('Payment amount cannot exceed ₱100,000', 'error');
         return false;
       }
       return true;
@@ -978,19 +1269,20 @@ function initializePhotoUpload() {
           return;
         }
         
-        const reader = new FileReader();
-        reader.onload = function(event) {
+        // Process image with compression and 16:9 cropping
+        processImageWithSmartStorage(file, function(processedDataURL) {
           np2State.photoFile = file;
-          np2State.photoDataUrl = event.target.result;
+          np2State.photoDataUrl = processedDataURL; // Store cropped version for preview
           
           // CSS-only flicker fix: prep image first, then swap display
           previewImage.onload = function() {
             uploadArea.style.display = 'none';
             preview.style.display = 'block';
           };
-          previewImage.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
+          previewImage.src = processedDataURL;
+          
+          console.log('📸 Photo uploaded and processed successfully');
+        });
       }
     });
   }
@@ -1000,6 +1292,7 @@ function initializePhotoUpload() {
       e.stopPropagation();
       np2State.photoFile = null;
       np2State.photoDataUrl = null;
+      processedJobPhoto = null; // Clear processed photo data
       previewImage.src = '';
       photoInput.value = '';
       preview.style.display = 'none';
@@ -1235,6 +1528,23 @@ function postJob() {
     extras.push(`${config.field2.label} ${np2State.extras2Value}`);
   }
   
+  // Prepare photo data (use processed versions if available)
+  let thumbnailData, originalPhotoData;
+  if (processedJobPhoto) {
+    thumbnailData = processedJobPhoto.cropped; // 500×281 for listing cards
+    originalPhotoData = processedJobPhoto.hasOriginal ? processedJobPhoto.original : processedJobPhoto.cropped; // 720px for detail page
+    console.log('📸 Using processed photo:', processedJobPhoto.hasOriginal ? 'DUAL (cropped + original)' : 'CROP only');
+  } else if (np2State.photoDataUrl) {
+    // Fallback if somehow photo wasn't processed
+    thumbnailData = np2State.photoDataUrl;
+    originalPhotoData = np2State.photoDataUrl;
+    console.warn('⚠️ Using unprocessed photo (shouldn\'t happen)');
+  } else {
+    // No photo uploaded
+    thumbnailData = `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`;
+    originalPhotoData = null;
+  }
+  
   const job = {
     jobId: `${np2State.selectedCategory}_job_2025_${jobNumber}`,
     jobNumber: jobNumber,
@@ -1243,8 +1553,8 @@ function postJob() {
     title: np2State.jobTitle,
     description: np2State.jobDescription,
     category: np2State.selectedCategory,
-    thumbnail: np2State.photoDataUrl || `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`, // RESTORE base64 storage
-    originalPhoto: np2State.photoDataUrl || null, // RESTORE base64 storage
+    thumbnail: thumbnailData, // Compressed 500×281 cropped version
+    originalPhoto: originalPhotoData, // Compressed 720px max width version
     jobDate: np2State.jobDate,
     dateNeeded: np2State.jobDate,
     startTime: `${np2State.startHour} ${np2State.startPeriod}`,
@@ -1266,7 +1576,7 @@ function postJob() {
   
   // Save to localStorage
   try {
-    console.log('📝 Attempting to save job:', job);
+    console.log('📝 Attempting to save job (mode: ' + np2State.mode + '):', job);
     console.log('📝 Job category:', np2State.selectedCategory);
     
     let allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
@@ -1277,9 +1587,27 @@ function postJob() {
       console.log('📝 Created new category array');
     }
     
-    // Add new job
-    allJobs[np2State.selectedCategory].push(job);
-    console.log('📝 Job added to array. Total jobs in category:', allJobs[np2State.selectedCategory].length);
+    if (np2State.mode === 'edit') {
+      // EDIT MODE: Update existing job
+      const jobIndex = allJobs[np2State.selectedCategory].findIndex(j => j.jobId === np2State.editJobId);
+      if (jobIndex !== -1) {
+        // Preserve original creation data
+        job.datePosted = allJobs[np2State.selectedCategory][jobIndex].datePosted;
+        job.createdAt = allJobs[np2State.selectedCategory][jobIndex].createdAt;
+        job.applicationCount = allJobs[np2State.selectedCategory][jobIndex].applicationCount || 0;
+        job.applicationIds = allJobs[np2State.selectedCategory][jobIndex].applicationIds || [];
+        
+        allJobs[np2State.selectedCategory][jobIndex] = job;
+        console.log('✏️ Job updated at index:', jobIndex);
+      } else {
+        console.error('❌ Job not found for editing:', np2State.editJobId);
+        throw new Error('Job not found for editing');
+      }
+    } else {
+      // NEW or RELIST MODE: Add new job
+      allJobs[np2State.selectedCategory].push(job);
+      console.log('📝 Job added to array. Total jobs in category:', allJobs[np2State.selectedCategory].length);
+    }
     
     // Try to save
     try {
@@ -1509,12 +1837,275 @@ function resetForm() {
   window.scrollTo(0, 0);
 }
 
+// ========================== EDIT/RELIST MODE HANDLING ==========================
+
+function handleUrlParameters() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const editJobId = urlParams.get('edit');
+  const relistJobId = urlParams.get('relist');
+  const category = urlParams.get('category');
+  
+  console.log('🔍 URL Parameters:', { 
+    editJobId, 
+    relistJobId, 
+    category, 
+    fullUrl: window.location.href 
+  });
+  
+  if (editJobId && category) {
+    console.log(`📝 EDIT mode detected: jobId=${editJobId}, category=${category}`);
+    np2State.mode = 'edit';
+    np2State.editJobId = editJobId;
+    handleEditMode(editJobId, category);
+  } else if (relistJobId && category) {
+    console.log(`🔄 RELIST mode detected: jobId=${relistJobId}, category=${category}`);
+    np2State.mode = 'relist';
+    np2State.relistJobId = relistJobId;
+    handleRelistMode(relistJobId, category);
+  } else {
+    console.log('ℹ️ No edit/relist parameters found - normal new post mode');
+  }
+}
+
+function handleEditMode(jobId, category) {
+  try {
+    // Update page title
+    const headerTitle = document.getElementById('newPostTitle') || document.querySelector('.np2-header-title');
+    if (headerTitle) headerTitle.textContent = 'EDIT POST';
+    
+    // Load job data from active listings
+    const jobData = getActiveJobData(jobId);
+    if (!jobData) {
+      console.error(`❌ Active job not found: ${jobId}`);
+      showToast('Job not found. Redirecting to new post...', 'error');
+      return;
+    }
+    
+    console.log(`📋 Loading job data for editing:`, jobData);
+    populateFormWithJobData(jobData, category, 'edit');
+    
+  } catch (error) {
+    console.error(`❌ Error loading job for editing:`, error);
+    showToast('Error loading job data. Please try again.', 'error');
+  }
+}
+
+function handleRelistMode(jobId, category) {
+  try {
+    // Update page title
+    const headerTitle = document.getElementById('newPostTitle') || document.querySelector('.np2-header-title');
+    if (headerTitle) headerTitle.textContent = 'RELIST GIG';
+    
+    // Load job data from completed jobs
+    const jobData = getCompletedJobData(jobId);
+    if (!jobData) {
+      console.error(`❌ Completed job not found: ${jobId}`);
+      showToast('Job not found. Redirecting to new post...', 'error');
+      return;
+    }
+    
+    console.log(`📋 Loading completed job data for relisting:`, jobData);
+    const actualCategory = jobData.category || category;
+    console.log(`📂 Using category: ${actualCategory}`);
+    
+    populateFormWithJobData(jobData, actualCategory, 'relist');
+    
+  } catch (error) {
+    console.error(`❌ Error loading job for relisting:`, error);
+    showToast('Error loading job data. Please try again.', 'error');
+  }
+}
+
+function getActiveJobData(jobId) {
+  try {
+    // Try localStorage method for jobs posted through new-post form
+    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    
+    // Search through all categories for the job
+    for (const category in allJobs) {
+      const categoryJobs = allJobs[category] || [];
+      const job = categoryJobs.find(j => j.jobId === jobId);
+      if (job) {
+        console.log('📋 Found job in localStorage:', job);
+        return {
+          ...job,
+          category: category
+        };
+      }
+    }
+    
+    console.log('❌ Job not found in localStorage:', jobId);
+    return null;
+  } catch (error) {
+    console.error('Error loading active job data:', error);
+    return null;
+  }
+}
+
+function getCompletedJobData(jobId) {
+  try {
+    // Try localStorage (if you store completed jobs there)
+    // Or check if JobsDataService has completed jobs
+    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    
+    // Search through all categories
+    for (const category in allJobs) {
+      const categoryJobs = allJobs[category] || [];
+      const job = categoryJobs.find(j => j.jobId === jobId && j.status === 'completed');
+      if (job) {
+        console.log('📋 Found completed job in localStorage:', job);
+        return {
+          ...job,
+          category: category
+        };
+      }
+    }
+    
+    console.log('❌ Completed job not found:', jobId);
+    return null;
+  } catch (error) {
+    console.error('Error loading completed job data:', error);
+    return null;
+  }
+}
+
+function populateFormWithJobData(jobData, category, mode) {
+  console.log(`📝 Populating form with job data (mode: ${mode}):`, jobData);
+  
+  // Set category
+  np2State.selectedCategory = category;
+  
+  // Find category details
+  const categoryCards = {
+    'hatod': { label: 'Hatod', icon: 'motorcycle', color: '#3498db' },
+    'hakot': { label: 'Hakot', icon: 'truck', color: '#e74c3c' },
+    'kompra': { label: 'Kompra', icon: 'shopping_cart', color: '#2ecc71' },
+    'luto': { label: 'Luto', icon: 'restaurant', color: '#f39c12' },
+    'hugas': { label: 'Hugas', icon: 'cleaning_services', color: '#9b59b6' },
+    'laba': { label: 'Laba', icon: 'local_laundry_service', color: '#1abc9c' },
+    'limpyo': { label: 'Limpyo', icon: 'home', color: '#16a085' },
+    'tindera': { label: 'Tindera', icon: 'store', color: '#d35400' },
+    'bantay': { label: 'Bantay', icon: 'person', color: '#c0392b' },
+    'painter': { label: 'Painter', icon: 'format_paint', color: '#8e44ad' },
+    'carpenter': { label: 'Carpenter', icon: 'construction', color: '#d35400' },
+    'plumber': { label: 'Plumber', icon: 'plumbing', color: '#3498db' },
+    'security': { label: 'Security', icon: 'security', color: '#34495e' },
+    'driver': { label: 'Driver', icon: 'directions_car', color: '#7f8c8d' },
+    'tutor': { label: 'Tutor', icon: 'school', color: '#2980b9' },
+    'nurse': { label: 'Nurse', icon: 'local_hospital', color: '#e74c3c' },
+    'doctor': { label: 'Doctor', icon: 'medical_services', color: '#c0392b' },
+    'lawyer': { label: 'Lawyer', icon: 'gavel', color: '#34495e' },
+    'mechanic': { label: 'Mechanic', icon: 'build', color: '#7f8c8d' },
+    'electrician': { label: 'Electrician', icon: 'electrical_services', color: '#f39c12' },
+    'tailor': { label: 'Tailor', icon: 'content_cut', color: '#9b59b6' },
+    'accountant': { label: 'Accountant', icon: 'account_balance', color: '#27ae60' }
+  };
+  
+  if (categoryCards[category]) {
+    np2State.categoryLabel = categoryCards[category].label;
+    np2State.categoryIcon = categoryCards[category].icon;
+    np2State.categoryColor = categoryCards[category].color;
+    updateCategoryHeaders();
+  }
+  
+  // Set location data
+  if (jobData.region) np2State.selectedRegion = jobData.region;
+  if (jobData.city) {
+    np2State.selectedCity = jobData.city;
+    handleCityChange(jobData.city);
+  }
+  
+  // Set job details
+  if (jobData.title) {
+    np2State.jobTitle = jobData.title;
+    const titleInput = document.getElementById('jobTitleInput');
+    if (titleInput) titleInput.value = jobData.title;
+  }
+  
+  if (jobData.description) {
+    np2State.jobDescription = jobData.description;
+    const descInput = document.getElementById('jobDescriptionTextarea');
+    if (descInput) {
+      descInput.value = jobData.description;
+      updateCharCounter('jobDescriptionTextarea', 'descriptionCharCount', 500);
+    }
+  }
+  
+  if (jobData.jobDate || jobData.dateNeeded) {
+    np2State.jobDate = jobData.jobDate || jobData.dateNeeded;
+    const dateInput = document.getElementById('jobDateInput');
+    if (dateInput) dateInput.value = np2State.jobDate;
+  }
+  
+  // Set time data
+  if (jobData.startTime) {
+    const timeParts = jobData.startTime.split(' ');
+    np2State.startHour = timeParts[0];
+    np2State.startPeriod = timeParts[1];
+  }
+  
+  if (jobData.endTime) {
+    const timeParts = jobData.endTime.split(' ');
+    np2State.endHour = timeParts[0];
+    np2State.endPeriod = timeParts[1];
+  }
+  
+  // Set payment data
+  if (jobData.paymentType) np2State.paymentType = jobData.paymentType;
+  if (jobData.paymentAmount || jobData.priceOffer) {
+    np2State.paymentAmount = jobData.paymentAmount || jobData.priceOffer;
+    const amountInput = document.getElementById('paymentAmountInput');
+    if (amountInput) amountInput.value = np2State.paymentAmount;
+  }
+  
+  // Set extras
+  if (jobData.extras && Array.isArray(jobData.extras)) {
+    jobData.extras.forEach((extra, index) => {
+      if (index === 0) {
+        const parts = extra.split(' ');
+        np2State.extras1Value = parts.slice(1).join(' '); // Remove label, keep value
+      } else if (index === 1) {
+        const parts = extra.split(' ');
+        np2State.extras2Value = parts.slice(1).join(' '); // Remove label, keep value
+      }
+    });
+  }
+  
+  // Set photo (only for edit mode, not relist)
+  if (mode === 'edit' && jobData.thumbnail) {
+    np2State.photoDataUrl = jobData.thumbnail;
+    const previewImage = document.getElementById('photoPreviewImage');
+    const uploadArea = document.getElementById('photoUploadArea');
+    const preview = document.getElementById('photoPreview');
+    if (previewImage && preview && uploadArea) {
+      previewImage.src = jobData.thumbnail;
+      uploadArea.style.display = 'none';
+      preview.style.display = 'block';
+    }
+    
+    // Recreate processedJobPhoto object
+    if (jobData.originalPhoto) {
+      processedJobPhoto = {
+        cropped: jobData.thumbnail,
+        original: jobData.originalPhoto,
+        hasOriginal: true
+      };
+    }
+  }
+  
+  console.log('✅ Form populated with job data:', np2State);
+  showToast(mode === 'edit' ? 'Job loaded for editing' : 'Job loaded for relisting', 'success');
+}
+
 // ========================== INITIALIZATION ==========================
 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 ========== NEW POST 2 LOADING ==========');
   console.log('Current URL:', window.location.href);
   console.log('Initial state:', JSON.stringify(np2State, null, 2));
+  
+  // FIRST: Check for edit/relist parameters
+  handleUrlParameters();
   
   // Initialize all components
   console.log('📌 Initializing dropdowns...');
@@ -1545,6 +2136,8 @@ document.addEventListener('DOMContentLoaded', function() {
   initializePreviewOverlay();
   console.log('📌 Initializing success overlay...');
   initializeSuccessOverlay();
+  console.log('📌 Initializing mobile keyboard handling...');
+  initializeMobileKeyboardHandling();
   
   // Show first section
   console.log('📌 Showing section 1...');

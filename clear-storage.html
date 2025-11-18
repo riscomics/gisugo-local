@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clear Storage - GISUGO Debug</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a202c;
+      min-height: 100vh;
+      padding: 20px;
+      color: #e2e8f0;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #2d3748;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .subtitle {
+      text-align: center;
+      opacity: 0.9;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .section {
+      background: #1a202c;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    button {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 10px;
+    }
+    
+    .btn-danger {
+      background: #e53e3e;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #c53030;
+    }
+    
+    .btn-warning {
+      background: #ed8936;
+      color: white;
+    }
+    
+    .btn-warning:hover {
+      background: #dd6b20;
+    }
+    
+    .btn-info {
+      background: #3182ce;
+      color: white;
+    }
+    
+    .btn-info:hover {
+      background: #2c5282;
+    }
+    
+    .btn-success {
+      background: #38a169;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #2f855a;
+    }
+    
+    button:active {
+      transform: scale(0.95);
+    }
+    
+    .info-box {
+      background: #0f131a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      word-break: break-all;
+      max-height: 300px;
+      overflow-y: auto;
+      color: #a0aec0;
+    }
+    
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 50px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 9999;
+      max-width: 90%;
+      text-align: center;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Storage Cleaner</h1>
+    <p class="subtitle">Mobile Debug Tool</p>
+    
+    <!-- Single Category Section -->
+    <div class="section">
+      <div class="section-title">🎯 Clear Specific Category</div>
+      <select id="categorySelect" style="width: 100%; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 16px; border: 1px solid rgba(255,255,255,0.2); background: #2d3748; color: #e2e8f0;">
+        <option value="">Select a category...</option>
+      </select>
+      <button class="btn-warning" onclick="clearSelectedCategory()">Clear Selected Category</button>
+      <button class="btn-info" onclick="viewSelectedCategory()">View Selected Category</button>
+      <div id="categoryInfo" class="info-box" style="display: none;"></div>
+    </div>
+    
+    <!-- All Job Cards Section -->
+    <div class="section">
+      <div class="section-title">🗂️ All Job Preview Cards</div>
+      <button class="btn-warning" onclick="clearAllCards()">Clear All Preview Cards</button>
+      <button class="btn-info" onclick="viewAllCards()">View All Cards</button>
+      <div id="cardsInfo" class="info-box" style="display: none;"></div>
+    </div>
+    
+    <!-- Nuclear Option -->
+    <div class="section">
+      <div class="section-title">💣 Nuclear Option</div>
+      <button class="btn-danger" onclick="clearEverything()">Clear ALL localStorage</button>
+      <div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
+        ⚠️ This will delete all job posts, settings, and cached data
+      </div>
+    </div>
+    
+    <!-- Storage Info -->
+    <div class="section">
+      <div class="section-title">💾 Storage Info</div>
+      <button class="btn-success" onclick="showStorageInfo()">Show Storage Size</button>
+      <div id="storageInfo" class="info-box" style="display: none;"></div>
+    </div>
+    
+    <!-- Back Button -->
+    <button class="btn-info" onclick="window.location.href='index.html'" style="margin-top: 20px;">
+      ← Back to Home
+    </button>
+  </div>
+  
+  <div id="toast" class="toast"></div>
+  
+  <script>
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+    
+    function populateCategoryDropdown() {
+      const select = document.getElementById('categorySelect');
+      const cards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+      const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+      
+      // Get all unique categories from both storage objects
+      const categories = new Set([...Object.keys(cards), ...Object.keys(jobs)]);
+      
+      // Clear existing options (except first)
+      select.innerHTML = '<option value="">Select a category...</option>';
+      
+      // Add categories with counts
+      Array.from(categories).sort().forEach(category => {
+        const cardCount = (cards[category] || []).length;
+        const jobCount = (jobs[category] || []).length;
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = `${category} (${cardCount} cards, ${jobCount} jobs)`;
+        select.appendChild(option);
+      });
+    }
+    
+    function clearSelectedCategory() {
+      const select = document.getElementById('categorySelect');
+      const category = select.value;
+      
+      if (!category) {
+        showToast('⚠️ Please select a category first');
+        return;
+      }
+      
+      try {
+        // Clear from jobPreviewCards
+        let cards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+        const cardCount = (cards[category] || []).length;
+        cards[category] = [];
+        localStorage.setItem('jobPreviewCards', JSON.stringify(cards));
+        
+        // Clear from gisugoJobs
+        let jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+        const jobCount = (jobs[category] || []).length;
+        jobs[category] = [];
+        localStorage.setItem('gisugoJobs', JSON.stringify(jobs));
+        
+        showToast(`✅ Cleared ${cardCount} cards & ${jobCount} jobs from ${category}`);
+        document.getElementById('categoryInfo').style.display = 'none';
+        
+        // Refresh dropdown
+        populateCategoryDropdown();
+      } catch (error) {
+        showToast('❌ Error: ' + error.message);
+      }
+    }
+    
+    function viewSelectedCategory() {
+      const select = document.getElementById('categorySelect');
+      const category = select.value;
+      
+      if (!category) {
+        showToast('⚠️ Please select a category first');
+        return;
+      }
+      
+      try {
+        const cards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+        const categoryCards = cards[category] || [];
+        const infoBox = document.getElementById('categoryInfo');
+        
+        if (categoryCards.length === 0) {
+          infoBox.innerHTML = `<div style="opacity: 0.7;">No ${category} jobs found</div>`;
+        } else {
+          infoBox.innerHTML = `<div><strong>${categoryCards.length} ${category} Job(s):</strong></div>` +
+            categoryCards.map((card, i) => `
+              <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 6px;">
+                <strong>#${i + 1}</strong><br>
+                Title: ${card.title || 'N/A'}<br>
+                Job#: ${card.jobNumber || 'N/A'}<br>
+                Price: ${card.price || 'N/A'}<br>
+                Date: ${card.date || 'N/A'}<br>
+                Extra1: ${card.extra1 || 'N/A'}<br>
+                Extra2: ${card.extra2 || 'N/A'}
+              </div>
+            `).join('');
+        }
+        infoBox.style.display = 'block';
+      } catch (error) {
+        showToast('❌ Error: ' + error.message);
+      }
+    }
+    
+    function clearAllCards() {
+      if (!confirm('Clear all job preview cards for all categories?')) return;
+      
+      try {
+        localStorage.removeItem('jobPreviewCards');
+        showToast('✅ All preview cards cleared!');
+        document.getElementById('cardsInfo').style.display = 'none';
+      } catch (error) {
+        showToast('❌ Error: ' + error.message);
+      }
+    }
+    
+    function viewAllCards() {
+      try {
+        const cards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+        const infoBox = document.getElementById('cardsInfo');
+        
+        let html = '';
+        let totalCount = 0;
+        
+        for (const category in cards) {
+          const count = cards[category].length;
+          totalCount += count;
+          html += `<div style="margin: 5px 0;"><strong>${category}:</strong> ${count} jobs</div>`;
+        }
+        
+        infoBox.innerHTML = `<div><strong>Total: ${totalCount} jobs</strong></div>${html || '<div style="opacity: 0.7;">No jobs found</div>'}`;
+        infoBox.style.display = 'block';
+      } catch (error) {
+        showToast('❌ Error: ' + error.message);
+      }
+    }
+    
+    function clearEverything() {
+      if (!confirm('⚠️ WARNING: This will delete ALL data including job posts, settings, and cached information. Continue?')) return;
+      
+      try {
+        const keys = Object.keys(localStorage);
+        localStorage.clear();
+        showToast(`✅ Cleared ${keys.length} items from localStorage!`);
+        
+        // Hide all info boxes
+        document.querySelectorAll('.info-box').forEach(box => box.style.display = 'none');
+      } catch (error) {
+        showToast('❌ Error: ' + error.message);
+      }
+    }
+    
+    function showStorageInfo() {
+      try {
+        const infoBox = document.getElementById('storageInfo');
+        let totalSize = 0;
+        let items = [];
+        
+        for (let key in localStorage) {
+          if (localStorage.hasOwnProperty(key)) {
+            const size = localStorage[key].length * 2; // rough bytes (UTF-16)
+            totalSize += size;
+            items.push({
+              key: key,
+              size: (size / 1024).toFixed(2) + ' KB'
+            });
+          }
+        }
+        
+        items.sort((a, b) => parseFloat(b.size) - parseFloat(a.size));
+        
+        const totalMB = (totalSize / 1024 / 1024).toFixed(2);
+        const quota = 5; // Most browsers limit to 5-10 MB
+        const percent = ((totalSize / (quota * 1024 * 1024)) * 100).toFixed(1);
+        
+        infoBox.innerHTML = `
+          <div><strong>Total Size:</strong> ${totalMB} MB / ~${quota} MB (${percent}%)</div>
+          <div style="margin-top: 10px;"><strong>Items:</strong></div>
+          ${items.map(item => `<div style="margin: 5px 0;">${item.key}: ${item.size}</div>`).join('')}
+        `;
+        infoBox.style.display = 'block';
+      } catch (error) {
+        showToast('❌ Error: ' + error.message);
+      }
+    }
+    
+    // Auto-show storage info and populate dropdown on load
+    window.addEventListener('load', () => {
+      showStorageInfo();
+      populateCategoryDropdown();
+    });
+  </script>
+</body>
+</html>
+
