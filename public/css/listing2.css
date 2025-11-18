@@ -124,6 +124,26 @@ body::-webkit-scrollbar {
   transform: translateY(-3px);
 }
 
+/* Normalize the <a> wrapper in Post button to match other buttons */
+.jobcat-headerbutton a {
+  width: 100%;
+  height: 100%;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure all caption text has identical styling */
+.jobcat-headerbutton > div,
+.jobcat-headerbutton a > div:not(.jobcat-icon-emoji),
+.posttext {
+  font-size: inherit;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
 .jobcat-icon-emoji {
   font-size: clamp(28px, 7vw, 40px);
   line-height: 1;
@@ -142,44 +162,7 @@ body::-webkit-scrollbar {
   filter: drop-shadow(0 4px 16px rgba(16, 185, 129, 0.8)) brightness(1.2);
 }
 
-/* CSS-Only Hamburger Menu Icon 🍔 */
-.jobcat-icon-hamburger {
-  width: clamp(28px, 7vw, 40px); /* Match emoji sizing exactly */
-  height: clamp(28px, 7vw, 40px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: clamp(4px, 1.2vw, 6px);
-  margin-bottom: clamp(4px, 1vw, 6px); /* Changed from vh to vw for horizontal sync */
-  transition: all 0.3s ease;
-  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
-}
-
-.hamburger-line {
-  width: 100%;
-  height: clamp(3px, 0.8vw, 4px);
-  background: #10b981; /* Neon green */
-  border-radius: 2px; /* Sharper edges for tech feel */
-  transition: all 0.3s ease;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-}
-
-.jobcat-headerbutton:hover .jobcat-icon-hamburger {
-  transform: scale(1.15);
-  filter: drop-shadow(0 4px 16px rgba(16, 185, 129, 0.8));
-}
-
-.jobcat-headerbutton:hover .hamburger-line {
-  background: #34d399; /* Brighter green on hover */
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.8),
-              0 0 24px rgba(52, 211, 153, 0.5);
-}
-
-/* Smooth animation: middle line shrinks slightly on hover */
-.jobcat-headerbutton:hover .hamburger-line:nth-child(2) {
-  width: 85%;
-}
+/* CSS hamburger removed - now using emoji ☰ for consistency */
 
 /* Legacy img support (if any pages still use images) */
 .jobcat-headerbutton img {
@@ -259,12 +242,6 @@ body::-webkit-scrollbar {
     font-size: 32px !important;
     height: 32px !important;
     width: 32px !important;
-    margin-bottom: 4px !important;
-  }
-  
-  .jobcat-icon-hamburger {
-    width: 32px !important;
-    height: 32px !important;
     margin-bottom: 4px !important;
   }
 }
@@ -2315,14 +2292,14 @@ body::-webkit-scrollbar {
 /* Small Screens (321px to 360px) - Additional constraints */
 @media (max-width: 360px) and (min-width: 321px) {
   .jobcat-servicemenu {
-    width: clamp(180px, 55vw, 200px) !important; /* Smaller for 321-360px range */
+    width: clamp(145px, 48vw, 170px) !important; /* Narrower to prevent overlap with icons */
     height: 45px !important;
   }
   
   .jobcat-servicename {
-    width: clamp(180px, 55vw, 200px) !important;
+    width: clamp(145px, 48vw, 170px) !important;
     height: 43px !important;
-    font-size: clamp(20px, 4.5vw, 24px) !important; /* Increased by another 2px equivalent */
+    font-size: clamp(18px, 4.2vw, 22px) !important; /* Slightly smaller text */
     padding-left: 8px !important;
     padding-right: 6px !important;
   }
