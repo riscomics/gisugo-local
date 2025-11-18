@@ -983,19 +983,12 @@ function initializePhotoUpload() {
           np2State.photoFile = file;
           np2State.photoDataUrl = event.target.result;
           
-          // MOBILE FIX: Use visibility instead of display to prevent layout reflow
-          previewImage.style.opacity = '0';
-          previewImage.src = event.target.result;
-          
+          // CSS-only flicker fix: prep image first, then swap display
           previewImage.onload = function() {
-            // Swap visibility in single frame to prevent flicker
             uploadArea.style.display = 'none';
             preview.style.display = 'block';
-            // Force reflow
-            preview.offsetHeight;
-            // Fade in
-            previewImage.style.opacity = '1';
           };
+          previewImage.src = event.target.result;
         };
         reader.readAsDataURL(file);
       }
@@ -1232,8 +1225,16 @@ function postJob() {
   const jobNumber = Date.now();
   
   // Create job object matching new-post.js format EXACTLY
-  // CRITICAL: DO NOT save photoDataUrl (base64) to localStorage - it's too large!
-  // Use mock path instead to prevent quota exceeded errors on mobile
+  // Get extras config to build "Label: Value" format
+  const config = extrasConfig[np2State.selectedCategory];
+  const extras = [];
+  if (config && np2State.extras1Value) {
+    extras.push(`${config.field1.label} ${np2State.extras1Value}`);
+  }
+  if (config && np2State.extras2Value) {
+    extras.push(`${config.field2.label} ${np2State.extras2Value}`);
+  }
+  
   const job = {
     jobId: `${np2State.selectedCategory}_job_2025_${jobNumber}`,
     jobNumber: jobNumber,
@@ -1242,8 +1243,8 @@ function postJob() {
     title: np2State.jobTitle,
     description: np2State.jobDescription,
     category: np2State.selectedCategory,
-    thumbnail: `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`, // Always use mock path
-    originalPhoto: null, // Don't store base64 images in localStorage
+    thumbnail: np2State.photoDataUrl || `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`, // RESTORE base64 storage
+    originalPhoto: np2State.photoDataUrl || null, // RESTORE base64 storage
     jobDate: np2State.jobDate,
     dateNeeded: np2State.jobDate,
     startTime: `${np2State.startHour} ${np2State.startPeriod}`,
@@ -1253,7 +1254,7 @@ function postJob() {
     paymentType: np2State.paymentType, // Keep "Per Job" or "Per Hour" format
     region: np2State.selectedRegion,
     city: np2State.selectedCity,
-    extras: [np2State.extras1Value, np2State.extras2Value].filter(Boolean), // Remove null values
+    extras: extras, // Now with labels: "Location: Marigondon"
     status: 'active',
     applicationCount: 0,
     applicationIds: [],
@@ -1333,34 +1334,33 @@ function saveToJobPreviewCards(job) {
     const options = { month: 'short', day: 'numeric' };
     const formattedDate = date.toLocaleDateString('en-US', options);
     
-    // Extract extras as separate fields (listing.js expects extra1, extra2)
+    // extras already in "Label: Value" format from postJob()
     const extra1 = job.extras && job.extras[0] ? job.extras[0] : '';
     const extra2 = job.extras && job.extras[1] ? job.extras[1] : '';
     
-    // CRITICAL: Match exact field names from new-post.js
+    // MATCH EXACT FORMAT FROM new-post.js line 2905-2919
     const previewCard = {
       jobNumber: job.jobNumber,
       title: job.title,
-      extra1: extra1,
-      extra2: extra2,
-      price: `₱${job.paymentAmount}`, // Must include ₱ symbol
+      extra1: extra1, // "Location: Marigondon"
+      extra2: extra2, // "Subject: Korean"
+      price: `₱${job.paymentAmount}`,
       rate: job.paymentType,
-      date: formattedDate, // Formatted like "Nov 21"
+      date: formattedDate,
       time: `${job.startTime} - ${job.endTime}`,
-      photo: job.thumbnail, // Use 'photo' not 'thumbnail'
+      photo: job.thumbnail, // base64 or mock path
       templateUrl: `dynamic-job.html?category=${job.category}&jobNumber=${job.jobNumber}`,
       region: job.region,
       city: job.city,
       createdAt: new Date().toISOString()
     };
     
-    // Add to beginning (newest first, matching new-post.js behavior)
+    // Add to beginning (newest first)
     previewCards[job.category].unshift(previewCard);
     localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
     console.log('✅ Job preview card saved for listing page:', previewCard);
   } catch (error) {
     console.error('❌ Error saving job preview card:', error);
-    // Don't throw error - this is supplementary data
   }
 }
 

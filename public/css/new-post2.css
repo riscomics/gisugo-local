@@ -929,16 +929,15 @@
     display: flex !important;
   }
   
-  /* Ensure overlay containers are properly constrained on mobile */
-  .np2-overlay-container {
-    max-height: 85vh; /* Tighter constraint on mobile */
+  /* Ensure overlay containers are CONSISTENT on mobile */
+  .np2-overlay-container,
+  .np2-overlay-success,
+  .np2-dropdown {
+    max-height: 70vh !important; /* MATCH step dropdowns */
     width: 95%;
     animation: none !important;
     transform: none !important;
-  }
-  
-  .np2-dropdown {
-    animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -952,17 +951,15 @@
 }
 
 .np2-overlay-container {
-  background: #2d3748; /* Dark background */
+  background: #2d3748;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   max-width: 700px;
   width: 90%;
-  max-height: 80vh; /* Taller for preview content */
+  max-height: 70vh; /* Match step dropdowns */
   overflow-y: auto;
   overflow-x: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  transform: translateY(0);
-  will-change: auto;
 }
 
 @keyframes slideUp {
@@ -1182,7 +1179,7 @@
 /* SUCCESS OVERLAY */
 .np2-overlay-success {
   max-width: 600px;
-  max-height: 80vh; /* Taller for success content */
+  max-height: 70vh; /* Match step dropdowns */
   overflow-y: auto;
   overflow-x: hidden;
   text-align: center;
