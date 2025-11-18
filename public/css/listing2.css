@@ -1,0 +1,2226 @@
+html {
+  overflow-y: auto;
+  height: auto;
+  /* Hide scrollbar for all browsers and devices */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;     /* Firefox */
+}
+
+html::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+body {        
+  background-color: #866f67;
+  margin: 0;
+  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
+}
+
+body::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+.jobcat-header {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  background: #363f4f;
+}
+
+.jobcat-listheader {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: clamp(66px, 20vh, 106px); /* Responsive header height */
+  align-items: center;
+  justify-content: space-between;
+  background-color: #363f4f;
+  position: relative;
+  padding-right: clamp(5px, 2vw, 15px); /* Responsive padding */
+}
+
+.jobcat-servicemenu {
+  width: clamp(120px, 60vw, 238px); /* Reduced from 75vw and lower max for 492px viewport */
+  height: clamp(50px, 12vh, 59px); /* Responsive menu height */
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.3);
+  margin-left: clamp(-2px, -0.5vw, -2px); /* Responsive margin */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  background: #363f4f;
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
+}
+
+.jobcat-servicename {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: clamp(300px, 90vw, 378px); /* Responsive width */
+  height: clamp(50px, 12vh, 59px); /* Responsive height */
+  color: #e6d6ae;
+  font-size: clamp(20px, 5vw, 28px); /* Responsive font size */
+  font-weight: 700;
+  font-family: arial, sans-serif;
+  padding-left: clamp(15px, 4vw, 20px); /* Responsive left padding */
+  padding-right: clamp(12px, 3vw, 15px); /* Responsive right padding */
+  user-select: none;
+}
+
+.jobcat-headerbuttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: clamp(200px, 50vw, 300px); /* Responsive width */
+  margin-right: clamp(5px, 2vw, 15px); /* Responsive margin */
+}
+
+.jobcat-headerbutton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: clamp(40px, 10vw, 88px); /* Responsive button width */
+  height: clamp(42px, 18vh, 92px); /* Responsive button height */
+  color: rgb(188, 206, 212);
+  font-size: clamp(12px, 3vw, 18px); /* Responsive button font size */
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.jobcat-headerbutton img {
+  width: 100%;
+  height: clamp(30px, 12vh, 55px); /* Responsive image height */
+  object-fit: contain;
+  margin-bottom: clamp(2px, 1vh, 4px); /* Responsive margin */
+  transition: transform 0.15s;
+}
+
+.jobcat-headerbutton img:hover {
+  transform: scale(1.1);
+}
+
+.jobcat-borderline {
+  height: clamp(2px, 0.5vh, 4px); /* Responsive border height */
+  width: 100%;
+  background-color: rgb(149, 149, 328);
+  position: fixed;
+  left: 0;
+  z-index: 96;
+}
+
+/* Hide scrollbar on desktop only */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    overflow-y: scroll;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.jobcat-servicemenu-overlay {
+  display: none;
+  position: absolute;
+  left: -5px;
+  top: 100%;
+  width: clamp(220px, 65vw, 240px) !important; /* Increased width for better text fitting */
+  max-height: 420px;
+  overflow-y: auto;
+  background: #363f4f;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  z-index: 300;
+  padding: 18px 0 18px 0;
+  border: 1px solid #e6d6ae;
+  /* Hide scrollbar for all browsers */
+  scrollbar-width: none; /* Firefox */
+}
+.jobcat-servicemenu-overlay::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+.jobcat-servicemenu-overlay.show {
+  display: block;
+  animation: slideDown 0.35s cubic-bezier(.77,0,.18,1);
+}
+@keyframes slideDown {
+  from { 
+    opacity: 0; 
+    transform: translateY(-20px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0);
+  }
+}
+.jobcat-servicemenu-overlay ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 10px;
+}
+.jobcat-servicemenu-overlay li {
+  margin-bottom: 10px;
+}
+.jobcat-servicemenu-overlay a {
+  color: #e6d6ae;
+  /* font-size: 1.62rem; */ /* Removed - controlled by JavaScript auto-resize */
+  font-weight: 700;
+  font-family: arial, sans-serif;
+  text-decoration: none;
+  display: block;
+  padding: 4px 0 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.jobcat-servicemenu-overlay a.active,
+.jobcat-servicemenu-overlay a:hover {
+  background: rgba(255,255,255,0.08);
+  text-decoration: underline;
+}
+.jobcat-menu-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  z-index: 10000 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  border: none;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(.77,0,.18,1);
+}
+.jobcat-menu-overlay.show {
+  transform: translateX(0);
+}
+.jobcat-menu-items {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  justify-content: space-around;
+  align-items: center;
+  height: 100px;
+  background: #866f67;
+  border-bottom: 2px solid #222;
+}
+.jobcat-menu-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #f5f5f5;
+  font-size: 18px;
+  font-family: Arial, Helvetica, sans-serif;
+  width: 90px;
+  cursor: pointer;
+  user-select: none;
+}
+.jobcat-menu-item img {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  object-fit: contain;
+}
+@media (max-width: 600px) {
+  .jobcat-menu-items {
+    height: 68px;
+  }
+  .jobcat-menu-item {
+    font-size: 12px;
+    width: 45px;
+  }
+  .jobcat-menu-item img {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Modal text - controlled by JavaScript auto-resize */
+  .jobcat-servicemenu-overlay a {
+    /* font-size: clamp(1.35rem, 5vw, 1.8rem) !important; */ /* Removed - controlled by JavaScript */
+    padding: clamp(4px, 1vw, 6px) 0 clamp(4px, 1vw, 6px) clamp(8px, 2vw, 12px) !important;
+    /* white-space: nowrap !important; */ /* Removed - allow text to wrap if needed */
+    /* overflow: hidden !important; */ /* Removed - no truncation */
+    /* text-overflow: ellipsis !important; */ /* Removed - no ellipsis */
+    line-height: 1.2 !important; /* Controlled by JavaScript */
+  }
+
+  /* Region/City/Pay Modals - Much larger text */
+  .jobcat-region-menu-overlay li,
+  .jobcat-city-menu-overlay li,
+  .jobcat-pay-menu-overlay li {
+    font-size: clamp(16px, 4.5vw, 20px) !important;
+    padding: clamp(4px, 1vw, 6px) clamp(8px, 2vw, 12px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.4 !important;
+  }
+}
+
+/* Sort Menu Styles */
+.jobcat-sort-header {
+  position: fixed;
+  top: 72px; /* Height of main header (68px) + borderline (4px) */
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: #866f67;
+}
+
+.sortmenus {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-top: clamp(8px, 2vw, 12px); /* Reduced top padding for better spacing */
+  padding-left: clamp(15px, 4vw, 25px); /* Add left spacing */
+  padding-right: clamp(15px, 4vw, 25px); /* Add right spacing */
+  gap: clamp(8px, 2vw, 15px); /* Much smaller gap to prevent bleeding */
+  height: clamp(55px, 15vh, 68px); /* More conservative height */
+}
+
+/* Desktop-specific sortmenus spacing (601px and above) */
+@media (min-width: 601px) {
+  .sortmenus {
+    padding-top: clamp(20px, 4vh, 28px) !important; /* Increased top padding for better separation from header */
+    height: clamp(60px, 12vh, 75px) !important; /* Slightly increased height for better proportions */
+  }
+}
+
+.sort-menu {
+  color: #fff;
+  background-color: #363f4f;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(10px, 3vw, 12px); /* Responsive padding */
+  width: clamp(100px, 22vw, 120px); /* Much smaller width with better spacing */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  font-size: clamp(14px, 4vw, 18px); /* Responsive font size */
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.region-menu, .city-menu, .pay-menu {
+  color: #fff;
+  background-color: #363f4f;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: clamp(4px, 1vw, 5px); /* Responsive border radius */
+  padding: clamp(4px, 1vw, 5px) clamp(10px, 3vw, 12px); /* Responsive padding */
+  width: clamp(140px, 30vw, 180px); /* Much wider - nearly full screen with small margins */
+  height: clamp(28px, 8vh, 32px); /* Responsive height */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  font-size: clamp(14px, 4vw, 18px); /* Responsive font size */
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sort-menu > div:last-child {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Second borderline */
+.jobcat-sort-borderline {
+  width: 100%;
+  height: 4px;
+  background-color: rgb(149, 149, 328); /* Blue */
+}
+
+@media (max-width: 600px) {
+  .jobcat-sort-header {
+    top: 72px;
+  }
+
+  .sortmenus {
+    padding: clamp(8px, 2vw, 12px) clamp(1px, 0.5vw, 2px); /* Added top padding for spacing from borderline */
+    gap: clamp(4px, 1.5vw, 6px); /* Responsive gap */
+    height: clamp(40px, 12vh, 48px); /* Increased height for better spacing */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(150px, 40vw, 170px); /* Responsive width for mobile */
+    height: clamp(26px, 7vh, 30px); /* Increased height for better proportions */
+    padding: clamp(3px, 1vw, 4px) clamp(8px, 2.5vw, 10px); /* Increased padding */
+    font-size: clamp(15px, 3.8vw, 17px); /* Increased font size to match overlay */
+    font-family: Arial, Helvetica, sans-serif;
+  }
+}
+
+.region-menu-overlay {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  width: clamp(100px, 22vw, 120px); /* Match smaller dropdown width */
+  background: #434a58;
+  border: clamp(1px, 0.5vw, 2px) solid rgba(255,255,255,0.3); /* Responsive border */
+  border-radius: clamp(8px, 2vw, 10px); /* Responsive border radius */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 2000;
+  padding: 0;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.region-menu-overlay.show {
+  display: block;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+}
+.region-menu-overlay::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.region-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
+}
+.region-menu-list li {
+  color: #fff;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.region-menu-list li:hover, .region-menu-list li.active {
+  background: rgba(255,255,255,0.08);
+}
+.region-menu-list li .arrow {
+  margin-left: auto;
+  font-size: 1.1em;
+  color: #d3d7e0;
+}
+.region-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.city-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.city-menu-overlay {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  width: clamp(100px, 22vw, 120px); /* Match smaller dropdown width */
+  background: #434a58;
+  border: clamp(1px, 0.5vw, 2px) solid rgba(255,255,255,0.3); /* Responsive border */
+  border-radius: clamp(8px, 2vw, 10px); /* Responsive border radius */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 2000;
+  padding: 0;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.city-menu-overlay::-webkit-scrollbar {
+  display: none;
+}
+.city-menu-overlay.show {
+  display: block;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+}
+.city-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
+}
+.city-menu-list li {
+  color: #fff;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.city-menu-list li:hover, .city-menu-list li.active {
+  background: rgba(255,255,255,0.08);
+}
+.city-menu-list li .arrow {
+  margin-left: auto;
+  font-size: 1.1em;
+  color: #d3d7e0;
+}
+.pay-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.pay-menu-overlay {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  width: clamp(100px, 22vw, 120px); /* Match smaller dropdown width */
+  background: #434a58;
+  border: clamp(1px, 0.5vw, 2px) solid rgba(255,255,255,0.3); /* Responsive border */
+  border-radius: clamp(8px, 2vw, 10px); /* Responsive border radius */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  z-index: 2000;
+  padding: 0;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.pay-menu-overlay::-webkit-scrollbar {
+  display: none;
+}
+.pay-menu-overlay.show {
+  display: block;
+  animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
+}
+.pay-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: clamp(5px, 1.5vw, 7px) clamp(8px, 2vw, 10px); /* Responsive padding */
+}
+.pay-menu-list li {
+  color: #fff;
+  font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  padding: clamp(4px, 1.5vw, 6px) 0; /* Responsive padding */
+  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.13s;
+}
+.pay-menu-list li:hover, .pay-menu-list li.active {
+  background: rgba(255,255,255,0.08);
+}
+.pay-menu-list li .arrow {
+  margin-left: auto;
+  font-size: 1.1em;
+  color: #d3d7e0;
+}
+.city-menu #cityMenuLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* ===================== JOB PREVIEW & JOB PAGE STYLES ===================== */
+
+.job-preview-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 594px;
+  min-height: 96px;
+  background: #363f4f;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin: 0 auto 14px auto; /* Keep horizontal centering with auto margins */
+  text-decoration: none;
+  color: #e6d6ae;
+  transition: box-shadow 0.18s, transform 0.18s;
+  overflow: hidden;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  padding: 0 5px 0 0;
+}
+
+/* Pay type-based background colors */
+.job-preview-card.pay-per-job {
+  background: #363f4f; /* Blue-gray for Per Job */
+}
+
+.job-preview-card.pay-per-job-alt {
+  background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+}
+
+.job-preview-card.pay-per-hour {
+  background: #3f4f36; /* Green for Per Hour */
+}
+
+.job-preview-card.pay-per-hour-alt {
+  background: #35442d; /* Subtle darker green for consecutive Per Hour */
+}
+
+/* Hover states for pay type backgrounds */
+.job-preview-card.pay-per-job:hover,
+.job-preview-card.pay-per-job:focus {
+  background: #424a5c; /* Lighter blue-gray on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card.pay-per-job-alt:hover,
+.job-preview-card.pay-per-job-alt:focus {
+  background: #343d4d; /* Lighter darker blue-gray on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card.pay-per-hour:hover,
+.job-preview-card.pay-per-hour:focus {
+  background: #4a5c41; /* Lighter green on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card.pay-per-hour-alt:hover,
+.job-preview-card.pay-per-hour-alt:focus {
+  background: #404f35; /* Lighter darker green on hover */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-card:hover, .job-preview-card:focus {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.16);
+  transform: translateY(-2px) scale(1.01);
+  outline: none;
+}
+
+.job-preview-img {
+  width: 98px;
+  min-width: 98px;
+  height: 96px;
+  background: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 4px;
+  margin-right: 10px;        
+}
+.job-preview-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.job-preview-content {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  margin-right: 8px;
+  height: 72px;
+}
+.job-preview-title {
+  font-size: 1.01rem;
+  font-weight: 700;
+  color: #f3f3f3;
+  margin-bottom: 4px;
+  line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.job-preview-extras {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 49px;
+  font-size: 0.97rem;
+  color: #e6d6ae;        
+  margin-top: 10px;
+  margin-right: 5px;
+}
+.job-preview-extra1, .job-preview-extra2 {
+  font-size: 0.95rem;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+.job-preview-extra-label1, .job-preview-extra-label2 {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #bfc6d0;
+  margin-right: 5px;
+}
+.job-preview-infoboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  min-width: 82px;
+  height: 78px;
+  justify-content: center;
+}
+.job-preview-infobox1, .job-preview-infobox2 {
+  background: #d9d9d9;
+  color: #363f4f;
+  border-radius: 8px;
+  padding: 2px 8px 2px 8px;
+  min-width: 93px;
+  text-align: center;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.job-preview-infobox1 .job-preview-price {
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+.job-preview-infobox1 .job-preview-rate {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.job-preview-infobox2 .job-preview-date {
+  font-size: 0.99rem;
+  font-weight: 700;
+}
+.job-preview-infobox2 .job-preview-time {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* Desktop Job Preview Card Enhancement (601px and above) */
+@media (min-width: 601px) {
+  .job-preview-card {
+    max-width: clamp(650px, 75vw, 800px) !important; /* Significantly larger cards */
+    min-height: clamp(160px, 20vh, 180px) !important; /* Much taller cards for full title display */
+    margin: 0 auto clamp(18px, 2.5vh, 24px) auto !important; /* More spacing between cards */
+    padding: 0 clamp(8px, 1.5vw, 12px) 0 0 !important; /* More right padding */
+  }
+  
+  .job-preview-img {
+    width: clamp(120px, 15vw, 140px) !important; /* Larger thumbnails */
+    min-width: clamp(120px, 15vw, 140px) !important;
+    height: clamp(160px, 20vh, 180px) !important; /* Match card height */
+    margin-right: clamp(15px, 2vw, 20px) !important; /* More space after thumbnail */
+  }
+  
+  .job-preview-content {
+    height: clamp(130px, 18vh, 150px) !important; /* Much taller content area for full title */
+    margin-right: clamp(12px, 2vw, 16px) !important;
+  }
+  
+  .job-preview-title {
+    font-size: clamp(1.1rem, 2.5vw, 1.3rem) !important; /* Larger title */
+    margin-bottom: clamp(8px, 1.5vh, 12px) !important;
+    line-height: clamp(1.3, 1.6vh, 1.5) !important;
+    white-space: normal !important; /* Allow wrapping for long titles */
+    overflow: visible !important; /* Show full title */
+    text-overflow: unset !important; /* Don't truncate */
+    max-height: clamp(60px, 8vh, 80px) !important; /* Limit height but allow multiple lines */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important; /* Allow up to 3 lines */
+    -webkit-box-orient: vertical !important;
+  }
+  
+  .job-preview-extras {
+    gap: clamp(60px, 8vw, 80px) !important; /* More space between extras */
+    margin-top: clamp(12px, 1.5vh, 16px) !important;
+  }
+  
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: clamp(1.0rem, 2.2vw, 1.15rem) !important; /* Larger extras text */
+  }
+  
+  .job-preview-extra-label1, .job-preview-extra-label2 {
+    font-size: clamp(0.9rem, 2vw, 1.05rem) !important; /* Larger labels */
+    margin-right: clamp(6px, 1vw, 8px) !important;
+  }
+  
+  .job-preview-infoboxes {
+    min-width: clamp(100px, 12vw, 120px) !important; /* Wider info section */
+    height: clamp(140px, 18vh, 160px) !important; /* Much taller info section to match card */
+    gap: clamp(12px, 1.5vh, 16px) !important; /* More space between info boxes */
+    margin-right: clamp(8px, 1.5vw, 12px) !important;
+  }
+  
+  .job-preview-infobox1, .job-preview-infobox2 {
+    min-width: clamp(110px, 13vw, 130px) !important; /* Wider info boxes */
+    padding: clamp(6px, 1vh, 8px) clamp(12px, 2vw, 16px) !important; /* More generous padding */
+    border-radius: clamp(10px, 1.5vw, 12px) !important; /* Slightly larger border radius */
+  }
+  
+  .job-preview-infobox1 .job-preview-price {
+    font-size: clamp(1.25rem, 2.8vw, 1.45rem) !important; /* Larger price */
+  }
+  
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: clamp(1.0rem, 2.2vw, 1.15rem) !important; /* Larger rate */
+  }
+  
+  .job-preview-infobox2 .job-preview-date {
+    font-size: clamp(1.1rem, 2.4vw, 1.25rem) !important; /* Larger date */
+  }
+  
+  .job-preview-infobox2 .job-preview-time {
+    font-size: clamp(0.9rem, 2vw, 1.05rem) !important; /* Larger time */
+  }
+}
+
+@media (max-width: 700px) {
+  .job-preview-card {
+    flex-direction: row !important;
+    padding: 0px;
+    margin: 0 auto 10px auto; /* Reduced margin, maintain centering */
+    height: 120px;
+    display: flex;
+    flex-direction: row;
+    align-items: center; 
+    max-width: 594px;
+    min-height: 96px; 
+  }
+  .job-preview-img {
+    width: 28vw;
+    min-width: 0;
+    height: 28vw;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+  .job-preview-content {
+    margin-left: 5px;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 5px;
+    padding-right: 5px;
+    min-width: 50;          
+    height: 128px;  
+  }
+  
+  .job-preview-title {
+    font-size: 1.01rem;
+    max-width: 100%;
+    white-space: normal;
+    text-overflow: unset;
+    overflow: visible;
+    line-height: 1.3;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .job-preview-extras {
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: 0.95rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  
+  .job-preview-infoboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    min-width: 78px;
+    margin-right: 8px;
+    height: 78px;
+    justify-content: center;          
+  }
+  .job-preview-infobox1, .job-preview-infobox2 {
+    background: #d9d9d9;
+    color: #363f4f;
+    border-radius: 8px;
+    padding: 3px 8px 3px 8px;
+    min-width: 93px;
+    text-align: center;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .job-preview-infobox1 .job-preview-price {
+    font-size: 1.08rem;
+    font-weight: 700;
+  }
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .job-preview-infobox2 .job-preview-date {
+    font-size: 0.99rem;
+    font-weight: 700;
+  }
+  .job-preview-infobox2 .job-preview-time {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+}
+@media (max-width: 600px) {
+  .job-preview-card {
+    flex-direction: row !important;
+    padding: 0px;        
+    height: 120px;
+    display: flex;
+    flex-direction: row;
+    align-items: center; 
+    max-width: 100vw;
+    width: 96vw;
+    min-height: 96px; 
+    margin: 0 auto 10px auto; /* Reduced top margin, maintain auto centering */
+    border-radius: 8px;
+  }
+  
+  /* Pay type-based background colors for 600px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
+  }
+  
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
+  }
+  
+  .job-preview-card:hover, .job-preview-card:focus {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transform: none;
+    outline: none;
+  }
+  
+  .job-preview-img {
+    width: 25vw;
+    min-width: 0;
+    height: 28vw;
+    max-height: 100%;
+    margin: 0;
+    border-radius: 0;
+  }
+  .job-preview-content {
+    margin-left: 5px;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-left: 3px;
+    padding-right: 3px;
+    min-width: 0;          
+    height: 100px;  
+  }
+  
+  .job-preview-title {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1.0rem;
+    font-weight: 400;
+    max-width: 100%;
+    white-space: normal;
+    text-overflow: unset;
+    overflow: hidden;
+    line-height: 1.3;
+    margin-bottom: 5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .job-preview-extras {
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: 0.95rem;
+    font-family: Arial, Helvetica, sans-serif;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: unset;
+  }
+  
+  .job-preview-extra-label1, .job-preview-extra-label2 {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: #bfc6d0;
+    margin-right: 2px;          
+  }
+  .job-preview-infoboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    min-width: 70px;
+    margin-right: 5px;
+    height: 78px;
+    justify-content: center;          
+  }
+  .job-preview-infobox1, .job-preview-infobox2 {
+    background: #d9d9d9;
+    color: #363f4f;
+    border-radius: 8px;
+    padding: 2px 0px 5px 0px;
+    min-width: 75px;
+    width: 96px;
+    text-align: center;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    gap: 3px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .job-preview-infobox1 .job-preview-price {
+    font-size: 1.25rem;
+    font-weight: 700;        
+  }
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+  .job-preview-infobox2 .job-preview-date {
+    font-size: .99rem;
+    font-weight: 700;
+  }
+  .job-preview-infobox2 .job-preview-time {
+    font-size: 0.78rem;        
+    font-weight: 600;
+  }
+}
+
+/* Job Preview Card Responsive Styles for Smaller Screens */
+
+/* 400px Breakpoint */
+@media (max-width: 400px) {
+  .job-preview-card {
+    width: clamp(340px, 97vw, 390px) !important; /* Increased width to better fill screen */
+    height: clamp(85px, 18vh, 100px) !important; /* Override fixed 120px height */
+    min-height: clamp(85px, 18vh, 100px) !important; /* Override fixed 96px min-height */
+    margin: 0 auto clamp(6px, 1.5vh, 10px) auto !important;
+    padding: 0 !important; /* Remove all padding to make image flush */
+  }
+  
+  /* Pay type-based background colors for 400px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
+  }
+  
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
+  }
+  
+  .job-preview-img {
+    width: clamp(85px, 22vw, 100px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(85px, 22vw, 100px) !important;
+    height: 100% !important; /* Fill full card height */
+    margin: 0 !important; /* Remove all margins to be flush */
+    border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
+  }
+  
+  .job-preview-content {
+    height: 100% !important; /* Fill available height */
+    margin-left: clamp(8px, 2vw, 12px) !important;
+    margin-right: clamp(4px, 1vw, 8px) !important;
+    padding: clamp(8px, 2vh, 12px) clamp(2px, 0.5vw, 4px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
+  }
+  
+  .job-preview-title {
+    font-size: clamp(0.9rem, 3.8vw, 1.0rem) !important; /* Override any fixed px */
+    margin-bottom: clamp(4px, 1vh, 6px) !important; /* Increased margin */
+    line-height: clamp(1.15, 1.3vh, 1.3) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-weight: 400 !important; /* Override bold weight */
+  }
+  
+  .job-preview-extras {
+    gap: clamp(3px, 0.8vh, 5px) !important;
+    margin-top: clamp(3px, 1vh, 5px) !important; /* Increased margin */
+  }
+  
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: clamp(0.8rem, 3.2vw, 0.9rem) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+  
+  .job-preview-extra-label1, .job-preview-extra-label2 {
+    font-size: clamp(0.7rem, 2.8vw, 0.8rem) !important;
+    margin-right: clamp(1px, 0.3vw, 3px) !important;
+    font-weight: 500 !important;
+  }
+  
+  .job-preview-infoboxes {
+    min-width: clamp(65px, 17vw, 75px) !important;
+    height: 100% !important; /* Fill available height */
+    margin-right: clamp(4px, 1vw, 8px) !important;
+    gap: clamp(3px, 0.8vh, 5px) !important;
+    padding: clamp(6px, 1.5vh, 10px) 0 !important;
+  }
+  
+  .job-preview-infobox1, .job-preview-infobox2 {
+    min-width: clamp(65px, 17vw, 75px) !important;
+    width: clamp(75px, 19vw, 85px) !important;
+    padding: clamp(3px, 0.8vh, 5px) 0 !important;
+    gap: clamp(1px, 0.3vh, 3px) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-price {
+    font-size: clamp(1.1rem, 4.5vw, 1.25rem) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: clamp(0.8rem, 3.2vw, 0.9rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-date {
+    font-size: clamp(0.9rem, 3.8vw, 1.0rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-time {
+    font-size: clamp(0.7rem, 2.8vw, 0.8rem) !important;
+  }
+}
+
+/* 375px Breakpoint (iPhone 7 and similar) */
+@media (max-width: 375px) {
+  .job-preview-card {
+    width: clamp(320px, 95vw, 370px) !important; /* Increased width to better fill screen */
+    height: clamp(80px, 16vh, 95px) !important; /* Override fixed heights */
+    min-height: clamp(80px, 16vh, 95px) !important;
+    margin: 0 auto clamp(5px, 1.2vh, 8px) auto !important;
+    padding: 0 !important; /* Remove all padding to make image flush */
+  }
+  
+  /* Pay type-based background colors for 375px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
+  }
+  
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
+  }
+  
+  .job-preview-img {
+    width: clamp(80px, 20vw, 95px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(80px, 20vw, 95px) !important;
+    height: 100% !important; /* Fill full card height */
+    margin: 0 !important; /* Remove all margins to be flush */
+    border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
+  }
+  
+  .job-preview-content {
+    height: 100% !important; /* Fill available height */
+    margin-left: clamp(6px, 1.5vw, 10px) !important;
+    margin-right: clamp(3px, 0.8vw, 6px) !important;
+    padding: clamp(7px, 1.8vh, 10px) clamp(1px, 0.3vw, 3px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
+  }
+  
+  .job-preview-title {
+    font-size: clamp(0.85rem, 3.5vw, 0.95rem) !important; /* Override any fixed px */
+    margin-bottom: clamp(3px, 0.8vh, 5px) !important; /* Increased margin */
+    line-height: clamp(1.1, 1.25vh, 1.25) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-weight: 400 !important; /* Override bold weight */
+  }
+  
+  .job-preview-extras {
+    gap: clamp(2px, 0.6vh, 4px) !important;
+    margin-top: clamp(2px, 0.8vh, 4px) !important; /* Increased margin */
+  }
+  
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: clamp(0.75rem, 3vw, 0.85rem) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+  
+  .job-preview-extra-label1, .job-preview-extra-label2 {
+    font-size: clamp(0.65rem, 2.5vw, 0.75rem) !important;
+    margin-right: clamp(1px, 0.2vw, 2px) !important;
+    font-weight: 500 !important;
+  }
+  
+  .job-preview-infoboxes {
+    min-width: clamp(60px, 15vw, 70px) !important;
+    height: 100% !important; /* Fill available height */
+    margin-right: clamp(3px, 0.8vw, 6px) !important;
+    gap: clamp(2px, 0.6vh, 4px) !important;
+    padding: clamp(3px, 0.8vh, 6px) 0 !important; /* Reduced padding */
+  }
+  
+  .job-preview-infobox1, .job-preview-infobox2 {
+    min-width: clamp(60px, 15vw, 70px) !important;
+    width: clamp(70px, 17vw, 80px) !important;
+    padding: clamp(2px, 0.6vh, 4px) 0 !important;
+    gap: clamp(1px, 0.2vh, 2px) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-price {
+    font-size: clamp(1.0rem, 4.2vw, 1.2rem) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: clamp(0.75rem, 3vw, 0.85rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-date {
+    font-size: clamp(0.8rem, 3.5vw, 0.9rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-time {
+    font-size: clamp(0.6rem, 2.5vw, 0.7rem) !important;
+  }
+}
+
+/* 360px Breakpoint */
+@media (max-width: 360px) {
+  .job-preview-card {
+    width: clamp(310px, 93vw, 350px) !important; /* Increased width to better fill screen */
+    height: clamp(75px, 14vh, 90px) !important; /* Override fixed heights */
+    min-height: clamp(75px, 14vh, 90px) !important;
+    margin: 0 auto clamp(4px, 1vh, 7px) auto !important;
+    padding: 0 !important; /* Remove all padding to make image flush */
+  }
+  
+  /* Pay type-based background colors for 360px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
+  }
+  
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
+  }
+  
+  .job-preview-img {
+    width: clamp(75px, 18vw, 90px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(75px, 18vw, 90px) !important;
+    height: 100% !important; /* Fill full card height */
+    margin: 0 !important; /* Remove all margins to be flush */
+    border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
+  }
+  
+  .job-preview-content {
+    height: 100% !important; /* Fill available height */
+    margin-left: clamp(5px, 1.2vw, 8px) !important;
+    margin-right: clamp(2px, 0.5vw, 5px) !important;
+    padding: clamp(6px, 1.5vh, 9px) clamp(1px, 0.2vw, 2px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
+  }
+  
+  .job-preview-title {
+    font-size: clamp(0.8rem, 3.2vw, 0.9rem) !important; /* Override any fixed px */
+    margin-bottom: clamp(2px, 0.6vh, 4px) !important; /* Increased margin */
+    line-height: clamp(1.05, 1.2vh, 1.2) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-weight: 400 !important; /* Override bold weight */
+  }
+  
+  .job-preview-extras {
+    gap: clamp(1px, 0.4vh, 3px) !important;
+    margin-top: clamp(2px, 0.6vh, 3px) !important; /* Increased margin */
+  }
+  
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: clamp(0.7rem, 2.8vw, 0.8rem) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+  
+  .job-preview-extra-label1, .job-preview-extra-label2 {
+    font-size: clamp(0.6rem, 2.3vw, 0.7rem) !important;
+    margin-right: clamp(1px, 0.1vw, 2px) !important;
+    font-weight: 500 !important;
+  }
+  
+  .job-preview-infoboxes {
+    min-width: clamp(55px, 13vw, 65px) !important;
+    height: 100% !important; /* Fill available height */
+    margin-right: clamp(2px, 0.5vw, 4px) !important;
+    gap: clamp(4px, 1.2vh, 8px) !important; /* Increased gap for better spacing */
+    padding: clamp(2px, 0.6vh, 4px) 0 !important; /* Significantly reduced padding */
+  }
+  
+  .job-preview-infobox1, .job-preview-infobox2 {
+    min-width: clamp(55px, 13vw, 65px) !important;
+    width: clamp(65px, 15vw, 75px) !important;
+    padding: clamp(2px, 0.4vh, 3px) 0 !important;
+    gap: clamp(1px, 0.1vh, 2px) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-price {
+    font-size: clamp(0.95rem, 4vw, 1.15rem) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: clamp(0.65rem, 2.8vw, 0.75rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-date {
+    font-size: clamp(0.75rem, 3.2vw, 0.85rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-time {
+    font-size: clamp(0.55rem, 2.3vw, 0.65rem) !important;
+  }
+
+  /* Modal text wrapping prevention for 400px - much larger text */
+  .jobcat-servicemenu-overlay a {
+    font-size: clamp(1.25rem, 4.8vw, 1.6rem) !important;
+    letter-spacing: 0px !important; /* No letter spacing compression */
+  }
+
+  .jobcat-region-menu-overlay li,
+  .jobcat-city-menu-overlay li,
+  .jobcat-pay-menu-overlay li {
+    font-size: clamp(15px, 4.2vw, 18px) !important;
+    letter-spacing: 0px !important;
+  }
+}
+
+/* 320px Breakpoint (Ultra small screens) */
+@media (max-width: 320px) {
+  .job-preview-card {
+    width: clamp(290px, 92vw, 315px) !important; /* Increased width to better fill screen */
+    height: clamp(70px, 12vh, 85px) !important; /* Override fixed heights */
+    min-height: clamp(70px, 12vh, 85px) !important;
+    margin: 0 auto clamp(3px, 0.8vh, 6px) auto !important;
+    padding: 0 !important; /* Remove all padding to make image flush */
+  }
+  
+  /* Pay type-based background colors for 320px breakpoint */
+  .job-preview-card.pay-per-job {
+    background: #363f4f; /* Blue-gray for Per Job */
+  }
+  
+  .job-preview-card.pay-per-job-alt {
+    background: #2c3545; /* Subtle darker blue-gray for consecutive Per Job */
+  }
+  
+  .job-preview-card.pay-per-hour {
+    background: #3f4f36; /* Green for Per Hour */
+  }
+  
+  .job-preview-card.pay-per-hour-alt {
+    background: #35442d; /* Subtle darker green for consecutive Per Hour */
+  }
+  
+  .job-preview-img {
+    width: clamp(70px, 16vw, 85px) !important; /* Increased width to reduce cropping */
+    min-width: clamp(70px, 16vw, 85px) !important;
+    height: 100% !important; /* Fill full card height */
+    margin: 0 !important; /* Remove all margins to be flush */
+    border-radius: 8px 0 0 8px !important; /* Only round left side */
+  }
+  
+  .job-preview-img img {
+    border-radius: 8px 0 0 8px !important; /* Ensure image itself has flat right side */
+  }
+  
+  .job-preview-content {
+    height: 100% !important; /* Fill available height */
+    margin-left: clamp(4px, 1vw, 7px) !important;
+    margin-right: clamp(1px, 0.3vw, 4px) !important;
+    padding: clamp(5px, 1.2vh, 8px) clamp(1px, 0.1vw, 2px) !important; /* Added more vertical padding */
+    justify-content: center !important; /* Center content vertically */
+  }
+  
+  .job-preview-title {
+    font-size: clamp(0.75rem, 3vw, 0.85rem) !important; /* Override any fixed px */
+    margin-bottom: clamp(2px, 0.5vh, 3px) !important; /* Increased margin */
+    line-height: clamp(1.0, 1.1vh, 1.15) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-weight: 400 !important; /* Override bold weight */
+  }
+  
+  .job-preview-extras {
+    gap: clamp(1px, 0.2vh, 2px) !important;
+    margin-top: clamp(2px, 0.5vh, 3px) !important; /* Increased margin */
+  }
+  
+  .job-preview-extra1, .job-preview-extra2 {
+    font-size: clamp(0.65rem, 2.5vw, 0.75rem) !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+  }
+  
+  .job-preview-extra-label1, .job-preview-extra-label2 {
+    font-size: clamp(0.55rem, 2vw, 0.65rem) !important;
+    margin-right: clamp(1px, 0.1vw, 1px) !important;
+    font-weight: 500 !important;
+  }
+  
+  .job-preview-infoboxes {
+    min-width: clamp(50px, 11vw, 60px) !important;
+    height: 100% !important; /* Fill available height */
+    margin-right: clamp(1px, 0.3vw, 3px) !important;
+    gap: clamp(3px, 1vh, 6px) !important; /* Increased gap for better spacing */
+    padding: clamp(1px, 0.4vh, 3px) 0 !important; /* Significantly reduced padding */
+  }
+  
+  .job-preview-infobox1, .job-preview-infobox2 {
+    min-width: clamp(50px, 11vw, 60px) !important;
+    width: clamp(60px, 13vw, 70px) !important;
+    padding: clamp(1px, 0.2vh, 2px) 0 !important;
+    gap: clamp(1px, 0.1vh, 1px) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-price {
+    font-size: clamp(0.9rem, 3.8vw, 1.1rem) !important;
+  }
+  
+  .job-preview-infobox1 .job-preview-rate {
+    font-size: clamp(0.6rem, 2.5vw, 0.7rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-date {
+    font-size: clamp(0.7rem, 3vw, 0.8rem) !important;
+  }
+  
+  .job-preview-infobox2 .job-preview-time {
+    font-size: clamp(0.5rem, 2vw, 0.6rem) !important;
+  }
+}
+
+/* ===================== END JOB PREVIEW & JOB PAGE STYLES ===================== */
+
+.jobcat-header-spacer {
+  height: 176px;
+}
+
+/* Desktop optimization for header spacer (601px and above) */
+@media (min-width: 601px) {
+  .jobcat-header-spacer {
+    height: clamp(60px, 8vh, 80px) !important; /* Minimal space between borderline and job cards */
+  }
+}
+
+@media (max-width: 600px) {
+  .jobcat-header-spacer {
+    height: 85px; /* Reduced height to minimize top spacing */
+  }
+}
+
+
+
+@media (max-width: 600px) {
+  body {
+    padding: 72px 0 0 0; /* Add top padding for mobile fixed header */
+  }
+  
+  .jobcat-listheader {
+    height: 68px;
+    padding-right: 5px;
+  }
+  
+  .jobcat-servicemenu {
+    width: clamp(120px, 65vw, 238px); /* Restored normal jobcat dropdown */
+    height: clamp(38px, 12vh, 49px);
+  }
+  
+  .jobcat-servicename {
+    width: clamp(120px, 65vw, 238px);
+    height: 47px;
+    font-size: 22px;
+    padding-left: 12px;
+    padding-right: 8px; 
+  }
+
+  /* Fix the ACTUAL dropdowns user has been asking about */
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(90px, 25vw, 130px) !important; /* Smaller so 3 dropdowns + gaps fit with margins */
+    height: clamp(26px, 6vh, 30px) !important;
+    font-size: clamp(12px, 3vw, 16px) !important;
+    padding: clamp(3px, 1vw, 4px) clamp(8px, 2vw, 10px) !important;
+  }
+
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(90px, 25vw, 130px) !important; /* Match smaller dropdowns */
+    font-size: clamp(11px, 2.5vw, 14px) !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 149px;
+    margin-right: 5px; 
+  }
+  
+  .jobcat-headerbutton {
+    width: 45px;
+    height: 45px;
+    font-size: 12px; 
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  
+  .jobcat-headerbutton img {
+    height: 35px;
+  }
+
+  /* Hide scrollbar for mobile */
+  body {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  body::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* Modal text wrapping prevention for 320px - controlled by JavaScript auto-resize */
+  .jobcat-servicemenu-overlay a {
+    /* font-size: clamp(1.15rem, 4.5vw, 1.4rem) !important; */ /* Removed - controlled by JavaScript */
+    font-size: 1.4rem !important; /* Fallback for browsers that don't execute JavaScript properly */
+    letter-spacing: 0px !important;
+    padding: clamp(3px, 0.8vw, 4px) 0 clamp(3px, 0.8vw, 4px) clamp(6px, 1.5vw, 8px) !important;
+  }
+
+  .jobcat-region-menu-overlay li,
+  .jobcat-city-menu-overlay li,
+  .jobcat-pay-menu-overlay li {
+    font-size: clamp(14px, 4vw, 16px) !important;
+    letter-spacing: 0px !important;
+    padding: clamp(3px, 0.8vw, 4px) clamp(6px, 1.5vw, 8px) !important;
+  }
+}
+
+/* Medium Mobile Screens (401px to 480px) - Optimize 411px viewport */
+@media (max-width: 480px) and (min-width: 401px) {
+  .sortmenus {
+    padding-top: 0 !important; /* Remove top padding for perfect centering */
+    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
+    padding-left: clamp(8px, 2vw, 12px) !important; /* Add left margin from edge */
+    padding-right: clamp(8px, 2vw, 12px) !important; /* Add right margin from edge */
+    height: clamp(42px, 10vh, 46px) !important; /* Reduced height for smaller buttons */
+    align-items: center !important; /* Vertically center the dropdowns */
+    justify-content: center !important; /* Horizontally center with gap distribution */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(105px, 26vw, 125px) !important; /* Reduced width for better fit with margins */
+    height: clamp(28px, 6vh, 30px) !important; /* Reduced height for smaller buttons */
+    font-size: clamp(15px, 3.5vw, 16px) !important; /* Slightly reduced font size */
+    padding: clamp(3px, 0.8vw, 4px) clamp(8px, 2vw, 10px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(105px, 26vw, 125px) !important; /* Match smaller dropdown width */
+    font-size: clamp(14px, 3.2vw, 15px) !important; /* Slightly reduced overlay font size */
+  }
+  
+  .region-menu-list li, .city-menu-list li, .pay-menu-list li {
+    font-size: clamp(14px, 3.2vw, 15px) !important; /* Match overlay font size */
+    padding: clamp(4px, 1.2vw, 5px) 0 !important; /* Reduced padding for tighter list */
+  }
+  
+  .jobcat-header-spacer {
+    height: 60px !important; /* Reduced spacing between second borderline and job cards */
+  }
+}
+
+/* Small Mobile Screens (384px viewport optimization) */
+@media (max-width: 400px) and (min-width: 376px) {
+  .sortmenus {
+    padding-top: 0 !important; /* Remove top padding for perfect centering */
+    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
+    height: clamp(40px, 10vh, 44px) !important; /* Reduced height for tighter vertical spacing */
+    align-items: center !important; /* Vertically center the dropdowns */
+    justify-content: center !important; /* Horizontally center with gap distribution */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(100px, 28vw, 120px) !important; /* Smaller for small screens */
+    height: clamp(24px, 5vh, 28px) !important;
+    font-size: clamp(13px, 3vw, 15px) !important; /* Increased to match overlay font size */
+    padding: clamp(2px, 0.8vw, 3px) clamp(6px, 1.5vw, 8px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(100px, 28vw, 120px) !important;
+    font-size: clamp(10px, 2.5vw, 12px) !important;
+  }
+  
+  .jobcat-header-spacer {
+    height: 55px !important; /* Reduced spacing between second borderline and job cards */
+  }
+}
+
+/* Small Mobile Screens (360px viewport optimization) */
+@media (max-width: 375px) and (min-width: 351px) {
+  .sortmenus {
+    padding-top: 0 !important; /* Remove top padding for perfect centering */
+    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
+    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
+    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
+    height: clamp(36px, 8vh, 40px) !important; /* Reduced height to minimize top spacing */
+    align-items: center !important; /* Vertically center the dropdowns */
+    justify-content: center !important; /* Horizontally center with gap distribution */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(110px, 32vw, 125px) !important; /* Significantly increased width */
+    height: clamp(30px, 7vh, 34px) !important; /* Significantly increased height */
+    font-size: clamp(16px, 4vw, 18px) !important; /* Much larger font size for dropdown buttons */
+    padding: clamp(4px, 1vw, 5px) clamp(8px, 2vw, 10px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(110px, 32vw, 125px) !important; /* Match larger dropdown width */
+    font-size: clamp(15px, 3.8vw, 17px) !important; /* Much larger overlay font size */
+  }
+  
+  .region-menu-list li, .city-menu-list li, .pay-menu-list li {
+    font-size: clamp(15px, 3.8vw, 17px) !important; /* Ensure list items match overlay font size */
+    padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Increased padding for better touch targets */
+  }
+  
+  /* Keep existing job card spacing - don't change jobcat-header-spacer */
+}
+
+/* Small Mobile Screens (350px and below) */
+@media (max-width: 350px) {
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(100px, 28vw, 120px) !important; /* Smaller for small screens */
+    height: clamp(24px, 5vh, 28px) !important;
+    font-size: clamp(13px, 3vw, 15px) !important; /* Increased to match overlay font size */
+    padding: clamp(2px, 0.8vw, 3px) clamp(6px, 1.5vw, 8px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(100px, 28vw, 120px) !important;
+    font-size: clamp(10px, 2.5vw, 12px) !important;
+  }
+}
+
+/* iPhone 7 and similar (375px and below) */
+@media (max-width: 375px) {
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(90px, 27vw, 110px) !important; /* Optimized for 375px screens */
+    height: clamp(22px, 5vh, 26px) !important;
+    font-size: clamp(12px, 2.8vw, 14px) !important; /* Increased to match overlay font size */
+    padding: clamp(2px, 0.7vw, 3px) clamp(5px, 1.3vw, 7px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(90px, 27vw, 110px) !important;
+    font-size: clamp(9px, 2.4vw, 11px) !important;
+  }
+}
+
+/* Small Screens (360px and below) */
+@media (max-width: 360px) {
+  body {
+    padding: 68px 0 0 0 !important; /* Adjusted body padding to show first borderline */
+  }
+  
+  .jobcat-sort-header {
+    top: 68px !important; /* Adjusted to match body padding */
+    z-index: 50 !important; /* Reduced z-index to allow jobcat modal to appear above */
+  }
+  
+  .sortmenus {
+    padding-top: clamp(3px, 0.8vw, 4px) !important; /* Minimal top padding for centering */
+    padding-bottom: clamp(3px, 0.8vw, 4px) !important; /* Minimal bottom padding for centering */
+    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
+    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
+    height: clamp(36px, 8vh, 40px) !important; /* Reduced height for tighter spacing */
+    align-items: center !important; /* Vertically center the dropdowns */
+    justify-content: center !important; /* Horizontally center with gap distribution */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(95px, 28vw, 110px) !important; /* Increased width slightly */
+    height: clamp(22px, 5vh, 26px) !important; /* Reduced height slightly */
+    font-size: clamp(13px, 3.2vw, 15px) !important; /* Keep font size */
+    padding: clamp(2px, 0.6vw, 3px) clamp(5px, 1.6vw, 7px) !important;
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(95px, 28vw, 110px) !important; /* Match increased dropdown width */
+    font-size: clamp(12px, 3vw, 14px) !important; /* Keep overlay font size */
+  }
+  
+  .region-menu-list li, .city-menu-list li, .pay-menu-list li {
+    font-size: clamp(12px, 3vw, 14px) !important; /* Match overlay font size */
+    padding: clamp(3px, 1vw, 5px) 0 !important; /* Keep padding */
+  }
+}
+
+/* Job card spacing fix specifically for 360px */
+@media (max-width: 360px) {
+  .jobcat-header-spacer {
+    height: 0 !important; /* Remove height */
+    margin: -12px 0 0 0 !important; /* Negative top margin to pull job cards up */
+    padding: 0 !important; /* Remove any additional padding */
+  }
+  
+  .job-preview-card:first-of-type {
+    margin-top: 0 !important; /* Remove any top margin from first job card */
+  }
+}
+
+/* Ultra Small Screens (320px and below) - Optimized layout */
+@media (max-width: 320px) {
+  body {
+    padding: 66px 0 0 0 !important; /* Increased to show first borderline */
+  }
+  
+  .jobcat-sort-header {
+    top: 66px !important; /* Match increased body padding */
+  }
+  
+  .jobcat-servicemenu {
+    width: clamp(140px, 50vw, 180px) !important; /* Increased width to prevent text wrapping */
+    height: 40px !important; /* Reduce height */
+  }
+  
+  .jobcat-servicename {
+    width: clamp(140px, 50vw, 180px) !important; /* Match increased servicemenu width */
+    height: 38px !important; /* Match reduced servicemenu height */
+    font-size: clamp(17px, 4vw, 21px) !important; /* Increased by 3px equivalent */
+    padding-left: 6px !important; /* Reduce padding */
+    padding-right: 4px !important; /* Reduce padding */
+  }
+  
+  .jobcat-servicemenu-overlay {
+    width: clamp(200px, 60vw, 220px) !important; /* Increased width for better text fitting */
+    left: -5px !important;
+  }
+
+  .sortmenus {
+    padding: clamp(2px, 0.8vw, 4px) clamp(6px, 2vw, 10px) !important; /* Added left/right edge spacing */
+  }
+
+  .region-menu, .city-menu, .pay-menu {
+    width: clamp(85px, 28vw, 105px) !important; /* Increased size for better usability */
+    height: clamp(22px, 5vh, 26px) !important; /* Increased height */
+    font-size: clamp(12px, 3.2vw, 15px) !important; /* Increased font size for better readability */
+    padding: clamp(2px, 0.8vw, 3px) clamp(4px, 1.2vw, 6px) !important; /* Better padding */
+  }
+  
+  .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
+    width: clamp(85px, 28vw, 105px) !important; /* Match increased button width */
+    font-size: clamp(11px, 2.8vw, 14px) !important; /* Increased overlay font size */
+  }
+  
+  .jobcat-servicemenu-overlay a {
+    /* font-size: clamp(17px, 4vw, 21px) !important; */ /* Removed - controlled by JavaScript auto-resize */
+  }
+  
+  .jobcat-headerbuttons {
+    width: clamp(110px, 32vw, 149px) !important; /* Much smaller minimum width */
+    margin-right: 2px !important; /* Reduce margin */
+  }
+  
+  .jobcat-headerbutton {
+    width: clamp(32px, 9vw, 45px) !important; /* Smaller buttons */
+    height: clamp(38px, 10vh, 45px) !important; /* Smaller height */
+    font-size: clamp(10px, 2.5vw, 12px) !important; /* Smaller font */
+  }
+  
+  .jobcat-headerbutton img {
+    width: clamp(28px, 8vh, 35px) !important; /* Constrain width to match height */
+    height: clamp(28px, 8vh, 35px) !important; /* Smaller images */
+    object-fit: contain !important; /* Maintain aspect ratio */
+  }
+  
+  .jobcat-listheader {
+    height: 62px !important; /* Reduce overall header height */
+    padding-right: 2px !important; /* Reduce padding */
+  }
+  
+  .jobcat-header-spacer {
+    height: 40px !important; /* Maximum space between dropdowns and job cards */
+    margin: 0 !important; /* Remove negative margin */
+    padding: 0 !important;
+  }
+  
+  .job-preview-card:first-of-type {
+    margin-top: 20px !important; /* Maximum top margin to first job card */
+  }
+}
+
+/* ===================== REGION PICKER MODAL OVERLAY ===================== */
+
+.region-picker-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.55);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.region-picker-modal {
+  background: #232b36;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 32px 24px 24px 24px;
+  width: clamp(280px, 80vw, 400px);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.region-picker-title {
+  font-size: 1.3rem;
+  color: #ffe6b3;
+  margin-bottom: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.region-picker-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-height: 320px;
+  min-height: 200px;
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: #232b36;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.region-picker-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Webkit browsers */
+}
+
+.region-picker-item {
+  background: #434a58;
+  color: #fff;
+  border: none;
+  border-bottom: 1px solid #2d3748;
+  border-radius: 0;
+  font-size: 1.2rem;
+  padding: 18px 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  width: 100%;
+  text-align: center;
+}
+
+.region-picker-item:last-child {
+  border-bottom: none;
+}
+
+.region-picker-item:hover, .region-picker-item:focus {
+  background: #ffe6b3;
+  color: #232b36;
+}
+
+.region-picker-item.active {
+  background: #ffe6b3;
+  color: #232b36;
+  font-weight: bold;
+}
+
+.region-picker-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #ffe6b3;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 2;
+}
+
+@media (max-width: 400px) {
+  .region-picker-modal {
+    min-width: 0;
+    padding: 18px 6px 12px 6px;
+  }
+  .region-picker-list {
+    max-height: 240px;
+    min-height: 160px;
+  }
+  .region-picker-item {
+    font-size: 1rem;
+    padding: 12px 0;
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+  .region-picker-title {
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+/* ===================== CITY PICKER MODAL OVERLAY ===================== */
+
+.city-picker-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.55);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.city-picker-modal {
+  background: #232b36;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 32px 24px 24px 24px;
+  width: clamp(300px, 85vw, 450px);
+  min-height: 320px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.city-picker-title {
+  font-size: 1.3rem;
+  color: #ffe6b3;
+  margin-bottom: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.city-picker-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-height: 360px;
+  min-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: #232b36;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.city-picker-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Webkit browsers */
+}
+
+.city-picker-item {
+  background: #434a58;
+  color: #fff;
+  border: none;
+  border-bottom: 1px solid #2d3748;
+  border-radius: 0;
+  font-size: 1.25rem;
+  padding: 16px 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  width: 100%;
+  text-align: center;
+}
+
+.city-picker-item:last-child {
+  border-bottom: none;
+}
+
+.city-picker-item:hover, .city-picker-item:focus {
+  background: #ffe6b3;
+  color: #232b36;
+}
+
+.city-picker-item.active {
+  background: #ffe6b3;
+  color: #232b36;
+  font-weight: bold;
+}
+
+.city-picker-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #ffe6b3;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 2;
+}
+
+@media (max-width: 400px) {
+  .city-picker-modal {
+    min-width: 0;
+    padding: 18px 6px 12px 6px;
+    max-height: 75vh;
+  }
+  .city-picker-list {
+    max-height: 280px;
+    min-height: 180px;
+  }
+  .city-picker-item {
+    font-size: 1.1rem;
+    padding: 10px 0;
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+  .city-picker-title {
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+/* ===================== PAY PICKER MODAL OVERLAY ===================== */
+
+.pay-picker-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.55);
+  z-index: 99999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.pay-picker-modal {
+  background: #232b36;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 32px 24px 24px 24px;
+  width: clamp(280px, 80vw, 380px);
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.pay-picker-title {
+  font-size: 1.3rem;
+  color: #ffe6b3;
+  margin-bottom: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.pay-picker-list {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  max-height: 180px;
+  min-height: 140px;
+  overflow-y: auto;
+  scrollbar-width: none; /* Hide scrollbar in Firefox */
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: #232b36;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.pay-picker-list::-webkit-scrollbar {
+  display: none; /* Hide scrollbar in Webkit browsers */
+}
+
+.pay-picker-item {
+  background: #434a58;
+  color: #fff;
+  border: none;
+  border-bottom: 1px solid #2d3748;
+  border-radius: 0;
+  font-size: 1.2rem;
+  padding: 18px 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  width: 100%;
+  text-align: center;
+}
+
+.pay-picker-item:last-child {
+  border-bottom: none;
+}
+
+.pay-picker-item:hover, .pay-picker-item:focus {
+  background: #ffe6b3;
+  color: #232b36;
+}
+
+.pay-picker-item.active {
+  background: #ffe6b3;
+  color: #232b36;
+  font-weight: bold;
+}
+
+.pay-picker-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: #ffe6b3;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 2;
+}
+
+@media (max-width: 400px) {
+  .pay-picker-modal {
+    min-width: 0;
+    padding: 18px 6px 12px 6px;
+    min-height: 200px;
+  }
+  .pay-picker-list {
+    max-height: 150px;
+    min-height: 120px;
+  }
+  .pay-picker-item {
+    font-size: 1rem;
+    padding: 12px 0;
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+  .pay-picker-title {
+    font-family: Arial, sans-serif !important; /* Ensure Arial on mobile */
+  }
+}
+
+/* Small Screens (321px to 360px) - Additional constraints */
+@media (max-width: 360px) and (min-width: 321px) {
+  .jobcat-servicemenu {
+    width: clamp(180px, 55vw, 200px) !important; /* Smaller for 321-360px range */
+    height: 45px !important;
+  }
+  
+  .jobcat-servicename {
+    width: clamp(180px, 55vw, 200px) !important;
+    height: 43px !important;
+    font-size: clamp(20px, 4.5vw, 24px) !important; /* Increased by another 2px equivalent */
+    padding-left: 8px !important;
+    padding-right: 6px !important;
+  }
+  
+  .jobcat-servicemenu-overlay {
+    width: clamp(220px, 65vw, 240px) !important; /* Increased width for better text fitting */
+    left: -5px !important;
+  }
+  
+  .jobcat-servicemenu-overlay a {
+    /* font-size: clamp(20px, 4.5vw, 24px) !important; */ /* Removed - controlled by JavaScript auto-resize */
+  }
+  
+  .jobcat-headerbuttons {
+    width: clamp(125px, 35vw, 149px) !important;
+    margin-right: 3px !important;
+  }
+  
+  .jobcat-headerbutton {
+    width: clamp(36px, 9.5vw, 45px) !important;
+    height: clamp(40px, 11vh, 45px) !important;
+    font-size: clamp(11px, 2.8vw, 12px) !important;
+  }
+  
+  .jobcat-headerbutton img {
+    height: clamp(30px, 9vh, 35px) !important;
+  }
+  
+  .jobcat-listheader {
+    height: 64px !important;
+    padding-right: 3px !important;
+  }
+  
+  .jobcat-header-spacer {
+    height: 75px !important; /* Smaller spacer for small screens */
+  }
+  
+  body {
+    padding: 70px 0 0 0 !important;
+  }
+}

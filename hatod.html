@@ -4,7 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hatod Service - GISUGO</title>
-    <link rel="stylesheet" href="public/css/listing.css?v=9.3">
+    
+    <!-- Dynamic CSS Loader -->
+    <script>
+      // Check localStorage for design preference (defaults to original)
+      const useV2 = localStorage.getItem('useListingV2') === 'true';
+      
+      // Inject the correct CSS file IMMEDIATELY (before page renders)
+      const cssFile = useV2 ? 'public/css/listing2.css?v=1.0' : 'public/css/listing.css?v=9.3';
+      document.write('<link rel="stylesheet" href="' + cssFile + '">');
+    </script>
   </head>
   <body>
     <div class="jobcat-header">
@@ -163,6 +172,50 @@
         </div>
       </div>
     </div>
+
+    <!-- Design Switcher Toggle Button -->
+    <div id="designSwitcher" style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 12px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: Arial, sans-serif;">
+      <div style="margin-bottom: 8px; text-align: center;">
+        Design: <strong id="currentDesign">Original</strong>
+      </div>
+      <button id="cssToggle" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-family: Arial, sans-serif; font-weight: bold; transition: background 0.2s;">
+        Switch to V2
+      </button>
+    </div>
+
+    <script>
+      // Design Switcher Logic
+      const isV2 = localStorage.getItem('useListingV2') === 'true';
+      const label = document.getElementById('currentDesign');
+      const btn = document.getElementById('cssToggle');
+      
+      // Update UI to show current state
+      if (isV2) {
+        label.textContent = 'V2 (New)';
+        label.style.color = '#10b981';
+        btn.textContent = 'Switch to Original';
+        btn.style.background = '#f59e0b';
+      } else {
+        label.textContent = 'Original';
+        label.style.color = '#60a5fa';
+        btn.textContent = 'Switch to V2';
+        btn.style.background = '#10b981';
+      }
+      
+      // Toggle on click
+      btn.addEventListener('click', () => {
+        localStorage.setItem('useListingV2', !isV2);
+        location.reload();
+      });
+      
+      // Hover effect
+      btn.addEventListener('mouseenter', () => {
+        btn.style.opacity = '0.8';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.opacity = '1';
+      });
+    </script>
 
     <script src="public/js/shared-menu.js"></script>
     <script src="public/js/listing.js?v=5.2"></script>

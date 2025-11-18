@@ -639,9 +639,9 @@ function validateCurrentStep() {
         showToast('Please enter a job title', 'error');
         return false;
       }
-      // Validate title length (max 45 characters)
-      if (np2State.jobTitle.length > 45) {
-        showToast('Job title must be 45 characters or less', 'error');
+      // Validate title length (max 55 characters)
+      if (np2State.jobTitle.length > 55) {
+        showToast('Job title must be 55 characters or less', 'error');
         return false;
       }
       if (!np2State.jobDate) {
