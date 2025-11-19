@@ -237,12 +237,44 @@ body::-webkit-scrollbar {
     padding-bottom: 4px !important;
   }
   
-  /* Force identical sizing for all icons at mobile breakpoint */
+  /* Make icons responsive instead of fixed */
   .jobcat-icon-emoji {
-    font-size: 32px !important;
-    height: 32px !important;
-    width: 32px !important;
-    margin-bottom: 4px !important;
+    font-size: clamp(24px, 6.5vw, 32px) !important; /* Allow responsive shrinking */
+    height: clamp(24px, 6.5vw, 32px) !important;
+    width: clamp(24px, 6.5vw, 32px) !important;
+    margin-bottom: clamp(3px, 0.8vw, 4px) !important;
+  }
+  
+  .jobcat-headerbuttons {
+    gap: clamp(10px, 3vw, 15px) !important; /* Reduce gap on mobile */
+  }
+}
+
+/* Icons need more shrinking: 411px to 361px */
+@media (max-width: 411px) and (min-width: 361px) {
+  .jobcat-icon-emoji {
+    font-size: clamp(26px, 6.2vw, 30px) !important;
+    height: clamp(26px, 6.2vw, 30px) !important;
+    width: clamp(26px, 6.2vw, 30px) !important;
+    margin-bottom: clamp(3px, 0.8vw, 4px) !important;
+  }
+  
+  .jobcat-headerbuttons {
+    gap: clamp(8px, 2.5vw, 12px) !important; /* Tighter gap */
+  }
+}
+
+/* Icons need even more shrinking: 360px to 320px */
+@media (max-width: 360px) and (min-width: 320px) {
+  .jobcat-icon-emoji {
+    font-size: clamp(22px, 5.8vw, 26px) !important;
+    height: clamp(22px, 5.8vw, 26px) !important;
+    width: clamp(22px, 5.8vw, 26px) !important;
+    margin-bottom: clamp(2px, 0.6vw, 3px) !important;
+  }
+  
+  .jobcat-headerbuttons {
+    gap: clamp(6px, 2vw, 10px) !important; /* Even tighter gap */
   }
 }
 
