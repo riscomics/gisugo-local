@@ -106,6 +106,7 @@ body::-webkit-scrollbar {
   min-height: clamp(60px, 15vh, 75px);
   color: #ffffff;
   font-size: clamp(12px, 3vw, 16px);
+  font-family: Arial, Helvetica, sans-serif; /* Consistent font across all viewports */
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -230,6 +231,31 @@ body::-webkit-scrollbar {
 }
 
 /* Fix icon bubble vertical stretch at all mobile sizes */
+/* Desktop optimization (601px and up) */
+@media (min-width: 601px) {
+  .jobcat-servicemenu {
+    width: clamp(220px, 28vw, 320px) !important; /* Much wider on desktop */
+  }
+  
+  .jobcat-servicename {
+    width: clamp(220px, 28vw, 320px) !important; /* Match servicemenu width exactly */
+    font-size: clamp(22px, 2.2vw, 28px) !important;
+    justify-content: space-between !important; /* Keep arrow inside */
+  }
+  
+  .jobcat-icon-emoji {
+    font-size: 36px !important; /* Fixed consistent size for all icons */
+    height: 36px !important;
+    width: 36px !important;
+    margin-bottom: 6px !important; /* Fixed consistent spacing */
+  }
+  
+  .jobcat-headerbutton {
+    padding-top: 8px !important; /* Fixed consistent top padding */
+    padding-bottom: 4px !important; /* Fixed consistent bottom padding */
+  }
+}
+
 @media (max-width: 600px) {
   .jobcat-headerbutton {
     min-height: auto !important;
@@ -264,8 +290,8 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Icons can stay larger at 360px to 320px - plenty of space */
-@media (max-width: 360px) and (min-width: 320px) {
+/* Icons at 360px to 350px - still comfortable */
+@media (max-width: 360px) and (min-width: 350px) {
   .jobcat-icon-emoji {
     font-size: 30px !important; /* Fixed size - plenty of room */
     height: 30px !important;
@@ -278,64 +304,379 @@ body::-webkit-scrollbar {
   }
 }
 
+/* Icons at 349px to 335px - shrink to avoid jobcat collision */
+@media (max-width: 349px) and (min-width: 335px) {
+  .jobcat-icon-emoji {
+    font-size: 26px !important; /* Smaller icons */
+    height: 26px !important;
+    width: 26px !important;
+    margin-bottom: 3px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 130px !important; /* Narrower container */
+    margin-right: 3px !important;
+    gap: 8px !important; /* Tighter gap */
+  }
+  
+  .jobcat-headerbutton {
+    width: 38px !important; /* Smaller bubbles */
+    height: 38px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Icons at 334px to 321px - even more compact */
+@media (max-width: 334px) and (min-width: 321px) {
+  .jobcat-icon-emoji {
+    font-size: 24px !important; /* Even smaller icons */
+    height: 24px !important;
+    width: 24px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 120px !important; /* Even narrower container */
+    margin-right: 2px !important;
+    gap: 6px !important; /* Even tighter gap */
+  }
+  
+  .jobcat-headerbutton {
+    width: 35px !important; /* Even smaller bubbles */
+    height: 35px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Icons at exactly 320px - moderately compact */
+@media (max-width: 320px) {
+  .jobcat-icon-emoji {
+    font-size: 22px !important; /* Slightly larger icons */
+    height: 22px !important;
+    width: 22px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 115px !important; /* Slightly wider */
+    margin-right: 2px !important;
+    gap: 5px !important; /* Slightly more gap */
+  }
+  
+  .jobcat-headerbutton {
+    width: 34px !important; /* Slightly larger bubbles */
+    height: 34px !important;
+    font-size: 10px !important; /* Slightly larger text */
+    padding: 2px !important;
+  }
+}
+
+/* Centered modal overlay (like new-post2) */
 .jobcat-servicemenu-overlay {
   display: none;
-  position: absolute;
-  left: -5px;
-  top: 100%;
-  width: clamp(220px, 65vw, 240px) !important; /* Increased width for better text fitting */
-  max-height: 420px;
-  overflow-y: auto;
-  background: #363f4f;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 300;
-  padding: 18px 0 18px 0;
-  border: 1px solid #e6d6ae;
-  /* Hide scrollbar for all browsers */
-  scrollbar-width: none; /* Firefox */
-}
-.jobcat-servicemenu-overlay::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  align-items: center;
+  justify-content: center;
 }
 .jobcat-servicemenu-overlay.show {
-  display: block;
-  animation: slideDown 0.35s cubic-bezier(.77,0,.18,1);
+  display: flex;
+  opacity: 1;
 }
-@keyframes slideDown {
-  from { 
-    opacity: 0; 
-    transform: translateY(-20px);
+
+/* Modal container */
+.jobcat-modal-container {
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  border-radius: 16px;
+  max-width: 1100px; /* Wider to prevent wrapping at 943px+ */
+  width: 92%;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
+              0 0 40px rgba(16, 185, 129, 0.3);
+  animation: modalSlideUp 0.4s cubic-bezier(.77,0,.18,1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0);
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
-.jobcat-servicemenu-overlay ul {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 10px;
+
+/* Hide scrollbar while keeping scroll functionality */
+.jobcat-modal-container {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
-.jobcat-servicemenu-overlay li {
-  margin-bottom: 10px;
+
+.jobcat-modal-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
-.jobcat-servicemenu-overlay a {
-  color: #e6d6ae;
-  /* font-size: 1.62rem; */ /* Removed - controlled by JavaScript auto-resize */
+
+/* Modal header */
+.jobcat-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.2);
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  z-index: 1;
+}
+
+.jobcat-modal-title {
+  font-size: clamp(20px, 4vw, 26px);
   font-weight: 700;
-  font-family: arial, sans-serif;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.jobcat-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.1);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.jobcat-modal-close:hover {
+  background: #e74c3c;
+  color: #fff;
+  transform: rotate(90deg);
+  border-color: #e74c3c;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+}
+
+/* Modal body */
+.jobcat-modal-body {
+  padding: 24px;
+}
+
+/* Section divider */
+.jobcat-section-divider {
+  margin: 32px 0 20px 0;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.02));
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: Arial, Helvetica, sans-serif;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jobcat-section-divider::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+.jobcat-section-divider:first-child {
+  margin-top: 0; /* No top margin for first section */
+}
+
+/* Category grid - Default: 4 columns for tablet/small desktop */
+.jobcat-category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns for tablet range */
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Large desktop: 6 columns at 888px+ */
+@media (min-width: 888px) {
+  .jobcat-category-grid {
+    grid-template-columns: repeat(6, 1fr); /* 6 columns for large desktop */
+  }
+}
+
+.jobcat-category-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+  border: 2px solid rgba(16, 185, 129, 0.2);
+  border-radius: 16px;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
   text-decoration: none;
-  display: block;
-  padding: 4px 0 4px 8px;
-  border-radius: 4px;
-  transition: background 0.15s;
 }
-.jobcat-servicemenu-overlay a.active,
-.jobcat-servicemenu-overlay a:hover {
-  background: rgba(255,255,255,0.08);
-  text-decoration: underline;
+
+.jobcat-category-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
+
+.jobcat-category-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+  border-color: rgba(16, 185, 129, 0.6);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+}
+
+.jobcat-category-card:hover::before {
+  opacity: 1;
+}
+
+.jobcat-category-card.active {
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.08));
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.jobcat-category-icon {
+  font-size: 3rem;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6)); /* Green glow */
+}
+
+.jobcat-category-card:hover .jobcat-category-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.9)) brightness(1.2); /* Stronger glow on hover */
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.jobcat-category-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* Mobile optimization */
+@media (max-width: 600px) {
+  .jobcat-servicemenu-overlay {
+    backdrop-filter: none;
+  }
+  
+  .jobcat-modal-container {
+    width: 95%;
+    max-height: 90vh;
+    animation: none;
+  }
+  
+  .jobcat-modal-header {
+    padding: 20px;
+  }
+  
+  .jobcat-modal-title {
+    font-size: 20px;
+  }
+  
+  .jobcat-modal-body {
+    padding: 20px;
+  }
+  
+  .jobcat-section-divider {
+    margin: 24px 0 16px 0;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .jobcat-category-grid {
+    grid-template-columns: repeat(3, 1fr); /* Fixed 3 columns for mobile/tablet */
+    gap: 12px;
+  }
+  
+  .jobcat-category-card {
+    padding: 16px 10px;
+    gap: 10px;
+  }
+  
+  .jobcat-category-icon {
+    font-size: 2.5rem;
+  }
+  
+  .jobcat-category-label {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .jobcat-section-divider {
+    margin: 20px 0 12px 0;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+  }
+  
+  .jobcat-category-grid {
+    grid-template-columns: repeat(3, 1fr); /* Fixed 3 columns for small mobile */
+    gap: 10px;
+  }
+  
+  .jobcat-category-card {
+    padding: 14px 8px;
+    gap: 8px;
+  }
+  
+  .jobcat-category-icon {
+    font-size: 2.25rem;
+  }
+  
+  .jobcat-category-label {
+    font-size: 0.7rem;
+  }
+}
+/* Legacy support - remove old link styles (now using cards) */
 .jobcat-menu-overlay {
   position: fixed;
   top: 0;
@@ -1943,20 +2284,20 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-headerbuttons {
-    width: clamp(110px, 32vw, 149px) !important; /* Much smaller minimum width */
-    margin-right: 2px !important; /* Reduce margin */
+    width: 115px !important; /* Slightly wider for 320px */
+    margin-right: 2px !important;
+    gap: 5px !important;
   }
   
   .jobcat-headerbutton {
-    width: clamp(32px, 9vw, 45px) !important; /* Smaller buttons */
-    height: clamp(38px, 10vh, 45px) !important; /* Smaller height */
-    font-size: clamp(10px, 2.5vw, 12px) !important; /* Smaller font */
+    width: 34px !important; /* Slightly larger bubbles */
+    height: 34px !important;
+    font-size: 10px !important; /* Readable text */
+    padding: 2px !important;
   }
   
   .jobcat-headerbutton img {
-    width: clamp(28px, 8vh, 35px) !important; /* Constrain width to match height */
-    height: clamp(28px, 8vh, 35px) !important; /* Smaller images */
-    object-fit: contain !important; /* Maintain aspect ratio */
+    height: 22px !important; /* Legacy support - match icon size */
   }
   
   .jobcat-listheader {
@@ -2348,18 +2689,18 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-headerbuttons {
-    width: clamp(125px, 35vw, 149px) !important;
-    margin-right: 3px !important;
+    width: 149px !important; /* Fixed: Match perfect 411-361px range */
+    margin-right: 5px !important;
   }
   
   .jobcat-headerbutton {
-    width: clamp(36px, 9.5vw, 45px) !important;
-    height: clamp(40px, 11vh, 45px) !important;
-    font-size: clamp(11px, 2.8vw, 12px) !important;
+    width: 45px !important; /* Fixed: Match perfect 411-361px range */
+    height: 45px !important;
+    font-size: 12px !important;
   }
   
   .jobcat-headerbutton img {
-    height: clamp(30px, 9vh, 35px) !important;
+    height: 35px !important; /* Legacy support */
   }
   
   .jobcat-listheader {
