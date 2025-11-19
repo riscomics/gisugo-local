@@ -264,17 +264,17 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Icons need even more shrinking: 360px to 320px */
+/* Icons can stay larger at 360px to 320px - plenty of space */
 @media (max-width: 360px) and (min-width: 320px) {
   .jobcat-icon-emoji {
-    font-size: clamp(22px, 5.8vw, 26px) !important;
-    height: clamp(22px, 5.8vw, 26px) !important;
-    width: clamp(22px, 5.8vw, 26px) !important;
-    margin-bottom: clamp(2px, 0.6vw, 3px) !important;
+    font-size: 30px !important; /* Fixed size - plenty of room */
+    height: 30px !important;
+    width: 30px !important;
+    margin-bottom: 4px !important;
   }
   
   .jobcat-headerbuttons {
-    gap: clamp(6px, 2vw, 10px) !important; /* Even tighter gap */
+    gap: 12px !important; /* Fixed comfortable gap */
   }
 }
 
@@ -1807,7 +1807,9 @@ body::-webkit-scrollbar {
     padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Increased padding for better touch targets */
   }
   
-  /* Keep existing job card spacing - don't change jobcat-header-spacer */
+  .jobcat-header-spacer {
+    height: 55px !important; /* Fixed: was inheriting 85px from 600px breakpoint */
+  }
 }
 
 /* Small Mobile Screens (350px and below) */
