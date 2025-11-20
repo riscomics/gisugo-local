@@ -11,7 +11,7 @@ html::-webkit-scrollbar {
 }
 
 body {        
-  background: linear-gradient(180deg, #1a1f2e 0%, #242936 100%); /* Dark gradient matching Modern & Techy theme */
+  background: #242936; /* Solid lighter color - no gradient */
   margin: 0;
   padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
 }
@@ -999,7 +999,8 @@ body::-webkit-scrollbar {
   border-left: 4px solid #10b981;
 }
 
-.filter-dropdown {
+/* Filter Button (replaces dropdown) */
+.filter-button {
   width: 100%;
   background: rgba(45, 55, 72, 0.8);
   border: 2px solid rgba(16, 185, 129, 0.5);
@@ -1013,43 +1014,160 @@ body::-webkit-scrollbar {
   transition: all 0.3s ease;
   outline: none;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-  max-height: 50px; /* Constrain dropdown height */
+  text-align: left;
+}
+
+.filter-button:hover {
+  background: rgba(45, 55, 72, 1);
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.filter-button:active {
+  transform: scale(0.98);
+}
+
+/* Filter Modal Overlay */
+.filter-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-modal-overlay.show {
+  display: flex;
+}
+
+.filter-modal-container {
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6),
+              0 0 40px rgba(16, 185, 129, 0.2);
+  width: clamp(320px, 90vw, 480px);
+  max-height: clamp(280px, 45vh, 400px); /* MUCH shorter */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Ensure corners stay rounded */
+  animation: slideDown 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.filter-modal-header {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(16px, 2.5vh, 20px) clamp(18px, 3.5vw, 24px);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 14px 14px 0 0; /* Match container radius */
+}
+
+.filter-modal-title {
+  font-size: clamp(20px, 4vw, 26px);
+  font-weight: 700;
+  color: #10b981;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.filter-modal-close {
+  font-size: clamp(28px, 5vw, 36px);
+  color: #10b981;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.filter-modal-close:hover {
+  color: #ffffff;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.filter-modal-body {
+  padding: clamp(12px, 2.5vh, 18px) clamp(16px, 3.5vw, 22px);
   overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-}
-
-.filter-dropdown::-webkit-scrollbar {
-  display: none; /* Chrome/Safari/Edge */
-  width: 0;
-  height: 0;
-}
-
-/* Hide scrollbar in dropdown option list */
-.filter-dropdown option {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
-.filter-dropdown:hover {
-  background: rgba(45, 55, 72, 1);
-  border-color: rgba(16, 185, 129, 0.8);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4),
-              0 0 20px rgba(16, 185, 129, 0.3);
+.filter-modal-body::-webkit-scrollbar {
+  display: none;
 }
 
-.filter-dropdown:focus {
-  border-color: #10b981;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
-              0 0 30px rgba(16, 185, 129, 0.5);
+.filter-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.2vh, 9px);
 }
 
-.filter-dropdown option {
-  background: #2d3748;
+.filter-option-item {
+  background: rgba(45, 55, 72, 0.6);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: clamp(10px, 2vh, 14px) clamp(14px, 2.8vw, 18px);
+  font-size: clamp(15px, 2.8vw, 18px);
+  font-weight: 700;
   color: #ffffff;
-  padding: 12px;
-  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
 }
+
+.filter-option-item:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.8);
+  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.filter-option-item.active {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+/* Mobile responsive filter modals */
+@media (max-width: 600px) {
+  .filter-modal-container {
+    width: clamp(300px, 95vw, 420px);
+    max-height: clamp(260px, 42vh, 360px); /* Shorter on mobile */
+  }
+  
+  .filter-modal-header {
+    padding: clamp(12px, 2vh, 16px) clamp(14px, 3vw, 18px);
+  }
+  
+  .filter-modal-title {
+    font-size: clamp(17px, 3.2vw, 21px);
+  }
+  
+  .filter-modal-close {
+    font-size: clamp(22px, 4vw, 28px);
+  }
+  
+  .filter-modal-body {
+    padding: clamp(10px, 2vh, 14px) clamp(14px, 3vw, 18px);
+  }
+  
+  .filter-option-item {
+    padding: clamp(10px, 2vh, 14px) clamp(12px, 2.5vw, 16px);
+    font-size: clamp(14px, 2.6vw, 17px);
+  }
+}
+
+/* Old dropdown styles removed - now using filter buttons + modals */
 
 /* Pay Type Icon Selector */
 .pay-type-selector {
@@ -1301,7 +1419,7 @@ body::-webkit-scrollbar {
     letter-spacing: 1.2px;
   }
   
-  .filter-dropdown {
+  .filter-button {
     padding: clamp(12px, 2.2vh, 16px) clamp(14px, 2.5vw, 18px);
     font-size: clamp(15px, 2.8vw, 18px);
   }
@@ -1531,7 +1649,7 @@ body::-webkit-scrollbar {
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
   font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: clamp(90px, 25vh, 150px); /* MUCH shorter for small screens */
+  max-height: clamp(60px, 18vh, 100px) !important; /* DRASTICALLY shorter */
   overflow-y: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
@@ -2605,6 +2723,10 @@ body::-webkit-scrollbar {
     font-size: clamp(11px, 2.5vw, 14px) !important;
   }
   
+  .city-menu-overlay {
+    max-height: clamp(60px, 18vh, 100px) !important; /* FORCE short height */
+  }
+  
   .jobcat-headerbuttons {
     width: 149px;
     margin-right: 5px; 
@@ -2669,6 +2791,10 @@ body::-webkit-scrollbar {
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
     width: clamp(105px, 26vw, 125px) !important; /* Match smaller dropdown width */
     font-size: clamp(14px, 3.2vw, 15px) !important; /* Slightly reduced overlay font size */
+  }
+  
+  .city-menu-overlay {
+    max-height: clamp(60px, 18vh, 100px) !important; /* FORCE short height */
   }
   
   .region-menu-list li, .city-menu-list li, .pay-menu-list li {

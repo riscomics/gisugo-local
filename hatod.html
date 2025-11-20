@@ -11,7 +11,7 @@
       const useV2 = localStorage.getItem('useListingV2') === 'true';
       
       // Inject the correct CSS file IMMEDIATELY (before page renders)
-      const cssFile = useV2 ? 'public/css/listing2.css?v=8.4' : 'public/css/listing.css?v=9.3';
+      const cssFile = useV2 ? 'public/css/listing2.css?v=9.1' : 'public/css/listing.css?v=9.3';
       document.write('<link rel="stylesheet" href="' + cssFile + '">');
     </script>
   </head>
@@ -217,6 +217,45 @@
             </div>
           </div>
         </div>
+
+        <!-- REGION MODAL OVERLAY -->
+        <div class="filter-modal-overlay" id="regionModalOverlay">
+          <div class="filter-modal-container">
+            <div class="filter-modal-header">
+              <div class="filter-modal-title">Select Region</div>
+              <div class="filter-modal-close" id="regionModalClose">×</div>
+            </div>
+            <div class="filter-modal-body">
+              <div class="filter-option-list" id="regionList">
+                <div class="filter-option-item" data-value="CEBU">Cebu</div>
+                <div class="filter-option-item" data-value="BOHOL">Bohol</div>
+                <div class="filter-option-item" data-value="LEYTE">Leyte</div>
+                <div class="filter-option-item" data-value="MASBATE">Masbate</div>
+                <div class="filter-option-item" data-value="NEGROS">Negros</div>
+                <div class="filter-option-item" data-value="PANAY">Panay</div>
+                <div class="filter-option-item" data-value="SAMAR">Samar</div>
+                <div class="filter-option-item" data-value="DAVAO">Davao</div>
+                <div class="filter-option-item" data-value="MANILA">Manila</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CITY MODAL OVERLAY -->
+        <div class="filter-modal-overlay" id="cityModalOverlay">
+          <div class="filter-modal-container">
+            <div class="filter-modal-header">
+              <div class="filter-modal-title">Select City</div>
+              <div class="filter-modal-close" id="cityModalClose">×</div>
+            </div>
+            <div class="filter-modal-body">
+              <div class="filter-option-list" id="cityList">
+                <!-- Dynamically populated by JavaScript -->
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="jobcat-headerbuttons">
           <div class="jobcat-headerbutton">
             <a href="new-post2.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
@@ -247,27 +286,16 @@
           </div>
           <div class="filter-panel-body">
             <!-- REGION Dropdown -->
+            <!-- REGION Button (opens modal) -->
             <div class="filter-section">
               <div class="filter-section-title">REGION</div>
-              <select class="filter-dropdown" id="regionDropdown">
-                <option value="CEBU">Cebu</option>
-                <option value="BOHOL">Bohol</option>
-                <option value="LEYTE">Leyte</option>
-                <option value="MASBATE">Masbate</option>
-                <option value="NEGROS">Negros</option>
-                <option value="PANAY">Panay</option>
-                <option value="SAMAR">Samar</option>
-                <option value="DAVAO">Davao</option>
-                <option value="MANILA">Manila</option>
-              </select>
+              <button class="filter-button" id="regionButton">Cebu</button>
           </div>
             
-            <!-- CITY Dropdown (dynamically populated based on region) -->
+            <!-- CITY Button (opens modal) -->
             <div class="filter-section">
               <div class="filter-section-title">CITY</div>
-              <select class="filter-dropdown" id="cityDropdown">
-                <option value="">Select city...</option>
-              </select>
+              <button class="filter-button" id="cityButton">Select city...</button>
         </div>
             
             <!-- PAY TYPE Icon Selection -->
@@ -444,69 +472,112 @@
       const filterDisplayCity = document.getElementById('filterDisplayCity');
       const filterDisplayPay = document.getElementById('filterDisplayPay');
       const filterArrow = document.getElementById('filterArrow'); // Arrow
-      const regionDropdown = document.getElementById('regionDropdown');
-      const cityDropdown = document.getElementById('cityDropdown');
+      const regionButton = document.getElementById('regionButton');
+      const cityButton = document.getElementById('cityButton');
+      const regionModalOverlay = document.getElementById('regionModalOverlay');
+      const cityModalOverlay = document.getElementById('cityModalOverlay');
+      const regionModalClose = document.getElementById('regionModalClose');
+      const cityModalClose = document.getElementById('cityModalClose');
+      const regionList = document.getElementById('regionList');
+      const cityList = document.getElementById('cityList');
       const payOptionJob = document.getElementById('payOptionJob');
       const payOptionHour = document.getElementById('payOptionHour');
       
-      let selectedPayType = 'per-job'; // Default
+      let selectedRegion = 'CEBU';
+      let selectedCity = 'Cebu City';
+      let selectedPayType = 'per-job';
 
-      console.log('🔍 Elements found:', {
-        gamingFilterPanel: !!gamingFilterPanel,
-        gamingFilterBar: !!gamingFilterBar,
-        filterDisplayRegion: !!filterDisplayRegion,
-        filterDisplayCity: !!filterDisplayCity,
-        filterDisplayPay: !!filterDisplayPay,
-        regionDropdown: !!regionDropdown,
-        cityDropdown: !!cityDropdown,
-        payOptionJob: !!payOptionJob,
-        payOptionHour: !!payOptionHour
-      });
-
-      // Use citiesByRegion from listing.js (already declared globally)
-      
-      // Populate cities based on selected region
+      // Populate cities modal based on selected region
       function populateCities(region) {
-        console.log('📍 Populating cities for region:', region);
         const cities = citiesByRegion[region] || [];
-        console.log('🏙️ Cities found:', cities.length);
-        if (cityDropdown) {
-          cityDropdown.innerHTML = cities.map(city => 
-            `<option value="${city}">${city}</option>`
+        if (cityList) {
+          cityList.innerHTML = cities.map(city => 
+            `<div class="filter-option-item" data-value="${city}">${city}</div>`
           ).join('');
+          
+          // Add click handlers to city items
+          cityList.querySelectorAll('.filter-option-item').forEach(item => {
+            item.addEventListener('click', () => {
+              selectedCity = item.getAttribute('data-value');
+              if (cityButton) cityButton.textContent = selectedCity;
+              cityModalOverlay.classList.remove('show');
+              updateFilterDisplay();
+            });
+          });
         }
       }
 
       // Initialize with CEBU cities
-      if (cityDropdown) {
-        populateCities('CEBU');
-      }
+      populateCities('CEBU');
       
-      // Update display text in real-time
+      // Update display text in footer bar
       function updateFilterDisplay() {
-        const regionText = regionDropdown.options[regionDropdown.selectedIndex].text;
-        const cityText = cityDropdown.value || cityDropdown.options[0]?.text || 'Select city';
-        const payTypeText = selectedPayType === 'per-job' ? 'Per Job' : 'Per Hour';
-        
-        // Update individual display fields
-        if (filterDisplayRegion) filterDisplayRegion.textContent = regionText;
-        if (filterDisplayCity) filterDisplayCity.textContent = cityText;
+        if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
+        if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
+        const payTypeText = selectedPayType === 'per-job' ? 'PER JOB' : 'PER HOUR';
         if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
-        
-        console.log('📝 Display updated:', regionText, cityText, payTypeText);
       }
       
-      // Region change handler
-      if (regionDropdown) {
-        regionDropdown.addEventListener('change', () => {
-          populateCities(regionDropdown.value);
-          updateFilterDisplay();
+      // Region button click - open modal
+      if (regionButton) {
+        regionButton.addEventListener('click', (e) => {
+          e.stopPropagation();
+          regionModalOverlay.classList.add('show');
         });
       }
       
-      // City change handler
-      if (cityDropdown) {
-        cityDropdown.addEventListener('change', updateFilterDisplay);
+      // City button click - open modal
+      if (cityButton) {
+        cityButton.addEventListener('click', (e) => {
+          e.stopPropagation();
+          cityModalOverlay.classList.add('show');
+        });
+      }
+      
+      // Region selection from modal
+      if (regionList) {
+        regionList.querySelectorAll('.filter-option-item').forEach(item => {
+          item.addEventListener('click', () => {
+            selectedRegion = item.getAttribute('data-value');
+            if (regionButton) regionButton.textContent = item.textContent;
+            regionModalOverlay.classList.remove('show');
+            populateCities(selectedRegion);
+            selectedCity = ''; // Reset city when region changes
+            if (cityButton) cityButton.textContent = 'Select city...';
+            updateFilterDisplay();
+          });
+        });
+      }
+      
+      // Close region modal
+      if (regionModalClose) {
+        regionModalClose.addEventListener('click', () => {
+          regionModalOverlay.classList.remove('show');
+        });
+      }
+      
+      // Close city modal
+      if (cityModalClose) {
+        cityModalClose.addEventListener('click', () => {
+          cityModalOverlay.classList.remove('show');
+        });
+      }
+      
+      // Close modals on overlay click
+      if (regionModalOverlay) {
+        regionModalOverlay.addEventListener('click', (e) => {
+          if (e.target === regionModalOverlay) {
+            regionModalOverlay.classList.remove('show');
+          }
+        });
+      }
+      
+      if (cityModalOverlay) {
+        cityModalOverlay.addEventListener('click', (e) => {
+          if (e.target === cityModalOverlay) {
+            cityModalOverlay.classList.remove('show');
+          }
+        });
       }
       
       // Pay type icon selection handlers
