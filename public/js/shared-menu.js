@@ -4,33 +4,33 @@
 
 const MENU_ITEMS = [
   {
-    icon: 'public/icons/Home.png',
+    emoji: '🏠',
     text: 'Home',
     link: 'index.html'
   },
   {
-    icon: 'public/icons/Post.png',
+    emoji: '✏️',
     text: 'Post',
     link: 'new-post2.html'
   },
   {
-    icon: 'public/icons/Messages.png',
+    emoji: '💬',
     text: 'Communications',
     link: 'messages.html'
   },
   {
-    icon: 'public/icons/Jobs.png',
+    emoji: '💼',
     text: 'Gigs',
     link: 'jobs.html'
   },
   {
-    icon: 'public/icons/Profile.png',
+    emoji: '👤',
     text: 'Profile',
     link: 'profile.html'
   }
 ];
 
-// Dynamically generates menu HTML - using exact same paths as original hardcoded version
+// Dynamically generates menu HTML with emojis
 function generateMenuHTML() {
   return MENU_ITEMS.map(item => {
     const link = item.link || '#';
@@ -39,7 +39,7 @@ function generateMenuHTML() {
     
     return `
       <div class="menu-item-wrapper ${item.text.toLowerCase()}-menu-item" ${clickHandler} ${cursorStyle}>
-        <img src="${item.icon}" alt="${item.text}">
+        <div class="menu-emoji">${item.emoji}</div>
         <div>${item.text}</div>
       </div>
     `;
