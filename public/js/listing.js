@@ -110,6 +110,7 @@ let activePay = "PAY TYPE";
 
 function renderRegionMenu() {
   const list = document.getElementById('regionMenuList');
+  if (!list) return; // V2 gaming filter mode
   list.innerHTML = '';
   // Top item with arrow
   const top = document.createElement('li');
@@ -131,6 +132,7 @@ function renderRegionMenu() {
 
 function renderCityMenu() {
   const list = document.getElementById('cityMenuList');
+  if (!list) return; // V2 gaming filter mode
   list.innerHTML = '';
   const cities = citiesByRegion[activeRegion] || [];
   // Top item with arrow
@@ -173,6 +175,7 @@ function renderCityMenu() {
 
 function renderPayMenu() {
   const list = document.getElementById('payMenuList');
+  if (!list) return; // V2 gaming filter mode
   list.innerHTML = '';
   // Top item with arrow
   const top = document.createElement('li');
@@ -196,11 +199,16 @@ function renderPayMenu() {
 renderRegionMenu();
 renderCityMenu();
 renderPayMenu();
-// Update label
-document.getElementById('regionMenuLabel').textContent = activeRegion;
-document.getElementById('cityMenuLabel').textContent = activeCity;
-document.getElementById('payMenuLabel').textContent = activePay;
-setTimeout(updateCityMenuLabelFontSize, 0);
+// Update label (V1 only)
+const regionLabel = document.getElementById('regionMenuLabel');
+const cityLabel = document.getElementById('cityMenuLabel');
+const payLabel = document.getElementById('payMenuLabel');
+if (regionLabel) regionLabel.textContent = activeRegion;
+if (cityLabel) cityLabel.textContent = activeCity;
+if (payLabel) payLabel.textContent = activePay;
+if (typeof updateCityMenuLabelFontSize === 'function') {
+  setTimeout(updateCityMenuLabelFontSize, 0);
+}
 
 // Function to close all dropdown overlays
 function closeAllDropdowns() {
@@ -234,13 +242,15 @@ function populateRegionPicker() {
   });
 }
 
-// Region button click - show modal instead of small dropdown
-regionMenuBtn.addEventListener('click', function(e) {
-  e.stopPropagation();
-  closeAllDropdowns();
-  populateRegionPicker();
-  regionPickerModal.style.display = 'flex';
-});
+// Region button click - show modal instead of small dropdown (V1 only)
+if (regionMenuBtn) {
+  regionMenuBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllDropdowns();
+    populateRegionPicker();
+    regionPickerModal.style.display = 'flex';
+  });
+}
 
 // Close modal functions
 function closeRegionPicker() {
@@ -284,25 +294,31 @@ document.addEventListener('click', function(e) {
     regionMenuOpen = false;
   }
 });
-// Select region from original dropdown (backup)
-regionMenuOverlay.addEventListener('click', function(e) {
-  if (e.target.tagName === 'LI') {
-    activeRegion = e.target.textContent.replace(/▲/, '').trim();
-    document.getElementById('regionMenuLabel').textContent = activeRegion;
-    // When region changes, reset city to first city in region
-    const cities = citiesByRegion[activeRegion] || [];
-    activeCity = cities[0] || '';
-    document.getElementById('cityMenuLabel').textContent = activeCity;
-    setTimeout(updateCityMenuLabelFontSize, 0);
-    renderRegionMenu();
-    renderCityMenu();
-    regionMenuOverlay.classList.remove('show');
-    regionMenuOpen = false;
-    // Trigger job filtering and sorting based on selected region
-    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
-    filterAndSortJobs();
-  }
-});
+// Select region from original dropdown (backup) - V1 only
+if (regionMenuOverlay) {
+  regionMenuOverlay.addEventListener('click', function(e) {
+    if (e.target.tagName === 'LI') {
+      activeRegion = e.target.textContent.replace(/▲/, '').trim();
+      const regionLabel = document.getElementById('regionMenuLabel');
+      if (regionLabel) regionLabel.textContent = activeRegion;
+      // When region changes, reset city to first city in region
+      const cities = citiesByRegion[activeRegion] || [];
+      activeCity = cities[0] || '';
+      const cityLabel = document.getElementById('cityMenuLabel');
+      if (cityLabel) cityLabel.textContent = activeCity;
+      if (typeof updateCityMenuLabelFontSize === 'function') {
+        setTimeout(updateCityMenuLabelFontSize, 0);
+      }
+      renderRegionMenu();
+      renderCityMenu();
+      regionMenuOverlay.classList.remove('show');
+      regionMenuOpen = false;
+      // Trigger job filtering and sorting based on selected region
+      // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
+      filterAndSortJobs();
+    }
+  });
+}
 
 // City menu overlay logic - UPDATED TO USE CENTERED MODAL
 const cityMenuBtn = document.getElementById('locationCity');
@@ -327,13 +343,15 @@ function populateCityPicker() {
   });
 }
 
-// City button click - show modal instead of small dropdown
-cityMenuBtn.addEventListener('click', function(e) {
-  e.stopPropagation();
-  closeAllDropdowns();
-  populateCityPicker();
-  cityPickerModal.style.display = 'flex';
-});
+// City button click - show modal instead of small dropdown (V1 only)
+if (cityMenuBtn) {
+  cityMenuBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllDropdowns();
+    populateCityPicker();
+    cityPickerModal.style.display = 'flex';
+  });
+}
 
 // Close modal functions
 function closeCityPicker() {
@@ -372,17 +390,22 @@ document.addEventListener('click', function(e) {
     cityMenuOpen = false;
   }
 });
-// Select city from original dropdown (backup)
-cityMenuOverlay.addEventListener('click', function(e) {
-  if (e.target.tagName === 'LI') {
-    activeCity = e.target.textContent.replace(/▲/, '').trim();
-    document.getElementById('cityMenuLabel').textContent = activeCity;
-    setTimeout(updateCityMenuLabelFontSize, 0);
-    renderCityMenu();
-    cityMenuOverlay.classList.remove('show');
-    cityMenuOpen = false;
-  }
-});
+// Select city from original dropdown (backup) - V1 only
+if (cityMenuOverlay) {
+  cityMenuOverlay.addEventListener('click', function(e) {
+    if (e.target.tagName === 'LI') {
+      activeCity = e.target.textContent.replace(/▲/, '').trim();
+      const cityLabel = document.getElementById('cityMenuLabel');
+      if (cityLabel) cityLabel.textContent = activeCity;
+      if (typeof updateCityMenuLabelFontSize === 'function') {
+        setTimeout(updateCityMenuLabelFontSize, 0);
+      }
+      renderCityMenu();
+      cityMenuOverlay.classList.remove('show');
+      cityMenuOpen = false;
+    }
+  });
+}
 
 // Pay menu overlay logic - UPDATED TO USE CENTERED MODAL
 const payMenuBtn = document.getElementById('payMenu');
@@ -406,13 +429,15 @@ function populatePayPicker() {
   });
 }
 
-// Pay button click - show modal instead of small dropdown
-payMenuBtn.addEventListener('click', function(e) {
-  e.stopPropagation();
-  closeAllDropdowns();
-  populatePayPicker();
-  payPickerModal.style.display = 'flex';
-});
+// Pay button click - show modal instead of small dropdown (V1 only)
+if (payMenuBtn) {
+  payMenuBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAllDropdowns();
+    populatePayPicker();
+    payPickerModal.style.display = 'flex';
+  });
+}
 
 // Close modal functions
 function closePayPicker() {
@@ -450,19 +475,22 @@ document.addEventListener('click', function(e) {
     payMenuOpen = false;
   }
 });
-// Select pay type from original dropdown (backup)
-payMenuOverlay.addEventListener('click', function(e) {
-  if (e.target.tagName === 'LI') {
-    activePay = e.target.textContent.replace(/▲/, '').trim();
-    document.getElementById('payMenuLabel').textContent = activePay;
-    renderPayMenu();
-    payMenuOverlay.classList.remove('show');
-    payMenuOpen = false;
-    // Trigger job filtering and sorting based on selected pay type
-    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
-    filterAndSortJobs();
-  }
-});
+// Select pay type from original dropdown (backup) - V1 only
+if (payMenuOverlay) {
+  payMenuOverlay.addEventListener('click', function(e) {
+    if (e.target.tagName === 'LI') {
+      activePay = e.target.textContent.replace(/▲/, '').trim();
+      const payLabel = document.getElementById('payMenuLabel');
+      if (payLabel) payLabel.textContent = activePay;
+      renderPayMenu();
+      payMenuOverlay.classList.remove('show');
+      payMenuOpen = false;
+      // Trigger job filtering and sorting based on selected pay type
+      // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
+      filterAndSortJobs();
+    }
+  });
+}
 
 function updateCityMenuLabelFontSize() {
   const label = document.getElementById('cityMenuLabel');

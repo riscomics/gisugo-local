@@ -11,7 +11,7 @@
       const useV2 = localStorage.getItem('useListingV2') === 'true';
       
       // Inject the correct CSS file IMMEDIATELY (before page renders)
-      const cssFile = useV2 ? 'public/css/listing2.css?v=1.0' : 'public/css/listing.css?v=9.3';
+      const cssFile = useV2 ? 'public/css/listing2.css?v=8.4' : 'public/css/listing.css?v=9.3';
       document.write('<link rel="stylesheet" href="' + cssFile + '">');
     </script>
   </head>
@@ -229,7 +229,7 @@
             <div>Search</div>
           </div>
           <div class="jobcat-headerbutton jobcat-menu-btn">
-            <div class="jobcat-icon-emoji">⚙️</div>
+            <div class="jobcat-icon-emoji">📋</div>
             <div>Menu</div>
           </div>
         </div>
@@ -240,41 +240,71 @@
     <!-- Sort Header -->
     <div class="jobcat-sort-header">
       <div class="sortmenus">
-        <div class="region-menu-wrapper">
-          <div class="sort-menu region-menu" id="locationRegion">
-            <div id="regionMenuLabel">CEBU</div>
-            <div>&#9660;</div>
+        <!-- 🎮 Gaming Filter Panel (Expandable) -->
+        <div class="gaming-filter-panel" id="gamingFilterPanel">
+          <div class="filter-panel-header">
+            <div class="filter-panel-title">FILTER JOBS</div>
           </div>
-          <div class="region-menu-overlay" id="regionMenuOverlay">
-            <ul class="region-menu-list" id="regionMenuList">
-              <!-- Region items will be rendered here by JS -->
-            </ul>
+          <div class="filter-panel-body">
+            <!-- REGION Dropdown -->
+            <div class="filter-section">
+              <div class="filter-section-title">REGION</div>
+              <select class="filter-dropdown" id="regionDropdown">
+                <option value="CEBU">Cebu</option>
+                <option value="BOHOL">Bohol</option>
+                <option value="LEYTE">Leyte</option>
+                <option value="MASBATE">Masbate</option>
+                <option value="NEGROS">Negros</option>
+                <option value="PANAY">Panay</option>
+                <option value="SAMAR">Samar</option>
+                <option value="DAVAO">Davao</option>
+                <option value="MANILA">Manila</option>
+              </select>
           </div>
+            
+            <!-- CITY Dropdown (dynamically populated based on region) -->
+            <div class="filter-section">
+              <div class="filter-section-title">CITY</div>
+              <select class="filter-dropdown" id="cityDropdown">
+                <option value="">Select city...</option>
+              </select>
         </div>
-        <div class="city-menu-wrapper">
-          <div class="sort-menu city-menu" id="locationCity">
-            <div id="cityMenuLabel">CEBU CITY</div>
-            <div>&#9660;</div>
+            
+            <!-- PAY TYPE Icon Selection -->
+            <div class="filter-section">
+              <div class="filter-section-title">PAY TYPE</div>
+              <div class="pay-type-selector">
+                <div class="pay-type-option active" data-value="per-job" id="payOptionJob">
+                  <div class="pay-type-icon">💰</div>
+                  <div class="pay-type-label">Per Job</div>
+                </div>
+                <div class="pay-type-option" data-value="per-hour" id="payOptionHour">
+                  <div class="pay-type-icon">⏰</div>
+                  <div class="pay-type-label">Per Hour</div>
+                </div>
+              </div>
           </div>
-          <div class="city-menu-overlay" id="cityMenuOverlay">
-            <ul class="city-menu-list" id="cityMenuList">
-              <!-- City items will be rendered here by JS -->
-            </ul>
           </div>
+          <!-- Filter Display Bar (visible when collapsed) -->
+          <div class="filter-panel-footer-bar" id="gamingFilterBar">
+            <div class="filter-display-text" id="filterDisplay">
+              <div class="filter-display-item">
+                <div class="filter-display-label">Region</div>
+                <div class="filter-display-value" id="filterDisplayRegion">Cebu</div>
+              </div>
+              <div class="filter-display-item">
+                <div class="filter-display-label">City</div>
+                <div class="filter-display-value" id="filterDisplayCity">CEBU CITY</div>
+              </div>
+              <div class="filter-display-item">
+                <div class="filter-display-label">Pay Rate</div>
+                <div class="filter-display-value" id="filterDisplayPay">Per Job</div>
         </div>
-        <div class="pay-menu-wrapper">
-          <div class="sort-menu pay-menu" id="payMenu">
-            <div id="payMenuLabel">PAY TYPE</div>
-            <div>&#9660;</div>
           </div>
-          <div class="pay-menu-overlay" id="payMenuOverlay">
-            <ul class="pay-menu-list" id="payMenuList">
-              <!-- Pay type items will be rendered here by JS -->
-            </ul>
+            <div class="filter-display-arrow" id="filterArrow">▼</div>
           </div>
         </div>
       </div>
-      <div class="jobcat-sort-borderline"></div>
     </div>
 
     <div class="jobcat-header-spacer"></div>
@@ -381,7 +411,7 @@
     </script>
 
     <script src="public/js/shared-menu.js"></script>
-    <script src="public/js/listing.js?v=5.2"></script>
+    <script src="public/js/listing.js?v=5.6"></script>
 
     <script>
       // Job Category Modal Close Button Handler
@@ -401,6 +431,140 @@
           }
         });
       }
+    </script>
+
+    <script>
+      // 🎮 Gaming Filter Panel (Single Piece - Expandable)
+      console.log('🎮 Gaming Filter Script Loading...');
+      
+      const gamingFilterPanel = document.getElementById('gamingFilterPanel');
+      const gamingFilterBar = document.getElementById('gamingFilterBar'); // Footer bar (clickable)
+      const filterDisplay = document.getElementById('filterDisplay'); // Display container
+      const filterDisplayRegion = document.getElementById('filterDisplayRegion');
+      const filterDisplayCity = document.getElementById('filterDisplayCity');
+      const filterDisplayPay = document.getElementById('filterDisplayPay');
+      const filterArrow = document.getElementById('filterArrow'); // Arrow
+      const regionDropdown = document.getElementById('regionDropdown');
+      const cityDropdown = document.getElementById('cityDropdown');
+      const payOptionJob = document.getElementById('payOptionJob');
+      const payOptionHour = document.getElementById('payOptionHour');
+      
+      let selectedPayType = 'per-job'; // Default
+
+      console.log('🔍 Elements found:', {
+        gamingFilterPanel: !!gamingFilterPanel,
+        gamingFilterBar: !!gamingFilterBar,
+        filterDisplayRegion: !!filterDisplayRegion,
+        filterDisplayCity: !!filterDisplayCity,
+        filterDisplayPay: !!filterDisplayPay,
+        regionDropdown: !!regionDropdown,
+        cityDropdown: !!cityDropdown,
+        payOptionJob: !!payOptionJob,
+        payOptionHour: !!payOptionHour
+      });
+
+      // Use citiesByRegion from listing.js (already declared globally)
+      
+      // Populate cities based on selected region
+      function populateCities(region) {
+        console.log('📍 Populating cities for region:', region);
+        const cities = citiesByRegion[region] || [];
+        console.log('🏙️ Cities found:', cities.length);
+        if (cityDropdown) {
+          cityDropdown.innerHTML = cities.map(city => 
+            `<option value="${city}">${city}</option>`
+          ).join('');
+        }
+      }
+
+      // Initialize with CEBU cities
+      if (cityDropdown) {
+        populateCities('CEBU');
+      }
+      
+      // Update display text in real-time
+      function updateFilterDisplay() {
+        const regionText = regionDropdown.options[regionDropdown.selectedIndex].text;
+        const cityText = cityDropdown.value || cityDropdown.options[0]?.text || 'Select city';
+        const payTypeText = selectedPayType === 'per-job' ? 'Per Job' : 'Per Hour';
+        
+        // Update individual display fields
+        if (filterDisplayRegion) filterDisplayRegion.textContent = regionText;
+        if (filterDisplayCity) filterDisplayCity.textContent = cityText;
+        if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
+        
+        console.log('📝 Display updated:', regionText, cityText, payTypeText);
+      }
+      
+      // Region change handler
+      if (regionDropdown) {
+        regionDropdown.addEventListener('change', () => {
+          populateCities(regionDropdown.value);
+          updateFilterDisplay();
+        });
+      }
+      
+      // City change handler
+      if (cityDropdown) {
+        cityDropdown.addEventListener('change', updateFilterDisplay);
+      }
+      
+      // Pay type icon selection handlers
+      if (payOptionJob) {
+        payOptionJob.addEventListener('click', () => {
+          selectedPayType = 'per-job';
+          payOptionJob.classList.add('active');
+          if (payOptionHour) payOptionHour.classList.remove('active');
+          updateFilterDisplay();
+          console.log('💰 Pay type selected: Per Job');
+        });
+      }
+      
+      if (payOptionHour) {
+        payOptionHour.addEventListener('click', () => {
+          selectedPayType = 'per-hour';
+          payOptionHour.classList.add('active');
+          if (payOptionJob) payOptionJob.classList.remove('active');
+          updateFilterDisplay();
+          console.log('⏰ Pay type selected: Per Hour');
+        });
+      }
+      
+      // Initialize display on load
+      updateFilterDisplay();
+
+      // Toggle panel expansion when clicking footer bar
+      if (gamingFilterBar && gamingFilterPanel) {
+        console.log('✅ Filter bar found, attaching click listener');
+        gamingFilterBar.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent event from bubbling
+          console.log('🖱️ Filter bar clicked!');
+          gamingFilterPanel.classList.toggle('expanded');
+          const isExpanded = gamingFilterPanel.classList.contains('expanded');
+          console.log('📦 Panel', isExpanded ? 'expanded' : 'collapsed');
+          
+          // Prevent body scroll when expanded
+          document.body.style.overflow = isExpanded ? 'hidden' : '';
+        });
+        
+        // Close panel when clicking backdrop
+        document.addEventListener('click', (e) => {
+          if (gamingFilterPanel.classList.contains('expanded')) {
+            const isClickInsidePanel = gamingFilterPanel.contains(e.target);
+            if (!isClickInsidePanel) {
+              console.log('🖱️ Clicked outside panel, collapsing...');
+              gamingFilterPanel.classList.remove('expanded');
+              document.body.style.overflow = '';
+            }
+          }
+        });
+      } else {
+        console.error('❌ Elements not found:', {
+          gamingFilterBar: !!gamingFilterBar,
+          gamingFilterPanel: !!gamingFilterPanel
+        });
+      }
+
     </script>
 
   </body>

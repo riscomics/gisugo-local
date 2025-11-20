@@ -11,7 +11,7 @@ html::-webkit-scrollbar {
 }
 
 body {        
-  background-color: #866f67;
+  background: linear-gradient(180deg, #1a1f2e 0%, #242936 100%); /* Dark gradient matching Modern & Techy theme */
   margin: 0;
   padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
 }
@@ -183,23 +183,23 @@ body::-webkit-scrollbar {
 .jobcat-borderline {
   height: clamp(3px, 0.5vh, 4px);
   width: 100%;
-  background: #10b981; /* Green - matches new-post2 accent system */
+  background: #0ea5e9; /* Cyan/Blue - differentiated from filter green */
   position: fixed;
   left: 0;
   z-index: 96;
-  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.5),
-              0 0 20px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4),
+              0 0 20px rgba(14, 165, 233, 0.25);
   animation: borderPulse 2s ease-in-out infinite;
 }
 
 @keyframes borderPulse {
   0%, 100% {
-    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.5),
-                0 0 20px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4),
+                0 0 20px rgba(14, 165, 233, 0.25);
   }
   50% {
-    box-shadow: 0 2px 20px rgba(16, 185, 129, 0.8),
-                0 0 32px rgba(16, 185, 129, 0.5);
+    box-shadow: 0 2px 20px rgba(14, 165, 233, 0.6),
+                0 0 32px rgba(14, 165, 233, 0.4);
   }
 }
 
@@ -767,26 +767,605 @@ body::-webkit-scrollbar {
   left: 0;
   right: 0;
   z-index: 50;
-  background: #866f67;
+  background: transparent; /* Made transparent so cards show through */
+  overflow: visible; /* Allow gaming filter panel to expand beyond container */
 }
 
 .sortmenus {
   display: flex;
   flex-direction: row;
   justify-content: center;
+  align-items: flex-start;
+  padding: 0; /* Remove all padding */
+  gap: clamp(8px, 2vw, 15px);
+  min-height: 0; /* Allow panel to determine height */
+}
+
+/* 🎮 Gaming Filter Panel (Expandable Single Piece) */
+.gaming-filter-panel {
+  background: linear-gradient(180deg, rgba(26, 32, 44, 0.95) 0%, rgba(45, 55, 72, 0.97) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 3px solid #10b981;
+  border-radius: 14px;
+  width: clamp(500px, 92vw, 1100px); /* Increased width for more space */
+  max-width: 96%; /* Increased from 94% */
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3),
+              0 0 20px rgba(16, 185, 129, 0.2);
+  position: relative;
+  z-index: 100;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Collapsed state - only footer visible */
+.gaming-filter-panel {
+  max-height: 85px; /* Consistent collapsed height */
+  transition: max-height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), /* Bouncy expansion */
+              transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+}
+
+/* Smooth closing animation - consolidated with styling */
+.gaming-filter-panel:not(.expanded) {
+  max-height: 85px; /* Explicit same height to prevent snap */
+  transition: max-height 0.45s ease-out, /* Smooth consistent closing */
+              transform 0.3s ease,
+              box-shadow 0.3s ease,
+              margin 0.3s ease; /* Add margin transition */
+  border-radius: 0 0 14px 14px;
+  border-top: none;
+  margin-top: -3px; /* Pull up to be flush with borderline */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 rgba(16, 185, 129, 0);
+}
+
+.gaming-filter-panel.expanded {
+  margin-top: -15px; /* Pull up MORE to fully hide rounded corners on mobile */
+  border-radius: 14px;
+  border-top: 3px solid #10b981;
+}
+
+.gaming-filter-panel .filter-panel-header,
+.gaming-filter-panel .filter-panel-body {
+  display: none;
+}
+
+/* Subtle backdrop when expanded - highlights overlay */
+.sortmenus::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 99;
+  transition: background 0.3s ease;
+}
+
+.sortmenus:has(.gaming-filter-panel.expanded)::after {
+  background: rgba(0, 0, 0, 0.15); /* Subtle dark overlay - highlights panel without blocking cards */
+  pointer-events: all; /* Capture clicks outside to close panel */
+}
+
+@media (min-width: 601px) {
+  .sortmenus:has(.gaming-filter-panel.expanded)::after {
+    background: rgba(0, 0, 0, 0.12); /* Even lighter for desktop */
+  }
+}
+
+/* Expanded state - everything visible */
+.gaming-filter-panel.expanded {
+  max-height: 95vh;
+  transition: max-height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 14px;
+  border-top: 3px solid #10b981;
+}
+
+.gaming-filter-panel.expanded .filter-panel-header,
+.gaming-filter-panel.expanded .filter-panel-body {
+  display: block;
+  animation: slideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Filter Display - Mobile Responsive */
+@media (max-width: 600px) {
+  .filter-display-text {
+    gap: clamp(3px, 1.2vw, 8px);
+  }
+  
+  .filter-display-label {
+    font-size: clamp(6px, 1.5vw, 9px);
+  }
+  
+  .filter-display-value {
+    font-size: clamp(8px, 2vw, 12px);
+  }
+}
+
+@media (max-width: 480px) {
+  .filter-display-text {
+    gap: clamp(2px, 0.8vw, 6px);
+  }
+  
+  .filter-display-label {
+    font-size: clamp(6px, 1.3vw, 8px);
+  }
+  
+  .filter-display-value {
+    font-size: clamp(7px, 1.8vw, 11px);
+  }
+}
+
+@media (max-width: 360px) {
+  .filter-display-text {
+    gap: 2px;
+  }
+  
+  .filter-display-label {
+    font-size: 6px;
+  }
+  
+  .filter-display-value {
+    font-size: clamp(7px, 1.8vw, 10px);
+  }
+}
+
+@media (max-width: 320px) {
+  .filter-display-text {
+    gap: 1px;
+  }
+  
+  .filter-display-value {
+    font-size: 7px;
+  }
+}
+
+
+.filter-panel-header {
+  display: flex;
+  justify-content: center;
   align-items: center;
-  padding-top: clamp(8px, 2vw, 12px); /* Reduced top padding for better spacing */
-  padding-left: clamp(15px, 4vw, 25px); /* Add left spacing */
-  padding-right: clamp(15px, 4vw, 25px); /* Add right spacing */
-  gap: clamp(8px, 2vw, 15px); /* Much smaller gap to prevent bleeding */
-  height: clamp(55px, 15vh, 68px); /* More conservative height */
+  padding: clamp(20px, 3vh, 28px) clamp(28px, 4vw, 40px);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.filter-panel-title {
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(16, 185, 129, 0.6);
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.filter-panel-body {
+  padding: clamp(24px, 4vh, 36px) clamp(28px, 4vw, 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 60vh; /* Generous height for all dropdowns */
+}
+
+/* Smooth scrollbar for filter body */
+.filter-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.filter-panel-body::-webkit-scrollbar-track {
+  background: rgba(45, 55, 72, 0.5);
+  border-radius: 4px;
+}
+
+.filter-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.5);
+  border-radius: 4px;
+}
+
+.filter-panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.7);
+}
+
+.filter-section {
+  margin-bottom: clamp(28px, 4vh, 40px);
+}
+
+.filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-section-title {
+  font-size: clamp(16px, 3vw, 20px);
+  font-weight: 800;
+  color: #10b981;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+  letter-spacing: 1.5px;
+  margin-bottom: clamp(12px, 2vh, 18px);
+  padding-left: 12px;
+  border-left: 4px solid #10b981;
+}
+
+.filter-dropdown {
+  width: 100%;
+  background: rgba(45, 55, 72, 0.8);
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  border-radius: 10px;
+  padding: clamp(14px, 2.5vh, 18px) clamp(16px, 3vw, 20px);
+  font-size: clamp(16px, 3vw, 19px);
+  font-weight: 700;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  max-height: 50px; /* Constrain dropdown height */
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.filter-dropdown::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Edge */
+  width: 0;
+  height: 0;
+}
+
+/* Hide scrollbar in dropdown option list */
+.filter-dropdown option {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filter-dropdown:hover {
+  background: rgba(45, 55, 72, 1);
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4),
+              0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.filter-dropdown:focus {
+  border-color: #10b981;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5),
+              0 0 30px rgba(16, 185, 129, 0.5);
+}
+
+.filter-dropdown option {
+  background: #2d3748;
+  color: #ffffff;
+  padding: 12px;
+  font-weight: 600;
+}
+
+/* Pay Type Icon Selector */
+.pay-type-selector {
+  display: flex;
+  gap: clamp(12px, 2vw, 20px);
+  justify-content: space-between;
+}
+
+.pay-type-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 3vh, 24px) clamp(12px, 2vw, 20px);
+  background: rgba(45, 55, 72, 0.6);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.pay-type-option:hover {
+  background: rgba(45, 55, 72, 0.8);
+  border-color: rgba(16, 185, 129, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4),
+              0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.pay-type-option.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.5),
+              inset 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.pay-type-icon {
+  font-size: clamp(32px, 5vw, 48px);
+  margin-bottom: clamp(8px, 1.5vh, 12px);
+  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
+}
+
+.pay-type-option.active .pay-type-icon {
+  filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.8));
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.pay-type-label {
+  font-size: clamp(14px, 2.8vw, 18px);
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.pay-type-option.active .pay-type-label {
+  color: #10b981;
+  text-shadow: 0 2px 12px rgba(16, 185, 129, 0.8);
+}
+
+/* Filter Display Bar (Bottom of panel - always visible) */
+.filter-panel-footer-bar {
+  padding: clamp(14px, 2.5vh, 20px) clamp(8px, 1.5vw, 14px); /* Minimal horizontal padding */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: clamp(12px, 2vw, 20px);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+  position: relative;
+  order: 999; /* Always at bottom */
+  flex-shrink: 0;
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.gaming-filter-panel:not(.expanded) .filter-panel-footer-bar {
+  border-top: none;
+  border-radius: 14px; /* Match panel radius when collapsed */
+}
+
+.filter-panel-footer-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  border-radius: 14px 14px 0 0;
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+.gaming-filter-panel.expanded .filter-panel-footer-bar::before {
+  display: none;
+}
+
+.filter-panel-footer-bar:hover {
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.5), rgba(55, 65, 81, 0.5));
+}
+
+.filter-display-text {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(4px, 1.5vw, 18px); /* More aggressive gap scaling */
+  flex: 1;
+  font-size: clamp(14px, 3vw, 18px);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  padding: 0;
+}
+
+.filter-display-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1 1 0; /* Equal width distribution */
+  min-width: 0; /* Allow shrinking on small screens */
+}
+
+.filter-display-label {
+  font-size: clamp(7px, 1.8vw, 12px); /* More aggressive scaling */
+  font-weight: 600;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.filter-display-value {
+  font-size: clamp(9px, 2.5vw, 17px); /* Much more aggressive scaling from 9px to 17px */
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: visible;
+  text-align: center;
+  width: 100%;
+}
+
+.filter-display-arrow {
+  font-size: clamp(18px, 3.5vw, 24px);
+  color: #10b981;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.7));
+}
+
+.filter-panel-footer-bar:hover .filter-display-arrow {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 16px rgba(16, 185, 129, 1));
+}
+
+/* Rotate arrow when expanded */
+.gaming-filter-panel.expanded .filter-display-arrow {
+  transform: rotate(180deg);
+}
+
+.gaming-filter-panel.expanded .filter-panel-footer-bar:hover .filter-display-arrow {
+  transform: rotate(180deg) scale(1.15);
+}
+
+/* Mobile adjustments for gaming filter panel */
+@media (max-width: 600px) {
+  .gaming-filter-panel {
+    width: 96%;
+    max-height: 85px; /* Match base collapsed height - prevents snap */
+  }
+  
+  .gaming-filter-panel:not(.expanded) {
+    max-height: 85px; /* Explicit height match */
+    border-radius: 0 0 12px 12px;
+    margin-top: -3px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 rgba(16, 185, 129, 0);
+  }
+  
+  .gaming-filter-panel.expanded {
+    max-height: 95vh;
+    border-radius: 12px;
+    margin-top: -15px; /* Pull up to hide rounded corners */
+  }
+  
+  .filter-panel-header {
+    padding: clamp(16px, 2.5vh, 22px) clamp(20px, 3.5vw, 28px);
+  }
+  
+  .filter-panel-title {
+    font-size: clamp(18px, 3.5vw, 24px);
+    letter-spacing: 1.5px;
+  }
+  
+  .filter-panel-body {
+    padding: clamp(18px, 3vh, 28px) clamp(20px, 3.5vw, 28px);
+    overflow-y: auto;
+    max-height: 65vh; /* Generous height for all dropdowns */
+  }
+  
+  .filter-section {
+    margin-bottom: clamp(22px, 3.5vh, 32px);
+  }
+  
+  .pay-type-selector {
+    gap: clamp(8px, 1.5vw, 14px);
+  }
+  
+  .pay-type-icon {
+    font-size: clamp(28px, 6vw, 40px);
+    margin-bottom: clamp(6px, 1.2vh, 10px);
+  }
+  
+  .pay-type-label {
+    font-size: clamp(12px, 2.5vw, 16px);
+  }
+  
+  .filter-panel-footer-bar {
+    padding: clamp(12px, 2.2vh, 16px) clamp(6px, 1.2vw, 10px); /* Even less padding */
+    gap: clamp(8px, 1.5vw, 14px);
+  }
+  
+  .filter-display-text {
+    font-size: clamp(17px, 3.5vw, 20px);
+    letter-spacing: 0.6px;
+  }
+  
+  .filter-display-arrow {
+    font-size: clamp(16px, 3.2vw, 20px);
+  }
+  
+  .filter-section-title {
+    font-size: clamp(14px, 2.8vw, 18px);
+    letter-spacing: 1.2px;
+  }
+  
+  .filter-dropdown {
+    padding: clamp(12px, 2.2vh, 16px) clamp(14px, 2.5vw, 18px);
+    font-size: clamp(15px, 2.8vw, 18px);
+  }
+  
+  .filter-display-text {
+    font-size: clamp(17px, 3.5vw, 20px);
+    letter-spacing: 0.6px;
+  }
+  
+  .filter-display-arrow {
+    font-size: clamp(16px, 3.2vw, 20px);
+  }
 }
 
 /* Desktop-specific sortmenus spacing (601px and above) */
 @media (min-width: 601px) {
   .sortmenus {
-    padding-top: clamp(20px, 4vh, 28px) !important; /* Increased top padding for better separation from header */
-    height: clamp(60px, 12vh, 75px) !important; /* Slightly increased height for better proportions */
+    padding: 0 !important; /* Keep flush with borderline */
+    min-height: 0 !important;
+    height: auto !important;
+  }
+  
+  .gaming-filter-panel {
+    width: clamp(550px, 65vw, 950px);
+    max-height: 110px; /* Collapsed desktop height */
+  }
+  
+  /* Desktop: Push down BOTH states */
+  .gaming-filter-panel:not(.expanded) {
+    margin-top: 14px; /* Push down collapsed form on desktop */
+  }
+  
+  .gaming-filter-panel.expanded {
+    max-height: 90vh;
+    margin-top: 14px; /* Same position when expanded - already has full border */
+  }
+  
+  .filter-panel-body {
+    max-height: 65vh; /* Generous height for all dropdowns */
+  }
+  
+  .filter-panel-footer-bar {
+    padding: clamp(22px, 4vh, 34px) clamp(12px, 2.2vw, 20px); /* Much less horizontal padding */
+  }
+  
+  .filter-display-text {
+    gap: clamp(15px, 2.5vw, 35px); /* Scale properly on desktop */
+    font-size: 26px;
+    letter-spacing: 1.2px;
+  }
+  
+  .filter-display-arrow {
+    font-size: 24px;
+  }
+}
+
+/* Desktop mid-range fix (601-850px) */
+@media (min-width: 601px) and (max-width: 850px) {
+  .filter-display-text {
+    gap: clamp(10px, 2vw, 20px); /* Tighter gap for this range */
+  }
+  
+  .filter-display-value {
+    font-size: clamp(14px, 2.5vw, 18px); /* Smaller text */
   }
 }
 
@@ -835,9 +1414,7 @@ body::-webkit-scrollbar {
 
 /* Second borderline */
 .jobcat-sort-borderline {
-  width: 100%;
-  height: 4px;
-  background-color: rgb(149, 149, 328); /* Blue */
+  display: none; /* Hidden for gaming-style filter bar */
 }
 
 @media (max-width: 600px) {
@@ -846,9 +1423,24 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding: clamp(8px, 2vw, 12px) clamp(1px, 0.5vw, 2px); /* Added top padding for spacing from borderline */
-    gap: clamp(4px, 1.5vw, 6px); /* Responsive gap */
-    height: clamp(40px, 12vh, 48px); /* Increased height for better spacing */
+    padding: 0;
+    gap: clamp(4px, 1.5vw, 6px);
+    min-height: 0;
+  }
+  
+  .gaming-filter-bar {
+    width: 94%;
+    padding: clamp(18px, 3.5vh, 24px) clamp(28px, 4.5vw, 36px);
+    gap: clamp(18px, 3vw, 24px);
+  }
+  
+  .filter-display {
+    font-size: clamp(17px, 3.5vw, 20px);
+    letter-spacing: 0.6px;
+  }
+  
+  .filter-arrow {
+    font-size: clamp(16px, 3.2vw, 20px);
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -939,12 +1531,21 @@ body::-webkit-scrollbar {
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
   font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
+  max-height: clamp(90px, 25vh, 150px); /* MUCH shorter for small screens */
   overflow-y: auto;
-  scrollbar-width: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 .city-menu-overlay::-webkit-scrollbar {
-  display: none;
+  display: none !important; /* Chrome/Safari */
+  width: 0 !important;
+  height: 0 !important;
+}
+.city-menu-overlay::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+.city-menu-overlay::-webkit-scrollbar-track {
+  display: none !important;
 }
 .city-menu-overlay.show {
   display: block;
@@ -1960,21 +2561,11 @@ body::-webkit-scrollbar {
 /* ===================== END JOB PREVIEW & JOB PAGE STYLES ===================== */
 
 .jobcat-header-spacer {
-  height: 176px;
+  height: clamp(65px, 8vh, 73px); /* Responsive across all viewports */
 }
 
 /* Desktop optimization for header spacer (601px and above) */
-@media (min-width: 601px) {
-  .jobcat-header-spacer {
-    height: clamp(60px, 8vh, 80px) !important; /* Minimal space between borderline and job cards */
-  }
-}
-
-@media (max-width: 600px) {
-  .jobcat-header-spacer {
-    height: 85px; /* Reduced height to minimize top spacing */
-  }
-}
+/* REMOVED - Now using single clamp() rule in base .jobcat-header-spacer */
 
 
 
@@ -2061,13 +2652,11 @@ body::-webkit-scrollbar {
 /* Medium Mobile Screens (401px to 480px) - Optimize 411px viewport */
 @media (max-width: 480px) and (min-width: 401px) {
   .sortmenus {
-    padding-top: 0 !important; /* Remove top padding for perfect centering */
-    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    padding-left: clamp(8px, 2vw, 12px) !important; /* Add left margin from edge */
-    padding-right: clamp(8px, 2vw, 12px) !important; /* Add right margin from edge */
-    height: clamp(42px, 10vh, 46px) !important; /* Reduced height for smaller buttons */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -2086,20 +2675,16 @@ body::-webkit-scrollbar {
     font-size: clamp(14px, 3.2vw, 15px) !important; /* Match overlay font size */
     padding: clamp(4px, 1.2vw, 5px) 0 !important; /* Reduced padding for tighter list */
   }
-  
-  .jobcat-header-spacer {
-    height: 60px !important; /* Reduced spacing between second borderline and job cards */
-  }
 }
 
 /* Small Mobile Screens (384px viewport optimization) */
 @media (max-width: 400px) and (min-width: 376px) {
   .sortmenus {
-    padding-top: 0 !important; /* Remove top padding for perfect centering */
-    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    height: clamp(40px, 10vh, 44px) !important; /* Reduced height for tighter vertical spacing */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -2113,22 +2698,16 @@ body::-webkit-scrollbar {
     width: clamp(100px, 28vw, 120px) !important;
     font-size: clamp(10px, 2.5vw, 12px) !important;
   }
-  
-  .jobcat-header-spacer {
-    height: 55px !important; /* Reduced spacing between second borderline and job cards */
-  }
 }
 
 /* Small Mobile Screens (360px viewport optimization) */
 @media (max-width: 375px) and (min-width: 351px) {
   .sortmenus {
-    padding-top: 0 !important; /* Remove top padding for perfect centering */
-    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
-    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
-    height: clamp(36px, 8vh, 40px) !important; /* Reduced height to minimize top spacing */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -2146,10 +2725,6 @@ body::-webkit-scrollbar {
   .region-menu-list li, .city-menu-list li, .pay-menu-list li {
     font-size: clamp(15px, 3.8vw, 17px) !important; /* Ensure list items match overlay font size */
     padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Increased padding for better touch targets */
-  }
-  
-  .jobcat-header-spacer {
-    height: 55px !important; /* Fixed: was inheriting 85px from 600px breakpoint */
   }
 }
 
@@ -2195,13 +2770,11 @@ body::-webkit-scrollbar {
   }
   
   .sortmenus {
-    padding-top: clamp(3px, 0.8vw, 4px) !important; /* Minimal top padding for centering */
-    padding-bottom: clamp(3px, 0.8vw, 4px) !important; /* Minimal bottom padding for centering */
-    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
-    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
-    height: clamp(36px, 8vh, 40px) !important; /* Reduced height for tighter spacing */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -2224,12 +2797,6 @@ body::-webkit-scrollbar {
 
 /* Job card spacing fix specifically for 360px */
 @media (max-width: 360px) {
-  .jobcat-header-spacer {
-    height: 0 !important; /* Remove height */
-    margin: -12px 0 0 0 !important; /* Negative top margin to pull job cards up */
-    padding: 0 !important; /* Remove any additional padding */
-  }
-  
   .job-preview-card:first-of-type {
     margin-top: 0 !important; /* Remove any top margin from first job card */
   }
@@ -2264,7 +2831,11 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding: clamp(2px, 0.8vw, 4px) clamp(6px, 2vw, 10px) !important; /* Added left/right edge spacing */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -2303,12 +2874,6 @@ body::-webkit-scrollbar {
   .jobcat-listheader {
     height: 62px !important; /* Reduce overall header height */
     padding-right: 2px !important; /* Reduce padding */
-  }
-  
-  .jobcat-header-spacer {
-    height: 40px !important; /* Maximum space between dropdowns and job cards */
-    margin: 0 !important; /* Remove negative margin */
-    padding: 0 !important;
   }
   
   .job-preview-card:first-of-type {
@@ -2706,10 +3271,6 @@ body::-webkit-scrollbar {
   .jobcat-listheader {
     height: 64px !important;
     padding-right: 3px !important;
-  }
-  
-  .jobcat-header-spacer {
-    height: 75px !important; /* Smaller spacer for small screens */
   }
   
   body {
