@@ -11,7 +11,7 @@ html::-webkit-scrollbar {
 }
 
 body {        
-  background-color: #866f67;
+  background: #242936; /* Solid lighter color - no gradient */
   margin: 0;
   padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
 }
@@ -20,39 +20,55 @@ body::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
 
+/* ============================================
+   MODERN & TECHY HEADER DESIGN 🚀
+   ============================================ */
+
 .jobcat-header {
   position: fixed;
   width: 100%;
   top: 0;
   left: 0;
   z-index: 100;
-  background: #363f4f;
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%); /* Slightly darker slate */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.5); /* Green accent for consistency */
+  overflow: hidden; /* Clip search bar when sliding */
 }
 
 .jobcat-listheader {
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: clamp(66px, 20vh, 106px); /* Responsive header height */
+  height: clamp(66px, 20vh, 106px);
   align-items: center;
   justify-content: space-between;
-  background-color: #363f4f;
+  background: transparent;
   position: relative;
-  padding-right: clamp(5px, 2vw, 15px); /* Responsive padding */
+  padding-right: clamp(5px, 2vw, 15px);
 }
 
 .jobcat-servicemenu {
-  width: clamp(120px, 60vw, 238px); /* Reduced from 75vw and lower max for 492px viewport */
-  height: clamp(50px, 12vh, 59px); /* Responsive menu height */
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(255, 255, 255, 0.3);
-  margin-left: clamp(-2px, -0.5vw, -2px); /* Responsive margin */
+  width: clamp(120px, 60vw, 238px);
+  height: clamp(50px, 12vh, 59px);
+  border: 2px solid rgba(16, 185, 129, 0.5); /* Match new-post2 2px borders */
+  margin-left: clamp(-2px, -0.5vw, -2px);
   cursor: pointer;
   display: flex;
   align-items: center;
-  background: #363f4f;
-  border-radius: clamp(3px, 1vw, 4px); /* Responsive border radius */
+  background: rgba(16, 185, 129, 0.08);
+  border-radius: 0 clamp(12px, 2.5vw, 16px) clamp(12px, 2.5vw, 16px) 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+              inset 0 1px 0 rgba(16, 185, 129, 0.2);
+  transition: all 0.3s ease;
+}
+
+.jobcat-servicemenu:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.3),
+              inset 0 1px 0 rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
 }
 
 .jobcat-servicename {
@@ -60,60 +76,132 @@ body::-webkit-scrollbar {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  width: clamp(300px, 90vw, 378px); /* Responsive width */
-  height: clamp(50px, 12vh, 59px); /* Responsive height */
-  color: #e6d6ae;
-  font-size: clamp(20px, 5vw, 28px); /* Responsive font size */
+  width: clamp(300px, 90vw, 378px);
+  height: clamp(50px, 12vh, 59px);
+  color: #ffffff;
+  font-size: clamp(20px, 5vw, 28px);
   font-weight: 700;
   font-family: arial, sans-serif;
-  padding-left: clamp(15px, 4vw, 20px); /* Responsive left padding */
-  padding-right: clamp(12px, 3vw, 15px); /* Responsive right padding */
+  padding-left: clamp(15px, 4vw, 20px);
+  padding-right: clamp(12px, 3vw, 15px);
   user-select: none;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 .jobcat-headerbuttons {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
-  width: clamp(200px, 50vw, 300px); /* Responsive width */
-  margin-right: clamp(5px, 2vw, 15px); /* Responsive margin */
+  justify-content: flex-end;
+  align-items: flex-start;
+  width: auto;
+  margin-right: clamp(8px, 2vw, 15px);
+  gap: clamp(15px, 4vw, 25px);
 }
 
 .jobcat-headerbutton {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  width: clamp(40px, 10vw, 88px); /* Responsive button width */
-  height: clamp(42px, 18vh, 92px); /* Responsive button height */
-  color: rgb(188, 206, 212);
-  font-size: clamp(12px, 3vw, 18px); /* Responsive button font size */
+  justify-content: flex-start;
+  width: clamp(50px, 12vw, 70px);
+  min-height: clamp(60px, 15vh, 75px);
+  color: #ffffff;
+  font-size: clamp(12px, 3vw, 16px);
+  font-family: Arial, Helvetica, sans-serif; /* Consistent font across all viewports */
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s;
+  transition: all 0.3s ease;
   flex-shrink: 0;
+  border-radius: clamp(12px, 2.5vw, 16px); /* Match new-post2 12-16px radius */
+  border: 2px solid rgba(16, 185, 129, 0.3); /* Match 2px border style */
+  background: rgba(16, 185, 129, 0.05);
+  padding-top: clamp(6px, 1.5vh, 10px);
 }
 
+.jobcat-headerbutton:hover {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+  transform: translateY(-3px);
+}
+
+/* Normalize the <a> wrapper in Post button to match other buttons */
+.jobcat-headerbutton a {
+  width: 100%;
+  height: 100%;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure all caption text has identical styling */
+.jobcat-headerbutton > div,
+.jobcat-headerbutton a > div:not(.jobcat-icon-emoji),
+.posttext {
+  font-size: inherit;
+  line-height: 1.2;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+.jobcat-icon-emoji {
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1;
+  height: clamp(28px, 7vw, 40px);
+  width: clamp(28px, 7vw, 40px); /* Match width to height for consistent sizing */
+  margin-bottom: clamp(4px, 1vw, 6px); /* Changed from vh to vw for horizontal sync */
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jobcat-headerbutton:hover .jobcat-icon-emoji {
+  transform: scale(1.15);
+  filter: drop-shadow(0 4px 16px rgba(16, 185, 129, 0.8)) brightness(1.2);
+}
+
+/* CSS hamburger removed - now using emoji ☰ for consistency */
+
+/* Legacy img support (if any pages still use images) */
 .jobcat-headerbutton img {
   width: 100%;
-  height: clamp(30px, 12vh, 55px); /* Responsive image height */
+  height: clamp(30px, 12vh, 55px);
   object-fit: contain;
-  margin-bottom: clamp(2px, 1vh, 4px); /* Responsive margin */
-  transition: transform 0.15s;
+  margin-bottom: clamp(2px, 1vh, 4px);
+  transition: all 0.3s ease;
+  filter: brightness(1.1) drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
 }
 
-.jobcat-headerbutton img:hover {
-  transform: scale(1.1);
+.jobcat-headerbutton:hover img {
+  transform: scale(1.15);
+  filter: brightness(1.3) drop-shadow(0 4px 16px rgba(16, 185, 129, 0.8));
 }
 
 .jobcat-borderline {
-  height: clamp(2px, 0.5vh, 4px); /* Responsive border height */
+  height: clamp(3px, 0.5vh, 4px);
   width: 100%;
-  background-color: rgb(149, 149, 328);
+  background: #0ea5e9; /* Cyan/Blue - differentiated from filter green */
   position: fixed;
   left: 0;
   z-index: 96;
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4),
+              0 0 20px rgba(14, 165, 233, 0.25);
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+@keyframes borderPulse {
+  0%, 100% {
+    box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4),
+                0 0 20px rgba(14, 165, 233, 0.25);
+  }
+  50% {
+    box-shadow: 0 2px 20px rgba(14, 165, 233, 0.6),
+                0 0 32px rgba(14, 165, 233, 0.4);
+  }
 }
 
 /* Hide scrollbar on desktop only */
@@ -129,64 +217,467 @@ body::-webkit-scrollbar {
   }
 }
 
+/* ============================================
+   CLEAN RESPONSIVE HEADER FIX
+   ============================================ */
+@media (max-width: 435px) and (min-width: 361px) {
+  /* Make jobcat WIDER in this range - it's too narrow */
+  .jobcat-servicemenu {
+    width: clamp(140px, 50vw, 200px) !important; /* Wider to fill space properly */
+  }
+  
+  .jobcat-servicename {
+    font-size: clamp(16px, 4.2vw, 22px) !important; /* Bigger text too */
+  }
+}
+
+/* Fix icon bubble vertical stretch at all mobile sizes */
+/* Desktop optimization (601px and up) */
+@media (min-width: 601px) {
+  .jobcat-servicemenu {
+    width: clamp(220px, 28vw, 320px) !important; /* Much wider on desktop */
+  }
+  
+  .jobcat-servicename {
+    width: clamp(220px, 28vw, 320px) !important; /* Match servicemenu width exactly */
+    font-size: clamp(22px, 2.2vw, 28px) !important;
+    justify-content: space-between !important; /* Keep arrow inside */
+  }
+  
+  .jobcat-icon-emoji {
+    font-size: 36px !important; /* Fixed consistent size for all icons */
+    height: 36px !important;
+    width: 36px !important;
+    margin-bottom: 6px !important; /* Fixed consistent spacing */
+  }
+  
+  .jobcat-headerbutton {
+    padding-top: 8px !important; /* Fixed consistent top padding */
+    padding-bottom: 4px !important; /* Fixed consistent bottom padding */
+  }
+}
+
+@media (max-width: 600px) {
+  .jobcat-headerbutton {
+    min-height: auto !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  
+  /* Make icons responsive instead of fixed */
+  .jobcat-icon-emoji {
+    font-size: clamp(24px, 6.5vw, 32px) !important; /* Allow responsive shrinking */
+    height: clamp(24px, 6.5vw, 32px) !important;
+    width: clamp(24px, 6.5vw, 32px) !important;
+    margin-bottom: clamp(3px, 0.8vw, 4px) !important;
+  }
+  
+  .jobcat-headerbuttons {
+    gap: clamp(10px, 3vw, 15px) !important; /* Reduce gap on mobile */
+  }
+}
+
+/* Icons need more shrinking: 411px to 361px */
+@media (max-width: 411px) and (min-width: 361px) {
+  .jobcat-icon-emoji {
+    font-size: clamp(26px, 6.2vw, 30px) !important;
+    height: clamp(26px, 6.2vw, 30px) !important;
+    width: clamp(26px, 6.2vw, 30px) !important;
+    margin-bottom: clamp(3px, 0.8vw, 4px) !important;
+  }
+  
+  .jobcat-headerbuttons {
+    gap: clamp(8px, 2.5vw, 12px) !important; /* Tighter gap */
+  }
+}
+
+/* Icons at 360px to 350px - still comfortable */
+@media (max-width: 360px) and (min-width: 350px) {
+  .jobcat-icon-emoji {
+    font-size: 30px !important; /* Fixed size - plenty of room */
+    height: 30px !important;
+    width: 30px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    gap: 12px !important; /* Fixed comfortable gap */
+  }
+}
+
+/* Icons at 349px to 335px - shrink to avoid jobcat collision */
+@media (max-width: 349px) and (min-width: 335px) {
+  .jobcat-icon-emoji {
+    font-size: 26px !important; /* Smaller icons */
+    height: 26px !important;
+    width: 26px !important;
+    margin-bottom: 3px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 130px !important; /* Narrower container */
+    margin-right: 3px !important;
+    gap: 8px !important; /* Tighter gap */
+  }
+  
+  .jobcat-headerbutton {
+    width: 38px !important; /* Smaller bubbles */
+    height: 38px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Icons at 334px to 321px - even more compact */
+@media (max-width: 334px) and (min-width: 321px) {
+  .jobcat-icon-emoji {
+    font-size: 24px !important; /* Even smaller icons */
+    height: 24px !important;
+    width: 24px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 120px !important; /* Even narrower container */
+    margin-right: 2px !important;
+    gap: 6px !important; /* Even tighter gap */
+  }
+  
+  .jobcat-headerbutton {
+    width: 35px !important; /* Even smaller bubbles */
+    height: 35px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* Icons at exactly 320px - moderately compact */
+@media (max-width: 320px) {
+  .jobcat-icon-emoji {
+    font-size: 22px !important; /* Slightly larger icons */
+    height: 22px !important;
+    width: 22px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .jobcat-headerbuttons {
+    width: 115px !important; /* Slightly wider */
+    margin-right: 2px !important;
+    gap: 5px !important; /* Slightly more gap */
+  }
+  
+  .jobcat-headerbutton {
+    width: 34px !important; /* Slightly larger bubbles */
+    height: 34px !important;
+    font-size: 10px !important; /* Slightly larger text */
+    padding: 2px !important;
+  }
+}
+
+/* Centered modal overlay (like new-post2) */
 .jobcat-servicemenu-overlay {
   display: none;
-  position: absolute;
-  left: -5px;
-  top: 100%;
-  width: clamp(220px, 65vw, 240px) !important; /* Increased width for better text fitting */
-  max-height: 420px;
-  overflow-y: auto;
-  background: #363f4f;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-  z-index: 300;
-  padding: 18px 0 18px 0;
-  border: 1px solid #e6d6ae;
-  /* Hide scrollbar for all browsers */
-  scrollbar-width: none; /* Firefox */
-}
-.jobcat-servicemenu-overlay::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  align-items: center;
+  justify-content: center;
 }
 .jobcat-servicemenu-overlay.show {
-  display: block;
-  animation: slideDown 0.35s cubic-bezier(.77,0,.18,1);
+  display: flex;
+  opacity: 1;
 }
-@keyframes slideDown {
-  from { 
-    opacity: 0; 
-    transform: translateY(-20px);
+
+/* Modal container */
+.jobcat-modal-container {
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  border-radius: 16px;
+  max-width: 1100px; /* Wider to prevent wrapping at 943px+ */
+  width: 92%;
+  max-height: 85vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6),
+              0 0 40px rgba(16, 185, 129, 0.3);
+  animation: modalSlideUp 0.4s cubic-bezier(.77,0,.18,1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
   }
-  to { 
-    opacity: 1; 
-    transform: translateY(0);
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
-.jobcat-servicemenu-overlay ul {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 10px;
+
+/* Hide scrollbar while keeping scroll functionality */
+.jobcat-modal-container {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
-.jobcat-servicemenu-overlay li {
-  margin-bottom: 10px;
+
+.jobcat-modal-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
-.jobcat-servicemenu-overlay a {
-  color: #e6d6ae;
-  /* font-size: 1.62rem; */ /* Removed - controlled by JavaScript auto-resize */
+
+/* Modal header */
+.jobcat-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.2);
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  z-index: 1;
+}
+
+.jobcat-modal-title {
+  font-size: clamp(20px, 4vw, 26px);
   font-weight: 700;
-  font-family: arial, sans-serif;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.jobcat-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.1);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.jobcat-modal-close:hover {
+  background: #e74c3c;
+  color: #fff;
+  transform: rotate(90deg);
+  border-color: #e74c3c;
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+}
+
+/* Modal body */
+.jobcat-modal-body {
+  padding: 24px;
+}
+
+/* Section divider */
+.jobcat-section-divider {
+  margin: 32px 0 20px 0;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.02));
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: Arial, Helvetica, sans-serif;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jobcat-section-divider::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+}
+
+.jobcat-section-divider:first-child {
+  margin-top: 0; /* No top margin for first section */
+}
+
+/* Category grid - Default: 4 columns for tablet/small desktop */
+.jobcat-category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 columns for tablet range */
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Large desktop: 6 columns at 888px+ */
+@media (min-width: 888px) {
+  .jobcat-category-grid {
+    grid-template-columns: repeat(6, 1fr); /* 6 columns for large desktop */
+  }
+}
+
+.jobcat-category-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+  border: 2px solid rgba(16, 185, 129, 0.2);
+  border-radius: 16px;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
   text-decoration: none;
-  display: block;
-  padding: 4px 0 4px 8px;
-  border-radius: 4px;
-  transition: background 0.15s;
 }
-.jobcat-servicemenu-overlay a.active,
-.jobcat-servicemenu-overlay a:hover {
-  background: rgba(255,255,255,0.08);
-  text-decoration: underline;
+
+.jobcat-category-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
+
+.jobcat-category-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.4);
+  border-color: rgba(16, 185, 129, 0.6);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+}
+
+.jobcat-category-card:hover::before {
+  opacity: 1;
+}
+
+.jobcat-category-card.active {
+  border-color: #10b981;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.08));
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.jobcat-category-icon {
+  font-size: 3rem;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6)); /* Green glow */
+}
+
+.jobcat-category-card:hover .jobcat-category-icon {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.9)) brightness(1.2); /* Stronger glow on hover */
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.jobcat-category-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* Mobile optimization */
+@media (max-width: 600px) {
+  .jobcat-servicemenu-overlay {
+    backdrop-filter: none;
+  }
+  
+  .jobcat-modal-container {
+    width: 95%;
+    max-height: 90vh;
+    animation: none;
+  }
+  
+  .jobcat-modal-header {
+    padding: 20px;
+  }
+  
+  .jobcat-modal-title {
+    font-size: 20px;
+  }
+  
+  .jobcat-modal-body {
+    padding: 20px;
+  }
+  
+  .jobcat-section-divider {
+    margin: 24px 0 16px 0;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+  }
+  
+  .jobcat-category-grid {
+    grid-template-columns: repeat(3, 1fr); /* Fixed 3 columns for mobile/tablet */
+    gap: 12px;
+  }
+  
+  .jobcat-category-card {
+    padding: 16px 10px;
+    gap: 10px;
+  }
+  
+  .jobcat-category-icon {
+    font-size: 2.5rem;
+  }
+  
+  .jobcat-category-label {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 411px) {
+  .jobcat-section-divider {
+    margin: 20px 0 12px 0;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    letter-spacing: 0.3px;
+  }
+  
+  .jobcat-category-grid {
+    grid-template-columns: repeat(3, 1fr); /* Fixed 3 columns for small mobile */
+    gap: 10px;
+  }
+  
+  .jobcat-category-card {
+    padding: 14px 8px;
+    gap: 8px;
+  }
+  
+  .jobcat-category-icon {
+    font-size: 2.25rem;
+  }
+  
+  .jobcat-category-label {
+    font-size: 0.7rem;
+  }
+}
+/* Legacy support - remove old link styles (now using cards) */
 .jobcat-menu-overlay {
   position: fixed;
   top: 0;
@@ -277,28 +768,616 @@ body::-webkit-scrollbar {
   left: 0;
   right: 0;
   z-index: 50;
-  background: #866f67;
+  background: transparent; /* Made transparent so cards show through */
+  overflow: visible; /* Allow gaming filter panel to expand beyond container */
 }
 
 .sortmenus {
   display: flex;
   flex-direction: row;
   justify-content: center;
-  align-items: center;
-  padding-top: clamp(8px, 2vw, 12px); /* Reduced top padding for better spacing */
-  padding-left: clamp(15px, 4vw, 25px); /* Add left spacing */
-  padding-right: clamp(15px, 4vw, 25px); /* Add right spacing */
-  gap: clamp(8px, 2vw, 15px); /* Much smaller gap to prevent bleeding */
-  height: clamp(55px, 15vh, 68px); /* More conservative height */
+  align-items: flex-start;
+  padding: 0; /* Remove all padding */
+  gap: clamp(8px, 2vw, 15px);
+  min-height: 0; /* Allow panel to determine height */
 }
+
+/* 🎮 Gaming Filter Panel (Expandable Single Piece) */
+.gaming-filter-panel {
+  background: linear-gradient(180deg, rgba(26, 32, 44, 0.95) 0%, rgba(45, 55, 72, 0.97) 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 3px solid #10b981;
+  border-radius: 14px;
+  width: clamp(90%, 94vw, 950px); /* Smooth scaling from 90% mobile to 950px desktop max */
+  margin: 0 auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3),
+              0 0 20px rgba(16, 185, 129, 0.2);
+  position: relative;
+  z-index: 100;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: visible; /* Allow arrow to extend outside */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Collapsed state - only footer visible */
+.gaming-filter-panel {
+  max-height: clamp(52px, 13vw, 95px); /* Much more aggressive shrinking - smaller min, higher vw scaling */
+  transition: max-height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), /* Bouncy expansion */
+              transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.3s ease;
+}
+
+/* Smooth closing animation - consolidated with styling */
+.gaming-filter-panel:not(.expanded) {
+  max-height: clamp(52px, 13vw, 95px); /* Explicit same height to prevent snap */
+  transition: max-height 0.45s ease-out, /* Smooth consistent closing */
+              transform 0.3s ease,
+              box-shadow 0.3s ease,
+              margin 0.3s ease; /* Add margin transition */
+  border-radius: 0 0 14px 14px;
+  border-top: none;
+  margin-top: -3px; /* Mobile: flush with borderline */
+  margin-bottom: clamp(16px, 2.5vh, 28px); /* Proportional space below collapsed panel */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 0 rgba(16, 185, 129, 0);
+}
+
+/* Desktop 601px+: Push collapsed panel down so text isn't hidden by header */
+@media (min-width: 601px) {
+  .gaming-filter-panel:not(.expanded) {
+    margin-top: clamp(22px, 3vh, 32px); /* Pushed down on desktop only */
+  }
+}
+
+.gaming-filter-panel.expanded {
+  margin-top: clamp(-18px, -2.5vh, -12px); /* Smooth scaling margin for expanded */
+  border-radius: 14px;
+  border-top: 3px solid #10b981;
+}
+
+.gaming-filter-panel .filter-panel-header,
+.gaming-filter-panel .filter-panel-body {
+  display: none;
+}
+
+/* Subtle backdrop when expanded - highlights overlay */
+.sortmenus::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 99;
+  transition: background 0.3s ease;
+}
+
+.sortmenus:has(.gaming-filter-panel.expanded)::after {
+  background: rgba(0, 0, 0, 0.65); /* Darker overlay to blur out background cards */
+  pointer-events: all; /* Capture clicks outside to close panel */
+}
+
+@media (min-width: 601px) {
+  .sortmenus:has(.gaming-filter-panel.expanded)::after {
+    background: rgba(0, 0, 0, 0.60); /* Slightly lighter for desktop but still dark */
+  }
+}
+
+/* Expanded state - everything visible */
+.gaming-filter-panel.expanded {
+  max-height: 95vh;
+  transition: max-height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 14px;
+  border-top: 3px solid #10b981;
+}
+
+.gaming-filter-panel.expanded .filter-panel-header,
+.gaming-filter-panel.expanded .filter-panel-body {
+  display: block;
+  animation: slideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Filter Display - No breakpoint overrides, using base clamps only */
+
+
+.filter-panel-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: clamp(20px, 3vh, 28px) clamp(28px, 4vw, 40px);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+}
+
+.filter-panel-title {
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 900;
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(16, 185, 129, 0.6);
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.filter-panel-body {
+  padding: clamp(24px, 4vh, 36px) clamp(28px, 4vw, 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 60vh; /* Generous height for all dropdowns */
+}
+
+/* Smooth scrollbar for filter body */
+.filter-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.filter-panel-body::-webkit-scrollbar-track {
+  background: rgba(45, 55, 72, 0.5);
+  border-radius: 4px;
+}
+
+.filter-panel-body::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.5);
+  border-radius: 4px;
+}
+
+.filter-panel-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.7);
+}
+
+.filter-section {
+  margin-bottom: clamp(28px, 4vh, 40px);
+}
+
+.filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-section-title {
+  font-size: clamp(16px, 3vw, 20px);
+  font-weight: 800;
+  color: #10b981;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.5);
+  letter-spacing: 1.5px;
+  margin-bottom: clamp(12px, 2vh, 18px);
+  padding-left: 12px;
+  border-left: 4px solid #10b981;
+}
+
+/* Filter Button (replaces dropdown) */
+.filter-button {
+  width: 100%;
+  background: rgba(45, 55, 72, 0.8);
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  border-radius: 10px;
+  padding: clamp(14px, 2.5vh, 18px) clamp(16px, 3vw, 20px);
+  font-size: clamp(16px, 3vw, 19px);
+  font-weight: 700;
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  text-align: left;
+}
+
+.filter-button:hover {
+  background: rgba(45, 55, 72, 1);
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.filter-button:active {
+  transform: scale(0.98);
+}
+
+/* Filter Modal Overlay */
+.filter-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.filter-modal-overlay.show {
+  display: flex;
+}
+
+.filter-modal-container {
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6),
+              0 0 40px rgba(16, 185, 129, 0.2);
+  width: clamp(320px, 90vw, 480px);
+  max-height: clamp(280px, 45vh, 400px); /* MUCH shorter */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Ensure corners stay rounded */
+  animation: slideDown 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.filter-modal-header {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(16px, 2.5vh, 20px) clamp(18px, 3.5vw, 24px);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 14px 14px 0 0; /* Match container radius */
+}
+
+.filter-modal-title {
+  font-size: clamp(20px, 4vw, 26px);
+  font-weight: 700;
+  color: #10b981;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.filter-modal-close {
+  font-size: clamp(28px, 5vw, 36px);
+  color: #10b981;
+  cursor: pointer;
+  transition: all 0.2s;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.filter-modal-close:hover {
+  color: #ffffff;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.filter-modal-body {
+  padding: clamp(12px, 2.5vh, 18px) clamp(16px, 3.5vw, 22px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filter-modal-body::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.2vh, 9px);
+}
+
+.filter-option-item {
+  background: rgba(45, 55, 72, 0.6);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: clamp(10px, 2vh, 14px) clamp(14px, 2.8vw, 18px);
+  font-size: clamp(15px, 2.8vw, 18px);
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.filter-option-item:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.8);
+  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.filter-option-item.active {
+  background: rgba(16, 185, 129, 0.3);
+  border-color: #10b981;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+/* Mobile responsive filter modals */
+@media (max-width: 600px) {
+  .filter-modal-container {
+    width: clamp(300px, 95vw, 420px);
+    max-height: clamp(260px, 42vh, 360px); /* Shorter on mobile */
+  }
+  
+  .filter-modal-header {
+    padding: clamp(12px, 2vh, 16px) clamp(14px, 3vw, 18px);
+  }
+  
+  .filter-modal-title {
+    font-size: clamp(17px, 3.2vw, 21px);
+  }
+  
+  .filter-modal-close {
+    font-size: clamp(22px, 4vw, 28px);
+  }
+  
+  .filter-modal-body {
+    padding: clamp(10px, 2vh, 14px) clamp(14px, 3vw, 18px);
+  }
+  
+  .filter-option-item {
+    padding: clamp(10px, 2vh, 14px) clamp(12px, 2.5vw, 16px);
+    font-size: clamp(14px, 2.6vw, 17px);
+  }
+}
+
+/* Old dropdown styles removed - now using filter buttons + modals */
+
+/* Pay Type Icon Selector */
+.pay-type-selector {
+  display: flex;
+  gap: clamp(12px, 2vw, 20px);
+  justify-content: space-between;
+}
+
+.pay-type-option {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 3vh, 24px) clamp(12px, 2vw, 20px);
+  background: rgba(45, 55, 72, 0.6);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.pay-type-option:hover {
+  background: rgba(45, 55, 72, 0.8);
+  border-color: rgba(16, 185, 129, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4),
+              0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.pay-type-option.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.5),
+              inset 0 0 20px rgba(16, 185, 129, 0.1);
+}
+
+.pay-type-icon {
+  font-size: clamp(32px, 5vw, 48px);
+  margin-bottom: clamp(8px, 1.5vh, 12px);
+  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
+}
+
+.pay-type-option.active .pay-type-icon {
+  filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.8));
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.pay-type-label {
+  font-size: clamp(14px, 2.8vw, 18px);
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.pay-type-option.active .pay-type-label {
+  color: #10b981;
+  text-shadow: 0 2px 12px rgba(16, 185, 129, 0.8);
+}
+
+/* Filter Display Bar (Bottom of panel - always visible) */
+.filter-panel-footer-bar {
+  padding: clamp(10px, 2vw, 20px) clamp(8px, 1.5vw, 14px) clamp(16px, 3vw, 32px) clamp(8px, 1.5vw, 14px); /* Balanced vertical padding using vw */
+  display: flex;
+  justify-content: center; /* Center the filter display text */
+  align-items: center;
+  gap: clamp(12px, 2vw, 20px);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+  position: relative;
+  order: 999; /* Always at bottom */
+  flex-shrink: 0;
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+  overflow: visible; /* Allow arrow to extend outside */
+}
+
+.gaming-filter-panel:not(.expanded) .filter-panel-footer-bar {
+  border-top: none;
+  border-radius: 14px; /* Match panel radius when collapsed */
+}
+
+.filter-panel-footer-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  border-radius: 14px 14px 0 0;
+  animation: borderPulse 2s ease-in-out infinite;
+}
+
+.gaming-filter-panel.expanded .filter-panel-footer-bar::before {
+  display: none;
+}
+
+.filter-panel-footer-bar:hover {
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.5), rgba(55, 65, 81, 0.5));
+}
+
+.filter-display-text {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: clamp(4px, 1.5vw, 18px); /* More aggressive gap scaling */
+  flex: 1;
+  font-size: clamp(14px, 3vw, 18px);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  padding: 0;
+}
+
+.filter-display-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(2px, 0.5vw, 4px); /* Proportional gap between label and value */
+  flex: 1 1 0; /* Equal width distribution */
+  min-width: 0; /* Allow shrinking on small screens */
+}
+
+.filter-display-label {
+  font-size: clamp(8px, 2vw, 12px); /* Better balance for mobile viewports */
+  font-weight: 600;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.filter-display-value {
+  font-size: clamp(11px, 3vw, 17px); /* Larger minimum for better mobile readability */
+  font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: visible;
+  text-align: center;
+  width: 100%;
+}
+
+.filter-display-arrow {
+  position: absolute;
+  bottom: clamp(-20px, -3vw, -28px); /* MUCH more negative to extend outside panel */
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(28px, 5.5vw, 38px); /* Bigger and more responsive */
+  color: #10b981;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.8));
+  animation: arrowBounce 2s ease-in-out infinite;
+  z-index: 10;
+}
+
+/* Arrow symbol via CSS (not hardcoded in HTML) */
+.filter-display-arrow::before {
+  content: "▼";
+}
+
+/* Pulsing bounce animation */
+@keyframes arrowBounce {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.8));
+  }
+  50% {
+    transform: translateX(-50%) translateY(-6px);
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
+  }
+}
+
+.filter-panel-footer-bar:hover .filter-display-arrow {
+  animation: none; /* Stop bounce on hover */
+  transform: translateX(-50%) scale(1.2);
+  filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
+}
+
+/* Rotate arrow when expanded - bigger and pointing up */
+.gaming-filter-panel.expanded .filter-display-arrow {
+  transform: translateX(-50%) rotate(180deg);
+  font-size: clamp(32px, 6vw, 44px); /* Even bigger when expanded */
+  bottom: clamp(-24px, -3.5vw, -32px); /* MUCH more negative when expanded */
+  animation: arrowBounceUp 2s ease-in-out infinite;
+}
+
+/* Add "APPLY" button below arrow when expanded */
+.gaming-filter-panel.expanded .filter-display-arrow::after {
+  content: "APPLY";
+  position: absolute;
+  top: clamp(-32px, -6vw, -44px); /* Position below the rotated arrow (top becomes bottom when rotated) */
+  left: 50%;
+  transform: translateX(-50%) rotate(180deg); /* Counter-rotate to keep text upright */
+  font-size: clamp(16px, 3.5vw, 22px); /* Larger text */
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #1f2937;
+  background: linear-gradient(135deg, #10b981, #059669);
+  padding: clamp(6px, 1.5vw, 10px) clamp(16px, 4vw, 24px);
+  border-radius: clamp(6px, 1.5vw, 10px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.3);
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+/* Bounce animation for expanded state (upward) */
+@keyframes arrowBounceUp {
+  0%, 100% {
+    transform: translateX(-50%) rotate(180deg) translateY(0);
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.8));
+  }
+  50% {
+    transform: translateX(-50%) rotate(180deg) translateY(6px);
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
+  }
+}
+
+.gaming-filter-panel.expanded .filter-panel-footer-bar:hover .filter-display-arrow {
+  animation: none;
+  transform: translateX(-50%) rotate(180deg) scale(1.2);
+  filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
+}
+
+/* Mobile adjustments - removed fixed values, using base clamps */
 
 /* Desktop-specific sortmenus spacing (601px and above) */
 @media (min-width: 601px) {
   .sortmenus {
-    padding-top: clamp(20px, 4vh, 28px) !important; /* Increased top padding for better separation from header */
-    height: clamp(60px, 12vh, 75px) !important; /* Slightly increased height for better proportions */
+    padding: 0 !important; /* Keep flush with borderline */
+    min-height: 0 !important;
+    height: auto !important;
   }
 }
+
+/* Desktop mid-range - removed fixed overrides, using base clamps */
 
 .sort-menu {
   color: #fff;
@@ -345,9 +1424,7 @@ body::-webkit-scrollbar {
 
 /* Second borderline */
 .jobcat-sort-borderline {
-  width: 100%;
-  height: 4px;
-  background-color: rgb(149, 149, 328); /* Blue */
+  display: none; /* Hidden for gaming-style filter bar */
 }
 
 @media (max-width: 600px) {
@@ -356,9 +1433,24 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding: clamp(8px, 2vw, 12px) clamp(1px, 0.5vw, 2px); /* Added top padding for spacing from borderline */
-    gap: clamp(4px, 1.5vw, 6px); /* Responsive gap */
-    height: clamp(40px, 12vh, 48px); /* Increased height for better spacing */
+    padding: 0;
+    gap: clamp(4px, 1.5vw, 6px);
+    min-height: 0;
+  }
+  
+  .gaming-filter-bar {
+    width: 94%;
+    padding: clamp(18px, 3.5vh, 24px) clamp(28px, 4.5vw, 36px);
+    gap: clamp(18px, 3vw, 24px);
+  }
+  
+  .filter-display {
+    font-size: clamp(17px, 3.5vw, 20px);
+    letter-spacing: 0.6px;
+  }
+  
+  .filter-arrow {
+    font-size: clamp(16px, 3.2vw, 20px);
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -449,12 +1541,21 @@ body::-webkit-scrollbar {
   animation: slideDown 0.22s cubic-bezier(.77,0,.18,1);
   font-size: clamp(14px, 3.5vw, 16.25px); /* Responsive font size */
   font-family: Arial, sans-serif;
-  max-height: clamp(180px, 50vh, 227px); /* Responsive max height */
+  max-height: clamp(60px, 18vh, 100px) !important; /* DRASTICALLY shorter */
   overflow-y: auto;
-  scrollbar-width: none;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 .city-menu-overlay::-webkit-scrollbar {
-  display: none;
+  display: none !important; /* Chrome/Safari */
+  width: 0 !important;
+  height: 0 !important;
+}
+.city-menu-overlay::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+.city-menu-overlay::-webkit-scrollbar-track {
+  display: none !important;
 }
 .city-menu-overlay.show {
   display: block;
@@ -586,6 +1687,40 @@ body::-webkit-scrollbar {
 
 .job-preview-card.pay-per-hour-alt {
   background: #35442d; /* Subtle darker green for consecutive Per Hour */
+}
+
+/* Add consistent space between collapsed filter panel and first job card */
+/* ≤411px: MUCH MORE margin (dramatic increase in space) */
+.job-preview-card:first-of-type {
+  margin-top: -3px !important; /* Was -10px, now -3px = 7px more visual space! */
+}
+
+/* 412-475px: MUCH LESS margin (dramatically reduce excessive spacing) */
+@media (min-width: 412px) and (max-width: 475px) {
+  .job-preview-card:first-of-type {
+    margin-top: clamp(-14px, 0.5vw, 0px) !important; /* Much more negative to crush excessive spacing */
+  }
+}
+
+/* 476-600px: Original 25% MORE margin */
+@media (min-width: 476px) and (max-width: 600px) {
+  .job-preview-card:first-of-type {
+    margin-top: clamp(-6px, 2vw, 6px) !important; /* Was -10 to 0, now -7.5 to 2.5 (25% more) */
+  }
+}
+
+/* Desktop 601-699px: 50% MORE margin than mobile */
+@media (min-width: 601px) and (max-width: 699px) {
+  .job-preview-card:first-of-type {
+    margin-top: clamp(3px, 1.8vw, 21px) !important; /* Was 2/1.2vw/14, now ×1.5 = 3/1.8vw/21 */
+  }
+}
+
+/* Large desktop 700px+: 50% MORE margin than 601-699px */
+@media (min-width: 700px) {
+  .job-preview-card:first-of-type {
+    margin-top: clamp(5px, 2.7vw, 32px) !important; /* 50% more: 3→4.5≈5, 1.8vw→2.7vw, 21→31.5≈32 */
+  }
 }
 
 /* Hover states for pay type backgrounds */
@@ -1042,8 +2177,8 @@ body::-webkit-scrollbar {
 
 /* Job Preview Card Responsive Styles for Smaller Screens */
 
-/* 400px Breakpoint */
-@media (max-width: 400px) {
+/* 411px Breakpoint */
+@media (max-width: 411px) {
   .job-preview-card {
     width: clamp(340px, 97vw, 390px) !important; /* Increased width to better fill screen */
     height: clamp(85px, 18vh, 100px) !important; /* Override fixed 120px height */
@@ -1470,21 +2605,11 @@ body::-webkit-scrollbar {
 /* ===================== END JOB PREVIEW & JOB PAGE STYLES ===================== */
 
 .jobcat-header-spacer {
-  height: 176px;
+  height: clamp(65px, 8vh, 73px); /* Responsive across all viewports */
 }
 
 /* Desktop optimization for header spacer (601px and above) */
-@media (min-width: 601px) {
-  .jobcat-header-spacer {
-    height: clamp(60px, 8vh, 80px) !important; /* Minimal space between borderline and job cards */
-  }
-}
-
-@media (max-width: 600px) {
-  .jobcat-header-spacer {
-    height: 85px; /* Reduced height to minimize top spacing */
-  }
-}
+/* REMOVED - Now using single clamp() rule in base .jobcat-header-spacer */
 
 
 
@@ -1522,6 +2647,10 @@ body::-webkit-scrollbar {
   .region-menu-overlay, .city-menu-overlay, .pay-menu-overlay {
     width: clamp(90px, 25vw, 130px) !important; /* Match smaller dropdowns */
     font-size: clamp(11px, 2.5vw, 14px) !important;
+  }
+  
+  .city-menu-overlay {
+    max-height: clamp(60px, 18vh, 100px) !important; /* FORCE short height */
   }
   
   .jobcat-headerbuttons {
@@ -1571,13 +2700,11 @@ body::-webkit-scrollbar {
 /* Medium Mobile Screens (401px to 480px) - Optimize 411px viewport */
 @media (max-width: 480px) and (min-width: 401px) {
   .sortmenus {
-    padding-top: 0 !important; /* Remove top padding for perfect centering */
-    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    padding-left: clamp(8px, 2vw, 12px) !important; /* Add left margin from edge */
-    padding-right: clamp(8px, 2vw, 12px) !important; /* Add right margin from edge */
-    height: clamp(42px, 10vh, 46px) !important; /* Reduced height for smaller buttons */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -1592,24 +2719,24 @@ body::-webkit-scrollbar {
     font-size: clamp(14px, 3.2vw, 15px) !important; /* Slightly reduced overlay font size */
   }
   
+  .city-menu-overlay {
+    max-height: clamp(60px, 18vh, 100px) !important; /* FORCE short height */
+  }
+  
   .region-menu-list li, .city-menu-list li, .pay-menu-list li {
     font-size: clamp(14px, 3.2vw, 15px) !important; /* Match overlay font size */
     padding: clamp(4px, 1.2vw, 5px) 0 !important; /* Reduced padding for tighter list */
   }
-  
-  .jobcat-header-spacer {
-    height: 60px !important; /* Reduced spacing between second borderline and job cards */
-  }
 }
 
 /* Small Mobile Screens (384px viewport optimization) */
-@media (max-width: 400px) and (min-width: 376px) {
+@media (max-width: 411px) and (min-width: 376px) {
   .sortmenus {
-    padding-top: 0 !important; /* Remove top padding for perfect centering */
-    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    height: clamp(40px, 10vh, 44px) !important; /* Reduced height for tighter vertical spacing */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -1623,22 +2750,16 @@ body::-webkit-scrollbar {
     width: clamp(100px, 28vw, 120px) !important;
     font-size: clamp(10px, 2.5vw, 12px) !important;
   }
-  
-  .jobcat-header-spacer {
-    height: 55px !important; /* Reduced spacing between second borderline and job cards */
-  }
 }
 
 /* Small Mobile Screens (360px viewport optimization) */
 @media (max-width: 375px) and (min-width: 351px) {
   .sortmenus {
-    padding-top: 0 !important; /* Remove top padding for perfect centering */
-    padding-bottom: 0 !important; /* Remove bottom padding for perfect centering */
-    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
-    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
-    height: clamp(36px, 8vh, 40px) !important; /* Reduced height to minimize top spacing */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -1657,8 +2778,6 @@ body::-webkit-scrollbar {
     font-size: clamp(15px, 3.8vw, 17px) !important; /* Ensure list items match overlay font size */
     padding: clamp(5px, 1.5vw, 7px) 0 !important; /* Increased padding for better touch targets */
   }
-  
-  /* Keep existing job card spacing - don't change jobcat-header-spacer */
 }
 
 /* Small Mobile Screens (350px and below) */
@@ -1703,13 +2822,11 @@ body::-webkit-scrollbar {
   }
   
   .sortmenus {
-    padding-top: clamp(3px, 0.8vw, 4px) !important; /* Minimal top padding for centering */
-    padding-bottom: clamp(3px, 0.8vw, 4px) !important; /* Minimal bottom padding for centering */
-    padding-left: clamp(4px, 1vw, 8px) !important; /* Add left margin from edge */
-    padding-right: clamp(4px, 1vw, 8px) !important; /* Add right margin from edge */
-    height: clamp(36px, 8vh, 40px) !important; /* Reduced height for tighter spacing */
-    align-items: center !important; /* Vertically center the dropdowns */
-    justify-content: center !important; /* Horizontally center with gap distribution */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -1730,18 +2847,7 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Job card spacing fix specifically for 360px */
-@media (max-width: 360px) {
-  .jobcat-header-spacer {
-    height: 0 !important; /* Remove height */
-    margin: -12px 0 0 0 !important; /* Negative top margin to pull job cards up */
-    padding: 0 !important; /* Remove any additional padding */
-  }
-  
-  .job-preview-card:first-of-type {
-    margin-top: 0 !important; /* Remove any top margin from first job card */
-  }
-}
+/* Removed - using base responsive rule instead */
 
 /* Ultra Small Screens (320px and below) - Optimized layout */
 @media (max-width: 320px) {
@@ -1772,7 +2878,11 @@ body::-webkit-scrollbar {
   }
 
   .sortmenus {
-    padding: clamp(2px, 0.8vw, 4px) clamp(6px, 2vw, 10px) !important; /* Added left/right edge spacing */
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
   }
 
   .region-menu, .city-menu, .pay-menu {
@@ -1792,20 +2902,20 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-headerbuttons {
-    width: clamp(110px, 32vw, 149px) !important; /* Much smaller minimum width */
-    margin-right: 2px !important; /* Reduce margin */
+    width: 115px !important; /* Slightly wider for 320px */
+    margin-right: 2px !important;
+    gap: 5px !important;
   }
   
   .jobcat-headerbutton {
-    width: clamp(32px, 9vw, 45px) !important; /* Smaller buttons */
-    height: clamp(38px, 10vh, 45px) !important; /* Smaller height */
-    font-size: clamp(10px, 2.5vw, 12px) !important; /* Smaller font */
+    width: 34px !important; /* Slightly larger bubbles */
+    height: 34px !important;
+    font-size: 10px !important; /* Readable text */
+    padding: 2px !important;
   }
   
   .jobcat-headerbutton img {
-    width: clamp(28px, 8vh, 35px) !important; /* Constrain width to match height */
-    height: clamp(28px, 8vh, 35px) !important; /* Smaller images */
-    object-fit: contain !important; /* Maintain aspect ratio */
+    height: 22px !important; /* Legacy support - match icon size */
   }
   
   .jobcat-listheader {
@@ -1813,15 +2923,7 @@ body::-webkit-scrollbar {
     padding-right: 2px !important; /* Reduce padding */
   }
   
-  .jobcat-header-spacer {
-    height: 40px !important; /* Maximum space between dropdowns and job cards */
-    margin: 0 !important; /* Remove negative margin */
-    padding: 0 !important;
-  }
-  
-  .job-preview-card:first-of-type {
-    margin-top: 20px !important; /* Maximum top margin to first job card */
-  }
+  /* Removed - using base responsive rule instead */
 }
 
 /* ===================== REGION PICKER MODAL OVERLAY ===================== */
@@ -1834,8 +2936,13 @@ body::-webkit-scrollbar {
   background: rgba(0,0,0,0.55);
   z-index: 99999;
   display: none;
-  align-items: center;
+  align-items: flex-start; /* Position modals higher */
   justify-content: center;
+  padding-top: clamp(60px, 10vh, 100px); /* Add top padding */
+}
+
+.region-picker-overlay.show {
+  display: flex;
 }
 
 .region-picker-modal {
@@ -1853,7 +2960,7 @@ body::-webkit-scrollbar {
 
 .region-picker-title {
   font-size: 1.3rem;
-  color: #ffe6b3;
+  color: #10b981;
   margin-bottom: 18px;
   font-weight: bold;
   text-align: center;
@@ -1898,13 +3005,13 @@ body::-webkit-scrollbar {
 }
 
 .region-picker-item:hover, .region-picker-item:focus {
-  background: #ffe6b3;
-  color: #232b36;
+  background: #10b981;
+  color: #1f2937;
 }
 
 .region-picker-item.active {
-  background: #ffe6b3;
-  color: #232b36;
+  background: #10b981;
+  color: #1f2937;
   font-weight: bold;
 }
 
@@ -1920,7 +3027,7 @@ body::-webkit-scrollbar {
   z-index: 2;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 411px) {
   .region-picker-modal {
     min-width: 0;
     padding: 18px 6px 12px 6px;
@@ -1949,8 +3056,13 @@ body::-webkit-scrollbar {
   background: rgba(0,0,0,0.55);
   z-index: 99999;
   display: none;
-  align-items: center;
+  align-items: flex-start; /* Position modals higher */
   justify-content: center;
+  padding-top: clamp(60px, 10vh, 100px); /* Add top padding */
+}
+
+.city-picker-overlay.show {
+  display: flex;
 }
 
 .city-picker-modal {
@@ -1969,7 +3081,7 @@ body::-webkit-scrollbar {
 
 .city-picker-title {
   font-size: 1.3rem;
-  color: #ffe6b3;
+  color: #10b981;
   margin-bottom: 18px;
   font-weight: bold;
   text-align: center;
@@ -2014,13 +3126,13 @@ body::-webkit-scrollbar {
 }
 
 .city-picker-item:hover, .city-picker-item:focus {
-  background: #ffe6b3;
-  color: #232b36;
+  background: #10b981;
+  color: #1f2937;
 }
 
 .city-picker-item.active {
-  background: #ffe6b3;
-  color: #232b36;
+  background: #10b981;
+  color: #1f2937;
   font-weight: bold;
 }
 
@@ -2036,7 +3148,7 @@ body::-webkit-scrollbar {
   z-index: 2;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 411px) {
   .city-picker-modal {
     min-width: 0;
     padding: 18px 6px 12px 6px;
@@ -2152,7 +3264,7 @@ body::-webkit-scrollbar {
   z-index: 2;
 }
 
-@media (max-width: 400px) {
+@media (max-width: 411px) {
   .pay-picker-modal {
     min-width: 0;
     padding: 18px 6px 12px 6px;
@@ -2172,17 +3284,97 @@ body::-webkit-scrollbar {
   }
 }
 
+/* ===================== SEARCH BAR IN HEADER ===================== */
+
+.search-bar-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.5vw, 12px);
+  padding: 0 clamp(14px, 2.5vw, 20px);
+  background: #1f2937;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+  transform: translateX(100%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.search-bar-container.show {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+.search-bar-input {
+  flex: 1;
+  max-width: clamp(400px, 70vw, 800px);
+  background: #111827;
+  border: 2px solid #374151;
+  border-radius: clamp(8px, 1.5vw, 12px);
+  padding: clamp(10px, 2vw, 14px) clamp(14px, 2.5vw, 18px);
+  font-size: clamp(14px, 3vw, 16px);
+  color: #fff;
+  outline: none;
+  transition: all 0.3s ease;
+  margin-left: clamp(10px, 3vw, 20px);
+}
+
+@media (max-width: 600px) {
+  .search-bar-input {
+    margin-left: clamp(14px, 4vw, 24px);
+  }
+}
+
+.search-bar-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.search-bar-input::placeholder {
+  color: #6b7280;
+}
+
+.search-bar-close {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: clamp(28px, 6vw, 36px);
+  cursor: pointer;
+  padding: 0;
+  width: clamp(36px, 7vw, 44px);
+  height: clamp(36px, 7vw, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.search-bar-close:hover {
+  color: #fff;
+  background: rgba(16, 185, 129, 0.2);
+}
+
 /* Small Screens (321px to 360px) - Additional constraints */
 @media (max-width: 360px) and (min-width: 321px) {
   .jobcat-servicemenu {
-    width: clamp(180px, 55vw, 200px) !important; /* Smaller for 321-360px range */
+    width: clamp(145px, 48vw, 170px) !important; /* Narrower to prevent overlap with icons */
     height: 45px !important;
   }
   
   .jobcat-servicename {
-    width: clamp(180px, 55vw, 200px) !important;
+    width: clamp(145px, 48vw, 170px) !important;
     height: 43px !important;
-    font-size: clamp(20px, 4.5vw, 24px) !important; /* Increased by another 2px equivalent */
+    font-size: clamp(18px, 4.2vw, 22px) !important; /* Slightly smaller text */
     padding-left: 8px !important;
     padding-right: 6px !important;
   }
@@ -2197,27 +3389,23 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-headerbuttons {
-    width: clamp(125px, 35vw, 149px) !important;
-    margin-right: 3px !important;
+    width: 149px !important; /* Fixed: Match perfect 411-361px range */
+    margin-right: 5px !important;
   }
   
   .jobcat-headerbutton {
-    width: clamp(36px, 9.5vw, 45px) !important;
-    height: clamp(40px, 11vh, 45px) !important;
-    font-size: clamp(11px, 2.8vw, 12px) !important;
+    width: 45px !important; /* Fixed: Match perfect 411-361px range */
+    height: 45px !important;
+    font-size: 12px !important;
   }
   
   .jobcat-headerbutton img {
-    height: clamp(30px, 9vh, 35px) !important;
+    height: 35px !important; /* Legacy support */
   }
   
   .jobcat-listheader {
     height: 64px !important;
     padding-right: 3px !important;
-  }
-  
-  .jobcat-header-spacer {
-    height: 75px !important; /* Smaller spacer for small screens */
   }
   
   body {

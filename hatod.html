@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hatod Service - GISUGO</title>
-    <link rel="stylesheet" href="public/css/listing2.css?v=9.1">
+    <link rel="stylesheet" href="public/css/listing.css?v=24.0">
   </head>
   <body>
     <div class="jobcat-header">
       <div class="jobcat-listheader">
         <div class="jobcat-servicemenu" id="jobcatServiceMenuBtn">
           <div class="jobcat-servicename">
-            <div>Hatod Jobs</div>
+            <div>Hatod Gigs</div>
             <div>&#9660;</div>
           </div>
         </div>
@@ -209,40 +209,24 @@
           </div>
         </div>
 
-        <!-- REGION MODAL OVERLAY -->
-        <div class="filter-modal-overlay" id="regionModalOverlay">
-          <div class="filter-modal-container">
-            <div class="filter-modal-header">
-              <div class="filter-modal-title">Select Region</div>
-              <div class="filter-modal-close" id="regionModalClose">×</div>
-            </div>
-            <div class="filter-modal-body">
-              <div class="filter-option-list" id="regionList">
-                <div class="filter-option-item" data-value="CEBU">Cebu</div>
-                <div class="filter-option-item" data-value="BOHOL">Bohol</div>
-                <div class="filter-option-item" data-value="LEYTE">Leyte</div>
-                <div class="filter-option-item" data-value="MASBATE">Masbate</div>
-                <div class="filter-option-item" data-value="NEGROS">Negros</div>
-                <div class="filter-option-item" data-value="PANAY">Panay</div>
-                <div class="filter-option-item" data-value="SAMAR">Samar</div>
-                <div class="filter-option-item" data-value="DAVAO">Davao</div>
-                <div class="filter-option-item" data-value="MANILA">Manila</div>
-              </div>
+        <!-- Region Picker Modal (Original Design) -->
+        <div class="region-picker-overlay" id="regionPickerOverlay">
+          <div class="region-picker-modal">
+            <button class="region-picker-close" id="regionPickerCloseBtn">&times;</button>
+            <div class="region-picker-title">Select Region</div>
+            <div class="region-picker-list" id="regionPickerList">
+              <!-- Region items will be populated by JavaScript -->
             </div>
           </div>
         </div>
 
-        <!-- CITY MODAL OVERLAY -->
-        <div class="filter-modal-overlay" id="cityModalOverlay">
-          <div class="filter-modal-container">
-            <div class="filter-modal-header">
-              <div class="filter-modal-title">Select City</div>
-              <div class="filter-modal-close" id="cityModalClose">×</div>
-            </div>
-            <div class="filter-modal-body">
-              <div class="filter-option-list" id="cityList">
-                <!-- Dynamically populated by JavaScript -->
-              </div>
+        <!-- City Picker Modal (Original Design) -->
+        <div class="city-picker-overlay" id="cityPickerOverlay">
+          <div class="city-picker-modal">
+            <button class="city-picker-close" id="cityPickerCloseBtn">&times;</button>
+            <div class="city-picker-title">Select City</div>
+            <div class="city-picker-list" id="cityPickerList">
+              <!-- City items will be populated by JavaScript -->
             </div>
           </div>
         </div>
@@ -250,21 +234,22 @@
         <div class="jobcat-headerbuttons">
           <div class="jobcat-headerbutton">
             <a href="new-post2.html" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
-              <div class="jobcat-icon-emoji">✏️</div>
+              <img src="public/images/Post.png" alt="Post" class="jobcat-icon">
               <div class="posttext">Post</div>
             </a>
           </div>
-          <div class="jobcat-headerbutton">
-            <div class="jobcat-icon-emoji">🔍</div>
+          <div class="jobcat-headerbutton" id="searchBtn">
+            <img src="public/images/search.png" alt="Search" class="jobcat-icon">
             <div>Search</div>
           </div>
           <div class="jobcat-headerbutton jobcat-menu-btn">
-            <div class="jobcat-icon-emoji">📋</div>
+            <img src="public/images/menu.png" alt="Menu" class="jobcat-icon">
             <div>Menu</div>
           </div>
         </div>
       </div>
       <div class="jobcat-borderline"></div>
+      <!-- Search bar will be dynamically inserted here by listing.js -->
     </div>
 
     <!-- Sort Header -->
@@ -273,7 +258,7 @@
         <!-- 🎮 Gaming Filter Panel (Expandable) -->
         <div class="gaming-filter-panel" id="gamingFilterPanel">
           <div class="filter-panel-header">
-            <div class="filter-panel-title">FILTER JOBS</div>
+            <div class="filter-panel-title">FILTER Gigs</div>
           </div>
           <div class="filter-panel-body">
             <!-- REGION Dropdown -->
@@ -286,7 +271,7 @@
             <!-- CITY Button (opens modal) -->
             <div class="filter-section">
               <div class="filter-section-title">CITY</div>
-              <button class="filter-button" id="cityButton">Select city...</button>
+              <button class="filter-button" id="cityButton">CEBU CITY</button>
         </div>
             
             <!-- PAY TYPE Icon Selection -->
@@ -318,9 +303,9 @@
               <div class="filter-display-item">
                 <div class="filter-display-label">Pay Rate</div>
                 <div class="filter-display-value" id="filterDisplayPay">Per Job</div>
-        </div>
-          </div>
-            <div class="filter-display-arrow" id="filterArrow">▼</div>
+              </div>
+            </div>
+            <div class="filter-display-arrow" id="filterArrow"></div>
           </div>
         </div>
       </div>
@@ -386,7 +371,7 @@
     </script>
 
     <script src="public/js/shared-menu.js"></script>
-    <script src="public/js/listing.js?v=5.6"></script>
+    <script src="public/js/listing.js?v=23.0"></script>
 
     <script>
       // Job Category Modal Close Button Handler
@@ -408,182 +393,6 @@
       }
     </script>
 
-    <script>
-      // 🎮 Gaming Filter Panel (Single Piece - Expandable)
-      console.log('🎮 Gaming Filter Script Loading...');
-      
-      const gamingFilterPanel = document.getElementById('gamingFilterPanel');
-      const gamingFilterBar = document.getElementById('gamingFilterBar'); // Footer bar (clickable)
-      const filterDisplay = document.getElementById('filterDisplay'); // Display container
-      const filterDisplayRegion = document.getElementById('filterDisplayRegion');
-      const filterDisplayCity = document.getElementById('filterDisplayCity');
-      const filterDisplayPay = document.getElementById('filterDisplayPay');
-      const filterArrow = document.getElementById('filterArrow'); // Arrow
-      const regionButton = document.getElementById('regionButton');
-      const cityButton = document.getElementById('cityButton');
-      const regionModalOverlay = document.getElementById('regionModalOverlay');
-      const cityModalOverlay = document.getElementById('cityModalOverlay');
-      const regionModalClose = document.getElementById('regionModalClose');
-      const cityModalClose = document.getElementById('cityModalClose');
-      const regionList = document.getElementById('regionList');
-      const cityList = document.getElementById('cityList');
-      const payOptionJob = document.getElementById('payOptionJob');
-      const payOptionHour = document.getElementById('payOptionHour');
-      
-      let selectedRegion = 'CEBU';
-      let selectedCity = 'Cebu City';
-      let selectedPayType = 'per-job';
-
-      // Populate cities modal based on selected region
-      function populateCities(region) {
-        const cities = citiesByRegion[region] || [];
-        if (cityList) {
-          cityList.innerHTML = cities.map(city => 
-            `<div class="filter-option-item" data-value="${city}">${city}</div>`
-          ).join('');
-          
-          // Add click handlers to city items
-          cityList.querySelectorAll('.filter-option-item').forEach(item => {
-            item.addEventListener('click', () => {
-              selectedCity = item.getAttribute('data-value');
-              if (cityButton) cityButton.textContent = selectedCity;
-              cityModalOverlay.classList.remove('show');
-              updateFilterDisplay();
-            });
-          });
-        }
-      }
-
-      // Initialize with CEBU cities
-      populateCities('CEBU');
-      
-      // Update display text in footer bar
-      function updateFilterDisplay() {
-        if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
-        if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
-        const payTypeText = selectedPayType === 'per-job' ? 'PER JOB' : 'PER HOUR';
-        if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
-      }
-      
-      // Region button click - open modal
-      if (regionButton) {
-        regionButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          regionModalOverlay.classList.add('show');
-        });
-      }
-      
-      // City button click - open modal
-      if (cityButton) {
-        cityButton.addEventListener('click', (e) => {
-          e.stopPropagation();
-          cityModalOverlay.classList.add('show');
-        });
-      }
-      
-      // Region selection from modal
-      if (regionList) {
-        regionList.querySelectorAll('.filter-option-item').forEach(item => {
-          item.addEventListener('click', () => {
-            selectedRegion = item.getAttribute('data-value');
-            if (regionButton) regionButton.textContent = item.textContent;
-            regionModalOverlay.classList.remove('show');
-            populateCities(selectedRegion);
-            selectedCity = ''; // Reset city when region changes
-            if (cityButton) cityButton.textContent = 'Select city...';
-            updateFilterDisplay();
-          });
-        });
-      }
-      
-      // Close region modal
-      if (regionModalClose) {
-        regionModalClose.addEventListener('click', () => {
-          regionModalOverlay.classList.remove('show');
-        });
-      }
-      
-      // Close city modal
-      if (cityModalClose) {
-        cityModalClose.addEventListener('click', () => {
-          cityModalOverlay.classList.remove('show');
-        });
-      }
-      
-      // Close modals on overlay click
-      if (regionModalOverlay) {
-        regionModalOverlay.addEventListener('click', (e) => {
-          if (e.target === regionModalOverlay) {
-            regionModalOverlay.classList.remove('show');
-          }
-        });
-      }
-      
-      if (cityModalOverlay) {
-        cityModalOverlay.addEventListener('click', (e) => {
-          if (e.target === cityModalOverlay) {
-            cityModalOverlay.classList.remove('show');
-          }
-        });
-      }
-      
-      // Pay type icon selection handlers
-      if (payOptionJob) {
-        payOptionJob.addEventListener('click', () => {
-          selectedPayType = 'per-job';
-          payOptionJob.classList.add('active');
-          if (payOptionHour) payOptionHour.classList.remove('active');
-          updateFilterDisplay();
-          console.log('💰 Pay type selected: Per Job');
-        });
-      }
-      
-      if (payOptionHour) {
-        payOptionHour.addEventListener('click', () => {
-          selectedPayType = 'per-hour';
-          payOptionHour.classList.add('active');
-          if (payOptionJob) payOptionJob.classList.remove('active');
-          updateFilterDisplay();
-          console.log('⏰ Pay type selected: Per Hour');
-        });
-      }
-      
-      // Initialize display on load
-      updateFilterDisplay();
-
-      // Toggle panel expansion when clicking footer bar
-      if (gamingFilterBar && gamingFilterPanel) {
-        console.log('✅ Filter bar found, attaching click listener');
-        gamingFilterBar.addEventListener('click', (e) => {
-          e.stopPropagation(); // Prevent event from bubbling
-          console.log('🖱️ Filter bar clicked!');
-          gamingFilterPanel.classList.toggle('expanded');
-          const isExpanded = gamingFilterPanel.classList.contains('expanded');
-          console.log('📦 Panel', isExpanded ? 'expanded' : 'collapsed');
-          
-          // Prevent body scroll when expanded
-          document.body.style.overflow = isExpanded ? 'hidden' : '';
-        });
-        
-        // Close panel when clicking backdrop
-        document.addEventListener('click', (e) => {
-          if (gamingFilterPanel.classList.contains('expanded')) {
-            const isClickInsidePanel = gamingFilterPanel.contains(e.target);
-            if (!isClickInsidePanel) {
-              console.log('🖱️ Clicked outside panel, collapsing...');
-              gamingFilterPanel.classList.remove('expanded');
-              document.body.style.overflow = '';
-            }
-          }
-        });
-      } else {
-        console.error('❌ Elements not found:', {
-          gamingFilterBar: !!gamingFilterBar,
-          gamingFilterPanel: !!gamingFilterPanel
-        });
-      }
-
-    </script>
 
   </body>
 </html> 

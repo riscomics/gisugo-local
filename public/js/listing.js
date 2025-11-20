@@ -210,7 +210,10 @@ if (typeof updateCityMenuLabelFontSize === 'function') {
   setTimeout(updateCityMenuLabelFontSize, 0);
 }
 
-// Function to close all dropdown overlays
+// ========================================
+// OLD FUNCTION - DISABLED (No longer needed with gaming filter)
+// ========================================
+/*
 function closeAllDropdowns() {
   document.getElementById('regionMenuOverlay').classList.remove('show');
   document.getElementById('cityMenuOverlay').classList.remove('show');
@@ -219,8 +222,15 @@ function closeAllDropdowns() {
   cityMenuOpen = false;
   payMenuOpen = false;
 }
+*/
 
-// Region menu overlay logic - UPDATED TO USE CENTERED MODAL
+// ========================================
+// OLD REGION/CITY PICKER CODE - DISABLED (Gaming Filter Now Handles This)
+// ========================================
+// This old code conflicts with the new gaming filter panel system
+// All listing pages now use the gaming filter panel (added at end of file)
+// Keeping this commented out in case we need to revert
+/*
 const regionMenuBtn = document.getElementById('locationRegion');
 const regionMenuOverlay = document.getElementById('regionMenuOverlay');
 const regionPickerModal = document.getElementById('regionPickerOverlay');
@@ -228,7 +238,6 @@ const regionPickerList = document.getElementById('regionPickerList');
 const regionPickerCloseBtn = document.getElementById('regionPickerCloseBtn');
 let regionMenuOpen = false;
 
-// Populate region picker modal
 function populateRegionPicker() {
   regionPickerList.innerHTML = '';
   regions.forEach(region => {
@@ -242,7 +251,6 @@ function populateRegionPicker() {
   });
 }
 
-// Region button click - show modal instead of small dropdown (V1 only)
 if (regionMenuBtn) {
   regionMenuBtn.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -252,27 +260,22 @@ if (regionMenuBtn) {
   });
 }
 
-// Close modal functions
 function closeRegionPicker() {
   regionPickerModal.style.display = 'none';
 }
 
-// Close button click
 regionPickerCloseBtn.addEventListener('click', closeRegionPicker);
 
-// Backdrop click to close
 regionPickerModal.addEventListener('click', function(e) {
   if (e.target === regionPickerModal) {
     closeRegionPicker();
   }
 });
 
-// Select region from modal
 regionPickerList.addEventListener('click', function(e) {
   if (e.target.classList.contains('region-picker-item')) {
     activeRegion = e.target.textContent.trim();
     document.getElementById('regionMenuLabel').textContent = activeRegion;
-    // When region changes, reset city to first city in region
     const cities = citiesByRegion[activeRegion] || [];
     activeCity = cities[0] || '';
     document.getElementById('cityMenuLabel').textContent = activeCity;
@@ -280,28 +283,23 @@ regionPickerList.addEventListener('click', function(e) {
     renderRegionMenu();
     renderCityMenu();
     closeRegionPicker();
-    // Trigger job filtering and sorting based on selected region
-    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
 
-// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
-// Close overlay when clicking outside
 document.addEventListener('click', function(e) {
   if (regionMenuOpen && !regionMenuBtn.contains(e.target) && !regionMenuOverlay.contains(e.target)) {
     regionMenuOverlay.classList.remove('show');
     regionMenuOpen = false;
   }
 });
-// Select region from original dropdown (backup) - V1 only
+
 if (regionMenuOverlay) {
   regionMenuOverlay.addEventListener('click', function(e) {
     if (e.target.tagName === 'LI') {
       activeRegion = e.target.textContent.replace(/▲/, '').trim();
       const regionLabel = document.getElementById('regionMenuLabel');
       if (regionLabel) regionLabel.textContent = activeRegion;
-      // When region changes, reset city to first city in region
       const cities = citiesByRegion[activeRegion] || [];
       activeCity = cities[0] || '';
       const cityLabel = document.getElementById('cityMenuLabel');
@@ -313,14 +311,18 @@ if (regionMenuOverlay) {
       renderCityMenu();
       regionMenuOverlay.classList.remove('show');
       regionMenuOpen = false;
-      // Trigger job filtering and sorting based on selected region
-      // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
       filterAndSortJobs();
     }
   });
 }
+*/ 
+// END OLD CODE
 
 // City menu overlay logic - UPDATED TO USE CENTERED MODAL
+// ========================================
+// OLD CITY & PAY PICKER CODE - DISABLED (Gaming Filter Now Handles This)
+// ========================================
+/*
 const cityMenuBtn = document.getElementById('locationCity');
 const cityMenuOverlay = document.getElementById('cityMenuOverlay');
 const cityPickerModal = document.getElementById('cityPickerOverlay');
@@ -328,7 +330,6 @@ const cityPickerList = document.getElementById('cityPickerList');
 const cityPickerCloseBtn = document.getElementById('cityPickerCloseBtn');
 let cityMenuOpen = false;
 
-// Populate city picker modal
 function populateCityPicker() {
   cityPickerList.innerHTML = '';
   const cities = citiesByRegion[activeRegion] || [];
@@ -343,7 +344,6 @@ function populateCityPicker() {
   });
 }
 
-// City button click - show modal instead of small dropdown (V1 only)
 if (cityMenuBtn) {
   cityMenuBtn.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -353,22 +353,18 @@ if (cityMenuBtn) {
   });
 }
 
-// Close modal functions
 function closeCityPicker() {
   cityPickerModal.style.display = 'none';
 }
 
-// Close button click
 cityPickerCloseBtn.addEventListener('click', closeCityPicker);
 
-// Backdrop click to close
 cityPickerModal.addEventListener('click', function(e) {
   if (e.target === cityPickerModal) {
     closeCityPicker();
   }
 });
 
-// Select city from modal
 cityPickerList.addEventListener('click', function(e) {
   if (e.target.classList.contains('city-picker-item')) {
     activeCity = e.target.textContent.trim();
@@ -376,21 +372,17 @@ cityPickerList.addEventListener('click', function(e) {
     setTimeout(updateCityMenuLabelFontSize, 0);
     renderCityMenu();
     closeCityPicker();
-    // Trigger job filtering and sorting based on selected city
-    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
 
-// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
-// Close overlay when clicking outside
 document.addEventListener('click', function(e) {
   if (cityMenuOpen && !cityMenuBtn.contains(e.target) && !cityMenuOverlay.contains(e.target)) {
     cityMenuOverlay.classList.remove('show');
     cityMenuOpen = false;
   }
 });
-// Select city from original dropdown (backup) - V1 only
+
 if (cityMenuOverlay) {
   cityMenuOverlay.addEventListener('click', function(e) {
     if (e.target.tagName === 'LI') {
@@ -407,7 +399,6 @@ if (cityMenuOverlay) {
   });
 }
 
-// Pay menu overlay logic - UPDATED TO USE CENTERED MODAL
 const payMenuBtn = document.getElementById('payMenu');
 const payMenuOverlay = document.getElementById('payMenuOverlay');
 const payPickerModal = document.getElementById('payPickerOverlay');
@@ -415,7 +406,6 @@ const payPickerList = document.getElementById('payPickerList');
 const payPickerCloseBtn = document.getElementById('payPickerCloseBtn');
 let payMenuOpen = false;
 
-// Populate pay picker modal
 function populatePayPicker() {
   payPickerList.innerHTML = '';
   payTypes.forEach(payType => {
@@ -429,7 +419,6 @@ function populatePayPicker() {
   });
 }
 
-// Pay button click - show modal instead of small dropdown (V1 only)
 if (payMenuBtn) {
   payMenuBtn.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -439,43 +428,35 @@ if (payMenuBtn) {
   });
 }
 
-// Close modal functions
 function closePayPicker() {
   payPickerModal.style.display = 'none';
 }
 
-// Close button click
 payPickerCloseBtn.addEventListener('click', closePayPicker);
 
-// Backdrop click to close
 payPickerModal.addEventListener('click', function(e) {
   if (e.target === payPickerModal) {
     closePayPicker();
   }
 });
 
-// Select pay type from modal
 payPickerList.addEventListener('click', function(e) {
   if (e.target.classList.contains('pay-picker-item')) {
     activePay = e.target.textContent.trim();
     document.getElementById('payMenuLabel').textContent = activePay;
     renderPayMenu();
     closePayPicker();
-    // Trigger job filtering and sorting based on selected pay type
-    // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
     filterAndSortJobs();
   }
 });
 
-// Keep original small dropdown as backup (but it won't be triggered by the main button anymore)
-// Close overlay when clicking outside
 document.addEventListener('click', function(e) {
   if (payMenuOpen && !payMenuBtn.contains(e.target) && !payMenuOverlay.contains(e.target)) {
     payMenuOverlay.classList.remove('show');
     payMenuOpen = false;
   }
 });
-// Select pay type from original dropdown (backup) - V1 only
+
 if (payMenuOverlay) {
   payMenuOverlay.addEventListener('click', function(e) {
     if (e.target.tagName === 'LI') {
@@ -485,8 +466,6 @@ if (payMenuOverlay) {
       renderPayMenu();
       payMenuOverlay.classList.remove('show');
       payMenuOpen = false;
-      // Trigger job filtering and sorting based on selected pay type
-      // 🔥 FIREBASE NOTE: When async, change to: await filterAndSortJobs();
       filterAndSortJobs();
     }
   });
@@ -496,20 +475,19 @@ function updateCityMenuLabelFontSize() {
   const label = document.getElementById('cityMenuLabel');
   const btn = document.getElementById('locationCity');
   if (!label || !btn) return;
-  // Get the computed/default font size
   const computed = window.getComputedStyle(label);
   let defaultFontSize = parseFloat(computed.fontSize);
   let fontSize = defaultFontSize;
   label.style.fontSize = fontSize + 'px';
-  // Reduce font size until it fits or hits minimum
   while (label.scrollWidth > btn.clientWidth - 32 && fontSize > 12) {
     fontSize -= 1;
     label.style.fontSize = fontSize + 'px';
   }
 }
 
-// Call updateCityMenuLabelFontSize on window resize
 window.addEventListener('resize', updateCityMenuLabelFontSize);
+*/ 
+// END OLD CODE
 
 // Helper function to parse job date and time into comparable timestamp
 function parseJobDateTime(dateStr, timeStr) {
@@ -1112,3 +1090,694 @@ function initJobcatButtonAutoResize() {
         setTimeout(autoResizeJobcatButton, 100);
     }
 }
+
+// ========================================
+// 🎨 HEADER ICONS REPLACEMENT (PNG → EMOJI)
+// ========================================
+(function() {
+  console.log('🎨 Replacing header icons...');
+  
+  // Map of PNG paths to emoji characters
+  const iconMap = {
+    'Post.png': '✏️',
+    'search.png': '🔍',
+    'menu.png': '📋'
+  };
+  
+  // Replace all header button images with emojis
+  const headerButtons = document.querySelectorAll('.jobcat-headerbuttons .jobcat-headerbutton');
+  headerButtons.forEach(button => {
+    const img = button.querySelector('img');
+    if (img) {
+      const src = img.getAttribute('src');
+      const iconName = src.substring(src.lastIndexOf('/') + 1);
+      if (iconMap[iconName]) {
+        const emojiDiv = document.createElement('div');
+        emojiDiv.className = 'jobcat-icon-emoji';
+        emojiDiv.textContent = iconMap[iconName];
+        img.parentElement.replaceChild(emojiDiv, img);
+        console.log('✓ Replaced', iconName, 'with', iconMap[iconName]);
+      }
+    }
+  });
+  
+  console.log('✅ Header icons replaced');
+})();
+
+// ========================================
+// 🔍 SEARCH FUNCTIONALITY (SHARED)
+// ========================================
+(function() {
+  console.log('🔍 Search Script Loading...');
+  
+  // Dynamically create and inject search bar into header
+  const headerElement = document.querySelector('.jobcat-header');
+  if (headerElement) {
+    const searchBarHTML = `
+      <div class="search-bar-container" id="searchBarContainer">
+        <input type="text" class="search-bar-input" id="searchInput" placeholder="Search jobs..." autocomplete="off">
+        <button class="search-bar-close" id="searchCloseBtn">&times;</button>
+      </div>
+    `;
+    headerElement.insertAdjacentHTML('beforeend', searchBarHTML);
+    console.log('✓ Search bar injected into header');
+  } else {
+    console.error('❌ Header element not found, search bar not injected');
+  }
+  
+  const searchBtn = document.getElementById('searchBtn');
+  const searchBarContainer = document.getElementById('searchBarContainer');
+  const searchCloseBtn = document.getElementById('searchCloseBtn');
+  const searchInput = document.getElementById('searchInput');
+  
+  let searchTimeout = null;
+  let allJobCards = []; // Will store references to all job preview cards on the page
+  
+  // Collect all job cards on page load (called after Firebase loads jobs)
+  function collectJobCards() {
+    // ========================================
+    // 🔥 FIREBASE MIGRATION NOTE:
+    // Call this function after Firebase populates the job cards
+    // Example: After rendering jobs from Firestore, run collectJobCards()
+    // ========================================
+    allJobCards = Array.from(document.querySelectorAll('.job-card, .job-preview-card, [data-job-id]'));
+    console.log('🔍 Collected', allJobCards.length, 'job cards for searching');
+  }
+  
+  // Get current job category from page
+  function getCurrentCategory() {
+    // Extract from URL filename (e.g., hatod.html → Hatod)
+    const path = window.location.pathname;
+    const filename = path.split('/').pop().replace('.html', '');
+    return filename.charAt(0).toUpperCase() + filename.slice(1);
+  }
+  
+  // Get selected region from gaming filter panel
+  function getSelectedRegion() {
+    const regionDisplay = document.getElementById('filterDisplayRegion');
+    return regionDisplay ? regionDisplay.textContent : 'CEBU';
+  }
+  
+  // Get selected city from gaming filter panel
+  function getSelectedCity() {
+    const cityDisplay = document.getElementById('filterDisplayCity');
+    return cityDisplay ? cityDisplay.textContent : 'CEBU CITY';
+  }
+  
+  // Open search bar
+  if (searchBtn && searchBarContainer) {
+    searchBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      searchBarContainer.classList.add('show');
+      collectJobCards(); // Refresh job cards list
+      setTimeout(() => {
+        if (searchInput) searchInput.focus();
+      }, 400); // Wait for animation
+      console.log('🔍 Search opened for category:', getCurrentCategory(), 'region:', getSelectedRegion());
+    });
+  }
+  
+  // Close search bar
+  function closeSearch() {
+    if (searchBarContainer) {
+      searchBarContainer.classList.remove('show');
+    }
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    // Restore all cards (important!)
+    showAllCards();
+    console.log('🔍 Search closed, all cards restored');
+  }
+  
+  if (searchCloseBtn) {
+    searchCloseBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeSearch();
+    });
+  }
+  
+  // Close search on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchBarContainer && searchBarContainer.classList.contains('show')) {
+      closeSearch();
+    }
+  });
+  
+  // Close search when clicking outside the search bar
+  document.addEventListener('click', (e) => {
+    if (searchBarContainer && searchBarContainer.classList.contains('show')) {
+      // Check if click is outside the search bar container and not on the search button
+      if (!searchBarContainer.contains(e.target) && !searchBtn.contains(e.target)) {
+        closeSearch();
+      }
+    }
+  });
+  
+  // Search input handler (debounced)
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      // Clear previous timeout
+      if (searchTimeout) clearTimeout(searchTimeout);
+      
+      if (!query) {
+        showAllCards();
+        return;
+      }
+      
+      // Debounce search by 300ms
+      searchTimeout = setTimeout(() => {
+        performSearch(query);
+      }, 300);
+    });
+  }
+  
+  // Show all cards (reset search filter)
+  function showAllCards() {
+    console.log('🔍 Restoring all', allJobCards.length, 'cards');
+    
+    // Simple: just show all cards
+    allJobCards.forEach(card => {
+      card.style.display = '';
+    });
+    
+    // ========================================
+    // 🔥 FIREBASE MIGRATION NOTE:
+    // If you want to filter by category/region even when not searching,
+    // uncomment and implement the filtering logic here.
+    // For now, this just shows all cards when search is closed.
+    // ========================================
+  }
+  
+  // Perform search by filtering visible cards
+  function performSearch(query) {
+    const lowerQuery = query.toLowerCase();
+    
+    console.log('🔍 Searching for:', query, 'across', allJobCards.length, 'cards');
+    
+    if (allJobCards.length === 0) {
+      console.warn('⚠️ No job cards found. Search will not work until Firebase loads jobs.');
+      return;
+    }
+    
+    let shownCount = 0;
+    
+    allJobCards.forEach(card => {
+      // Get searchable text from the card
+      // ========================================
+      // 🔥 FIREBASE MIGRATION NOTE:
+      // Adjust selectors based on your actual job card HTML structure
+      // Common selectors: .job-title, .job-category, .job-location, data-* attributes
+      // ========================================
+      
+      // Get all text content from the card
+      const cardText = card.textContent.toLowerCase();
+      
+      // Also try specific selectors
+      const titleEl = card.querySelector('.job-title, .preview-title, [data-job-title]');
+      const locationEl = card.querySelector('.job-location, .preview-location, [data-job-location]');
+      const descEl = card.querySelector('.job-description, .preview-description, [data-job-description]');
+      
+      const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+      const location = locationEl ? locationEl.textContent.toLowerCase() : '';
+      const description = descEl ? descEl.textContent.toLowerCase() : '';
+      
+      // Search across all text
+      const matchesSearch = cardText.includes(lowerQuery) ||
+                           title.includes(lowerQuery) ||
+                           location.includes(lowerQuery) ||
+                           description.includes(lowerQuery);
+      
+      // Show/hide card
+      if (matchesSearch) {
+        card.style.display = '';
+        shownCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+    
+    console.log('🔍 Showing', shownCount, 'of', allJobCards.length, 'cards');
+  }
+  
+  console.log('✅ Search script initialized');
+})();
+
+// ========================================
+// 🎮 GAMING FILTER PANEL (SHARED)
+// ========================================
+(function() {
+  console.log('🎮 Gaming Filter Script Loading...');
+  
+  const gamingFilterPanel = document.getElementById('gamingFilterPanel');
+  const gamingFilterBar = document.getElementById('gamingFilterBar'); // Footer bar (clickable)
+  const filterDisplay = document.getElementById('filterDisplay'); // Display container
+  const filterDisplayRegion = document.getElementById('filterDisplayRegion');
+  const filterDisplayCity = document.getElementById('filterDisplayCity');
+  const filterDisplayPay = document.getElementById('filterDisplayPay');
+  const filterArrow = document.getElementById('filterArrow'); // Arrow
+  const regionButton = document.getElementById('regionButton');
+  const cityButton = document.getElementById('cityButton');
+  const regionModalOverlay = document.getElementById('regionPickerOverlay');
+  const cityModalOverlay = document.getElementById('cityPickerOverlay');
+  const regionModalClose = document.getElementById('regionPickerCloseBtn');
+  const cityModalClose = document.getElementById('cityPickerCloseBtn');
+  const regionList = document.getElementById('regionPickerList');
+  const cityList = document.getElementById('cityPickerList');
+  const payOptionJob = document.getElementById('payOptionJob');
+  const payOptionHour = document.getElementById('payOptionHour');
+  
+  let selectedRegion = 'CEBU';
+  let selectedCity = 'CEBU CITY';
+  let selectedPayType = 'per-job';
+
+  // Default cities for each region
+  const defaultCities = {
+    'CEBU': 'CEBU CITY',
+    'BOHOL': 'Tagbilaran City',
+    'LEYTE': 'Tacloban City',
+    'MASBATE': 'Masbate City',
+    'NEGROS': 'Bacolod City',
+    'PANAY': 'Iloilo City',
+    'SAMAR': 'Catbalogan City',
+    'DAVAO': 'Davao City',
+    'MANILA': 'Manila'
+  };
+
+  // Populate region picker list
+  function populateRegions() {
+    const regionData = ['CEBU', 'BOHOL', 'LEYTE', 'MASBATE', 'NEGROS', 'PANAY', 'SAMAR', 'DAVAO', 'MANILA'];
+    if (regionList) {
+      regionList.innerHTML = regionData.map(region => 
+        `<div class="region-picker-item" data-value="${region}">${region.charAt(0) + region.slice(1).toLowerCase()}</div>`
+      ).join('');
+      
+      // Add click handlers to region items
+      regionList.querySelectorAll('.region-picker-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent gaming filter panel from closing
+          
+          selectedRegion = item.getAttribute('data-value');
+          if (regionButton) regionButton.textContent = item.textContent;
+          
+          // Update global filter variables
+          activeRegion = selectedRegion;
+          
+          // Close the region modal
+          regionModalOverlay.classList.remove('show');
+          
+          // Populate cities for the new region
+          populateCities(selectedRegion);
+          
+          // Set default city for this region
+          selectedCity = defaultCities[selectedRegion] || citiesByRegion[selectedRegion][0] || '';
+          activeCity = selectedCity;
+          if (cityButton) cityButton.textContent = selectedCity;
+          
+          updateFilterDisplay();
+          
+          // Re-filter jobs with new region
+          filterAndSortJobs();
+          console.log('🎮 Region changed to:', selectedRegion, '- Jobs re-filtered');
+        });
+      });
+    }
+  }
+
+  // Populate cities modal based on selected region
+  function populateCities(region) {
+    const cities = citiesByRegion[region] || [];
+    if (cityList) {
+      cityList.innerHTML = cities.map(city => 
+        `<div class="city-picker-item" data-value="${city}">${city}</div>`
+      ).join('');
+      
+      // Add click handlers to city items
+      cityList.querySelectorAll('.city-picker-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent gaming filter panel from closing
+          
+          selectedCity = item.getAttribute('data-value');
+          activeCity = selectedCity;
+          if (cityButton) cityButton.textContent = selectedCity;
+          cityModalOverlay.classList.remove('show');
+          updateFilterDisplay();
+          
+          // Re-filter jobs with new city
+          filterAndSortJobs();
+          console.log('🎮 City changed to:', selectedCity, '- Jobs re-filtered');
+        });
+      });
+    }
+  }
+
+  // Initialize with CEBU cities
+  populateRegions();
+  populateCities('CEBU');
+  
+  // Update display text in footer bar
+  function updateFilterDisplay() {
+    if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
+    if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
+    const payTypeText = selectedPayType === 'per-job' ? 'PER JOB' : 'PER HOUR';
+    if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
+  }
+  
+  // Region button click - open modal (prevent panel from closing)
+  if (regionButton) {
+    regionButton.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent any parent click handlers
+      regionModalOverlay.classList.add('show');
+    });
+  }
+  
+  // City button click - open modal (prevent panel from closing)
+  if (cityButton) {
+    cityButton.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent any parent click handlers
+      cityModalOverlay.classList.add('show');
+    });
+  }
+  
+  // Close region modal
+  if (regionModalClose) {
+    regionModalClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      regionModalOverlay.classList.remove('show');
+    });
+  }
+  
+  // Close city modal
+  if (cityModalClose) {
+    cityModalClose.addEventListener('click', (e) => {
+      e.stopPropagation();
+      cityModalOverlay.classList.remove('show');
+    });
+  }
+  
+  // Close modals on overlay click (but keep gaming filter panel open)
+  if (regionModalOverlay) {
+    regionModalOverlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target === regionModalOverlay) {
+        regionModalOverlay.classList.remove('show');
+      }
+    });
+  }
+  
+  if (cityModalOverlay) {
+    cityModalOverlay.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target === cityModalOverlay) {
+        cityModalOverlay.classList.remove('show');
+      }
+    });
+  }
+  
+  // Pay type icon selection handlers
+  if (payOptionJob) {
+    payOptionJob.addEventListener('click', () => {
+      selectedPayType = 'per-job';
+      activePay = 'PER JOB';
+      payOptionJob.classList.add('active');
+      if (payOptionHour) payOptionHour.classList.remove('active');
+      updateFilterDisplay();
+      
+      // Re-filter jobs with new pay type
+      filterAndSortJobs();
+      console.log('💰 Pay type selected: Per Job - Jobs re-filtered');
+    });
+  }
+  
+  if (payOptionHour) {
+    payOptionHour.addEventListener('click', () => {
+      selectedPayType = 'per-hour';
+      activePay = 'PER HOUR';
+      payOptionHour.classList.add('active');
+      if (payOptionJob) payOptionJob.classList.remove('active');
+      updateFilterDisplay();
+      
+      // Re-filter jobs with new pay type
+      filterAndSortJobs();
+      console.log('⏰ Pay type selected: Per Hour - Jobs re-filtered');
+    });
+  }
+  
+  // Initialize display on load
+  updateFilterDisplay();
+
+  // Toggle panel expansion when clicking footer bar
+  if (gamingFilterBar && gamingFilterPanel) {
+    console.log('✅ Filter bar found, attaching click listener');
+    gamingFilterBar.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent event from bubbling
+      console.log('🖱️ Filter bar clicked!');
+      gamingFilterPanel.classList.toggle('expanded');
+      const isExpanded = gamingFilterPanel.classList.contains('expanded');
+      console.log('📦 Panel', isExpanded ? 'expanded' : 'collapsed');
+      
+      // Prevent body scroll when expanded
+      document.body.style.overflow = isExpanded ? 'hidden' : '';
+    });
+    
+    // Close panel when clicking backdrop (but not when modals are open)
+    document.addEventListener('click', (e) => {
+      if (gamingFilterPanel.classList.contains('expanded')) {
+        // Don't close if clicking inside the panel
+        const isClickInsidePanel = gamingFilterPanel.contains(e.target);
+        
+        // Don't close if clicking on region or city modals
+        const isClickOnRegionModal = regionModalOverlay && regionModalOverlay.contains(e.target);
+        const isClickOnCityModal = cityModalOverlay && cityModalOverlay.contains(e.target);
+        
+        if (!isClickInsidePanel && !isClickOnRegionModal && !isClickOnCityModal) {
+          console.log('🖱️ Clicked outside panel, collapsing...');
+          gamingFilterPanel.classList.remove('expanded');
+          document.body.style.overflow = '';
+        }
+      }
+    });
+  } else {
+    console.error('❌ Elements not found:', {
+      gamingFilterBar: !!gamingFilterBar,
+      gamingFilterPanel: !!gamingFilterPanel
+    });
+  }
+})();
+
+// ========================================
+// 🎨 REPLACE PNG ICONS WITH EMOJIS (Header Buttons)
+// ========================================
+(function() {
+  // Replace Post icon
+  const postImg = document.querySelector('.jobcat-headerbuttons img[src*="Post.png"]');
+  if (postImg) {
+    const emojiDiv = document.createElement('div');
+    emojiDiv.className = 'jobcat-icon-emoji';
+    emojiDiv.textContent = '✏️';
+    postImg.parentElement.replaceChild(emojiDiv, postImg);
+  }
+
+  // Replace Search icon
+  const searchImg = document.querySelector('.jobcat-headerbuttons img[src*="search.png"]');
+  if (searchImg) {
+    const emojiDiv = document.createElement('div');
+    emojiDiv.className = 'jobcat-icon-emoji';
+    emojiDiv.textContent = '🔍';
+    searchImg.parentElement.replaceChild(emojiDiv, searchImg);
+  }
+
+  // Replace Menu icon
+  const menuImg = document.querySelector('.jobcat-headerbuttons img[src*="menu.png"]');
+  if (menuImg) {
+    const emojiDiv = document.createElement('div');
+    emojiDiv.className = 'jobcat-icon-emoji';
+    emojiDiv.textContent = '📋';
+    menuImg.parentElement.replaceChild(emojiDiv, menuImg);
+  }
+})();
+
+// ========================================
+// 📋 JOB CATEGORY DROPDOWN MENU (All Listing Pages)
+// ========================================
+(function() {
+  const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
+  if (!serviceMenuOverlay) {
+    console.log('No job category overlay found');
+    return;
+  }
+
+  // Check if it has the old <ul> structure (needs replacement) or new modal structure (already good)
+  const hasOldStructure = serviceMenuOverlay.querySelector('ul') !== null;
+  const hasNewStructure = serviceMenuOverlay.querySelector('.jobcat-modal-container') !== null;
+
+  if (hasNewStructure) {
+    console.log('✓ Job category menu already has new structure (hardcoded in HTML)');
+    return;
+  }
+
+  if (!hasOldStructure) {
+    console.log('⚠️ Unknown job category menu structure');
+    return;
+  }
+
+  // Job categories with emojis and page names
+  const jobCategories = [
+    // BASIC HELPER SECTION
+    { emoji: '🚗', label: 'Hatod', page: 'hatod.html', section: 'basic' },
+    { emoji: '📦', label: 'Hakot', page: 'hakot.html', section: 'basic' },
+    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'basic' },
+    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
+    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
+    { emoji: '🧺', label: 'Laba', page: 'laba.html', section: 'basic' },
+    { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
+    { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'basic' },
+    { emoji: '👶', label: 'Bantay', page: 'bantay.html', section: 'basic' },
+    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'basic' },
+    { emoji: '👔', label: 'Staff', page: 'staff.html', section: 'basic' },
+    { emoji: '📞', label: 'Reception', page: 'reception.html', section: 'basic' },
+    
+    // SKILLED WORKER SECTION
+    { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'skilled' },
+    { emoji: '🛡️', label: 'Security', page: 'security.html', section: 'skilled' },
+    { emoji: '🔧', label: 'Plumber', page: 'plumber.html', section: 'skilled' },
+    { emoji: '🏗️', label: 'Builder', page: 'builder.html', section: 'skilled' },
+    { emoji: '🎨', label: 'Painter', page: 'painter.html', section: 'skilled' },
+    { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'skilled' },
+    { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'skilled' },
+    { emoji: '✍️', label: 'Editor', page: 'editor.html', section: 'skilled' },
+    { emoji: '🖼️', label: 'Artist', page: 'artist.html', section: 'skilled' },
+    { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'skilled' },
+    { emoji: '🔬', label: 'Researcher', page: 'researcher.html', section: 'skilled' },
+    { emoji: '📱', label: 'Social', page: 'social.html', section: 'skilled' },
+    { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'skilled' },
+    { emoji: '🎥', label: 'Videographer', page: 'videographer.html', section: 'skilled' },
+    { emoji: '🎵', label: 'Musician', page: 'musician.html', section: 'skilled' },
+    { emoji: '📝', label: 'Secretary', page: 'secretary.html', section: 'skilled' },
+    { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'skilled' },
+    { emoji: '📋', label: 'Clerical', page: 'clerical.html', section: 'skilled' },
+    
+    // PROFESSIONAL SECTION
+    { emoji: '💉', label: 'Nurse', page: 'nurse.html', section: 'professional' },
+    { emoji: '⚕️', label: 'Doctor', page: 'doctor.html', section: 'professional' },
+    { emoji: '⚖️', label: 'Lawyer', page: 'lawyer.html', section: 'professional' },
+    { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'professional' },
+    { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'professional' },
+    { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'professional' },
+    { emoji: '🧮', label: 'Accountant', page: 'accountant.html', section: 'professional' },
+    { emoji: '💼', label: 'Consultant', page: 'consultant.html', section: 'professional' },
+    { emoji: '⚙️', label: 'Engineer', page: 'engineer.html', section: 'professional' },
+    { emoji: '💻', label: 'Programmer', page: 'programmer.html', section: 'professional' },
+    { emoji: '🧘', label: 'Therapist', page: 'therapist.html', section: 'professional' },
+    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'professional' }
+  ];
+
+  // Get current page to mark active
+  const currentPage = window.location.pathname.split('/').pop();
+
+  // Group by section
+  const sections = {
+    basic: { title: 'Basic Helper', items: [] },
+    skilled: { title: 'Skilled Worker', items: [] },
+    professional: { title: 'Professional', items: [] }
+  };
+
+  jobCategories.forEach(cat => {
+    sections[cat.section].items.push(cat);
+  });
+
+  // Generate the new modal structure HTML
+  let bodyHTML = '';
+  Object.values(sections).forEach(section => {
+    bodyHTML += `<div class="jobcat-section-divider">${section.title}</div>`;
+    bodyHTML += '<div class="jobcat-category-grid">';
+    section.items.forEach(cat => {
+      const activeClass = currentPage === cat.page ? ' active' : '';
+      bodyHTML += `
+        <a href="${cat.page}" class="jobcat-category-card${activeClass}">
+          <div class="jobcat-category-icon">${cat.emoji}</div>
+          <div class="jobcat-category-label">${cat.label}</div>
+        </a>
+      `;
+    });
+    bodyHTML += '</div>';
+  });
+
+  // Replace entire overlay content with new modal structure
+  serviceMenuOverlay.innerHTML = `
+    <div class="jobcat-modal-container">
+      <div class="jobcat-modal-header">
+        <div class="jobcat-modal-title">Select Job Category</div>
+        <div class="jobcat-modal-close" id="jobcatModalClose">×</div>
+      </div>
+      <div class="jobcat-modal-body">
+        ${bodyHTML}
+      </div>
+    </div>
+  `;
+
+  // Re-attach close button listener
+  const closeBtn = document.getElementById('jobcatModalClose');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      serviceMenuOverlay.classList.remove('show');
+    });
+  }
+
+  console.log('✓ Job category menu upgraded to new modal structure');
+})();
+
+// ========================================
+// 🔤 AUTO-RESIZE JOB CATEGORY BUTTON TEXT
+// ========================================
+(function() {
+  const serviceNameContainer = document.querySelector('.jobcat-servicename');
+  if (!serviceNameContainer) return;
+
+  const textDiv = serviceNameContainer.querySelector('div:first-child');
+  if (!textDiv) return;
+
+  function autoResizeJobCategoryText() {
+    const text = textDiv.textContent.trim();
+    const totalLength = text.length; // Includes space between words
+    
+    // Reset to default first by removing inline style
+    serviceNameContainer.style.removeProperty('font-size');
+    
+    // If combined text > 13 characters, start downsizing
+    if (totalLength > 13) {
+      // Get the computed default font size from CSS
+      const computedStyle = window.getComputedStyle(serviceNameContainer);
+      const defaultFontSize = parseFloat(computedStyle.fontSize);
+      
+      // Calculate reduction: very aggressive for long text
+      // 10% reduction per character over 13
+      const overage = totalLength - 13;
+      const reductionPerChar = 0.10; // 10% per character (very aggressive)
+      const scaleFactor = 1 - (overage * reductionPerChar);
+      
+      // Apply minimum font size cap (don't go below 40% of default)
+      const minScale = 0.40;
+      const finalScale = Math.max(scaleFactor, minScale);
+      const newFontSize = defaultFontSize * finalScale;
+      
+      // Use setProperty with 'important' to override CSS !important rules
+      serviceNameContainer.style.setProperty('font-size', newFontSize + 'px', 'important');
+      console.log(`📏 "${text}" (${totalLength} chars) → ${newFontSize.toFixed(1)}px (reduced ${((1-finalScale)*100).toFixed(0)}%)`);
+    }
+  }
+
+  // Run on page load
+  autoResizeJobCategoryText();
+
+  // Run on window resize
+  window.addEventListener('resize', autoResizeJobCategoryText);
+
+  // Observe text changes (in case it's dynamically updated)
+  const observer = new MutationObserver(autoResizeJobCategoryText);
+  observer.observe(textDiv, { childList: true, characterData: true, subtree: true });
+
+  console.log('✓ Job category text auto-resize initialized');
+})();
