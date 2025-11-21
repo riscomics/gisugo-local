@@ -1546,7 +1546,7 @@ function initJobcatButtonAutoResize() {
         setTimeout(() => {
           gamingFilterPanel.classList.remove('closing');
           console.log('📦 Panel collapsed');
-        }, 500); // Match CSS animation duration (0.5s)
+        }, 350); // Match CSS animation duration (0.35s)
         
         document.body.style.overflow = '';
       } else {
@@ -1575,7 +1575,7 @@ function initJobcatButtonAutoResize() {
           setTimeout(() => {
             gamingFilterPanel.classList.remove('closing');
             console.log('📦 Panel collapsed');
-          }, 500); // Match CSS animation duration (0.5s)
+          }, 350); // Match CSS animation duration (0.35s)
           
           document.body.style.overflow = '';
         }
