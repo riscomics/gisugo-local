@@ -648,14 +648,6 @@ function validateCurrentStep() {
         showToast('Please select a job date', 'error');
         return false;
       }
-      // Validate date is not in the past
-      const selectedDate = new Date(np2State.jobDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        showToast('Job date cannot be in the past', 'error');
-        return false;
-      }
       if (!np2State.startHour) {
         showToast('Please select start time', 'error');
         return false;
@@ -664,11 +656,28 @@ function validateCurrentStep() {
         showToast('Please select end time', 'error');
         return false;
       }
+      
       // Validate time range (end time must be after start time)
       const startHour24 = convertTo24Hour(parseInt(np2State.startHour), np2State.startPeriod);
       const endHour24 = convertTo24Hour(parseInt(np2State.endHour), np2State.endPeriod);
       if (endHour24 <= startHour24) {
         showToast('End time must be after start time', 'error');
+        return false;
+      }
+      
+      // Validate date+time is not in the past (using user's local timezone)
+      const selectedDateParts = np2State.jobDate.split('-'); // "2025-11-21" -> ["2025", "11", "21"]
+      const selectedDateTime = new Date(
+        parseInt(selectedDateParts[0]), // year
+        parseInt(selectedDateParts[1]) - 1, // month (0-indexed)
+        parseInt(selectedDateParts[2]), // day
+        startHour24, // hour
+        0, // minutes
+        0 // seconds
+      );
+      const now = new Date();
+      if (selectedDateTime < now) {
+        showToast('Job date and time cannot be in the past', 'error');
         return false;
       }
       if (!np2State.jobDescription.trim()) {
