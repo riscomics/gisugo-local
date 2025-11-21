@@ -1783,11 +1783,33 @@ function initializeSuccessOverlay() {
   
   if (viewJobBtn) {
     viewJobBtn.addEventListener('click', function() {
-      // Navigate to the category page (e.g., hatod.html, limpyo.html)
-      if (np2State.selectedCategory) {
-        window.location.href = `${np2State.selectedCategory}.html`;
-      } else {
-        window.location.href = 'jobs.html';
+      // Navigate to the specific job detail page
+      // Job data is accessible from the last saved job
+      try {
+        const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+        const categoryJobs = allJobs[np2State.selectedCategory] || [];
+        
+        // Get the most recently posted job (last in array if new, or find by editJobId if editing)
+        let targetJob;
+        if (np2State.mode === 'edit' && np2State.editJobId) {
+          targetJob = categoryJobs.find(j => j.jobId === np2State.editJobId);
+        } else {
+          // Get the last job (most recent)
+          targetJob = categoryJobs[categoryJobs.length - 1];
+        }
+        
+        if (targetJob && targetJob.jobNumber) {
+          // Navigate to dynamic job page with category and jobNumber
+          window.location.href = `dynamic-job.html?category=${np2State.selectedCategory}&jobNumber=${targetJob.jobNumber}`;
+        } else {
+          // Fallback to category page if job not found
+          console.warn('Job not found in localStorage, redirecting to category page');
+          window.location.href = `${np2State.selectedCategory}.html`;
+        }
+      } catch (error) {
+        console.error('Error navigating to job post:', error);
+        // Fallback to category page
+        window.location.href = np2State.selectedCategory ? `${np2State.selectedCategory}.html` : 'jobs.html';
       }
     });
   }
