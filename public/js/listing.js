@@ -1534,12 +1534,27 @@ function initJobcatButtonAutoResize() {
     gamingFilterBar.addEventListener('click', (e) => {
       e.stopPropagation(); // Prevent event from bubbling
       console.log('🖱️ Filter bar clicked!');
-      gamingFilterPanel.classList.toggle('expanded');
-      const isExpanded = gamingFilterPanel.classList.contains('expanded');
-      console.log('📦 Panel', isExpanded ? 'expanded' : 'collapsed');
       
-      // Prevent body scroll when expanded
-      document.body.style.overflow = isExpanded ? 'hidden' : '';
+      const isExpanded = gamingFilterPanel.classList.contains('expanded');
+      
+      if (isExpanded) {
+        // Closing: Add closing class, wait for animation, then remove expanded
+        console.log('📦 Panel closing with animation...');
+        gamingFilterPanel.classList.add('closing');
+        gamingFilterPanel.classList.remove('expanded');
+        
+        setTimeout(() => {
+          gamingFilterPanel.classList.remove('closing');
+          console.log('📦 Panel collapsed');
+        }, 500); // Match CSS animation duration (0.5s)
+        
+        document.body.style.overflow = '';
+      } else {
+        // Opening: Just add expanded class
+        console.log('📦 Panel expanding...');
+        gamingFilterPanel.classList.add('expanded');
+        document.body.style.overflow = 'hidden';
+      }
     });
     
     // Close panel when clicking backdrop (but not when modals are open)
@@ -1553,8 +1568,15 @@ function initJobcatButtonAutoResize() {
         const isClickOnCityModal = cityModalOverlay && cityModalOverlay.contains(e.target);
         
         if (!isClickInsidePanel && !isClickOnRegionModal && !isClickOnCityModal) {
-          console.log('🖱️ Clicked outside panel, collapsing...');
+          console.log('🖱️ Clicked outside panel, collapsing with animation...');
+          gamingFilterPanel.classList.add('closing');
           gamingFilterPanel.classList.remove('expanded');
+          
+          setTimeout(() => {
+            gamingFilterPanel.classList.remove('closing');
+            console.log('📦 Panel collapsed');
+          }, 500); // Match CSS animation duration (0.5s)
+          
           document.body.style.overflow = '';
         }
       }

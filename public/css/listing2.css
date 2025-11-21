@@ -826,10 +826,10 @@ body::-webkit-scrollbar {
 /* Smooth closing animation - consolidated with styling */
 .gaming-filter-panel:not(.expanded) {
   max-height: clamp(52px, 13vw, 95px); /* Explicit same height to prevent snap */
-  transition: max-height 0.45s ease-out, /* Smooth consistent closing */
-              transform 0.3s ease,
-              box-shadow 0.3s ease,
-              margin 0.3s ease; /* Add margin transition */
+  transition: max-height 0.5s ease-out, /* Smooth consistent closing - matches content animation exactly */
+              transform 0.5s ease-out,
+              box-shadow 0.5s ease-out,
+              margin 0.5s ease-out; /* All transitions synced to 0.5s */
   border-radius: 0 0 14px 14px;
   border-top: none;
   margin-top: -3px; /* Mobile: flush with borderline */
@@ -866,7 +866,7 @@ body::-webkit-scrollbar {
   background: transparent;
   pointer-events: none;
   z-index: 99;
-  transition: background 0.3s ease;
+  transition: background 0.5s ease-out;
 }
 
 .sortmenus:has(.gaming-filter-panel.expanded)::after {
@@ -883,7 +883,7 @@ body::-webkit-scrollbar {
 /* Expanded state - everything visible */
 .gaming-filter-panel.expanded {
   max-height: 95vh;
-  transition: max-height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: max-height 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
   border-radius: 14px;
   border-top: 3px solid #10b981;
 }
@@ -891,7 +891,14 @@ body::-webkit-scrollbar {
 .gaming-filter-panel.expanded .filter-panel-header,
 .gaming-filter-panel.expanded .filter-panel-body {
   display: block;
-  animation: slideDown 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+  animation: slideDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+/* Closing animation - slides content back up */
+.gaming-filter-panel.closing .filter-panel-header,
+.gaming-filter-panel.closing .filter-panel-body {
+  display: block;
+  animation: slideUp 0.5s ease-out forwards;
 }
 
 @keyframes slideDown {
@@ -902,6 +909,17 @@ body::-webkit-scrollbar {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-40px);
   }
 }
 
@@ -1221,7 +1239,7 @@ body::-webkit-scrollbar {
   gap: clamp(12px, 2vw, 20px);
   cursor: pointer;
   user-select: none;
-  transition: all 0.3s ease;
+  transition: all 0.5s ease-out;
   position: relative;
   order: 999; /* Always at bottom */
   flex-shrink: 0;
@@ -1265,6 +1283,7 @@ body::-webkit-scrollbar {
   color: #ffffff;
   letter-spacing: 0.5px;
   padding: 0;
+  transition: all 0.5s ease-out;
 }
 
 .filter-display-item {
@@ -1274,6 +1293,7 @@ body::-webkit-scrollbar {
   gap: clamp(2px, 0.5vw, 4px); /* Proportional gap between label and value */
   flex: 1 1 0; /* Equal width distribution */
   min-width: 0; /* Allow shrinking on small screens */
+  transition: all 0.5s ease-out;
 }
 
 .filter-display-label {
@@ -1284,6 +1304,7 @@ body::-webkit-scrollbar {
   letter-spacing: 0.3px;
   opacity: 0.8;
   white-space: nowrap;
+  transition: all 0.5s ease-out;
 }
 
 .filter-display-value {
@@ -1296,6 +1317,7 @@ body::-webkit-scrollbar {
   overflow: visible;
   text-align: center;
   width: 100%;
+  transition: all 0.5s ease-out;
 }
 
 .filter-display-arrow {
@@ -1304,6 +1326,7 @@ body::-webkit-scrollbar {
   left: 50%;
   transform: translateX(-50%);
   font-size: clamp(28px, 5.5vw, 38px); /* Bigger and more responsive */
+  transition: transform 0.5s ease-out, font-size 0.5s ease-out, bottom 0.5s ease-out, opacity 0.5s ease-out;
   color: #10b981;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   flex-shrink: 0;
