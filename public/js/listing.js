@@ -1351,7 +1351,7 @@ function initJobcatButtonAutoResize() {
   
   let selectedRegion = 'CEBU';
   let selectedCity = 'CEBU CITY';
-  let selectedPayType = 'per-job';
+  let selectedPayType = null; // Default to no filter (show all)
 
   // Default cities for each region
   const defaultCities = {
@@ -1441,7 +1441,9 @@ function initJobcatButtonAutoResize() {
   function updateFilterDisplay() {
     if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
     if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
-    const payTypeText = selectedPayType === 'per-job' ? 'PER JOB' : 'PER HOUR';
+    let payTypeText = 'SELECT';
+    if (selectedPayType === 'per-job') payTypeText = 'PER JOB';
+    else if (selectedPayType === 'per-hour') payTypeText = 'PER HOUR';
     if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
   }
   
@@ -1499,29 +1501,43 @@ function initJobcatButtonAutoResize() {
   // Pay type icon selection handlers
   if (payOptionJob) {
     payOptionJob.addEventListener('click', () => {
-      selectedPayType = 'per-job';
-      activePay = 'PER JOB';
-      payOptionJob.classList.add('active');
-      if (payOptionHour) payOptionHour.classList.remove('active');
+      if (selectedPayType === 'per-job') {
+        // Clicking again deselects (show all)
+        selectedPayType = null;
+        activePay = 'PAY TYPE';
+        payOptionJob.classList.remove('active');
+        console.log('💰 Pay type deselected: Showing all jobs');
+      } else {
+        // Select per-job
+        selectedPayType = 'per-job';
+        activePay = 'PER JOB';
+        payOptionJob.classList.add('active');
+        if (payOptionHour) payOptionHour.classList.remove('active');
+        console.log('💰 Pay type selected: Per Job - Jobs re-filtered');
+      }
       updateFilterDisplay();
-      
-      // Re-filter jobs with new pay type
       filterAndSortJobs();
-      console.log('💰 Pay type selected: Per Job - Jobs re-filtered');
     });
   }
   
   if (payOptionHour) {
     payOptionHour.addEventListener('click', () => {
-      selectedPayType = 'per-hour';
-      activePay = 'PER HOUR';
-      payOptionHour.classList.add('active');
-      if (payOptionJob) payOptionJob.classList.remove('active');
+      if (selectedPayType === 'per-hour') {
+        // Clicking again deselects (show all)
+        selectedPayType = null;
+        activePay = 'PAY TYPE';
+        payOptionHour.classList.remove('active');
+        console.log('⏰ Pay type deselected: Showing all jobs');
+      } else {
+        // Select per-hour
+        selectedPayType = 'per-hour';
+        activePay = 'PER HOUR';
+        payOptionHour.classList.add('active');
+        if (payOptionJob) payOptionJob.classList.remove('active');
+        console.log('⏰ Pay type selected: Per Hour - Jobs re-filtered');
+      }
       updateFilterDisplay();
-      
-      // Re-filter jobs with new pay type
       filterAndSortJobs();
-      console.log('⏰ Pay type selected: Per Hour - Jobs re-filtered');
     });
   }
   

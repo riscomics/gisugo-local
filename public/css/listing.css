@@ -3356,7 +3356,7 @@ body::-webkit-scrollbar {
 
 .search-bar-input {
   flex: 1;
-  max-width: clamp(400px, 70vw, 800px);
+  max-width: clamp(300px, 65vw, 700px);
   background: #111827;
   border: 2px solid #374151;
   border-radius: clamp(8px, 1.5vw, 12px);
@@ -3365,12 +3365,23 @@ body::-webkit-scrollbar {
   color: #fff;
   outline: none;
   transition: all 0.3s ease;
-  margin-left: clamp(10px, 3vw, 20px);
+  margin-left: clamp(16px, 4vw, 24px);
+  margin-right: clamp(8px, 2vw, 12px);
 }
 
 @media (max-width: 600px) {
   .search-bar-input {
-    margin-left: clamp(14px, 4vw, 24px);
+    max-width: clamp(250px, 60vw, 400px);
+    margin-left: clamp(20px, 5vw, 30px);
+    margin-right: clamp(10px, 3vw, 16px);
+  }
+}
+
+@media (max-width: 400px) {
+  .search-bar-input {
+    max-width: clamp(200px, 55vw, 300px);
+    margin-left: clamp(24px, 6vw, 32px);
+    margin-right: clamp(12px, 3vw, 16px);
   }
 }
 
