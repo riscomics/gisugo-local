@@ -851,44 +851,38 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
   const rateText = cardData.rate || payType;
   
-  // NEW OPTION A LAYOUT: Modern Split Card (Badge moved to footer)
+  // TITLE-FIRST LAYOUT: Title spans full width, content below
   cardElement.innerHTML = `
-    <div class="card-thumbnail">
-      <img src="${cardData.photo || 'images/placeholder.jpg'}" alt="${cardData.title || 'Job preview'}" loading="lazy">
-    </div>
-    <div class="card-content-box">
-      <h3 class="card-title">${cardData.title || 'Untitled Job'}</h3>
-      <div class="card-details-row">
-        <div class="card-extras">
-          ${extra1Label ? `
+    <h3 class="card-title">${cardData.title || 'Untitled Job'}</h3>
+    <div class="card-body">
+      <div class="card-thumbnail">
+        <img src="${cardData.photo || 'images/placeholder.jpg'}" alt="${cardData.title || 'Job preview'}" loading="lazy">
+      </div>
+      <div class="card-content-box">
+        <div class="card-top-section">
+          <div class="card-extras-column">
             <div class="card-extra">
               <span class="extra-label">${extra1Label}</span>
               <span class="extra-value">${extra1Value}</span>
             </div>
-          ` : ''}
-          ${extra2Label ? `
             <div class="card-extra">
               <span class="extra-label">${extra2Label}</span>
               <span class="extra-value">${extra2Value}</span>
             </div>
-          ` : ''}
-        </div>
-        <div class="card-payment">
+          </div>
           <div class="payment-amount">${cardData.price || '₱0'}</div>
         </div>
-      </div>
-      <div class="card-footer">
-        <div class="footer-left">
-          <span class="footer-date">📅 ${cardData.date || 'TBD'}</span>
-          <span class="footer-divider">•</span>
-          <span class="footer-time">⏰ ${cardData.time || 'TBD'}</span>
-        </div>
-        <div class="footer-right">
+        <div class="card-bottom-row">
+          <div class="card-datetime">
+            <span class="footer-date">📅 ${cardData.date || 'TBD'}</span>
+            <span class="footer-time">⏰ ${cardData.time || 'TBD'}</span>
+          </div>
           <div class="payment-badge">${rateIcon} ${rateText}</div>
         </div>
       </div>
     </div>
   `;
+  
   
   // ============================================================================
   // 🔥 MEMORY LEAK PREVENTION: Clean card references

@@ -409,12 +409,12 @@ body::-webkit-scrollbar {
 }
 
 @keyframes modalSlideUp {
-  from {
-    opacity: 0;
+  from { 
+    opacity: 0; 
     transform: translateY(30px) scale(0.95);
   }
-  to {
-    opacity: 1;
+  to { 
+    opacity: 1; 
     transform: translateY(0) scale(1);
   }
 }
@@ -1706,12 +1706,9 @@ body::-webkit-scrollbar {
    ============================ */
 .job-preview-card {
   display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  justify-content: flex-start;
+  flex-direction: column;
   width: 100%;
   max-width: clamp(650px, 75vw, 800px);
-  height: clamp(160px, 22vw, 200px); /* Reasonable desktop height */
   background: #363f4f;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.12), 
@@ -1789,19 +1786,51 @@ body::-webkit-scrollbar {
 }
 
 /* ============================
+   CARD TITLE (Full Width at Top)
+   ============================ */
+.card-title {
+  display: block;
+  width: 100%;
+  font-size: clamp(14px, 3.2vw, 18px);
+  font-weight: 700;
+  line-height: 1.3;
+  color: #ffffff;
+  margin: 0;
+  padding: clamp(10px, 2vw, 14px) clamp(12px, 2.5vw, 18px);
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-family: Arial, Helvetica, sans-serif;
+  white-space: nowrap;
+  overflow: hidden;
+  flex-shrink: 0;
+  order: -1;
+}
+
+/* ============================
+   CARD BODY (Thumbnail + Content)
+   ============================ */
+.card-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  order: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+/* ============================
    CARD THUMBNAIL (Left Side)
    ============================ */
 .card-thumbnail {
-  width: clamp(80px, 22vw, 200px); /* RESPONSIVE: shrinks aggressively on small screens */
-  min-width: clamp(80px, 22vw, 200px);
-  height: 100%; /* Fill full card height */
+  width: clamp(100px, 22vw, 200px);
+  min-width: clamp(100px, 22vw, 200px);
   flex-shrink: 0;
   background: #1a1f2e;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 12px 0 0 12px;
+  border-radius: 0 0 0 12px;
   position: relative;
 }
 
@@ -1837,33 +1866,52 @@ body::-webkit-scrollbar {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* Spread content evenly */
-  padding: 18px 22px;
+  justify-content: space-between;
+  padding: clamp(12px, 2vw, 16px) clamp(14px, 2.5vw, 22px);
   background: rgba(255,255,255,0.03);
   border-left: 1px solid rgba(16,185,129,0.15);
   position: relative;
-  align-self: stretch; /* Match parent height */
-  overflow: visible; /* Allow content to show fully */
 }
 
 /* ============================
-   CARD TITLE
+   CARD TOP SECTION (Extras + Price)
    ============================ */
-.card-title {
-  font-size: clamp(14px, 2.4vw, 18px);
-  font-weight: 700;
-  line-height: 1.3;
-  color: #ffffff;
-  margin: 0 0 clamp(6px, 1.2vw, 9px) 0;
-  padding: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: 0.01em;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  flex-shrink: 0;
+.card-top-section {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: clamp(10px, 2vw, 16px);
+  flex: 1;
+  margin-bottom: clamp(8px, 1.5vw, 12px);
+}
+
+.card-extras-column {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.5vw, 4px);
+  flex: 1;
+}
+
+/* ============================
+   CARD BOTTOM ROW (Date/Time + Badge)
+   ============================ */
+.card-bottom-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: clamp(4px, 1vw, 10px);
+}
+
+.card-datetime {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: clamp(4px, 1vw, 8px);
+  font-size: clamp(9px, 2.8vw, 16px);
+  font-weight: 500;
+  color: rgba(230,214,174,0.85);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1898,7 +1946,7 @@ body::-webkit-scrollbar {
   flex-direction: row;
   align-items: baseline;
   gap: clamp(5px, 1vw, 7px);
-  font-size: clamp(14px, 2.6vw, 18px); /* Increased from 12-15px */
+  font-size: clamp(14px, 3.2vw, 20px);
   line-height: 1.3;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -1954,20 +2002,22 @@ body::-webkit-scrollbar {
 .payment-badge {
   display: inline-flex;
   align-items: center;
-  gap: clamp(3px, 0.6vw, 5px);
-  padding: clamp(5px, 1vw, 8px) clamp(10px, 1.8vw, 14px);
+  gap: clamp(1px, 0.3vw, 3px);
+  padding: clamp(2px, 0.5vw, 5px) clamp(4px, 0.8vw, 8px);
   background: rgba(16,185,129,0.15);
   border: 1px solid rgba(16,185,129,0.3);
-  border-radius: clamp(10px, 1.8vw, 14px);
-  font-size: clamp(13px, 2.5vw, 17px); /* Increased from 11-14px */
+  border-radius: clamp(4px, 0.8vw, 7px);
+  font-size: clamp(7px, 1.6vw, 11px);
   font-weight: 600;
   color: rgba(16,185,129,1);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   box-shadow: 0 2px 6px rgba(16,185,129,0.1);
   font-family: Arial, Helvetica, sans-serif;
+  flex-shrink: 0;
 }
+
 
 /* ============================
    CARD FOOTER (Date + Time + Badge)
@@ -2022,7 +2072,6 @@ body::-webkit-scrollbar {
 @media (min-width: 601px) and (max-width: 900px) {
   .job-preview-card {
     max-width: 90vw;
-    height: clamp(180px, 26vw, 210px); /* Increased height to fit content */
   }
   
   .card-thumbnail {
@@ -2035,8 +2084,7 @@ body::-webkit-scrollbar {
   }
   
   .card-title {
-    font-size: clamp(14px, 2.6vw, 17px);
-    margin-bottom: clamp(5px, 1vw, 7px);
+    font-size: clamp(14px, 2.8vw, 17px);
   }
   
   .card-extra {
@@ -2070,9 +2118,7 @@ body::-webkit-scrollbar {
 @media (max-width: 600px) and (min-width: 501px) {
   .job-preview-card {
     max-width: 96vw;
-    height: 190px; /* Increased to prevent footer overlap */
     margin: 0 auto 16px auto;
-    min-height: 190px;
   }
   
   .card-thumbnail {
@@ -2085,7 +2131,7 @@ body::-webkit-scrollbar {
   }
   
   .card-title {
-    font-size: 15px;
+    font-size: clamp(13px, 2.8vw, 16px);
   }
   
   .card-details-row {
@@ -2138,8 +2184,7 @@ body::-webkit-scrollbar {
    ============================ */
 @media (max-width: 500px) and (min-width: 451px) {
   .job-preview-card {
-    height: 195px; /* Increased to prevent footer overlap */
-    min-height: 195px;
+    max-width: 98vw;
   }
   
   .card-thumbnail {
@@ -2152,7 +2197,7 @@ body::-webkit-scrollbar {
   }
   
   .card-title {
-    font-size: 14px;
+    font-size: clamp(12px, 3vw, 15px);
   }
   
   .card-extra {
@@ -2185,13 +2230,7 @@ body::-webkit-scrollbar {
    ============================ */
 @media (max-width: 450px) and (min-width: 401px) {
   .job-preview-card {
-    height: 200px; /* Increased to prevent footer overlap */
-    min-height: 200px;
-    text-decoration: none !important;
-  }
-  
-  .job-preview-card * {
-    text-decoration: none !important;
+    max-width: 98vw;
   }
   
   .card-thumbnail {
@@ -2204,8 +2243,7 @@ body::-webkit-scrollbar {
   }
   
   .card-title {
-    font-size: clamp(12px, 3vw, 14px);
-    margin-bottom: clamp(6px, 1.5vw, 9px);
+    font-size: clamp(12px, 3.2vw, 14px);
   }
   
   .card-details-row {
@@ -2267,13 +2305,7 @@ body::-webkit-scrollbar {
 @media (max-width: 400px) and (min-width: 321px) {
   .job-preview-card {
     width: 97vw;
-    height: 180px; /* Match content height */
     margin: 0 auto 12px auto;
-    min-height: 180px;
-  }
-  
-  .job-preview-content {
-    height: 180px; /* 1.5x increase from 600px breakpoint */
   }
   
   .card-thumbnail {
@@ -2287,9 +2319,8 @@ body::-webkit-scrollbar {
   }
   
   .card-title {
-    font-size: 12px;
+    font-size: clamp(11px, 3.2vw, 13px);
     line-height: 1.25;
-    margin-bottom: 8px;
   }
   
   .card-extra {
@@ -2334,12 +2365,6 @@ body::-webkit-scrollbar {
 @media (max-width: 320px) {
   .job-preview-card {
     width: 95vw;
-    height: 200px; /* Match content height */
-    min-height: 200px;
-  }
-  
-  .job-preview-content {
-    height: 200px; /* 1.5x increase from 600px breakpoint */
   }
   
   .card-thumbnail {
@@ -2352,9 +2377,8 @@ body::-webkit-scrollbar {
   }
   
   .card-title {
-    font-size: 11px;
+    font-size: clamp(10px, 3.3vw, 12px);
     line-height: 1.2;
-    margin-bottom: 6px;
   }
   
   .card-extra {
@@ -2551,15 +2575,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 700px) {
   .job-preview-card {
-    flex-direction: row !important;
-    padding: 0px;
-    margin: 0 auto 10px auto; /* Reduced margin, maintain centering */
-    height: 192px;
-    display: flex;
-    flex-direction: row;
-    align-items: center; 
+    /* OLD LAYOUT REMOVED - using new title-first column layout */
+    margin: 0 auto 10px auto;
     max-width: 594px;
-    min-height: 192px; 
   }
   .job-preview-img {
     width: 28vw;
@@ -2649,16 +2667,10 @@ body::-webkit-scrollbar {
 }
 @media (max-width: 600px) {
   .job-preview-card {
-    flex-direction: row !important;
-    padding: 0px;        
-    height: 150px;
-    display: flex;
-    flex-direction: row;
-    align-items: center; 
+    /* OLD LAYOUT REMOVED - using new title-first column layout */
     max-width: 100vw;
     width: 96vw;
-    min-height: 150px; 
-    margin: 0 auto 10px auto; /* Reduced top margin, maintain auto centering */
+    margin: 0 auto 10px auto;
     border-radius: 8px;
   }
   
