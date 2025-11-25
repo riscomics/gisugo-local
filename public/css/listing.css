@@ -1842,6 +1842,7 @@ body::-webkit-scrollbar {
   background: rgba(255,255,255,0.03);
   border-left: 1px solid rgba(16,185,129,0.15);
   position: relative;
+  align-self: stretch; /* Match parent height */
   overflow: visible; /* Allow content to show fully */
 }
 
@@ -2021,7 +2022,7 @@ body::-webkit-scrollbar {
 @media (min-width: 601px) and (max-width: 900px) {
   .job-preview-card {
     max-width: 90vw;
-    height: clamp(155px, 24vw, 190px); /* Reasonable tablet height */
+    height: clamp(180px, 26vw, 210px); /* Increased height to fit content */
   }
   
   .card-thumbnail {
@@ -2069,8 +2070,9 @@ body::-webkit-scrollbar {
 @media (max-width: 600px) and (min-width: 501px) {
   .job-preview-card {
     max-width: 96vw;
-    height: clamp(150px, 28vw, 180px); /* Reasonable 501-600px height */
+    height: 190px; /* Increased to prevent footer overlap */
     margin: 0 auto 16px auto;
+    min-height: 190px;
   }
   
   .card-thumbnail {
@@ -2087,14 +2089,19 @@ body::-webkit-scrollbar {
   }
   
   .card-details-row {
-    flex-direction: column;
-    gap: clamp(11px, 2.4vw, 15px);
+    flex-direction: row; /* Keep horizontal layout */
+    gap: clamp(8px, 1.5vw, 12px);
+    align-items: flex-start;
+  }
+  
+  .card-extras {
+    flex: 1; /* Allow extras to take available space */
+    min-width: 0; /* Prevent overflow */
   }
   
   .card-payment {
-    flex-direction: row;
-    justify-content: space-between;
-    width: 100%;
+    flex-shrink: 0; /* Prevent price from shrinking */
+    margin-left: auto; /* Push to right */
   }
   
   .card-extra {
@@ -2131,7 +2138,8 @@ body::-webkit-scrollbar {
    ============================ */
 @media (max-width: 500px) and (min-width: 451px) {
   .job-preview-card {
-    height: clamp(145px, 32vw, 175px); /* Reasonable 451-500px height */
+    height: 195px; /* Increased to prevent footer overlap */
+    min-height: 195px;
   }
   
   .card-thumbnail {
@@ -2177,7 +2185,13 @@ body::-webkit-scrollbar {
    ============================ */
 @media (max-width: 450px) and (min-width: 401px) {
   .job-preview-card {
-    height: clamp(165px, 40vw, 195px); /* Phone height with stacked date/time */
+    height: 200px; /* Increased to prevent footer overlap */
+    min-height: 200px;
+    text-decoration: none !important;
+  }
+  
+  .job-preview-card * {
+    text-decoration: none !important;
   }
   
   .card-thumbnail {
@@ -2186,12 +2200,28 @@ body::-webkit-scrollbar {
   }
   
   .card-content-box {
-    padding: 14px 16px; /* MORE padding for taller cards */
+    padding: clamp(14px, 3.5vw, 18px) clamp(14px, 3.5vw, 18px);
   }
   
   .card-title {
-    font-size: 13px;
-    margin-bottom: 8px;
+    font-size: clamp(12px, 3vw, 14px);
+    margin-bottom: clamp(6px, 1.5vw, 9px);
+  }
+  
+  .card-details-row {
+    flex-direction: row; /* Keep horizontal */
+    gap: clamp(6px, 1.5vw, 10px);
+    align-items: flex-start;
+  }
+  
+  .card-extras {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .card-payment {
+    flex-shrink: 0;
+    margin-left: auto;
   }
   
   .card-extra {
@@ -2205,6 +2235,7 @@ body::-webkit-scrollbar {
   .payment-amount {
     font-size: clamp(22px, 5.8vw, 28px);
     padding: clamp(5px, 1.1vw, 8px) clamp(8px, 1.7vw, 12px);
+    display: block; /* Ensure it's a block element */
   }
   
   .payment-badge {
@@ -2214,8 +2245,8 @@ body::-webkit-scrollbar {
   
   .card-footer {
     font-size: clamp(10px, 2.9vw, 13px);
-    padding-top: clamp(10px, 2vw, 14px); /* MORE padding top */
-    gap: 8px;
+    padding-top: clamp(10px, 2vw, 14px);
+    gap: clamp(6px, 1.5vw, 9px);
   }
   
   /* STACK date/time into 2 lines for large phones */
@@ -2236,8 +2267,13 @@ body::-webkit-scrollbar {
 @media (max-width: 400px) and (min-width: 321px) {
   .job-preview-card {
     width: 97vw;
-    height: clamp(175px, 48vw, 210px); /* Phone height with stacked date/time */
+    height: 180px; /* Match content height */
     margin: 0 auto 12px auto;
+    min-height: 180px;
+  }
+  
+  .job-preview-content {
+    height: 180px; /* 1.5x increase from 600px breakpoint */
   }
   
   .card-thumbnail {
@@ -2247,7 +2283,7 @@ body::-webkit-scrollbar {
   }
   
   .card-content-box {
-    padding: 14px 14px; /* MORE padding for taller cards */
+    padding: 16px 14px; /* Add top/bottom spacing */
   }
   
   .card-title {
@@ -2298,7 +2334,12 @@ body::-webkit-scrollbar {
 @media (max-width: 320px) {
   .job-preview-card {
     width: 95vw;
-    height: clamp(170px, 54vw, 200px); /* Smallest phone height with stacked date/time */
+    height: 200px; /* Match content height */
+    min-height: 200px;
+  }
+  
+  .job-preview-content {
+    height: 200px; /* 1.5x increase from 600px breakpoint */
   }
   
   .card-thumbnail {
@@ -2307,7 +2348,7 @@ body::-webkit-scrollbar {
   }
   
   .card-content-box {
-    padding: 12px 12px; /* MORE padding for taller cards */
+    padding: 14px 12px; /* Add top/bottom spacing */
   }
   
   .card-title {
@@ -2513,12 +2554,12 @@ body::-webkit-scrollbar {
     flex-direction: row !important;
     padding: 0px;
     margin: 0 auto 10px auto; /* Reduced margin, maintain centering */
-    height: 120px;
+    height: 192px;
     display: flex;
     flex-direction: row;
     align-items: center; 
     max-width: 594px;
-    min-height: 96px; 
+    min-height: 192px; 
   }
   .job-preview-img {
     width: 28vw;
@@ -2537,7 +2578,7 @@ body::-webkit-scrollbar {
     padding-left: 5px;
     padding-right: 5px;
     min-width: 50;          
-    height: 128px;  
+    height: 192px;  
   }
   
   .job-preview-title {
@@ -2610,13 +2651,13 @@ body::-webkit-scrollbar {
   .job-preview-card {
     flex-direction: row !important;
     padding: 0px;        
-    height: 120px;
+    height: 150px;
     display: flex;
     flex-direction: row;
     align-items: center; 
     max-width: 100vw;
     width: 96vw;
-    min-height: 96px; 
+    min-height: 150px; 
     margin: 0 auto 10px auto; /* Reduced top margin, maintain auto centering */
     border-radius: 8px;
   }
@@ -2661,7 +2702,7 @@ body::-webkit-scrollbar {
     padding-left: 3px;
     padding-right: 3px;
     min-width: 0;          
-    height: 100px;  
+    height: 150px;  
   }
   
   .job-preview-title {
