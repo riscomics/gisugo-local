@@ -1350,7 +1350,7 @@ body::-webkit-scrollbar {
   0%, 100% {
     transform: translateX(-50%) translateY(0);
     filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.8));
-  }
+}
   50% {
     transform: translateX(-50%) translateY(-6px);
     filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
@@ -1380,7 +1380,7 @@ body::-webkit-scrollbar {
   transform: translateX(-50%) rotate(180deg); /* Counter-rotate to keep text upright */
   font-size: clamp(16px, 3.5vw, 22px); /* Larger text */
   font-weight: 700;
-  letter-spacing: 1.5px;
+    letter-spacing: 1.5px;
   color: #1f2937;
   background: linear-gradient(135deg, #10b981, #059669);
   padding: clamp(6px, 1.5vw, 10px) clamp(16px, 4vw, 24px);
@@ -1388,8 +1388,8 @@ body::-webkit-scrollbar {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.3);
   white-space: nowrap;
   transition: all 0.3s ease;
-}
-
+  }
+  
 /* Bounce animation for expanded state (upward) */
 @keyframes arrowBounceUp {
   0%, 100% {
@@ -1400,14 +1400,14 @@ body::-webkit-scrollbar {
     transform: translateX(-50%) rotate(180deg) translateY(6px);
     filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
   }
-}
-
+  }
+  
 .gaming-filter-panel.expanded .filter-panel-footer-bar:hover .filter-display-arrow {
   animation: none;
   transform: translateX(-50%) rotate(180deg) scale(1.2);
   filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1));
-}
-
+  }
+  
 /* Mobile adjustments - removed fixed values, using base clamps */
 
 /* Desktop-specific sortmenus spacing (601px and above) */
@@ -1417,8 +1417,8 @@ body::-webkit-scrollbar {
     min-height: 0 !important;
     height: auto !important;
   }
-}
-
+  }
+  
 /* Desktop mid-range - removed fixed overrides, using base clamps */
 
 .sort-menu {

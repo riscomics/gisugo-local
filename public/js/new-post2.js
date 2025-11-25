@@ -1793,7 +1793,7 @@ function initializeSuccessOverlay() {
         let targetJob;
         if (np2State.mode === 'edit' && np2State.editJobId) {
           targetJob = categoryJobs.find(j => j.jobId === np2State.editJobId);
-        } else {
+      } else {
           // Get the last job (most recent)
           targetJob = categoryJobs[categoryJobs.length - 1];
         }

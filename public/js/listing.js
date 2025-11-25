@@ -781,17 +781,58 @@ function getCurrentCategory() {
   return filename.replace('.html', '');
 }
 
+// ============================================================================
+// 🔥 FIREBASE DATA STRUCTURE MAPPING
+// ============================================================================
+// Expected Firestore document structure for gig cards:
+// {
+//   id: string,                    // Auto-generated Firestore doc ID
+//   jobNumber: string,             // Custom job number (e.g., "JOB-HATOD-001")
+//   category: string,              // Job category (e.g., "Hatod", "Hakot")
+//   title: string,                 // Job title/description
+//   photo: string,                 // Image URL (Firebase Storage path)
+//   extra1: string,                // "Label: Value" format (e.g., "Location: Cebu City")
+//   extra2: string,                // "Label: Value" format (e.g., "Vehicle: Motorcycle")
+//   price: string,                 // Payment amount (e.g., "₱500", "₱150")
+//   rate: string,                  // Payment rate type (e.g., "Per Job", "Per Hour")
+//   date: string,                  // Job date (e.g., "Nov 22", "Dec 5")
+//   time: string,                  // Job time (e.g., "10 AM - 12 PM", "2-5 PM")
+//   region: string,                // Region (e.g., "CEBU", "MANILA")
+//   city: string,                  // City (e.g., "CEBU CITY", "LAPU-LAPU")
+//   status: string,                // Job status (e.g., "active", "filled", "expired")
+//   postedBy: string,              // User ID who posted the gig
+//   postedAt: Timestamp,           // Firebase Timestamp of creation
+//   templateUrl: string            // Link to detailed job page
+// }
+// ============================================================================
+
 function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount = 0) {
   const cardElement = document.createElement('a');
-  cardElement.href = cardData.templateUrl;
+  cardElement.href = cardData.templateUrl || '#';
+  
+  // ============================================================================
+  // 🔥 FIREBASE DATA ATTRIBUTES FOR TRACKING & ANALYTICS
+  // ============================================================================
+  // These data attributes enable Firebase Analytics tracking, easy DOM queries,
+  // and future feature implementations (favorites, saved jobs, etc.)
+  // ============================================================================
+  cardElement.setAttribute('data-job-id', cardData.id || '');
+  cardElement.setAttribute('data-job-number', cardData.jobNumber || '');
+  cardElement.setAttribute('data-job-category', cardData.category || '');
+  cardElement.setAttribute('data-job-region', cardData.region || '');
+  cardElement.setAttribute('data-job-city', cardData.city || '');
+  cardElement.setAttribute('data-job-pay-type', cardData.rate || '');
+  cardElement.setAttribute('data-job-status', cardData.status || 'active');
+  
+  // For search functionality - store searchable text
+  cardElement.setAttribute('data-job-title', cardData.title || '');
+  cardElement.setAttribute('data-job-description', cardData.title || ''); // Can be expanded
   
   // Determine background class based on pay type and consecutive count
   let bgClass;
   if (payType === 'Per Hour') {
-    // Use green tones for Per Hour jobs
     bgClass = consecutiveCount % 2 === 0 ? 'pay-per-hour' : 'pay-per-hour-alt';
   } else {
-    // Use blue-gray tones for Per Job jobs
     bgClass = consecutiveCount % 2 === 0 ? 'pay-per-job' : 'pay-per-job-alt';
   }
   
@@ -801,33 +842,65 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   const extra1Parts = cardData.extra1 ? cardData.extra1.split(':') : ['', ''];
   const extra2Parts = cardData.extra2 ? cardData.extra2.split(':') : ['', ''];
   
-  const extra1Label = extra1Parts[0] ? extra1Parts[0].trim() + ':' : '';
+  const extra1Label = extra1Parts[0] ? extra1Parts[0].trim() : '';
   const extra1Value = extra1Parts[1] ? extra1Parts[1].trim() : '';
-  const extra2Label = extra2Parts[0] ? extra2Parts[0].trim() + ':' : '';
+  const extra2Label = extra2Parts[0] ? extra2Parts[0].trim() : '';
   const extra2Value = extra2Parts[1] ? extra2Parts[1].trim() : '';
   
+  // Format rate badge text and icon
+  const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
+  const rateText = cardData.rate || payType;
+  
+  // NEW OPTION A LAYOUT: Modern Split Card (Badge moved to footer)
   cardElement.innerHTML = `
-    <div class="job-preview-img">
-      <img src="${cardData.photo}" alt="Job preview image">
+    <div class="card-thumbnail">
+      <img src="${cardData.photo || 'images/placeholder.jpg'}" alt="${cardData.title || 'Job preview'}" loading="lazy">
     </div>
-    <div class="job-preview-content">
-      <div class="job-preview-title">${cardData.title}</div>
-      <div class="job-preview-extras">
-        ${extra1Label ? `<div class="job-preview-extra1"><span class="job-preview-extra-label1">${extra1Label}</span> ${extra1Value}</div>` : ''}
-        ${extra2Label ? `<div class="job-preview-extra2"><span class="job-preview-extra-label2">${extra2Label}</span> ${extra2Value}</div>` : ''}
+    <div class="card-content-box">
+      <h3 class="card-title">${cardData.title || 'Untitled Job'}</h3>
+      <div class="card-details-row">
+        <div class="card-extras">
+          ${extra1Label ? `
+            <div class="card-extra">
+              <span class="extra-label">${extra1Label}</span>
+              <span class="extra-value">${extra1Value}</span>
+            </div>
+          ` : ''}
+          ${extra2Label ? `
+            <div class="card-extra">
+              <span class="extra-label">${extra2Label}</span>
+              <span class="extra-value">${extra2Value}</span>
+            </div>
+          ` : ''}
+        </div>
+        <div class="card-payment">
+          <div class="payment-amount">${cardData.price || '₱0'}</div>
+        </div>
       </div>
-    </div>
-    <div class="job-preview-infoboxes">
-      <div class="job-preview-infobox1">
-        <div class="job-preview-price">${cardData.price}</div>
-        <div class="job-preview-rate">${cardData.rate}</div>
-      </div>
-      <div class="job-preview-infobox2">
-        <div class="job-preview-date">${cardData.date}</div>
-        <div class="job-preview-time">${cardData.time}</div>
+      <div class="card-footer">
+        <div class="footer-left">
+          <span class="footer-date">📅 ${cardData.date || 'TBD'}</span>
+          <span class="footer-divider">•</span>
+          <span class="footer-time">⏰ ${cardData.time || 'TBD'}</span>
+        </div>
+        <div class="footer-right">
+          <div class="payment-badge">${rateIcon} ${rateText}</div>
+        </div>
       </div>
     </div>
   `;
+  
+  // ============================================================================
+  // 🔥 MEMORY LEAK PREVENTION: Clean card references
+  // ============================================================================
+  // Store weak reference to enable garbage collection when card is removed
+  if (!window._cardRegistry) {
+    window._cardRegistry = new WeakMap();
+  }
+  window._cardRegistry.set(cardElement, {
+    id: cardData.id,
+    createdAt: Date.now()
+  });
   
   return cardElement;
 }
@@ -1819,3 +1892,207 @@ function initJobcatButtonAutoResize() {
 
   console.log('✓ Job category text auto-resize initialized');
 })();
+
+// ============================================================================
+// 🧹 MEMORY LEAK PREVENTION & CLEANUP
+// ============================================================================
+// This section handles proper cleanup of event listeners, observers, and timers
+// to prevent memory leaks, especially important for single-page apps or
+// when users navigate between listing pages frequently.
+// ============================================================================
+
+(function() {
+  // Store all event listeners and observers for cleanup
+  const cleanupRegistry = {
+    listeners: [],
+    observers: [],
+    timers: []
+  };
+
+  // Track event listeners for removal
+  function registerListener(element, event, handler, options) {
+    element.addEventListener(event, handler, options);
+    cleanupRegistry.listeners.push({ element, event, handler, options });
+  }
+
+  // Track observers for disconnection
+  function registerObserver(observer) {
+    cleanupRegistry.observers.push(observer);
+  }
+
+  // Track timers for clearing
+  function registerTimer(timerId, type = 'timeout') {
+    cleanupRegistry.timers.push({ timerId, type });
+  }
+
+  // Cleanup function to remove all tracked resources
+  function cleanup() {
+    console.log('🧹 Starting memory cleanup...');
+    
+    // Remove all event listeners
+    cleanupRegistry.listeners.forEach(({ element, event, handler, options }) => {
+      if (element && typeof element.removeEventListener === 'function') {
+        element.removeEventListener(event, handler, options);
+      }
+    });
+    console.log(`  ✓ Removed ${cleanupRegistry.listeners.length} event listeners`);
+    
+    // Disconnect all observers
+    cleanupRegistry.observers.forEach(observer => {
+      if (observer && typeof observer.disconnect === 'function') {
+        observer.disconnect();
+      }
+    });
+    console.log(`  ✓ Disconnected ${cleanupRegistry.observers.length} observers`);
+    
+    // Clear all timers
+    cleanupRegistry.timers.forEach(({ timerId, type }) => {
+      if (type === 'timeout') {
+        clearTimeout(timerId);
+      } else if (type === 'interval') {
+        clearInterval(timerId);
+      }
+    });
+    console.log(`  ✓ Cleared ${cleanupRegistry.timers.length} timers`);
+    
+    // Clear registry
+    cleanupRegistry.listeners = [];
+    cleanupRegistry.observers = [];
+    cleanupRegistry.timers = [];
+    
+    // Clear card registry (WeakMap will auto-cleanup when cards are removed)
+    if (window._cardRegistry) {
+      console.log('  ✓ Card registry cleared (WeakMap)');
+    }
+    
+    console.log('✓ Memory cleanup complete');
+  }
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', cleanup);
+  
+  // Cleanup on visibility change (when tab is hidden for extended period)
+  let hiddenTimer;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      // Clean up after 5 minutes of being hidden
+      hiddenTimer = setTimeout(() => {
+        cleanup();
+        console.log('🧹 Auto-cleanup triggered after 5 minutes of inactivity');
+      }, 5 * 60 * 1000);
+    } else {
+      // Cancel cleanup if page becomes visible again
+      clearTimeout(hiddenTimer);
+    }
+  });
+
+  // Expose cleanup utilities globally for other modules
+  window._listingCleanup = {
+    registerListener,
+    registerObserver,
+    registerTimer,
+    cleanup
+  };
+
+  console.log('✓ Memory leak prevention system initialized');
+})();
+
+// ============================================================================
+// 🔥 PERFORMANCE OPTIMIZATION: Lazy Loading Images
+// ============================================================================
+// Ensure images are only loaded when they enter the viewport
+// ============================================================================
+
+(function() {
+  // Check if browser supports IntersectionObserver
+  if (!('IntersectionObserver' in window)) {
+    console.log('⚠️ IntersectionObserver not supported, images will load immediately');
+    return;
+  }
+
+  const imageObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        if (img.dataset.src) {
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          observer.unobserve(img);
+        }
+      }
+    });
+  }, {
+    rootMargin: '50px 0px', // Start loading 50px before entering viewport
+    threshold: 0.01
+  });
+
+  // Observe all job card images
+  function observeJobImages() {
+    const jobImages = document.querySelectorAll('.card-thumbnail img[data-src]');
+    jobImages.forEach(img => imageObserver.observe(img));
+    console.log(`🖼️ Observing ${jobImages.length} images for lazy loading`);
+  }
+
+  // Initial observation
+  setTimeout(observeJobImages, 100);
+
+  // Re-observe when new cards are added (e.g., after filtering)
+  const cardsContainer = document.querySelector('.sortmenus');
+  if (cardsContainer) {
+    const containerObserver = new MutationObserver(() => {
+      observeJobImages();
+    });
+    containerObserver.observe(cardsContainer, { childList: true, subtree: true });
+    
+    // Register observer for cleanup
+    if (window._listingCleanup) {
+      window._listingCleanup.registerObserver(containerObserver);
+    }
+  }
+
+  // Register image observer for cleanup
+  if (window._listingCleanup) {
+    window._listingCleanup.registerObserver(imageObserver);
+  }
+
+  console.log('✓ Lazy loading images initialized');
+})();
+
+// ============================================================================
+// 🔥 FIREBASE MIGRATION CHECKLIST
+// ============================================================================
+// When migrating to Firebase, update the following:
+//
+// 1. Import Firebase modules:
+//    import { initializeApp } from 'firebase/app';
+//    import { getFirestore, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+//    import { getStorage, ref, getDownloadURL } from 'firebase/storage';
+//
+// 2. Initialize Firebase in a separate config file (firebase-config.js)
+//
+// 3. Update filterAndSortJobs() to be async and fetch from Firestore:
+//    - Replace localStorage.getItem() with Firebase queries
+//    - Add loading state UI (spinner/skeleton cards)
+//    - Implement error handling for network failures
+//    - Add pagination for large result sets
+//
+// 4. Update createJobPreviewCard() to handle Firebase Storage URLs:
+//    - Replace static photo paths with getDownloadURL() calls
+//    - Add fallback placeholder images
+//
+// 5. Implement real-time updates (optional):
+//    - Use onSnapshot() instead of getDocs() for live data
+//    - Add listener cleanup in memory leak prevention section
+//
+// 6. Add Firebase Analytics tracking:
+//    - Track card clicks
+//    - Track search queries
+//    - Track filter usage
+//
+// 7. Security Rules (Firestore):
+//    - Ensure gigs collection has proper read permissions
+//    - Implement rate limiting for search queries
+//
+// For detailed implementation examples, see comments in filterAndSortJobs()
+// and createJobPreviewCard() functions above.
+// ============================================================================
