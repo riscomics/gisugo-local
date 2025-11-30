@@ -272,7 +272,7 @@ body::-webkit-scrollbar {
 
 /* Emoji icon styling for menu items */
 .uniform-menu-item .menu-emoji {
-  font-size: clamp(28px, 7vw, 40px);
+  font-size: 32px;
   line-height: 1;
   margin-bottom: 4px;
   filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.3));
@@ -282,6 +282,11 @@ body::-webkit-scrollbar {
 .uniform-menu-item:hover .menu-emoji {
   transform: scale(1.15);
   filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.6));
+}
+
+/* Make profile emoji (👤) lighter/brighter */
+.uniform-menu-item.profile-menu-item .menu-emoji {
+  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.3)) brightness(1.8) contrast(0.9);
 }
 
 /* ===== BASIC BODY STYLES ONLY ===== */

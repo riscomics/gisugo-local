@@ -733,6 +733,11 @@ body::-webkit-scrollbar {
 .jobcat-menu-item .menu-emoji {
   font-size: 32px;
 }
+
+/* Make profile emoji (👤) lighter/brighter */
+.jobcat-menu-item.profile-menu-item .menu-emoji {
+  filter: brightness(1.8) contrast(0.9);
+}
 .jobcat-menu-item img {
   width: 48px;
   height: 48px;
