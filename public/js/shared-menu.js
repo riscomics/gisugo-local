@@ -50,7 +50,7 @@ function generateMenuHTML() {
 function initializeSharedMenu() {
   // Find the menu container (works across different page types)
   const menuContainer = document.querySelector(
-    '.profile-menu-items, .jobcat-menu-items, .new-post-menu-items, .messages-menu-items, .jobs-menu-items'
+    '.profile-menu-items, .jobcat-menu-items, .new-post-menu-items, .messages-menu-items, .jobs-menu-items, .uniform-menu-items'
   );
   
   if (!menuContainer) {
@@ -75,6 +75,8 @@ function initializeSharedMenu() {
       item.className = item.className.replace('menu-item-wrapper', 'messages-menu-item');
     } else if (menuContainer.classList.contains('jobs-menu-items')) {
       item.className = item.className.replace('menu-item-wrapper', 'jobs-menu-item');
+    } else if (menuContainer.classList.contains('uniform-menu-items')) {
+      item.className = item.className.replace('menu-item-wrapper', 'uniform-menu-item');
     }
   });
   

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create New Gig Post - GISUGO</title>
   <!-- UNIFORM HEADER SYSTEM (shared) -->
-  <link rel="stylesheet" href="public/css/header-uniform.css?v=2.1">
+  <link rel="stylesheet" href="public/css/header-uniform.css?v=3.7">
   <!-- NEW POST 2 STYLES (experimental redesign) -->
   <link rel="stylesheet" href="public/css/new-post2.css?v=38.0">
 </head>
@@ -14,14 +14,14 @@
   <!-- UNIFORM HEADER SYSTEM -->
   <div class="uniform-header">
     <div class="uniform-header-title-container">
-      <button class="uniform-header-btn back" aria-label="Back">
-        <img src="public/icons/back.png" alt="Back">
+      <button class="uniform-header-btn back" aria-label="Back" onclick="history.back()">
+        <span class="btn-emoji">←</span>
         <span>Back</span>
       </button>
       <div class="uniform-header-title">Post New Gig</div>
       <button class="uniform-header-btn menu" id="uniformMenuBtn" aria-label="Menu">
-        <img src="public/icons/menu.png" alt="Menu">
-        <div>Menu</div>
+        <span class="btn-emoji">📋</span>
+        <span>Menu</span>
       </button>
     </div>
     <div class="uniform-header-borderline"></div>
@@ -753,6 +753,7 @@
 
   <!-- SCRIPTS -->
   <script src="public/js/header-uniform.js?v=1.0"></script>
+  <script src="public/js/shared-menu.js?v=2.0"></script>
   <script src="public/js/jobs.js?v=14"></script>
   <script src="public/js/new-post2.js?v=26.0"></script>
 

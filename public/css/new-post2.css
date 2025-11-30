@@ -316,6 +316,7 @@
   top: 0;
   left: 0;
   right: 0;
+  pointer-events: none;
   bottom: 0;
   background: rgba(0, 0, 0, 0.75); /* Semi-transparent dark backdrop */
   backdrop-filter: blur(4px);
@@ -330,6 +331,7 @@
 .np2-dropdown-overlay.show {
   display: flex;
   opacity: 1;
+  pointer-events: auto;
 }
 
 .np2-dropdown {
@@ -1183,6 +1185,12 @@
   overflow-y: auto;
   overflow-x: hidden;
   text-align: center;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.np2-overlay-success::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 
 .np2-success-icon {

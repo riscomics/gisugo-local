@@ -1202,8 +1202,9 @@ function initJobcatButtonAutoResize() {
   if (headerElement) {
     const searchBarHTML = `
       <div class="search-bar-container" id="searchBarContainer">
-        <input type="text" class="search-bar-input" id="searchInput" placeholder="Search jobs..." autocomplete="off">
         <button class="search-bar-close" id="searchCloseBtn">&times;</button>
+        <input type="text" class="search-bar-input" id="searchInput" placeholder="Search jobs..." autocomplete="off">
+        <span class="search-bar-icon">🔍</span>
       </div>
     `;
     headerElement.insertAdjacentHTML('beforeend', searchBarHTML);

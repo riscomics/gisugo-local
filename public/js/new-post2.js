@@ -516,12 +516,14 @@ function showToast(message, type = 'info') {
       opacity: 0;
       transform: translateY(20px);
       transition: all 0.3s ease;
+      pointer-events: none;
     `;
     document.body.appendChild(toast);
   }
   
   toast.textContent = message;
   toast.style.background = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6';
+  toast.style.pointerEvents = 'auto';
   
   // Show toast
   setTimeout(() => {
@@ -533,6 +535,7 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(20px)';
+    toast.style.pointerEvents = 'none';
   }, 3000);
 }
 

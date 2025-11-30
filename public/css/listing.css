@@ -3565,6 +3565,7 @@ body::-webkit-scrollbar {
   height: clamp(36px, 7vw, 44px);
   display: flex;
   align-items: center;
+  margin-left: clamp(32px, 8vw, 48px);
   justify-content: center;
   transition: all 0.2s ease;
   line-height: 1;
@@ -3575,6 +3576,12 @@ body::-webkit-scrollbar {
 .search-bar-close:hover {
   color: #fff;
   background: rgba(16, 185, 129, 0.2);
+}
+
+.search-bar-icon {
+  font-size: clamp(18px, 4vw, 24px);
+  margin-right: clamp(16px, 4vw, 28px);
+  flex-shrink: 0;
 }
 
 /* Small Screens (321px to 360px) - Additional constraints */
