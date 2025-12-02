@@ -152,6 +152,11 @@ body::-webkit-scrollbar {
   transition: all 0.3s ease;
 }
 
+/* Lighter color for back button arrow */
+.uniform-header-btn .btn-emoji.back-emoji {
+  filter: brightness(2.2) drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
+}
+
 .uniform-header-btn:hover .btn-emoji {
   transform: scale(1.15);
   filter: drop-shadow(0 4px 16px rgba(16, 185, 129, 0.8)) brightness(1.2);

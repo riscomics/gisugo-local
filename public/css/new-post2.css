@@ -867,14 +867,14 @@
 }
 
 .np2-btn-secondary {
-  background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
-  color: rgba(255, 255, 255, 0.9);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, #4b5563 0%, #6b7280 100%);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .np2-btn-secondary:hover {
-  background: #4b5563;
-  border-color: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(180deg, #6b7280 0%, #9ca3af 100%);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 .np2-btn-success {

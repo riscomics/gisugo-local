@@ -123,6 +123,11 @@ body::-webkit-scrollbar {
   filter: drop-shadow(0 4px 16px rgba(16, 185, 129, 0.8)) brightness(1.2);
 }
 
+/* Lighter color for back button arrow */
+.job-header-btn .btn-emoji.back-emoji {
+  filter: brightness(2.2) drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
+}
+
 .job-header .job-header-btn.back {
   /* Removed justify-content override to use centered positioning */
 }
