@@ -475,7 +475,7 @@ body:has(.jobs-header) {
   overflow: hidden;
 }
 
-/* Worker Perspective - Jobs where I was hired (Dark teal theme) */
+/* Worker Perspective - Working cards (Dark teal theme) */
 .hiring-card.worker {
   background: linear-gradient(135deg, #1a2e38 0%, #234e52 100%);
   border-color: rgba(16, 185, 129, 0.25);
@@ -486,6 +486,18 @@ body:has(.jobs-header) {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
   border-color: rgba(16, 185, 129, 0.45);
+}
+
+/* Offers cards - lighter cyan/blue theme */
+.offered-container .hiring-card.worker {
+  background: linear-gradient(135deg, #1e3a4c 0%, #2563eb40 100%);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.offered-container .hiring-card.worker:hover {
+  background: linear-gradient(135deg, #254d63 0%, #2563eb50 100%);
+  box-shadow: 0 6px 24px rgba(56, 189, 248, 0.4);
+  border-color: rgba(56, 189, 248, 0.55);
 }
 
 /* Customer Perspective - Jobs where I hired someone (Dark green theme) */
@@ -723,6 +735,15 @@ body:has(.jobs-header) {
 
 .hiring-card.worker .hiring-user-thumbnail {
   border-color: rgba(16, 185, 129, 0.5);
+}
+
+/* Offers cards - lighter cyan accents */
+.offered-container .hiring-card.worker .hiring-role-caption {
+  color: #38bdf8;
+}
+
+.offered-container .hiring-card.worker .hiring-user-thumbnail {
+  border-color: rgba(56, 189, 248, 0.5);
 }
 
 .hiring-card.customer .hiring-role-caption {
@@ -5035,30 +5056,30 @@ body:has(.jobs-header) {
 
 /* Removed old completed status indicator overlay - now using badge in photo area */
 
-/* Worker Perspective - Jobs I worked on (Dark teal theme) */
+/* Worker Perspective - Jobs I worked on (Dark purple/slate theme - distinct from Working) */
 .completed-card.worker {
-  background: linear-gradient(135deg, #1a2e38 0%, #234e52 100%);
-  border-color: rgba(16, 185, 129, 0.25);
+  background: linear-gradient(135deg, #1e1b2e 0%, #2d2a4a 100%);
+  border-color: rgba(139, 92, 246, 0.25);
 }
 
 .completed-card.worker:hover {
-  background: linear-gradient(135deg, #234e52 0%, #2c5a5a 100%);
+  background: linear-gradient(135deg, #2d2a4a 0%, #3b3760 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
-  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.35);
+  border-color: rgba(139, 92, 246, 0.45);
 }
 
-/* Customer Perspective - Jobs I posted and completed (Dark green theme) */
+/* Customer Perspective - Jobs I posted and completed (Dark amber/bronze theme - distinct from Hiring) */
 .completed-card.customer {
-  background: linear-gradient(135deg, #1a3328 0%, #234e3a 100%);
-  border-color: rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, #2a2318 0%, #3d3422 100%);
+  border-color: rgba(217, 119, 6, 0.25);
 }
 
 .completed-card.customer:hover {
-  background: linear-gradient(135deg, #234e3a 0%, #2c5a45 100%);
+  background: linear-gradient(135deg, #3d3422 0%, #4a4028 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.3);
-  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 24px rgba(217, 119, 6, 0.35);
+  border-color: rgba(217, 119, 6, 0.45);
 }
 
 .completed-card:active {
@@ -5351,11 +5372,11 @@ body:has(.jobs-header) {
 }
 
 .completed-role-caption.customer {
-  color: #10b981;
+  color: #f59e0b;
 }
 
 .completed-role-caption.worker {
-  color: #10b981;
+  color: #a78bfa;
 }
 
 /* Completion Info Section - Now in Left Content */
@@ -5391,11 +5412,11 @@ body:has(.jobs-header) {
 }
 
 .completed-card.worker .completed-user-thumbnail {
-  border-color: rgba(101, 163, 13, 0.5);
+  border-color: rgba(139, 92, 246, 0.5);
 }
 
 .completed-card.customer .completed-user-thumbnail {
-  border-color: rgba(8, 145, 178, 0.5);
+  border-color: rgba(217, 119, 6, 0.5);
 }
 
 .completed-user-label {

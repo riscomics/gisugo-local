@@ -857,19 +857,19 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
     <div class="card-body">
       <div class="card-thumbnail">
         <img src="${cardData.photo || 'images/placeholder.jpg'}" alt="${cardData.title || 'Job preview'}" loading="lazy">
-      </div>
+    </div>
       <div class="card-content-box">
         <div class="card-top-section">
           <div class="card-extras-column">
             <div class="card-extra">
               <span class="extra-label">${extra1Label}</span>
               <span class="extra-value">${extra1Value}</span>
-            </div>
+      </div>
             <div class="card-extra">
               <span class="extra-label">${extra2Label}</span>
               <span class="extra-value">${extra2Value}</span>
-            </div>
-          </div>
+    </div>
+      </div>
           <div class="payment-amount">${cardData.price || '₱0'}</div>
         </div>
         <div class="card-bottom-row">
