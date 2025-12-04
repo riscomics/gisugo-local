@@ -15,7 +15,7 @@ const MENU_ITEMS = [
   },
   {
     emoji: '💬',
-    text: 'Communications',
+    text: 'Messages',
     link: 'messages.html'
   },
   {
