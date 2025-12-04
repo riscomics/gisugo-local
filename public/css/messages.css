@@ -1975,8 +1975,8 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
   
   .tab-content-wrapper {
-    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px); /* Mobile: header + role tabs + message tabs - EXACT COPY from jobs.css */
-    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
+    top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 60px + 52px); /* Mobile: header + role tabs + message tabs - account for tabs margin-top: -10px */
+    height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 60px + 52px));
   }
   
   /* REMOVED: Message thread margins no longer needed with full-height positioning */
@@ -2095,7 +2095,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   }
 
   .messages-container {
-    padding-top: clamp(2px, 1vh, 6px) !important; /* REDUCED: Tighter spacing between Chats tab and threads for mobile */
+    padding-top: clamp(12px, 2vh, 16px) !important; /* Added top margin above first thread card */
   }
 
   .applications-container {

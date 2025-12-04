@@ -14,7 +14,7 @@ html::-webkit-scrollbar {
 
 /* BODY STYLES - UPDATED FOR UNIFORM HEADER SYSTEM */
 body {
-  background: #363f4f !important;
+  background: #242936 !important;
   margin: 0;
   /* Removed fixed padding - uniform header system handles this automatically */
   font-family: Arial, Helvetica, sans-serif;
@@ -31,7 +31,8 @@ body::-webkit-scrollbar {
   top: 0;
   left: 0;
   z-index: 100;
-  background: #363f4f;
+  background: linear-gradient(180deg, #1a1f2e 0%, #242936 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .jobs-header-title-container {  
@@ -41,7 +42,7 @@ body::-webkit-scrollbar {
   height: clamp(66px, 20vh, 106px); /* Responsive header height to match hatod standard */
   align-items: center;
   justify-content: space-between;
-  background-color: #363f4f;
+  background: linear-gradient(180deg, #1a1f2e 0%, #242936 100%);
   position: relative;
   padding-right: clamp(5px, 2vw, 15px); /* Responsive padding to match hatod standard */
 }
@@ -62,8 +63,9 @@ body::-webkit-scrollbar {
 }
 
 .jobs-header-btn {
-  background: none;
-  border: none;
+  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -75,14 +77,17 @@ body::-webkit-scrollbar {
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s;
+  transition: all 0.2s ease;
   flex-shrink: 0;
   margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin to match hatod standard */
   margin-left: clamp(0.5%, 1vw, 1%); /* Responsive margin to match hatod standard */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .jobs-header-btn:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
 }
 
 .jobs-header-btn img {
@@ -104,7 +109,8 @@ body::-webkit-scrollbar {
 .jobs-header-borderline {
   height: clamp(4px, 1vh, 6px); /* Much thicker for desktop visibility */
   width: 100%;
-  background: rgb(149, 149, 228); /* Fixed invalid RGB value - was 328, now 228 */
+  background: linear-gradient(90deg, #06b6d4, #10b981, #06b6d4); /* Cyan/green gradient */
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5), 0 0 20px rgba(16, 185, 129, 0.3);
   position: fixed;
   left: 0;
   z-index: 96;
@@ -140,8 +146,9 @@ body::-webkit-scrollbar {
   justify-content: space-around;
   align-items: center;
   height: 100px;
-  background: #866f67;
-  border-bottom: 2px solid #222;
+  background: linear-gradient(180deg, #1a1f2e 0%, #242936 100%);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .jobs-menu-item {
@@ -186,16 +193,16 @@ body:has(.jobs-header) {
 
 .role-tab-btn {
   display: flex;
-  background: linear-gradient(135deg, #e6d6ae 0%, #d4c29a 100%);
-  color: #2d3748;
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  color: #e5e7eb;
   padding: 12px 32px;
   border-radius: 30px;
   font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1rem;
-  border: 2px solid rgba(240, 230, 210, 0.3);
-  box-shadow: 0 6px 20px rgba(230, 214, 174, 0.4);
+  border: 2px solid rgba(107, 114, 128, 0.5);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   transition: all 0.3s ease;
   margin: 0 15px; /* Remove vertical margin, container handles centering */
@@ -206,35 +213,35 @@ body:has(.jobs-header) {
 
 .role-tab-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(230, 214, 174, 0.6);
-  background: linear-gradient(135deg, #d4c29a 0%, #c4b28a 100%);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
 }
 
-/* Active role tab - blue color for any active role */
+/* Active role tab - green color for any active role */
 .role-tab-btn.active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #ffffff;
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
   transform: scale(1.02);
 }
 
 .role-tab-btn.active:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.8);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.8);
 }
 
 /* Inactive role tabs - muted gray color */
 .role-tab-btn:not(.active) {
-  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-  color: #e5e7eb;
-  border-color: rgba(107, 114, 128, 0.5);
-  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.3);
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  color: #9ca3af;
+  border-color: rgba(75, 85, 99, 0.5);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .role-tab-btn:not(.active):hover {
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
-  box-shadow: 0 8px 25px rgba(107, 114, 128, 0.5);
+  background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
 }
 
 .role-tab-text {
@@ -247,9 +254,9 @@ body:has(.jobs-header) {
   top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 70px); /* Clear uniform header + role tabs */
   left: 0;
   width: 100%;
-  background: #2d3748;
-  border-top: 2px solid #4a5568; /* Top borderline to separate from role tabs */
-  border-bottom: 2px solid #4a5568;
+  background: #242936;
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
   display: flex;
   z-index: 999;
 }
@@ -275,14 +282,14 @@ body:has(.jobs-header) {
 }
 
 .tab-btn:hover {
-  color: #e6d6ae;
-  background: #4a5568;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .tab-btn.active {
-  color: #f0d0aa;
-  border-bottom-color: #f0d0aa;
-  background: #3d4856;
+  color: #10b981;
+  border-bottom-color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
 }
 
 /* Independent Tab Content Wrappers - UPDATED FOR UNIFORM HEADER SYSTEM AND NEW ROLE TABS */
@@ -292,7 +299,7 @@ body:has(.jobs-header) {
   left: 0;
   width: 100%;
   height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 0px + 70px + 52px));
-  background: #363f4f;
+  background: #242936;
   display: none; /* Hidden by default */
   overflow: hidden; /* Prevent wrapper from scrolling */
 }
@@ -307,7 +314,7 @@ body:has(.jobs-header) {
   overflow-y: auto; /* Each tab has its own independent scroll */
   overflow-x: hidden;
   padding: 0;
-  background: #363f4f;
+  background: #242936;
   /* Hide scrollbar for clean look */
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;     /* Firefox */
@@ -323,7 +330,7 @@ body:has(.jobs-header) {
 }
 
 .notification-count {
-  background: #e53e3e;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border-radius: 12px;
   padding: 2px 8px;
@@ -391,21 +398,21 @@ body:has(.jobs-header) {
 .empty-state-title {
   font-size: 1.4rem;
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: 12px;
   line-height: 1.3;
 }
 
 .empty-state-message {
   font-size: 1rem;
-  color: #a0aec0;
+  color: #9ca3af;
   line-height: 1.5;
   margin-bottom: 30px;
 }
 
 .empty-state-btn {
-  background: linear-gradient(135deg, #e6d6ae 0%, #d4c29a 100%);
-  color: #2d3748;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
   border: none;
   border-radius: 8px;
   padding: 12px 24px;
@@ -418,9 +425,9 @@ body:has(.jobs-header) {
 }
 
 .empty-state-btn:hover {
-  background: linear-gradient(135deg, #d4c29a 0%, #c4b28a 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(230, 214, 174, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 /* Listing Card Styles - Horizontal Layout */
@@ -430,21 +437,21 @@ body:has(.jobs-header) {
   width: calc(100% - 20px);
   max-width: 700px;
   height: 160px;
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   border-radius: 12px;
   margin: 0 auto 16px auto;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #f0e6d2;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  color: #e5e7eb;
   overflow: hidden;
 }
 
 .listing-card:hover {
-  background: #3d4856;
+  background: linear-gradient(135deg, #2d3748 0%, #374151 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
-  border-color: rgba(255,255,255,0.15);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .listing-card:active {
@@ -468,30 +475,30 @@ body:has(.jobs-header) {
   overflow: hidden;
 }
 
-/* Worker Perspective - Jobs where I was hired (Slightly Darker Blue theme) */
+/* Worker Perspective - Jobs where I was hired (Dark teal theme) */
 .hiring-card.worker {
-  background: linear-gradient(135deg, #083344 0%, #0c4a6e 100%);
-  border-color: rgba(8, 145, 178, 0.25);
+  background: linear-gradient(135deg, #1a2e38 0%, #234e52 100%);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
 .hiring-card.worker:hover {
-  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+  background: linear-gradient(135deg, #234e52 0%, #2c5a5a 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(8, 145, 178, 0.35);
-  border-color: rgba(8, 145, 178, 0.45);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
-/* Customer Perspective - Jobs where I hired someone (Blue theme) */
+/* Customer Perspective - Jobs where I hired someone (Dark green theme) */
 .hiring-card.customer {
-  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
-  border-color: rgba(8, 145, 178, 0.2);
+  background: linear-gradient(135deg, #1a3328 0%, #234e3a 100%);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .hiring-card.customer:hover {
-  background: linear-gradient(135deg, #075985 0%, #0369a1 100%);
+  background: linear-gradient(135deg, #234e3a 0%, #2c5a45 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(8, 145, 178, 0.3);
-  border-color: rgba(8, 145, 178, 0.4);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .hiring-card:active {
@@ -552,7 +559,7 @@ body:has(.jobs-header) {
 .hiring-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #fff;
+  color: #d1d5db;
   line-height: 1.3;
   margin: 0;
   padding: 16px 20px 12px 20px;
@@ -588,7 +595,7 @@ body:has(.jobs-header) {
 
 .hiring-date-value {
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
 }
 
 .hiring-time-part {
@@ -688,11 +695,11 @@ body:has(.jobs-header) {
 }
 
 .hiring-role-caption.customer {
-  color: #38bdf8;
+  color: #10b981;
 }
 
 .hiring-role-caption.worker {
-  color: #38bdf8;
+  color: #10b981;
 }
 
 .hiring-user-thumbnail {
@@ -711,19 +718,19 @@ body:has(.jobs-header) {
 
 /* Role-based styling for captions and thumbnails */
 .hiring-card.worker .hiring-role-caption {
-  color: #38bdf8;
+  color: #10b981;
 }
 
 .hiring-card.worker .hiring-user-thumbnail {
-  border-color: rgba(8, 145, 178, 0.5);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .hiring-card.customer .hiring-role-caption {
-  color: #38bdf8;
+  color: #10b981;
 }
 
 .hiring-card.customer .hiring-user-thumbnail {
-  border-color: rgba(8, 145, 178, 0.5);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 .listings-container {
@@ -788,7 +795,7 @@ body:has(.jobs-header) {
 .listing-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #e6d6ae;
+  color: #d1d5db;
   line-height: 1.3;
   margin: 0 0 12px 0;
   word-wrap: break-word;
@@ -796,8 +803,8 @@ body:has(.jobs-header) {
 }
 
 .application-count {
-  background: rgba(230, 214, 174, 0.15);
-  color: #e6d6ae;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -834,7 +841,7 @@ body:has(.jobs-header) {
 
 .job-date {
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-size: 0.9rem;
 }
 
@@ -874,28 +881,29 @@ body:has(.jobs-header) {
 }
 
 .listing-options-container {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   border-radius: 16px;
   padding: 32px;
   width: 90%;
   max-width: 400px;
-  border: 2px solid #4a5568;
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Enhanced styling for Gig Offer overlay */
 #gigOfferOptionsOverlay .listing-options-container {
-  background: linear-gradient(135deg, #2d3748, #1a202c);
-  border: 2px solid #4299e1;
-  box-shadow: 0 10px 30px rgba(66, 153, 225, 0.3);
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
 }
 
 #gigOfferOptionsOverlay .listing-options-title {
-  color: #4299e1;
-  text-shadow: 0 2px 4px rgba(66, 153, 225, 0.3);
+  color: #10b981;
+  text-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 #gigOfferOptionsOverlay .listing-options-subtitle {
-  color: #cbd5e0;
+  color: #9ca3af;
 }
 
 .listing-options-header {
@@ -1047,13 +1055,14 @@ body:has(.jobs-header) {
 }
 
 .applications-container {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   border-radius: 16px;
   width: 90%;
   max-width: 500px;
   height: 80vh;
   max-height: 600px;
-  border: 2px solid #4a5568;
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1061,7 +1070,7 @@ body:has(.jobs-header) {
 
 .applications-header {
   padding: 24px;
-  border-bottom: 1px solid #4a5568;
+  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -1135,11 +1144,12 @@ body:has(.jobs-header) {
   flex-direction: column;
   width: calc(100% - 8px);
   max-width: 400px;
-  background: #354048;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: clamp(6px, 1.5vw, 8px);
-  box-shadow: 0 clamp(1px, 0.5vh, 2px) clamp(6px, 2vh, 8px) rgba(0,0,0,0.12);
+  box-shadow: 0 clamp(1px, 0.5vh, 2px) clamp(6px, 2vh, 8px) rgba(0,0,0,0.2);
   margin: 0 auto clamp(12px, 3vh, 16px) auto;
-  color: #f0e6d2;
+  color: #e5e7eb;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1173,7 +1183,7 @@ body:has(.jobs-header) {
 .price-offer {
   font-size: clamp(0.95rem, 2.4vw, 1.025rem);
   font-weight: 600;
-  color: #f0d0aa;
+  color: #10b981;
   text-align: right;
   white-space: nowrap;
 }
@@ -1253,7 +1263,7 @@ body:has(.jobs-header) {
 }
 
 .application-message strong {
-  color: #f0d0aa;
+  color: #10b981;
   font-size: clamp(0.85rem, 2vw, 0.9rem);
   font-weight: 600;
   display: block;
@@ -1434,8 +1444,9 @@ body:has(.jobs-header) {
 }
 
 .hire-job-btn {
-  background: #f0d0aa;
-  border-color: aliceblue;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #ffffff;
 }
 
 .hire-job-btn:hover {
@@ -1508,10 +1519,10 @@ body:has(.jobs-header) {
 }
 
 .hire-confirmation-container {
-  background: linear-gradient(135deg, #363f4f 0%, #2a3441 100%);
-  border: 2px solid rgba(230, 214, 174, 0.3);
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(16px, 4vw, 24px);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 80px rgba(230, 214, 174, 0.1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 80px rgba(16, 185, 129, 0.1);
   max-width: clamp(400px, 90vw, 600px);
   max-height: 90vh;
   width: 100%;
@@ -1528,8 +1539,8 @@ body:has(.jobs-header) {
 
 .hire-confirmation-header {
   position: relative;
-  background: linear-gradient(135deg, rgba(230, 214, 174, 0.15) 0%, rgba(230, 214, 174, 0.1) 50%, rgba(230, 214, 174, 0.05) 100%);
-  border-bottom: 1px solid rgba(230, 214, 174, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.1) 50%, rgba(16, 185, 129, 0.05) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
   padding: clamp(1.5rem, 5vw, 2rem);
   display: flex;
   align-items: center;
@@ -1550,7 +1561,7 @@ body:has(.jobs-header) {
 .hire-confirmation-title {
   font-size: clamp(1.3rem, 4vw, 1.6rem);
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
@@ -1570,8 +1581,8 @@ body:has(.jobs-header) {
 }
 
 .hire-confirmation-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e6d6ae;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
   transform: scale(1.1);
 }
 
@@ -1611,7 +1622,7 @@ body:has(.jobs-header) {
 .worker-status-title {
   font-size: clamp(1rem, 3vw, 1.2rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1668,7 +1679,7 @@ body:has(.jobs-header) {
 .info-title {
   font-size: clamp(0.9rem, 2.5vw, 1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1701,7 +1712,7 @@ body:has(.jobs-header) {
 .disclaimer-title {
   font-size: clamp(1rem, 3vw, 1.2rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1732,8 +1743,8 @@ body:has(.jobs-header) {
 }
 
 .point-number {
-  background: linear-gradient(135deg, #e6d6ae 0%, #d4c499 100%);
-  color: #1a202c;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
   width: clamp(1.5rem, 4vw, 2rem);
   height: clamp(1.5rem, 4vw, 2rem);
   border-radius: 50%;
@@ -1870,9 +1881,9 @@ body:has(.jobs-header) {
 
 .confirm-hire-btn {
   flex: 2;
-  background: linear-gradient(135deg, #f0d0aa 0%, #e6c499 100%);
-  border: 2px solid #e6d6ae;
-  color: #2d3748;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  color: #ffffff;
   padding: clamp(0.75rem, 3vw, 1rem);
   border-radius: clamp(8px, 2vw, 12px);
   font-size: clamp(0.9rem, 2.5vw, 1rem);
@@ -1885,9 +1896,9 @@ body:has(.jobs-header) {
 }
 
 .confirm-hire-btn:hover {
-  background: linear-gradient(135deg, #e6c499 0%, #d4c499 100%);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(240, 208, 170, 0.4);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
 /* Contact Message Overlay Styles (from messages.css) */
@@ -1909,12 +1920,12 @@ body:has(.jobs-header) {
 }
 
 .contact-message-modal {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   border-radius: 12px;
   max-width: 500px;
   width: 90%;
-  border: 2px solid #4a5568;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   animation: contactSlideIn 0.3s ease-out;
   box-sizing: border-box; /* prevent overflow from borders/padding */
 }
@@ -1992,7 +2003,7 @@ body:has(.jobs-header) {
 
 .contact-message-input:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #10b981;
 }
 
 /* Center placeholder globally */
@@ -2072,12 +2083,12 @@ body:has(.jobs-header) {
 }
 
 .contact-send-btn {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #fff;
 }
 
 .contact-send-btn:hover {
-  background: #2563eb;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
 /* Confirmation Overlay Styles (from messages.css) */
@@ -2099,14 +2110,14 @@ body:has(.jobs-header) {
 }
 
 .confirmation-modal {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   border-radius: 12px;
   padding: 30px;
   max-width: 350px;
   width: 90%;
   text-align: center;
-  border: 2px solid #4a5568;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .confirmation-icon {
@@ -2130,7 +2141,7 @@ body:has(.jobs-header) {
 }
 
 .confirmation-btn {
-  background: #3b82f6;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   border: none;
   border-radius: 8px;
   color: #fff;
@@ -2143,7 +2154,7 @@ body:has(.jobs-header) {
 }
 
 .confirmation-btn:hover {
-  background: #2563eb;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
 /* ===== CONFIRMATION ANIMATION EFFECTS ===== */
@@ -2847,7 +2858,7 @@ body:has(.jobs-header) {
 @media (max-width: 600px) {
   body {
     padding-top: 75px; /* 71px + 4px borderline */
-    background: #363f4f !important;
+    background: #242936 !important;
   }
   
   body::-webkit-scrollbar {
@@ -3070,7 +3081,7 @@ body:has(.jobs-header) {
   .listing-card:hover {
     transform: none; /* Disable hover effects on mobile */
     box-shadow: none;
-    background: #2d3748;
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
   }
 
   .listing-thumbnail {
@@ -5016,38 +5027,38 @@ body:has(.jobs-header) {
   margin: 0 auto 16px auto;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #f0e6d2;
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  color: #e5e7eb;
   overflow: hidden;
   position: relative;
 }
 
 /* Removed old completed status indicator overlay - now using badge in photo area */
 
-/* Worker Perspective - Jobs I worked on (Slightly Darker Blue theme) */
+/* Worker Perspective - Jobs I worked on (Dark teal theme) */
 .completed-card.worker {
-  background: linear-gradient(135deg, #083344 0%, #0c4a6e 100%);
-  border-color: rgba(8, 145, 178, 0.25);
+  background: linear-gradient(135deg, #1a2e38 0%, #234e52 100%);
+  border-color: rgba(16, 185, 129, 0.25);
 }
 
 .completed-card.worker:hover {
-  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+  background: linear-gradient(135deg, #234e52 0%, #2c5a5a 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(8, 145, 178, 0.35);
-  border-color: rgba(8, 145, 178, 0.45);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+  border-color: rgba(16, 185, 129, 0.45);
 }
 
-/* Customer Perspective - Jobs I posted and completed (Blue theme) */
+/* Customer Perspective - Jobs I posted and completed (Dark green theme) */
 .completed-card.customer {
-  background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
-  border-color: rgba(8, 145, 178, 0.2);
+  background: linear-gradient(135deg, #1a3328 0%, #234e3a 100%);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .completed-card.customer:hover {
-  background: linear-gradient(135deg, #075985 0%, #0369a1 100%);
+  background: linear-gradient(135deg, #234e3a 0%, #2c5a45 100%);
   transform: translateY(-2px);
-  box-shadow: 0 6px 24px rgba(8, 145, 178, 0.3);
-  border-color: rgba(8, 145, 178, 0.4);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.3);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .completed-card:active {
@@ -5059,7 +5070,7 @@ body:has(.jobs-header) {
 .completed-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #fff;
+  color: #d1d5db;
   line-height: 1.3;
   margin: 0;
   padding: 16px 20px 8px 20px;
@@ -5095,7 +5106,7 @@ body:has(.jobs-header) {
 
 .completed-date-value {
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
 }
 
 .completed-time-part {
@@ -5340,11 +5351,11 @@ body:has(.jobs-header) {
 }
 
 .completed-role-caption.customer {
-  color: #38bdf8;
+  color: #10b981;
 }
 
 .completed-role-caption.worker {
-  color: #a3e635;
+  color: #10b981;
 }
 
 /* Completion Info Section - Now in Left Content */
