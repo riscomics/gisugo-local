@@ -6,7 +6,7 @@
   <title>Profile - GISUGO</title>
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=3.8">
-  <link rel="stylesheet" href="public/css/profile.css?v=16.15">
+  <link rel="stylesheet" href="public/css/profile.css?v=28.0">
 </head>
 <body class="page-profile">
   <!-- UNIFORM HEADER SYSTEM -->
@@ -28,7 +28,7 @@
   <!-- Profile Subheader Section -->
   <div class="profile-subheader">
     <div class="profile-content">
-      <div class="profile-photo">
+      <div class="profile-photo" id="profilePhotoContainer" onclick="document.getElementById('accountOverlay').classList.add('show')" role="button" tabindex="0" aria-label="Open Account Settings">
         <img src="public/users/Peter-J-Ang-User-01.jpg" alt="User Profile" id="profilePhoto">
       </div>
       <div class="profile-right-column">
@@ -50,7 +50,7 @@
           <div class="social-icon"><img src="public/icons/IG.png" alt="Instagram"></div>
           <div class="social-icon"><img src="public/icons/IN.png" alt="LinkedIn"></div>
           <button class="account-btn" id="accountBtn" aria-label="Account Settings">
-            <img src="public/icons/user.png" alt="Account" class="account-icon">
+            <span class="account-emoji">⚙️</span>
             <span class="account-text">ACCOUNT</span>
           </button>
         </div>
@@ -437,6 +437,94 @@
     </div>
   </div>
 
+  <!-- Edit Profile Overlay -->
+  <div class="edit-profile-overlay" id="editProfileOverlay">
+    <div class="edit-profile-container">
+      <div class="edit-profile-header">
+        <div class="edit-profile-title">Edit Profile</div>
+        <button class="edit-profile-close-btn" id="editProfileCloseBtn" aria-label="Close" onclick="closeEditProfileOverlay()">×</button>
+      </div>
+      <div class="edit-profile-content">
+        <form id="editProfileForm">
+          <!-- Profile Photo Section -->
+          <div class="edit-profile-section">
+            <div class="edit-profile-photo-section">
+              <div class="edit-profile-photo-preview">
+                <img src="public/users/Peter-J-Ang-User-01.jpg" alt="Profile Photo" id="editProfilePhotoPreview">
+              </div>
+              <div class="edit-profile-photo-actions">
+                <label class="edit-profile-photo-btn" for="editProfilePhotoInput">
+                  <span>📷</span> Change Photo
+                </label>
+                <input type="file" id="editProfilePhotoInput" accept="image/*" style="display: none;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Basic Info Section -->
+          <div class="edit-profile-section">
+            <div class="edit-profile-section-title">Basic Information</div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editFirstName">First Name</label>
+              <input type="text" class="edit-profile-input" id="editFirstName" placeholder="Enter first name" required>
+            </div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editLastName">Last Name</label>
+              <input type="text" class="edit-profile-input" id="editLastName" placeholder="Enter last name" required>
+            </div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editDateOfBirth">Date of Birth</label>
+              <input type="date" class="edit-profile-input" id="editDateOfBirth" required>
+            </div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editEducation">Education Level</label>
+              <select class="edit-profile-select" id="editEducation">
+                <option value="No-High-School">No High School</option>
+                <option value="High School">High School</option>
+                <option value="College">College</option>
+                <option value="Masters">Masters</option>
+                <option value="Doctorate">Doctorate</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- About Me Section -->
+          <div class="edit-profile-section">
+            <div class="edit-profile-section-title">About Me</div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editAboutMe">Tell others about yourself</label>
+              <textarea class="edit-profile-textarea" id="editAboutMe" rows="6" placeholder="Write a brief introduction about yourself...&#10;&#10;You can use line breaks to organize your text.&#10;&#10;Example:&#10;- Your experience&#10;- Your skills&#10;- Why clients should hire you"></textarea>
+              <div class="edit-profile-char-count"><span id="aboutMeCharCount">0</span>/500 characters</div>
+            </div>
+          </div>
+
+          <!-- Social Media Section -->
+          <div class="edit-profile-section">
+            <div class="edit-profile-section-title">Social Media (Optional)</div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editFacebook">Facebook Profile URL</label>
+              <input type="url" class="edit-profile-input" id="editFacebook" placeholder="https://facebook.com/yourprofile">
+            </div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editInstagram">Instagram Profile URL</label>
+              <input type="url" class="edit-profile-input" id="editInstagram" placeholder="https://instagram.com/yourprofile">
+            </div>
+            <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editLinkedIn">LinkedIn Profile URL</label>
+              <input type="url" class="edit-profile-input" id="editLinkedIn" placeholder="https://linkedin.com/in/yourprofile">
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div class="edit-profile-actions">
+            <button type="button" class="edit-profile-cancel-btn" id="editProfileCancelBtn" onclick="closeEditProfileOverlay()">Cancel</button>
+            <button type="submit" class="edit-profile-save-btn" onclick="saveProfileChanges(); return false;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- G-Coins Top-Up Overlay -->
   <div class="gcoins-overlay" id="gCoinsOverlay">
     <div class="gcoins-container">
@@ -800,7 +888,7 @@
   <!-- UNIFORM HEADER SYSTEM -->
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=2.0"></script>
-  <script src="public/js/profile.js"></script>
+  <script src="public/js/profile.js?v=25.0"></script>
 
 
 </body>

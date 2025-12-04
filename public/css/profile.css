@@ -1,6 +1,7 @@
 html {
   overflow-y: auto;
   height: auto;
+  background: #242936;
   /* Hide scrollbar for all browsers and devices */
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;     /* Firefox */
@@ -12,7 +13,7 @@ html::-webkit-scrollbar {
 
 /* BODY STYLES - UPDATED FOR UNIFORM HEADER SYSTEM */
 body {
-  background: #363f4f !important;
+  background: #242936 !important;
   margin: 0;
   /* Removed fixed padding - uniform header system handles this automatically */
 }
@@ -22,7 +23,7 @@ body::-webkit-scrollbar {
 }
  
 .profile-subheader {
-  background-color: #363f4f;
+  background-color: #242936;
   padding: clamp(0.4rem, 2vw, 0.8rem);
   margin: 0;
   margin-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 1px); /* Header + borderline + small gap */
@@ -42,6 +43,41 @@ body::-webkit-scrollbar {
 
 .profile-photo {
   display: flex;
+  position: relative;
+  cursor: pointer;
+}
+
+/* Light tracing animation around profile photo */
+@keyframes borderTrace {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.profile-photo::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: clamp(9px, 1.6vw, 13px);
+  background: linear-gradient(90deg, 
+    rgba(16, 185, 129, 0.1), 
+    rgba(6, 182, 212, 0.4), 
+    rgba(16, 185, 129, 0.6), 
+    rgba(6, 182, 212, 0.4), 
+    rgba(16, 185, 129, 0.1)
+  );
+  background-size: 300% 100%;
+  animation: borderTrace 3s ease-in-out infinite;
+  z-index: -1;
 }
 
 .profile-photo img {
@@ -49,7 +85,13 @@ body::-webkit-scrollbar {
   height: clamp(140px, 20vw, 173px); /* Responsive profile photo height */
   border-radius: clamp(8px, 1.5vw, 12px);
   object-fit: cover;
-  border: 3px solid #e6d6ae;
+  border: 3px solid rgba(16, 185, 129, 0.5);
+  transition: all 0.3s ease;
+}
+
+.profile-photo:hover img {
+  border-color: rgba(16, 185, 129, 0.8);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
 .profile-right-column {
@@ -65,7 +107,7 @@ body::-webkit-scrollbar {
 }
 
 .full-name {
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(2.5rem, 5vw, 3rem); /* Larger, responsive name */
   font-weight: bold;
   line-height: 1.1;
@@ -87,7 +129,7 @@ body::-webkit-scrollbar {
 }
 
 .reviews-number {
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(1.5rem, 4vw, 2rem); /* Larger, responsive rating number */
   font-weight: bold;
 }
@@ -218,42 +260,88 @@ body::-webkit-scrollbar {
   white-space: nowrap;
 }
 
-/* Account Button Styles */
+/* Account Button Styles - Pulsating button with text only */
 .account-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(0.2rem, 1vw, 0.3rem); /* Responsive gap between icon and text */
-  background: linear-gradient(135deg, #4b5563 0%, #374151 100%); /* Gray gradient */
+  gap: clamp(0.2rem, 0.8vw, 0.4rem);
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
   color: #e5e7eb;
-  padding: clamp(6px, 1.5vw, 8px) clamp(12px, 3vw, 16px); /* Responsive padding */
-  border: 2px solid rgba(107, 114, 128, 0.3); /* Gray border */
-  border-radius: clamp(16px, 4vw, 20px); /* Responsive border radius */
-  font-size: clamp(0.6rem, 2.5vw, 0.75rem); /* Responsive font size */
+  padding: clamp(4px, 1vw, 8px) clamp(10px, 2.5vw, 16px);
+  border: 1px solid rgba(99, 179, 237, 0.4);
+  border-radius: clamp(12px, 3vw, 16px);
+  font-size: clamp(0.55rem, 1.6vw, 0.75rem);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1rem;
-  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3); /* Gray shadow */
+  letter-spacing: 0.06rem;
+  box-shadow: 0 2px 8px rgba(99, 179, 237, 0.15);
   cursor: pointer;
+  animation: buttonPulse 2.5s ease-in-out infinite;
+  height: clamp(28px, 6vw, 36px);
+  min-width: auto;
+  white-space: nowrap;
+}
+
+/* Pulsating animation - soft blue glow */
+@keyframes buttonPulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(99, 179, 237, 0.15);
+    border-color: rgba(99, 179, 237, 0.4);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(99, 179, 237, 0.4), 0 0 16px rgba(99, 179, 237, 0.2);
+    border-color: rgba(99, 179, 237, 0.7);
+  }
+}
+
+.account-btn .account-text {
+  display: inline; /* Show text at 401px+ */
+  color: #63b3ed;
+}
+
+.account-btn .account-emoji {
+  display: none; /* Hide emoji for 401px+, show only text */
+  font-size: clamp(12px, 2.5vw, 16px);
+  line-height: 1;
   transition: all 0.3s ease;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .account-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(107, 114, 128, 0.5);
-  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  animation-play-state: paused;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(99, 179, 237, 0.5), 0 0 24px rgba(99, 179, 237, 0.3);
+  border-color: rgba(99, 179, 237, 0.9);
+  background: linear-gradient(135deg, #374151 0%, #4a5568 100%);
 }
 
 .account-btn:active {
   transform: translateY(0);
-  box-shadow: 0 3px 8px rgba(107, 114, 128, 0.4);
+  box-shadow: 0 2px 8px rgba(99, 179, 237, 0.3);
 }
 
 .account-icon {
   width: clamp(12px, 3vw, 16px); /* Responsive icon size */
   height: clamp(12px, 3vw, 16px);
   filter: brightness(0) invert(1); /* Make icon white */
+}
+
+.account-emoji {
+  font-size: clamp(14px, 3.5vw, 18px); /* Responsive emoji size */
+  line-height: 1;
+}
+
+/* Pulsating animation for settings emoji */
+@keyframes settingsPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 0px transparent);
+  }
+  50% {
+    transform: scale(1.15);
+    filter: brightness(1.3) drop-shadow(0 0 8px rgba(16, 185, 129, 0.8));
+  }
 }
 
 .account-text {
@@ -264,7 +352,8 @@ body::-webkit-scrollbar {
 .profile-subheader-borderline {
   height: 4px;
   width: 100%;
-  background: rgb(149, 149, 328);
+  background: linear-gradient(90deg, #06b6d4, #10b981, #06b6d4);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5), 0 0 20px rgba(16, 185, 129, 0.3);
 }
 
 /* Account Overlay Styles */
@@ -289,7 +378,8 @@ body::-webkit-scrollbar {
 }
 
 .account-container {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(12px, 3vw, 16px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   width: 100%;
@@ -313,7 +403,7 @@ body::-webkit-scrollbar {
 .account-title {
   font-size: clamp(1.2rem, 4vw, 1.5rem);
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -335,8 +425,8 @@ body::-webkit-scrollbar {
 }
 
 .account-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e6d6ae;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
 .account-content {
@@ -363,7 +453,7 @@ body::-webkit-scrollbar {
 .account-section-title {
   font-size: clamp(0.9rem, 3vw, 1.1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(0.75rem, 3vw, 1rem);
   padding: clamp(0.5rem, 2vw, 0.75rem);
   text-transform: uppercase;
@@ -375,7 +465,7 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: center;
   padding: clamp(0.75rem, 3vw, 1rem);
-  background: #363f4f;
+  background: #242936;
   border-radius: clamp(6px, 1.5vw, 8px);
   margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -391,8 +481,8 @@ body::-webkit-scrollbar {
 }
 
 .account-option.clickable:hover {
-  background: #4a5568;
-  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
   transform: translateY(-1px);
 }
 
@@ -411,7 +501,7 @@ body::-webkit-scrollbar {
 .account-option-name {
   font-size: clamp(0.9rem, 3vw, 1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(0.2rem, 1vw, 0.3rem);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -448,6 +538,288 @@ body::-webkit-scrollbar {
   color: #a0aec0;
   margin-left: clamp(0.5rem, 2vw, 0.75rem);
   font-weight: bold;
+}
+
+/* ===== EDIT PROFILE OVERLAY STYLES ===== */
+.edit-profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 2vw, 2rem);
+  box-sizing: border-box;
+}
+
+.edit-profile-overlay.show {
+  display: flex;
+}
+
+.edit-profile-container {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  border-radius: clamp(8px, 2vw, 16px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(16, 185, 129, 0.1);
+  width: calc(100% - clamp(1rem, 4vw, 4rem));
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.edit-profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.edit-profile-title {
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-weight: 700;
+  color: #10b981;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.edit-profile-close-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  cursor: pointer;
+  padding: clamp(4px, 1vw, 8px);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  line-height: 1;
+  width: clamp(32px, 8vw, 40px);
+  height: clamp(32px, 8vw, 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-profile-close-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.edit-profile-content {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.edit-profile-content::-webkit-scrollbar {
+  display: none;
+}
+
+.edit-profile-section {
+  margin-bottom: clamp(1.5rem, 4vw, 2rem);
+}
+
+.edit-profile-section:last-child {
+  margin-bottom: 0;
+}
+
+.edit-profile-section-title {
+  font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+  font-weight: 600;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: clamp(0.75rem, 2vw, 1rem);
+  padding-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+/* Profile Photo Section */
+.edit-profile-photo-section {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 1.5rem);
+}
+
+.edit-profile-photo-preview {
+  width: clamp(80px, 20vw, 100px);
+  height: clamp(80px, 20vw, 100px);
+  border-radius: clamp(8px, 2vw, 12px);
+  overflow: hidden;
+  border: 2px solid rgba(16, 185, 129, 0.4);
+}
+
+.edit-profile-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-profile-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  padding: clamp(8px, 2vw, 12px) clamp(16px, 4vw, 24px);
+  border-radius: clamp(8px, 2vw, 12px);
+  font-size: clamp(0.85rem, 2.5vw, 0.95rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-profile-photo-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Form Fields */
+.edit-profile-field {
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.edit-profile-field:last-child {
+  margin-bottom: 0;
+}
+
+.edit-profile-label {
+  display: block;
+  font-size: clamp(0.8rem, 2.2vw, 0.9rem);
+  font-weight: 600;
+  color: #a0aec0;
+  margin-bottom: clamp(0.4rem, 1vw, 0.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.edit-profile-input,
+.edit-profile-select {
+  width: 100%;
+  padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px);
+  background: #242936;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  color: #e5e7eb;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.edit-profile-input:focus,
+.edit-profile-select:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.edit-profile-input::placeholder {
+  color: #6b7280;
+}
+
+.edit-profile-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23a0aec0' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.edit-profile-select option {
+  background: #242936;
+  color: #e5e7eb;
+}
+
+/* Textarea for About Me */
+.edit-profile-textarea {
+  width: 100%;
+  padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px);
+  background: #242936;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  color: #e5e7eb;
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.5;
+}
+
+.edit-profile-textarea:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.edit-profile-textarea::placeholder {
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.edit-profile-char-count {
+  text-align: right;
+  font-size: clamp(0.75rem, 2vw, 0.85rem);
+  color: #6b7280;
+  margin-top: clamp(0.25rem, 0.5vw, 0.5rem);
+}
+
+/* Form Actions */
+.edit-profile-actions {
+  display: flex;
+  gap: clamp(0.75rem, 2vw, 1rem);
+  margin-top: clamp(1.5rem, 4vw, 2rem);
+  padding-top: clamp(1rem, 3vw, 1.5rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.edit-profile-cancel-btn,
+.edit-profile-save-btn {
+  flex: 1;
+  padding: clamp(12px, 3vw, 16px);
+  border-radius: clamp(8px, 2vw, 12px);
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 600;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-profile-cancel-btn {
+  background: transparent;
+  border: 2px solid #6b7280;
+  color: #e5e7eb;
+}
+
+.edit-profile-cancel-btn:hover {
+  border-color: #a0aec0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.edit-profile-save-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  color: #ffffff;
+}
+
+.edit-profile-save-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
 }
 
 /* G-Coins Wallet Section Styles */
@@ -602,7 +974,8 @@ body::-webkit-scrollbar {
 }
 
 .gcoins-container {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(12px, 3vw, 16px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   width: 100%;
@@ -694,13 +1067,13 @@ body::-webkit-scrollbar {
 .gcoins-package-title {
   font-size: clamp(1rem, 3vw, 1.1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(0.75rem, 3vw, 1rem);
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .gcoins-package {
-  background: #363f4f;
+  background: #242936;
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: clamp(8px, 2vw, 10px);
   padding: clamp(0.75rem, 3vw, 1rem);
@@ -711,8 +1084,8 @@ body::-webkit-scrollbar {
 }
 
 .gcoins-package:hover {
-  border-color: rgba(251, 191, 36, 0.3);
-  background: #4a5568;
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
   transform: translateY(-1px);
 }
 
@@ -776,7 +1149,7 @@ body::-webkit-scrollbar {
 .gcoins-package-coins {
   font-size: clamp(1.1rem, 3vw, 1.3rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -922,10 +1295,10 @@ body::-webkit-scrollbar {
 }
 
 .business-prestige-container {
-  background: linear-gradient(135deg, #363f4f 0%, #2a3441 100%);
-  border: 2px solid rgba(230, 214, 174, 0.3);
+  background: linear-gradient(135deg, #242936 0%, #2a3441 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(16px, 4vw, 24px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 60px rgba(230, 214, 174, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 60px rgba(16, 185, 129, 0.1);
   max-width: clamp(320px, 90vw, 480px);
   max-height: 90vh;
   overflow-y: auto;
@@ -947,15 +1320,15 @@ body::-webkit-scrollbar {
 
 .business-prestige-header {
   position: relative;
-  background: linear-gradient(135deg, rgba(230, 214, 174, 0.2) 0%, rgba(230, 214, 174, 0.15) 50%, rgba(230, 214, 174, 0.1) 100%);
-  border-bottom: 1px solid rgba(230, 214, 174, 0.2);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.15) 50%, rgba(16, 185, 129, 0.1) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
   padding: clamp(1.5rem, 5vw, 2rem);
   border-radius: clamp(14px, 4vw, 22px) clamp(14px, 4vw, 22px) 0 0;
   text-align: center;
 }
 
 .prestige-badge-large {
-  color: #e6d6ae;
+  color: #10b981;
 }
 
 .prestige-crown {
@@ -991,9 +1364,9 @@ body::-webkit-scrollbar {
   width: clamp(2rem, 6vw, 2.5rem);
   height: clamp(2rem, 6vw, 2.5rem);
   background: rgba(54, 63, 79, 0.8);
-  border: 1px solid rgba(230, 214, 174, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 50%;
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(1rem, 3vw, 1.2rem);
   font-weight: bold;
   cursor: pointer;
@@ -1005,13 +1378,13 @@ body::-webkit-scrollbar {
 
 .business-prestige-close:hover {
   background: rgba(54, 63, 79, 1);
-  border-color: rgba(230, 214, 174, 0.5);
+  border-color: rgba(16, 185, 129, 0.5);
   transform: scale(1.1);
 }
 
 .business-prestige-content {
   padding: clamp(1.5rem, 5vw, 2rem);
-  color: #e6d6ae;
+  color: #10b981;
 }
 
 .prestige-celebration {
@@ -1044,8 +1417,8 @@ body::-webkit-scrollbar {
   align-items: center;
   gap: clamp(0.75rem, 2.5vw, 1rem);
   padding: clamp(0.75rem, 2.5vw, 1rem);
-  background: rgba(230, 214, 174, 0.05);
-  border: 1px solid rgba(230, 214, 174, 0.15);
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: clamp(8px, 2vw, 12px);
 }
 
@@ -1060,8 +1433,8 @@ body::-webkit-scrollbar {
 }
 
 .prestige-disclaimer {
-  background: rgba(230, 214, 174, 0.08);
-  border: 1px solid rgba(230, 214, 174, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: clamp(8px, 2vw, 12px);
   padding: clamp(1rem, 3vw, 1.5rem);
 }
@@ -1096,28 +1469,28 @@ body::-webkit-scrollbar {
 
 .business-prestige-footer {
   padding: clamp(1rem, 4vw, 1.5rem) clamp(1.5rem, 5vw, 2rem) clamp(1.5rem, 5vw, 2rem);
-  border-top: 1px solid rgba(230, 214, 174, 0.2);
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
   text-align: center;
 }
 
 .prestige-understand-btn {
-  background: linear-gradient(135deg, rgba(230, 214, 174, 0.2) 0%, rgba(230, 214, 174, 0.15) 100%);
-  color: #e6d6ae;
-  border: 1px solid rgba(230, 214, 174, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(8px, 2vw, 12px);
   padding: clamp(0.75rem, 3vw, 1rem) clamp(2rem, 6vw, 3rem);
   font-size: clamp(0.9rem, 2.8vw, 1.1rem);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(230, 214, 174, 0.1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
 }
 
 .prestige-understand-btn:hover {
-  background: linear-gradient(135deg, rgba(230, 214, 174, 0.25) 0%, rgba(230, 214, 174, 0.2) 100%);
-  border-color: rgba(230, 214, 174, 0.4);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.2) 100%);
+  border-color: rgba(16, 185, 129, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(230, 214, 174, 0.15);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.15);
 }
 
 /* Pro Verified Badge Styling */
@@ -1158,7 +1531,7 @@ body::-webkit-scrollbar {
 }
 
 .pro-prestige-container {
-  background: linear-gradient(135deg, #363f4f 0%, #2a3441 100%);
+  background: linear-gradient(135deg, #242936 0%, #2a3441 100%);
   border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(16px, 4vw, 24px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 60px rgba(16, 185, 129, 0.1);
@@ -1390,7 +1763,7 @@ body::-webkit-scrollbar {
 }
 
 .not-verified-container {
-  background: linear-gradient(135deg, #363f4f 0%, #2a3441 100%);
+  background: linear-gradient(135deg, #242936 0%, #2a3441 100%);
   border: 2px solid rgba(156, 163, 175, 0.3);
   border-radius: clamp(16px, 4vw, 24px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 60px rgba(156, 163, 175, 0.1);
@@ -1587,8 +1960,8 @@ body::-webkit-scrollbar {
 /* Submit ID Button Styling */
 .submit-id-btn {
   width: 100%;
-  background: rgba(230, 214, 174, 0.08);
-  border: 1px solid rgba(230, 214, 174, 0.2);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: clamp(8px, 2vw, 12px);
   padding: 0;
   cursor: pointer;
@@ -1597,8 +1970,8 @@ body::-webkit-scrollbar {
 }
 
 .submit-id-btn:hover {
-  background: rgba(230, 214, 174, 0.12);
-  border-color: rgba(230, 214, 174, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
   transform: translateY(-1px);
 }
 
@@ -1622,20 +1995,20 @@ body::-webkit-scrollbar {
 .submit-id-title {
   font-size: clamp(0.9rem, 3vw, 1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   line-height: 1.2;
 }
 
 .submit-id-desc {
   font-size: clamp(0.75rem, 2.5vw, 0.85rem);
-  color: rgba(230, 214, 174, 0.7);
+  color: rgba(16, 185, 129, 0.7);
   margin-top: clamp(0.15rem, 1vw, 0.25rem);
   line-height: 1.2;
 }
 
 .submit-id-arrow {
   font-size: clamp(1.2rem, 4vw, 1.5rem);
-  color: rgba(230, 214, 174, 0.6);
+  color: rgba(16, 185, 129, 0.6);
   flex-shrink: 0;
 }
 
@@ -1730,7 +2103,8 @@ body::-webkit-scrollbar {
 }
 
 .purchase-success-container {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(12px, 3vw, 16px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   width: 100%;
@@ -1800,7 +2174,7 @@ body::-webkit-scrollbar {
 
 .purchase-success-message {
   font-size: clamp(1rem, 3vw, 1.1rem);
-  color: #e6d6ae;
+  color: #10b981;
   text-align: center;
   margin-bottom: clamp(1rem, 4vw, 1.5rem);
   font-family: Arial, Helvetica, sans-serif;
@@ -1932,7 +2306,8 @@ body::-webkit-scrollbar {
 }
 
 .verification-container {
-  background: #2d3748;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(12px, 3vw, 16px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   width: 100%;
@@ -1956,7 +2331,7 @@ body::-webkit-scrollbar {
 .verification-overlay-title {
   font-size: clamp(1.3rem, 4vw, 1.6rem);
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -1979,7 +2354,7 @@ body::-webkit-scrollbar {
 
 .verification-close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #e6d6ae;
+  color: #10b981;
 }
 
 .verification-overlay-content {
@@ -1996,7 +2371,7 @@ body::-webkit-scrollbar {
 .verification-info-title {
   font-size: clamp(1.1rem, 3vw, 1.2rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(1rem, 4vw, 1.5rem);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -2039,19 +2414,19 @@ body::-webkit-scrollbar {
 }
 
 .upload-area {
-  border: 2px dashed rgba(230, 214, 174, 0.3);
+  border: 2px dashed rgba(16, 185, 129, 0.3);
   border-radius: clamp(8px, 2vw, 10px);
   padding: clamp(2rem, 6vw, 3rem);
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
   margin-bottom: clamp(1rem, 4vw, 1.5rem);
-  background: rgba(230, 214, 174, 0.05);
+  background: rgba(16, 185, 129, 0.05);
 }
 
 .upload-area:hover {
-  border-color: rgba(230, 214, 174, 0.5);
-  background: rgba(230, 214, 174, 0.1);
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .upload-icon {
@@ -2067,14 +2442,14 @@ body::-webkit-scrollbar {
   width: auto;
   height: auto;
   border-radius: clamp(8px, 2vw, 12px);
-  border: 2px solid rgba(230, 214, 174, 0.3);
+  border: 2px solid rgba(16, 185, 129, 0.3);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .upload-primary {
   font-size: clamp(1rem, 3vw, 1.1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(0.25rem, 1vw, 0.5rem);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -2094,7 +2469,7 @@ body::-webkit-scrollbar {
 .requirements-title {
   font-size: clamp(0.9rem, 3vw, 1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(0.75rem, 3vw, 1rem);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -2134,7 +2509,7 @@ body::-webkit-scrollbar {
 .upload-step-title {
   font-size: clamp(1rem, 3vw, 1.1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
   margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
 }
@@ -2151,10 +2526,10 @@ body::-webkit-scrollbar {
 }
 
 .id-types li {
-  background: rgba(230, 214, 174, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   padding: clamp(0.3rem, 1.5vw, 0.5rem) clamp(0.5rem, 2vw, 0.75rem);
   border-radius: clamp(4px, 1vw, 6px);
-  border: 1px solid rgba(230, 214, 174, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   text-align: center;
   font-size: clamp(0.8rem, 2.5vw, 0.85rem);
   margin-bottom: 0;
@@ -2167,7 +2542,7 @@ body::-webkit-scrollbar {
 }
 
 .photo-requirements strong {
-  color: #e6d6ae;
+  color: #10b981;
   font-weight: 700;
 }
 
@@ -2250,7 +2625,7 @@ body::-webkit-scrollbar {
 
 .explanation-container {
   background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
-  border: 1px solid rgba(230, 214, 174, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: clamp(12px, 3vw, 16px);
   max-width: clamp(280px, 90vw, 600px);
   max-height: 90vh;
@@ -2265,7 +2640,7 @@ body::-webkit-scrollbar {
   align-items: center;
   justify-content: space-between;
   padding: clamp(1rem, 4vw, 1.5rem);
-  border-bottom: 1px solid rgba(230, 214, 174, 0.2);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
   background: rgba(255, 255, 255, 0.02);
   flex-shrink: 0; /* Prevent header from shrinking */
 }
@@ -2273,7 +2648,7 @@ body::-webkit-scrollbar {
 .explanation-overlay-title {
   font-size: clamp(1.2rem, 4vw, 1.5rem);
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2295,7 +2670,7 @@ body::-webkit-scrollbar {
 
 .explanation-close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #e6d6ae;
+  color: #10b981;
 }
 
 .explanation-overlay-content {
@@ -2314,12 +2689,12 @@ body::-webkit-scrollbar {
 }
 
 .explanation-overlay-content::-webkit-scrollbar-thumb {
-  background: rgba(230, 214, 174, 0.3);
+  background: rgba(16, 185, 129, 0.3);
   border-radius: 3px;
 }
 
 .explanation-overlay-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(230, 214, 174, 0.5);
+  background: rgba(16, 185, 129, 0.5);
 }
 
 .explanation-intro-text {
@@ -2345,17 +2720,17 @@ body::-webkit-scrollbar {
 .or-line {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(230, 214, 174, 0.3) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.3) 50%, transparent 100%);
 }
 
 .or-text {
   font-size: clamp(0.75rem, 2.5vw, 0.9rem);
   font-weight: 600;
-  color: rgba(230, 214, 174, 0.6);
+  color: rgba(16, 185, 129, 0.6);
   letter-spacing: 0.1em;
   padding: clamp(0.25rem, 1vw, 0.4rem) clamp(0.5rem, 2vw, 0.75rem);
-  background: rgba(230, 214, 174, 0.05);
-  border: 1px solid rgba(230, 214, 174, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: clamp(12px, 3vw, 16px);
   text-align: center;
   min-width: clamp(2rem, 6vw, 2.5rem);
@@ -2368,7 +2743,7 @@ body::-webkit-scrollbar {
 .explanation-section-title {
   font-size: clamp(1.1rem, 3.5vw, 1.3rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(1rem, 4vw, 1.5rem);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -2390,7 +2765,7 @@ body::-webkit-scrollbar {
 
 .explanation-option:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(230, 214, 174, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .option-header {
@@ -2421,7 +2796,7 @@ body::-webkit-scrollbar {
 .option-price {
   font-size: clamp(1.2rem, 4vw, 1.5rem);
   font-weight: 700;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2486,7 +2861,7 @@ body::-webkit-scrollbar {
 .referral-target {
   font-size: clamp(1rem, 3vw, 1.2rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -2561,7 +2936,7 @@ body::-webkit-scrollbar {
 .referral-code-label {
   font-size: clamp(0.9rem, 3vw, 1rem);
   font-weight: 600;
-  color: #e6d6ae;
+  color: #10b981;
   margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -2623,7 +2998,7 @@ body::-webkit-scrollbar {
 
 .share-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(230, 214, 174, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
 .share-icon {
@@ -2671,7 +3046,7 @@ body::-webkit-scrollbar {
   justify-content: space-between;
   gap: clamp(0.75rem, 3vw, 1rem);
   padding: clamp(1rem, 4vw, 1.5rem);
-  border-top: 1px solid rgba(230, 214, 174, 0.2);
+  border-top: 1px solid rgba(16, 185, 129, 0.2);
   background: rgba(255, 255, 255, 0.02);
   flex-shrink: 0; /* Prevent footer from shrinking */
 }
@@ -2994,8 +3369,9 @@ body::-webkit-scrollbar {
   position: relative; /* Changed from fixed to relative to flow after subheader */
   left: 0;
   width: 100%;
-  background: #2d3748;
-  border-bottom: 2px solid #4a5568;
+  background: #242936;
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.3);
   display: flex;
   z-index: 98;
   margin-top: 0; /* No margin needed in relative positioning */
@@ -3021,14 +3397,14 @@ body::-webkit-scrollbar {
 }
 
 .tab-btn:hover {
-  color: #e6d6ae;
-  background: rgba(255, 255, 255, 0.05);
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .tab-btn.active {
-  color: #e6d6ae;
-  background: rgba(255, 255, 255, 0.08);
-  border-bottom-color: #e6d6ae;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  border-bottom-color: #10b981;
 }
 
 .tab-label {
@@ -3045,7 +3421,7 @@ body::-webkit-scrollbar {
   display: none;
   width: 100%;
   overflow: hidden;
-  background: #363f4f;
+  background: #242936;
   position: relative; /* Changed from fixed to relative to flow after tabs */
   z-index: 1;
 }
@@ -3059,7 +3435,7 @@ body::-webkit-scrollbar {
   height: 100%;
   overflow-y: auto;
   padding: 0;
-  background: #363f4f;
+  background: #242936;
   /* Hide scrollbar for all browsers */
   -ms-overflow-style: none; /* Internet Explorer 10+ */
   scrollbar-width: none; /* Firefox */
@@ -3076,7 +3452,7 @@ body::-webkit-scrollbar {
 @media (max-width: 600px) {
   body {
     padding-top: 70px; /* Fixed mobile padding to match jobs page */
-    background: #363f4f !important;
+    background: #242936 !important;
   }
   
   body::-webkit-scrollbar {
@@ -3181,18 +3557,9 @@ body::-webkit-scrollbar {
     letter-spacing: 0.05rem;
   }
   
-  /* Account button mobile adjustments */
-  .account-btn {
-    padding: clamp(4px, 1.2vw, 6px) clamp(8px, 2.5vw, 12px); /* Smaller mobile padding */
-    font-size: clamp(0.5rem, 2.2vw, 0.65rem); /* Smaller mobile font */
-    border-radius: clamp(12px, 3vw, 16px); /* Smaller mobile border radius */
-    letter-spacing: 0.05rem; /* Reduced letter spacing for mobile */
-    gap: clamp(0.15rem, 0.8vw, 0.25rem); /* Smaller gap for mobile */
-  }
-  
-  .account-icon {
-    width: clamp(10px, 2.5vw, 14px); /* Smaller icon for mobile */
-    height: clamp(10px, 2.5vw, 14px);
+  /* Account button mobile - pulsating emoji */
+  .account-btn .account-emoji {
+    font-size: clamp(24px, 5vw, 30px);
   }
   
   .profile-subheader-borderline {
@@ -3320,18 +3687,9 @@ body::-webkit-scrollbar {
     letter-spacing: 0.03rem;
   }
   
-  /* Account button iPhone 7 adjustments */
-  .account-btn {
-    padding: clamp(3px, 1vw, 5px) clamp(6px, 2vw, 10px); /* iPhone 7 padding */
-    font-size: clamp(0.45rem, 2vw, 0.6rem); /* iPhone 7 font size */
-    border-radius: clamp(10px, 2.5vw, 14px); /* iPhone 7 border radius */
-    letter-spacing: 0.03rem; /* Reduced letter spacing for iPhone 7 */
-    gap: clamp(0.12rem, 0.6vw, 0.2rem); /* Smaller gap for iPhone 7 */
-  }
-  
-  .account-icon {
-    width: clamp(8px, 2.2vw, 12px); /* iPhone 7 icon size */
-    height: clamp(8px, 2.2vw, 12px);
+  /* Account button iPhone 7 - pulsating emoji */
+  .account-btn .account-emoji {
+    font-size: clamp(22px, 5vw, 28px);
   }
 
   /* Fix subheader positioning - reduced top spacing */
@@ -3430,18 +3788,9 @@ body::-webkit-scrollbar {
     letter-spacing: 0.02rem;
   }
   
-  /* Account button ultra-small screen adjustments */
-  .account-btn {
-    padding: clamp(2px, 0.8vw, 4px) clamp(5px, 1.5vw, 8px); /* Ultra-small padding */
-    font-size: clamp(0.4rem, 1.8vw, 0.5rem); /* Ultra-small font size */
-    border-radius: clamp(8px, 2vw, 12px); /* Ultra-small border radius */
-    letter-spacing: 0.02rem; /* Minimal letter spacing for ultra-small */
-    gap: clamp(0.1rem, 0.5vw, 0.15rem); /* Minimal gap for ultra-small */
-  }
-  
-  .account-icon {
-    width: clamp(6px, 2vw, 10px); /* Ultra-small icon size */
-    height: clamp(6px, 2vw, 10px);
+  /* Account button ultra-small - pulsating emoji */
+  .account-btn .account-emoji {
+    font-size: clamp(20px, 5vw, 26px);
   }
 
   /* Fix subheader positioning - reduced top spacing */
@@ -3557,7 +3906,7 @@ body::-webkit-scrollbar {
 /* Profile Content Sections */
 .profile-content-container {
   padding: clamp(0.8rem, 3vw, 1rem); /* Responsive container padding */
-  background: #363f4f;
+  background: #242936;
   max-width: 100%; /* Prevent horizontal overflow */
   overflow-x: hidden; /* Hide any horizontal overflow */
   box-sizing: border-box; /* Include padding in width calculations */
@@ -3570,13 +3919,13 @@ body::-webkit-scrollbar {
 }
 
 .profile-section-content {
-  background: #363f4f;
+  background: #242936;
   border-radius: clamp(6px, 1.5vw, 8px); /* Responsive border radius */
   padding: clamp(0.8rem, 3vw, 1rem); /* Responsive section padding */
 }
 
 .profile-section h3 {
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(1.2rem, 4vw, 1.5rem); /* Responsive heading */
   font-weight: bold;
   margin-bottom: clamp(0.8rem, 3vw, 1rem);
@@ -3584,7 +3933,7 @@ body::-webkit-scrollbar {
 }
 
 .profile-section p {
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(0.9rem, 3vw, 1rem); /* Responsive paragraph */
   text-align: center;
 }
@@ -3658,10 +4007,10 @@ body::-webkit-scrollbar {
 }
 
 .user-info-item {
-  background: #2d3748;
+  background: linear-gradient(135deg, #2d3748 0%, #3d4a5c 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: clamp(6px, 1.5vw, 8px); /* Responsive border radius */
   padding: clamp(0.8rem, 3vw, 1rem); /* Responsive padding */
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-info-label {
@@ -3677,16 +4026,16 @@ body::-webkit-scrollbar {
 .user-info-value {
   font-size: clamp(1rem, 3vw, 1.1rem); /* Responsive value font */
   font-weight: 500;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
   line-height: 1.3;
 }
 
 .user-summary-section {
-  background: #2d3748;
+  background: linear-gradient(135deg, #2d3748 0%, #3d4a5c 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
   border-radius: clamp(6px, 1.5vw, 8px); /* Responsive border radius */
   padding: clamp(1.2rem, 4vw, 1.5rem); /* Responsive padding */
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-summary-header {
@@ -3700,7 +4049,7 @@ body::-webkit-scrollbar {
 }
 
 .user-summary-container {
-  background: #363f4f;
+  background: #242936;
   border-radius: clamp(4px, 1vw, 6px); /* Responsive border radius */
   padding: clamp(0.8rem, 3vw, 1rem); /* Responsive padding */
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -3709,9 +4058,10 @@ body::-webkit-scrollbar {
 .user-summary-text {
   font-size: clamp(0.9rem, 3vw, 1rem); /* Responsive text font */
   line-height: 1.6;
-  color: #e6d6ae;
+  color: #10b981;
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
+  white-space: pre-line; /* Preserve line breaks from text */
 }
 
 /* Reviews Container */
@@ -3736,7 +4086,7 @@ body::-webkit-scrollbar {
   border-radius: clamp(6px, 1.5vw, 8px); /* Responsive border radius */
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   margin: 0 auto clamp(8px, 2vw, 16px) auto; /* Reduced responsive margin */
-  color: #e6d6ae;
+  color: #10b981;
   overflow: hidden;
   border: 1.5px solid rgba(255,255,255,0.08);
   padding: clamp(8px, 2.5vw, 12px); /* Reduced responsive padding */
@@ -3793,7 +4143,7 @@ body::-webkit-scrollbar {
 
 .review-feedback-label {
   font-weight: bold;
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(0.9rem, 2.8vw, 0.95rem); /* Responsive label font */
 }
 
@@ -3812,7 +4162,7 @@ body::-webkit-scrollbar {
 }
 
 .review-feedback-text {
-  color: #e6d6ae;
+  color: #10b981;
   font-size: clamp(0.85rem, 2.8vw, 0.9rem); /* Responsive feedback text */
   line-height: 1.4;
   background: rgba(255,255,255,0.04);
@@ -3861,34 +4211,62 @@ body::-webkit-scrollbar {
 }
 
 @media (max-width: 400px) {
-  /* Verification badge 400px adjustments */
+  /* Verification badge 400px adjustments - INCREASED SIZE for column layout */
   .verification-badge {
-    padding: clamp(3px, 1.1vw, 5px) clamp(7px, 2.2vw, 10px); /* 400px padding */
-    font-size: clamp(0.42rem, 1.9vw, 0.55rem); /* 400px font size */
-    border-radius: clamp(9px, 2.2vw, 13px); /* 400px border radius */
-    letter-spacing: 0.025rem; /* Reduced letter spacing for 400px */
+    padding: clamp(8px, 2.5vw, 12px) clamp(16px, 5vw, 24px); /* Larger padding */
+    font-size: clamp(0.7rem, 3vw, 0.85rem); /* Larger font size */
+    border-radius: clamp(16px, 4vw, 20px); /* Larger border radius */
+    letter-spacing: 0.05rem;
+    width: 100%; /* Full width in column layout */
+    justify-content: center;
   }
   
-  /* New User badge 400px adjustments */
+  /* New User badge 400px adjustments - INCREASED SIZE */
   .verification-badge.new-user {
-    padding: clamp(3px, 1.1vw, 5px) clamp(7px, 2.2vw, 10px);
-    font-size: clamp(0.42rem, 1.9vw, 0.55rem);
-    border-radius: clamp(9px, 2.2vw, 13px);
-    letter-spacing: 0.025rem;
+    padding: clamp(8px, 2.5vw, 12px) clamp(16px, 5vw, 24px);
+    font-size: clamp(0.7rem, 3vw, 0.85rem);
+    border-radius: clamp(16px, 4vw, 20px);
+    letter-spacing: 0.05rem;
+    width: 100%;
+    justify-content: center;
   }
   
-  /* Account button 400px adjustments */
+  /* Account button 400px - show only pulsating emoji, no button styling */
   .account-btn {
-    padding: clamp(3px, 1.1vw, 5px) clamp(7px, 2.2vw, 10px); /* 400px padding */
-    font-size: clamp(0.42rem, 1.9vw, 0.55rem); /* 400px font size */
-    border-radius: clamp(9px, 2.2vw, 13px); /* 400px border radius */
-    letter-spacing: 0.025rem; /* Reduced letter spacing for 400px */
-    gap: clamp(0.12rem, 0.7vw, 0.18rem); /* 400px gap */
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    min-width: auto;
+    min-height: auto;
+    animation: none; /* Remove button pulse */
   }
   
-  .account-icon {
-    width: clamp(8px, 2.3vw, 11px); /* 400px icon size */
-    height: clamp(8px, 2.3vw, 11px);
+  .account-btn:hover {
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+  
+  .account-btn .account-text {
+    display: none; /* Hide text, show only emoji */
+  }
+  
+  .account-btn .account-emoji {
+    font-size: clamp(24px, 7vw, 32px); /* Larger emoji */
+    animation: settingsPulse 2s ease-in-out infinite;
+    cursor: pointer;
+  }
+  
+  .account-btn:hover .account-emoji {
+    animation-play-state: paused;
+    transform: scale(1.2);
+    filter: brightness(1.4) drop-shadow(0 0 12px rgba(16, 185, 129, 1));
+  }
+  
+  /* Center user-info-value (answers only) */
+  .user-info-value {
+    text-align: center;
   }
   
   /* User Information Mobile Styles - Single Column Layout */
@@ -3920,6 +4298,23 @@ body::-webkit-scrollbar {
     gap: clamp(0.7rem, 4vw, 0.9rem);
   }
   
+  /* Verification badge 375px - maintain increased size */
+  .verification-badge,
+  .verification-badge.new-user {
+    padding: clamp(7px, 2.2vw, 10px) clamp(14px, 4.5vw, 20px);
+    font-size: clamp(0.65rem, 2.8vw, 0.8rem);
+  }
+  
+  /* Account button 375px - pulsating emoji */
+  .account-btn .account-emoji {
+    font-size: clamp(22px, 6.5vw, 28px);
+  }
+  
+  /* Center user-info-value */
+  .user-info-value {
+    text-align: center;
+  }
+  
   /* iPhone 7 Review Cards Optimization */
   .review-card {
     padding: clamp(3px, 1.2vw, 6px); /* iPhone 7 optimized padding */
@@ -3940,6 +4335,23 @@ body::-webkit-scrollbar {
   .user-info-grid {
     gap: clamp(0.6rem, 4vw, 0.8rem);
     margin-bottom: clamp(1rem, 5vw, 1.2rem);
+  }
+  
+  /* Verification badge 320px - maintain increased size */
+  .verification-badge,
+  .verification-badge.new-user {
+    padding: clamp(6px, 2vw, 9px) clamp(12px, 4vw, 18px);
+    font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+  }
+  
+  /* Account button 320px - pulsating emoji */
+  .account-btn .account-emoji {
+    font-size: clamp(20px, 6vw, 26px);
+  }
+  
+  /* Center user-info-value */
+  .user-info-value {
+    text-align: center;
   }
   
   /* Ultra-Small Screen Review Cards Optimization */

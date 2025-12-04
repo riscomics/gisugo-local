@@ -254,8 +254,8 @@ document.addEventListener('keydown', function(e) {
 function handleAccountAction(action) {
   switch(action) {
     case 'edit-profile':
-      console.log('Edit Profile clicked');
-      // TODO: Navigate to edit profile page
+      console.log('Edit Profile clicked - opening edit profile overlay');
+      openEditProfileOverlay();
       break;
     case 'privacy-settings':
       console.log('Privacy Settings clicked');
@@ -282,6 +282,266 @@ function handleAccountAction(action) {
       console.log('Unknown action:', action);
   }
 }
+
+// ===== EDIT PROFILE OVERLAY FUNCTIONALITY =====
+function openEditProfileOverlay() {
+  // First close the account overlay (uses 'active' class, not 'show')
+  const accountOverlay = document.getElementById('accountOverlay');
+  if (accountOverlay) {
+    accountOverlay.classList.remove('active');
+    accountOverlay.style.display = 'none'; // Force hide
+  }
+  
+  // Then open the edit profile overlay after a brief delay
+  setTimeout(() => {
+    const overlay = document.getElementById('editProfileOverlay');
+    if (overlay) {
+      // Populate form with current user data
+      populateEditProfileForm();
+      overlay.classList.add('show');
+    }
+  }, 150);
+}
+
+function closeEditProfileOverlay() {
+  console.log('closeEditProfileOverlay called');
+  const overlay = document.getElementById('editProfileOverlay');
+  if (overlay) {
+    overlay.classList.remove('show');
+    console.log('Edit profile overlay closed');
+  }
+}
+
+// Make closeEditProfileOverlay globally accessible
+window.closeEditProfileOverlay = closeEditProfileOverlay;
+
+function populateEditProfileForm() {
+  const profile = window.currentUserProfile;
+  console.log('Populating edit profile form with:', profile);
+  if (!profile) {
+    console.warn('No profile data available');
+    return;
+  }
+
+  // Basic Info
+  const firstNameInput = document.getElementById('editFirstName');
+  const lastNameInput = document.getElementById('editLastName');
+  const dobInput = document.getElementById('editDateOfBirth');
+  const educationSelect = document.getElementById('editEducation');
+  const aboutMeTextarea = document.getElementById('editAboutMe');
+  const photoPreview = document.getElementById('editProfilePhotoPreview');
+
+  // Parse fullName into first and last name
+  if (profile.fullName) {
+    const nameParts = profile.fullName.trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
+    if (firstNameInput) firstNameInput.value = firstName;
+    if (lastNameInput) lastNameInput.value = lastName;
+  } else {
+    // Check for separate firstName/lastName fields
+    if (firstNameInput && profile.firstName) firstNameInput.value = profile.firstName;
+    if (lastNameInput && profile.lastName) lastNameInput.value = profile.lastName;
+  }
+  
+  if (dobInput && profile.dateOfBirth) {
+    dobInput.value = profile.dateOfBirth;
+  }
+  if (educationSelect && profile.educationLevel) {
+    educationSelect.value = profile.educationLevel;
+  }
+  if (aboutMeTextarea && profile.userSummary) {
+    aboutMeTextarea.value = profile.userSummary;
+    updateCharCount();
+  }
+  if (photoPreview) {
+    const photoSrc = profile.profilePhoto || profile.profileImage;
+    if (photoSrc) photoPreview.src = photoSrc;
+  }
+
+  // Social Media URLs (optional - separate from icon paths)
+  // Check socialUrls first (actual URLs), then socialMedia but skip icon paths
+  const facebookInput = document.getElementById('editFacebook');
+  const instagramInput = document.getElementById('editInstagram');
+  const linkedinInput = document.getElementById('editLinkedIn');
+
+  // Helper to check if value is a valid URL (not an icon path)
+  const isValidUrl = (val) => val && val.startsWith('http') && !val.includes('/icons/');
+
+  if (facebookInput) {
+    const fbUrl = profile.socialUrls?.facebook || profile.socialMedia?.facebook;
+    if (isValidUrl(fbUrl)) facebookInput.value = fbUrl;
+  }
+  if (instagramInput) {
+    const igUrl = profile.socialUrls?.instagram || profile.socialMedia?.instagram;
+    if (isValidUrl(igUrl)) instagramInput.value = igUrl;
+  }
+  if (linkedinInput) {
+    const liUrl = profile.socialUrls?.linkedin || profile.socialMedia?.linkedin;
+    if (isValidUrl(liUrl)) linkedinInput.value = liUrl;
+  }
+}
+
+function updateCharCount() {
+  const textarea = document.getElementById('editAboutMe');
+  const charCount = document.getElementById('aboutMeCharCount');
+  if (textarea && charCount) {
+    charCount.textContent = textarea.value.length;
+  }
+}
+
+function initializeEditProfileOverlay() {
+  const overlay = document.getElementById('editProfileOverlay');
+  const closeBtn = document.getElementById('editProfileCloseBtn');
+  const cancelBtn = document.getElementById('editProfileCancelBtn');
+  const form = document.getElementById('editProfileForm');
+  const aboutMeTextarea = document.getElementById('editAboutMe');
+  const photoInput = document.getElementById('editProfilePhotoInput');
+
+  // Close button
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeEditProfileOverlay);
+  }
+
+  // Cancel button
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', closeEditProfileOverlay);
+  }
+
+  // Close on overlay background click
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) {
+        closeEditProfileOverlay();
+      }
+    });
+  }
+
+  // Character count for About Me
+  if (aboutMeTextarea) {
+    aboutMeTextarea.addEventListener('input', updateCharCount);
+    // Set max length
+    aboutMeTextarea.maxLength = 500;
+  }
+
+  // Photo upload preview
+  if (photoInput) {
+    photoInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const preview = document.getElementById('editProfilePhotoPreview');
+          if (preview) {
+            preview.src = e.target.result;
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  // Form submission
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      saveProfileChanges();
+    });
+  }
+}
+
+function saveProfileChanges() {
+  console.log('🚀 saveProfileChanges() called!');
+  
+  const profile = window.currentUserProfile;
+  
+  // Get form values
+  const firstName = document.getElementById('editFirstName')?.value?.trim() || '';
+  const lastName = document.getElementById('editLastName')?.value?.trim() || '';
+  const dob = document.getElementById('editDateOfBirth')?.value;
+  const education = document.getElementById('editEducation')?.value;
+  const aboutMe = document.getElementById('editAboutMe')?.value;
+  const facebook = document.getElementById('editFacebook')?.value?.trim() || '';
+  const instagram = document.getElementById('editInstagram')?.value?.trim() || '';
+  const linkedin = document.getElementById('editLinkedIn')?.value?.trim() || '';
+
+  // Combine first and last name
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  // Update profile object (would send to backend in production)
+  if (profile) {
+    profile.fullName = fullName;
+    profile.firstName = firstName;
+    profile.lastName = lastName;
+    profile.dateOfBirth = dob;
+    profile.educationLevel = education;
+    profile.userSummary = aboutMe;
+    
+    // Store social URLs separately (don't overwrite icon paths in socialMedia)
+    if (facebook || instagram || linkedin) {
+      profile.socialUrls = {
+        facebook: facebook || null,
+        instagram: instagram || null,
+        linkedin: linkedin || null
+      };
+    }
+  }
+
+  // Update displayed profile info - FORCE DOM UPDATES
+  console.log('🔄 Updating DOM elements...');
+  
+  // Update full name
+  const fullNameElement = document.querySelector('.full-name');
+  console.log('Full name element:', fullNameElement);
+  if (fullNameElement) {
+    fullNameElement.innerHTML = fullName || 'No Name';
+    console.log('✅ Updated full name to:', fullName);
+  } else {
+    console.error('❌ Full name element not found');
+  }
+
+  // Update About Me / User Summary
+  const userSummaryElement = document.getElementById('userSummary');
+  console.log('User summary element:', userSummaryElement);
+  if (userSummaryElement) {
+    // Use innerHTML and preserve line breaks
+    userSummaryElement.innerHTML = (aboutMe || '').replace(/\n/g, '<br>');
+    console.log('✅ Updated user summary to:', aboutMe?.substring(0, 50));
+  } else {
+    console.error('❌ User summary element not found');
+  }
+
+  // Update Education Level
+  const educationElement = document.getElementById('educationLevel');
+  console.log('Education element:', educationElement);
+  if (educationElement) {
+    educationElement.innerHTML = education || 'Not specified';
+    console.log('✅ Updated education to:', education);
+  } else {
+    console.error('❌ Education element not found');
+  }
+
+  // Update profile photo if changed
+  const photoPreview = document.getElementById('editProfilePhotoPreview');
+  const mainProfilePhoto = document.getElementById('profilePhoto');
+  if (photoPreview && mainProfilePhoto && photoPreview.src !== mainProfilePhoto.src) {
+    mainProfilePhoto.src = photoPreview.src;
+    console.log('✅ Updated profile photo');
+  }
+
+  console.log('✅ Profile changes saved:', {
+    fullName, dob, education, aboutMe: aboutMe?.substring(0, 50) + '...'
+  });
+
+  // Close overlay
+  closeEditProfileOverlay();
+  
+  console.log('✅ Profile updated successfully!');
+}
+
+// Make saveProfileChanges globally accessible
+window.saveProfileChanges = saveProfileChanges;
 
 // ===== USER AUTHENTICATION & VERIFICATION LOGIC =====
 
@@ -1491,8 +1751,8 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
     userSummaryElement.textContent = userProfile.userSummary;
   }
 
-  // Load reviews for this user profile
-  loadUserReviews();
+  // Load reviews for this user profile (TODO: implement when reviews system is ready)
+  // loadUserReviews();
   
   console.log('Profile loaded successfully with verification state:', {
     business: userProfile.verification?.businessVerified,
@@ -1514,6 +1774,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize star rating system
   initializeStarRating();
+  
+  // Initialize edit profile overlay
+  initializeEditProfileOverlay();
   
   console.log('Profile page initialization complete');
 });
@@ -1685,19 +1948,6 @@ function populateUserInformation(userProfile) {
     userSummaryElement.textContent = userProfile.userSummary;
   }
 }
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Profile page loaded');
-  
-  // Load user profile data
-  loadUserProfile();
-  
-  // Initialize star rating system
-  initializeStarRating();
-  
-  console.log('Profile page initialization complete');
-});
 
 // ===== VERIFICATION SYSTEM BACKEND MAPPING =====
 
