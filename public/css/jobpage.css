@@ -16,7 +16,7 @@ html {
 }
 
 body {
-  background: #242936;
+  background: linear-gradient(180deg, #2d3544 0%, #3a4556 100%);
   min-height: 100vh;
   margin: 0;
   padding-top: 110px; /* Add space for fixed header (106px + 4px borderline) */
@@ -316,8 +316,8 @@ body::-webkit-scrollbar {
 }
 
 .job-info-box {
-  background: linear-gradient(145deg, #2d3748 0%, #1e2533 50%, #1a202c 100%);
-  border: 2px solid rgba(16, 185, 129, 0.5);
+  background: linear-gradient(145deg, #1e2533 0%, #171d28 50%, #12161e 100%);
+  border: 2px solid rgba(16, 185, 129, 0.6);
   border-radius: 8px;
   padding: 12px 15px;
   display: flex;
@@ -325,10 +325,10 @@ body::-webkit-scrollbar {
   justify-content: center;
   width: 75%;
   box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 6px 24px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(16, 185, 129, 0.1);
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(16, 185, 129, 0.15);
   position: relative;
 }
 
@@ -364,8 +364,8 @@ body::-webkit-scrollbar {
 }
 
 .job-payment-box {
-  background: linear-gradient(145deg, #2d3748 0%, #1e2533 50%, #1a202c 100%);
-  border: 2px solid rgba(16, 185, 129, 0.5);
+  background: linear-gradient(145deg, #1e2533 0%, #171d28 50%, #12161e 100%);
+  border: 2px solid rgba(16, 185, 129, 0.6);
   border-radius: 8px;
   padding: 15px 20px;
   display: flex;
@@ -373,10 +373,10 @@ body::-webkit-scrollbar {
   justify-content: center;
   width: 70%;
   box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 6px 24px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-    0 0 20px rgba(16, 185, 129, 0.1);
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(16, 185, 129, 0.15);
 }
 
 .job-payment-value {
@@ -398,16 +398,16 @@ body::-webkit-scrollbar {
 
 /* Job Details Section */
 .job-details-section {
-  background: linear-gradient(160deg, #2d3748 0%, #232d3b 40%, #1a202c 100%);
+  background: linear-gradient(160deg, #1e2533 0%, #171d28 40%, #12161e 100%);
   margin: 30px auto 0 auto;
   padding: 0;
   border-radius: 10px;
   width: 90%;
   max-width: 800px;
-  border: 2px solid rgba(16, 185, 129, 0.45);
+  border: 2px solid rgba(16, 185, 129, 0.55);
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.5),
-    0 0 40px rgba(16, 185, 129, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(16, 185, 129, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
   position: relative;
   overflow: hidden;
@@ -531,15 +531,15 @@ body::-webkit-scrollbar {
 }
 
 .customer-container {
-  background: linear-gradient(160deg, #2d3748 0%, #252e3a 50%, #1a202c 100%);
+  background: linear-gradient(160deg, #1e2533 0%, #171d28 50%, #12161e 100%);
   border-radius: 12px;
   padding: 0;
   width: 100%;
   max-width: 400px;
-  border: 2px solid rgba(16, 185, 129, 0.45);
+  border: 2px solid rgba(16, 185, 129, 0.55);
   box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.5),
-    0 0 50px rgba(16, 185, 129, 0.1),
+    0 10px 40px rgba(0, 0, 0, 0.6),
+    0 0 50px rgba(16, 185, 129, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
   overflow: hidden;
