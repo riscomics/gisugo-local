@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitle">Job Details - GISUGO</title>
-  <link rel="stylesheet" href="public/css/jobpage.css?v=12">
+  <link rel="stylesheet" href="public/css/jobpage.css?v=21">
 </head>
 <body>
   <div class="job-header">
@@ -204,21 +204,47 @@
     </div>
   </div>
   
+  <!-- Light Rays Container (outside overlay for z-index) -->
+  <div class="light-rays-container" id="lightRaysContainer">
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+    <div class="light-ray"></div>
+  </div>
+  
   <!-- Application Confirmation Overlay -->
   <div class="application-sent-overlay" id="applicationSentOverlay">
     <div class="application-sent-modal">
+      <div class="application-sent-icon">✉️</div>
       <div class="application-sent-title">APPLICATION SENT!</div>
-      <div class="application-sent-subtitle">What now?</div>
-      <div class="application-sent-text">
-        You will receive a Phone Call from the Customer if they want you for the Job!<br><br>
-        You can also check your MESSAGES later.
+      <div class="application-sent-subtitle">What happens next?</div>
+      <div class="application-sent-steps">
+        <div class="sent-step">
+          <span class="step-number">1</span>
+          <span class="step-text">The Customer will review your application</span>
+        </div>
+        <div class="sent-step">
+          <span class="step-number">2</span>
+          <span class="step-text">If accepted, you'll receive a message notification</span>
+        </div>
+        <div class="sent-step">
+          <span class="step-number">3</span>
+          <span class="step-text">Check your <a href="messages.html" class="messages-link">MESSAGES</a> for updates</span>
+        </div>
       </div>
-      <button class="application-sent-close-btn" id="applicationSentClose">CLOSE</button>
+      <div class="application-sent-tip">
+        💡 Tip: Apply to multiple gigs to increase your chances!
+      </div>
+      <button class="application-sent-close-btn" id="applicationSentClose">GOT IT!</button>
     </div>
   </div>
   
   <script src="public/js/shared-menu.js"></script>
-  <script src="public/js/dynamic-job.js?v=5"></script>
+  <script src="public/js/dynamic-job.js?v=13"></script>
 
 </body>
 </html> 

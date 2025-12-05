@@ -512,16 +512,65 @@ function handleJobApplication() {
 // Function to show application sent confirmation overlay
 function showApplicationSentOverlay() {
   const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  const lightRaysContainer = document.getElementById('lightRaysContainer');
+  
   if (applicationSentOverlay) {
     applicationSentOverlay.classList.add('show');
   }
+  
+  // Show and animate light rays - position at icon after modal appears
+  if (lightRaysContainer) {
+    lightRaysContainer.classList.add('active');
+    
+    // Wait for modal to render, then position rays at icon
+    const positionTimeout = setTimeout(() => {
+      const icon = document.querySelector('.application-sent-icon');
+      if (icon) {
+        const rect = icon.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        // Position each ray at the icon center
+        const rays = lightRaysContainer.querySelectorAll('.light-ray');
+        rays.forEach(ray => {
+          ray.style.top = centerY + 'px';
+          ray.style.left = centerX + 'px';
+          ray.style.animation = 'none';
+          ray.offsetHeight; // Trigger reflow
+          ray.style.animation = '';
+        });
+      }
+    }, 100);
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(positionTimeout);
+  }
 }
 
-// Function to close application sent overlay
+// Function to just close the overlay (for backdrop click / escape)
 function closeApplicationSentOverlay() {
   const applicationSentOverlay = document.getElementById('applicationSentOverlay');
+  const lightRaysContainer = document.getElementById('lightRaysContainer');
+  
   if (applicationSentOverlay) {
     applicationSentOverlay.classList.remove('show');
+  }
+  
+  if (lightRaysContainer) {
+    lightRaysContainer.classList.remove('active');
+  }
+}
+
+// Function to close overlay AND navigate back to listings (for GOT IT button)
+function closeAndNavigateToListings() {
+  closeApplicationSentOverlay();
+  
+  // Get the category from URL to navigate back to the correct listings page
+  const { category } = getUrlParameters();
+  if (category) {
+    // Navigate to the category listings page
+    window.location.href = `${category}.html`;
+  } else {
+    // Fallback to browser back
+    window.history.back();
   }
 }
 
@@ -531,20 +580,20 @@ function initializeApplicationSentOverlay() {
   const closeBtn = document.getElementById('applicationSentClose');
   
   if (applicationSentOverlay && closeBtn) {
-    // Close overlay when close button is clicked
+    // GOT IT button - close and navigate back to listings
     closeBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      closeApplicationSentOverlay();
+      closeAndNavigateToListings();
     });
     
-    // Close overlay when clicking outside the modal content
+    // Backdrop click - just close overlay (user can stay on page)
     applicationSentOverlay.addEventListener('click', function(e) {
       if (e.target === applicationSentOverlay) {
         closeApplicationSentOverlay();
       }
     });
     
-    // Close overlay with Escape key
+    // Escape key - just close overlay
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape' && applicationSentOverlay.classList.contains('show')) {
         closeApplicationSentOverlay();
