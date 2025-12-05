@@ -289,8 +289,9 @@ function openEditProfileOverlay() {
   const accountOverlay = document.getElementById('accountOverlay');
   if (accountOverlay) {
     accountOverlay.classList.remove('active');
-    accountOverlay.style.display = 'none'; // Force hide
+    // Don't use inline display:none - it persists and breaks reopening
   }
+  document.body.style.overflow = ''; // Restore scrolling temporarily
   
   // Then open the edit profile overlay after a brief delay
   setTimeout(() => {
@@ -299,6 +300,7 @@ function openEditProfileOverlay() {
       // Populate form with current user data
       populateEditProfileForm();
       overlay.classList.add('show');
+      document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
   }, 150);
 }
@@ -308,6 +310,7 @@ function closeEditProfileOverlay() {
   const overlay = document.getElementById('editProfileOverlay');
   if (overlay) {
     overlay.classList.remove('show');
+    document.body.style.overflow = ''; // Restore scrolling
     console.log('Edit profile overlay closed');
   }
 }
@@ -2312,14 +2315,20 @@ function cleanupProfilePage() {
   // Ensure overlays are closed and body scrolling is restored
   document.body.style.overflow = '';
   
-  // Close any active overlays
-  const overlays = ['accountOverlay', 'gCoinsOverlay', 'purchaseSuccessOverlay', 'verificationOverlay', 'businessPrestigeOverlay', 'proPrestigeOverlay', 'notVerifiedOverlay', 'explanationOverlay'];
-  overlays.forEach(overlayId => {
+  // Close any active overlays (using 'active' class)
+  const activeOverlays = ['accountOverlay', 'gCoinsOverlay', 'purchaseSuccessOverlay', 'verificationOverlay', 'businessPrestigeOverlay', 'proPrestigeOverlay', 'notVerifiedOverlay', 'explanationOverlay'];
+  activeOverlays.forEach(overlayId => {
     const overlay = document.getElementById(overlayId);
     if (overlay && overlay.classList.contains('active')) {
       overlay.classList.remove('active');
     }
   });
+  
+  // Close edit profile overlay (uses 'show' class)
+  const editProfileOverlay = document.getElementById('editProfileOverlay');
+  if (editProfileOverlay && editProfileOverlay.classList.contains('show')) {
+    editProfileOverlay.classList.remove('show');
+  }
   
   console.log('🧹 Profile page cleanup completed');
 }
