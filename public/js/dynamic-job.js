@@ -264,6 +264,19 @@ function populateJobPage(jobData) {
     });
   }
   
+  // Set region and city
+  if (jobData.region) {
+    document.getElementById('jobRegion').textContent = jobData.region;
+  } else {
+    document.getElementById('jobRegion').textContent = 'Not specified';
+  }
+  
+  if (jobData.city) {
+    document.getElementById('jobCity').textContent = jobData.city;
+  } else {
+    document.getElementById('jobCity').textContent = 'Not specified';
+  }
+  
   // Set date
   if (jobData.jobDate) {
     const date = new Date(jobData.jobDate);
