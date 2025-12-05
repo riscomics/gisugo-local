@@ -16,7 +16,7 @@ html {
 }
 
 body {
-  background: linear-gradient(180deg, #2d3544 0%, #3a4556 100%);
+  background: linear-gradient(180deg, #282f3a 0%, #303845 100%);
   min-height: 100vh;
   margin: 0;
   padding-top: 110px; /* Add space for fixed header (106px + 4px borderline) */
