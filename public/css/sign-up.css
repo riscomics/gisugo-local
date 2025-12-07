@@ -65,10 +65,12 @@ body::-webkit-scrollbar {
   height: 55px;
   font-size: 14px;
   font-family: Arial, Helvetica, sans-serif;
+  animation: signupButtonPulsate 2.5s ease-in-out infinite;
 }
 
 .signup-header-btn:hover {
   transform: scale(1.05);
+  animation-play-state: paused;
 }
 
 .signup-header-btn img {
@@ -85,6 +87,18 @@ body::-webkit-scrollbar {
   height: 4px;
   width: 100%;
   background: rgb(149, 149, 328);
+}
+
+/* Subtle pulsating animation for header button */
+@keyframes signupButtonPulsate {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
 }
 
 /* Main Container */
