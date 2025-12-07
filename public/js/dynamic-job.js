@@ -415,6 +415,8 @@ function initializeApplyJob() {
     // Show modal when apply button is clicked
     applyBtn.addEventListener('click', function(e) {
       e.preventDefault();
+      // Scroll window to top to prevent Android keyboard positioning issues
+      window.scrollTo(0, 0);
       applyOverlay.scrollTop = 0;
       applyOverlay.classList.add('show');
       // Focus on message textarea for better UX

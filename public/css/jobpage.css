@@ -905,6 +905,12 @@ body::-webkit-scrollbar {
   opacity: 0;  
   visibility: hidden;
   transition: opacity 0.3s, visibility 0.3s;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 100px 5% 0 5%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .apply-job-overlay.show {
@@ -916,7 +922,7 @@ body::-webkit-scrollbar {
   background: linear-gradient(160deg, #3d4a5c 0%, #2d3748 50%, #1e2533 100%);
   border-radius: 14px;
   border: 2px solid rgba(148, 163, 184, 0.4);
-  width: 90%;
+  width: 100%;
   max-width: 500px;
   max-height: 70vh;
   overflow-y: auto;
@@ -924,11 +930,7 @@ body::-webkit-scrollbar {
     0 15px 50px rgba(0, 0, 0, 0.6),
     0 0 40px rgba(100, 116, 139, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  /* Absolute positioning from top of overlay - immune to keyboard/scroll issues */
-  position: absolute;
-  top: 100px;
-  left: 50%;
-  transform: translateX(-50%);
+  flex-shrink: 0;
 }
 
 .apply-job-modal::before {
@@ -1936,13 +1938,12 @@ body::-webkit-scrollbar {
     font-size: 0.9rem;
   }
   
-  .apply-job-modal {
-    top: 60px; /* Fixed position from top - won't jump when keyboard opens */
-    max-height: 65vh;
+  .apply-job-overlay {
+    padding-top: 60px;
   }
   
-  .application-sent-modal {
-    top: 60px;
+  .apply-job-modal {
+    max-height: 70vh;
   }
   
   .application-sent-modal {
