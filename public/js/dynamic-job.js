@@ -415,7 +415,6 @@ function initializeApplyJob() {
     // Show modal when apply button is clicked
     applyBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      // Reset overlay scroll position to top before showing (fixes position jump when page was scrolled)
       applyOverlay.scrollTop = 0;
       applyOverlay.classList.add('show');
       // Focus on message textarea for better UX
