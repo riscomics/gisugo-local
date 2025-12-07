@@ -120,7 +120,31 @@ body::-webkit-scrollbar {
   transition: all 0.3s ease;
   flex-shrink: 0;
   padding: clamp(4px, 1vh, 8px);
-  animation: buttonPulsate 2.5s ease-in-out infinite;
+}
+
+/* Menu button - sonar ripple effect */
+.uniform-header-btn.menu {
+  position: relative;
+  overflow: visible;
+}
+
+.uniform-header-btn.menu::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  border: 2px solid rgba(16, 185, 129, 0.6);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0;
+  animation: sonarRipple 2.5s ease-out infinite;
+  pointer-events: none;
+}
+
+.uniform-header-btn.menu:hover::after {
+  animation-play-state: paused;
 }
 
 .uniform-header-btn:hover {
@@ -154,10 +178,17 @@ body::-webkit-scrollbar {
   transition: all 0.3s ease;
 }
 
-/* Lighter color for back button arrow */
+/* Lighter color for back button arrow + rocking leftward motion */
 .uniform-header-btn .btn-emoji.back-emoji {
   filter: brightness(2.2) drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
+  animation: arrowRockLeft 2s ease-in-out infinite;
 }
+
+.uniform-header-btn:hover .btn-emoji.back-emoji {
+  animation-play-state: paused;
+}
+
+/* Menu button emoji/icon - no animation, ripple is on the button */
 
 .uniform-header-btn:hover .btn-emoji {
   transform: scale(1.15);
@@ -204,17 +235,33 @@ body::-webkit-scrollbar {
   }
 }
 
-/* Subtle pulsating animation for header buttons */
-@keyframes buttonPulsate {
+/* Sonar ripple effect for Menu button */
+@keyframes sonarRipple {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+    border-color: rgba(16, 185, 129, 0.8);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.8);
+    opacity: 0;
+    border-color: rgba(16, 185, 129, 0);
+  }
+}
+
+/* Rocking leftward motion for Back arrow - suggests going back */
+@keyframes arrowRockLeft {
   0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    border-color: rgba(16, 185, 129, 0.3);
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
   }
   50% {
-    transform: scale(1.05);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
-    border-color: rgba(16, 185, 129, 0.5);
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-3px);
   }
 }
 
