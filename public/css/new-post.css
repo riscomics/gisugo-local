@@ -74,12 +74,14 @@ body::-webkit-scrollbar {
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s;
   flex-shrink: 0;
+  animation: newPostButtonPulsate 2.5s ease-in-out infinite;
     margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin */
     margin-left: clamp(0.5%, 1vw, 1%);
 }
 
 .new-post-header-btn:hover {
   transform: scale(1.1);
+  animation-play-state: paused;
 }
 
 .new-post-header-btn img {
@@ -105,6 +107,18 @@ body::-webkit-scrollbar {
   position: fixed;
   left: 0;
   z-index: 96;
+}
+
+/* Subtle pulsating animation for header button */
+@keyframes newPostButtonPulsate {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
 }
 
 /* Menu Overlay */

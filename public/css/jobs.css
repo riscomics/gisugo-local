@@ -78,6 +78,7 @@ body::-webkit-scrollbar {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: all 0.2s ease;
+  animation: jobsButtonPulsate 2.5s ease-in-out infinite;
   flex-shrink: 0;
   margin-right: clamp(0.5%, 1vw, 1%); /* Responsive margin to match hatod standard */
   margin-left: clamp(0.5%, 1vw, 1%); /* Responsive margin to match hatod standard */
@@ -88,6 +89,7 @@ body::-webkit-scrollbar {
   transform: scale(1.05);
   border-color: rgba(16, 185, 129, 0.5);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.2);
+  animation-play-state: paused;
 }
 
 .jobs-header-btn img {
@@ -114,6 +116,20 @@ body::-webkit-scrollbar {
   position: fixed;
   left: 0;
   z-index: 96;
+}
+
+/* Subtle pulsating animation for header buttons */
+@keyframes jobsButtonPulsate {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+    border-color: rgba(16, 185, 129, 0.4);
+  }
 }
 
 /* Menu Overlay - Based on profile.css */

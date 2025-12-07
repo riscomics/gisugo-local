@@ -120,6 +120,7 @@ body::-webkit-scrollbar {
   transition: all 0.3s ease;
   flex-shrink: 0;
   padding: clamp(4px, 1vh, 8px);
+  animation: buttonPulsate 2.5s ease-in-out infinite;
 }
 
 .uniform-header-btn:hover {
@@ -127,6 +128,7 @@ body::-webkit-scrollbar {
   border-color: rgba(16, 185, 129, 0.6);
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
   transform: translateY(-3px);
+  animation-play-state: paused;
 }
 
 .uniform-header-btn img {
@@ -199,6 +201,20 @@ body::-webkit-scrollbar {
   50% {
     box-shadow: 0 2px 16px rgba(14, 165, 233, 0.6),
                 0 0 28px rgba(14, 165, 233, 0.4);
+  }
+}
+
+/* Subtle pulsating animation for header buttons */
+@keyframes buttonPulsate {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    border-color: rgba(16, 185, 129, 0.5);
   }
 }
 
