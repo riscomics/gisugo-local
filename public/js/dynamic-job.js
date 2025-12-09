@@ -480,15 +480,13 @@ function handleJobApplication() {
   
   // Basic validation
   if (!message) {
-    alert('Please enter a message to the customer.');
-    if (messageTextarea) messageTextarea.focus();
+    showValidationError('Please enter a message to the customer.', messageTextarea);
     return;
   }
   
   // Validate counter offer if provided
   if (counterOffer && (isNaN(counterOffer) || parseFloat(counterOffer) <= 0)) {
-    alert('Please enter a valid counter offer amount.');
-    if (counterOfferInput) counterOfferInput.focus();
+    showValidationError('Please enter a valid counter offer amount.', counterOfferInput);
     return;
   }
   
@@ -560,6 +558,52 @@ function closeApplicationSentOverlay() {
   if (lightRaysContainer) {
     lightRaysContainer.classList.remove('active');
   }
+}
+
+// ========================== VALIDATION OVERLAY ==========================
+function showValidationError(message, focusElement = null) {
+  const overlay = document.getElementById('validationOverlay');
+  const messageEl = document.getElementById('validationMessage');
+  const okBtn = document.getElementById('validationOkBtn');
+  
+  if (!overlay || !messageEl) return;
+  
+  // Set the message
+  messageEl.textContent = message;
+  
+  // Show the overlay
+  overlay.classList.add('show');
+  
+  // Handle OK button click
+  const closeValidation = () => {
+    overlay.classList.remove('show');
+    okBtn.removeEventListener('click', closeValidation);
+    overlay.removeEventListener('click', handleBackdropClick);
+    document.removeEventListener('keydown', handleEscKey);
+    
+    // Focus the element that needs attention
+    if (focusElement) {
+      setTimeout(() => focusElement.focus(), 100);
+    }
+  };
+  
+  // Close on backdrop click
+  const handleBackdropClick = (e) => {
+    if (e.target === overlay) {
+      closeValidation();
+    }
+  };
+  
+  // Close on Escape key
+  const handleEscKey = (e) => {
+    if (e.key === 'Escape') {
+      closeValidation();
+    }
+  };
+  
+  okBtn.addEventListener('click', closeValidation);
+  overlay.addEventListener('click', handleBackdropClick);
+  document.addEventListener('keydown', handleEscKey);
 }
 
 // Function to close overlay AND navigate back to listings (for GOT IT button)

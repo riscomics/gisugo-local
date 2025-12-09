@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="pageTitle">Job Details - GISUGO</title>
-  <link rel="stylesheet" href="public/css/jobpage.css?v=33">
+  <link rel="stylesheet" href="public/css/jobpage.css?v=35">
 </head>
 <body>
   <div class="job-header">
@@ -243,8 +243,17 @@
     </div>
   </div>
   
+  <!-- Validation Error Overlay -->
+  <div class="validation-overlay" id="validationOverlay">
+    <div class="validation-modal">
+      <div class="validation-icon">⚠️</div>
+      <div class="validation-message" id="validationMessage">Please enter a message to the customer.</div>
+      <button class="validation-ok-btn" id="validationOkBtn">OK</button>
+    </div>
+  </div>
+  
   <script src="public/js/shared-menu.js"></script>
-  <script src="public/js/dynamic-job.js?v=16"></script>
+  <script src="public/js/dynamic-job.js?v=17"></script>
 
 </body>
 </html> 
