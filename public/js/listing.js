@@ -567,7 +567,7 @@ function parseJobEndTime(dateStr, timeStr) {
 }
 
 // Filter and sort jobs based on selected criteria
-function filterAndSortJobs() {
+async function filterAndSortJobs() {
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
   
@@ -581,41 +581,37 @@ function filterAndSortJobs() {
   existingCards.forEach(card => card.remove());
   
   // ============================================================================
-  // 🔥 FIREBASE MIGRATION POINT - DATA FETCHING
+  // 🔥 FIREBASE INTEGRATED - DATA FETCHING
   // ============================================================================
-  // CURRENT (MOCK): Fetching all gigs for category from localStorage, then filtering client-side
-  // FUTURE (FIREBASE): Replace lines below with Firebase query that filters server-side
-  //
-  // Example Firebase implementation:
-  // ----------------------------------------------------------------------------
-  // import { collection, query, where, getDocs } from 'firebase/firestore';
-  // 
-  // async function filterAndSortJobs() {
-  //   // ... (keep header spacer checks above)
-  //   
-  //   const gigsRef = collection(db, 'gigs');
-  //   let q = query(
-  //     gigsRef,
-  //     where('category', '==', currentCategory),
-  //     where('region', '==', activeRegion),
-  //     where('status', '==', 'active')  // Only show active gigs
-  //   );
-  //   
-  //   // Note: Pay type filter may need to stay client-side if you hit 
-  //   // Firestore's compound index limits (max 2 where clauses on different fields)
-  //   
-  //   const snapshot = await getDocs(q);
-  //   let categoryCards = snapshot.docs.map(doc => ({
-  //     id: doc.id,
-  //     ...doc.data()
-  //   }));
-  //   
-  //   // Then continue with pay type filtering below (if not in query)
-  // ----------------------------------------------------------------------------
+  // Attempts to load from Firebase first, falls back to localStorage if offline
   
-  // Get dynamic job preview cards from localStorage only
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  const categoryCards = previewCards[currentCategory] || [];
+  let categoryCards = [];
+  
+  // Try Firebase first if available
+  if (typeof getJobsByCategory === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+    try {
+      console.log('🔥 Loading jobs from Firebase for category:', currentCategory);
+      
+      const filters = {
+        region: activeRegion,
+        payType: activePay !== 'PAY TYPE' ? activePay : null
+      };
+      
+      categoryCards = await getJobsByCategory(currentCategory, filters);
+      console.log(`✅ Firebase: Found ${categoryCards.length} jobs`);
+      
+    } catch (error) {
+      console.error('❌ Firebase error, falling back to localStorage:', error);
+      // Fall through to localStorage below
+    }
+  }
+  
+  // Fallback to localStorage if Firebase didn't return data
+  if (categoryCards.length === 0) {
+    console.log('📦 Loading jobs from localStorage');
+    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+    categoryCards = previewCards[currentCategory] || [];
+  }
   
   // ============================================================================
   // ✅ FIREBASE-READY - FILTERING LOGIC (Keep this section as-is)
@@ -900,26 +896,12 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
 }
 
 // Load job preview cards when page loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('🔥 Listing page loaded with Firebase integration');
   
-  // ============================================================================
-  // 🔥 FIREBASE MIGRATION NOTE - PAGE LOAD
-  // ============================================================================
-  // When filterAndSortJobs() becomes async (for Firebase), update this to:
-  // 
-  // document.addEventListener('DOMContentLoaded', async function() {
-  //   await filterAndSortJobs();
-  //   setTimeout(() => {
-  //     truncateBarangayNames();
-  //   }, 50);
-  //   // ... rest stays the same
-  // });
-  //
-  // Also add loading state UI while fetching from Firebase
-  // ============================================================================
+  // Apply filtering and sorting - now async for Firebase support
+  await filterAndSortJobs();
   
-  // Apply filtering and sorting directly - no need to load all cards first
-  filterAndSortJobs();
   setTimeout(() => {
     truncateBarangayNames();
   }, 50);

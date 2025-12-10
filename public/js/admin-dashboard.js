@@ -5640,13 +5640,33 @@ function getRevenueForPeriod(periodType, periodValue = null) {
 }
 
 // Initialize stat overlay system
-function initializeStatOverlays() {
+async function initializeStatOverlays() {
     console.log('📊 Initializing stat overlay system...');
     
     try {
-        // Load or initialize mock data with cumulative growth
-        initializeMockData();
-        console.log('✅ Mock data initialized');
+        // 🔥 Firebase Integration - Try to load analytics from Firebase
+        if (typeof getAdminAnalytics === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+            try {
+                console.log('🔥 Loading analytics from Firebase...');
+                const analytics = await getAdminAnalytics();
+                
+                if (analytics) {
+                    console.log('✅ Firebase analytics loaded:', analytics);
+                    // Update display with Firebase data
+                    updateStatCardsFromFirebase(analytics);
+                } else {
+                    console.log('ℹ️ No Firebase analytics, using mock data');
+                    initializeMockData();
+                }
+            } catch (error) {
+                console.error('❌ Firebase error, falling back to mock data:', error);
+                initializeMockData();
+            }
+        } else {
+            // Load or initialize mock data with cumulative growth
+            initializeMockData();
+            console.log('✅ Mock data initialized');
+        }
         
         // Update display with current values
         updateStatCardsDisplay();
@@ -5674,6 +5694,18 @@ function initializeStatOverlays() {
         console.error('Error stack:', error.stack);
         alert('⚠️ Dashboard initialization failed. Please open browser console (F12) and share the error message.');
     }
+}
+
+// Update stat cards from Firebase analytics data
+function updateStatCardsFromFirebase(analytics) {
+    // Store in localStorage format for compatibility with existing display functions
+    localStorage.setItem(STORAGE_KEYS.totalUsers, analytics.totalUsers || 0);
+    localStorage.setItem(STORAGE_KEYS.verificationSubmissions, analytics.verificationSubmissions || 0);
+    localStorage.setItem(STORAGE_KEYS.allTimeRevenue, analytics.monthlyRevenue || 0);
+    localStorage.setItem(STORAGE_KEYS.reportedGigs, analytics.reportedGigs || 0);
+    localStorage.setItem(STORAGE_KEYS.lastUpdate, Date.now());
+    
+    console.log('✅ Firebase analytics stored for display');
 }
 
 // =============================================================================

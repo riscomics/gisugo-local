@@ -35,6 +35,7 @@
             <li><a href="clear-storage.html">CLEAR DATA</a></li>
             <li><a href="forum.html">COMMUNITY FORUM</a></li>
             <li><a href="contacts.html">CONTACT ADMIN</a></li>
+            <li id="auth-menu-item"><a href="login.html">LOGIN / SIGN UP</a></li>
           </ul>
         </nav>
       </header>
@@ -348,6 +349,18 @@
       <p><a href="https://gisugo.com">GISUGO.com</a> is &copy; Copyright Designed by Real Interface Studios LLC</p>
     </footer>
     
+    <!-- Firebase SDK (Compat version for easier integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase Helper Modules -->
+    <script src="public/js/firebase-config.js"></script>
+    <script src="public/js/firebase-auth.js"></script>
+    <script src="public/js/firebase-db.js"></script>
+    <script src="public/js/firebase-storage.js"></script>
+    
     <script src="public/js/menu.js"></script>
     
     <!-- Video Player Script -->
@@ -362,6 +375,23 @@
         // Load YouTube video with autoplay and show iframe
         iframe.src = 'https://www.youtube.com/embed/ptHyvEeevR8?autoplay=1&loop=1&playlist=ptHyvEeevR8&rel=0&modestbranding=1';
         iframe.style.display = 'block';
+      }
+      
+      // Update auth menu item based on login status
+      document.addEventListener('DOMContentLoaded', function() {
+        const authMenuItem = document.getElementById('auth-menu-item');
+        if (authMenuItem && typeof isLoggedIn === 'function') {
+          if (isLoggedIn()) {
+            authMenuItem.innerHTML = '<a href="#" onclick="handleLogout(); return false;">LOGOUT</a>';
+          }
+        }
+      });
+      
+      async function handleLogout() {
+        if (typeof logout === 'function') {
+          await logout();
+          window.location.reload();
+        }
       }
     </script>
 

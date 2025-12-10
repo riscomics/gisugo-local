@@ -14,11 +14,21 @@ const accountOverlay = document.getElementById('accountOverlay');
 const accountCloseBtn = document.getElementById('accountCloseBtn');
 
 if (accountBtn && accountOverlay && accountCloseBtn) {
-  // Open account overlay
+  // Open account overlay - uses guard function for defense-in-depth
+  // FIREBASE TODO: This click handler is protected by both:
+  // 1. Button visibility (hidden if not owner) - updateBadgeVisibility()
+  // 2. Guard function check (blocks if not logged in or not own profile)
   accountBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    accountOverlay.classList.add('active');
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    // Use guard function - defined later but available via window when clicked
+    if (typeof openAccountSettingsIfOwner === 'function') {
+      openAccountSettingsIfOwner();
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Fallback for initial load (guard will be available after DOMContentLoaded)
+      accountOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
   });
 
   // Close account overlay via close button
@@ -612,23 +622,70 @@ function getCurrentUserId() {
   return 'peter-j-ang-001';
 }
 
+// ===== ACCOUNT SETTINGS ACCESS CONTROL =====
+// FIREBASE TODO: This function guards all entry points to Account Settings
+// Only the profile owner (logged-in user viewing their own profile) can access Account Settings
+function openAccountSettingsIfOwner() {
+  if (!isUserLoggedIn()) {
+    console.log('⚠️ Account Settings blocked: User not logged in');
+    // FIREBASE TODO: Redirect to login or show login prompt
+    return;
+  }
+  
+  if (!isOwnProfile()) {
+    console.log('⚠️ Account Settings blocked: Not viewing own profile');
+    // User is viewing someone else's profile - do nothing
+    return;
+  }
+  
+  // User is logged in AND viewing their own profile - allow access
+  const accountOverlay = document.getElementById('accountOverlay');
+  if (accountOverlay) {
+    accountOverlay.classList.add('active');
+    console.log('✅ Account Settings opened for profile owner');
+  }
+}
+
+// Make globally accessible for onclick handlers
+window.openAccountSettingsIfOwner = openAccountSettingsIfOwner;
+
 // Update badge and account button visibility based on auth and verification status
 function updateBadgeVisibility(userProfile) {
   const businessVerifiedBadgeGrid = document.getElementById('businessVerifiedBadgeGrid');
   const proVerifiedBadgeGrid = document.getElementById('proVerifiedBadgeGrid');
   const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
   const accountBtn = document.getElementById('accountBtn');
+  const profilePhotoContainer = document.getElementById('profilePhotoContainer');
   
   console.log('🔍 Updating badge visibility...');
   console.log('User logged in:', isUserLoggedIn());
   console.log('Own profile:', isOwnProfile());
   console.log('Has verification:', hasVerificationStatus(userProfile));
   
+  // Determine if user can access Account Settings
+  const canAccessAccountSettings = isUserLoggedIn() && isOwnProfile();
+  
   // Account button logic: Only show when user is logged in AND viewing their own profile
   if (accountBtn) {
-    const shouldShowAccountBtn = isUserLoggedIn() && isOwnProfile();
-    accountBtn.style.display = shouldShowAccountBtn ? 'inline-flex' : 'none';
-    console.log('Account button visibility:', shouldShowAccountBtn ? 'visible' : 'hidden');
+    accountBtn.style.display = canAccessAccountSettings ? 'inline-flex' : 'none';
+    console.log('Account button visibility:', canAccessAccountSettings ? 'visible' : 'hidden');
+  }
+  
+  // Profile photo click-to-open: Only enable for profile owner
+  // FIREBASE TODO: In production, this controls whether clicking the photo opens Account Settings
+  if (profilePhotoContainer) {
+    profilePhotoContainer.style.cursor = canAccessAccountSettings ? 'pointer' : 'default';
+    // Remove interactive attributes if not owner
+    if (canAccessAccountSettings) {
+      profilePhotoContainer.setAttribute('role', 'button');
+      profilePhotoContainer.setAttribute('tabindex', '0');
+      profilePhotoContainer.setAttribute('aria-label', 'Open Account Settings');
+    } else {
+      profilePhotoContainer.removeAttribute('role');
+      profilePhotoContainer.removeAttribute('tabindex');
+      profilePhotoContainer.removeAttribute('aria-label');
+    }
+    console.log('Profile photo clickable:', canAccessAccountSettings ? 'yes' : 'no');
   }
   
   // Badge visibility logic
@@ -1769,11 +1826,35 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
 // To test different verification states, change DEMO_CONFIG at top of file
 
 // Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Profile page loaded');
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('🔥 Profile page loaded with Firebase integration');
   
-  // Load user profile data
-  loadUserProfile();
+  // Check if Firebase is available and user is logged in
+  const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  
+  if (user && typeof getUserProfile === 'function') {
+    console.log('🔥 Loading profile from Firebase for user:', user.uid || user.userId);
+    
+    try {
+      // Try to load profile from Firebase
+      const firebaseProfile = await getUserProfile(user.uid || user.userId);
+      
+      if (firebaseProfile) {
+        console.log('✅ Profile loaded from Firebase');
+        loadUserProfile(firebaseProfile);
+      } else {
+        console.log('⚠️ No Firebase profile found, using sample data');
+        loadUserProfile();
+      }
+    } catch (error) {
+      console.error('❌ Error loading Firebase profile:', error);
+      loadUserProfile(); // Fallback to sample data
+    }
+  } else {
+    console.log('ℹ️ No authenticated user, loading sample profile');
+    // Load sample profile data for demo/development
+    loadUserProfile();
+  }
   
   // Initialize star rating system
   initializeStarRating();
@@ -2008,6 +2089,13 @@ function populateUserInformation(userProfile) {
  *    - Replace isUserLoggedIn() mock logic with firebase.auth().onAuthStateChanged()
  *    - Update getCurrentUserId() to use firebase.auth().currentUser.uid
  *    - Add proper error handling for authentication failures
+ *    
+ *    ACCOUNT SETTINGS ACCESS CONTROL:
+ *    - openAccountSettingsIfOwner() guards ALL entry points to Account Settings
+ *    - Account button visibility controlled by updateBadgeVisibility()
+ *    - Profile photo clickability also controlled by updateBadgeVisibility()
+ *    - isOwnProfile() must compare firebase.auth().currentUser.uid with profile's userId
+ *    - getProfileUserId() should extract userId from URL params (e.g., /profile?userId=xxx)
  * 
  * 2. FIRESTORE DATA STRUCTURE
  *    Required Collections:

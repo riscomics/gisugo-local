@@ -5,12 +5,472 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create Account - GISUGO</title>
   <link rel="stylesheet" href="public/css/sign-up.css">
+  <style>
+    /* ===== GISUGO SIGN-UP PAGE THEME OVERRIDE ===== */
+    
+    body {
+      background: linear-gradient(180deg, #1a202c 0%, #242936 50%, #1a202c 100%);
+      min-height: 100vh;
+    }
+    
+    .signup-header {
+      background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+      border-bottom: none;
+    }
+    
+    .signup-header-borderline {
+      height: 4px;
+      background: linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #10b981 100%);
+      background-size: 200% 100%;
+      animation: borderShimmer 3s linear infinite;
+    }
+    
+    @keyframes borderShimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    
+    .signup-header-title {
+      color: #10b981;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .signup-header-btn .btn-emoji {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+    
+    .signup-container {
+      padding: 15px 0;
+      margin: 0 auto;
+      max-width: 500px;
+    }
+    
+    .signup-form {
+      background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 20px;
+      box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.4),
+        0 0 60px rgba(16, 185, 129, 0.08);
+      margin: 0;
+      overflow: hidden;
+      padding: 0 18px;
+    }
+    
+    /* Profile photo section - first section with extra top margin */
+    .signup-form > .form-section:first-child {
+      margin-top: 20px;
+    }
+    
+    /* Last section with bottom padding */
+    .signup-form > .form-section:last-child {
+      margin-bottom: 20px;
+    }
+    
+    /* On mobile, reduce side gaps but keep some breathing room */
+    @media (max-width: 540px) {
+      .signup-container {
+        padding: 10px 8px;
+        max-width: 100%;
+      }
+      
+      .signup-form {
+        border-radius: 16px;
+        padding: 0 14px;
+      }
+    }
+    
+    .form-section-header {
+      color: #10b981 !important;
+      border-bottom-color: rgba(16, 185, 129, 0.3) !important;
+    }
+    
+    .form-label {
+      color: #d1d5db !important;
+    }
+    
+    .form-input, .form-select, .form-textarea {
+      background: #1a202c !important;
+      border: 2px solid rgba(107, 114, 128, 0.3) !important;
+      color: #e5e7eb !important;
+    }
+    
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: #10b981 !important;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    }
+    
+    .form-input::placeholder, .form-textarea::placeholder {
+      color: #6b7280 !important;
+    }
+    
+    .form-hint {
+      color: #9ca3af !important;
+    }
+    
+    .character-counter {
+      color: #6b7280 !important;
+    }
+    
+    /* Phone input styling */
+    .phone-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .country-code-select {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      padding: 12px 28px 12px 12px;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      border: 2px solid rgba(59, 130, 246, 0.3);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      min-width: 105px;
+      transition: all 0.2s ease;
+      font-family: Arial, Helvetica, sans-serif;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    
+    .country-code-select:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+    
+    .country-code-select option {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 12px;
+      font-weight: 600;
+    }
+    
+    .country-code-select::-webkit-scrollbar {
+      display: none;
+      width: 0;
+    }
+    
+    .country-code-select {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    
+    .phone-input {
+      flex: 1;
+    }
+    
+    /* Photo emoji */
+    .photo-emoji {
+      font-size: 3.5rem;
+      line-height: 1;
+    }
+    
+    .photo-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* OAuth Section */
+    .oauth-section {
+      text-align: center;
+    }
+    
+    /* Facebook & Google - Square buttons row */
+    .oauth-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 0;
+    }
+    
+    .oauth-square {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 14px 10px;
+    }
+    
+    /* OR divider styling */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+    }
+    
+    .or-divider .or-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(107, 114, 128, 0.3);
+    }
+    
+    .or-divider .or-text {
+      padding: 0 12px;
+      color: #6b7280;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .oauth-square:hover {
+      transform: translateY(-3px);
+    }
+    
+    .facebook-square {
+      background: linear-gradient(135deg, #1877F2 0%, #0d65d9 100%);
+      box-shadow: 0 4px 20px rgba(24, 119, 242, 0.4);
+    }
+    
+    .facebook-square:hover {
+      box-shadow: 0 8px 30px rgba(24, 119, 242, 0.5);
+    }
+    
+    .google-square {
+      background: #ffffff;
+      color: #374151;
+      border: 2px solid rgba(107, 114, 128, 0.3);
+    }
+    
+    .google-square:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Phone signup - horizontal rectangle */
+    .oauth-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .oauth-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .phone-signup-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .phone-signup-btn:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4);
+    }
+    
+    .phone-signup-btn .phone-icon {
+      font-size: 1.4rem;
+    }
+    
+    /* Phone OTP Section */
+    .phone-otp-section {
+      background: rgba(16, 185, 129, 0.1);
+      border: 2px solid rgba(16, 185, 129, 0.3);
+      border-radius: 16px;
+      padding: 1.5rem !important;
+    }
+    
+    .otp-input {
+      text-align: center;
+      font-size: 1.8rem;
+      letter-spacing: 10px;
+      font-weight: 700;
+    }
+    
+    .otp-verify-section {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    .verify-btn {
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+    }
+    
+    .resend-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      color: #10b981;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    
+    .resend-btn:hover {
+      text-decoration: underline;
+    }
+    
+    /* Email section - subtle styling */
+    .email-signup-section {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem !important;
+    }
+    
+    /* OR section spacing */
+    .or-section {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    
+    /* Email toggle button */
+    .email-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 20px;
+      background: transparent;
+      border: 2px dashed rgba(107, 114, 128, 0.4);
+      border-radius: 12px;
+      color: #9ca3af;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .email-toggle-btn:hover {
+      border-color: rgba(16, 185, 129, 0.5);
+      color: #d1d5db;
+      background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .email-toggle-btn.active {
+      border-style: solid;
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .toggle-arrow {
+      font-size: 0.75rem;
+      transition: transform 0.3s ease;
+    }
+    
+    .email-toggle-btn.active .toggle-arrow {
+      transform: rotate(180deg);
+    }
+    
+    /* Submit button */
+    .signup-submit-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      border: none !important;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+    }
+    
+    .signup-submit-btn:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4) !important;
+    }
+    
+    /* Photo upload */
+    .photo-preview {
+      border-color: rgba(16, 185, 129, 0.3) !important;
+      background: #1a202c !important;
+    }
+    
+    .photo-upload-caption {
+      color: #9ca3af !important;
+    }
+    
+    /* Checkbox */
+    .checkbox-container {
+      color: #9ca3af !important;
+    }
+    
+    .terms-link {
+      color: #10b981 !important;
+    }
+    
+    .terms-link:hover {
+      color: #34d399 !important;
+    }
+    
+    /* Divider */
+    .divider-line {
+      background: rgba(107, 114, 128, 0.3) !important;
+    }
+    
+    .divider-text {
+      color: #6b7280 !important;
+    }
+    
+    /* Loading overlay */
+    .loading-overlay {
+      background: rgba(26, 32, 44, 0.95) !important;
+    }
+    
+    .loading-spinner {
+      border-color: rgba(16, 185, 129, 0.2) !important;
+      border-top-color: #10b981 !important;
+    }
+    
+    .loading-text {
+      color: #10b981 !important;
+    }
+    
+    /* Success overlay */
+    .success-modal {
+      background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%) !important;
+      border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    }
+    
+    .success-icon {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    }
+    
+    .success-title {
+      color: #10b981 !important;
+    }
+    
+    .success-message {
+      color: #9ca3af !important;
+    }
+    
+    .success-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    }
+  </style>
 </head>
 <body>
   <div class="signup-header">
     <div class="signup-header-title-container">
       <button class="signup-header-btn back" onclick="window.history.back()" aria-label="Back">
-        <img src="public/icons/back.png" alt="Back">
+        <span class="btn-emoji">←</span>
         <span>Back</span>
       </button>
       <div class="signup-header-title">CREATE ACCOUNT</div>
@@ -21,15 +481,181 @@
 
   <div class="signup-container">
     <form class="signup-form" id="signupForm" autocomplete="off">
-      <!-- Profile Photo Section -->
+      <!-- Profile Photo Section (TOP) -->
       <div class="form-section"> 
         <div class="form-section-header">Profile Photo</div>
         <div class="photo-upload-container">
           <div class="photo-preview" id="photoPreview">
-            <img src="public/icons/upload-mini.png" alt="Upload Photo Icon" id="photoPreviewImg">
+            <span class="photo-emoji">🤳</span>
           </div>
-          <div class="photo-upload-caption">Take a Clear Face Photo</div>
-          <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" style="display: none;">
+          <div class="photo-upload-caption">Tap to Take a Clear Selfie</div>
+          <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" capture="user" style="display: none;">
+        </div>
+      </div>
+      
+      <!-- Quick Sign Up Section (OAuth - FREE, no SMS cost) -->
+      <div class="form-section oauth-section">
+        <div class="form-section-header">Sign Up With</div>
+        
+        <!-- Facebook & Google - Square buttons in row -->
+        <div class="oauth-row">
+          <button type="button" class="oauth-square facebook-square" id="facebookSignInBtn">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+              <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+            <span>Facebook</span>
+          </button>
+          
+          <button type="button" class="oauth-square google-square" id="googleSignInBtn">
+            <svg width="22" height="22" viewBox="0 0 18 18">
+              <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+              <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+              <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.547 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+              <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/>
+            </svg>
+            <span>Google</span>
+          </button>
+        </div>
+        
+        <!-- OR divider -->
+        <div class="or-divider">
+          <span class="or-line"></span>
+          <span class="or-text">OR</span>
+          <span class="or-line"></span>
+        </div>
+        
+        <!-- Phone Sign-Up Button (horizontal rectangle) -->
+        <button type="button" class="oauth-btn phone-signup-btn" id="phoneSignUpBtn">
+          <span class="phone-icon">📱</span>
+          <span>Sign up with Phone Number</span>
+        </button>
+      </div>
+      
+      <!-- Phone OTP Section (hidden until phone signup clicked) -->
+      <div class="form-section phone-otp-section" id="phoneOtpSection" style="display: none;">
+        <div class="form-section-header">📱 Phone Verification</div>
+        
+        <div class="form-group">
+          <label for="phoneAuth" class="form-label">Enter Your Phone Number</label>
+          <div class="phone-input-wrapper">
+            <select id="countryCodeAuth" class="country-code-select" aria-label="Country Code">
+              <option value="+63">🇵🇭 +63</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+60">🇲🇾 +60</option>
+              <option value="+66">🇹🇭 +66</option>
+              <option value="+84">🇻🇳 +84</option>
+              <option value="+62">🇮🇩 +62</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+91">🇮🇳 +91</option>
+            </select>
+            <input type="tel" id="phoneAuth" name="phoneAuth" class="form-input phone-input" placeholder="9123456789" maxlength="15" autocomplete="tel">
+          </div>
+          <div class="form-error" id="phoneAuthError"></div>
+        </div>
+        
+        <button type="button" class="signup-submit-btn" id="sendOtpBtn">
+          <span>Send Verification Code</span>
+        </button>
+        
+        <!-- OTP Input (hidden until code sent) -->
+        <div class="otp-verify-section" id="otpVerifySection" style="display: none;">
+          <div class="form-group">
+            <label for="otpCode" class="form-label">Enter 6-Digit Code</label>
+            <input type="text" id="otpCode" name="otpCode" class="form-input otp-input" placeholder="000000" maxlength="6">
+            <div class="form-hint">Code sent to your phone</div>
+            <div class="form-error" id="otpCodeError"></div>
+          </div>
+          <button type="button" class="signup-submit-btn verify-btn" id="verifyOtpBtn">
+            <span>Verify & Continue</span>
+          </button>
+          <button type="button" class="resend-btn" id="resendOtpBtn">Resend Code</button>
+        </div>
+      </div>
+      
+      <!-- OR divider before Email -->
+      <div class="form-section or-section" id="emailDivider">
+        <div class="or-divider">
+          <span class="or-line"></span>
+          <span class="or-text">OR</span>
+          <span class="or-line"></span>
+        </div>
+        <button type="button" class="email-toggle-btn" id="emailToggleBtn">
+          <span class="toggle-text">📧 Sign up with Email</span>
+          <span class="toggle-arrow">▼</span>
+        </button>
+      </div>
+      
+      <!-- Email Sign Up Section (collapsed by default) -->
+      <div class="form-section email-signup-section" id="emailSignupSection" style="display: none;">
+        <div class="form-section-header">Email Sign Up</div>
+        
+        <!-- Email -->
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email address" autocomplete="off">
+          <div class="form-error" id="emailError"></div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password (min 6 characters)" minlength="6" autocomplete="new-password">
+          <div class="form-hint">Password must be at least 6 characters long</div>
+          <div class="form-error" id="passwordError"></div>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="form-group">
+          <label for="confirmPassword" class="form-label">Confirm Password</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" placeholder="Confirm your password" minlength="6" autocomplete="new-password">
+          <div class="form-error" id="confirmPasswordError"></div>
+        </div>
+      </div>
+      
+      <!-- Contact Information -->
+      <div class="form-section">
+        <div class="form-section-header">Contact Information</div>
+        
+        <!-- Phone Number (for contact, not auth) -->
+        <div class="form-group">
+          <label for="phoneNumber" class="form-label">Phone Number *</label>
+          <div class="phone-input-wrapper">
+            <select id="countryCode" class="country-code-select" aria-label="Country Code">
+              <option value="+63">🇵🇭 +63</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+60">🇲🇾 +60</option>
+              <option value="+66">🇹🇭 +66</option>
+              <option value="+84">🇻🇳 +84</option>
+              <option value="+62">🇮🇩 +62</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+966">🇸🇦 +966</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+39">🇮🇹 +39</option>
+              <option value="+34">🇪🇸 +34</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+91">🇮🇳 +91</option>
+              <option value="+55">🇧🇷 +55</option>
+              <option value="+52">🇲🇽 +52</option>
+              <option value="+7">🇷🇺 +7</option>
+            </select>
+            <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input phone-input" placeholder="9123456789" maxlength="15" autocomplete="tel" required>
+          </div>
+          <div class="form-hint">Customers will use this to contact you about gigs</div>
+          <div class="form-error" id="phoneError"></div>
         </div>
       </div>
 
@@ -152,6 +778,237 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  
+  <!-- Firebase Helper Modules -->
+  <script src="public/js/firebase-config.js"></script>
+  <script src="public/js/firebase-auth.js"></script>
+  <script src="public/js/firebase-db.js"></script>
+  <script src="public/js/firebase-storage.js"></script>
+  
   <script src="public/js/sign-up.js"></script>
+  
+  <script>
+    // ===== SIGNUP FLOW MANAGEMENT =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const phoneSignUpBtn = document.getElementById('phoneSignUpBtn');
+      const phoneOtpSection = document.getElementById('phoneOtpSection');
+      const emailDivider = document.getElementById('emailDivider');
+      const emailSignupSection = document.getElementById('emailSignupSection');
+      const sendOtpBtn = document.getElementById('sendOtpBtn');
+      const otpVerifySection = document.getElementById('otpVerifySection');
+      const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+      const resendOtpBtn = document.getElementById('resendOtpBtn');
+      const facebookBtn = document.getElementById('facebookSignInBtn');
+      const googleBtn = document.getElementById('googleSignInBtn');
+      
+      // Track signup method globally
+      window.signupMethod = null;
+      
+      // Helper to hide email section and toggle
+      function hideEmailSection() {
+        if (emailDivider) emailDivider.style.display = 'none';
+        if (emailSignupSection) emailSignupSection.style.display = 'none';
+        const emailToggleBtn = document.getElementById('emailToggleBtn');
+        if (emailToggleBtn) emailToggleBtn.classList.remove('active');
+      }
+      
+      // Facebook signup - just set method, don't hide other options
+      if (facebookBtn) {
+        facebookBtn.addEventListener('click', function() {
+          window.signupMethod = 'facebook';
+          console.log('📘 Facebook signup selected');
+          // The actual OAuth is handled by sign-up.js
+          // OAuth popup will appear - keep other options visible in case user cancels
+        });
+      }
+      
+      // Google signup - just set method, don't hide other options
+      if (googleBtn) {
+        googleBtn.addEventListener('click', function() {
+          window.signupMethod = 'google';
+          console.log('🔴 Google signup selected');
+          // The actual OAuth is handled by sign-up.js
+          // OAuth popup will appear - keep other options visible in case user cancels
+        });
+      }
+      
+      // Email toggle button - expand/collapse email section
+      const emailToggleBtn = document.getElementById('emailToggleBtn');
+      if (emailToggleBtn) {
+        emailToggleBtn.addEventListener('click', function() {
+          const isExpanded = emailSignupSection.style.display !== 'none';
+          
+          if (isExpanded) {
+            // Collapse
+            emailSignupSection.style.display = 'none';
+            emailToggleBtn.classList.remove('active');
+            window.signupMethod = null;
+            // Show phone button again
+            phoneSignUpBtn.style.display = 'flex';
+          } else {
+            // Expand
+            emailSignupSection.style.display = 'block';
+            emailToggleBtn.classList.add('active');
+            window.signupMethod = 'email';
+            // Collapse phone section but keep button visible
+            phoneOtpSection.style.display = 'none';
+            phoneSignUpBtn.style.display = 'flex';
+            // Scroll to email section
+            emailSignupSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Focus email input
+            setTimeout(() => document.getElementById('email')?.focus(), 300);
+            console.log('📧 Email signup selected');
+          }
+        });
+      }
+      
+      // Phone signup button click - show OTP section
+      if (phoneSignUpBtn) {
+        phoneSignUpBtn.addEventListener('click', function() {
+          window.signupMethod = 'phone';
+          phoneOtpSection.style.display = 'block';
+          phoneSignUpBtn.style.display = 'none';
+          // Collapse email section but keep toggle visible
+          if (emailSignupSection) emailSignupSection.style.display = 'none';
+          const emailToggleBtn = document.getElementById('emailToggleBtn');
+          if (emailToggleBtn) emailToggleBtn.classList.remove('active');
+          // Scroll to OTP section
+          phoneOtpSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+      
+      // Send OTP button click
+      if (sendOtpBtn) {
+        sendOtpBtn.addEventListener('click', async function() {
+          const phoneInput = document.getElementById('phoneAuth').value.trim().replace(/\D/g, '');
+          const countryCode = document.getElementById('countryCodeAuth').value;
+          
+          if (!phoneInput || phoneInput.length < 7) {
+            document.getElementById('phoneAuthError').textContent = 'Please enter a valid phone number';
+            document.getElementById('phoneAuthError').style.display = 'block';
+            return;
+          }
+          
+          const fullPhoneNumber = countryCode + phoneInput;
+          
+          sendOtpBtn.disabled = true;
+          sendOtpBtn.innerHTML = '<span>Sending...</span>';
+          
+          try {
+            // Call Firebase phone auth
+            if (typeof sendPhoneVerificationCode === 'function') {
+              const result = await sendPhoneVerificationCode(fullPhoneNumber);
+              
+              if (result.success) {
+                otpVerifySection.style.display = 'block';
+                sendOtpBtn.style.display = 'none';
+                document.getElementById('otpCode').focus();
+                
+                // Auto-fill contact phone field with same number
+                const contactPhone = document.getElementById('phoneNumber');
+                const contactCountry = document.getElementById('countryCode');
+                if (contactPhone) contactPhone.value = phoneInput;
+                if (contactCountry) contactCountry.value = countryCode;
+                
+                startResendCountdown();
+              } else {
+                document.getElementById('phoneAuthError').textContent = result.message || 'Failed to send code';
+                document.getElementById('phoneAuthError').style.display = 'block';
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = '<span>Send Verification Code</span>';
+              }
+            } else {
+              // Mock for development
+              console.log('📱 Mock OTP sent to:', fullPhoneNumber);
+              otpVerifySection.style.display = 'block';
+              sendOtpBtn.style.display = 'none';
+              
+              // Auto-fill contact phone field
+              const contactPhone = document.getElementById('phoneNumber');
+              const contactCountry = document.getElementById('countryCode');
+              if (contactPhone) contactPhone.value = phoneInput;
+              if (contactCountry) contactCountry.value = countryCode;
+              
+              startResendCountdown();
+            }
+          } catch (error) {
+            console.error('Phone auth error:', error);
+            document.getElementById('phoneAuthError').textContent = 'Failed to send code. Try again.';
+            document.getElementById('phoneAuthError').style.display = 'block';
+            sendOtpBtn.disabled = false;
+            sendOtpBtn.innerHTML = '<span>Send Verification Code</span>';
+          }
+        });
+      }
+      
+      // Verify OTP button click
+      if (verifyOtpBtn) {
+        verifyOtpBtn.addEventListener('click', async function() {
+          const otpCode = document.getElementById('otpCode').value.trim();
+          
+          if (!otpCode || otpCode.length !== 6) {
+            document.getElementById('otpCodeError').textContent = 'Please enter the 6-digit code';
+            document.getElementById('otpCodeError').style.display = 'block';
+            return;
+          }
+          
+          verifyOtpBtn.disabled = true;
+          verifyOtpBtn.innerHTML = '<span>Verifying...</span>';
+          
+          try {
+            if (typeof verifyPhoneCode === 'function') {
+              const result = await verifyPhoneCode(otpCode);
+              
+              if (result.success) {
+                // Phone verified! Mark section as complete
+                phoneOtpSection.innerHTML = '<div style="text-align:center;padding:20px;"><span style="font-size:2rem;">✅</span><p style="color:#10b981;font-weight:600;margin-top:10px;">Phone Verified!</p></div>';
+                console.log('✅ Phone verification successful');
+              } else {
+                document.getElementById('otpCodeError').textContent = result.message || 'Invalid code';
+                document.getElementById('otpCodeError').style.display = 'block';
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.innerHTML = '<span>Verify & Continue</span>';
+              }
+            } else {
+              // Mock for development
+              console.log('📱 Mock OTP verified:', otpCode);
+              phoneOtpSection.innerHTML = '<div style="text-align:center;padding:20px;"><span style="font-size:2rem;">✅</span><p style="color:#10b981;font-weight:600;margin-top:10px;">Phone Verified!</p></div>';
+            }
+          } catch (error) {
+            console.error('OTP verification error:', error);
+            document.getElementById('otpCodeError').textContent = 'Verification failed. Try again.';
+            document.getElementById('otpCodeError').style.display = 'block';
+            verifyOtpBtn.disabled = false;
+            verifyOtpBtn.innerHTML = '<span>Verify & Continue</span>';
+          }
+        });
+      }
+      
+      // Resend countdown
+      function startResendCountdown() {
+        let seconds = 60;
+        resendOtpBtn.disabled = true;
+        resendOtpBtn.textContent = `Resend Code (${seconds}s)`;
+        
+        const interval = setInterval(() => {
+          seconds--;
+          resendOtpBtn.textContent = `Resend Code (${seconds}s)`;
+          
+          if (seconds <= 0) {
+            clearInterval(interval);
+            resendOtpBtn.disabled = false;
+            resendOtpBtn.textContent = 'Resend Code';
+          }
+        }, 1000);
+      }
+      
+      console.log('📱 Phone signup flow initialized');
+    });
+  </script>
 </body>
 </html> 

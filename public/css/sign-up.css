@@ -550,4 +550,117 @@ body::-webkit-scrollbar {
     margin-top: 10px;
     max-width: 90px;
   }
+}
+
+/* ===== Google Sign-In Button ===== */
+.google-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  background: #ffffff;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.google-signin-btn:hover {
+  background: #f8f9fa;
+  border-color: #c4c4c4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.google-signin-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.google-signin-btn svg {
+  flex-shrink: 0;
+}
+
+/* ===== OR Divider ===== */
+.form-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin: 1.5rem 0;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.divider-text {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ===== Social Sign-In Buttons ===== */
+.social-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 8px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 10px;
+}
+
+.social-signin-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.social-signin-btn:active {
+  transform: translateY(0);
+}
+
+/* Facebook Button */
+.facebook-btn {
+  background: #1877F2;
+}
+
+.facebook-btn:hover {
+  background: #166FE5;
+}
+
+/* ===== Responsive Adjustments for Auth Elements ===== */
+@media (max-width: 600px) {
+  .google-signin-btn {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+  }
+  
+  .social-signin-btn {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+  }
+  
+  .form-divider {
+    margin: 1.25rem 0;
+  }
 } 

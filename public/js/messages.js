@@ -2956,14 +2956,37 @@ function generateMessagesContent() {
 }
 
 // Load Messages Tab
-function loadMessagesTab() {
+async function loadMessagesTab() {
     const container = document.querySelector('#messages-content .messages-container');
     if (container) {
         // SAFETY CLEANUP: Ensure we start with a clean state
         // This prevents the bug where expanded threads cause empty content
         closeAllMessageThreads();
         
-        container.innerHTML = generateMessagesContent();
+        // 🔥 Firebase Integration - Try to load threads from Firebase
+        let messagesContent = '';
+        
+        if (typeof getUserChatThreads === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+            try {
+                console.log('🔥 Loading chat threads from Firebase...');
+                const threads = await getUserChatThreads();
+                
+                if (threads && threads.length > 0) {
+                    console.log(`✅ Firebase: Found ${threads.length} chat threads`);
+                    messagesContent = threads.map(thread => generateMessageThreadHTMLFromFirebase(thread)).join('');
+                } else {
+                    console.log('ℹ️ No Firebase threads found, using mock data');
+                    messagesContent = generateMessagesContent();
+                }
+            } catch (error) {
+                console.error('❌ Firebase error, falling back to mock data:', error);
+                messagesContent = generateMessagesContent();
+            }
+        } else {
+            messagesContent = generateMessagesContent();
+        }
+        
+        container.innerHTML = messagesContent;
         
         // Initialize event handlers for the dynamically loaded content
         initializeMessages(container);
@@ -2975,6 +2998,40 @@ function loadMessagesTab() {
     } else {
         console.error('Messages container not found');
     }
+}
+
+// Generate HTML for a Firebase chat thread
+function generateMessageThreadHTMLFromFirebase(thread) {
+    // Convert Firebase thread structure to mock data format
+    const currentUserId = typeof getCurrentUserId === 'function' ? getCurrentUserId() : 'current_user';
+    const otherParticipant = thread.participantIds?.find(id => id !== currentUserId);
+    
+    const mockThread = {
+        threadId: thread.id || thread.threadId,
+        jobId: thread.jobId || '',
+        jobTitle: thread.jobTitle || 'Chat',
+        applicationId: thread.applicationId || '',
+        threadOrigin: 'chat',
+        currentUserRole: 'worker',
+        participant: {
+            id: otherParticipant || thread.participant2?.userId || 'user',
+            name: thread.participant2?.userName || 'User',
+            avatar: thread.participant2?.userThumbnail || 'public/icons/unknown.jpg'
+        },
+        messages: [],
+        unreadCount: thread.unreadCount?.[currentUserId] || 0,
+        isNew: (thread.unreadCount?.[currentUserId] || 0) > 0,
+        lastActivity: thread.lastMessageTime?.toDate?.()?.toISOString() || 
+                     thread.lastMessageTime || 
+                     new Date().toISOString(),
+        threadStatus: 'active',
+        isMuted: false,
+        isPinned: false,
+        isArchived: false,
+        lastMessagePreview: thread.lastMessagePreview || 'Start a conversation...'
+    };
+    
+    return generateMessageThreadHTML(mockThread);
 }
 
 // ===== END PHASE 1 TEMPLATES =====

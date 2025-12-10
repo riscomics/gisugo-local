@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - GISUGO</title>
+  <link rel="stylesheet" href="public/css/sign-up.css">
+  <style>
+    /* ===== GISUGO LOGIN PAGE STYLES ===== */
+    
+    /* Override sign-up.css colors with GISUGO theme */
+    body {
+      background: linear-gradient(180deg, #1a202c 0%, #242936 50%, #1a202c 100%);
+      min-height: 100vh;
+    }
+    
+    .signup-header {
+      background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
+      border-bottom: none;
+    }
+    
+    .signup-header-borderline {
+      height: 4px;
+      background: linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #10b981 100%);
+      background-size: 200% 100%;
+      animation: borderShimmer 3s linear infinite;
+    }
+    
+    @keyframes borderShimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+    
+    /* Header button emoji */
+    .signup-header-btn .btn-emoji {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
+    
+    .login-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 15px 0;
+    }
+    
+    .login-form {
+      background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+      border-radius: 20px;
+      padding: 1.5rem 18px;
+      box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.4),
+        0 0 60px rgba(16, 185, 129, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    
+    @media (max-width: 540px) {
+      .login-container {
+        padding: 10px 8px;
+        max-width: 100%;
+      }
+      
+      .login-form {
+        border-radius: 16px;
+        padding: 1.5rem 14px;
+      }
+    }
+    
+    .login-header-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #10b981;
+      text-align: center;
+      flex: 1;
+      margin: 0 10px;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+    
+    .login-subtitle {
+      text-align: center;
+      color: #9ca3af;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    
+    /* ===== OAUTH BUTTONS (Facebook/Google) ===== */
+    .oauth-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 0;
+    }
+    
+    .oauth-square {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: none;
+      border-radius: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      padding: 14px 10px;
+    }
+    
+    .oauth-square:hover {
+      transform: translateY(-3px);
+    }
+    
+    .facebook-square {
+      background: linear-gradient(135deg, #1877F2 0%, #0d65d9 100%);
+      box-shadow: 0 4px 20px rgba(24, 119, 242, 0.4);
+    }
+    
+    .facebook-square:hover {
+      box-shadow: 0 8px 30px rgba(24, 119, 242, 0.5);
+    }
+    
+    .google-square {
+      background: #ffffff;
+      color: #374151;
+      border: 2px solid rgba(107, 114, 128, 0.3);
+    }
+    
+    .google-square:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* OR divider */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      margin: 12px 0;
+    }
+    
+    .or-divider .or-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(107, 114, 128, 0.3);
+    }
+    
+    .or-divider .or-text {
+      padding: 0 12px;
+      color: #6b7280;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    /* Phone/Email toggle buttons */
+    .login-toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 8px;
+    }
+    
+    .login-toggle-btn:hover {
+      transform: translateY(-2px);
+    }
+    
+    .phone-login-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    .phone-login-btn:hover {
+      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4);
+    }
+    
+    .email-toggle-btn {
+      background: transparent;
+      border: 2px dashed rgba(107, 114, 128, 0.4) !important;
+      color: #9ca3af;
+    }
+    
+    .email-toggle-btn:hover {
+      border-color: rgba(16, 185, 129, 0.5) !important;
+      color: #d1d5db;
+      background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .email-toggle-btn.active {
+      border-style: solid !important;
+      border-color: rgba(16, 185, 129, 0.4) !important;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .toggle-arrow {
+      font-size: 0.75rem;
+      transition: transform 0.3s ease;
+    }
+    
+    .email-toggle-btn.active .toggle-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .login-section {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-top: 8px;
+    }
+    
+    /* ===== FORM INPUTS OVERRIDE ===== */
+    .form-input {
+      background: #1a202c !important;
+      border: 2px solid rgba(107, 114, 128, 0.3) !important;
+      color: #e5e7eb !important;
+    }
+    
+    .form-input:focus {
+      border-color: #10b981 !important;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    }
+    
+    .form-input::placeholder {
+      color: #6b7280 !important;
+    }
+    
+    .form-label {
+      color: #d1d5db !important;
+    }
+    
+    /* ===== FORGOT PASSWORD ===== */
+    .forgot-password-link {
+      display: block;
+      text-align: right;
+      color: #10b981;
+      font-size: 0.85rem;
+      text-decoration: none;
+      margin-top: 0.5rem;
+      transition: color 0.2s ease;
+    }
+    
+    .forgot-password-link:hover {
+      color: #34d399;
+      text-decoration: underline;
+    }
+    
+    /* ===== SUBMIT BUTTON OVERRIDE ===== */
+    .signup-submit-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      border: none !important;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3) !important;
+    }
+    
+    .signup-submit-btn:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4) !important;
+    }
+    
+    /* ===== SIGNUP LINK SECTION ===== */
+    .signup-link-section {
+      text-align: center;
+      margin-top: 0;
+      padding: 0;
+    }
+    
+    .create-account-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%);
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      color: #10b981;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+    
+    .create-account-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      animation: shimmerSweep 3s ease-in-out infinite;
+    }
+    
+    .create-account-btn:hover {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
+      animation: none;
+    }
+    
+    .create-account-btn:hover::before {
+      animation: none;
+    }
+    
+    .create-account-btn .btn-icon {
+      font-size: 1.2rem;
+      animation: sparkle 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes glowPulse {
+      0%, 100% {
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.3), 0 0 30px rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+      }
+      50% {
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.5), 0 0 50px rgba(16, 185, 129, 0.2);
+        border-color: #34d399;
+      }
+    }
+    
+    @keyframes shimmerSweep {
+      0% { left: -100%; }
+      50%, 100% { left: 100%; }
+    }
+    
+    @keyframes sparkle {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.2) rotate(-10deg); }
+      75% { transform: scale(1.2) rotate(10deg); }
+    }
+    
+    /* ===== OR DIVIDER ===== */
+    .form-divider {
+      display: flex;
+      align-items: center;
+      margin: 1.5rem 0;
+    }
+    
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(107, 114, 128, 0.3);
+    }
+    
+    .divider-text {
+      padding: 0 15px;
+      color: #6b7280;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    /* ===== PASSWORD RESET OVERLAY ===== */
+    .reset-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .reset-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .reset-modal {
+      background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    .reset-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #10b981;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+    
+    .reset-description {
+      color: #9ca3af;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .reset-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 1.5rem;
+    }
+    
+    .reset-cancel-btn {
+      flex: 1;
+      padding: 12px;
+      background: transparent;
+      border: 2px solid #4b5563;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .reset-cancel-btn:hover {
+      background: #4b5563;
+    }
+    
+    .reset-submit-btn {
+      flex: 1;
+      padding: 12px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .reset-submit-btn:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+    }
+    
+    .reset-success {
+      color: #10b981;
+      text-align: center;
+      font-weight: 600;
+      display: none;
+    }
+    
+    .reset-success.show {
+      display: block;
+    }
+    
+    /* ===== SOCIAL SIGN-IN BUTTONS ===== */
+    .social-signin-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 10px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+    
+    .social-signin-btn:hover:not(.disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .social-signin-btn:active:not(.disabled) {
+      transform: translateY(0);
+    }
+    
+    .social-signin-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    /* Google button - override from sign-up.css */
+    .google-signin-btn {
+      background: #ffffff !important;
+      color: #374151 !important;
+      border: 2px solid rgba(107, 114, 128, 0.2) !important;
+    }
+    
+    .google-signin-btn:hover {
+      background: #f3f4f6 !important;
+      border-color: rgba(16, 185, 129, 0.3) !important;
+    }
+    
+    /* Facebook Button */
+    .facebook-btn {
+      background: linear-gradient(135deg, #1877F2 0%, #0d65d9 100%);
+    }
+    
+    .facebook-btn:hover:not(.disabled) {
+      background: linear-gradient(135deg, #0d65d9 0%, #0a4fb3 100%);
+    }
+    
+    /* TikTok Button */
+    .tiktok-btn {
+      background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+      border: 2px solid rgba(254, 44, 85, 0.3);
+    }
+    
+    .tiktok-btn.disabled {
+      background: #2d3748;
+      border-color: rgba(107, 114, 128, 0.2);
+    }
+    
+    /* ===== PHONE INPUT ===== */
+    .phone-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .country-code-select {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      padding: 12px 28px 12px 12px;
+      border-radius: 8px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      border: 2px solid rgba(59, 130, 246, 0.3);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      min-width: 105px;
+      transition: all 0.2s ease;
+      font-family: Arial, Helvetica, sans-serif;
+      /* Custom dropdown arrow */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    
+    .country-code-select:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+    
+    .country-code-select:hover {
+      background-color: #2563eb;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+    
+    .country-code-select option {
+      background: #1f2937;
+      color: #e5e7eb;
+      padding: 12px;
+      font-weight: 600;
+    }
+    
+    /* Hide scrollbar in dropdown */
+    .country-code-select::-webkit-scrollbar {
+      display: none;
+      width: 0;
+    }
+    
+    .country-code-select {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    
+    .phone-input {
+      flex: 1;
+    }
+    
+    /* OTP Input */
+    .otp-input {
+      text-align: center;
+      font-size: 1.5rem;
+      letter-spacing: 8px;
+      font-weight: 700;
+    }
+    
+    .otp-section {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(107, 114, 128, 0.2);
+    }
+    
+    .verify-btn {
+      background: linear-gradient(135deg, #06b6d4, #0891b2) !important;
+    }
+    
+    .verify-btn:hover {
+      background: linear-gradient(135deg, #0891b2, #0e7490) !important;
+    }
+    
+    .resend-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: transparent;
+      border: none;
+      color: #10b981;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+    
+    .resend-btn:hover {
+      color: #34d399;
+      text-decoration: underline;
+    }
+    
+    .resend-btn:disabled {
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+    
+    /* Hide old tabs - we're using method buttons now */
+    .login-tabs {
+      display: none !important;
+    }
+    
+    /* ===== LOADING OVERLAY ===== */
+    .loading-overlay {
+      background: rgba(26, 32, 44, 0.95) !important;
+    }
+    
+    .loading-spinner {
+      border-color: rgba(16, 185, 129, 0.2) !important;
+      border-top-color: #10b981 !important;
+    }
+    
+    .loading-text {
+      color: #10b981 !important;
+    }
+    
+    /* ===== MOBILE RESPONSIVE ===== */
+    @media (max-width: 480px) {
+      .login-method-selection {
+        gap: 10px;
+      }
+      
+      .method-btn {
+        padding: 15px 10px;
+      }
+      
+      .method-btn .method-icon {
+        font-size: 1.6rem;
+      }
+      
+      .method-btn .method-text {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="signup-header">
+    <div class="signup-header-title-container">
+      <button class="signup-header-btn back" onclick="window.location.href='index.html'" aria-label="Home">
+        <span class="btn-emoji">🏠</span>
+        <span>Home</span>
+      </button>
+      <div class="login-header-title">LOGIN</div>
+      <div class="signup-header-spacer"></div>
+    </div>
+    <div class="signup-header-borderline"></div>
+  </div>
+
+  <div class="login-container">
+    <form class="login-form" id="loginForm" autocomplete="off">
+      <p class="login-subtitle">Sign in to continue.</p>
+      
+      <!-- Facebook & Google - Square buttons -->
+      <div class="oauth-row">
+        <button type="button" class="oauth-square facebook-square" id="facebookSignInBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24">
+            <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+          </svg>
+          <span>Facebook</span>
+        </button>
+        
+        <button type="button" class="oauth-square google-square" id="googleSignInBtn">
+          <svg width="22" height="22" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+            <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.547 0 9s.348 2.825.957 4.039l3.007-2.332z"/>
+            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.163 6.656 3.58 9 3.58z"/>
+          </svg>
+          <span>Google</span>
+        </button>
+      </div>
+      
+      <!-- OR divider -->
+      <div class="or-divider">
+        <span class="or-line"></span>
+        <span class="or-text">OR</span>
+        <span class="or-line"></span>
+      </div>
+      
+      <!-- Phone Login Button -->
+      <button type="button" class="login-toggle-btn phone-login-btn" id="phoneLoginBtn">
+        <span>📱</span>
+        <span>Sign in with Phone Number</span>
+      </button>
+      
+      <!-- Phone Login Section (hidden until clicked) -->
+      <div class="login-section" id="phone-login-section" style="display: none;">
+        <div class="form-group">
+          <label for="phoneNumber" class="form-label">Phone Number</label>
+          <div class="phone-input-wrapper">
+            <select id="countryCode" class="country-code-select" aria-label="Country Code">
+              <option value="+63">🇵🇭 +63</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+60">🇲🇾 +60</option>
+              <option value="+66">🇹🇭 +66</option>
+              <option value="+84">🇻🇳 +84</option>
+              <option value="+62">🇮🇩 +62</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+91">🇮🇳 +91</option>
+            </select>
+            <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input phone-input" placeholder="9123456789" maxlength="15" autocomplete="tel">
+          </div>
+          <div class="form-error" id="phoneError"></div>
+        </div>
+
+        <button type="button" class="signup-submit-btn" id="phone-signin-btn">
+          <span>SEND VERIFICATION CODE</span>
+        </button>
+        
+        <!-- OTP Verification -->
+        <div class="otp-section" id="otp-section" style="display: none;">
+          <div class="form-group">
+            <label for="otpCode" class="form-label">Verification Code</label>
+            <input type="text" id="otpCode" name="otpCode" class="form-input otp-input" placeholder="000000" maxlength="6" autocomplete="one-time-code">
+            <div class="form-hint">Enter the code sent to your phone</div>
+            <div class="form-error" id="otpError"></div>
+          </div>
+          
+          <button type="button" class="signup-submit-btn verify-btn" id="verify-otp-btn">
+            <span>VERIFY & LOGIN</span>
+          </button>
+          
+          <button type="button" class="resend-btn" id="resend-code-btn">
+            Resend Code
+          </button>
+        </div>
+      </div>
+      
+      <!-- OR divider -->
+      <div class="or-divider">
+        <span class="or-line"></span>
+        <span class="or-text">OR</span>
+        <span class="or-line"></span>
+      </div>
+      
+      <!-- Email Login Toggle -->
+      <button type="button" class="login-toggle-btn email-toggle-btn" id="emailToggleBtn">
+        <span>📧</span>
+        <span>Sign in with Email</span>
+        <span class="toggle-arrow">▼</span>
+      </button>
+      
+      <!-- Email Login Section (hidden until clicked) -->
+      <div class="login-section" id="email-login-section" style="display: none;">
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email address" autocomplete="email">
+          <div class="form-error" id="emailError"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" autocomplete="current-password">
+          <a href="#" class="forgot-password-link" id="forgotPasswordLink">Forgot password?</a>
+          <div class="form-error" id="passwordError"></div>
+        </div>
+
+        <button type="submit" class="signup-submit-btn" id="submitBtn">
+          <span>LOGIN</span>
+        </button>
+      </div>
+      
+      <!-- OR divider -->
+      <div class="or-divider">
+        <span class="or-line"></span>
+        <span class="or-text">OR</span>
+        <span class="or-line"></span>
+      </div>
+      
+      <!-- Create Account Button -->
+      <div class="signup-link-section">
+        <a href="sign-up.html" class="create-account-btn">
+          <span class="btn-icon">✨</span>
+          <span>Create Account</span>
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Signing in...</div>
+  </div>
+
+  <!-- Password Reset Overlay -->
+  <div class="reset-overlay" id="resetOverlay">
+    <div class="reset-modal">
+      <div class="reset-title">Reset Password</div>
+      <div class="reset-description">Enter your email address and we'll send you a link to reset your password.</div>
+      
+      <div class="form-group">
+        <input type="email" id="resetEmail" class="form-input" placeholder="Enter your email address">
+        <div class="form-error" id="resetEmailError"></div>
+      </div>
+      
+      <div class="reset-success" id="resetSuccess">
+        ✓ Password reset email sent! Check your inbox.
+      </div>
+      
+      <div class="reset-buttons">
+        <button type="button" class="reset-cancel-btn" id="resetCancelBtn">Cancel</button>
+        <button type="button" class="reset-submit-btn" id="resetSubmitBtn">Send Reset Link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  
+  <!-- Firebase Helper Modules -->
+  <script src="public/js/firebase-config.js"></script>
+  <script src="public/js/firebase-auth.js"></script>
+  <script src="public/js/firebase-db.js"></script>
+  <script src="public/js/firebase-storage.js"></script>
+  
+  <script>
+    // Login Form Handler
+    document.addEventListener('DOMContentLoaded', function() {
+      const loginForm = document.getElementById('loginForm');
+      const submitBtn = document.getElementById('submitBtn');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const googleSignInBtn = document.getElementById('googleSignInBtn');
+      const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+      const resetOverlay = document.getElementById('resetOverlay');
+      const resetCancelBtn = document.getElementById('resetCancelBtn');
+      const resetSubmitBtn = document.getElementById('resetSubmitBtn');
+      const resetSuccess = document.getElementById('resetSuccess');
+      
+      // Handle login form submission
+      loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        
+        // Basic validation
+        if (!email) {
+          showError('email', 'Email address is required');
+          return;
+        }
+        
+        if (!password) {
+          showError('password', 'Password is required');
+          return;
+        }
+        
+        // Show loading
+        loadingOverlay.classList.add('show');
+        submitBtn.disabled = true;
+        
+        try {
+          const result = await loginWithEmail(email, password);
+          
+          if (result.success) {
+            console.log('✅ Login successful');
+            window.location.href = 'index.html';
+          } else {
+            loadingOverlay.classList.remove('show');
+            submitBtn.disabled = false;
+            showError('password', result.message);
+          }
+        } catch (error) {
+          loadingOverlay.classList.remove('show');
+          submitBtn.disabled = false;
+          showError('password', 'Login failed. Please try again.');
+          console.error('Login error:', error);
+        }
+      });
+      
+      // Handle Google Sign-In
+      googleSignInBtn.addEventListener('click', async function() {
+        loadingOverlay.classList.add('show');
+        
+        try {
+          const result = await loginWithGoogle();
+          
+          if (result.success) {
+            console.log('✅ Google sign-in successful');
+            window.location.href = 'index.html';
+          } else {
+            loadingOverlay.classList.remove('show');
+            showError('email', result.message);
+          }
+        } catch (error) {
+          loadingOverlay.classList.remove('show');
+          showError('email', 'Google sign-in failed. Please try again.');
+          console.error('Google sign-in error:', error);
+        }
+      });
+      
+      // Handle Facebook Sign-In
+      const facebookSignInBtn = document.getElementById('facebookSignInBtn');
+      facebookSignInBtn.addEventListener('click', async function() {
+        loadingOverlay.classList.add('show');
+        
+        try {
+          const result = await loginWithFacebook();
+          
+          if (result.success) {
+            console.log('✅ Facebook sign-in successful');
+            window.location.href = 'index.html';
+          } else {
+            loadingOverlay.classList.remove('show');
+            showError('email', result.message);
+          }
+        } catch (error) {
+          loadingOverlay.classList.remove('show');
+          showError('email', 'Facebook sign-in failed. Please try again.');
+          console.error('Facebook sign-in error:', error);
+        }
+      });
+      
+      // Handle Forgot Password
+      forgotPasswordLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        resetOverlay.classList.add('show');
+        resetSuccess.classList.remove('show');
+        document.getElementById('resetEmail').value = document.getElementById('email').value;
+      });
+      
+      resetCancelBtn.addEventListener('click', function() {
+        resetOverlay.classList.remove('show');
+      });
+      
+      resetOverlay.addEventListener('click', function(e) {
+        if (e.target === resetOverlay) {
+          resetOverlay.classList.remove('show');
+        }
+      });
+      
+      resetSubmitBtn.addEventListener('click', async function() {
+        const email = document.getElementById('resetEmail').value.trim();
+        
+        if (!email) {
+          showResetError('Please enter your email address');
+          return;
+        }
+        
+        resetSubmitBtn.disabled = true;
+        resetSubmitBtn.textContent = 'Sending...';
+        
+        try {
+          const result = await sendPasswordReset(email);
+          
+          if (result.success) {
+            resetSuccess.classList.add('show');
+            setTimeout(() => {
+              resetOverlay.classList.remove('show');
+            }, 3000);
+          } else {
+            showResetError(result.message);
+          }
+        } catch (error) {
+          showResetError('Failed to send reset email. Please try again.');
+        }
+        
+        resetSubmitBtn.disabled = false;
+        resetSubmitBtn.textContent = 'Send Reset Link';
+      });
+      
+      // Clear errors on input
+      document.querySelectorAll('.form-input').forEach(input => {
+        input.addEventListener('input', function() {
+          clearError(this.id);
+        });
+      });
+      
+      // ===== LOGIN METHOD TOGGLING =====
+      const emailSection = document.getElementById('email-login-section');
+      const phoneSection = document.getElementById('phone-login-section');
+      const phoneLoginBtn = document.getElementById('phoneLoginBtn');
+      const emailToggleBtn = document.getElementById('emailToggleBtn');
+      
+      // Phone login button - expand phone section
+      if (phoneLoginBtn) {
+        phoneLoginBtn.addEventListener('click', function() {
+          const isExpanded = phoneSection.style.display !== 'none';
+          
+          if (isExpanded) {
+            phoneSection.style.display = 'none';
+          } else {
+            phoneSection.style.display = 'block';
+            emailSection.style.display = 'none';
+            emailToggleBtn.classList.remove('active');
+            phoneSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      }
+      
+      // Email toggle button - expand/collapse
+      if (emailToggleBtn) {
+        emailToggleBtn.addEventListener('click', function() {
+          const isExpanded = emailSection.style.display !== 'none';
+          
+          if (isExpanded) {
+            emailSection.style.display = 'none';
+            emailToggleBtn.classList.remove('active');
+          } else {
+            emailSection.style.display = 'block';
+            emailToggleBtn.classList.add('active');
+            phoneSection.style.display = 'none';
+            emailSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => document.getElementById('email')?.focus(), 300);
+          }
+        });
+      }
+      
+      // ===== PHONE LOGIN HANDLERS =====
+      const phoneSignInBtn = document.getElementById('phone-signin-btn');
+      const verifyOtpBtn = document.getElementById('verify-otp-btn');
+      const resendCodeBtn = document.getElementById('resend-code-btn');
+      const otpSection = document.getElementById('otp-section');
+      
+      // Send verification code
+      phoneSignInBtn.addEventListener('click', async function() {
+        const phoneInput = document.getElementById('phoneNumber').value.trim().replace(/\D/g, ''); // Remove non-digits
+        const countryCode = document.getElementById('countryCode').value;
+        
+        if (!phoneInput || phoneInput.length < 7 || phoneInput.length > 15) {
+          showPhoneError('Please enter a valid phone number');
+          return;
+        }
+        
+        const fullPhoneNumber = countryCode + phoneInput;
+        
+        loadingOverlay.classList.add('show');
+        phoneSignInBtn.disabled = true;
+        
+        try {
+          const result = await sendPhoneVerificationCode(fullPhoneNumber);
+          
+          loadingOverlay.classList.remove('show');
+          
+          if (result.success) {
+            // Show OTP section
+            otpSection.style.display = 'block';
+            phoneSignInBtn.style.display = 'none';
+            document.getElementById('otpCode').focus();
+            
+            // Start resend countdown
+            startResendCountdown();
+          } else {
+            phoneSignInBtn.disabled = false;
+            showPhoneError(result.message);
+          }
+        } catch (error) {
+          loadingOverlay.classList.remove('show');
+          phoneSignInBtn.disabled = false;
+          showPhoneError('Failed to send code. Please try again.');
+          console.error('Phone auth error:', error);
+        }
+      });
+      
+      // Verify OTP code
+      verifyOtpBtn.addEventListener('click', async function() {
+        const otpCode = document.getElementById('otpCode').value.trim();
+        
+        if (!otpCode || otpCode.length !== 6) {
+          showOtpError('Please enter the 6-digit verification code');
+          return;
+        }
+        
+        loadingOverlay.classList.add('show');
+        
+        try {
+          const result = await verifyPhoneCode(otpCode);
+          
+          if (result.success) {
+            console.log('✅ Phone login successful');
+            window.location.href = 'index.html';
+          } else {
+            loadingOverlay.classList.remove('show');
+            showOtpError(result.message);
+          }
+        } catch (error) {
+          loadingOverlay.classList.remove('show');
+          showOtpError('Verification failed. Please try again.');
+          console.error('OTP verification error:', error);
+        }
+      });
+      
+      // Resend code
+      resendCodeBtn.addEventListener('click', async function() {
+        const phoneInput = document.getElementById('phoneNumber').value.trim().replace(/\D/g, '');
+        const countryCode = document.getElementById('countryCode').value;
+        const fullPhoneNumber = countryCode + phoneInput;
+        
+        resendCodeBtn.disabled = true;
+        
+        try {
+          const result = await sendPhoneVerificationCode(fullPhoneNumber);
+          
+          if (result.success) {
+            startResendCountdown();
+          } else {
+            showPhoneError(result.message);
+            resendCodeBtn.disabled = false;
+          }
+        } catch (error) {
+          showPhoneError('Failed to resend code.');
+          resendCodeBtn.disabled = false;
+        }
+      });
+      
+      // Resend countdown timer
+      function startResendCountdown() {
+        let seconds = 60;
+        resendCodeBtn.disabled = true;
+        resendCodeBtn.textContent = `Resend Code (${seconds}s)`;
+        
+        const interval = setInterval(() => {
+          seconds--;
+          resendCodeBtn.textContent = `Resend Code (${seconds}s)`;
+          
+          if (seconds <= 0) {
+            clearInterval(interval);
+            resendCodeBtn.disabled = false;
+            resendCodeBtn.textContent = 'Resend Code';
+          }
+        }, 1000);
+      }
+      
+      // Error display helpers
+      function showPhoneError(message) {
+        const errorElement = document.getElementById('phoneError');
+        if (errorElement) {
+          errorElement.textContent = message;
+          errorElement.style.display = 'block';
+        }
+      }
+      
+      function showOtpError(message) {
+        const errorElement = document.getElementById('otpError');
+        if (errorElement) {
+          errorElement.textContent = message;
+          errorElement.style.display = 'block';
+        }
+      }
+      
+      console.log('🔐 Login page initialized with phone auth');
+    });
+    
+    function showError(fieldId, message) {
+      const errorElement = document.getElementById(fieldId + 'Error');
+      const inputElement = document.getElementById(fieldId);
+      
+      if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+      }
+      
+      if (inputElement) {
+        inputElement.style.borderColor = '#fc8181';
+      }
+    }
+    
+    function clearError(fieldId) {
+      const errorElement = document.getElementById(fieldId + 'Error');
+      const inputElement = document.getElementById(fieldId);
+      
+      if (errorElement) {
+        errorElement.style.display = 'none';
+      }
+      
+      if (inputElement) {
+        inputElement.style.borderColor = '';
+      }
+    }
+    
+    function showResetError(message) {
+      const errorElement = document.getElementById('resetEmailError');
+      if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>
+

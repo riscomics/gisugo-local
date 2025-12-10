@@ -28,7 +28,7 @@
   <!-- Profile Subheader Section -->
   <div class="profile-subheader">
     <div class="profile-content">
-      <div class="profile-photo" id="profilePhotoContainer" onclick="document.getElementById('accountOverlay').classList.add('active')" role="button" tabindex="0" aria-label="Open Account Settings" style="cursor: pointer;">
+      <div class="profile-photo" id="profilePhotoContainer" onclick="openAccountSettingsIfOwner()" role="button" tabindex="0" aria-label="Open Account Settings">
         <img src="public/users/Peter-J-Ang-User-01.jpg" alt="User Profile" id="profilePhoto">
       </div>
       <div class="profile-right-column">
@@ -885,10 +885,22 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  
+  <!-- Firebase Helper Modules -->
+  <script src="public/js/firebase-config.js"></script>
+  <script src="public/js/firebase-auth.js"></script>
+  <script src="public/js/firebase-db.js"></script>
+  <script src="public/js/firebase-storage.js"></script>
+  
   <!-- UNIFORM HEADER SYSTEM -->
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=2.0"></script>
-  <script src="public/js/profile.js?v=26.0"></script>
+  <script src="public/js/profile.js?v=27.0"></script>
 
 
 </body>

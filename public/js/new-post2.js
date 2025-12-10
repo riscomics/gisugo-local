@@ -1525,7 +1525,7 @@ function initializePreviewOverlay() {
 
 // ========================== POST JOB ==========================
 
-function postJob() {
+async function postJob() {
   // Generate job number from timestamp
   const jobNumber = Date.now();
   
@@ -1586,10 +1586,38 @@ function postJob() {
     updatedAt: new Date().toISOString()
   };
   
-  // Save to localStorage
+  // Save to Firebase if available, otherwise use localStorage
   try {
     console.log('📝 Attempting to save job (mode: ' + np2State.mode + '):', job);
     console.log('📝 Job category:', np2State.selectedCategory);
+    
+    // 🔥 Firebase Integration - Try Firebase first
+    if (typeof createJob === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+      console.log('🔥 Saving job to Firebase...');
+      
+      try {
+        const result = await createJob(job);
+        
+        if (result.success) {
+          console.log('✅ Job saved to Firebase with ID:', result.jobId);
+          
+          // Also save to localStorage for offline/demo access
+          saveToJobPreviewCards(job);
+          
+          // Close preview overlay and show success
+          document.getElementById('previewOverlay').classList.remove('show');
+          showSuccessOverlay();
+          return;
+        } else {
+          console.warn('⚠️ Firebase save failed, falling back to localStorage:', result.message);
+        }
+      } catch (firebaseError) {
+        console.error('❌ Firebase error, falling back to localStorage:', firebaseError);
+      }
+    }
+    
+    // 📦 Fallback to localStorage
+    console.log('📦 Saving job to localStorage...');
     
     let allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
     console.log('📝 Existing jobs:', allJobs);
