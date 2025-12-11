@@ -20,7 +20,7 @@
   --header-gap: clamp(0.66rem, 1.9vw, 0.9rem);
   --logo-size-ref: clamp(58px, 9.5vw, 96px);
   --header-height: calc(var(--logo-size-ref) + (2 * var(--header-gap)));
-  --borderline-height: 4px;
+  --borderline-height: 6px;
 }
 
 /* Optional fine-tune: slightly smaller gap on ultra-small phones */
@@ -976,19 +976,41 @@ section {
   object-fit: cover;
   flex-shrink: 0;
   border: 3px solid var(--accent-color);
-  box-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(16, 185, 129, 0.15);
-  animation: logoPulse 3s ease-in-out infinite;
+  box-shadow: 0 0 12px var(--accent-glow);
+  position: relative;
+  z-index: 1;
 }
 
-@keyframes logoPulse {
-  0%, 100% {
-    box-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(16, 185, 129, 0.15);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 30px var(--accent-glow), 0 0 60px rgba(16, 185, 129, 0.25);
-    transform: scale(1.02);
-  }
+/* Rotating light trace ring behind logo */
+.header__logo-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.header__logo-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 270deg,
+    var(--accent-color) 300deg,
+    #38bdf8 330deg,
+    #7dd3fc 345deg,
+    transparent 360deg
+  );
+  animation: logoTraceRotate 3s linear infinite;
+  z-index: 0;
+}
+
+@keyframes logoTraceRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .header__logo-text {
@@ -1061,10 +1083,30 @@ section {
   color: var(--accent-color);
   line-height: 1;
   filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
+  animation: menuSonarRipple 2.5s ease-out infinite;
+  border-radius: 50%;
+}
+
+@keyframes menuSonarRipple {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    opacity: 0.5;
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.1);
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 1;
+    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+  }
 }
 
 .header__menu:hover .header__menu-emoji {
   filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.5));
+  animation-play-state: paused;
 }
 
 /* Keep img styling for backwards compatibility */
