@@ -1,47 +1,93 @@
 // ========================== SHARED MENU SYSTEM ==========================
 // Single source of truth for all 5-icon menu overlays
 // Uses the exact same simple paths that worked in the original hardcoded version
-// 🔥 FIREBASE INTEGRATED - Shows login/logout based on auth state
+// 🔥 FIREBASE READY - Auth enforcement activates when Firebase is connected
+
+// ⚙️ DEV MODE: Set to false when Firebase auth is ready for production
+// When true: All menu items accessible without login (for development/testing)
+// When false: Protected items redirect to login.html if not authenticated
+const DEV_MODE_BYPASS_AUTH = true;
 
 const MENU_ITEMS = [
   {
     emoji: '🏠',
     text: 'Home',
-    link: 'index.html'
+    link: 'index.html',
+    requiresAuth: false  // Home is always accessible
   },
   {
     emoji: '✏️',
     text: 'Post',
-    link: 'new-post2.html'
+    link: 'new-post2.html',
+    requiresAuth: true   // Requires login (when auth active)
   },
   {
     emoji: '💬',
     text: 'Messages',
-    link: 'messages.html'
+    link: 'messages.html',
+    requiresAuth: true   // Requires login (when auth active)
   },
   {
     emoji: '💼',
     text: 'Gigs',
-    link: 'jobs.html'
+    link: 'jobs.html',
+    requiresAuth: true   // Requires login (when auth active)
   },
   {
     emoji: '👤',
     text: 'Profile',
     link: 'profile.html',
-    id: 'profile-menu-item'
+    id: 'profile-menu-item',
+    requiresAuth: true   // Requires login (when auth active)
   }
 ];
 
+// Check if Firebase is actually configured and connected
+function isFirebaseActive() {
+  return typeof firebase !== 'undefined' && 
+         firebase.apps && 
+         firebase.apps.length > 0;
+}
+
+// Check if user is currently logged in
+function checkUserLoggedIn() {
+  // If dev mode is on OR Firebase isn't active, allow access
+  if (DEV_MODE_BYPASS_AUTH || !isFirebaseActive()) {
+    return true; // Bypass auth check in dev mode
+  }
+  
+  // Production mode with Firebase active - check actual auth state
+  if (typeof isLoggedIn === 'function') {
+    return isLoggedIn();
+  }
+  return false;
+}
+
+// Handle menu item click with auth check
+function handleMenuClick(link, requiresAuth) {
+  // In dev mode or no Firebase: always allow navigation
+  if (DEV_MODE_BYPASS_AUTH || !isFirebaseActive()) {
+    window.location.href = link;
+    return;
+  }
+  
+  // Production mode: enforce auth for protected items
+  if (requiresAuth && !checkUserLoggedIn()) {
+    window.location.href = 'login.html';
+  } else {
+    window.location.href = link;
+  }
+}
+
 // Dynamically generates menu HTML with emojis
 function generateMenuHTML() {
-  // Check if user is logged in (Firebase auth)
-  const isUserLoggedIn = typeof isLoggedIn === 'function' ? isLoggedIn() : false;
-  
   let menuHTML = MENU_ITEMS.map(item => {
     const link = item.link || '#';
-    const clickHandler = item.link ? `onclick="window.location.href='${item.link}'"` : '';
-    const cursorStyle = !item.link ? 'style="cursor: default; opacity: 0.5;"' : '';
     const itemId = item.id ? `id="${item.id}"` : '';
+    const clickHandler = item.link 
+      ? `onclick="handleMenuClick('${item.link}', ${item.requiresAuth})"` 
+      : '';
+    const cursorStyle = !item.link ? 'style="cursor: default; opacity: 0.5;"' : '';
     
     return `
       <div class="menu-item-wrapper ${item.text.toLowerCase()}-menu-item" ${itemId} ${clickHandler} ${cursorStyle}>
@@ -51,19 +97,12 @@ function generateMenuHTML() {
     `;
   }).join('');
   
-  // Add login/logout item based on auth state
-  if (isUserLoggedIn) {
+  // Only show Logout when Firebase is active AND user is logged in
+  if (isFirebaseActive() && !DEV_MODE_BYPASS_AUTH && typeof isLoggedIn === 'function' && isLoggedIn()) {
     menuHTML += `
       <div class="menu-item-wrapper logout-menu-item" onclick="handleMenuLogout()" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px;">
         <div class="menu-emoji">🚪</div>
         <div>Logout</div>
-      </div>
-    `;
-  } else {
-    menuHTML += `
-      <div class="menu-item-wrapper login-menu-item" onclick="window.location.href='login.html'" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px;">
-        <div class="menu-emoji">🔐</div>
-        <div>Login</div>
       </div>
     `;
   }
