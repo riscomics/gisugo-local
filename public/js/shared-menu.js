@@ -1,12 +1,7 @@
 // ========================== SHARED MENU SYSTEM ==========================
 // Single source of truth for all 5-icon menu overlays
 // Uses the exact same simple paths that worked in the original hardcoded version
-// 🔥 FIREBASE READY - Auth enforcement activates when Firebase is connected
-
-// ⚙️ DEV MODE: Set to false when Firebase auth is ready for production
-// When true: All menu items accessible without login (for development/testing)
-// When false: Protected items redirect to login.html if not authenticated
-const DEV_MODE_BYPASS_AUTH = true;
+// 🔥 FIREBASE READY - Auth enforcement controlled by APP_CONFIG (app-config.js)
 
 const MENU_ITEMS = [
   {
@@ -42,18 +37,11 @@ const MENU_ITEMS = [
   }
 ];
 
-// Check if Firebase is actually configured and connected
-function isFirebaseActive() {
-  return typeof firebase !== 'undefined' && 
-         firebase.apps && 
-         firebase.apps.length > 0;
-}
-
-// Check if user is currently logged in
+// Check if user is currently logged in (uses APP_CONFIG from app-config.js)
 function checkUserLoggedIn() {
-  // If dev mode is on OR Firebase isn't active, allow access
-  if (DEV_MODE_BYPASS_AUTH || !isFirebaseActive()) {
-    return true; // Bypass auth check in dev mode
+  // Check if APP_CONFIG exists and if we should require auth
+  if (typeof APP_CONFIG !== 'undefined' && !APP_CONFIG.requireAuth()) {
+    return true; // Dev mode or Firebase not connected - allow access
   }
   
   // Production mode with Firebase active - check actual auth state
@@ -65,8 +53,12 @@ function checkUserLoggedIn() {
 
 // Handle menu item click with auth check
 function handleMenuClick(link, requiresAuth) {
+  // Check APP_CONFIG for dev mode
+  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : true;
+  const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
+  
   // In dev mode or no Firebase: always allow navigation
-  if (DEV_MODE_BYPASS_AUTH || !isFirebaseActive()) {
+  if (isDevMode || !firebaseConnected) {
     window.location.href = link;
     return;
   }
@@ -81,6 +73,9 @@ function handleMenuClick(link, requiresAuth) {
 
 // Dynamically generates menu HTML with emojis
 function generateMenuHTML() {
+  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : true;
+  const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
+  
   let menuHTML = MENU_ITEMS.map(item => {
     const link = item.link || '#';
     const itemId = item.id ? `id="${item.id}"` : '';
@@ -97,8 +92,8 @@ function generateMenuHTML() {
     `;
   }).join('');
   
-  // Only show Logout when Firebase is active AND user is logged in
-  if (isFirebaseActive() && !DEV_MODE_BYPASS_AUTH && typeof isLoggedIn === 'function' && isLoggedIn()) {
+  // Only show Logout when Firebase is active AND not in dev mode AND user is logged in
+  if (firebaseConnected && !isDevMode && typeof isLoggedIn === 'function' && isLoggedIn()) {
     menuHTML += `
       <div class="menu-item-wrapper logout-menu-item" onclick="handleMenuLogout()" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px;">
         <div class="menu-emoji">🚪</div>

@@ -3506,9 +3506,36 @@
                     </div>
                 </div>
                 
-                <!-- Data Management Section -->
-                <div class="settings-danger-zone">
+                <!-- Development Tools Section -->
+                <div class="settings-danger-zone dev-tools-zone">
                     <h3 class="danger-zone-title">🔧 Development Tools</h3>
+                    
+                    <!-- Dev Mode Toggle -->
+                    <div class="dev-mode-panel">
+                        <div class="dev-mode-header">
+                            <div class="dev-mode-info">
+                                <span class="dev-mode-label">Developer Mode</span>
+                                <span class="dev-mode-description">Bypass auth requirements and use mock data</span>
+                            </div>
+                            <label class="dev-mode-switch">
+                                <input type="checkbox" id="devModeToggle" checked>
+                                <span class="dev-mode-slider"></span>
+                            </label>
+                        </div>
+                        <div class="dev-mode-status">
+                            <div class="status-item">
+                                <span class="status-icon" id="devModeIcon">🟢</span>
+                                <span class="status-text" id="devModeStatus">Dev Mode: ON</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-icon" id="firebaseIcon">🔴</span>
+                                <span class="status-text" id="firebaseStatus">Firebase: Not Connected</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reset Analytics -->
+                    <div class="dev-tools-divider"></div>
                     <p class="danger-zone-description">Reset mock analytics data to baseline values. This will clear all accumulated counts and start fresh.</p>
                     <button class="reset-data-btn" id="resetMockDataBtn">
                         <span class="reset-btn-icon">🔄</span>
@@ -3704,8 +3731,52 @@
     <script src="public/js/firebase-db.js"></script>
     <script src="public/js/firebase-storage.js"></script>
     
+    <!-- App Config (Dev/Production Mode) -->
+    <script src="public/js/app-config.js"></script>
+    
     <!-- Basic JavaScript for Navigation -->
     <script src="public/js/admin-dashboard.js"></script>
+    
+    <!-- Dev Mode Toggle Handler -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const devModeToggle = document.getElementById('devModeToggle');
+        const devModeIcon = document.getElementById('devModeIcon');
+        const devModeStatus = document.getElementById('devModeStatus');
+        const firebaseIcon = document.getElementById('firebaseIcon');
+        const firebaseStatus = document.getElementById('firebaseStatus');
+        
+        // Initialize toggle state from APP_CONFIG
+        function updateDevModeUI() {
+            if (typeof APP_CONFIG !== 'undefined') {
+                const isDevMode = APP_CONFIG.devMode;
+                devModeToggle.checked = isDevMode;
+                devModeIcon.textContent = isDevMode ? '🟢' : '🔴';
+                devModeStatus.textContent = isDevMode ? 'Dev Mode: ON' : 'Dev Mode: OFF';
+                
+                // Update Firebase status
+                const fbConnected = APP_CONFIG.isFirebaseConnected;
+                firebaseIcon.textContent = fbConnected ? '🟢' : '🔴';
+                firebaseStatus.textContent = fbConnected ? 'Firebase: Connected' : 'Firebase: Not Connected';
+            }
+        }
+        
+        // Handle toggle change
+        devModeToggle.addEventListener('change', function() {
+            if (typeof APP_CONFIG !== 'undefined') {
+                APP_CONFIG.devMode = this.checked;
+                updateDevModeUI();
+                
+                // Show confirmation
+                const mode = this.checked ? 'Developer' : 'Production';
+                console.log(`🔧 Switched to ${mode} Mode`);
+            }
+        });
+        
+        // Initialize on load
+        updateDevModeUI();
+    });
+    </script>
     
 </body>
 </html>
