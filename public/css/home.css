@@ -191,13 +191,20 @@ section {
   color: var(--text-primary);
 }
 
-/* Accent Line - Green Gradient */
+/* Accent Line - Metallic Steel Blue */
 .accent-line1 {
   margin-top: 0;
   height: var(--borderline-height);
-  background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent-color) 50%, var(--accent-dark) 100%);
+  background: linear-gradient(180deg, 
+    #7dd3fc 0%,      /* Light sky highlight */
+    #38bdf8 20%,     /* Bright blue */
+    #0284c7 50%,     /* Core steel blue */
+    #0369a1 80%,     /* Darker blue */
+    #075985 100%     /* Deep shadow */
+  );
   width: 100%;
-  box-shadow: 0 2px 8px var(--accent-glow);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* First accent line in header */
@@ -447,9 +454,17 @@ section {
 }
 
 .accent-line2 {
-  height: 3px;
-  background: linear-gradient(90deg, #4a5568 0%, #718096 50%, #4a5568 100%);
+  height: var(--borderline-height);
+  background: linear-gradient(180deg, 
+    #7dd3fc 0%,
+    #38bdf8 20%,
+    #0284c7 50%,
+    #0369a1 80%,
+    #075985 100%
+  );
   width: 100%;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Enhanced Desktop Styles */
@@ -922,9 +937,17 @@ section {
 }
 
 .accent-line2 {
-  height: 3px;
-  background: linear-gradient(90deg, #4a5568 0%, #718096 50%, #4a5568 100%);
+  height: var(--borderline-height);
+  background: linear-gradient(180deg, 
+    #7dd3fc 0%,
+    #38bdf8 20%,
+    #0284c7 50%,
+    #0369a1 80%,
+    #075985 100%
+  );
   width: 100%;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Header Styles - Modern Dark Theme */
@@ -1328,9 +1351,16 @@ section {
 .accent-line1 {
   margin-top: 0;
   height: var(--borderline-height);
-  background: linear-gradient(90deg, var(--accent-dark) 0%, var(--accent-color) 50%, var(--accent-dark) 100%);
+  background: linear-gradient(180deg, 
+    #7dd3fc 0%,
+    #38bdf8 20%,
+    #0284c7 50%,
+    #0369a1 80%,
+    #075985 100%
+  );
   width: 100%;
-  box-shadow: 0 2px 8px var(--accent-glow);
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Keep existing media queries but override only if needed for extremes */
