@@ -191,20 +191,20 @@ section {
   color: var(--text-primary);
 }
 
-/* Accent Line - Metallic Gold */
+/* Accent Line - Metallic Dark Gold/Bronze */
 .accent-line1 {
   margin-top: 0;
   height: var(--borderline-height);
   background: linear-gradient(180deg, 
-    #fef3c7 0%,      /* Light cream highlight */
-    #fcd34d 20%,     /* Bright gold */
-    #f59e0b 50%,     /* Core amber */
-    #d97706 80%,     /* Darker gold */
-    #b45309 100%     /* Deep bronze shadow */
+    #d4a855 0%,      /* Muted gold highlight */
+    #b8860b 20%,     /* Dark goldenrod */
+    #996515 50%,     /* Core bronze */
+    #7a5210 80%,     /* Dark bronze */
+    #5c3d0c 100%     /* Deep shadow */
   );
   width: 100%;
-  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* First accent line in header */
@@ -456,15 +456,15 @@ section {
 .accent-line2 {
   height: var(--borderline-height);
   background: linear-gradient(180deg, 
-    #fef3c7 0%,
-    #fcd34d 20%,
-    #f59e0b 50%,
-    #d97706 80%,
-    #b45309 100%
+    #d4a855 0%,
+    #b8860b 20%,
+    #996515 50%,
+    #7a5210 80%,
+    #5c3d0c 100%
   );
   width: 100%;
-  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* Enhanced Desktop Styles */
@@ -939,15 +939,15 @@ section {
 .accent-line2 {
   height: var(--borderline-height);
   background: linear-gradient(180deg, 
-    #fef3c7 0%,
-    #fcd34d 20%,
-    #f59e0b 50%,
-    #d97706 80%,
-    #b45309 100%
+    #d4a855 0%,
+    #b8860b 20%,
+    #996515 50%,
+    #7a5210 80%,
+    #5c3d0c 100%
   );
   width: 100%;
-  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* Header Styles - Modern Dark Theme */
@@ -1069,12 +1069,26 @@ section {
   align-items: center;
   margin-right: clamp(8px, 2vw, 12px);
   transition: all 0.3s ease;
+  animation: menuButtonPulse 2.5s ease-out infinite;
+}
+
+@keyframes menuButtonPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.1);
+  }
+  100% {
+    box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
+  }
 }
 
 .header__menu:hover {
   background: rgba(16, 185, 129, 0.15);
   border-color: var(--accent-color);
   transform: scale(1.05);
+  animation-play-state: paused;
 } 
 
 .header__menu-emoji {
@@ -1083,30 +1097,10 @@ section {
   color: var(--accent-color);
   line-height: 1;
   filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
-  animation: menuSonarRipple 2.5s ease-out infinite;
-  border-radius: 50%;
-}
-
-@keyframes menuSonarRipple {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.8;
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
-  }
-  50% {
-    opacity: 0.5;
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.1);
-  }
-  100% {
-    transform: scale(1.1);
-    opacity: 1;
-    box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
-  }
 }
 
 .header__menu:hover .header__menu-emoji {
   filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.5));
-  animation-play-state: paused;
 }
 
 /* Keep img styling for backwards compatibility */
@@ -1394,15 +1388,15 @@ section {
   margin-top: 0;
   height: var(--borderline-height);
   background: linear-gradient(180deg, 
-    #fef3c7 0%,
-    #fcd34d 20%,
-    #f59e0b 50%,
-    #d97706 80%,
-    #b45309 100%
+    #d4a855 0%,
+    #b8860b 20%,
+    #996515 50%,
+    #7a5210 80%,
+    #5c3d0c 100%
   );
   width: 100%;
-  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.4), 
-              inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* Keep existing media queries but override only if needed for extremes */
