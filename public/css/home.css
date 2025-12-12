@@ -77,14 +77,18 @@ a, button, [role="button"], .header__menu, .service-card, .menu-list a, .footer 
 html {
   width: 100%;
   overflow-x: hidden;
+  background-color: #1a202c; /* Fallback for overscroll */
+  overscroll-behavior: none;
 }
 
 body {
   font-family: var(--font-family);
   background: var(--background-gradient);
+  background-color: #1a202c; /* Fallback for overscroll */
   background-attachment: fixed;
   line-height: 1.6;
   padding-top: 0;
+  overscroll-behavior-y: none;
   width: 100%;
   overflow-x: hidden;
   position: relative;
@@ -1151,7 +1155,7 @@ section {
 
 .header__menu:hover .header__menu-emoji {
   filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.5));
-}
+} 
 
 /* Keep img styling for backwards compatibility */
 .header__menu img {
