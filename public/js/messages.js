@@ -6554,10 +6554,18 @@ function hideAvatarOverlayOnOutsideClick(event) {
 // Firebase Helper Functions
 function getCurrentUserId() {
     // Get current user ID from Firebase Auth or session storage
-    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-        return firebase.auth().currentUser.uid;
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+                return currentUser.uid;
+            }
+        }
+    } catch (e) {
+        // Firebase not initialized or auth not available - use fallback
+        console.log('📋 Using mock user ID (Firebase not connected)');
     }
-    // Fallback to session storage for development
+    // Fallback to localStorage for development/offline mode
     return localStorage.getItem('currentUserId') || '1'; // Peter's ID for mock environment
 }
 

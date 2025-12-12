@@ -613,9 +613,17 @@ function hasVerificationStatus(userProfile) {
 
 // Get current user ID (enhanced from existing logic)
 function getCurrentUserId() {
-  // Check Firebase Auth first
-  if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-    return firebase.auth().currentUser.uid;
+  // Check Firebase Auth first (with try-catch for uninitialized Firebase)
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        return currentUser.uid;
+      }
+    }
+  } catch (e) {
+    // Firebase not initialized - use fallback
+    console.log('📋 Using mock user ID (Firebase not connected)');
   }
   
   // Fallback to mock user for development
