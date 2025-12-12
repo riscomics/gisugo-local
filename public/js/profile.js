@@ -560,9 +560,17 @@ window.saveProfileChanges = saveProfileChanges;
 
 // Check if user is currently logged in
 function isUserLoggedIn() {
-  // Check Firebase Auth first (for production)
-  if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
-    return true;
+  // Check Firebase Auth first (for production) - with try-catch for uninitialized Firebase
+  try {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        return true;
+      }
+    }
+  } catch (e) {
+    // Firebase not initialized - continue to fallback checks
+    console.log('📋 Firebase not connected, using fallback auth check');
   }
   
   // Fallback to mock check for development AND demo purposes
