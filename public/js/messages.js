@@ -5616,24 +5616,56 @@ function initializeChatInputFunctionality(modalOverlay) {
         return;
     }
     
-    // Use original CSS class system for input expansion
-    inputField.addEventListener('focus', function() {
+    // Track listeners for cleanup
+    const listeners = [];
+    
+    // Helper to add tracked listener
+    const addTrackedListener = (element, event, handler) => {
+        element.addEventListener(event, handler);
+        listeners.push({ element, event, handler });
+    };
+    
+    // Focus handler with scrollIntoView safety net for mobile keyboards
+    const focusHandler = function() {
         this.classList.add('expanded');
         inputContainer.classList.add('input-focused');
-    });
+        
+        // SAFETY NET: Scroll input into view when keyboard appears
+        // Small delay to let keyboard animation start
+        setTimeout(() => {
+            if (document.activeElement === this) {
+                this.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+        }, 300);
+    };
     
-    inputField.addEventListener('blur', function() {
+    // Blur handler
+    const blurHandler = function() {
         // Only remove expanded if input is empty
         if (this.value.trim() === '') {
             this.classList.remove('expanded');
         }
         inputContainer.classList.remove('input-focused');
-    });
+    };
     
-    inputField.addEventListener('input', function() {
+    // Input handler
+    const inputHandler = function() {
         // Keep expanded while typing
         this.classList.add('expanded');
-    });
+    };
+    
+    // Add tracked listeners
+    addTrackedListener(inputField, 'focus', focusHandler);
+    addTrackedListener(inputField, 'blur', blurHandler);
+    addTrackedListener(inputField, 'input', inputHandler);
+    
+    // Store cleanup function on modal for later removal
+    modalOverlay._inputCleanup = () => {
+        listeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        console.log('🧹 Chat input listeners cleaned up');
+    };
     
     // Send message functionality
     const sendMessage = () => {
@@ -5970,10 +6002,48 @@ function handlePhotoUpload(file, modalOverlay) {
 // Close chat modal
 function closeChatModal(modalOverlay) {
     if (modalOverlay && modalOverlay.parentNode) {
-        // Cleanup event listeners
+        // === AGGRESSIVE CLEANUP START ===
+        
+        // 1. Cleanup general event listeners
         if (modalOverlay._cleanup) {
             modalOverlay._cleanup();
         }
+        
+        // 2. Cleanup input-specific event listeners (focus, blur, input)
+        if (modalOverlay._inputCleanup) {
+            modalOverlay._inputCleanup();
+        }
+        
+        // 3. Blur any focused input to dismiss keyboard
+        const activeInput = modalOverlay.querySelector('.chat-input');
+        if (activeInput && document.activeElement === activeInput) {
+            activeInput.blur();
+        }
+        
+        // 4. Reset any inline styles on modal elements
+        const inputContainer = modalOverlay.querySelector('.chat-input-container');
+        if (inputContainer) {
+            inputContainer.style.cssText = '';
+            inputContainer.classList.remove('input-focused');
+        }
+        if (activeInput) {
+            activeInput.style.cssText = '';
+            activeInput.classList.remove('expanded');
+        }
+        
+        // 5. Reset scroll positions within modal
+        const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = 0;
+        }
+        
+        // 6. Reset window scroll to prevent positioning issues on next open
+        window.scrollTo(0, 0);
+        
+        // 7. Call mobile input visibility cleanup
+        cleanupMobileInputVisibility();
+        
+        // === AGGRESSIVE CLEANUP END ===
         
         // Reset all thread states and remove greyed out appearance
         const allMessageThreads = document.querySelectorAll('.message-thread');
@@ -6011,7 +6081,7 @@ function closeChatModal(modalOverlay) {
             }
         }, 300);
         
-        console.log('✅ Chat modal closed and cleaned up');
+        console.log('✅ Chat modal closed with aggressive cleanup');
     }
 }
 
