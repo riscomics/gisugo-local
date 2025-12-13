@@ -2352,11 +2352,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s ease-in-out, height 0.15s ease-out;
+  transition: opacity 0.3s ease-in-out;
   padding: 20px; /* Safe area padding */
   box-sizing: border-box;
-  /* Visual Viewport API support - allow dynamic resizing */
-  will-change: height, top;
 }
 
 .chat-modal-overlay.show {
@@ -2377,9 +2375,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   flex-direction: column;
   overflow: hidden;
   animation: modalSlideIn 0.3s ease-out;
-  /* Visual Viewport API support - smooth keyboard resize */
-  transition: height 0.15s ease-out, max-height 0.15s ease-out;
-  will-change: height, max-height;
+  /* No transition - JS handles timing with delay for smoother keyboard resize */
 }
 
 /* Chat Modal Header - Clickable to open options */
