@@ -5528,6 +5528,52 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     const chatHeader = modalOverlay.querySelector('.chat-modal-header');
     const modalContainer = modalOverlay.querySelector('.chat-modal-container');
     
+    // ===== VISUAL VIEWPORT API - Auto-resize for mobile keyboard =====
+    let viewportHandler = null;
+    const originalHeight = window.innerHeight;
+    
+    if (window.visualViewport) {
+        viewportHandler = () => {
+            const viewport = window.visualViewport;
+            const viewportHeight = viewport.height;
+            const viewportOffsetTop = viewport.offsetTop;
+            
+            // Calculate if keyboard is likely open (significant height reduction)
+            const heightDiff = originalHeight - viewportHeight;
+            const keyboardLikelyOpen = heightDiff > 100; // Threshold for keyboard detection
+            
+            if (keyboardLikelyOpen) {
+                // Keyboard is open - resize modal to fit visible area
+                const safeHeight = viewportHeight - 40; // 40px padding
+                modalContainer.style.height = safeHeight + 'px';
+                modalContainer.style.maxHeight = safeHeight + 'px';
+                
+                // Adjust overlay to account for viewport offset (iOS Safari quirk)
+                modalOverlay.style.height = viewportHeight + 'px';
+                modalOverlay.style.top = viewportOffsetTop + 'px';
+                
+                console.log(`📱 Keyboard detected - resizing modal to ${safeHeight}px`);
+            } else {
+                // Keyboard closed - reset to CSS defaults
+                modalContainer.style.height = '';
+                modalContainer.style.maxHeight = '';
+                modalOverlay.style.height = '';
+                modalOverlay.style.top = '';
+                
+                console.log('📱 Keyboard closed - resetting modal size');
+            }
+        };
+        
+        // Listen to both resize and scroll events on visualViewport
+        window.visualViewport.addEventListener('resize', viewportHandler);
+        window.visualViewport.addEventListener('scroll', viewportHandler);
+        
+        console.log('📱 Visual Viewport API initialized for keyboard handling');
+    } else {
+        console.log('⚠️ Visual Viewport API not available - using fallback');
+    }
+    // ===== END VISUAL VIEWPORT API =====
+    
     // Menu handler - show options overlay (triggered by header or menu button)
     const menuHandler = (e) => {
         e.stopPropagation();
@@ -5600,6 +5646,13 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         chatHeader.removeEventListener('click', menuHandler);
         modalOverlay.removeEventListener('click', outsideClickHandler);
         document.removeEventListener('keydown', escapeHandler);
+        
+        // Clean up Visual Viewport listeners
+        if (window.visualViewport && viewportHandler) {
+            window.visualViewport.removeEventListener('resize', viewportHandler);
+            window.visualViewport.removeEventListener('scroll', viewportHandler);
+            console.log('🧹 Visual Viewport listeners cleaned up');
+        }
     };
 }
 
