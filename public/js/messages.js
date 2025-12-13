@@ -5542,35 +5542,38 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
             
             // Delay resize to let keyboard animation settle
             resizeTimeout = setTimeout(() => {
-                const viewport = window.visualViewport;
-                const viewportHeight = viewport.height;
-                const viewportOffsetTop = viewport.offsetTop;
-                
-                // Calculate if keyboard is likely open (significant height reduction)
-                const heightDiff = originalHeight - viewportHeight;
-                const keyboardLikelyOpen = heightDiff > 100; // Threshold for keyboard detection
-                
-                if (keyboardLikelyOpen) {
-                    // Keyboard is open - resize modal to fit visible area
-                    const safeHeight = viewportHeight - 40; // 40px padding
-                    modalContainer.style.height = safeHeight + 'px';
-                    modalContainer.style.maxHeight = safeHeight + 'px';
+                // Use requestAnimationFrame to sync with browser paint cycle
+                requestAnimationFrame(() => {
+                    const viewport = window.visualViewport;
+                    const viewportHeight = viewport.height;
+                    const viewportOffsetTop = viewport.offsetTop;
                     
-                    // Adjust overlay to account for viewport offset (iOS Safari quirk)
-                    modalOverlay.style.height = viewportHeight + 'px';
-                    modalOverlay.style.top = viewportOffsetTop + 'px';
+                    // Calculate if keyboard is likely open (significant height reduction)
+                    const heightDiff = originalHeight - viewportHeight;
+                    const keyboardLikelyOpen = heightDiff > 100; // Threshold for keyboard detection
                     
-                    console.log(`📱 Keyboard settled - resizing modal to ${safeHeight}px`);
-                } else {
-                    // Keyboard closed - reset to CSS defaults
-                    modalContainer.style.height = '';
-                    modalContainer.style.maxHeight = '';
-                    modalOverlay.style.height = '';
-                    modalOverlay.style.top = '';
-                    
-                    console.log('📱 Keyboard closed - resetting modal size');
-                }
-            }, 150); // 150ms delay for keyboard to settle
+                    if (keyboardLikelyOpen) {
+                        // Keyboard is open - resize modal to fit visible area
+                        const safeHeight = viewportHeight - 40; // 40px padding
+                        modalContainer.style.height = safeHeight + 'px';
+                        modalContainer.style.maxHeight = safeHeight + 'px';
+                        
+                        // Adjust overlay to account for viewport offset (iOS Safari quirk)
+                        modalOverlay.style.height = viewportHeight + 'px';
+                        modalOverlay.style.top = viewportOffsetTop + 'px';
+                        
+                        console.log(`📱 Keyboard settled - resizing modal to ${safeHeight}px`);
+                    } else {
+                        // Keyboard closed - reset to CSS defaults
+                        modalContainer.style.height = '';
+                        modalContainer.style.maxHeight = '';
+                        modalOverlay.style.height = '';
+                        modalOverlay.style.top = '';
+                        
+                        console.log('📱 Keyboard closed - resetting modal size');
+                    }
+                });
+            }, 100); // 100ms delay + rAF for smoother sync
         };
         
         // Listen to both resize and scroll events on visualViewport
