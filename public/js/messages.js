@@ -5530,50 +5530,38 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     
     // ===== VISUAL VIEWPORT API - Auto-resize for mobile keyboard =====
     let viewportHandler = null;
-    let resizeTimeout = null;
     const originalHeight = window.innerHeight;
     
     if (window.visualViewport) {
         viewportHandler = () => {
-            // Clear any pending resize to debounce rapid events
-            if (resizeTimeout) {
-                clearTimeout(resizeTimeout);
-            }
+            const viewport = window.visualViewport;
+            const viewportHeight = viewport.height;
+            const viewportOffsetTop = viewport.offsetTop;
             
-            // Delay resize to let keyboard animation settle
-            resizeTimeout = setTimeout(() => {
-                // Use requestAnimationFrame to sync with browser paint cycle
-                requestAnimationFrame(() => {
-                    const viewport = window.visualViewport;
-                    const viewportHeight = viewport.height;
-                    const viewportOffsetTop = viewport.offsetTop;
-                    
-                    // Calculate if keyboard is likely open (significant height reduction)
-                    const heightDiff = originalHeight - viewportHeight;
-                    const keyboardLikelyOpen = heightDiff > 100; // Threshold for keyboard detection
-                    
-                    if (keyboardLikelyOpen) {
-                        // Keyboard is open - resize modal to fit visible area
-                        const safeHeight = viewportHeight - 40; // 40px padding
-                        modalContainer.style.height = safeHeight + 'px';
-                        modalContainer.style.maxHeight = safeHeight + 'px';
-                        
-                        // Adjust overlay to account for viewport offset (iOS Safari quirk)
-                        modalOverlay.style.height = viewportHeight + 'px';
-                        modalOverlay.style.top = viewportOffsetTop + 'px';
-                        
-                        console.log(`📱 Keyboard settled - resizing modal to ${safeHeight}px`);
-                    } else {
-                        // Keyboard closed - reset to CSS defaults
-                        modalContainer.style.height = '';
-                        modalContainer.style.maxHeight = '';
-                        modalOverlay.style.height = '';
-                        modalOverlay.style.top = '';
-                        
-                        console.log('📱 Keyboard closed - resetting modal size');
-                    }
-                });
-            }, 100); // 100ms delay + rAF for smoother sync
+            // Calculate if keyboard is likely open (significant height reduction)
+            const heightDiff = originalHeight - viewportHeight;
+            const keyboardLikelyOpen = heightDiff > 100; // Threshold for keyboard detection
+            
+            if (keyboardLikelyOpen) {
+                // Keyboard is open - resize modal to fit visible area
+                const safeHeight = viewportHeight - 40; // 40px padding
+                modalContainer.style.height = safeHeight + 'px';
+                modalContainer.style.maxHeight = safeHeight + 'px';
+                
+                // Adjust overlay to account for viewport offset (iOS Safari quirk)
+                modalOverlay.style.height = viewportHeight + 'px';
+                modalOverlay.style.top = viewportOffsetTop + 'px';
+                
+                console.log(`📱 Keyboard detected - resizing modal to ${safeHeight}px`);
+            } else {
+                // Keyboard closed - reset to CSS defaults
+                modalContainer.style.height = '';
+                modalContainer.style.maxHeight = '';
+                modalOverlay.style.height = '';
+                modalOverlay.style.top = '';
+                
+                console.log('📱 Keyboard closed - resetting modal size');
+            }
         };
         
         // Listen to both resize and scroll events on visualViewport
@@ -5659,10 +5647,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         modalOverlay.removeEventListener('click', outsideClickHandler);
         document.removeEventListener('keydown', escapeHandler);
         
-        // Clean up Visual Viewport listeners and pending timeout
-        if (resizeTimeout) {
-            clearTimeout(resizeTimeout);
-        }
+        // Clean up Visual Viewport listeners
         if (window.visualViewport && viewportHandler) {
             window.visualViewport.removeEventListener('resize', viewportHandler);
             window.visualViewport.removeEventListener('scroll', viewportHandler);
