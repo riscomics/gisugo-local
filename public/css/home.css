@@ -1361,26 +1361,33 @@ section {
   text-shadow: 0 0 12px rgba(77, 184, 214, 0.8);
 }
 
-/* PROFESSIONAL - Gold/Premium (Elite) */
+/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) */
 .category-header.tier-professional {
   background: linear-gradient(135deg, 
-    #3d3520 0%, 
-    #5c4f2a 25%, 
-    #7a6935 50%, 
-    #5c4f2a 75%, 
-    #3d3520 100%);
-  border-left: 4px solid #ffd700;
-  border-right: 4px solid #ffd700;
+    #4a3d1a 0%, 
+    #8b7529 15%, 
+    #d4af37 35%, 
+    #f5d86a 50%, 
+    #d4af37 65%, 
+    #8b7529 85%, 
+    #4a3d1a 100%);
+  border-left: 4px solid #f5d86a;
+  border-right: 4px solid #f5d86a;
+  border-top: 1px solid rgba(245, 216, 106, 0.5);
+  border-bottom: 1px solid rgba(139, 117, 41, 0.8);
   box-shadow: 
-    inset 0 1px 0 rgba(255, 215, 0, 0.3),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 4px 12px rgba(255, 215, 0, 0.25);
+    inset 0 2px 4px rgba(245, 216, 106, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 6px 20px rgba(212, 175, 55, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 216, 106, 0.3);
 }
 
 .category-header.tier-professional::before,
 .category-header.tier-professional::after {
-  color: #ffd700;
-  text-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+  content: '★';
+  color: #f5d86a;
+  text-shadow: 0 0 15px rgba(245, 216, 106, 1), 0 0 30px rgba(212, 175, 55, 0.6);
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
 }
 
 /* Subtle shimmer animation for tier headers */
