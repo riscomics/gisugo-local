@@ -1367,23 +1367,25 @@ section {
 
 /* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) */
 .category-header.tier-professional {
-  background: linear-gradient(135deg, 
-    #4a3d1a 0%, 
-    #8b7529 15%, 
-    #d4af37 35%, 
-    #f5d86a 50%, 
-    #d4af37 65%, 
-    #8b7529 85%, 
-    #4a3d1a 100%);
-  border-left: 4px solid #f5d86a;
-  border-right: 4px solid #f5d86a;
-  border-top: 1px solid rgba(245, 216, 106, 0.5);
-  border-bottom: 1px solid rgba(139, 117, 41, 0.8);
+  background: linear-gradient(90deg, 
+    #7a6525 0%, 
+    #9a8230 10%, 
+    #b8a040 20%, 
+    #d4b84a 35%, 
+    #e8cc60 50%, 
+    #d4b84a 65%, 
+    #b8a040 80%, 
+    #9a8230 90%, 
+    #7a6525 100%);
+  border-left: 4px solid #e8cc60;
+  border-right: 4px solid #e8cc60;
+  border-top: 1px solid rgba(232, 204, 96, 0.5);
+  border-bottom: 1px solid rgba(122, 101, 37, 0.8);
   box-shadow: 
-    inset 0 2px 4px rgba(245, 216, 106, 0.4),
+    inset 0 2px 4px rgba(232, 204, 96, 0.4),
     inset 0 -2px 4px rgba(0, 0, 0, 0.3),
     0 6px 20px rgba(212, 175, 55, 0.35);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 20px rgba(245, 216, 106, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 20px rgba(232, 204, 96, 0.3);
 }
 
 .category-header.tier-professional::before,
@@ -1396,15 +1398,15 @@ section {
 
 /* Subtle shimmer animation for tier headers */
 @keyframes tierShimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% { background-position: 0% center; }
+  100% { background-position: 100% center; }
 }
 
 .category-header.tier-basic,
 .category-header.tier-skilled,
 .category-header.tier-professional {
-  background-size: 200% 100%;
-  animation: tierShimmer 30s ease-in-out infinite;
+  background-size: 300% 100%;
+  animation: tierShimmer 30s linear infinite;
 }
 
 /* Desktop Media Query - Must come after base styles */
