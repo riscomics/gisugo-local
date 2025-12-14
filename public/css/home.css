@@ -1397,17 +1397,17 @@ section {
   font-size: clamp(1rem, 2.5vw, 1.2rem);
 }
 
-/* Subtle shimmer animation for tier headers - alternates back and forth */
+/* Subtle shimmer animation for tier headers - continuous one direction */
 @keyframes tierShimmer {
-  0% { background-position: 0% center; }
-  100% { background-position: 100% center; }
+  0% { background-position: 200% center; }
+  100% { background-position: 0% center; }
 }
 
 .category-header.tier-basic,
 .category-header.tier-skilled,
 .category-header.tier-professional {
   background-size: 200% 100%;
-  animation: tierShimmer 5s ease-in-out infinite alternate !important;
+  animation: tierShimmer 8s linear infinite !important;
 }
 
 /* Desktop Media Query - Must come after base styles */
