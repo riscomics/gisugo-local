@@ -1317,32 +1317,30 @@ section {
 
 /* ===== TIER-BASED COLOR SCHEMES ===== */
 
-/* BASIC HELPER - Steel Blue/Teal (Entry Level) - Higher contrast */
+/* BASIC HELPER - Steel Blue/Teal (Entry Level) - Skilled-style contrast */
 .category-header.tier-basic {
-  background: linear-gradient(90deg, 
-    #0d2530 0%, 
-    #153540 10%, 
-    #1a3a4a 20%, 
-    #2d5a6b 35%, 
-    #5cc8e8 50%, 
-    #2d5a6b 65%, 
-    #1a3a4a 80%, 
-    #153540 90%, 
-    #0d2530 100%);
-  border-left: 4px solid #5cc8e8;
-  border-right: 4px solid #5cc8e8;
-  border-top: 1px solid rgba(92, 200, 232, 0.5);
-  border-bottom: 1px solid rgba(13, 37, 48, 0.8);
+  background: linear-gradient(135deg, 
+    #0d2a38 0%, 
+    #1a4555 20%, 
+    #2d6a80 40%, 
+    #4db8d6 50%, 
+    #2d6a80 60%, 
+    #1a4555 80%, 
+    #0d2a38 100%);
+  border-left: 4px solid #4db8d6;
+  border-right: 4px solid #4db8d6;
+  border-top: 1px solid rgba(77, 184, 214, 0.4);
+  border-bottom: 1px solid rgba(13, 42, 56, 0.8);
   box-shadow: 
-    inset 0 2px 4px rgba(92, 200, 232, 0.4),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
-    0 4px 12px rgba(77, 184, 214, 0.25);
+    inset 0 2px 4px rgba(77, 184, 214, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 5px 16px rgba(45, 106, 128, 0.3);
 }
 
 .category-header.tier-basic::before,
 .category-header.tier-basic::after {
-  color: #5cc8e8;
-  text-shadow: 0 0 12px rgba(92, 200, 232, 0.9);
+  color: #4db8d6;
+  text-shadow: 0 0 14px rgba(77, 184, 214, 0.9), 0 0 25px rgba(45, 106, 128, 0.5);
 }
 
 /* SKILLED WORKER - Sapphire Blue (Technical) */
@@ -1371,34 +1369,31 @@ section {
   text-shadow: 0 0 14px rgba(91, 141, 239, 0.9), 0 0 25px rgba(61, 111, 212, 0.5);
 }
 
-/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Higher contrast */
+/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Skilled-style contrast */
 .category-header.tier-professional {
-  background: linear-gradient(90deg, 
-    #4a3a15 0%, 
-    #5c4a1a 10%, 
-    #7a6525 20%, 
-    #9a8230 35%, 
-    #f0d860 50%, 
-    #9a8230 65%, 
-    #7a6525 80%, 
-    #5c4a1a 90%, 
-    #4a3a15 100%);
-  border-left: 4px solid #f0d860;
-  border-right: 4px solid #f0d860;
-  border-top: 1px solid rgba(240, 216, 96, 0.5);
-  border-bottom: 1px solid rgba(74, 58, 21, 0.8);
+  background: linear-gradient(135deg, 
+    #3d3010 0%, 
+    #6b5520 20%, 
+    #9a7a30 40%, 
+    #d4af37 50%, 
+    #9a7a30 60%, 
+    #6b5520 80%, 
+    #3d3010 100%);
+  border-left: 4px solid #d4af37;
+  border-right: 4px solid #d4af37;
+  border-top: 1px solid rgba(212, 175, 55, 0.4);
+  border-bottom: 1px solid rgba(61, 48, 16, 0.8);
   box-shadow: 
-    inset 0 2px 4px rgba(240, 216, 96, 0.4),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
-    0 6px 20px rgba(212, 175, 55, 0.35);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 20px rgba(240, 216, 96, 0.3);
+    inset 0 2px 4px rgba(212, 175, 55, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    0 5px 16px rgba(154, 122, 48, 0.3);
 }
 
 .category-header.tier-professional::before,
 .category-header.tier-professional::after {
   content: '★';
-  color: #f5d86a;
-  text-shadow: 0 0 15px rgba(245, 216, 106, 1), 0 0 30px rgba(212, 175, 55, 0.6);
+  color: #d4af37;
+  text-shadow: 0 0 14px rgba(212, 175, 55, 0.9), 0 0 25px rgba(154, 122, 48, 0.5);
   font-size: clamp(1rem, 2.5vw, 1.2rem);
 }
 
