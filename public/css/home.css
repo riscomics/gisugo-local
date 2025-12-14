@@ -1317,15 +1317,17 @@ section {
 
 /* ===== TIER-BASED COLOR SCHEMES ===== */
 
-/* BASIC HELPER - Steel Blue/Teal (Entry Level) - Softer contrast */
+/* BASIC HELPER - Steel Blue/Teal (Entry Level) - Dual peak for seamless loop */
 .category-header.tier-basic {
-  background: linear-gradient(135deg, 
+  background: linear-gradient(90deg, 
     #1a3a4a 0%, 
-    #255565 20%, 
+    #357080 10%, 
+    #4a9ab0 25%, 
     #357080 40%, 
-    #4a9ab0 50%, 
+    #1a3a4a 50%, 
     #357080 60%, 
-    #255565 80%, 
+    #4a9ab0 75%, 
+    #357080 90%, 
     #1a3a4a 100%);
   border-left: 4px solid #4a9ab0;
   border-right: 4px solid #4a9ab0;
@@ -1343,15 +1345,17 @@ section {
   text-shadow: 0 0 14px rgba(74, 154, 176, 0.9), 0 0 25px rgba(53, 112, 128, 0.5);
 }
 
-/* SKILLED WORKER - Sapphire Blue (Technical) */
+/* SKILLED WORKER - Sapphire Blue (Technical) - Dual peak for seamless loop */
 .category-header.tier-skilled {
-  background: linear-gradient(135deg, 
+  background: linear-gradient(90deg, 
     #0d1f3c 0%, 
-    #1a3a6b 20%, 
-    #2952a3 40%, 
-    #3d6fd4 50%, 
-    #2952a3 60%, 
-    #1a3a6b 80%, 
+    #1a3a6b 10%, 
+    #3d6fd4 25%, 
+    #1a3a6b 40%, 
+    #0d1f3c 50%, 
+    #1a3a6b 60%, 
+    #3d6fd4 75%, 
+    #1a3a6b 90%, 
     #0d1f3c 100%);
   border-left: 4px solid #5b8def;
   border-right: 4px solid #5b8def;
@@ -1369,15 +1373,17 @@ section {
   text-shadow: 0 0 14px rgba(91, 141, 239, 0.9), 0 0 25px rgba(61, 111, 212, 0.5);
 }
 
-/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Skilled-style contrast */
+/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Dual peak for seamless loop */
 .category-header.tier-professional {
-  background: linear-gradient(135deg, 
+  background: linear-gradient(90deg, 
     #3d3010 0%, 
-    #6b5520 20%, 
-    #9a7a30 40%, 
-    #d4af37 50%, 
-    #9a7a30 60%, 
-    #6b5520 80%, 
+    #6b5520 10%, 
+    #d4af37 25%, 
+    #6b5520 40%, 
+    #3d3010 50%, 
+    #6b5520 60%, 
+    #d4af37 75%, 
+    #6b5520 90%, 
     #3d3010 100%);
   border-left: 4px solid #d4af37;
   border-right: 4px solid #d4af37;
