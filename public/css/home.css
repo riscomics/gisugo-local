@@ -1406,7 +1406,7 @@ section {
 .category-header.tier-skilled,
 .category-header.tier-professional {
   background-size: 200% 100%;
-  animation: tierShimmer 20s ease-in-out infinite alternate;
+  animation: tierShimmer 10s ease-in-out infinite alternate;
 }
 
 /* Desktop Media Query - Must come after base styles */
