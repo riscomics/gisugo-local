@@ -1317,26 +1317,32 @@ section {
 
 /* ===== TIER-BASED COLOR SCHEMES ===== */
 
-/* BASIC HELPER - Steel Blue/Teal (Entry Level) */
+/* BASIC HELPER - Steel Blue/Teal (Entry Level) - Higher contrast */
 .category-header.tier-basic {
-  background: linear-gradient(135deg, 
-    #1a3a4a 0%, 
-    #2d5a6b 25%, 
-    #3d7a8b 50%, 
-    #2d5a6b 75%, 
-    #1a3a4a 100%);
-  border-left: 4px solid #4db8d6;
-  border-right: 4px solid #4db8d6;
+  background: linear-gradient(90deg, 
+    #0d2530 0%, 
+    #153540 10%, 
+    #1a3a4a 20%, 
+    #2d5a6b 35%, 
+    #5cc8e8 50%, 
+    #2d5a6b 65%, 
+    #1a3a4a 80%, 
+    #153540 90%, 
+    #0d2530 100%);
+  border-left: 4px solid #5cc8e8;
+  border-right: 4px solid #5cc8e8;
+  border-top: 1px solid rgba(92, 200, 232, 0.5);
+  border-bottom: 1px solid rgba(13, 37, 48, 0.8);
   box-shadow: 
-    inset 0 1px 0 rgba(77, 184, 214, 0.3),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
-    0 4px 12px rgba(77, 184, 214, 0.2);
+    inset 0 2px 4px rgba(92, 200, 232, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+    0 4px 12px rgba(77, 184, 214, 0.25);
 }
 
 .category-header.tier-basic::before,
 .category-header.tier-basic::after {
-  color: #4db8d6;
-  text-shadow: 0 0 12px rgba(77, 184, 214, 0.8);
+  color: #5cc8e8;
+  text-shadow: 0 0 12px rgba(92, 200, 232, 0.9);
 }
 
 /* SKILLED WORKER - Sapphire Blue (Technical) */
@@ -1406,7 +1412,7 @@ section {
 .category-header.tier-skilled,
 .category-header.tier-professional {
   background-size: 200% 100%;
-  animation: tierShimmer 7s ease-in-out infinite alternate !important;
+  animation: tierShimmer 5s ease-in-out infinite alternate !important;
 }
 
 /* Desktop Media Query - Must come after base styles */
