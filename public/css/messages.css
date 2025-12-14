@@ -2349,11 +2349,12 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: rgba(0, 0, 0, 0.8); /* Dark semi-transparent backdrop */
   z-index: 9999; /* Above absolutely everything */
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* ANCHOR TO TOP - prevents Samsung Internet bottom bar issues */
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s ease-in-out, height 0.15s ease-out;
   padding: 20px; /* Safe area padding */
+  padding-top: 10px; /* Minimal top padding since we're anchored to top */
   box-sizing: border-box;
   /* Visual Viewport API support - allow dynamic resizing */
   will-change: height, top;
@@ -2363,14 +2364,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   opacity: 1;
 }
 
-/* Chat Modal Container - Conservative height to avoid browser UI bars */
+/* Chat Modal Container - Anchored to top, leaves space for browser bottom bars */
 .chat-modal-container {
   background: #2d3748;
   border-radius: 12px;
   width: 90%;
   max-width: 600px;
-  height: calc(100vh - 160px); /* Extra conservative - accounts for browser UI bars */
-  max-height: 70vh; /* Reduced to avoid Samsung Internet bottom bar */
+  height: calc(100vh - 100px); /* Leave 100px for browser UI bars at bottom */
+  max-height: calc(100vh - 100px); /* Match height constraint */
   border: 1px solid rgba(240, 208, 170, 0.3);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   display: flex;
@@ -2825,8 +2826,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 @media (max-width: 360px) {
   .chat-modal-container {
     width: 98%;
-    height: calc(100vh - 180px); /* Extra conservative for small screens + browser UI */
-    max-height: 65vh; /* Lower limit for very small screens */
+    height: calc(100vh - 120px); /* Extra space for Samsung Internet bottom bar */
+    max-height: calc(100vh - 120px);
     border-radius: 6px;
   }
 }
@@ -2835,8 +2836,8 @@ body:has(.selection-controls[style*="display: flex"]) {
 @media (min-width: 361px) and (max-width: 492px) {
   .chat-modal-container {
     width: 95%;
-    height: calc(100vh - 170px); /* Conservative height for mobile + browser UI */
-    max-height: 68vh; /* Reduced to avoid Samsung Internet bottom bar */
+    height: calc(100vh - 110px); /* Space for Samsung Internet bottom bar */
+    max-height: calc(100vh - 110px);
     border-radius: 8px;
   }
 }
