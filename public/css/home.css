@@ -1365,27 +1365,27 @@ section {
   text-shadow: 0 0 14px rgba(91, 141, 239, 0.9), 0 0 25px rgba(61, 111, 212, 0.5);
 }
 
-/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) */
+/* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Higher contrast */
 .category-header.tier-professional {
   background: linear-gradient(90deg, 
-    #7a6525 0%, 
-    #9a8230 10%, 
-    #b8a040 20%, 
-    #d4b84a 35%, 
-    #e8cc60 50%, 
-    #d4b84a 65%, 
-    #b8a040 80%, 
-    #9a8230 90%, 
-    #7a6525 100%);
-  border-left: 4px solid #e8cc60;
-  border-right: 4px solid #e8cc60;
-  border-top: 1px solid rgba(232, 204, 96, 0.5);
-  border-bottom: 1px solid rgba(122, 101, 37, 0.8);
+    #4a3a15 0%, 
+    #5c4a1a 10%, 
+    #7a6525 20%, 
+    #9a8230 35%, 
+    #f0d860 50%, 
+    #9a8230 65%, 
+    #7a6525 80%, 
+    #5c4a1a 90%, 
+    #4a3a15 100%);
+  border-left: 4px solid #f0d860;
+  border-right: 4px solid #f0d860;
+  border-top: 1px solid rgba(240, 216, 96, 0.5);
+  border-bottom: 1px solid rgba(74, 58, 21, 0.8);
   box-shadow: 
-    inset 0 2px 4px rgba(232, 204, 96, 0.4),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 2px 4px rgba(240, 216, 96, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.4),
     0 6px 20px rgba(212, 175, 55, 0.35);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 0 20px rgba(232, 204, 96, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 20px rgba(240, 216, 96, 0.3);
 }
 
 .category-header.tier-professional::before,
@@ -1406,7 +1406,7 @@ section {
 .category-header.tier-skilled,
 .category-header.tier-professional {
   background-size: 200% 100%;
-  animation: tierShimmer 10s ease-in-out infinite alternate;
+  animation: tierShimmer 7s ease-in-out infinite alternate !important;
 }
 
 /* Desktop Media Query - Must come after base styles */
