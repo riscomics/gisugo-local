@@ -1319,7 +1319,7 @@ section {
 
 /* BASIC HELPER - Steel Blue/Teal (Entry Level) - Subtle dual peak */
 .category-header.tier-basic {
-  background: linear-gradient(90deg, 
+  background: linear-gradient(135deg, 
     #1a3a4a 0%, 
     #1f4555 8%, 
     #255060 15%, 
@@ -1353,7 +1353,7 @@ section {
 
 /* SKILLED WORKER - Sapphire Blue (Technical) - Subtle dual peak */
 .category-header.tier-skilled {
-  background: linear-gradient(90deg, 
+  background: linear-gradient(135deg, 
     #0d1f3c 0%, 
     #122850 8%, 
     #173260 15%, 
@@ -1387,7 +1387,7 @@ section {
 
 /* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Subtle dual peak */
 .category-header.tier-professional {
-  background: linear-gradient(90deg, 
+  background: linear-gradient(135deg, 
     #3d3010 0%, 
     #4a3a15 8%, 
     #58451a 15%, 
