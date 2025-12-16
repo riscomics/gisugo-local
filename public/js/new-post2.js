@@ -1396,9 +1396,9 @@ function initializeNavigation() {
   }
   
   if (nextBtn) {
-    console.log('✅ Continue button found, adding click listener...');
+    console.log('✅ Next button found, adding click listener...');
     nextBtn.addEventListener('click', function(e) {
-      console.log('🔵 ========== CONTINUE BUTTON CLICKED ==========');
+      console.log('🔵 ========== NEXT BUTTON CLICKED ==========');
       console.log('Event:', e);
       console.log('Current step:', np2State.currentStep);
       console.log('Selected category:', np2State.selectedCategory);
@@ -1419,9 +1419,9 @@ function initializeNavigation() {
         console.log('❌ Validation failed');
       }
     });
-    console.log('✅ Click listener attached to Continue button');
+    console.log('✅ Click listener attached to Next button');
   } else {
-    console.error('❌ Continue button NOT FOUND! ID: nextBtn');
+    console.error('❌ Next button NOT FOUND! ID: nextBtn');
   }
   
   if (previewBtn) {
