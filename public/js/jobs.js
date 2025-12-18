@@ -2844,10 +2844,27 @@ function initializeDisclaimerLanguageTabs(modalId) {
     const englishContent = document.getElementById(`${modalId}English`);
     const bisayaContent = document.getElementById(`${modalId}Bisaya`);
     const tagalogContent = document.getElementById(`${modalId}Tagalog`);
-    const confirmBtn = document.getElementById(`confirm${modalId.charAt(0).toUpperCase() + modalId.slice(1)}Btn`);
+    // Button ID mapping (different modals have different naming patterns)
+    const buttonIdMap = {
+        acceptGig: 'confirmAcceptGigBtn',
+        confirmHire: 'confirmHireBtn'
+    };
+    const confirmBtn = document.getElementById(buttonIdMap[modalId] || `${modalId}Btn`);
     const warningEl = document.getElementById(`${modalId}Warning`);
     
     if (!tabContainer) return;
+    
+    // Modal-specific messages
+    const modalMessages = {
+        acceptGig: {
+            enabled: 'This will confirm your commitment to complete the job.'
+        },
+        confirmHire: {
+            enabled: 'All other applicants will be rejected.'
+        }
+    };
+    
+    const enabledMessage = modalMessages[modalId]?.enabled || 'You may now proceed.';
     
     const tabs = tabContainer.querySelectorAll('.lang-tab');
     const contentMap = {
@@ -2907,7 +2924,7 @@ function initializeDisclaimerLanguageTabs(modalId) {
             }
             if (warningEl) {
                 warningEl.querySelector('.final-warning-icon').textContent = '✅';
-                warningEl.querySelector('.final-warning-text').textContent = 'This will confirm your commitment to complete the job.';
+                warningEl.querySelector('.final-warning-text').textContent = enabledMessage;
             }
             
             console.log(`📖 Disclaimer language selected: ${lang}`);
@@ -6638,6 +6655,9 @@ function showHireConfirmationOverlay(workerData) {
     overlay.dataset.priceOffer = workerData.priceOffer || '';
     overlay.dataset.priceType = workerData.priceType || '';
 
+    // Initialize language tabs (resets state each time modal opens)
+    initializeDisclaimerLanguageTabs('confirmHire');
+    
     // Show overlay
     overlay.classList.add('show');
     

@@ -572,13 +572,32 @@
                     </div>
                 </div>
 
-                <!-- Legal Disclaimer Section -->
+                <!-- Legal Disclaimer Section with Language Tabs -->
                 <div class="legal-disclaimer-section">
                     <div class="disclaimer-header">
                         <span class="disclaimer-icon">⚖️</span>
                         <span class="disclaimer-title">Legal Disclaimer & Terms</span>
                     </div>
-                    <div class="disclaimer-content">
+                    
+                    <!-- Language Tabs -->
+                    <div class="disclaimer-lang-tabs" id="confirmHireLangTabs">
+                        <button class="lang-tab" data-lang="english" data-modal="confirmHire">English</button>
+                        <button class="lang-tab" data-lang="bisaya" data-modal="confirmHire">Bisaya</button>
+                        <button class="lang-tab" data-lang="tagalog" data-modal="confirmHire">Tagalog</button>
+                    </div>
+                    
+                    <!-- Placeholder (shown when no language selected) -->
+                    <div class="disclaimer-placeholder" id="confirmHirePlaceholder">
+                        <div class="placeholder-icon">👆</div>
+                        <div class="placeholder-text-container">
+                            <div class="placeholder-text">Select a language to read the disclaimer</div>
+                            <div class="placeholder-text">Pili og language para mabasa</div>
+                            <div class="placeholder-text">Pumili ng wika para mabasa</div>
+                        </div>
+                    </div>
+                    
+                    <!-- English Content -->
+                    <div class="disclaimer-content lang-content" id="confirmHireEnglish" style="display: none;">
                         <p><strong>IMPORTANT:</strong> By proceeding with this hiring decision, you acknowledge and agree to the following:</p>
                         
                         <div class="disclaimer-points">
@@ -586,17 +605,14 @@
                                 <span class="point-number">1.</span>
                                 <span class="point-text"><strong>Independent Transaction:</strong> This is a direct transaction between you (Customer) and the Worker. GISUGO acts solely as a platform facilitator.</span>
                             </div>
-                            
                             <div class="disclaimer-point">
                                 <span class="point-number">2.</span>
                                 <span class="point-text"><strong>Liability Limitation:</strong> GISUGO is not liable for work quality, damages, injuries, or disputes arising from this transaction.</span>
                             </div>
-                            
                             <div class="disclaimer-point">
                                 <span class="point-number">3.</span>
                                 <span class="point-text"><strong>Background Verification:</strong> Workers undergo basic verification, but you are responsible for additional due diligence.</span>
                             </div>
-                            
                             <div class="disclaimer-point">
                                 <span class="point-number">4.</span>
                                 <span class="point-text"><strong>Payment Responsibility:</strong> You agree to pay the worker according to agreed terms. GISUGO does not guarantee payment recovery.</span>
@@ -617,20 +633,96 @@
                             </ul>
                         </div>
                     </div>
+                    
+                    <!-- Bisaya Content -->
+                    <div class="disclaimer-content lang-content" id="confirmHireBisaya" style="display: none;">
+                        <p><strong>IMPORTANTE:</strong> Kung mopadayon ka sa pag-hire, ikaw nagkauyon sa mosunod:</p>
+                        
+                        <div class="disclaimer-points">
+                            <div class="disclaimer-point">
+                                <span class="point-number">1.</span>
+                                <span class="point-text"><strong>Direkta nga Transaksyon:</strong> Kini direkta nga transaksyon nimo (Customer) ug sa Worker. Ang GISUGO facilitator lang — dili apil sa inyong deal.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">2.</span>
+                                <span class="point-text"><strong>Limitasyon sa Responsibilidad:</strong> Ang GISUGO dili responsable sa kalidad sa trabaho, damages, aksidente, o mga away gikan sa transaksyon.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">3.</span>
+                                <span class="point-text"><strong>Background Verification:</strong> Ang mga worker adunay basic verification, pero ikaw ang responsable sa dugang nga pag-check.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">4.</span>
+                                <span class="point-text"><strong>Bayad:</strong> Nagkauyon ka nga bayaran ang worker sumala sa inyong napagkasunduan. Ang GISUGO dili garantiya sa pagkuha sa bayad.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="safety-recommendations">
+                            <div class="safety-header">
+                                <span class="safety-icon">🛡️</span>
+                                <span class="safety-title">Safety Tips</span>
+                            </div>
+                            <ul class="safety-list">
+                                <li>Tan-awa pag-ayo ang profile ug rating sa worker</li>
+                                <li>Pagkita sa safe ug public nga lugar kung mahimo</li>
+                                <li>Sigurohon ang identity sa worker before magsugod</li>
+                                <li>Bantayi ang imong mga bililhon samtang nagtrabaho siya</li>
+                                <li>Salig sa imong instinct — i-cancel kung dili ka komportable</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Tagalog Content -->
+                    <div class="disclaimer-content lang-content" id="confirmHireTagalog" style="display: none;">
+                        <p><strong>MAHALAGA:</strong> Sa pagpapatuloy ng hiring decision na ito, kinikilala at sinasang-ayunan mo ang mga sumusunod:</p>
+                        
+                        <div class="disclaimer-points">
+                            <div class="disclaimer-point">
+                                <span class="point-number">1.</span>
+                                <span class="point-text"><strong>Direktang Transaksyon:</strong> Ito ay direktang transaksyon sa pagitan mo (Customer) at ng Worker. Ang GISUGO ay facilitator lamang — hindi kasali sa inyong deal.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">2.</span>
+                                <span class="point-text"><strong>Limitasyon ng Pananagutan:</strong> Ang GISUGO ay hindi responsable sa kalidad ng trabaho, damages, aksidente, o mga away mula sa transaksyon.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">3.</span>
+                                <span class="point-text"><strong>Background Verification:</strong> Ang mga worker ay may basic verification, pero ikaw ang responsable sa karagdagang pag-check.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">4.</span>
+                                <span class="point-text"><strong>Bayad:</strong> Sumasang-ayon ka na bayaran ang worker ayon sa napagkasunduan. Ang GISUGO ay hindi garantiya sa pagkuha ng bayad.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="safety-recommendations">
+                            <div class="safety-header">
+                                <span class="safety-icon">🛡️</span>
+                                <span class="safety-title">Mga Payo sa Kaligtasan</span>
+                            </div>
+                            <ul class="safety-list">
+                                <li>Suriin mabuti ang profile at rating ng worker</li>
+                                <li>Magkita sa ligtas at pampublikong lugar kung maaari</li>
+                                <li>Siguraduhin ang identity ng worker bago magsimula</li>
+                                <li>Bantayan ang iyong mga mahahalagang gamit habang nagtatrabaho siya</li>
+                                <li>Magtiwala sa iyong instinct — i-cancel kung may kakaiba</li>
+                            </ul>
+                        </div>
+                    </div>
                 </div>
 
             </div>
             
             <div class="hire-confirmation-footer">
-                <div class="confirmation-warning">
-                    <span class="final-warning-icon">⚠️</span>
-                    <span class="final-warning-text">All other applicants will be rejected.</span>
+                <div class="confirmation-warning" id="confirmHireWarning">
+                    <span class="final-warning-icon">📖</span>
+                    <span class="final-warning-text">Please read the disclaimer above to continue</span>
                 </div>
                 <div class="hire-confirmation-buttons">
                     <button id="cancelHireBtn" class="cancel-hire-btn">
                         <span>Cancel</span>
                     </button>
-                    <button id="confirmHireBtn" class="confirm-hire-btn">
+                    <button id="confirmHireBtn" class="confirm-hire-btn" disabled>
                         <span>I Understand - Hire Worker</span>
                     </button>
                 </div>
@@ -838,9 +930,9 @@
                     <div class="disclaimer-placeholder" id="acceptGigPlaceholder">
                         <div class="placeholder-icon">👆</div>
                         <div class="placeholder-text-container">
-                            <div class="placeholder-text">Select a language above to read the disclaimer</div>
-                            <div class="placeholder-text">Pili og language sa taas para mabasa</div>
-                            <div class="placeholder-text">Pumili ng wika sa itaas para mabasa</div>
+                            <div class="placeholder-text">Select a language to read the disclaimer</div>
+                            <div class="placeholder-text">Pili og language para mabasa</div>
+                            <div class="placeholder-text">Pumili ng wika para mabasa</div>
                         </div>
                     </div>
                     
@@ -1048,6 +1140,6 @@
     <script src="public/js/app-config.js"></script>
     <script src="public/js/header-uniform.js?v=1.0"></script>
     <script src="public/js/shared-menu.js?v=3.0"></script>
-    <script src="public/js/jobs.js?v=16"></script>
+    <script src="public/js/jobs.js?v=17"></script>
 </body>
 </html> 
