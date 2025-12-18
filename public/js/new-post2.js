@@ -2161,6 +2161,66 @@ function populateFormWithJobData(jobData, category, mode) {
 
 // ========================== INITIALIZATION ==========================
 
+// ===== DISCLAIMER LANGUAGE TABS =====
+function initializeDisclaimerLangTabs() {
+  const tabContainer = document.getElementById('beforeContinueLangTabs');
+  const placeholder = document.getElementById('beforeContinuePlaceholder');
+  const englishContent = document.getElementById('beforeContinueEnglish');
+  const bisayaContent = document.getElementById('beforeContinueBisaya');
+  const tagalogContent = document.getElementById('beforeContinueTagalog');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  if (!tabContainer) {
+    console.warn('⚠️ Disclaimer language tabs not found');
+    return;
+  }
+  
+  const tabs = tabContainer.querySelectorAll('.np2-lang-tab');
+  const contentMap = {
+    english: englishContent,
+    bisaya: bisayaContent,
+    tagalog: tagalogContent
+  };
+  
+  // Track if disclaimer has been read (persists during session)
+  let disclaimerRead = false;
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const lang = tab.dataset.lang;
+      
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Hide placeholder
+      if (placeholder) {
+        placeholder.classList.add('hidden');
+      }
+      
+      // Show selected content, hide others
+      Object.entries(contentMap).forEach(([key, content]) => {
+        if (content) {
+          content.style.display = key === lang ? 'flex' : 'none';
+        }
+      });
+      
+      // Enable Continue button (only on step 1)
+      disclaimerRead = true;
+      if (nextBtn && np2State.currentStep === 1) {
+        nextBtn.disabled = false;
+      }
+      
+      console.log(`📖 Disclaimer language selected: ${lang}`);
+    });
+  });
+  
+  // Store reference to check later
+  window.np2DisclaimerRead = () => disclaimerRead;
+  
+  console.log('🌐 Disclaimer language tabs initialized');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 ========== NEW POST 2 LOADING ==========');
   console.log('Current URL:', window.location.href);
@@ -2200,6 +2260,8 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeSuccessOverlay();
   console.log('📌 Initializing mobile keyboard handling...');
   initializeMobileKeyboardHandling();
+  console.log('📌 Initializing disclaimer language tabs...');
+  initializeDisclaimerLangTabs();
   
   // Show first section
   console.log('📌 Showing section 1...');

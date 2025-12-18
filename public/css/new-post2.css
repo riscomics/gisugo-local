@@ -677,6 +677,126 @@
   filter: drop-shadow(0 2px 8px rgba(255, 193, 7, 0.6));
 }
 
+/* Language Tabs for Disclaimer */
+.np2-lang-tabs {
+  display: flex;
+  gap: clamp(6px, 1.5vw, 8px);
+  margin: 16px 0;
+  padding: clamp(4px, 1vw, 6px);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: clamp(8px, 2vw, 12px);
+}
+
+.np2-lang-tab {
+  flex: 1;
+  padding: clamp(10px, 2.5vw, 14px) clamp(8px, 2vw, 12px);
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 193, 7, 0.2);
+  border-radius: clamp(6px, 1.5vw, 10px);
+  color: #94a3b8;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(0.8rem, 2.3vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+}
+
+.np2-lang-tab:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(255, 193, 7, 0.4);
+  color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.np2-lang-tab.active {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.25), rgba(255, 193, 7, 0.15));
+  border-color: rgba(255, 193, 7, 0.5);
+  color: #fbbf24;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Placeholder when no language selected */
+.np2-disclaimer-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.75rem, 2vw, 1rem);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.np2-disclaimer-placeholder.hidden {
+  display: none;
+}
+
+.np2-placeholder-icon {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
+  animation: pointUp 1s ease-in-out infinite;
+}
+
+@keyframes pointUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.np2-placeholder-text-container {
+  position: relative;
+  min-height: clamp(1.5rem, 4vw, 1.75rem);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.np2-placeholder-text {
+  font-size: clamp(0.85rem, 2.3vw, 0.95rem);
+  color: #fbbf24;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  position: absolute;
+  text-align: center;
+  padding: 0 clamp(0.5rem, 2vw, 1rem);
+  opacity: 0;
+  animation: cycleLang 10s ease-in-out infinite;
+}
+
+.np2-placeholder-text:nth-child(1) { animation-delay: 0s; }
+.np2-placeholder-text:nth-child(2) { animation-delay: 3.33s; }
+.np2-placeholder-text:nth-child(3) { animation-delay: 6.67s; }
+
+@keyframes cycleLang {
+  0%, 5% { opacity: 0; transform: translateY(8px); }
+  12%, 28% { opacity: 1; transform: translateY(0); }
+  35%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Language content animation */
+.np2-lang-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Disabled button state */
+.np2-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #4a5568 !important;
+}
+
+.np2-btn-primary:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* SUN RAYS GLOWING ANIMATION FOR ACTIVE STEP */
 @keyframes stepGlow {
   0%, 100% {
