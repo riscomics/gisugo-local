@@ -1899,6 +1899,252 @@ body:has(.jobs-header) {
   color: #fbbf24;
 }
 
+/* Language Tabs for Disclaimer */
+.disclaimer-lang-tabs {
+  display: flex;
+  gap: clamp(6px, 1.5vw, 8px);
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  padding: clamp(6px, 1.5vw, 8px);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: clamp(10px, 2.5vw, 14px);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.lang-tab {
+  flex: 1;
+  padding: clamp(12px, 3vw, 16px) clamp(8px, 2vw, 12px);
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: clamp(8px, 2vw, 10px);
+  color: #94a3b8;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(0.8rem, 2.3vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+}
+
+.lang-tab:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.lang-tab.active {
+  background: linear-gradient(135deg, rgba(72, 187, 120, 0.25), rgba(52, 211, 153, 0.15));
+  border-color: rgba(72, 187, 120, 0.5);
+  color: #6ee7b7;
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Placeholder when no language selected */
+.disclaimer-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 6vw, 3rem);
+  background: rgba(0, 0, 0, 0.15);
+  border: 2px dashed rgba(148, 163, 184, 0.3);
+  border-radius: clamp(8px, 2vw, 12px);
+  text-align: center;
+}
+
+.placeholder-icon {
+  font-size: clamp(2rem, 6vw, 2.5rem);
+  margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
+  animation: pointUp 1s ease-in-out infinite;
+}
+
+@keyframes pointUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.placeholder-text-container {
+  position: relative;
+  min-height: clamp(2.5rem, 8vw, 3.5rem);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder-text {
+  font-size: clamp(0.95rem, 2.8vw, 1.1rem);
+  color: #cbd5e1;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  position: absolute;
+  text-align: center;
+  padding: 0 clamp(0.5rem, 2vw, 1rem);
+  opacity: 0;
+  animation: cycleLang 10s ease-in-out infinite;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.placeholder-text:nth-child(1) { animation-delay: 0s; }
+.placeholder-text:nth-child(2) { animation-delay: 3.33s; }
+.placeholder-text:nth-child(3) { animation-delay: 6.67s; }
+
+@keyframes cycleLang {
+  0%, 5% { opacity: 0; transform: translateY(8px); }
+  12%, 28% { opacity: 1; transform: translateY(0); }
+  35%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Hide placeholder when language is selected */
+.disclaimer-placeholder.hidden {
+  display: none;
+}
+
+/* Language content containers */
+.lang-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Disabled confirm button state */
+.confirm-hire-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #4a5568 !important;
+  border-color: #4a5568 !important;
+}
+
+.confirm-hire-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Bisaya Translation Collapsible Section */
+.bisaya-translation-section {
+  margin-top: clamp(1rem, 3vw, 1.25rem);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: clamp(8px, 2vw, 12px);
+  overflow: hidden;
+  background: rgba(71, 85, 105, 0.2);
+}
+
+.bisaya-toggle-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  padding: clamp(0.875rem, 3vw, 1rem);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.bisaya-toggle-btn:hover {
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.bisaya-toggle-icon {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+.bisaya-toggle-text {
+  flex: 1;
+  text-align: left;
+}
+
+.bisaya-toggle-arrow {
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+  transition: transform 0.3s ease;
+}
+
+.bisaya-translation-section.expanded .bisaya-toggle-arrow {
+  transform: rotate(180deg);
+}
+
+.bisaya-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 clamp(0.875rem, 3vw, 1rem);
+}
+
+.bisaya-translation-section.expanded .bisaya-content {
+  max-height: 800px;
+  padding: 0 clamp(0.875rem, 3vw, 1rem) clamp(1rem, 3vw, 1.25rem);
+}
+
+.bisaya-section {
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+}
+
+.bisaya-section:last-child {
+  margin-bottom: 0;
+}
+
+.bisaya-section-title {
+  font-size: clamp(0.875rem, 2.5vw, 0.95rem);
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.bisaya-section p {
+  font-size: clamp(0.8rem, 2.3vw, 0.875rem);
+  color: #e2e8f0;
+  line-height: 1.6;
+  margin: 0 0 clamp(0.5rem, 2vw, 0.625rem) 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.bisaya-section p:last-child {
+  margin-bottom: 0;
+}
+
+.bisaya-section p strong {
+  color: #f1f5f9;
+}
+
+.bisaya-points {
+  padding-left: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.bisaya-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.4rem, 1.5vw, 0.5rem);
+}
+
+.bisaya-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(0.5rem, 2vw, 0.625rem);
+  font-size: clamp(0.8rem, 2.3vw, 0.875rem);
+  color: #e2e8f0;
+  line-height: 1.5;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.bisaya-list li::before {
+  content: "•";
+  color: #94a3b8;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
 
 /* Footer Section */
 .hire-confirmation-footer {

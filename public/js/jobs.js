@@ -2790,6 +2790,9 @@ function showConfirmAcceptGigOverlay(jobData) {
     // Initialize handlers
     initializeConfirmAcceptGigHandlers();
     
+    // Initialize language tabs (resets state each time modal opens)
+    initializeDisclaimerLanguageTabs('acceptGig');
+    
     // Show overlay
     overlay.classList.add('show');
     
@@ -2832,6 +2835,86 @@ function determineCustomerStatus(customerName) {
     };
     
     return statuses[customerName] || statuses['Carlos Rivera']; // Default to new member
+}
+
+// ===== DISCLAIMER LANGUAGE TABS =====
+function initializeDisclaimerLanguageTabs(modalId) {
+    const tabContainer = document.getElementById(`${modalId}LangTabs`);
+    const placeholder = document.getElementById(`${modalId}Placeholder`);
+    const englishContent = document.getElementById(`${modalId}English`);
+    const bisayaContent = document.getElementById(`${modalId}Bisaya`);
+    const tagalogContent = document.getElementById(`${modalId}Tagalog`);
+    const confirmBtn = document.getElementById(`confirm${modalId.charAt(0).toUpperCase() + modalId.slice(1)}Btn`);
+    const warningEl = document.getElementById(`${modalId}Warning`);
+    
+    if (!tabContainer) return;
+    
+    const tabs = tabContainer.querySelectorAll('.lang-tab');
+    const contentMap = {
+        english: englishContent,
+        bisaya: bisayaContent,
+        tagalog: tagalogContent
+    };
+    
+    // Reset state when modal opens
+    tabs.forEach(tab => tab.classList.remove('active'));
+    Object.values(contentMap).forEach(content => {
+        if (content) content.style.display = 'none';
+    });
+    if (placeholder) {
+        placeholder.classList.remove('hidden');
+        placeholder.style.display = 'flex';
+    }
+    
+    // Disable confirm button and update warning
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+    }
+    if (warningEl) {
+        warningEl.querySelector('.final-warning-icon').textContent = '📖';
+        warningEl.querySelector('.final-warning-text').textContent = 'Please read the disclaimer above to continue';
+    }
+    
+    // Add click handlers to tabs
+    tabs.forEach(tab => {
+        // Remove existing listeners by cloning
+        const newTab = tab.cloneNode(true);
+        tab.parentNode.replaceChild(newTab, tab);
+        
+        newTab.addEventListener('click', () => {
+            const lang = newTab.dataset.lang;
+            
+            // Update active tab
+            tabContainer.querySelectorAll('.lang-tab').forEach(t => t.classList.remove('active'));
+            newTab.classList.add('active');
+            
+            // Hide placeholder
+            if (placeholder) {
+                placeholder.classList.add('hidden');
+                placeholder.style.display = 'none';
+            }
+            
+            // Show selected content, hide others
+            Object.entries(contentMap).forEach(([key, content]) => {
+                if (content) {
+                    content.style.display = key === lang ? 'block' : 'none';
+                }
+            });
+            
+            // Enable confirm button and update warning
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+            }
+            if (warningEl) {
+                warningEl.querySelector('.final-warning-icon').textContent = '✅';
+                warningEl.querySelector('.final-warning-text').textContent = 'This will confirm your commitment to complete the job.';
+            }
+            
+            console.log(`📖 Disclaimer language selected: ${lang}`);
+        });
+    });
+    
+    console.log(`🌐 Disclaimer language tabs initialized for ${modalId}`);
 }
 
 function initializeConfirmAcceptGigHandlers() {

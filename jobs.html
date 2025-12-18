@@ -6,7 +6,7 @@
     <title>Gigs Management - GISUGO</title>
     <!-- UNIFORM HEADER SYSTEM -->
     <link rel="stylesheet" href="public/css/header-uniform.css?v=4.3">
-    <link rel="stylesheet" href="public/css/jobs.css?v=2.9">
+    <link rel="stylesheet" href="public/css/jobs.css?v=3.7">
 </head>
 <body class="page-jobs">
     <!-- UNIFORM HEADER SYSTEM -->
@@ -820,13 +820,32 @@
                     </div>
                 </div>
 
-                <!-- Legal Disclaimer Section -->
+                <!-- Legal Disclaimer Section with Language Tabs -->
                 <div class="legal-disclaimer-section">
                     <div class="disclaimer-header">
                         <span class="disclaimer-icon">⚖️</span>
                         <span class="disclaimer-title">Legal Disclaimer & Terms</span>
                     </div>
-                    <div class="disclaimer-content">
+                    
+                    <!-- Language Tabs -->
+                    <div class="disclaimer-lang-tabs" id="acceptGigLangTabs">
+                        <button class="lang-tab" data-lang="english" data-modal="acceptGig">English</button>
+                        <button class="lang-tab" data-lang="bisaya" data-modal="acceptGig">Bisaya</button>
+                        <button class="lang-tab" data-lang="tagalog" data-modal="acceptGig">Tagalog</button>
+                    </div>
+                    
+                    <!-- Placeholder (shown when no language selected) -->
+                    <div class="disclaimer-placeholder" id="acceptGigPlaceholder">
+                        <div class="placeholder-icon">👆</div>
+                        <div class="placeholder-text-container">
+                            <div class="placeholder-text">Select a language above to read the disclaimer</div>
+                            <div class="placeholder-text">Pili og language sa taas para mabasa</div>
+                            <div class="placeholder-text">Pumili ng wika sa itaas para mabasa</div>
+                        </div>
+                    </div>
+                    
+                    <!-- English Content -->
+                    <div class="disclaimer-content lang-content" id="acceptGigEnglish" style="display: none;">
                         <p><strong>IMPORTANT:</strong> By accepting this gig offer, you acknowledge and agree to the following:</p>
                         
                         <div class="disclaimer-points">
@@ -834,17 +853,14 @@
                                 <span class="point-number">1.</span>
                                 <span class="point-text"><strong>Independent Transaction:</strong> This is a direct transaction between you (Worker) and the Customer. GISUGO acts solely as a platform facilitator.</span>
                             </div>
-                            
                             <div class="disclaimer-point">
                                 <span class="point-number">2.</span>
                                 <span class="point-text"><strong>Liability Limitation:</strong> GISUGO is not liable for payment disputes, work conditions, injuries, or conflicts arising from this transaction.</span>
                             </div>
-                            
                             <div class="disclaimer-point">
                                 <span class="point-number">3.</span>
                                 <span class="point-text"><strong>Payment Terms:</strong> You are responsible for negotiating and securing payment terms directly with the customer.</span>
                             </div>
-                            
                             <div class="disclaimer-point">
                                 <span class="point-number">4.</span>
                                 <span class="point-text"><strong>Work Quality:</strong> You agree to complete the work according to the agreed specifications and timeline.</span>
@@ -873,20 +889,112 @@
                             <p class="gig-smarts-text"><strong>This job. This pay.</strong> That's the deal. If a customer mentions "more work later" or "full-time hire" — that is separate and not part of this agreement. Do the work you agreed to, nothing more.</p>
                         </div>
                     </div>
+                    
+                    <!-- Bisaya Content -->
+                    <div class="disclaimer-content lang-content" id="acceptGigBisaya" style="display: none;">
+                        <p><strong>IMPORTANTE:</strong> Kung dawaton nimo kini nga gig offer, ikaw nagkauyon sa mosunod:</p>
+                        
+                        <div class="disclaimer-points">
+                            <div class="disclaimer-point">
+                                <span class="point-number">1.</span>
+                                <span class="point-text"><strong>Direkta nga Transaksyon:</strong> Kini direkta nga transaksyon nimo ug sa Customer. Ang GISUGO facilitator lang — dili apil sa inyong deal.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">2.</span>
+                                <span class="point-text"><strong>Limitasyon sa Responsibilidad:</strong> Ang GISUGO dili responsable sa mga away sa bayad, kondisyon sa trabaho, aksidente, o bisan unsang problema gikan sa transaksyon.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">3.</span>
+                                <span class="point-text"><strong>Bayad:</strong> Ikaw ang responsable sa pag-negotiate ug pag-siguro sa bayad direkta sa customer.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">4.</span>
+                                <span class="point-text"><strong>Kalidad sa Trabaho:</strong> Nagkauyon ka nga i-complete ang trabaho sumala sa gi-agree nga detalye ug oras.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="safety-recommendations">
+                            <div class="safety-header">
+                                <span class="safety-icon">🛡️</span>
+                                <span class="safety-title">Safety Tips</span>
+                            </div>
+                            <ul class="safety-list">
+                                <li>Tan-awa pag-ayo ang profile ug rating sa customer</li>
+                                <li>Pagkita sa safe ug public nga lugar kung mahimo</li>
+                                <li>Sigurohon ang detalye sa trabaho ug bayad before magsugod</li>
+                                <li>Bantayi ang imong mga gamit samtang nagtrabaho</li>
+                                <li>Salig sa imong instinct — ayaw dawata kung dili ka komportable</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="gig-smarts-tip">
+                            <div class="gig-smarts-header">
+                                <span class="gig-smarts-icon">💡</span>
+                                <span class="gig-smarts-title">Gig Smarts</span>
+                            </div>
+                            <p class="gig-smarts-text"><strong>Kani nga trabaho. Kani nga bayad.</strong> Mao ra na ang deal. Kung mag-mention ang customer ug "more work later" o "full-time hire" — lahi na na ug dili apil sa agreement. Buhata lang ang gi-agree, wala nay extra.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Tagalog Content -->
+                    <div class="disclaimer-content lang-content" id="acceptGigTagalog" style="display: none;">
+                        <p><strong>MAHALAGA:</strong> Sa pagtanggap ng gig offer na ito, kinikilala at sinasang-ayunan mo ang mga sumusunod:</p>
+                        
+                        <div class="disclaimer-points">
+                            <div class="disclaimer-point">
+                                <span class="point-number">1.</span>
+                                <span class="point-text"><strong>Direktang Transaksyon:</strong> Ito ay direktang transaksyon sa pagitan mo (Worker) at ng Customer. Ang GISUGO ay facilitator lamang — hindi kasali sa inyong deal.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">2.</span>
+                                <span class="point-text"><strong>Limitasyon ng Pananagutan:</strong> Ang GISUGO ay hindi responsable sa mga away sa bayad, kondisyon ng trabaho, aksidente, o anumang problema mula sa transaksyon.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">3.</span>
+                                <span class="point-text"><strong>Bayad:</strong> Ikaw ang responsable sa pag-negotiate at pagsiguro ng bayad direkta sa customer.</span>
+                            </div>
+                            <div class="disclaimer-point">
+                                <span class="point-number">4.</span>
+                                <span class="point-text"><strong>Kalidad ng Trabaho:</strong> Sumasang-ayon ka na tapusin ang trabaho ayon sa napagkasunduang detalye at oras.</span>
+                            </div>
+                        </div>
+                        
+                        <div class="safety-recommendations">
+                            <div class="safety-header">
+                                <span class="safety-icon">🛡️</span>
+                                <span class="safety-title">Mga Payo sa Kaligtasan</span>
+                            </div>
+                            <ul class="safety-list">
+                                <li>Suriin mabuti ang profile at rating ng customer</li>
+                                <li>Magkita sa ligtas at pampublikong lugar kung maaari</li>
+                                <li>Siguraduhin ang detalye ng trabaho at bayad bago magsimula</li>
+                                <li>Bantayan ang iyong mga gamit habang nagtatrabaho</li>
+                                <li>Magtiwala sa iyong instinct — tumanggi kung may kakaiba</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="gig-smarts-tip">
+                            <div class="gig-smarts-header">
+                                <span class="gig-smarts-icon">💡</span>
+                                <span class="gig-smarts-title">Gig Smarts</span>
+                            </div>
+                            <p class="gig-smarts-text"><strong>Itong trabaho. Itong bayad.</strong> Yan lang ang deal. Kung mag-mention ang customer ng "more work later" o "full-time hire" — hiwalay na iyon at hindi kasama sa agreement. Gawin lang ang napagkasunduan, wala nang extra.</p>
+                        </div>
+                    </div>
                 </div>
 
             </div>
             
             <div class="hire-confirmation-footer">
-                <div class="confirmation-warning">
-                    <span class="final-warning-icon">✅</span>
-                    <span class="final-warning-text">This will confirm your commitment to complete the job.</span>
+                <div class="confirmation-warning" id="acceptGigWarning">
+                    <span class="final-warning-icon">📖</span>
+                    <span class="final-warning-text">Please read the disclaimer above to continue</span>
                 </div>
                 <div class="hire-confirmation-buttons">
                     <button id="cancelAcceptGigBtn" class="cancel-hire-btn">
                         <span>Cancel</span>
                     </button>
-                    <button id="confirmAcceptGigBtn" class="confirm-hire-btn">
+                    <button id="confirmAcceptGigBtn" class="confirm-hire-btn" disabled>
                         <span>I Understand - Accept Gig</span>
                     </button>
                 </div>
@@ -940,6 +1048,6 @@
     <script src="public/js/app-config.js"></script>
     <script src="public/js/header-uniform.js?v=1.0"></script>
     <script src="public/js/shared-menu.js?v=3.0"></script>
-    <script src="public/js/jobs.js?v=15"></script>
+    <script src="public/js/jobs.js?v=16"></script>
 </body>
 </html> 
