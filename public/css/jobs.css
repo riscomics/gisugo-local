@@ -1860,6 +1860,45 @@ body:has(.jobs-header) {
   margin-top: 0.1rem;
 }
 
+/* Gig Smarts Tip */
+.gig-smarts-tip {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: clamp(8px, 2vw, 12px);
+  padding: clamp(1rem, 3vw, 1.25rem);
+  margin-top: clamp(1rem, 3vw, 1.25rem);
+}
+
+.gig-smarts-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 0.75rem);
+  margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.gig-smarts-icon {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+}
+
+.gig-smarts-title {
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 600;
+  color: #fbbf24;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.gig-smarts-text {
+  font-size: clamp(0.8rem, 2.3vw, 0.875rem);
+  color: #fef3c7;
+  line-height: 1.6;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.gig-smarts-text strong {
+  color: #fbbf24;
+}
+
 
 /* Footer Section */
 .hire-confirmation-footer {
