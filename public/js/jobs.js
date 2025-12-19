@@ -6790,7 +6790,20 @@ function hideHireConfirmationOverlay() {
     // Clean up event handlers to prevent memory leaks
     delete overlay.dataset.hireHandlersInitialized;
     
-    console.log('🔒 Hire confirmation overlay hidden and handlers cleaned up');
+    // Close all parent modals for cleaner UX (no stacking)
+    const applicationsOverlay = document.getElementById('applicationsOverlay');
+    if (applicationsOverlay) {
+        applicationsOverlay.classList.remove('show');
+        delete applicationsOverlay.dataset.handlersInitialized;
+    }
+    
+    const listingOptionsOverlay = document.getElementById('listingOptionsOverlay');
+    if (listingOptionsOverlay) {
+        listingOptionsOverlay.classList.remove('show');
+        delete listingOptionsOverlay.dataset.handlersInitialized;
+    }
+    
+    console.log('🔒 Hire confirmation overlay and parent modals closed');
 }
 
 function processHireConfirmation(workerData) {
@@ -6910,16 +6923,6 @@ function removeApplicationCard(applicationId) {
             }, 400);
         }
     }, 2000); // Wait for auto-rejection animations to complete
-}
-
-function hideHireConfirmationOverlay() {
-    const overlay = document.getElementById('hireConfirmationOverlay');
-    if (!overlay) return;
-    
-    overlay.classList.remove('show');
-    
-    // Clear handlers initialization flag
-    delete overlay.dataset.hireHandlersInitialized;
 }
 
 function closeAllOverlaysAfterHire() {
