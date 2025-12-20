@@ -609,7 +609,7 @@ async function filterAndSortJobs() {
   // Fallback to localStorage if Firebase didn't return data
   if (categoryCards.length === 0) {
     console.log('📦 Loading jobs from localStorage');
-    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
     categoryCards = previewCards[currentCategory] || [];
   }
   

@@ -907,8 +907,9 @@
           const result = await loginWithEmail(email, password);
           
           if (result.success) {
-            console.log('✅ Login successful');
-            window.location.href = 'index.html';
+            console.log('✅ Login successful - checking profile...');
+            // Check if user has a GISUGO profile, redirect accordingly
+            await handleAuthRedirect(result.user);
           } else {
             loadingOverlay.classList.remove('show');
             submitBtn.disabled = false;
@@ -930,8 +931,9 @@
           const result = await loginWithGoogle();
           
           if (result.success) {
-            console.log('✅ Google sign-in successful');
-            window.location.href = 'index.html';
+            console.log('✅ Google sign-in successful - checking profile...');
+            // Check if user has a GISUGO profile, redirect accordingly
+            await handleAuthRedirect(result.user);
           } else {
             loadingOverlay.classList.remove('show');
             showError('email', result.message);
@@ -952,8 +954,9 @@
           const result = await loginWithFacebook();
           
           if (result.success) {
-            console.log('✅ Facebook sign-in successful');
-            window.location.href = 'index.html';
+            console.log('✅ Facebook sign-in successful - checking profile...');
+            // Check if user has a GISUGO profile, redirect accordingly
+            await handleAuthRedirect(result.user);
           } else {
             loadingOverlay.classList.remove('show');
             showError('email', result.message);
@@ -1121,8 +1124,9 @@
           const result = await verifyPhoneCode(otpCode);
           
           if (result.success) {
-            console.log('✅ Phone login successful');
-            window.location.href = 'index.html';
+            console.log('✅ Phone login successful - checking profile...');
+            // Check if user has a GISUGO profile, redirect accordingly
+            await handleAuthRedirect(result.user);
           } else {
             loadingOverlay.classList.remove('show');
             showOtpError(result.message);

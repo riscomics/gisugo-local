@@ -515,6 +515,75 @@
             </div>
           </div>
 
+          <!-- Linked Login Methods Section -->
+          <div class="edit-profile-section">
+            <div class="edit-profile-section-title">Login Methods</div>
+            <div class="edit-profile-section-desc">Manage how you sign in to GISUGO</div>
+            
+            <div class="login-methods-list" id="loginMethodsList">
+              <!-- Google -->
+              <div class="login-method-item" id="loginMethodGoogle">
+                <div class="login-method-icon">
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="24" height="24">
+                </div>
+                <div class="login-method-info">
+                  <div class="login-method-name">Google</div>
+                  <div class="login-method-status" id="googleMethodStatus">Not linked</div>
+                </div>
+                <button type="button" class="login-method-btn login-method-link" id="linkGoogleBtn" onclick="linkGoogleAccount()">
+                  Link
+                </button>
+              </div>
+              
+              <!-- Facebook -->
+              <div class="login-method-item" id="loginMethodFacebook">
+                <div class="login-method-icon">
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/facebook.svg" alt="Facebook" width="24" height="24">
+                </div>
+                <div class="login-method-info">
+                  <div class="login-method-name">Facebook</div>
+                  <div class="login-method-status" id="facebookMethodStatus">Not linked</div>
+                </div>
+                <button type="button" class="login-method-btn login-method-link" id="linkFacebookBtn" onclick="linkFacebookAccount()">
+                  Link
+                </button>
+              </div>
+              
+              <!-- Phone -->
+              <div class="login-method-item" id="loginMethodPhone">
+                <div class="login-method-icon" style="font-size: 24px;">📱</div>
+                <div class="login-method-info">
+                  <div class="login-method-name">Phone Number</div>
+                  <div class="login-method-status" id="phoneMethodStatus">Not linked</div>
+                </div>
+                <button type="button" class="login-method-btn login-method-link" id="linkPhoneBtn" onclick="linkPhoneNumber()">
+                  Link
+                </button>
+              </div>
+              
+              <!-- Email/Password -->
+              <div class="login-method-item" id="loginMethodEmail">
+                <div class="login-method-icon" style="font-size: 24px;">✉️</div>
+                <div class="login-method-info">
+                  <div class="login-method-name">Email & Password</div>
+                  <div class="login-method-status" id="emailMethodStatus">Not linked</div>
+                </div>
+                <div class="login-method-actions">
+                  <button type="button" class="login-method-btn login-method-link" id="linkEmailBtn" onclick="linkEmailPassword()">
+                    Link
+                  </button>
+                  <button type="button" class="login-method-btn login-method-change" id="changePasswordBtn" onclick="openChangePasswordModal()" style="display: none;">
+                    Change
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div class="login-methods-note">
+              💡 Link multiple methods to ensure you can always access your account
+            </div>
+          </div>
+
           <!-- Form Actions -->
           <div class="edit-profile-actions">
             <button type="button" class="edit-profile-cancel-btn" id="editProfileCancelBtn" onclick="closeEditProfileOverlay()">Cancel</button>
@@ -522,6 +591,112 @@
           </div>
         </form>
       </div>
+    </div>
+  </div>
+
+  <!-- Account Linking Modal (Success/Error/Info) -->
+  <div class="link-modal-overlay" id="linkModalOverlay">
+    <div class="link-modal-container">
+      <div class="link-modal-icon" id="linkModalIcon">✅</div>
+      <div class="link-modal-title" id="linkModalTitle">Success!</div>
+      <div class="link-modal-message" id="linkModalMessage">Your account has been linked.</div>
+      <button class="link-modal-btn" id="linkModalBtn" onclick="closeLinkModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Phone Linking Modal -->
+  <div class="link-modal-overlay" id="phoneLinkModalOverlay">
+    <div class="link-modal-container link-modal-form">
+      <button class="link-modal-close" onclick="closePhoneLinkModal()">×</button>
+      <div class="link-modal-icon">📱</div>
+      <div class="link-modal-title">Link Phone Number</div>
+      
+      <!-- Step 1: Enter Phone -->
+      <div id="phoneLinkStep1">
+        <div class="link-modal-field">
+          <label class="link-modal-label">Phone Number (with country code)</label>
+          <input type="tel" class="link-modal-input" id="linkPhoneInput" placeholder="+639123456789">
+        </div>
+        <div id="phoneRecaptchaContainer"></div>
+        <button class="link-modal-btn link-modal-btn-primary" id="sendPhoneCodeBtn" onclick="sendPhoneLinkCode()">
+          Send Verification Code
+        </button>
+      </div>
+      
+      <!-- Step 2: Enter OTP -->
+      <div id="phoneLinkStep2" style="display: none;">
+        <div class="link-modal-info">Code sent to <span id="phoneLinkNumber"></span></div>
+        <div class="link-modal-field">
+          <label class="link-modal-label">Enter 6-digit verification code</label>
+          <input type="text" class="link-modal-input" id="linkPhoneOTPInput" placeholder="123456" maxlength="6">
+        </div>
+        <button class="link-modal-btn link-modal-btn-primary" onclick="verifyPhoneLinkCode()">
+          Verify & Link
+        </button>
+        <button class="link-modal-btn link-modal-btn-secondary" onclick="resetPhoneLinkModal()">
+          ← Back
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email/Password Linking Modal -->
+  <div class="link-modal-overlay" id="emailLinkModalOverlay">
+    <div class="link-modal-container link-modal-form">
+      <button class="link-modal-close" onclick="closeEmailLinkModal()">×</button>
+      <div class="link-modal-icon">✉️</div>
+      <div class="link-modal-title">Link Email & Password</div>
+      
+      <div class="link-modal-field">
+        <label class="link-modal-label">Email Address</label>
+        <input type="email" class="link-modal-input" id="linkEmailInput" placeholder="your@email.com">
+      </div>
+      <div class="link-modal-field">
+        <label class="link-modal-label">Create Password (min 6 characters)</label>
+        <input type="password" class="link-modal-input" id="linkPasswordInput" placeholder="••••••••">
+      </div>
+      <div class="link-modal-field">
+        <label class="link-modal-label">Confirm Password</label>
+        <input type="password" class="link-modal-input" id="linkConfirmPasswordInput" placeholder="••••••••">
+      </div>
+      
+      <button class="link-modal-btn link-modal-btn-primary" onclick="submitEmailLink()">
+        Link Email & Password
+      </button>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="link-modal-overlay" id="changePasswordModalOverlay">
+    <div class="link-modal-container link-modal-form">
+      <button class="link-modal-close" onclick="closeChangePasswordModal()">×</button>
+      <div class="link-modal-icon">🔐</div>
+      <div class="link-modal-title">Change Password</div>
+      
+      <div class="link-modal-field">
+        <label class="link-modal-label">Current Password</label>
+        <input type="password" class="link-modal-input" id="currentPasswordInput" placeholder="Enter current password">
+      </div>
+      <div class="link-modal-field">
+        <label class="link-modal-label">New Password (min 6 characters)</label>
+        <input type="password" class="link-modal-input" id="newPasswordInput" placeholder="Enter new password">
+      </div>
+      <div class="link-modal-field">
+        <label class="link-modal-label">Confirm New Password</label>
+        <input type="password" class="link-modal-input" id="confirmNewPasswordInput" placeholder="Confirm new password">
+      </div>
+      
+      <button class="link-modal-btn link-modal-btn-primary" onclick="submitChangePassword()">
+        Update Password
+      </button>
+      
+      <div class="link-modal-divider">
+        <span>or</span>
+      </div>
+      
+      <button class="link-modal-btn link-modal-btn-secondary" onclick="sendPasswordResetEmail()">
+        📧 Send Password Reset Email
+      </button>
     </div>
   </div>
 

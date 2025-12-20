@@ -338,27 +338,19 @@ async function loginWithGoogle() {
     
     console.log('✅ Google sign-in successful:', user.uid);
     
-    // Check if user profile exists, if not create one
+    // DON'T auto-create profile here - let sign-up form handle it
+    // Just update last login if profile already exists
     const db = getFirestore();
     if (db) {
       const userDoc = await db.collection('users').doc(user.uid).get();
       
-      if (!userDoc.exists) {
-        // Create profile for new Google user
-        await createUserProfile(user.uid, {
-          email: user.email,
-          fullName: user.displayName,
-          profilePhoto: user.photoURL,
-          accountCreated: firebase.firestore.FieldValue.serverTimestamp(),
-          lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-          authProvider: 'google'
-        });
-      } else {
-        // Update last login
+      if (userDoc.exists) {
+        // Existing user - update last login
         await db.collection('users').doc(user.uid).update({
           lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
+      // If profile doesn't exist, don't create it - redirect will send to sign-up
     }
     
     return {
@@ -542,47 +534,31 @@ async function verifyPhoneCode(verificationCode, profileData = {}) {
     
     console.log('✅ Phone sign-in successful:', user.uid);
     
-    // Check if user profile exists, if not create one
+    // DON'T auto-create profile here - let sign-up form handle it
+    // Just update last login if profile already exists
     const db = getFirestore();
+    let isNewUser = false;
+    
     if (db) {
       const userDoc = await db.collection('users').doc(user.uid).get();
       
-      if (!userDoc.exists) {
-        // Create profile for new phone user
-        await createUserProfile(user.uid, {
-          phoneNumber: user.phoneNumber,
-          fullName: profileData.fullName || '',
-          profilePhoto: profileData.profilePhoto || '',
-          accountCreated: firebase.firestore.FieldValue.serverTimestamp(),
-          lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-          authProvider: 'phone'
-        });
-        
-        return {
-          success: true,
-          user: user,
-          isNewUser: true,
-          message: 'Welcome to GISUGO!'
-        };
-      } else {
-        // Update last login
+      if (userDoc.exists) {
+        // Existing user - update last login
         await db.collection('users').doc(user.uid).update({
           lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
-        
-        return {
-          success: true,
-          user: user,
-          isNewUser: false,
-          message: 'Welcome back!'
-        };
+        isNewUser = false;
+      } else {
+        // New user - don't create profile, let redirect handle it
+        isNewUser = true;
       }
     }
     
     return {
       success: true,
       user: user,
-      message: 'Phone verification successful!'
+      isNewUser: isNewUser,
+      message: isNewUser ? 'Welcome to GISUGO!' : 'Welcome back!'
     };
     
   } catch (error) {
@@ -634,27 +610,19 @@ async function loginWithFacebook() {
     
     console.log('✅ Facebook sign-in successful:', user.uid);
     
-    // Check if user profile exists, if not create one
+    // DON'T auto-create profile here - let sign-up form handle it
+    // Just update last login if profile already exists
     const db = getFirestore();
     if (db) {
       const userDoc = await db.collection('users').doc(user.uid).get();
       
-      if (!userDoc.exists) {
-        // Create profile for new Facebook user
-        await createUserProfile(user.uid, {
-          email: user.email,
-          fullName: user.displayName,
-          profilePhoto: user.photoURL,
-          accountCreated: firebase.firestore.FieldValue.serverTimestamp(),
-          lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-          authProvider: 'facebook'
-        });
-      } else {
-        // Update last login
+      if (userDoc.exists) {
+        // Existing user - update last login
         await db.collection('users').doc(user.uid).update({
           lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
+      // If profile doesn't exist, don't create it - redirect will send to sign-up
     }
     
     return {
@@ -932,6 +900,84 @@ function generateReferralCode(userId) {
   return `GISUGO-${shortId}-REFER`;
 }
 
+/**
+ * Check if user has a complete GISUGO profile in Firestore
+ * @param {string} userId - User's UID
+ * @returns {Promise<Object>} - { hasProfile: boolean, profile: Object|null }
+ */
+async function checkUserHasProfile(userId) {
+  if (!userId) {
+    return { hasProfile: false, profile: null };
+  }
+  
+  try {
+    const profile = await getUserProfile(userId);
+    
+    // Check if profile exists AND has required fields (fullName at minimum)
+    const hasProfile = profile !== null && profile.fullName && profile.fullName.trim() !== '';
+    
+    console.log(`🔍 Profile check for ${userId}: ${hasProfile ? '✅ Has profile' : '❌ No profile'}`);
+    
+    return { 
+      hasProfile, 
+      profile,
+      missingFields: !hasProfile ? getMissingProfileFields(profile) : []
+    };
+  } catch (error) {
+    console.error('❌ Error checking user profile:', error);
+    return { hasProfile: false, profile: null, error };
+  }
+}
+
+/**
+ * Get list of missing required profile fields
+ * @param {Object|null} profile - User profile
+ * @returns {Array} - List of missing field names
+ */
+function getMissingProfileFields(profile) {
+  const requiredFields = ['fullName', 'phoneNumber', 'dateOfBirth'];
+  
+  if (!profile) {
+    return requiredFields;
+  }
+  
+  return requiredFields.filter(field => !profile[field] || profile[field].toString().trim() === '');
+}
+
+/**
+ * Handle post-authentication redirect based on profile status
+ * @param {Object} user - Firebase user object
+ * @param {string} defaultRedirect - Where to redirect if profile exists (default: index.html)
+ * @param {string} signupRedirect - Where to redirect if no profile (default: sign-up.html)
+ */
+async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRedirect = 'sign-up.html') {
+  if (!user) {
+    console.log('⚠️ No user provided for redirect');
+    return;
+  }
+  
+  console.log('🔄 Checking profile for redirect...');
+  
+  const { hasProfile, profile } = await checkUserHasProfile(user.uid);
+  
+  if (hasProfile) {
+    console.log('✅ Profile found - redirecting to:', defaultRedirect);
+    window.location.href = defaultRedirect;
+  } else {
+    console.log('❌ No profile - redirecting to:', signupRedirect);
+    // Store auth info for sign-up page to use
+    sessionStorage.setItem('gisugo_pending_auth', JSON.stringify({
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || '',
+      photoURL: user.photoURL || '',
+      phoneNumber: user.phoneNumber || '',
+      provider: user.providerData?.[0]?.providerId || 'unknown'
+    }));
+    window.location.href = signupRedirect;
+  }
+}
+
 // ============================================================================
 // GLOBAL EXPORTS
 // ============================================================================
@@ -953,6 +999,8 @@ window.sendPasswordReset = sendPasswordReset;
 window.createUserProfile = createUserProfile;
 window.getUserProfile = getUserProfile;
 window.updateUserProfile = updateUserProfile;
+window.checkUserHasProfile = checkUserHasProfile;
+window.handleAuthRedirect = handleAuthRedirect;
 
 console.log('📦 Firebase auth module loaded');
 

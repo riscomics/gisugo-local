@@ -309,6 +309,10 @@ function openEditProfileOverlay() {
     if (overlay) {
       // Populate form with current user data
       populateEditProfileForm();
+      // Update login methods UI to show linked providers
+      if (typeof updateLoginMethodsUI === 'function') {
+        updateLoginMethodsUI();
+      }
       overlay.classList.add('show');
       document.body.style.overflow = 'hidden'; // Prevent scrolling
     }
@@ -464,8 +468,11 @@ function initializeEditProfileOverlay() {
   }
 }
 
-function saveProfileChanges() {
+async function saveProfileChanges() {
   console.log('🚀 saveProfileChanges() called!');
+  
+  // Show saving modal
+  showSavingModal();
   
   const profile = window.currentUserProfile;
   
@@ -482,7 +489,18 @@ function saveProfileChanges() {
   // Combine first and last name
   const fullName = `${firstName} ${lastName}`.trim();
 
-  // Update profile object (would send to backend in production)
+  // Get profile photo if changed
+  const photoPreview = document.getElementById('editProfilePhotoPreview');
+  const mainProfilePhoto = document.getElementById('profilePhoto');
+  let newPhotoUrl = null;
+  let photoChanged = false;
+  
+  if (photoPreview && mainProfilePhoto && photoPreview.src !== mainProfilePhoto.src) {
+    photoChanged = true;
+    // We'll upload to Firebase Storage below
+  }
+
+  // Update profile object
   if (profile) {
     profile.fullName = fullName;
     profile.firstName = firstName;
@@ -490,15 +508,80 @@ function saveProfileChanges() {
     profile.dateOfBirth = dob;
     profile.educationLevel = education;
     profile.userSummary = aboutMe;
-    
-    // Store social URLs separately (don't overwrite icon paths in socialMedia)
-    if (facebook || instagram || linkedin) {
-      profile.socialUrls = {
-        facebook: facebook || null,
-        instagram: instagram || null,
-        linkedin: linkedin || null
-      };
+    if (newPhotoUrl) {
+      profile.profilePhoto = newPhotoUrl;
     }
+    
+    // Store social URLs
+    profile.socialMedia = {
+      facebook: facebook || null,
+      instagram: instagram || null,
+      linkedin: linkedin || null
+    };
+  }
+
+  // 🔥 SAVE TO FIRESTORE
+  const userId = getCurrentUserId();
+  if (userId && typeof updateUserProfile === 'function') {
+    try {
+      console.log('🔥 Saving profile to Firestore...');
+      
+      const updates = {
+        fullName,
+        dateOfBirth: dob,
+        educationLevel: education,
+        userSummary: aboutMe,
+        socialMedia: {
+          facebook: facebook || null,
+          instagram: instagram || null,
+          linkedin: linkedin || null
+        }
+      };
+      
+      // Upload photo to Firebase Storage if changed
+      if (photoChanged && photoPreview) {
+        console.log('📤 Uploading profile photo to Firebase Storage...');
+        
+        // Convert data URL back to file for upload
+        if (typeof uploadProfilePhoto === 'function' && typeof dataUrlToFile === 'function') {
+          try {
+            const photoFile = dataUrlToFile(photoPreview.src, `profile_${userId}.jpg`);
+            const uploadResult = await uploadProfilePhoto(userId, photoFile);
+            
+            if (uploadResult.success) {
+              newPhotoUrl = uploadResult.url;
+              updates.profilePhoto = newPhotoUrl;
+              console.log('✅ Photo uploaded to Storage:', newPhotoUrl.substring(0, 50) + '...');
+            } else {
+              console.error('❌ Photo upload failed:', uploadResult.errors);
+              // Fall back to data URL if Storage upload fails
+              updates.profilePhoto = photoPreview.src;
+            }
+          } catch (uploadError) {
+            console.error('❌ Photo upload error:', uploadError);
+            // Fall back to data URL
+            updates.profilePhoto = photoPreview.src;
+          }
+        } else {
+          // Storage functions not available - use data URL
+          console.log('⚠️ Storage not available, using data URL');
+          updates.profilePhoto = photoPreview.src;
+          newPhotoUrl = photoPreview.src;
+        }
+      }
+      
+      const result = await updateUserProfile(userId, updates);
+      
+      if (result.success) {
+        console.log('✅ Profile saved to Firestore!');
+      } else {
+        console.error('❌ Failed to save to Firestore:', result.message);
+      }
+    } catch (error) {
+      console.error('❌ Error saving to Firestore:', error);
+    }
+  } else {
+    console.log('⚠️ No user ID or updateUserProfile not available - changes saved locally only');
   }
 
   // Update displayed profile info - FORCE DOM UPDATES
@@ -506,40 +589,38 @@ function saveProfileChanges() {
   
   // Update full name
   const fullNameElement = document.querySelector('.full-name');
-  console.log('Full name element:', fullNameElement);
   if (fullNameElement) {
     fullNameElement.innerHTML = fullName || 'No Name';
     console.log('✅ Updated full name to:', fullName);
-  } else {
-    console.error('❌ Full name element not found');
   }
 
   // Update About Me / User Summary
   const userSummaryElement = document.getElementById('userSummary');
-  console.log('User summary element:', userSummaryElement);
   if (userSummaryElement) {
-    // Use innerHTML and preserve line breaks
     userSummaryElement.innerHTML = (aboutMe || '').replace(/\n/g, '<br>');
-    console.log('✅ Updated user summary to:', aboutMe?.substring(0, 50));
-  } else {
-    console.error('❌ User summary element not found');
+    console.log('✅ Updated user summary');
   }
 
   // Update Education Level
   const educationElement = document.getElementById('educationLevel');
-  console.log('Education element:', educationElement);
   if (educationElement) {
     educationElement.innerHTML = education || 'Not specified';
     console.log('✅ Updated education to:', education);
-  } else {
-    console.error('❌ Education element not found');
+  }
+
+  // Update Age if DOB changed
+  if (dob) {
+    const userAgeElement = document.getElementById('userAge');
+    if (userAgeElement) {
+      const newAge = calculateAge(dob);
+      userAgeElement.textContent = `${newAge} years old`;
+      console.log('✅ Updated age to:', newAge);
+    }
   }
 
   // Update profile photo if changed
-  const photoPreview = document.getElementById('editProfilePhotoPreview');
-  const mainProfilePhoto = document.getElementById('profilePhoto');
-  if (photoPreview && mainProfilePhoto && photoPreview.src !== mainProfilePhoto.src) {
-    mainProfilePhoto.src = photoPreview.src;
+  if (newPhotoUrl && mainProfilePhoto) {
+    mainProfilePhoto.src = newPhotoUrl;
     console.log('✅ Updated profile photo');
   }
 
@@ -547,10 +628,71 @@ function saveProfileChanges() {
     fullName, dob, education, aboutMe: aboutMe?.substring(0, 50) + '...'
   });
 
-  // Close overlay
+  // Hide saving modal and close overlay
+  hideSavingModal();
   closeEditProfileOverlay();
   
   console.log('✅ Profile updated successfully!');
+}
+
+/**
+ * Show saving modal with spinner
+ */
+function showSavingModal() {
+  let modal = document.getElementById('savingModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'savingModal';
+    modal.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+                  background: rgba(0, 0, 0, 0.85); z-index: 99999;
+                  display: flex; align-items: center; justify-content: center;">
+        <div style="background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+                    border-radius: 20px; padding: 40px 56px; text-align: center;
+                    border: 2px solid rgba(16, 185, 129, 0.4);
+                    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 60px rgba(16, 185, 129, 0.15);">
+          
+          <!-- Animated Emoji Row -->
+          <div style="font-size: 40px; margin-bottom: 20px; display: flex; justify-content: center; gap: 16px;">
+            <span style="animation: bounce 0.6s ease-in-out infinite; animation-delay: 0s;">💾</span>
+            <span style="animation: bounce 0.6s ease-in-out infinite; animation-delay: 0.2s;">✨</span>
+            <span style="animation: bounce 0.6s ease-in-out infinite; animation-delay: 0.4s;">🚀</span>
+          </div>
+          
+          <!-- Spinner -->
+          <div style="width: 56px; height: 56px; border: 4px solid rgba(16, 185, 129, 0.2); 
+                      border-top-color: #10b981; border-radius: 50%; 
+                      animation: spin 0.8s linear infinite; margin: 0 auto 20px;"></div>
+          
+          <div style="color: #10b981; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">
+            Saving Your Profile
+          </div>
+          <div style="color: #9ca3af; font-size: 15px; margin-top: 10px;">
+            Making you look awesome! ✨
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+      </style>
+    `;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'block';
+}
+
+/**
+ * Hide saving modal
+ */
+function hideSavingModal() {
+  const modal = document.getElementById('savingModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
 }
 
 // Make saveProfileChanges globally accessible
@@ -664,6 +806,571 @@ function openAccountSettingsIfOwner() {
 
 // Make globally accessible for onclick handlers
 window.openAccountSettingsIfOwner = openAccountSettingsIfOwner;
+
+// ===== LINKED LOGIN METHODS MANAGEMENT =====
+
+/**
+ * Update the login methods UI based on current user's linked providers
+ */
+function updateLoginMethodsUI() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      console.log('📋 Firebase not available for login methods check');
+      return;
+    }
+    
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      console.log('📋 No user logged in for login methods check');
+      return;
+    }
+    
+    // Get linked provider IDs
+    const providerIds = user.providerData.map(p => p.providerId);
+    console.log('🔗 Linked providers:', providerIds);
+    
+    // Update Google
+    const googleLinked = providerIds.includes('google.com');
+    updateMethodUI('Google', googleLinked, user.providerData.find(p => p.providerId === 'google.com')?.email);
+    
+    // Update Facebook
+    const facebookLinked = providerIds.includes('facebook.com');
+    updateMethodUI('Facebook', facebookLinked, user.providerData.find(p => p.providerId === 'facebook.com')?.email);
+    
+    // Update Phone
+    const phoneLinked = providerIds.includes('phone');
+    updateMethodUI('Phone', phoneLinked, user.phoneNumber);
+    
+    // Update Email/Password
+    const emailLinked = providerIds.includes('password');
+    updateMethodUI('Email', emailLinked, user.email);
+    
+  } catch (error) {
+    console.error('Error updating login methods UI:', error);
+  }
+}
+
+/**
+ * Update individual method UI
+ */
+function updateMethodUI(methodName, isLinked, detail) {
+  const statusEl = document.getElementById(`${methodName.toLowerCase()}MethodStatus`);
+  const btnEl = document.getElementById(`link${methodName}Btn`);
+  const itemEl = document.getElementById(`loginMethod${methodName}`);
+  const changePasswordBtn = document.getElementById('changePasswordBtn');
+  
+  if (statusEl) {
+    if (isLinked) {
+      statusEl.textContent = detail ? `Linked: ${detail}` : 'Linked ✓';
+      statusEl.classList.add('linked');
+    } else {
+      statusEl.textContent = 'Not linked';
+      statusEl.classList.remove('linked');
+    }
+  }
+  
+  if (btnEl) {
+    if (isLinked) {
+      btnEl.textContent = 'Linked';
+      btnEl.classList.remove('login-method-link');
+      btnEl.classList.add('login-method-linked');
+      btnEl.disabled = true;
+    } else {
+      btnEl.textContent = 'Link';
+      btnEl.classList.add('login-method-link');
+      btnEl.classList.remove('login-method-linked');
+      btnEl.disabled = false;
+    }
+  }
+  
+  if (itemEl) {
+    if (isLinked) {
+      itemEl.classList.add('linked');
+    } else {
+      itemEl.classList.remove('linked');
+    }
+  }
+  
+  // Show/hide Change Password button for Email method
+  if (methodName === 'Email' && changePasswordBtn) {
+    if (isLinked) {
+      changePasswordBtn.style.display = 'inline-block';
+    } else {
+      changePasswordBtn.style.display = 'none';
+    }
+  }
+}
+
+// ===== LINK MODAL FUNCTIONS =====
+
+/**
+ * Show the link result modal (success/error/info)
+ */
+function showLinkModal(type, title, message) {
+  const overlay = document.getElementById('linkModalOverlay');
+  const iconEl = document.getElementById('linkModalIcon');
+  const titleEl = document.getElementById('linkModalTitle');
+  const messageEl = document.getElementById('linkModalMessage');
+  
+  const icons = {
+    success: '✅',
+    error: '❌',
+    warning: '⚠️',
+    info: 'ℹ️'
+  };
+  
+  iconEl.textContent = icons[type] || icons.info;
+  iconEl.className = `link-modal-icon ${type}`;
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  
+  overlay.classList.add('show');
+}
+
+function closeLinkModal() {
+  document.getElementById('linkModalOverlay').classList.remove('show');
+}
+
+// Phone linking modal functions
+function openPhoneLinkModal() {
+  const overlay = document.getElementById('phoneLinkModalOverlay');
+  overlay.classList.add('show');
+  document.getElementById('phoneLinkStep1').style.display = 'block';
+  document.getElementById('phoneLinkStep2').style.display = 'none';
+  document.getElementById('linkPhoneInput').value = '';
+  document.getElementById('linkPhoneOTPInput').value = '';
+  // Focus the input after a short delay
+  setTimeout(() => {
+    document.getElementById('linkPhoneInput').focus();
+  }, 100);
+}
+
+function closePhoneLinkModal() {
+  document.getElementById('phoneLinkModalOverlay').classList.remove('show');
+  // Clean up reCAPTCHA
+  if (window.phoneLinkRecaptcha) {
+    window.phoneLinkRecaptcha.clear();
+    window.phoneLinkRecaptcha = null;
+  }
+}
+
+function resetPhoneLinkModal() {
+  document.getElementById('phoneLinkStep1').style.display = 'block';
+  document.getElementById('phoneLinkStep2').style.display = 'none';
+}
+
+// Email linking modal functions
+function openEmailLinkModal() {
+  const overlay = document.getElementById('emailLinkModalOverlay');
+  overlay.classList.add('show');
+  document.getElementById('linkEmailInput').value = '';
+  document.getElementById('linkPasswordInput').value = '';
+  document.getElementById('linkConfirmPasswordInput').value = '';
+  // Focus the input after a short delay
+  setTimeout(() => {
+    document.getElementById('linkEmailInput').focus();
+  }, 100);
+}
+
+function closeEmailLinkModal() {
+  document.getElementById('emailLinkModalOverlay').classList.remove('show');
+}
+
+// Make modal functions globally accessible
+window.showLinkModal = showLinkModal;
+window.closeLinkModal = closeLinkModal;
+window.openPhoneLinkModal = openPhoneLinkModal;
+window.closePhoneLinkModal = closePhoneLinkModal;
+window.resetPhoneLinkModal = resetPhoneLinkModal;
+window.openEmailLinkModal = openEmailLinkModal;
+window.closeEmailLinkModal = closeEmailLinkModal;
+
+// Initialize link modal event handlers (prevent click-through)
+document.addEventListener('DOMContentLoaded', function() {
+  // Stop propagation on modal containers to prevent click-through
+  const modalContainers = document.querySelectorAll('.link-modal-container');
+  modalContainers.forEach(container => {
+    container.addEventListener('click', (e) => e.stopPropagation());
+    container.addEventListener('mousedown', (e) => e.stopPropagation());
+    container.addEventListener('touchstart', (e) => e.stopPropagation());
+  });
+  
+  // Close modals when clicking overlay background
+  const overlays = ['linkModalOverlay', 'phoneLinkModalOverlay', 'emailLinkModalOverlay', 'changePasswordModalOverlay'];
+  overlays.forEach(id => {
+    const overlay = document.getElementById(id);
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('show');
+        }
+      });
+    }
+  });
+});
+
+/**
+ * Link Google account to current user
+ */
+async function linkGoogleAccount() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
+      return;
+    }
+    
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
+      return;
+    }
+    
+    const provider = new firebase.auth.GoogleAuthProvider();
+    await user.linkWithPopup(provider);
+    
+    console.log('✅ Google account linked successfully!');
+    showLinkModal('success', 'Google Linked!', 'Your Google account has been linked successfully. You can now sign in with Google.');
+    updateLoginMethodsUI();
+    
+  } catch (error) {
+    console.error('❌ Error linking Google:', error);
+    if (error.code === 'auth/credential-already-in-use') {
+      showLinkModal('error', 'Already In Use', 'This Google account is already linked to another GISUGO account.');
+    } else if (error.code === 'auth/provider-already-linked') {
+      showLinkModal('warning', 'Already Linked', 'A Google account is already linked to your profile.');
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      // User closed popup, no error needed
+    } else {
+      showLinkModal('error', 'Link Failed', error.message);
+    }
+  }
+}
+
+/**
+ * Link Facebook account to current user
+ */
+async function linkFacebookAccount() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
+      return;
+    }
+    
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
+      return;
+    }
+    
+    const provider = new firebase.auth.FacebookAuthProvider();
+    await user.linkWithPopup(provider);
+    
+    console.log('✅ Facebook account linked successfully!');
+    showLinkModal('success', 'Facebook Linked!', 'Your Facebook account has been linked successfully. You can now sign in with Facebook.');
+    updateLoginMethodsUI();
+    
+  } catch (error) {
+    console.error('❌ Error linking Facebook:', error);
+    if (error.code === 'auth/credential-already-in-use') {
+      showLinkModal('error', 'Already In Use', 'This Facebook account is already linked to another GISUGO account.');
+    } else if (error.code === 'auth/provider-already-linked') {
+      showLinkModal('warning', 'Already Linked', 'A Facebook account is already linked to your profile.');
+    } else if (error.code === 'auth/operation-not-allowed') {
+      showLinkModal('error', 'Not Enabled', 'Facebook sign-in is not enabled. Please contact support or enable it in Firebase Console.');
+    } else if (error.code === 'auth/popup-closed-by-user') {
+      // User closed popup, no error needed
+    } else {
+      showLinkModal('error', 'Link Failed', error.message);
+    }
+  }
+}
+
+/**
+ * Open phone linking modal
+ */
+function linkPhoneNumber() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
+    return;
+  }
+  
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
+    return;
+  }
+  
+  openPhoneLinkModal();
+}
+
+/**
+ * Send verification code for phone linking
+ */
+async function sendPhoneLinkCode() {
+  const phoneInput = document.getElementById('linkPhoneInput');
+  const phoneNumber = phoneInput.value.trim();
+  const sendBtn = document.getElementById('sendPhoneCodeBtn');
+  
+  if (!phoneNumber) {
+    showLinkModal('warning', 'Phone Required', 'Please enter your phone number with country code.');
+    return;
+  }
+  
+  if (!phoneNumber.startsWith('+')) {
+    showLinkModal('warning', 'Invalid Format', 'Please include the country code (e.g., +639123456789).');
+    return;
+  }
+  
+  try {
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+    
+    // Set up reCAPTCHA
+    if (!window.phoneLinkRecaptcha) {
+      window.phoneLinkRecaptcha = new firebase.auth.RecaptchaVerifier('phoneRecaptchaContainer', {
+        size: 'invisible',
+        callback: () => {}
+      });
+    }
+    
+    const provider = new firebase.auth.PhoneAuthProvider();
+    window.phoneLinkVerificationId = await provider.verifyPhoneNumber(phoneNumber, window.phoneLinkRecaptcha);
+    
+    // Show step 2
+    document.getElementById('phoneLinkStep1').style.display = 'none';
+    document.getElementById('phoneLinkStep2').style.display = 'block';
+    document.getElementById('phoneLinkNumber').textContent = phoneNumber;
+    document.getElementById('linkPhoneOTPInput').focus();
+    
+  } catch (error) {
+    console.error('❌ Error sending code:', error);
+    showLinkModal('error', 'Send Failed', error.message);
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Send Verification Code';
+  }
+}
+
+/**
+ * Verify OTP and link phone
+ */
+async function verifyPhoneLinkCode() {
+  const otpInput = document.getElementById('linkPhoneOTPInput');
+  const code = otpInput.value.trim();
+  
+  if (!code || code.length !== 6) {
+    showLinkModal('warning', 'Invalid Code', 'Please enter the 6-digit verification code.');
+    return;
+  }
+  
+  try {
+    const user = firebase.auth().currentUser;
+    const credential = firebase.auth.PhoneAuthProvider.credential(window.phoneLinkVerificationId, code);
+    await user.linkWithCredential(credential);
+    
+    console.log('✅ Phone number linked successfully!');
+    closePhoneLinkModal();
+    showLinkModal('success', 'Phone Linked!', 'Your phone number has been linked successfully. You can now sign in with SMS.');
+    updateLoginMethodsUI();
+    
+  } catch (error) {
+    console.error('❌ Error verifying code:', error);
+    if (error.code === 'auth/invalid-verification-code') {
+      showLinkModal('error', 'Invalid Code', 'The verification code is incorrect. Please try again.');
+    } else if (error.code === 'auth/credential-already-in-use') {
+      closePhoneLinkModal();
+      showLinkModal('error', 'Already In Use', 'This phone number is already linked to another GISUGO account.');
+    } else if (error.code === 'auth/provider-already-linked') {
+      closePhoneLinkModal();
+      showLinkModal('warning', 'Already Linked', 'A phone number is already linked to your profile.');
+    } else {
+      showLinkModal('error', 'Verification Failed', error.message);
+    }
+  }
+}
+
+/**
+ * Open email/password linking modal
+ */
+function linkEmailPassword() {
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
+    return;
+  }
+  
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
+    return;
+  }
+  
+  openEmailLinkModal();
+}
+
+/**
+ * Submit email/password link
+ */
+async function submitEmailLink() {
+  const email = document.getElementById('linkEmailInput').value.trim();
+  const password = document.getElementById('linkPasswordInput').value;
+  const confirmPassword = document.getElementById('linkConfirmPasswordInput').value;
+  
+  if (!email) {
+    showLinkModal('warning', 'Email Required', 'Please enter your email address.');
+    return;
+  }
+  
+  if (!password || password.length < 6) {
+    showLinkModal('warning', 'Password Too Short', 'Password must be at least 6 characters.');
+    return;
+  }
+  
+  if (password !== confirmPassword) {
+    showLinkModal('warning', 'Password Mismatch', 'Passwords do not match. Please try again.');
+    return;
+  }
+  
+  try {
+    const user = firebase.auth().currentUser;
+    const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+    await user.linkWithCredential(credential);
+    
+    console.log('✅ Email/password linked successfully!');
+    closeEmailLinkModal();
+    showLinkModal('success', 'Email Linked!', 'Your email and password have been linked. You can now sign in with either method.');
+    updateLoginMethodsUI();
+    
+  } catch (error) {
+    console.error('❌ Error linking email/password:', error);
+    if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
+      showLinkModal('error', 'Email In Use', 'This email is already linked to another account.');
+    } else if (error.code === 'auth/provider-already-linked') {
+      closeEmailLinkModal();
+      showLinkModal('warning', 'Already Linked', 'An email/password is already linked to your profile.');
+    } else if (error.code === 'auth/invalid-email') {
+      showLinkModal('warning', 'Invalid Email', 'Please enter a valid email address.');
+    } else {
+      showLinkModal('error', 'Link Failed', error.message);
+    }
+  }
+}
+
+// ===== CHANGE PASSWORD FUNCTIONS =====
+
+function openChangePasswordModal() {
+  const overlay = document.getElementById('changePasswordModalOverlay');
+  overlay.classList.add('show');
+  document.getElementById('currentPasswordInput').value = '';
+  document.getElementById('newPasswordInput').value = '';
+  document.getElementById('confirmNewPasswordInput').value = '';
+  setTimeout(() => {
+    document.getElementById('currentPasswordInput').focus();
+  }, 100);
+}
+
+function closeChangePasswordModal() {
+  document.getElementById('changePasswordModalOverlay').classList.remove('show');
+}
+
+/**
+ * Submit password change
+ */
+async function submitChangePassword() {
+  const currentPassword = document.getElementById('currentPasswordInput').value;
+  const newPassword = document.getElementById('newPasswordInput').value;
+  const confirmPassword = document.getElementById('confirmNewPasswordInput').value;
+  
+  if (!currentPassword) {
+    showLinkModal('warning', 'Current Password Required', 'Please enter your current password to verify your identity.');
+    return;
+  }
+  
+  if (!newPassword || newPassword.length < 6) {
+    showLinkModal('warning', 'Password Too Short', 'New password must be at least 6 characters.');
+    return;
+  }
+  
+  if (newPassword !== confirmPassword) {
+    showLinkModal('warning', 'Password Mismatch', 'New passwords do not match. Please try again.');
+    return;
+  }
+  
+  if (currentPassword === newPassword) {
+    showLinkModal('warning', 'Same Password', 'New password must be different from current password.');
+    return;
+  }
+  
+  try {
+    const user = firebase.auth().currentUser;
+    if (!user || !user.email) {
+      showLinkModal('error', 'Not Logged In', 'Please log in first.');
+      return;
+    }
+    
+    // Re-authenticate user first (required for sensitive operations)
+    const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+    await user.reauthenticateWithCredential(credential);
+    
+    // Now update the password
+    await user.updatePassword(newPassword);
+    
+    console.log('✅ Password changed successfully!');
+    closeChangePasswordModal();
+    showLinkModal('success', 'Password Updated!', 'Your password has been changed successfully.');
+    
+  } catch (error) {
+    console.error('❌ Error changing password:', error);
+    if (error.code === 'auth/wrong-password') {
+      showLinkModal('error', 'Wrong Password', 'The current password you entered is incorrect.');
+    } else if (error.code === 'auth/weak-password') {
+      showLinkModal('warning', 'Weak Password', 'Please choose a stronger password (at least 6 characters).');
+    } else if (error.code === 'auth/requires-recent-login') {
+      showLinkModal('error', 'Session Expired', 'For security, please log out and log back in, then try again.');
+    } else {
+      showLinkModal('error', 'Update Failed', error.message);
+    }
+  }
+}
+
+/**
+ * Send password reset email
+ */
+async function sendPasswordResetEmail() {
+  try {
+    const user = firebase.auth().currentUser;
+    if (!user || !user.email) {
+      showLinkModal('error', 'No Email', 'No email address found for your account.');
+      return;
+    }
+    
+    await firebase.auth().sendPasswordResetEmail(user.email);
+    
+    closeChangePasswordModal();
+    showLinkModal('success', 'Email Sent!', `A password reset link has been sent to ${user.email}. Check your inbox.`);
+    
+  } catch (error) {
+    console.error('❌ Error sending reset email:', error);
+    showLinkModal('error', 'Send Failed', error.message);
+  }
+}
+
+// Make change password functions globally accessible
+window.openChangePasswordModal = openChangePasswordModal;
+window.closeChangePasswordModal = closeChangePasswordModal;
+window.submitChangePassword = submitChangePassword;
+window.sendPasswordResetEmail = sendPasswordResetEmail;
+
+// Make linking functions globally accessible
+window.sendPhoneLinkCode = sendPhoneLinkCode;
+window.verifyPhoneLinkCode = verifyPhoneLinkCode;
+window.submitEmailLink = submitEmailLink;
+
+// Make functions globally accessible
+window.linkGoogleAccount = linkGoogleAccount;
+window.linkFacebookAccount = linkFacebookAccount;
+window.linkPhoneNumber = linkPhoneNumber;
+window.linkEmailPassword = linkEmailPassword;
+window.updateLoginMethodsUI = updateLoginMethodsUI;
 
 // Update badge and account button visibility based on auth and verification status
 function updateBadgeVisibility(userProfile) {
@@ -1845,32 +2552,8 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔥 Profile page loaded with Firebase integration');
   
-  // Check if Firebase is available and user is logged in
-  const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-  
-  if (user && typeof getUserProfile === 'function') {
-    console.log('🔥 Loading profile from Firebase for user:', user.uid || user.userId);
-    
-    try {
-      // Try to load profile from Firebase
-      const firebaseProfile = await getUserProfile(user.uid || user.userId);
-      
-      if (firebaseProfile) {
-        console.log('✅ Profile loaded from Firebase');
-        loadUserProfile(firebaseProfile);
-      } else {
-        console.log('⚠️ No Firebase profile found, using sample data');
-        loadUserProfile();
-      }
-    } catch (error) {
-      console.error('❌ Error loading Firebase profile:', error);
-      loadUserProfile(); // Fallback to sample data
-    }
-  } else {
-    console.log('ℹ️ No authenticated user, loading sample profile');
-    // Load sample profile data for demo/development
-    loadUserProfile();
-  }
+  // Wait for Firebase auth to be ready before loading profile
+  await waitForAuthAndLoadProfile();
   
   // Initialize star rating system
   initializeStarRating();
@@ -1880,6 +2563,238 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   console.log('Profile page initialization complete');
 });
+
+/**
+ * Wait for Firebase auth state to be ready, then load the appropriate profile
+ */
+async function waitForAuthAndLoadProfile() {
+  // Show loading state while waiting for profile
+  showProfileLoadingState();
+  
+  // Flag to prevent double-loading
+  let profileLoaded = false;
+  
+  return new Promise((resolve) => {
+    // Check if Firebase is available
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      console.log('⏳ Waiting for Firebase auth state...');
+      
+      // Use onAuthStateChanged to wait for auth to be ready
+      const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
+        unsubscribe(); // Only need this once
+        
+        if (profileLoaded) {
+          console.log('⚠️ Profile already loaded, skipping');
+          return;
+        }
+        
+        if (user) {
+          console.log('🔥 User authenticated:', user.uid);
+          
+          try {
+            // Load profile from Firestore
+            if (typeof getUserProfile === 'function') {
+              const firebaseProfile = await getUserProfile(user.uid);
+              
+              // Check again in case timeout fired during await
+              if (profileLoaded) {
+                console.log('⚠️ Profile loaded by timeout, but Firebase profile is ready - updating with real data');
+                // Update with real data even if mock was loaded
+                loadUserProfile(firebaseProfile || undefined);
+                hideProfileLoadingState();
+                return;
+              }
+              
+              profileLoaded = true;
+              
+              if (firebaseProfile) {
+                console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
+                hideProfileLoadingState();
+                loadUserProfile(firebaseProfile);
+              } else {
+                console.log('⚠️ No Firebase profile found, using sample data');
+                hideProfileLoadingState();
+                loadUserProfile();
+              }
+            } else {
+              profileLoaded = true;
+              console.log('⚠️ getUserProfile not available, using sample data');
+              hideProfileLoadingState();
+              loadUserProfile();
+            }
+          } catch (error) {
+            if (!profileLoaded) {
+              profileLoaded = true;
+              console.error('❌ Error loading Firebase profile:', error);
+              hideProfileLoadingState();
+              loadUserProfile();
+            }
+          }
+        } else {
+          if (!profileLoaded) {
+            profileLoaded = true;
+            console.log('ℹ️ No authenticated user, loading sample profile');
+            hideProfileLoadingState();
+            loadUserProfile();
+          }
+        }
+        
+        resolve();
+      });
+      
+      // Timeout fallback - only load sample if Firebase hasn't responded yet
+      setTimeout(() => {
+        if (!profileLoaded) {
+          console.log('⚠️ Auth state timeout - still waiting, extending...');
+          // Don't load sample immediately, give Firebase more time
+          // Only load sample after 6 seconds total
+        }
+      }, 3000);
+      
+      // Hard timeout at 6 seconds
+      setTimeout(() => {
+        if (!profileLoaded) {
+          profileLoaded = true;
+          console.log('⚠️ Hard timeout (6s) - loading sample profile');
+          hideProfileLoadingState();
+          loadUserProfile();
+          resolve();
+        }
+      }, 6000);
+      
+    } else {
+      // Firebase not available - use sample data
+      profileLoaded = true;
+      console.log('ℹ️ Firebase not available, loading sample profile');
+      hideProfileLoadingState();
+      loadUserProfile();
+      resolve();
+    }
+  });
+}
+
+/**
+ * Show loading state while profile is being fetched - CLEAN SLATE
+ */
+function showProfileLoadingState() {
+  // Completely hide all profile content
+  const profileContainer = document.querySelector('.profile-container');
+  if (profileContainer) {
+    profileContainer.style.visibility = 'hidden';
+    profileContainer.style.opacity = '0';
+  }
+  
+  // Hide any other profile sections that might be outside container
+  const profileSections = document.querySelectorAll('.profile-header, .profile-content, .profile-stats');
+  profileSections.forEach(section => {
+    section.style.visibility = 'hidden';
+    section.style.opacity = '0';
+  });
+  
+  // Create full-screen loading overlay with fun animated emojis
+  let loadingIndicator = document.getElementById('profileLoadingIndicator');
+  if (!loadingIndicator) {
+    loadingIndicator = document.createElement('div');
+    loadingIndicator.id = 'profileLoadingIndicator';
+    loadingIndicator.innerHTML = `
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                  background: linear-gradient(180deg, #0f1419 0%, #1a202c 30%, #242936 50%, #1a202c 70%, #0f1419 100%);
+                  z-index: 9999; display: flex; align-items: center; justify-content: center;
+                  flex-direction: column;">
+        
+        <!-- Fun Animated Emoji Parade -->
+        <div style="font-size: 48px; margin-bottom: 24px; display: flex; gap: 20px;">
+          <span style="animation: wave 1.5s ease-in-out infinite; animation-delay: 0s; display: inline-block;">👋</span>
+          <span style="animation: pulse 1.2s ease-in-out infinite; animation-delay: 0.2s; display: inline-block;">🎯</span>
+          <span style="animation: wave 1.5s ease-in-out infinite; animation-delay: 0.4s; display: inline-block;">⭐</span>
+          <span style="animation: pulse 1.2s ease-in-out infinite; animation-delay: 0.6s; display: inline-block;">🔥</span>
+        </div>
+        
+        <!-- Glowing Spinner -->
+        <div style="position: relative; margin-bottom: 24px;">
+          <div style="width: 64px; height: 64px; border: 4px solid rgba(16, 185, 129, 0.15); 
+                      border-top-color: #10b981; border-radius: 50%; 
+                      animation: spin 0.8s linear infinite;
+                      box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);"></div>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                      font-size: 24px; animation: heartbeat 1s ease-in-out infinite;">🚀</div>
+        </div>
+        
+        <div style="color: #10b981; font-size: 24px; font-weight: 700; margin-bottom: 10px;
+                    text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
+          Loading Your Profile
+        </div>
+        <div style="color: #6b7280; font-size: 15px; animation: fadeInOut 2s ease-in-out infinite;">
+          Getting everything ready for you... ✨
+        </div>
+        
+        <!-- Animated dots -->
+        <div style="margin-top: 20px; display: flex; gap: 8px;">
+          <div style="width: 10px; height: 10px; background: #10b981; border-radius: 50%; 
+                      animation: dotPulse 1.4s ease-in-out infinite; animation-delay: 0s;"></div>
+          <div style="width: 10px; height: 10px; background: #10b981; border-radius: 50%; 
+                      animation: dotPulse 1.4s ease-in-out infinite; animation-delay: 0.2s;"></div>
+          <div style="width: 10px; height: 10px; background: #10b981; border-radius: 50%; 
+                      animation: dotPulse 1.4s ease-in-out infinite; animation-delay: 0.4s;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes wave {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(20deg); }
+          75% { transform: rotate(-20deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.2); }
+        }
+        @keyframes heartbeat {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); }
+          50% { transform: translate(-50%, -50%) scale(1.15); }
+        }
+        @keyframes fadeInOut {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; }
+        }
+        @keyframes dotPulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.3); opacity: 1; }
+        }
+      </style>
+    `;
+    document.body.appendChild(loadingIndicator);
+  }
+}
+
+/**
+ * Hide loading state when profile is ready
+ */
+function hideProfileLoadingState() {
+  // Show all profile content with fade-in
+  const profileContainer = document.querySelector('.profile-container');
+  if (profileContainer) {
+    profileContainer.style.visibility = 'visible';
+    profileContainer.style.opacity = '1';
+    profileContainer.style.transition = 'opacity 0.3s ease';
+  }
+  
+  // Show other profile sections
+  const profileSections = document.querySelectorAll('.profile-header, .profile-content, .profile-stats');
+  profileSections.forEach(section => {
+    section.style.visibility = 'visible';
+    section.style.opacity = '1';
+    section.style.transition = 'opacity 0.3s ease';
+  });
+  
+  // Remove loading indicator with fade
+  const loadingIndicator = document.getElementById('profileLoadingIndicator');
+  if (loadingIndicator) {
+    loadingIndicator.style.opacity = '0';
+    loadingIndicator.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => loadingIndicator.remove(), 300);
+  }
+}
 
 // ===== VERIFICATION SYSTEM BACKEND MAPPING =====
 
@@ -2537,82 +3452,9 @@ function getRandomUserThumbnail() {
   return availableUserThumbnails[randomIndex];
 }
 
-// Sample review data (in the future this will come from Firebase)
-const sampleCustomerReviews = [
-  {
-    id: 1,
-    jobTitle: "Home cleaning service - 3 bedroom house",
-    feedbackDate: "Dec. 20, 2025",
-    rating: 5,
-    feedbackText: "Excellent customer! Very understanding and provided all necessary cleaning supplies. Payment was prompt.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=cleaning&jobNumber=123"
-  },
-  {
-    id: 2,
-    jobTitle: "Garden maintenance and lawn mowing",
-    feedbackDate: "Dec. 17, 2025",
-    rating: 4,
-    feedbackText: "Customer was very clear about expectations. Nice working environment and fair pay.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=gardening&jobNumber=124"
-  },
-  {
-    id: 3,
-    jobTitle: "Pet grooming for two small dogs",
-    feedbackDate: "Dec. 14, 2025",
-    rating: 5,
-    feedbackText: "Great customer who really cares about his pets. Provided detailed instructions and was very appreciative.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=pet-care&jobNumber=125"
-  },
-  {
-    id: 4,
-    jobTitle: "Event setup for birthday party",
-    feedbackDate: "Dec. 12, 2025",
-    rating: 4,
-    feedbackText: "Well-organized customer with clear timeline. Good communication throughout the setup process.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=events&jobNumber=126"
-  },
-  {
-    id: 5,
-    jobTitle: "Computer repair and software installation",
-    feedbackDate: "Dec. 10, 2025",
-    rating: 5,
-    feedbackText: "Very patient customer who listened to all explanations. Fair payment and respectful interaction.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=tech&jobNumber=127"
-  },
-  {
-    id: 6,
-    jobTitle: "Furniture assembly for new bedroom set",
-    feedbackDate: "Dec. 8, 2025",
-    rating: 4,
-    feedbackText: "Customer provided all tools needed and was flexible with timing. Pleasant working atmosphere.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=labor&jobNumber=128"
-  },
-  {
-    id: 7,
-    jobTitle: "Car detailing and interior cleaning",
-    feedbackDate: "Dec. 5, 2025",
-    rating: 5,
-    feedbackText: "Professional customer who trusts your expertise. Quick payment and would work for him again.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=automotive&jobNumber=129"
-  },
-  {
-    id: 8,
-    jobTitle: "Photography for family portrait session",
-    feedbackDate: "Dec. 3, 2025",
-    rating: 4,
-    feedbackText: "Creative customer with good vision. Collaborative approach and respectful of artistic input.",
-    userThumbnail: getRandomUserThumbnail(),
-    jobPostUrl: "dynamic-job.html?category=creative&jobNumber=130"
-  }
-];
-
+// Review data - will be loaded from Firebase when available
+// Empty arrays = "No reviews yet" message shown
+const sampleCustomerReviews = [];
 const sampleWorkerReviews = [];
 
 // Create a review card element
@@ -2694,7 +3536,8 @@ function populateCustomerReviews(customerReviews = sampleCustomerReviews, userNa
   if (customerReviews.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">No reviews of ${profileName} as a customer yet.</p>
+        <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} as a customer will be displayed here.</p>
       </div>
     `;
     return;
@@ -2720,8 +3563,8 @@ function populateWorkerReviews(workerReviews = sampleWorkerReviews, userName = n
   if (workerReviews.length === 0) {
     container.innerHTML = `
       <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
-        <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Jobs Completed Yet.</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} completing jobs will be displayed here.</p>
+        <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} as a worker will be displayed here.</p>
       </div>
     `;
     return;

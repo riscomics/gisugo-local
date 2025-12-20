@@ -12,14 +12,14 @@
 //
 // ============================================================================
 
-// Firebase configuration object - REPLACE THESE WITH YOUR ACTUAL VALUES
+// Firebase configuration object - GISUGO PRODUCTION CONFIG
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY_HERE",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC5w-ITUnCDaA-ZXTmwAwgGo1mErS-k-BE",
+  authDomain: "gisugo1.firebaseapp.com",
+  projectId: "gisugo1",
+  storageBucket: "gisugo1.firebasestorage.app",
+  messagingSenderId: "380568649178",
+  appId: "1:380568649178:web:725c745becbb89412094e3"
 };
 
 // ============================================================================

@@ -8,6 +8,9 @@ let form, submitBtn, loadingOverlay, successOverlay;
 let photoPreview, photoInput, selectedPhoto = null;
 let selectedPhotoDataUrl = null;
 
+// Track authenticated user (from OAuth or login redirect)
+let authenticatedUser = null;
+
 // Initialize form when DOM loads
 document.addEventListener('DOMContentLoaded', function() {
   initializeForm();
@@ -16,9 +19,142 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeValidation();
   initializeGoogleSignIn();
   initializeFacebookSignIn();
+  checkPendingAuth(); // Check if redirected from login with pending auth
   
   console.log('🔥 Sign-up form initialized with Firebase integration');
 });
+
+/**
+ * Check for pending auth data from login redirect
+ * If user logged in via login.html but has no profile, they're redirected here
+ */
+function checkPendingAuth() {
+  const pendingAuthData = sessionStorage.getItem('gisugo_pending_auth');
+  
+  if (pendingAuthData) {
+    try {
+      const authData = JSON.parse(pendingAuthData);
+      console.log('📋 Found pending auth data:', authData.email);
+      
+      // Store the authenticated user info
+      authenticatedUser = authData;
+      
+      // Pre-fill available fields
+      prefillFromAuth(authData);
+      
+      // Update UI to show they're already authenticated
+      showAuthenticatedState(authData.provider);
+      
+      // Clear the pending auth (one-time use)
+      sessionStorage.removeItem('gisugo_pending_auth');
+      
+    } catch (error) {
+      console.error('Error parsing pending auth data:', error);
+      sessionStorage.removeItem('gisugo_pending_auth');
+    }
+  }
+}
+
+/**
+ * Pre-fill form fields from auth data
+ */
+function prefillFromAuth(authData) {
+  // Pre-fill name if available
+  if (authData.displayName) {
+    const fullNameInput = document.getElementById('fullName');
+    if (fullNameInput && !fullNameInput.value) {
+      // Truncate to 15 chars if needed
+      fullNameInput.value = authData.displayName.substring(0, 15);
+      // Update character counter
+      const counter = document.getElementById('fullNameCounter');
+      if (counter) counter.textContent = fullNameInput.value.length;
+    }
+  }
+  
+  // Pre-fill email if available (for display, may be read-only)
+  if (authData.email) {
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+      emailInput.value = authData.email;
+      emailInput.readOnly = true;
+      emailInput.style.opacity = '0.7';
+    }
+  }
+  
+  // Pre-fill phone if available
+  if (authData.phoneNumber) {
+    const phoneInput = document.getElementById('phoneNumber');
+    if (phoneInput && !phoneInput.value) {
+      // Remove country code prefix if present
+      let phone = authData.phoneNumber;
+      if (phone.startsWith('+63')) phone = phone.substring(3);
+      else if (phone.startsWith('+1')) phone = phone.substring(2);
+      else if (phone.startsWith('+')) phone = phone.substring(phone.indexOf(' ') + 1);
+      phoneInput.value = phone;
+    }
+  }
+  
+  // Pre-fill profile photo if available
+  if (authData.photoURL) {
+    const previewImg = document.getElementById('photoPreviewImg');
+    if (previewImg) {
+      previewImg.src = authData.photoURL;
+      selectedPhotoDataUrl = authData.photoURL;
+    }
+  }
+  
+  console.log('✅ Form pre-filled from auth data');
+}
+
+/**
+ * Update UI to show user is already authenticated
+ */
+function showAuthenticatedState(provider) {
+  // Hide social login buttons since user is already authenticated
+  const socialSection = document.querySelector('.form-section:has(#googleSignInBtn)');
+  const googleBtn = document.getElementById('googleSignInBtn');
+  const facebookBtn = document.getElementById('facebookSignInBtn');
+  const phoneSignUpBtn = document.getElementById('phoneSignUpBtn');
+  const emailToggleBtn = document.getElementById('emailToggleBtn');
+  
+  // Hide OAuth buttons
+  if (googleBtn) googleBtn.style.display = 'none';
+  if (facebookBtn) facebookBtn.style.display = 'none';
+  if (phoneSignUpBtn) phoneSignUpBtn.style.display = 'none';
+  if (emailToggleBtn) emailToggleBtn.style.display = 'none';
+  
+  // Hide email/password section since OAuth handled auth
+  const emailSection = document.getElementById('emailSignupSection');
+  if (emailSection) emailSection.style.display = 'none';
+  
+  // Hide phone OTP section
+  const phoneOtpSection = document.getElementById('phoneOtpSection');
+  if (phoneOtpSection) phoneOtpSection.style.display = 'none';
+  
+  // Hide the email divider section
+  const emailDivider = document.getElementById('emailDivider');
+  if (emailDivider) emailDivider.style.display = 'none';
+  
+  // Add a message showing they're authenticated
+  const authMessage = document.createElement('div');
+  authMessage.className = 'auth-status-message';
+  authMessage.innerHTML = `
+    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); 
+                border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; text-align: center;">
+      <span style="color: #10b981; font-weight: 600;">
+        ✅ Signed in with ${provider === 'google.com' ? 'Google' : provider === 'facebook.com' ? 'Facebook' : provider}
+      </span>
+      <br>
+      <span style="color: #9ca3af; font-size: 0.85rem;">Complete your profile below to continue</span>
+    </div>
+  `;
+  
+  // Insert after photo section
+  const photoSection = document.querySelector('.form-section:has(#photoPreview)');
+  if (photoSection && photoSection.nextSibling) {
+    photoSection.parentNode.insertBefore(authMessage, photoSection.nextSibling);
+  }
+}
 
 // Initialize form elements and event listeners
 function initializeForm() {
@@ -343,32 +479,62 @@ async function handleFormSubmission(event) {
   showLoadingOverlay();
   
   try {
-    // Get email and password
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    
     // Collect profile data
     const profileData = collectFormData();
     
-    // Upload profile photo first if selected
-    if (selectedPhoto && selectedPhotoDataUrl) {
+    // Add profile photo if selected
+    if (selectedPhotoDataUrl) {
       profileData.profilePhoto = selectedPhotoDataUrl;
     }
     
-    // Create account with Firebase
-    const result = await signUpWithEmail(email, password, profileData);
+    let userId;
     
-    if (result.success) {
-      console.log('✅ Account created successfully:', result.user?.uid);
+    // Check if user is already authenticated (from OAuth or login redirect)
+    if (authenticatedUser && authenticatedUser.uid) {
+      // User already authenticated - just create/update their profile
+      userId = authenticatedUser.uid;
+      console.log('📝 Creating profile for authenticated user:', userId);
       
-      // Show success overlay
-      hideLoadingOverlay();
-      showSuccessOverlay();
+      // Add auth provider info
+      profileData.email = authenticatedUser.email || '';
+      profileData.authProvider = authenticatedUser.provider || 'oauth';
+      
     } else {
-      hideLoadingOverlay();
-      showError('email', result.message);
-      console.error('Account creation failed:', result.message);
+      // New email/password signup
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      
+      if (!email || !password) {
+        hideLoadingOverlay();
+        showError('email', 'Email and password are required');
+        return;
+      }
+      
+      // Create account with Firebase
+      const result = await signUpWithEmail(email, password, profileData);
+      
+      if (!result.success) {
+        hideLoadingOverlay();
+        showError('email', result.message);
+        console.error('Account creation failed:', result.message);
+        return;
+      }
+      
+      userId = result.user?.uid;
+      profileData.email = email;
+      profileData.authProvider = 'email';
+      console.log('✅ Email account created:', userId);
     }
+    
+    // Now save/update the complete profile to Firestore
+    if (userId && typeof createUserProfile === 'function') {
+      await createUserProfile(userId, profileData);
+      console.log('✅ Profile saved to Firestore');
+    }
+    
+    // Show success overlay
+    hideLoadingOverlay();
+    showSuccessOverlay();
     
   } catch (error) {
     hideLoadingOverlay();
@@ -393,12 +559,20 @@ function validateForm() {
 
 // Collect form data in Firebase-ready format
 function collectFormData() {
+  // Get phone number with country code
+  const phoneInput = document.getElementById('phoneNumber')?.value.trim() || '';
+  const countryCode = document.getElementById('countryCode')?.value || '+63';
+  const fullPhoneNumber = phoneInput ? countryCode + phoneInput.replace(/\D/g, '') : '';
+  
   const formData = {
     // Basic Profile Information (matches profile.js structure)
     fullName: document.getElementById('fullName').value.trim(),
     dateOfBirth: document.getElementById('dateOfBirth').value,
     educationLevel: document.getElementById('educationLevel').value,
     userSummary: document.getElementById('userSummary').value.trim(),
+    
+    // Contact Information
+    phoneNumber: fullPhoneNumber,
     
     // Social Media (optional)
     socialMedia: {
@@ -408,7 +582,22 @@ function collectFormData() {
     },
     
     // Profile photo placeholder (will be updated if photo uploaded)
-    profilePhoto: null
+    profilePhoto: null,
+    
+    // Account metadata
+    accountCreated: new Date().toISOString(),
+    termsAccepted: document.getElementById('termsAccepted')?.checked || false,
+    termsAcceptedDate: new Date().toISOString(),
+    
+    // Default values for new users
+    rating: 0,
+    reviewCount: 0,
+    jobsCompleted: 0,
+    verification: {
+      status: 'none',
+      businessVerified: false,
+      proVerified: false
+    }
   };
   
   // Remove empty social media entries
@@ -448,14 +637,33 @@ async function handleGoogleSignIn() {
     if (result.success) {
       console.log('✅ Google sign-in successful:', result.user?.uid);
       
-      if (result.isNewUser) {
-        // New user - show success and redirect to complete profile
-        hideLoadingOverlay();
-        showSuccessOverlay();
-      } else {
-        // Existing user - redirect to home
+      // Check if user already has a complete profile
+      const { hasProfile } = await checkUserHasProfile(result.user.uid);
+      
+      if (hasProfile) {
+        // Existing complete user - redirect to home
+        console.log('👤 Existing user with profile - redirecting to home');
         hideLoadingOverlay();
         window.location.href = 'index.html';
+      } else {
+        // New or incomplete user - stay on sign-up page to complete profile
+        console.log('📝 New user - staying on sign-up to complete profile');
+        
+        // Store authenticated user info
+        authenticatedUser = {
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
+          phoneNumber: result.user.phoneNumber || '',
+          provider: 'google.com'
+        };
+        
+        // Pre-fill form with auth data
+        prefillFromAuth(authenticatedUser);
+        showAuthenticatedState('google.com');
+        
+        hideLoadingOverlay();
       }
     } else {
       hideLoadingOverlay();
@@ -488,14 +696,33 @@ async function handleFacebookSignIn() {
     if (result.success) {
       console.log('✅ Facebook sign-in successful:', result.user?.uid);
       
-      if (result.isNewUser) {
-        // New user - show success and redirect to complete profile
-        hideLoadingOverlay();
-        showSuccessOverlay();
-      } else {
-        // Existing user - redirect to home
+      // Check if user already has a complete profile
+      const { hasProfile } = await checkUserHasProfile(result.user.uid);
+      
+      if (hasProfile) {
+        // Existing complete user - redirect to home
+        console.log('👤 Existing user with profile - redirecting to home');
         hideLoadingOverlay();
         window.location.href = 'index.html';
+      } else {
+        // New or incomplete user - stay on sign-up page to complete profile
+        console.log('📝 New user - staying on sign-up to complete profile');
+        
+        // Store authenticated user info
+        authenticatedUser = {
+          uid: result.user.uid,
+          email: result.user.email || '',
+          displayName: result.user.displayName || '',
+          photoURL: result.user.photoURL || '',
+          phoneNumber: result.user.phoneNumber || '',
+          provider: 'facebook.com'
+        };
+        
+        // Pre-fill form with auth data
+        prefillFromAuth(authenticatedUser);
+        showAuthenticatedState('facebook.com');
+        
+        hideLoadingOverlay();
       }
     } else {
       hideLoadingOverlay();

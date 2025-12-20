@@ -28,16 +28,19 @@
         
         <!-- Menu Overlay -->
         <nav class="menu-overlay">
-          <ul class="menu-list">
-            <li><a href="new-post2.html">NEW POST</a></li>
-            <li><a href="profile.html">ACCOUNT</a></li>
-            <li><a href="messages.html">MESSAGES</a></li>
-            <li><a href="landing.html">FAVORITES</a></li>
-            <li><a href="/gisugo-local/jobs">GIGS MANAGER</a></li>
-            <li><a href="clear-storage.html">CLEAR DATA</a></li>
-            <li><a href="forum.html">COMMUNITY FORUM</a></li>
-            <li><a href="contacts.html">CONTACT ADMIN</a></li>
-            <li id="auth-menu-item"><a href="login.html">LOGIN / SIGN UP</a></li>
+          <ul class="menu-list" id="homeMenuList">
+            <!-- Auth-required items (hidden when not logged in) -->
+            <li class="auth-required"><a href="new-post2.html">NEW POST</a></li>
+            <li class="auth-required"><a href="profile.html">ACCOUNT</a></li>
+            <li class="auth-required"><a href="messages.html">MESSAGES</a></li>
+            <li class="auth-required"><a href="landing.html">FAVORITES</a></li>
+            <li class="auth-required"><a href="jobs.html">GIGS MANAGER</a></li>
+            <li class="auth-required"><a href="clear-storage.html">CLEAR DATA</a></li>
+            <!-- Public items (always visible) -->
+            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
+            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
+            <!-- Auth item (changes based on login state) -->
+            <li id="auth-menu-item" class="public-item"><a href="login.html">LOGIN / SIGN UP</a></li>
           </ul>
         </nav>
       </header>
@@ -379,15 +382,41 @@
         iframe.style.display = 'block';
       }
       
-      // Update auth menu item based on login status
+      // Update menu visibility based on login status
       document.addEventListener('DOMContentLoaded', function() {
-        const authMenuItem = document.getElementById('auth-menu-item');
-        if (authMenuItem && typeof isLoggedIn === 'function') {
-          if (isLoggedIn()) {
-            authMenuItem.innerHTML = '<a href="#" onclick="handleLogout(); return false;">LOGOUT</a>';
-          }
+        updateHomeMenu();
+        
+        // Also listen for auth state changes
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+          firebase.auth().onAuthStateChanged(function(user) {
+            updateHomeMenu();
+          });
         }
       });
+      
+      function updateHomeMenu() {
+        const authMenuItem = document.getElementById('auth-menu-item');
+        const authRequiredItems = document.querySelectorAll('.auth-required');
+        const userLoggedIn = typeof isLoggedIn === 'function' && isLoggedIn();
+        
+        // Update auth menu item text
+        if (authMenuItem) {
+          if (userLoggedIn) {
+            authMenuItem.innerHTML = '<a href="#" onclick="handleLogout(); return false;">LOGOUT</a>';
+          } else {
+            authMenuItem.innerHTML = '<a href="login.html">LOGIN / SIGN UP</a>';
+          }
+        }
+        
+        // Show/hide auth-required menu items
+        authRequiredItems.forEach(item => {
+          if (userLoggedIn) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      }
       
       async function handleLogout() {
         if (typeof logout === 'function') {
