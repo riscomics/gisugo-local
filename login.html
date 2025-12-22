@@ -870,7 +870,7 @@
   
   <script>
     // Login Form Handler
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       const loginForm = document.getElementById('loginForm');
       const submitBtn = document.getElementById('submitBtn');
       const loadingOverlay = document.getElementById('loadingOverlay');
@@ -880,6 +880,31 @@
       const resetCancelBtn = document.getElementById('resetCancelBtn');
       const resetSubmitBtn = document.getElementById('resetSubmitBtn');
       const resetSuccess = document.getElementById('resetSuccess');
+      
+      // ===== CHECK FOR REDIRECT RESULT =====
+      // This handles the case where popup was blocked and we used redirect
+      try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+          const auth = firebase.auth();
+          const result = await auth.getRedirectResult();
+          
+          if (result && result.user) {
+            console.log('✅ Redirect sign-in successful:', result.user.uid);
+            loadingOverlay.classList.add('show');
+            
+            // Check if user has profile and handle redirect
+            if (typeof handleAuthRedirect === 'function') {
+              await handleAuthRedirect();
+            } else {
+              window.location.href = 'index.html';
+            }
+            return;
+          }
+        }
+      } catch (redirectError) {
+        console.warn('⚠️ Redirect result check error:', redirectError.message);
+        // Continue with normal login page if there's an error
+      }
       
       // Handle login form submission
       loginForm.addEventListener('submit', async function(e) {

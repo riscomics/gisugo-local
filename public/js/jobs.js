@@ -295,6 +295,26 @@ window.JobsDataService = {
         return typeof DataService !== 'undefined' && DataService.useFirebase();
     },
     
+    // ===== NORMALIZE FIREBASE JOB DATA =====
+    // Convert Firebase field names to expected format
+    _normalizeFirebaseJob(job) {
+        return {
+            ...job,
+            // Map scheduledDate -> jobDate
+            jobDate: job.jobDate || job.scheduledDate,
+            // Map id -> jobId (Firebase doc ID)
+            jobId: job.jobId || job.id,
+            // Ensure priceOffer has peso sign
+            priceOffer: job.priceOffer ? 
+                (job.priceOffer.toString().startsWith('₱') ? job.priceOffer : `₱${job.priceOffer}`) : 
+                '₱0',
+            // Ensure thumbnail exists
+            thumbnail: job.thumbnail || job.photo || 'public/images/placeholder.png',
+            // Ensure applicationCount is a number
+            applicationCount: job.applicationCount || 0
+        };
+    },
+    
     // Initialize data (for mock mode only)
     initialize() {
         if (!MOCK_LISTINGS_DATA) {
@@ -320,7 +340,9 @@ window.JobsDataService = {
                 
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
-                    const jobs = await getUserJobListings(user.uid, ['active', 'paused']);
+                    const rawJobs = await getUserJobListings(user.uid, ['active', 'paused']);
+                    // Normalize Firebase data to match expected field names
+                    const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
                     console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
                     return jobs;
                 } else {
@@ -2067,6 +2089,14 @@ async function loadListingsContent() {
     const container = document.querySelector('.listings-container');
     if (!container) return;
     
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading your job listings...</div>
+        </div>
+    `;
+    
     // Generate mock listings data
     const mockListings = await generateMockListings();
     
@@ -2142,8 +2172,25 @@ function generateListingCardHTML(listing) {
     `;
 }
 
-function formatTimeAgo(dateString) {
-    const date = new Date(dateString);
+function formatTimeAgo(dateInput) {
+    // Handle Firestore Timestamp, Date object, or string
+    let date;
+    if (dateInput && typeof dateInput.toDate === 'function') {
+        // Firestore Timestamp
+        date = dateInput.toDate();
+    } else if (dateInput instanceof Date) {
+        date = dateInput;
+    } else if (typeof dateInput === 'string') {
+        date = new Date(dateInput);
+    } else {
+        return 'recently';
+    }
+    
+    // Check for invalid date
+    if (isNaN(date.getTime())) {
+        return 'recently';
+    }
+    
     const today = new Date();
     const diffTime = Math.abs(today - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -2161,8 +2208,25 @@ function formatTimeAgo(dateString) {
     }
 }
 
-function formatJobDate(dateString) {
-    const date = new Date(dateString);
+function formatJobDate(dateInput) {
+    // Handle Firestore Timestamp, Date object, or string
+    let date;
+    if (dateInput && typeof dateInput.toDate === 'function') {
+        // Firestore Timestamp
+        date = dateInput.toDate();
+    } else if (dateInput instanceof Date) {
+        date = dateInput;
+    } else if (typeof dateInput === 'string') {
+        date = new Date(dateInput);
+    } else {
+        return 'TBD';
+    }
+    
+    // Check for invalid date
+    if (isNaN(date.getTime())) {
+        return 'TBD';
+    }
+    
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
@@ -2312,6 +2376,14 @@ async function initializeHiringTab() {
 async function loadHiringContent() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading your hired workers...</div>
+        </div>
+    `;
     
     try {
         // Get all hired jobs and filter for customer perspective only (where current user is the customer)
@@ -4471,6 +4543,14 @@ async function initializePreviousTab() {
 async function loadPreviousContent() {
     const container = document.querySelector('.previous-container');
     if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading completed jobs...</div>
+        </div>
+    `;
     
     try {
         // Get all completed jobs and filter for customer perspective only (where current user was the customer)

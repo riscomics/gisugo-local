@@ -153,7 +153,7 @@ function getUrlParameters() {
   };
 }
 
-function loadJobData() {
+async function loadJobData() {
   const { category, jobNumber } = getUrlParameters();
   
   if (!category || !jobNumber) {
@@ -163,39 +163,68 @@ function loadJobData() {
   
   console.log(`🔍 Loading job data for category: ${category}, jobNumber: ${jobNumber}`);
   
-  // Try to get job data from localStorage
-  const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  const categoryJobs = jobData[category] || [];
+  // Check if we should use Firebase
+  const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+  console.log(`📊 Data mode: ${useFirebase ? 'FIREBASE' : 'MOCK'}`);
   
-  console.log(`📱 Found ${categoryJobs.length} jobs in localStorage for category '${category}':`, categoryJobs);
+  let job = null;
   
-  // Find the specific job by jobNumber OR by extracting from jobId
-  let job = categoryJobs.find(j => j.jobNumber == jobNumber);
-  
-  if (!job) {
-    // Try alternative: match by jobId pattern (for RELISTED jobs that might have different jobNumber)
-    job = categoryJobs.find(j => {
-      if (j.jobId) {
-        // Extract number from jobId like "limpyo_job_2025_1751300670771"
-        const extractedNumber = j.jobId.split('_').pop();
-        return extractedNumber == jobNumber;
-      }
-      return false;
-    });
+  // ══════════════════════════════════════════════════════════════
+  // FIREBASE MODE - Try to load from Firestore first
+  // ══════════════════════════════════════════════════════════════
+  if (useFirebase) {
+    console.log('🔥 FIREBASE MODE: Loading job from Firestore...');
     
-    if (job) {
-      console.log(`✅ Found job by jobId pattern match:`, job);
+    // jobNumber is actually the Firebase document ID
+    if (typeof getJobById === 'function') {
+      try {
+        job = await getJobById(jobNumber);
+        if (job) {
+          console.log(`✅ Found job in Firebase:`, job);
+          // Normalize Firebase data
+          job = normalizeFirebaseJob(job);
+        }
+      } catch (error) {
+        console.error('❌ Error loading from Firebase:', error);
+      }
     }
-  } else {
-    console.log(`✅ Found job by direct jobNumber match:`, job);
+  }
+  
+  // ══════════════════════════════════════════════════════════════
+  // FALLBACK - Try localStorage
+  // ══════════════════════════════════════════════════════════════
+  if (!job) {
+    console.log('📦 Trying localStorage...');
+    
+    const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+    const categoryJobs = jobData[category] || [];
+    
+    console.log(`📱 Found ${categoryJobs.length} jobs in localStorage for category '${category}'`);
+    
+    // Find the specific job by jobNumber OR by extracting from jobId
+    job = categoryJobs.find(j => j.jobNumber == jobNumber);
+    
+    if (!job) {
+      // Try alternative: match by jobId pattern (for RELISTED jobs that might have different jobNumber)
+      job = categoryJobs.find(j => {
+        if (j.jobId) {
+          // Extract number from jobId like "limpyo_job_2025_1751300670771"
+          const extractedNumber = j.jobId.split('_').pop();
+          return extractedNumber == jobNumber;
+        }
+        return false;
+      });
+      
+      if (job) {
+        console.log(`✅ Found job by jobId pattern match:`, job);
+      }
+    } else {
+      console.log(`✅ Found job by direct jobNumber match:`, job);
+    }
   }
   
   if (!job) {
-    console.error(`❌ Job not found. Available jobNumbers:`, categoryJobs.map(j => ({
-      jobId: j.jobId,
-      jobNumber: j.jobNumber,
-      title: j.title || j.jobTitle
-    })));
+    console.error(`❌ Job not found in Firebase or localStorage`);
     showErrorMessage('Job not found. This job may have been removed or does not exist.');
     return;
   }
@@ -204,6 +233,31 @@ function loadJobData() {
   
   // Populate the page with job data
   populateJobPage(job);
+}
+
+// Normalize Firebase job data to match expected format
+function normalizeFirebaseJob(job) {
+  // Convert Firestore Timestamp to date string
+  let scheduledDate = job.scheduledDate;
+  if (job.scheduledDate && typeof job.scheduledDate.toDate === 'function') {
+    scheduledDate = job.scheduledDate.toDate().toISOString().split('T')[0];
+  }
+  
+  return {
+    ...job,
+    jobTitle: job.title || job.jobTitle,
+    title: job.title || job.jobTitle,
+    jobDate: scheduledDate,
+    scheduledDate: scheduledDate,
+    photo: job.thumbnail || job.photo,
+    paymentAmount: job.priceOffer || job.paymentAmount,
+    priceOffer: job.priceOffer,
+    extra1: job.extras?.[0] || '',
+    extra2: job.extras?.[1] || '',
+    posterName: job.posterName || 'Customer',
+    posterThumbnail: job.posterThumbnail || '',
+    applicationCount: job.applicationCount || 0
+  };
 }
 
 function populateJobPage(jobData) {

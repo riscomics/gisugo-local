@@ -333,7 +333,26 @@ async function loginWithGoogle() {
     provider.addScope('email');
     provider.addScope('profile');
     
-    const result = await auth.signInWithPopup(provider);
+    let result;
+    
+    try {
+      // Try popup first
+      result = await auth.signInWithPopup(provider);
+    } catch (popupError) {
+      console.warn('⚠️ Popup blocked or closed, error:', popupError.code);
+      
+      // If popup was blocked or closed, try redirect method
+      if (popupError.code === 'auth/popup-blocked' || 
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request') {
+        console.log('🔄 Falling back to redirect method...');
+        await auth.signInWithRedirect(provider);
+        // After redirect, the result will be handled by getRedirectResult()
+        return { success: true, isRedirect: true, message: 'Redirecting to Google...' };
+      }
+      throw popupError; // Re-throw if it's a different error
+    }
+    
     const user = result.user;
     
     console.log('✅ Google sign-in successful:', user.uid);
@@ -391,9 +410,9 @@ let phoneRecaptchaVerifier = null;
 /**
  * Initialize reCAPTCHA verifier for phone auth
  * @param {string} buttonId - ID of the button element to attach reCAPTCHA
- * @returns {Object} - reCAPTCHA verifier instance
+ * @returns {Promise<Object>} - reCAPTCHA verifier instance
  */
-function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
+async function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
   const auth = getFirebaseAuth();
   
   if (!auth) {
@@ -403,10 +422,24 @@ function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
   
   // Clear existing verifier if any
   if (phoneRecaptchaVerifier) {
-    phoneRecaptchaVerifier.clear();
+    try {
+      phoneRecaptchaVerifier.clear();
+    } catch (e) {
+      console.log('⚠️ Could not clear previous reCAPTCHA:', e.message);
+    }
+    phoneRecaptchaVerifier = null;
   }
   
   try {
+    console.log('🔐 Initializing reCAPTCHA on button:', buttonId);
+    
+    // Check if button exists
+    const button = document.getElementById(buttonId);
+    if (!button) {
+      console.error('❌ Button not found:', buttonId);
+      return null;
+    }
+    
     phoneRecaptchaVerifier = new firebase.auth.RecaptchaVerifier(buttonId, {
       'size': 'invisible',
       'callback': (response) => {
@@ -414,12 +447,19 @@ function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
       },
       'expired-callback': () => {
         console.log('⚠️ reCAPTCHA expired, please try again');
+        // Clear and reset
+        phoneRecaptchaVerifier = null;
       }
     });
+    
+    // Render the reCAPTCHA - this is required for invisible reCAPTCHA
+    await phoneRecaptchaVerifier.render();
+    console.log('✅ reCAPTCHA rendered successfully');
     
     return phoneRecaptchaVerifier;
   } catch (error) {
     console.error('❌ reCAPTCHA initialization error:', error);
+    phoneRecaptchaVerifier = null;
     return null;
   }
 }
@@ -452,7 +492,15 @@ async function sendPhoneVerificationCode(phoneNumber) {
     
     // Initialize reCAPTCHA if not already done
     if (!phoneRecaptchaVerifier) {
-      initPhoneRecaptcha('phone-signin-btn');
+      console.log('🔐 Initializing reCAPTCHA...');
+      await initPhoneRecaptcha('phone-signin-btn');
+      
+      if (!phoneRecaptchaVerifier) {
+        return {
+          success: false,
+          message: 'Security verification failed. Please refresh the page and try again.'
+        };
+      }
     }
     
     // Send verification code
@@ -605,7 +653,25 @@ async function loginWithFacebook() {
     provider.addScope('email');
     provider.addScope('public_profile');
     
-    const result = await auth.signInWithPopup(provider);
+    let result;
+    
+    try {
+      // Try popup first
+      result = await auth.signInWithPopup(provider);
+    } catch (popupError) {
+      console.warn('⚠️ Popup blocked or closed, error:', popupError.code);
+      
+      // If popup was blocked or closed, try redirect method
+      if (popupError.code === 'auth/popup-blocked' || 
+          popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request') {
+        console.log('🔄 Falling back to redirect method...');
+        await auth.signInWithRedirect(provider);
+        return { success: true, isRedirect: true, message: 'Redirecting to Facebook...' };
+      }
+      throw popupError;
+    }
+    
     const user = result.user;
     
     console.log('✅ Facebook sign-in successful:', user.uid);
