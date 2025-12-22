@@ -2231,6 +2231,47 @@ function initializeDisclaimerLangTabs() {
   console.log('🌐 Disclaimer language tabs initialized');
 }
 
+// ===== SUCCESS OVERLAY LANGUAGE TABS =====
+function initializeSuccessLangTabs() {
+  const tabContainer = document.getElementById('successLangTabs');
+  const englishContent = document.getElementById('successEnglish');
+  const bisayaContent = document.getElementById('successBisaya');
+  const tagalogContent = document.getElementById('successTagalog');
+  
+  if (!tabContainer) {
+    console.warn('⚠️ Success language tabs not found');
+    return;
+  }
+  
+  const tabs = tabContainer.querySelectorAll('.np2-lang-tab');
+  const contentMap = {
+    english: englishContent,
+    bisaya: bisayaContent,
+    tagalog: tagalogContent
+  };
+  
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const lang = tab.dataset.lang;
+      
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Show selected content, hide others
+      Object.entries(contentMap).forEach(([key, content]) => {
+        if (content) {
+          content.style.display = key === lang ? 'block' : 'none';
+        }
+      });
+      
+      console.log(`📖 Success overlay language selected: ${lang}`);
+    });
+  });
+  
+  console.log('🌐 Success language tabs initialized');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 ========== NEW POST 2 LOADING ==========');
   console.log('Current URL:', window.location.href);
@@ -2272,6 +2313,8 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeMobileKeyboardHandling();
   console.log('📌 Initializing disclaimer language tabs...');
   initializeDisclaimerLangTabs();
+  console.log('📌 Initializing success language tabs...');
+  initializeSuccessLangTabs();
   
   // Show first section
   console.log('📌 Showing section 1...');

@@ -320,20 +320,43 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
     return getUserJobListingsOffline(userId, statuses);
   }
   
+  console.log(`🔍 Fetching jobs for user: ${userId}, statuses: ${statuses.join(', ')}`);
+  
   try {
+    // Simple query without orderBy to avoid composite index requirement
+    // We'll sort client-side for now
     const snapshot = await db.collection('jobs')
       .where('posterId', '==', userId)
-      .where('status', 'in', statuses)
-      .orderBy('datePosted', 'desc')
       .get();
     
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    console.log(`📊 Raw Firestore results: ${snapshot.docs.length} documents`);
+    
+    // Filter by status client-side and sort
+    const jobs = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        jobId: doc.id, // Ensure jobId is set
+        ...doc.data()
+      }))
+      .filter(job => statuses.includes(job.status))
+      .sort((a, b) => {
+        // Sort by datePosted descending
+        const dateA = a.datePosted?.toDate?.() || new Date(a.datePosted) || new Date(0);
+        const dateB = b.datePosted?.toDate?.() || new Date(b.datePosted) || new Date(0);
+        return dateB - dateA;
+      });
+    
+    console.log(`✅ Filtered & sorted jobs: ${jobs.length}`);
+    return jobs;
     
   } catch (error) {
     console.error('❌ Error getting user listings:', error);
+    
+    // Check if it's an index error
+    if (error.message && error.message.includes('index')) {
+      console.error('📋 Firestore composite index required. Check the error link above.');
+    }
+    
     return [];
   }
 }
