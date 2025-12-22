@@ -336,22 +336,57 @@ async function loginWithGoogle() {
     const result = await auth.signInWithPopup(provider);
     const user = result.user;
     
+    // ══════════════════════════════════════════════════════════════
+    // DETAILED GOOGLE SIGN-IN LOGGING
+    // ══════════════════════════════════════════════════════════════
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔐 GOOGLE SIGN-IN RESULT');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📌 User UID:', user.uid);
+    console.log('📌 User Email:', user.email);
+    console.log('📌 User Display Name:', user.displayName);
+    console.log('📌 Is New User (Firebase):', result.additionalUserInfo?.isNewUser);
+    console.log('📌 Provider ID:', result.additionalUserInfo?.providerId);
+    console.log('📌 Provider Count:', user.providerData.length);
+    user.providerData.forEach((p, i) => {
+      console.log(`   Provider ${i + 1}:`, {
+        providerId: p.providerId,
+        uid: p.uid,
+        email: p.email,
+        displayName: p.displayName
+      });
+    });
+    console.log('═══════════════════════════════════════════════════════');
+    
     console.log('✅ Google sign-in successful:', user.uid);
     
     // DON'T auto-create profile here - let sign-up form handle it
     // Just update last login if profile already exists
     const db = getFirestore();
+    let hasFirestoreProfile = false;
     if (db) {
       const userDoc = await db.collection('users').doc(user.uid).get();
+      hasFirestoreProfile = userDoc.exists;
+      console.log('📋 Firestore profile exists:', hasFirestoreProfile);
       
       if (userDoc.exists) {
         // Existing user - update last login
+        console.log('📋 Firestore profile data:', userDoc.data());
         await db.collection('users').doc(user.uid).update({
           lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
       // If profile doesn't exist, don't create it - redirect will send to sign-up
     }
+    
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔐 GOOGLE SIGN-IN SUMMARY');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📌 UID:', user.uid);
+    console.log('📌 Has Firestore Profile:', hasFirestoreProfile);
+    console.log('📌 Firebase Says New User:', result.additionalUserInfo?.isNewUser);
+    console.log('📌 Decision: Will redirect to', hasFirestoreProfile ? 'index.html' : 'sign-up.html');
+    console.log('═══════════════════════════════════════════════════════');
     
     return {
       success: true,

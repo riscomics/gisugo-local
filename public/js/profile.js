@@ -857,9 +857,32 @@ function updateLoginMethodsUI() {
       return;
     }
     
+    // ══════════════════════════════════════════════════════════════
+    // DETAILED PROVIDER LOGGING - For debugging provider issues
+    // ══════════════════════════════════════════════════════════════
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔐 PROVIDER STATUS CHECK');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📌 User UID:', user.uid);
+    console.log('📌 User Email:', user.email);
+    console.log('📌 User Phone:', user.phoneNumber);
+    console.log('📌 Provider Count:', user.providerData.length);
+    
+    // Log each provider in detail
+    user.providerData.forEach((provider, index) => {
+      console.log(`   Provider ${index + 1}:`, {
+        providerId: provider.providerId,
+        uid: provider.uid,
+        email: provider.email,
+        phoneNumber: provider.phoneNumber,
+        displayName: provider.displayName
+      });
+    });
+    
     // Get linked provider IDs
     const providerIds = user.providerData.map(p => p.providerId);
-    console.log('🔗 Linked providers:', providerIds);
+    console.log('🔗 Linked provider IDs:', providerIds);
+    console.log('═══════════════════════════════════════════════════════');
     
     // Update Google
     const googleLinked = providerIds.includes('google.com');
@@ -1057,8 +1080,35 @@ async function linkGoogleAccount() {
       return;
     }
     
+    // ══════════════════════════════════════════════════════════════
+    // PRE-LINK LOGGING
+    // ══════════════════════════════════════════════════════════════
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔗 LINKING GOOGLE - BEFORE');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📌 User UID:', user.uid);
+    console.log('📌 Current providers BEFORE link:', user.providerData.map(p => p.providerId));
+    user.providerData.forEach((p, i) => {
+      console.log(`   [${i}] ${p.providerId}: ${p.email || p.phoneNumber || 'no identifier'}`);
+    });
+    console.log('═══════════════════════════════════════════════════════');
+    
     const provider = new firebase.auth.GoogleAuthProvider();
-    await user.linkWithPopup(provider);
+    const linkResult = await user.linkWithPopup(provider);
+    
+    // ══════════════════════════════════════════════════════════════
+    // POST-LINK LOGGING
+    // ══════════════════════════════════════════════════════════════
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('🔗 LINKING GOOGLE - AFTER');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📌 Link result user UID:', linkResult.user.uid);
+    console.log('📌 Linked Google email:', linkResult.user.providerData.find(p => p.providerId === 'google.com')?.email);
+    console.log('📌 Current providers AFTER link:', linkResult.user.providerData.map(p => p.providerId));
+    linkResult.user.providerData.forEach((p, i) => {
+      console.log(`   [${i}] ${p.providerId}: ${p.email || p.phoneNumber || 'no identifier'}`);
+    });
+    console.log('═══════════════════════════════════════════════════════');
     
     console.log('✅ Google account linked successfully!');
     showLinkModal('success', 'Google Linked!', 'Your Google account has been linked successfully. You can now sign in with Google.');
@@ -2694,6 +2744,28 @@ async function waitForAuthAndLoadProfile() {
       }
       
       console.log('🔥 User authenticated:', user.uid);
+      
+      // ══════════════════════════════════════════════════════════════
+      // INITIAL PROVIDER STATE LOGGING
+      // ══════════════════════════════════════════════════════════════
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('🔐 INITIAL PROVIDER STATE ON PAGE LOAD');
+      console.log('═══════════════════════════════════════════════════════');
+      console.log('📌 User UID:', user.uid);
+      console.log('📌 User Email:', user.email);
+      console.log('📌 User Phone:', user.phoneNumber);
+      console.log('📌 Email Verified:', user.emailVerified);
+      console.log('📌 Provider Count:', user.providerData.length);
+      user.providerData.forEach((provider, index) => {
+        console.log(`   Provider ${index + 1}:`, {
+          providerId: provider.providerId,
+          uid: provider.uid,
+          email: provider.email,
+          phoneNumber: provider.phoneNumber,
+          displayName: provider.displayName
+        });
+      });
+      console.log('═══════════════════════════════════════════════════════');
       
       // Load profile from Firestore
       if (typeof getUserProfile === 'function') {
