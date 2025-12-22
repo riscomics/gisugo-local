@@ -80,16 +80,40 @@ body::-webkit-scrollbar {
   z-index: -1;
 }
 
-.profile-photo img {
+/* Profile photo placeholder (emoji) */
+.profile-photo-placeholder {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: clamp(180px, 25vw, 220px);
+  height: clamp(140px, 20vw, 173px);
+  border-radius: clamp(8px, 1.5vw, 12px);
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(50px, 8vw, 70px);
+  color: #6b7280;
+  z-index: 1;
+}
+
+.profile-photo-img {
+  position: relative;
+  z-index: 2;
   width: clamp(180px, 25vw, 220px); /* Responsive profile photo width */
   height: clamp(140px, 20vw, 173px); /* Responsive profile photo height */
   border-radius: clamp(8px, 1.5vw, 12px);
   object-fit: cover;
   border: 3px solid rgba(16, 185, 129, 0.5);
   transition: all 0.3s ease;
+  opacity: 0;
 }
 
-.profile-photo:hover img {
+.profile-photo-img.loaded {
+  opacity: 1;
+}
+
+.profile-photo:hover .profile-photo-img.loaded {
   border-color: rgba(16, 185, 129, 0.8);
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
@@ -207,6 +231,38 @@ body::-webkit-scrollbar {
 
 .social-icon img:hover {
   transform: scale(1.1);
+}
+
+.social-icon a {
+  display: flex;
+  text-decoration: none;
+}
+
+/* Unlinked icons - slightly grayed out */
+.social-icon:not(.has-link) img {
+  opacity: 0.5;
+  filter: grayscale(30%);
+}
+
+/* Linked icons - full color with pulse animation */
+.social-icon.has-link img {
+  opacity: 1;
+  filter: none;
+  animation: socialPulse 2s ease-in-out infinite;
+}
+
+.social-icon.has-link img:hover {
+  animation: none;
+  transform: scale(1.15);
+}
+
+@keyframes socialPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
 }
 
 /* Business Verification Badge Styles */
@@ -755,6 +811,45 @@ body::-webkit-scrollbar {
 
 .edit-profile-input::placeholder {
   color: #6b7280;
+}
+
+/* Social media input with prefix */
+.social-input-wrapper {
+  display: flex;
+  align-items: stretch;
+  background: #242936;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: clamp(6px, 1.5vw, 8px);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.social-input-wrapper:focus-within {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.social-input-prefix {
+  display: flex;
+  align-items: center;
+  padding: clamp(10px, 2.5vw, 14px) clamp(8px, 2vw, 12px);
+  background: rgba(255, 255, 255, 0.05);
+  color: #6b7280;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  font-family: monospace;
+  white-space: nowrap;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.social-username-input {
+  flex: 1;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.social-username-input:focus {
+  box-shadow: none !important;
 }
 
 .edit-profile-select {
@@ -3876,9 +3971,15 @@ body::-webkit-scrollbar {
     margin-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + -76px); /* Header + borderline + small gap */
   }
   
-  .profile-photo img {
+  .profile-photo-img {
     width: clamp(140px, 35vw, 160px) !important; /* Responsive profile photo */
     height: clamp(110px, 28vw, 126px) !important;
+  }
+  
+  .profile-photo-placeholder {
+    width: clamp(140px, 35vw, 160px) !important;
+    height: clamp(110px, 28vw, 126px) !important;
+    font-size: clamp(40px, 10vw, 50px) !important;
   }
   
   .full-name {
@@ -4015,9 +4116,15 @@ body::-webkit-scrollbar {
     height: clamp(24px, 8vw, 28px);
   }
 
-  .profile-photo img {
+  .profile-photo-img {
     width: clamp(110px, 42vw, 130px) !important; /* iPhone 7 photo */
     height: clamp(85px, 33vw, 100px) !important;
+  }
+  
+  .profile-photo-placeholder {
+    width: clamp(110px, 42vw, 130px) !important;
+    height: clamp(85px, 33vw, 100px) !important;
+    font-size: clamp(30px, 12vw, 40px) !important;
   }
   
   .full-name {
@@ -4116,9 +4223,15 @@ body::-webkit-scrollbar {
     height: clamp(22px, 9vw, 26px);
   }
 
-  .profile-photo img {
+  .profile-photo-img {
     width: clamp(100px, 45vw, 120px) !important; /* Ultra-small photo */
     height: clamp(80px, 36vw, 95px) !important;
+  }
+  
+  .profile-photo-placeholder {
+    width: clamp(100px, 45vw, 120px) !important;
+    height: clamp(80px, 36vw, 95px) !important;
+    font-size: clamp(25px, 14vw, 35px) !important;
   }
   
   .full-name {

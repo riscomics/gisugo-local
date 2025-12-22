@@ -29,7 +29,8 @@
   <div class="profile-subheader">
     <div class="profile-content">
       <div class="profile-photo" id="profilePhotoContainer" onclick="openAccountSettingsIfOwner()" role="button" tabindex="0" aria-label="Open Account Settings">
-        <img src="public/users/Peter-J-Ang-User-01.jpg" alt="User Profile" id="profilePhoto">
+        <div class="profile-photo-placeholder" id="profilePhotoPlaceholder">👤</div>
+        <img src="" alt="User Profile" id="profilePhoto" class="profile-photo-img" onload="this.classList.add('loaded')">
       </div>
       <div class="profile-right-column">
         <div class="profile-name-row">
@@ -502,16 +503,25 @@
           <div class="edit-profile-section">
             <div class="edit-profile-section-title">Social Media (Optional)</div>
             <div class="edit-profile-field">
-              <label class="edit-profile-label" for="editFacebook">Facebook Profile URL</label>
-              <input type="url" class="edit-profile-input" id="editFacebook" placeholder="https://facebook.com/yourprofile">
+              <label class="edit-profile-label" for="editFacebook">Facebook Username</label>
+              <div class="social-input-wrapper">
+                <span class="social-input-prefix">facebook.com/</span>
+                <input type="text" class="edit-profile-input social-username-input" id="editFacebook" placeholder="username">
+              </div>
             </div>
             <div class="edit-profile-field">
-              <label class="edit-profile-label" for="editInstagram">Instagram Profile URL</label>
-              <input type="url" class="edit-profile-input" id="editInstagram" placeholder="https://instagram.com/yourprofile">
+              <label class="edit-profile-label" for="editInstagram">Instagram Username</label>
+              <div class="social-input-wrapper">
+                <span class="social-input-prefix">instagram.com/</span>
+                <input type="text" class="edit-profile-input social-username-input" id="editInstagram" placeholder="username">
+              </div>
             </div>
             <div class="edit-profile-field">
-              <label class="edit-profile-label" for="editLinkedIn">LinkedIn Profile URL</label>
-              <input type="url" class="edit-profile-input" id="editLinkedIn" placeholder="https://linkedin.com/in/yourprofile">
+              <label class="edit-profile-label" for="editLinkedIn">LinkedIn Username</label>
+              <div class="social-input-wrapper">
+                <span class="social-input-prefix">linkedin.com/in/</span>
+                <input type="text" class="edit-profile-input social-username-input" id="editLinkedIn" placeholder="username">
+              </div>
             </div>
           </div>
 
@@ -1074,6 +1084,7 @@
   
   <!-- UNIFORM HEADER SYSTEM -->
   <script src="public/js/app-config.js"></script>
+  <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
   <script src="public/js/profile.js?v=27.2"></script>

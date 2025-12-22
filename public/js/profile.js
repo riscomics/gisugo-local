@@ -377,26 +377,47 @@ function populateEditProfileForm() {
     if (photoSrc) photoPreview.src = photoSrc;
   }
 
-  // Social Media URLs (optional - separate from icon paths)
-  // Check socialUrls first (actual URLs), then socialMedia but skip icon paths
+  // Social Media usernames (extracted from URLs)
   const facebookInput = document.getElementById('editFacebook');
   const instagramInput = document.getElementById('editInstagram');
   const linkedinInput = document.getElementById('editLinkedIn');
 
-  // Helper to check if value is a valid URL (not an icon path)
-  const isValidUrl = (val) => val && val.startsWith('http') && !val.includes('/icons/');
+  // Helper to extract username from URL
+  const extractUsername = (url, platform) => {
+    if (!url || !url.startsWith('http') || url.includes('/icons/')) return '';
+    
+    try {
+      // Handle different URL patterns
+      if (platform === 'facebook') {
+        // facebook.com/username or facebook.com/profile.php?id=xxx
+        const match = url.match(/facebook\.com\/([^/?]+)/);
+        return match ? match[1] : '';
+      } else if (platform === 'instagram') {
+        // instagram.com/username
+        const match = url.match(/instagram\.com\/([^/?]+)/);
+        return match ? match[1] : '';
+      } else if (platform === 'linkedin') {
+        // linkedin.com/in/username
+        const match = url.match(/linkedin\.com\/in\/([^/?]+)/);
+        return match ? match[1] : '';
+      }
+    } catch (e) {
+      return '';
+    }
+    return '';
+  };
 
   if (facebookInput) {
     const fbUrl = profile.socialUrls?.facebook || profile.socialMedia?.facebook;
-    if (isValidUrl(fbUrl)) facebookInput.value = fbUrl;
+    facebookInput.value = extractUsername(fbUrl, 'facebook');
   }
   if (instagramInput) {
     const igUrl = profile.socialUrls?.instagram || profile.socialMedia?.instagram;
-    if (isValidUrl(igUrl)) instagramInput.value = igUrl;
+    instagramInput.value = extractUsername(igUrl, 'instagram');
   }
   if (linkedinInput) {
     const liUrl = profile.socialUrls?.linkedin || profile.socialMedia?.linkedin;
-    if (isValidUrl(liUrl)) linkedinInput.value = liUrl;
+    linkedinInput.value = extractUsername(liUrl, 'linkedin');
   }
 }
 
@@ -482,9 +503,15 @@ async function saveProfileChanges() {
   const dob = document.getElementById('editDateOfBirth')?.value;
   const education = document.getElementById('editEducation')?.value;
   const aboutMe = document.getElementById('editAboutMe')?.value;
-  const facebook = document.getElementById('editFacebook')?.value?.trim() || '';
-  const instagram = document.getElementById('editInstagram')?.value?.trim() || '';
-  const linkedin = document.getElementById('editLinkedIn')?.value?.trim() || '';
+  // Get usernames and build full URLs
+  const facebookUsername = document.getElementById('editFacebook')?.value?.trim() || '';
+  const instagramUsername = document.getElementById('editInstagram')?.value?.trim() || '';
+  const linkedinUsername = document.getElementById('editLinkedIn')?.value?.trim() || '';
+  
+  // Build full URLs from usernames
+  const facebook = facebookUsername ? `https://facebook.com/${facebookUsername}` : '';
+  const instagram = instagramUsername ? `https://instagram.com/${instagramUsername}` : '';
+  const linkedin = linkedinUsername ? `https://linkedin.com/in/${linkedinUsername}` : '';
 
   // Combine first and last name
   const fullName = `${firstName} ${lastName}`.trim();
@@ -512,8 +539,8 @@ async function saveProfileChanges() {
       profile.profilePhoto = newPhotoUrl;
     }
     
-    // Store social URLs
-    profile.socialMedia = {
+    // Store social URLs separately from icon paths
+    profile.socialUrls = {
       facebook: facebook || null,
       instagram: instagram || null,
       linkedin: linkedin || null
@@ -531,7 +558,7 @@ async function saveProfileChanges() {
         dateOfBirth: dob,
         educationLevel: education,
         userSummary: aboutMe,
-        socialMedia: {
+        socialUrls: {
           facebook: facebook || null,
           instagram: instagram || null,
           linkedin: linkedin || null
@@ -620,7 +647,9 @@ async function saveProfileChanges() {
 
   // Update profile photo if changed
   if (newPhotoUrl && mainProfilePhoto) {
+    mainProfilePhoto.classList.remove('loaded');
     mainProfilePhoto.src = newPhotoUrl;
+    // The onload handler in HTML will add 'loaded' class
     console.log('✅ Updated profile photo');
   }
 
@@ -629,6 +658,9 @@ async function saveProfileChanges() {
   });
 
   // Hide saving modal and close overlay
+  // Update social links (make icons clickable)
+  updateSocialLinks(profile);
+  
   hideSavingModal();
   closeEditProfileOverlay();
   
@@ -2432,6 +2464,76 @@ const sampleUserProfile = {
 
 // ===== HELPER FUNCTIONS =====
 
+/**
+ * Update social media icons to be clickable links
+ * Icons ALWAYS stay as the default icons - URLs are used for href only
+ */
+function updateSocialLinks(userProfile) {
+  const socialIconContainers = document.querySelectorAll('.social-icon');
+  if (socialIconContainers.length < 3) return;
+  
+  // Get URLs from socialUrls (preferred) or socialMedia (if they're valid URLs)
+  const socialUrls = userProfile.socialUrls || {};
+  const socialMedia = userProfile.socialMedia || {};
+  
+  // Helper to check if value is a valid URL (not an icon path)
+  const isValidUrl = (val) => val && val.startsWith('http') && !val.includes('/icons/');
+  
+  const platforms = [
+    { 
+      container: socialIconContainers[0], 
+      url: socialUrls.facebook || (isValidUrl(socialMedia.facebook) ? socialMedia.facebook : null),
+      icon: 'public/icons/FB.png',
+      alt: 'Facebook'
+    },
+    { 
+      container: socialIconContainers[1], 
+      url: socialUrls.instagram || (isValidUrl(socialMedia.instagram) ? socialMedia.instagram : null),
+      icon: 'public/icons/IG.png',
+      alt: 'Instagram'
+    },
+    { 
+      container: socialIconContainers[2], 
+      url: socialUrls.linkedin || (isValidUrl(socialMedia.linkedin) ? socialMedia.linkedin : null),
+      icon: 'public/icons/IN.png',
+      alt: 'LinkedIn'
+    }
+  ];
+  
+  platforms.forEach(platform => {
+    const container = platform.container;
+    const img = container.querySelector('img');
+    
+    // Always reset icon to default
+    if (img) {
+      img.src = platform.icon;
+      img.alt = platform.alt;
+    }
+    
+    // Remove any existing link wrapper
+    const existingLink = container.querySelector('a');
+    if (existingLink) {
+      // Unwrap: move img out of link
+      container.insertBefore(img, existingLink);
+      existingLink.remove();
+    }
+    
+    // If URL exists, wrap icon in a link
+    if (platform.url) {
+      const link = document.createElement('a');
+      link.href = platform.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = `Visit ${platform.alt} profile`;
+      link.appendChild(img);
+      container.appendChild(link);
+      container.classList.add('has-link');
+    } else {
+      container.classList.remove('has-link');
+    }
+  });
+}
+
 // Helper function to calculate age from date of birth
 function calculateAge(dateOfBirth) {
   const today = new Date();
@@ -2471,8 +2573,10 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
   }
   
   // Update user photo (updated field name - check both profilePhoto and profileImage)
-  const photoElement = document.querySelector('.profile-photo img');
+  const photoElement = document.getElementById('profilePhoto');
   if (photoElement && (userProfile.profilePhoto || userProfile.profileImage)) {
+    // Reset loaded state before changing src (for fade-in effect)
+    photoElement.classList.remove('loaded');
     photoElement.src = userProfile.profilePhoto || userProfile.profileImage;
     photoElement.alt = userProfile.fullName || 'User Profile';
   }
@@ -2497,15 +2601,8 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
     }
   }
   
-  // Update social media icons (if provided)
-  if (userProfile.socialMedia) {
-    const socialIcons = document.querySelectorAll('.social-icon img');
-    if (socialIcons.length >= 3) {
-      socialIcons[0].src = userProfile.socialMedia.facebook || 'public/icons/FB.png';
-      socialIcons[1].src = userProfile.socialMedia.instagram || 'public/icons/IG.png';
-      socialIcons[2].src = userProfile.socialMedia.linkedin || 'public/icons/IN.png';
-    }
-  }
+  // Update social media links (make icons clickable if URLs provided)
+  updateSocialLinks(userProfile);
   
   // Update badge visibility based on verification status
   updateBadgeVisibility(userProfile);
@@ -2565,112 +2662,103 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 /**
- * Wait for Firebase auth state to be ready, then load the appropriate profile
+ * Wait for auth and load profile using CLEAN DATA SEPARATION pattern
+ * - Firebase mode: ONLY loads from Firebase, redirects if not authenticated
+ * - Mock mode: ONLY loads from mock data, no Firebase calls
  */
 async function waitForAuthAndLoadProfile() {
-  // Show loading state while waiting for profile
+  // Show loading state
   showProfileLoadingState();
   
-  // Flag to prevent double-loading
-  let profileLoaded = false;
+  // Check which mode we're in using DataService
+  const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
   
-  return new Promise((resolve) => {
-    // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-      console.log('⏳ Waiting for Firebase auth state...');
+  console.log(`📊 Profile loading in ${useFirebase ? 'FIREBASE' : 'MOCK'} mode`);
+  
+  if (useFirebase) {
+    // ══════════════════════════════════════════════════════════════
+    // FIREBASE MODE - Load ONLY from Firebase
+    // ══════════════════════════════════════════════════════════════
+    console.log('🔥 FIREBASE MODE: Loading profile from Firestore...');
+    
+    try {
+      // Wait for auth state
+      const user = await DataService.waitForAuth();
       
-      // Use onAuthStateChanged to wait for auth to be ready
-      const unsubscribe = firebase.auth().onAuthStateChanged(async (user) => {
-        unsubscribe(); // Only need this once
+      if (!user) {
+        // Not authenticated - redirect to login
+        console.log('⚠️ Not authenticated in Firebase mode, redirecting to login...');
+        hideProfileLoadingState();
+        window.location.href = 'login.html?redirect=profile.html';
+        return;
+      }
+      
+      console.log('🔥 User authenticated:', user.uid);
+      
+      // Load profile from Firestore
+      if (typeof getUserProfile === 'function') {
+        const firebaseProfile = await getUserProfile(user.uid);
         
-        if (profileLoaded) {
-          console.log('⚠️ Profile already loaded, skipping');
+        if (firebaseProfile) {
+          console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
+          window.currentUserProfile = firebaseProfile;
+          hideProfileLoadingState();
+          loadUserProfile(firebaseProfile);
+        } else {
+          // User is authenticated but has no profile - redirect to sign-up
+          console.log('⚠️ No profile found, redirecting to complete sign-up...');
+          hideProfileLoadingState();
+          window.location.href = 'sign-up.html?complete=true';
           return;
         }
-        
-        if (user) {
-          console.log('🔥 User authenticated:', user.uid);
-          
-          try {
-            // Load profile from Firestore
-            if (typeof getUserProfile === 'function') {
-              const firebaseProfile = await getUserProfile(user.uid);
-              
-              // Check again in case timeout fired during await
-              if (profileLoaded) {
-                console.log('⚠️ Profile loaded by timeout, but Firebase profile is ready - updating with real data');
-                // Update with real data even if mock was loaded
-                loadUserProfile(firebaseProfile || undefined);
-                hideProfileLoadingState();
-                return;
-              }
-              
-              profileLoaded = true;
-              
-              if (firebaseProfile) {
-                console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
-                hideProfileLoadingState();
-                loadUserProfile(firebaseProfile);
-              } else {
-                console.log('⚠️ No Firebase profile found, using sample data');
-                hideProfileLoadingState();
-                loadUserProfile();
-              }
-            } else {
-              profileLoaded = true;
-              console.log('⚠️ getUserProfile not available, using sample data');
-              hideProfileLoadingState();
-              loadUserProfile();
-            }
-          } catch (error) {
-            if (!profileLoaded) {
-              profileLoaded = true;
-              console.error('❌ Error loading Firebase profile:', error);
-              hideProfileLoadingState();
-              loadUserProfile();
-            }
-          }
-        } else {
-          if (!profileLoaded) {
-            profileLoaded = true;
-            console.log('ℹ️ No authenticated user, loading sample profile');
-            hideProfileLoadingState();
-            loadUserProfile();
-          }
-        }
-        
-        resolve();
-      });
+      } else {
+        throw new Error('getUserProfile function not available');
+      }
       
-      // Timeout fallback - only load sample if Firebase hasn't responded yet
-      setTimeout(() => {
-        if (!profileLoaded) {
-          console.log('⚠️ Auth state timeout - still waiting, extending...');
-          // Don't load sample immediately, give Firebase more time
-          // Only load sample after 6 seconds total
-        }
-      }, 3000);
-      
-      // Hard timeout at 6 seconds
-      setTimeout(() => {
-        if (!profileLoaded) {
-          profileLoaded = true;
-          console.log('⚠️ Hard timeout (6s) - loading sample profile');
-          hideProfileLoadingState();
-          loadUserProfile();
-          resolve();
-        }
-      }, 6000);
-      
-    } else {
-      // Firebase not available - use sample data
-      profileLoaded = true;
-      console.log('ℹ️ Firebase not available, loading sample profile');
+    } catch (error) {
+      console.error('❌ Error loading Firebase profile:', error);
       hideProfileLoadingState();
-      loadUserProfile();
-      resolve();
+      // Show error message instead of falling back to mock
+      showProfileError('Failed to load profile. Please try again.');
     }
-  });
+    
+  } else {
+    // ══════════════════════════════════════════════════════════════
+    // MOCK MODE - Load ONLY from mock data
+    // ══════════════════════════════════════════════════════════════
+    console.log('🧪 MOCK MODE: Loading sample profile data...');
+    
+    // Small delay to simulate network request (optional, for testing)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    window.currentUserProfile = sampleUserProfile;
+    hideProfileLoadingState();
+    loadUserProfile(sampleUserProfile);
+  }
+}
+
+/**
+ * Show profile loading error (Firebase mode only)
+ */
+function showProfileError(message) {
+  const profileContainer = document.querySelector('.profile-container');
+  if (profileContainer) {
+    profileContainer.innerHTML = `
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                  min-height: 50vh; text-align: center; padding: 40px;">
+        <div style="font-size: 60px; margin-bottom: 20px;">😔</div>
+        <h2 style="color: #ef4444; margin-bottom: 16px;">Unable to Load Profile</h2>
+        <p style="color: #9ca3af; margin-bottom: 24px;">${message}</p>
+        <button onclick="location.reload()" 
+                style="background: #10b981; color: white; padding: 12px 24px; 
+                       border-radius: 8px; border: none; cursor: pointer; font-size: 16px;">
+          Try Again
+        </button>
+      </div>
+    `;
+    profileContainer.style.visibility = 'visible';
+    profileContainer.style.opacity = '1';
+  }
 }
 
 /**
@@ -2891,8 +2979,10 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
   }
   
   // Update user photo (updated field name - check both profilePhoto and profileImage)
-  const photoElement = document.querySelector('.profile-photo img');
+  const photoElement = document.getElementById('profilePhoto');
   if (photoElement && (userProfile.profilePhoto || userProfile.profileImage)) {
+    // Reset loaded state before changing src (for fade-in effect)
+    photoElement.classList.remove('loaded');
     photoElement.src = userProfile.profilePhoto || userProfile.profileImage;
     photoElement.alt = userProfile.fullName || 'User Profile';
   }
@@ -2917,15 +3007,8 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
     }
   }
   
-  // Update social media icons (if provided)
-  if (userProfile.socialMedia) {
-    const socialIcons = document.querySelectorAll('.social-icon img');
-    if (socialIcons.length >= 3) {
-      if (userProfile.socialMedia.facebook) socialIcons[0].src = userProfile.socialMedia.facebook;
-      if (userProfile.socialMedia.instagram) socialIcons[1].src = userProfile.socialMedia.instagram;
-      if (userProfile.socialMedia.linkedin) socialIcons[2].src = userProfile.socialMedia.linkedin;
-    }
-  }
+  // Update social media links (make icons clickable if URLs provided)
+  updateSocialLinks(userProfile);
   
   // Update user information section
   populateUserInformation(userProfile);

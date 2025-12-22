@@ -1586,38 +1586,48 @@ async function postJob() {
     updatedAt: new Date().toISOString()
   };
   
-  // Save to Firebase if available, otherwise use localStorage
+  // Save job using DataService pattern - CLEAN SEPARATION
+  const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+  console.log(`📊 Saving job in ${useFirebase ? 'FIREBASE' : 'MOCK'} mode`);
+  console.log('📝 Job category:', np2State.selectedCategory);
+  
   try {
-    console.log('📝 Attempting to save job (mode: ' + np2State.mode + '):', job);
-    console.log('📝 Job category:', np2State.selectedCategory);
-    
-    // 🔥 Firebase Integration - Try Firebase first
-    if (typeof createJob === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
-      console.log('🔥 Saving job to Firebase...');
+    // ══════════════════════════════════════════════════════════════
+    // FIREBASE MODE - Save ONLY to Firestore
+    // ══════════════════════════════════════════════════════════════
+    if (useFirebase) {
+      console.log('🔥 FIREBASE MODE: Saving job to Firestore...');
       
-      try {
-        const result = await createJob(job);
+      // Check if user is authenticated
+      const user = await DataService.waitForAuth();
+      if (!user) {
+        alert('Please log in to post a job');
+        window.location.href = 'login.html?redirect=new-post2.html';
+        return;
+      }
+      
+      if (typeof createJob !== 'function') {
+        throw new Error('createJob function not available');
+      }
+      
+      const result = await createJob(job);
+      
+      if (result.success) {
+        console.log('✅ Job saved to Firebase with ID:', result.jobId);
         
-        if (result.success) {
-          console.log('✅ Job saved to Firebase with ID:', result.jobId);
-          
-          // Also save to localStorage for offline/demo access
-          saveToJobPreviewCards(job);
-          
-          // Close preview overlay and show success
-          document.getElementById('previewOverlay').classList.remove('show');
-          showSuccessOverlay();
-          return;
-        } else {
-          console.warn('⚠️ Firebase save failed, falling back to localStorage:', result.message);
-        }
-      } catch (firebaseError) {
-        console.error('❌ Firebase error, falling back to localStorage:', firebaseError);
+        // Close preview overlay and show success
+        document.getElementById('previewOverlay').classList.remove('show');
+        showSuccessOverlay();
+        return;
+      } else {
+        throw new Error(result.message || 'Failed to save job to Firebase');
       }
     }
     
-    // 📦 Fallback to localStorage
-    console.log('📦 Saving job to localStorage...');
+    // ══════════════════════════════════════════════════════════════
+    // MOCK MODE - Save ONLY to localStorage
+    // ══════════════════════════════════════════════════════════════
+    console.log('🧪 MOCK MODE: Saving job to localStorage...');
     
     let allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
     console.log('📝 Existing jobs:', allJobs);

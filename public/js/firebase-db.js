@@ -177,6 +177,67 @@ function formatDateForPreview(dateStr) {
 }
 
 /**
+ * Get a single job by ID
+ * @param {string} jobId - The job document ID
+ * @returns {Promise<Object|null>} - Job data or null if not found
+ */
+async function getJobById(jobId) {
+  const db = getFirestore();
+  
+  if (!db) {
+    // Offline mode - search localStorage
+    return getJobByIdOffline(jobId);
+  }
+  
+  try {
+    const doc = await db.collection('jobs').doc(jobId).get();
+    
+    if (doc.exists) {
+      const jobData = {
+        id: doc.id,
+        jobId: doc.id,
+        ...doc.data()
+      };
+      console.log('✅ Job found:', jobId);
+      return jobData;
+    } else {
+      console.log('⚠️ Job not found:', jobId);
+      return null;
+    }
+    
+  } catch (error) {
+    console.error('❌ Error getting job:', error);
+    return null;
+  }
+}
+
+// Get job from localStorage for offline mode
+function getJobByIdOffline(jobId) {
+  // Search through all categories in localStorage
+  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  
+  for (const category of Object.keys(allJobs)) {
+    const jobs = allJobs[category] || [];
+    const found = jobs.find(job => job.jobId === jobId || job.id === jobId);
+    if (found) {
+      return found;
+    }
+  }
+  
+  // Also check preview cards
+  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+  for (const category of Object.keys(previewCards)) {
+    const jobs = previewCards[category] || [];
+    const found = jobs.find(job => job.jobId === jobId || job.id === jobId);
+    if (found) {
+      return found;
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Get jobs by category with filters
  * @param {string} category - Job category
  * @param {Object} filters - Filter options (region, city, payType)
@@ -1073,6 +1134,7 @@ function getMonthStartTimestamp() {
 
 // Jobs
 window.createJob = createJob;
+window.getJobById = getJobById;
 window.getJobsByCategory = getJobsByCategory;
 window.getUserJobListings = getUserJobListings;
 window.updateJobStatus = updateJobStatus;

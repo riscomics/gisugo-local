@@ -285,10 +285,17 @@ const MOCK_APPLICATIONS = [
 ];
 
 // ===== DATA ACCESS LAYER (Firebase-Ready) =====
-// This layer abstracts data access to make Firebase transition seamless
+// This layer abstracts data access with CLEAN SEPARATION between Mock and Firebase
+// Uses DataService pattern - toggle controls which data source is used
 // ===== GLOBAL DATA SERVICE FOR CROSS-FILE ACCESS =====
 window.JobsDataService = {
-    // Initialize data (simulates Firebase connection)
+    
+    // ===== MODE DETECTION =====
+    _useFirebase() {
+        return typeof DataService !== 'undefined' && DataService.useFirebase();
+    },
+    
+    // Initialize data (for mock mode only)
     initialize() {
         if (!MOCK_LISTINGS_DATA) {
             MOCK_LISTINGS_DATA = this._generateInitialData();
@@ -296,39 +303,42 @@ window.JobsDataService = {
         return MOCK_LISTINGS_DATA;
     },
     
-    // Get all jobs (simulates Firebase query)
+    // Get all jobs for current user (My Listings)
     async getAllJobs() {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const currentUserId = firebase.auth().currentUser.uid;
-        // 
-        // const listingsSnapshot = await db.collection('jobs')
-        //     .where('posterId', '==', currentUserId)
-        //     .where('status', 'in', ['active', 'paused'])
-        //     .orderBy('datePosted', 'desc')
-        //     .get();
-        // 
-        // return listingsSnapshot.docs.map(doc => {
-        //     const data = doc.data();
-        //     return {
-        //         jobId: doc.id,
-        //         posterId: data.posterId,
-        //         posterName: data.posterName,
-        //         title: data.title,
-        //         category: data.category,
-        //         thumbnail: data.thumbnail,
-        //         jobDate: data.scheduledDate,
-        //         startTime: data.startTime,
-        //         endTime: data.endTime,
-        //         datePosted: data.datePosted,
-        //         status: data.status,
-        //         applicationCount: data.applicationCount || 0,
-        //         applicationIds: data.applicationIds || [],
-        //         jobPageUrl: `${data.category}.html`
-        //     };
-        // });
+        console.log(`📊 JobsDataService.getAllJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
         
-        // ENHANCED: Get base mock data and merge with localStorage updates
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Load ONLY from Firestore
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                const user = await DataService.waitForAuth();
+                if (!user) {
+                    console.log('⚠️ Not authenticated in Firebase mode');
+                    return [];
+                }
+                
+                // Use getUserJobListings from firebase-db.js
+                if (typeof getUserJobListings === 'function') {
+                    const jobs = await getUserJobListings(user.uid, ['active', 'paused']);
+                    console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
+                    return jobs;
+                } else {
+                    console.error('❌ getUserJobListings function not available');
+                    return [];
+                }
+            } catch (error) {
+                console.error('❌ Error loading jobs from Firebase:', error);
+                return [];
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE - Load from mock data + localStorage
+        // ══════════════════════════════════════════════════════════════
+        console.log('🧪 Loading jobs from MOCK data...');
+        
+        // Get base mock data and merge with localStorage updates
         const baseMockJobs = this.initialize();
         
         // Get user-generated/modified jobs from localStorage (where new-post.js saves them)
@@ -337,7 +347,7 @@ window.JobsDataService = {
         // Merge localStorage jobs with mock data, prioritizing localStorage versions
         const allJobs = this._mergeJobData(baseMockJobs, localStorageJobs);
         
-        console.log('🔄 JobsDataService.getAllJobs() - Combined job data:', {
+        console.log('🧪 JobsDataService.getAllJobs() - Combined mock data:', {
             mockJobs: baseMockJobs.length,
             localStorageJobs: localStorageJobs.length,
             totalMerged: allJobs.length
@@ -350,63 +360,77 @@ window.JobsDataService = {
         );
     },
     
-    // Get all hired jobs (simulates Firebase query)
+    // Get all hired jobs (jobs in "hiring" status)
     async getAllHiredJobs() {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const currentUserId = firebase.auth().currentUser.uid;
-        // 
-        // const hiredJobsSnapshot = await db.collection('jobs')
-        //     .where('status', '==', 'hired')
-        //     .where(firebase.firestore.Filter.or(
-        //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
-        //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
-        //     ))
-        //     .orderBy('hiredAt', 'desc')
-        //     .get();
-        // 
-        // return hiredJobsSnapshot.docs.map(doc => {
-        //     const data = doc.data();
-        //     return {
-        //         jobId: doc.id,
-        //         posterId: data.posterId,
-        //         posterName: data.posterName,
-        //         posterThumbnail: data.posterThumbnail,
-        //         title: data.title,
-        //         category: data.category,
-        //         thumbnail: data.thumbnail,
-        //         jobDate: data.scheduledDate,
-        //         startTime: data.startTime,
-        //         endTime: data.endTime,
-        //         priceOffer: data.priceOffer,
-        //         datePosted: data.datePosted,
-        //         dateHired: data.hiredAt,
-        //         status: data.status,
-        //         hiredWorkerId: data.hiredWorkerId,
-        //         hiredWorkerName: data.hiredWorkerName,
-        //         hiredWorkerThumbnail: data.hiredWorkerThumbnail,
-        //         role: data.posterId === currentUserId ? 'customer' : 'worker'
-        //     };
-        // });
+        console.log(`📊 JobsDataService.getAllHiredJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
         
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                const user = await DataService.waitForAuth();
+                if (!user) {
+                    console.log('⚠️ Not authenticated');
+                    return [];
+                }
+                
+                // Get jobs with 'hired' status for this user
+                if (typeof getUserJobListings === 'function') {
+                    const jobs = await getUserJobListings(user.uid, ['hired']);
+                    console.log(`🔥 Loaded ${jobs.length} hired jobs from Firebase`);
+                    return jobs;
+                }
+                return [];
+            } catch (error) {
+                console.error('❌ Error loading hired jobs:', error);
+                return [];
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE
+        // ══════════════════════════════════════════════════════════════
         if (!MOCK_HIRING_DATA) {
             MOCK_HIRING_DATA = this._generateHiredJobsData();
         }
         return MOCK_HIRING_DATA;
     },
     
-    // Get single job (simulates Firebase doc get)
+    // Get single job by ID
     async getJobById(jobId) {
-        // Firebase: return await db.collection('jobs').doc(jobId).get()
+        console.log(`📊 JobsDataService.getJobById(${jobId}) - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
         
-        // FIXED: Use same logic as getAllJobs() to get fresh data including localStorage updates
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                if (typeof getJobById === 'function') {
+                    const job = await getJobById(jobId);
+                    if (job) {
+                        console.log(`🔥 Found job from Firebase: ${job.title}`);
+                    }
+                    return job;
+                }
+                console.error('❌ getJobById function not available');
+                return null;
+            } catch (error) {
+                console.error('❌ Error getting job from Firebase:', error);
+                return null;
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE
+        // ══════════════════════════════════════════════════════════════
         const baseMockJobs = this.initialize();
         const localStorageJobs = this._getJobsFromLocalStorage();
         const allJobs = this._mergeJobData(baseMockJobs, localStorageJobs);
         
-        console.log(`🔍 getJobById(${jobId}) - searching in ${allJobs.length} jobs (${baseMockJobs.length} mock + ${localStorageJobs.length} localStorage)`);
+        console.log(`🧪 getJobById(${jobId}) - searching in ${allJobs.length} mock jobs`);
         
-        const foundJob = allJobs.find(job => job.jobId === jobId);
+        const foundJob = allJobs.find(job => job.jobId === jobId || job.id === jobId);
         if (foundJob) {
             console.log(`✅ getJobById found job with status: ${foundJob.status}`);
         } else {
@@ -416,19 +440,30 @@ window.JobsDataService = {
         return foundJob;
     },
     
-    // Update job status (simulates Firebase update)
+    // Update job status
     async updateJobStatus(jobId, newStatus) {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // 
-        // await db.collection('jobs').doc(jobId).update({
-        //     status: newStatus,
-        //     lastModified: firebase.firestore.FieldValue.serverTimestamp(),
-        //     modifiedBy: firebase.auth().currentUser.uid
-        // });
-        // 
-        // return { success: true };
+        console.log(`📊 JobsDataService.updateJobStatus(${jobId}, ${newStatus}) - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
         
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                if (typeof updateJobStatus === 'function') {
+                    const result = await updateJobStatus(jobId, newStatus);
+                    console.log(`🔥 Job status updated in Firebase:`, result);
+                    return result;
+                }
+                return { success: false, error: 'updateJobStatus function not available' };
+            } catch (error) {
+                console.error('❌ Error updating job status in Firebase:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE
+        // ══════════════════════════════════════════════════════════════
         const jobs = this.initialize();
         const jobIndex = jobs.findIndex(job => job.jobId === jobId);
         if (jobIndex !== -1) {
@@ -439,36 +474,31 @@ window.JobsDataService = {
         return { success: false, error: 'Job not found' };
     },
     
-    // Delete job (simulates Firebase delete)
+    // Delete job
     async deleteJob(jobId) {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const batch = db.batch();
-        // 
-        // // Delete the job document
-        // const jobRef = db.collection('jobs').doc(jobId);
-        // batch.delete(jobRef);
-        // 
-        // // Delete all applications for this job
-        // const applicationsSnapshot = await db.collection('applications')
-        //     .where('jobId', '==', jobId).get();
-        // applicationsSnapshot.docs.forEach(doc => {
-        //     batch.delete(doc.ref);
-        // });
-        // 
-        // // Create deletion record for audit trail
-        // const deletionRef = db.collection('job_deletions').doc();
-        // batch.set(deletionRef, {
-        //     jobId: jobId,
-        //     deletedBy: firebase.auth().currentUser.uid,
-        //     deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        //     reason: 'user_requested'
-        // });
-        // 
-        // await batch.commit();
-        // return { success: true };
+        console.log(`📊 JobsDataService.deleteJob(${jobId}) - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
         
-        console.log(`🗑️ Attempting to delete job: ${jobId}`);
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                if (typeof deleteJob === 'function') {
+                    const result = await deleteJob(jobId);
+                    console.log(`🔥 Job deleted in Firebase:`, result);
+                    return result;
+                }
+                return { success: false, error: 'deleteJob function not available' };
+            } catch (error) {
+                console.error('❌ Error deleting job in Firebase:', error);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE
+        // ══════════════════════════════════════════════════════════════
+        console.log(`🧪 Attempting to delete job from mock data: ${jobId}`);
         
         // FIXED: Check localStorage jobs first (where RELISTED jobs are stored)
         try {
