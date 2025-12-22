@@ -333,26 +333,7 @@ async function loginWithGoogle() {
     provider.addScope('email');
     provider.addScope('profile');
     
-    let result;
-    
-    try {
-      // Try popup first
-      result = await auth.signInWithPopup(provider);
-    } catch (popupError) {
-      console.warn('⚠️ Popup blocked or closed, error:', popupError.code);
-      
-      // If popup was blocked or closed, try redirect method
-      if (popupError.code === 'auth/popup-blocked' || 
-          popupError.code === 'auth/popup-closed-by-user' ||
-          popupError.code === 'auth/cancelled-popup-request') {
-        console.log('🔄 Falling back to redirect method...');
-        await auth.signInWithRedirect(provider);
-        // After redirect, the result will be handled by getRedirectResult()
-        return { success: true, isRedirect: true, message: 'Redirecting to Google...' };
-      }
-      throw popupError; // Re-throw if it's a different error
-    }
-    
+    const result = await auth.signInWithPopup(provider);
     const user = result.user;
     
     console.log('✅ Google sign-in successful:', user.uid);
@@ -653,25 +634,7 @@ async function loginWithFacebook() {
     provider.addScope('email');
     provider.addScope('public_profile');
     
-    let result;
-    
-    try {
-      // Try popup first
-      result = await auth.signInWithPopup(provider);
-    } catch (popupError) {
-      console.warn('⚠️ Popup blocked or closed, error:', popupError.code);
-      
-      // If popup was blocked or closed, try redirect method
-      if (popupError.code === 'auth/popup-blocked' || 
-          popupError.code === 'auth/popup-closed-by-user' ||
-          popupError.code === 'auth/cancelled-popup-request') {
-        console.log('🔄 Falling back to redirect method...');
-        await auth.signInWithRedirect(provider);
-        return { success: true, isRedirect: true, message: 'Redirecting to Facebook...' };
-      }
-      throw popupError;
-    }
-    
+    const result = await auth.signInWithPopup(provider);
     const user = result.user;
     
     console.log('✅ Facebook sign-in successful:', user.uid);

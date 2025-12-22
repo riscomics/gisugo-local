@@ -149,7 +149,8 @@ function getUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search);
   return {
     category: urlParams.get('category'),
-    jobNumber: urlParams.get('jobNumber')
+    // Support both jobNumber (legacy) and jobId (Firebase)
+    jobNumber: urlParams.get('jobNumber') || urlParams.get('jobId')
   };
 }
 
@@ -157,11 +158,11 @@ async function loadJobData() {
   const { category, jobNumber } = getUrlParameters();
   
   if (!category || !jobNumber) {
-    showErrorMessage('Invalid job URL. Missing category or job number.');
+    showErrorMessage('Invalid job URL. Missing category or job ID.');
     return;
   }
   
-  console.log(`🔍 Loading job data for category: ${category}, jobNumber: ${jobNumber}`);
+  console.log(`🔍 Loading job data for category: ${category}, jobId/jobNumber: ${jobNumber}`);
   
   // Check if we should use Firebase
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
