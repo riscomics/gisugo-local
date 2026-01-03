@@ -587,8 +587,43 @@ async function filterAndSortJobs() {
   
   let categoryCards = [];
   
-  // Try Firebase first if available
-  if (typeof getJobsByCategory === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+  // Helper function to normalize Firebase data to UI format
+  function _normalizeFirebaseJob(firebaseJob) {
+    // Format date
+    const date = firebaseJob.scheduledDate ? 
+      (firebaseJob.scheduledDate.toDate ? firebaseJob.scheduledDate.toDate() : new Date(firebaseJob.scheduledDate)) 
+      : null;
+    const formattedDate = date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD';
+    
+    // Format time
+    const timeDisplay = `${firebaseJob.startTime || 'TBD'} - ${firebaseJob.endTime || 'TBD'}`;
+    
+    return {
+      id: firebaseJob.id,
+      jobNumber: firebaseJob.jobId,
+      category: firebaseJob.category,
+      title: firebaseJob.title,
+      photo: firebaseJob.thumbnail || 'public/images/placeholder.jpg',
+      extra1: firebaseJob.extras?.[0] || '',
+      extra2: firebaseJob.extras?.[1] || '',
+      price: `₱${firebaseJob.priceOffer || '0'}`,
+      rate: firebaseJob.paymentType,
+      date: formattedDate,
+      time: timeDisplay,
+      region: firebaseJob.region,
+      city: firebaseJob.city,
+      status: firebaseJob.status,
+      templateUrl: firebaseJob.jobPageUrl || `dynamic-job.html?category=${firebaseJob.category}&jobNumber=${firebaseJob.jobId}`,
+      createdAt: firebaseJob.datePosted?.toDate?.()?.toISOString() || new Date().toISOString()
+    };
+  }
+
+  // Try Firebase first if available AND dev mode is OFF
+  const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
+    ? APP_CONFIG.useFirebaseData() 
+    : (!localStorage.getItem('gisugo_dev_mode') || localStorage.getItem('gisugo_dev_mode') === 'false');
+  
+  if (shouldUseFirebase && typeof getJobsByCategory === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
     try {
       console.log('🔥 Loading jobs from Firebase for category:', currentCategory);
       
@@ -597,8 +632,9 @@ async function filterAndSortJobs() {
         payType: activePay !== 'PAY TYPE' ? activePay : null
       };
       
-      categoryCards = await getJobsByCategory(currentCategory, filters);
-      console.log(`✅ Firebase: Found ${categoryCards.length} jobs`);
+      const rawJobs = await getJobsByCategory(currentCategory, filters);
+      categoryCards = rawJobs.map(job => _normalizeFirebaseJob(job));
+      console.log(`✅ Firebase: Found ${categoryCards.length} jobs (normalized for UI)`);
       
     } catch (error) {
       console.error('❌ Firebase error, falling back to localStorage:', error);
@@ -606,9 +642,14 @@ async function filterAndSortJobs() {
     }
   }
   
-  // Fallback to localStorage if Firebase didn't return data
+  // Fallback to localStorage if Firebase didn't return data OR dev mode is ON
   if (categoryCards.length === 0) {
-    console.log('📦 Loading jobs from localStorage');
+    const devMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : (localStorage.getItem('gisugo_dev_mode') === 'true');
+    if (devMode) {
+      console.log('🎮 Dev Mode ON - Loading mock jobs from localStorage');
+    } else {
+      console.log('📦 Loading jobs from localStorage (Firebase returned no data)');
+    }
   const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
     categoryCards = previewCards[currentCategory] || [];
   }

@@ -252,17 +252,10 @@ async function getJobsByCategory(category, filters = {}) {
   }
   
   try {
+    // Simplified query - only category + status (no composite index needed)
     let query = db.collection('jobs')
       .where('category', '==', category)
       .where('status', '==', 'active');
-    
-    // Add region filter if specified
-    if (filters.region) {
-      query = query.where('region', '==', filters.region);
-    }
-    
-    // Order by date posted
-    query = query.orderBy('datePosted', 'desc');
     
     const snapshot = await query.get();
     
@@ -271,12 +264,23 @@ async function getJobsByCategory(category, filters = {}) {
       ...doc.data()
     }));
     
-    // Client-side filter for pay type (to avoid compound index requirements)
+    // Client-side filtering (all filters done here to avoid indexes)
+    if (filters.region) {
+      jobs = jobs.filter(job => job.region === filters.region);
+    }
+    
     if (filters.payType && filters.payType !== 'PAY TYPE') {
       jobs = jobs.filter(job => 
         job.paymentType?.toUpperCase() === filters.payType.toUpperCase()
       );
     }
+    
+    // Client-side sorting by date posted
+    jobs.sort((a, b) => {
+      const dateA = a.datePosted?.toDate ? a.datePosted.toDate() : new Date(0);
+      const dateB = b.datePosted?.toDate ? b.datePosted.toDate() : new Date(0);
+      return dateB - dateA; // Newest first
+    });
     
     console.log(`📋 Found ${jobs.length} jobs in category: ${category}`);
     return jobs;
