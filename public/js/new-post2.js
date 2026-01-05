@@ -1526,6 +1526,12 @@ function initializePreviewOverlay() {
 // ========================== POST JOB ==========================
 
 async function postJob() {
+  // Show loading modal
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.add('show');
+  }
+  
   // Generate job number from timestamp
   const jobNumber = Date.now();
   
@@ -1615,6 +1621,11 @@ async function postJob() {
       if (result.success) {
         console.log('✅ Job saved to Firebase with ID:', result.jobId);
         
+        // Hide loading modal
+        if (loadingOverlay) {
+          loadingOverlay.classList.remove('show');
+        }
+        
         // Close preview overlay and show success
         document.getElementById('previewOverlay').classList.remove('show');
         showSuccessOverlay();
@@ -1684,6 +1695,11 @@ async function postJob() {
     // CRITICAL: Also save to jobPreviewCards for listing pages
     saveToJobPreviewCards(job);
     
+    // Hide loading modal
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+    }
+    
     // Close preview overlay
     document.getElementById('previewOverlay').classList.remove('show');
     
@@ -1693,6 +1709,12 @@ async function postJob() {
     console.error('❌ Error saving job:', error);
     console.error('❌ Error details:', error.message);
     console.error('❌ Stack trace:', error.stack);
+    
+    // Hide loading modal on error
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+    }
+    
     alert(`Failed to post job: ${error.message}\n\nTry clearing old jobs from localStorage.`);
     showToast('Failed to post job. Please try again.', 'error');
   }

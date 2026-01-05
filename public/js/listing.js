@@ -576,6 +576,12 @@ async function filterAndSortJobs() {
     return;
   }
   
+  // Show loading modal
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.add('show');
+  }
+  
   // Clear existing job cards
   const existingCards = document.querySelectorAll('.job-preview-card');
   existingCards.forEach(card => card.remove());
@@ -744,6 +750,11 @@ async function filterAndSortJobs() {
   
   // Apply truncation after cards are loaded
   setTimeout(truncateBarangayNames, 50);
+  
+  // Hide loading modal
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove('show');
+  }
 }
 
 // Function to truncate barangay names in job preview cards to prevent layout issues on small screens
