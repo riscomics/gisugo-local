@@ -2678,3 +2678,110 @@ body::-webkit-scrollbar {
     clip-path: inset(0 -100vw 0 -100vw);
   }
 }
+
+/* ============================================
+   LOADING MODAL - FUN MINIMAL ANIMATION
+   ============================================ */
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  backdrop-filter: blur(3px);
+}
+
+.loading-overlay.show {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Fun bouncing emojis */
+.loading-overlay::before {
+  content: '📄 ⚡ 🔍';
+  font-size: clamp(32px, 8vw, 44px);
+  margin-bottom: clamp(16px, 4vw, 24px);
+  letter-spacing: clamp(12px, 3vw, 20px);
+  animation: emojiFloat 2s ease-in-out infinite;
+}
+
+.loading-spinner {
+  position: relative;
+  width: clamp(64px, 16vw, 80px);
+  height: clamp(64px, 16vw, 80px);
+  border: clamp(4px, 1vw, 5px) solid rgba(16, 185, 129, 0.2);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  box-shadow: 0 0 clamp(20px, 5vw, 30px) rgba(16, 185, 129, 0.3);
+}
+
+/* Center emoji in spinner */
+.loading-spinner::after {
+  content: '📋';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(24px, 6vw, 32px);
+  animation: sparkle 1.2s ease-in-out infinite;
+}
+
+.loading-text {
+  margin-top: clamp(24px, 6vw, 32px);
+  color: #10b981;
+  font-size: clamp(22px, 5.5vw, 28px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 0 clamp(20px, 5vw, 30px) rgba(16, 185, 129, 0.6),
+               0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: textPulse 1.5s ease-in-out infinite;
+}
+
+/* Pulsing dots below text */
+.loading-text::after {
+  content: '';
+  display: block;
+  margin: clamp(12px, 3vw, 16px) auto 0;
+  width: clamp(8px, 2vw, 10px);
+  height: clamp(8px, 2vw, 10px);
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 
+    clamp(-16px, -4vw, -20px) 0 0 #10b981,
+    clamp(16px, 4vw, 20px) 0 0 #10b981;
+  animation: dotsPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes emojiFloat {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes sparkle {
+  0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  50% { transform: translate(-50%, -50%) scale(1.2) rotate(180deg); }
+}
+
+@keyframes textPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes dotsPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.3); opacity: 1; }
+}

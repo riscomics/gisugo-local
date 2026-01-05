@@ -155,9 +155,19 @@ function getUrlParameters() {
 }
 
 async function loadJobData() {
+  // Show loading modal
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) {
+    loadingOverlay.classList.add('show');
+  }
+  
   const { category, jobNumber } = getUrlParameters();
   
   if (!category || !jobNumber) {
+    // Hide loading modal on error
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+    }
     showErrorMessage('Invalid job URL. Missing category or job ID.');
     return;
   }
@@ -226,6 +236,10 @@ async function loadJobData() {
   
   if (!job) {
     console.error(`❌ Job not found in Firebase or localStorage`);
+    // Hide loading modal on error
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+    }
     showErrorMessage('Job not found. This job may have been removed or does not exist.');
     return;
   }
@@ -234,6 +248,11 @@ async function loadJobData() {
   
   // Populate the page with job data
   populateJobPage(job);
+  
+  // Hide loading modal after page is populated
+  if (loadingOverlay) {
+    loadingOverlay.classList.remove('show');
+  }
 }
 
 // Normalize Firebase job data to match expected format
