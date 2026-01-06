@@ -257,10 +257,14 @@ async function loadJobData() {
 
 // Normalize Firebase job data to match expected format
 function normalizeFirebaseJob(job) {
-  // Convert Firestore Timestamp to date string
+  // Convert Firestore Timestamp to date string (local timezone)
   let scheduledDate = job.scheduledDate;
   if (job.scheduledDate && typeof job.scheduledDate.toDate === 'function') {
-    scheduledDate = job.scheduledDate.toDate().toISOString().split('T')[0];
+    const d = job.scheduledDate.toDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    scheduledDate = `${year}-${month}-${day}`; // Local timezone YYYY-MM-DD
   }
   
   return {
@@ -351,9 +355,16 @@ function populateJobPage(jobData) {
     document.getElementById('jobCity').textContent = 'Not specified';
   }
   
-  // Set date
+  // Set date (parse in local timezone to avoid UTC rollback)
   if (jobData.jobDate) {
-    const date = new Date(jobData.jobDate);
+    let date;
+    if (jobData.jobDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Parse YYYY-MM-DD in local timezone
+      const [year, month, day] = jobData.jobDate.split('-').map(Number);
+      date = new Date(year, month - 1, day);
+    } else {
+      date = new Date(jobData.jobDate);
+    }
     const options = { 
       year: 'numeric', 
       month: 'long', 

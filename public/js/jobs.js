@@ -2140,6 +2140,15 @@ function generateListingCardHTML(listing) {
     const jobDateFormatted = formatJobDate(listing.jobDate);
     const timeRange = `${listing.startTime} - ${listing.endTime}`;
     
+    // Check if job is expired
+    let displayStatus = listing.status;
+    if (listing.status === 'active' || listing.status === 'paused') {
+        const isExpired = checkIfJobExpired(listing.jobDate, listing.endTime);
+        if (isExpired) {
+            displayStatus = 'expired';
+        }
+    }
+    
     return `
         <div class="listing-card" 
              data-job-id="${listing.jobId}" 
@@ -2149,7 +2158,7 @@ function generateListingCardHTML(listing) {
              data-job-page-url="${listing.jobPageUrl}">
             <div class="listing-thumbnail">
                 <img src="${listing.thumbnail}" alt="${listing.title}">
-                <div class="status-badge status-${listing.status}">${listing.status.toUpperCase()}</div>
+                <div class="status-badge status-${displayStatus}">${displayStatus.toUpperCase()}</div>
             </div>
             <div class="listing-content">
                 <div class="listing-title">${listing.title}</div>
@@ -2170,6 +2179,48 @@ function generateListingCardHTML(listing) {
             </div>
         </div>
     `;
+}
+
+function checkIfJobExpired(jobDate, endTime) {
+    if (!jobDate || !endTime) return false;
+    
+    try {
+        const now = new Date();
+        let dateObj;
+        
+        // Parse date (supports ISO format and display format)
+        if (jobDate.includes('-') && /^\d{4}-\d{2}-\d{2}/.test(jobDate)) {
+            const [year, month, day] = jobDate.split('-').map(Number);
+            dateObj = new Date(year, month - 1, day);
+        } else if (jobDate.includes(',')) {
+            dateObj = new Date(jobDate);
+        } else {
+            const currentYear = new Date().getFullYear();
+            dateObj = new Date(`${jobDate} ${currentYear}`);
+        }
+        
+        if (isNaN(dateObj.getTime())) return false;
+        
+        // Parse end time
+        const endTimeMatch = endTime.match(/(\d+)\s*(AM|PM)/i);
+        if (endTimeMatch) {
+            let hour = parseInt(endTimeMatch[1]);
+            const isPM = endTimeMatch[2].toUpperCase() === 'PM';
+            
+            if (isPM && hour !== 12) hour += 12;
+            if (!isPM && hour === 12) hour = 0;
+            
+            dateObj.setHours(hour, 0, 0, 0);
+        } else {
+            // If no end time, mark as expired at end of job date
+            dateObj.setHours(23, 59, 59, 999);
+        }
+        
+        return dateObj.getTime() < now.getTime();
+    } catch (error) {
+        console.warn('Error checking expiration:', error);
+        return false;
+    }
 }
 
 function formatTimeAgo(dateInput) {

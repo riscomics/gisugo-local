@@ -1533,6 +1533,8 @@ function initializePreviewOverlay() {
 async function postJob() {
   // Show loading modal
   const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  if (loadingText) loadingText.textContent = 'POSTING GIG...';
   if (loadingOverlay) {
     loadingOverlay.classList.add('show');
   }
@@ -1617,11 +1619,24 @@ async function postJob() {
         return;
       }
       
-      if (typeof createJob !== 'function') {
-        throw new Error('createJob function not available');
-      }
+      let result;
       
-      const result = await createJob(job);
+      // EDIT MODE: Update existing job
+      if (np2State.mode === 'edit' && np2State.editJobId) {
+        if (typeof updateJob !== 'function') {
+          throw new Error('updateJob function not available');
+        }
+        console.log('✏️ EDIT MODE: Updating existing job:', np2State.editJobId);
+        result = await updateJob(np2State.editJobId, job);
+      } 
+      // NEW or RELIST MODE: Create new job
+      else {
+        if (typeof createJob !== 'function') {
+          throw new Error('createJob function not available');
+        }
+        console.log('📝 NEW/RELIST MODE: Creating new job');
+        result = await createJob(job);
+      }
       
       if (result.success) {
         console.log('✅ Job saved to Firebase with ID:', result.jobId);
@@ -1978,38 +1993,187 @@ function handleUrlParameters() {
   }
 }
 
-function handleEditMode(jobId, category) {
+async function handleEditMode(jobId, category) {
   try {
+    console.log('🔍 EDIT MODE - Loading job:', { jobId, category });
+    
+    // Show loading overlay immediately with custom text
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingText) loadingText.textContent = 'LOADING GIG...';
+    if (loadingOverlay) loadingOverlay.classList.add('show');
+    
+    // Hide multi-step UI immediately to prevent flash
+    const progressContainer = document.querySelector('.np2-progress-container');
+    const sections = document.querySelectorAll('.np2-section');
+    const navButtons = document.querySelector('.np2-nav-buttons');
+    if (progressContainer) progressContainer.style.display = 'none';
+    if (sections) sections.forEach(section => section.style.display = 'none');
+    if (navButtons) navButtons.style.display = 'none';
+    
     // Update page title
     const headerTitle = document.getElementById('newPostTitle') || document.querySelector('.np2-header-title');
     if (headerTitle) headerTitle.textContent = 'EDIT POST';
     
-    // Load job data from active listings
+    // Try Firebase first (if in Firebase mode)
+    if (typeof DataService !== 'undefined' && DataService.useFirebase() && typeof getJobById === 'function') {
+      console.log('🔥 Loading job from Firebase for editing:', jobId);
+      
+      try {
+        const firebaseJob = await getJobById(jobId);
+        console.log('📋 Firebase getJobById result:', firebaseJob);
+        
+        if (firebaseJob) {
+          console.log('✅ Firebase job loaded successfully');
+          
+          // Normalize Firebase data to match expected format
+          // IMPORTANT: Use Firebase category, not URL parameter
+          let actualCategory = firebaseJob.category || '';
+          
+          // If category is missing or invalid, try to infer from jobPageUrl
+          if (!actualCategory || actualCategory === 'unknown') {
+            if (firebaseJob.jobPageUrl) {
+              const match = firebaseJob.jobPageUrl.match(/category=([^&]+)/);
+              if (match && match[1] !== 'unknown') {
+                actualCategory = match[1];
+                console.log(`📍 Inferred category from jobPageUrl: ${actualCategory}`);
+              }
+            }
+            // Fallback to URL parameter only if still empty
+            if (!actualCategory || actualCategory === 'unknown') {
+              actualCategory = category;
+            }
+          }
+          const jobData = {
+            jobId: firebaseJob.id || jobId,
+            category: actualCategory,
+            title: firebaseJob.title,
+            region: firebaseJob.region,
+            city: firebaseJob.city,
+            jobDate: firebaseJob.scheduledDate ? 
+              (firebaseJob.scheduledDate.toDate ? 
+                (() => {
+                  const d = firebaseJob.scheduledDate.toDate();
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`; // Local timezone YYYY-MM-DD
+                })() : 
+                firebaseJob.scheduledDate) 
+              : null,
+            startTime: firebaseJob.startTime,
+            endTime: firebaseJob.endTime,
+            priceOffer: firebaseJob.priceOffer,
+            paymentAmount: firebaseJob.priceOffer,
+            paymentType: firebaseJob.paymentType,
+            extras: firebaseJob.extras || [],
+            description: firebaseJob.description,
+            thumbnail: firebaseJob.thumbnail
+          };
+          
+          console.log('📝 Normalized job data (category from Firebase):', { category: actualCategory });
+          
+          console.log('📝 Normalized job data:', jobData);
+          // Use category from Firebase data, not URL parameter
+          populateFormWithJobData(jobData, actualCategory, 'edit');
+          
+          // Hide loading overlay after form is populated
+          if (loadingOverlay) {
+            setTimeout(() => loadingOverlay.classList.remove('show'), 300);
+          }
+          return;
+        } else {
+          console.warn('⚠️ Firebase returned null for jobId:', jobId);
+        }
+      } catch (fbError) {
+        console.error('❌ Firebase load failed:', fbError);
+      }
+    } else {
+      console.log('📦 Using localStorage mode (Firebase not available or dev mode ON)');
+    }
+    
+    // Fallback: Load job data from localStorage
+    console.log('📦 Trying localStorage fallback...');
     const jobData = getActiveJobData(jobId);
-    if (!jobData) {
-      console.error(`❌ Active job not found: ${jobId}`);
+    console.log('📋 localStorage result:', jobData);
+    
+    if (!jobData || jobData === 'FIREBASE_PENDING') {
+      console.error(`❌ Active job not found in any source: ${jobId}`);
+      if (loadingOverlay) loadingOverlay.classList.remove('show');
       showToast('Job not found. Redirecting to new post...', 'error');
       return;
     }
     
-    console.log(`📋 Loading job data for editing:`, jobData);
-    populateFormWithJobData(jobData, category, 'edit');
+    console.log(`✅ Loading job data for editing:`, jobData);
+    // Use category from job data, not URL parameter
+    populateFormWithJobData(jobData, jobData.category || category, 'edit');
+    
+    // Hide loading overlay
+    if (loadingOverlay) {
+      setTimeout(() => loadingOverlay.classList.remove('show'), 300);
+    }
     
   } catch (error) {
     console.error(`❌ Error loading job for editing:`, error);
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
     showToast('Error loading job data. Please try again.', 'error');
   }
 }
 
-function handleRelistMode(jobId, category) {
+async function handleRelistMode(jobId, category) {
   try {
     // Update page title
     const headerTitle = document.getElementById('newPostTitle') || document.querySelector('.np2-header-title');
     if (headerTitle) headerTitle.textContent = 'RELIST GIG';
     
-    // Load job data from completed jobs
+    // Try Firebase first (if in Firebase mode)
+    if (typeof DataService !== 'undefined' && DataService.useFirebase() && typeof getJobById === 'function') {
+      console.log('🔥 Loading job from Firebase for relisting:', jobId);
+      
+      try {
+        const firebaseJob = await getJobById(jobId);
+        if (firebaseJob) {
+          console.log('📋 Firebase job loaded:', firebaseJob);
+          
+          // Normalize Firebase data to match expected format
+          const jobData = {
+            jobId: firebaseJob.id || jobId,
+            category: firebaseJob.category || category,
+            title: firebaseJob.title,
+            jobDate: firebaseJob.scheduledDate ? 
+              (firebaseJob.scheduledDate.toDate ? 
+                (() => {
+                  const d = firebaseJob.scheduledDate.toDate();
+                  const year = d.getFullYear();
+                  const month = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${year}-${month}-${day}`; // Local timezone YYYY-MM-DD
+                })() : 
+                firebaseJob.scheduledDate) 
+              : null,
+            startTime: firebaseJob.startTime,
+            endTime: firebaseJob.endTime,
+            priceOffer: firebaseJob.priceOffer,
+            paymentType: firebaseJob.paymentType,
+            region: firebaseJob.region,
+            city: firebaseJob.city,
+            extras: firebaseJob.extras || [],
+            description: firebaseJob.description,
+            thumbnail: firebaseJob.thumbnail
+          };
+          
+          populateFormWithJobData(jobData, category, 'relist');
+          return;
+        }
+      } catch (fbError) {
+        console.warn('⚠️ Firebase load failed, trying localStorage:', fbError);
+      }
+    }
+    
+    // Fallback: Load job data from completed jobs in localStorage
     const jobData = getCompletedJobData(jobId);
-    if (!jobData) {
+    if (!jobData || jobData === 'FIREBASE_PENDING') {
       console.error(`❌ Completed job not found: ${jobId}`);
       showToast('Job not found. Redirecting to new post...', 'error');
       return;
@@ -2029,7 +2193,14 @@ function handleRelistMode(jobId, category) {
 
 function getActiveJobData(jobId) {
   try {
-    // Try localStorage method for jobs posted through new-post form
+    // PRIORITY 1: Try Firebase first (if in Firebase mode)
+    if (typeof DataService !== 'undefined' && DataService.useFirebase() && typeof getJobById === 'function') {
+      console.log('🔥 Fetching active job from Firebase:', jobId);
+      // This will be handled async in handleEditMode
+      return 'FIREBASE_PENDING';
+    }
+    
+    // PRIORITY 2: Try localStorage (Mock mode)
     const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
     
     // Search through all categories for the job
@@ -2055,8 +2226,14 @@ function getActiveJobData(jobId) {
 
 function getCompletedJobData(jobId) {
   try {
-    // Try localStorage (if you store completed jobs there)
-    // Or check if JobsDataService has completed jobs
+    // PRIORITY 1: Try Firebase first (if in Firebase mode)
+    if (typeof DataService !== 'undefined' && DataService.useFirebase() && typeof getJobById === 'function') {
+      console.log('🔥 Fetching completed job from Firebase:', jobId);
+      // This will be handled async in handleRelistMode
+      return 'FIREBASE_PENDING';
+    }
+    
+    // PRIORITY 2: Try localStorage
     const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
     
     // Search through all categories
@@ -2080,8 +2257,568 @@ function getCompletedJobData(jobId) {
   }
 }
 
+// ========== EDIT MODE: SINGLE PAGE FORM ==========
+function showEditForm(jobData, category) {
+  console.log('🎨 Showing edit form with data:', jobData);
+  
+  // Update page title
+  const headerTitle = document.querySelector('.uniform-header-title');
+  if (headerTitle) headerTitle.textContent = 'Edit Gig Post';
+  
+  // Hide multi-step UI
+  document.querySelector('.np2-progress-container').style.display = 'none';
+  document.querySelectorAll('.np2-section').forEach(section => section.style.display = 'none');
+  document.querySelector('.np2-nav-buttons').style.display = 'none';
+  
+  // Show edit form
+  const editContainer = document.getElementById('editModeContainer');
+  if (!editContainer) {
+    console.error('❌ Edit container not found');
+    return;
+  }
+  editContainer.style.display = 'block';
+  
+  // Category mapping
+  const categoryCards = {
+    'hatod': { label: 'Hatod (Delivery/Transport)', icon: '🏍️' },
+    'hakot': { label: 'Hakot (Moving/Hauling)', icon: '🚚' },
+    'kompra': { label: 'Kompra (Shopping)', icon: '🛒' },
+    'luto': { label: 'Luto (Cooking)', icon: '🍳' },
+    'hugas': { label: 'Hugas (Dishwashing)', icon: '🍽️' },
+    'laba': { label: 'Laba (Laundry)', icon: '👕' },
+    'limpyo': { label: 'Limpyo (Cleaning)', icon: '🧹' },
+    'tindera': { label: 'Tindera (Store Help)', icon: '🏪' },
+    'bantay': { label: 'Bantay (Babysitting/Caregiving)', icon: '👶' },
+    'painter': { label: 'Painter', icon: '🎨' },
+    'carpenter': { label: 'Carpenter', icon: '🔨' },
+    'plumber': { label: 'Plumber', icon: '🔧' },
+    'security': { label: 'Security', icon: '🛡️' },
+    'driver': { label: 'Driver', icon: '🚗' },
+    'tutor': { label: 'Tutor', icon: '📚' },
+    'nurse': { label: 'Nurse', icon: '💉' },
+    'doctor': { label: 'Doctor', icon: '⚕️' },
+    'lawyer': { label: 'Lawyer', icon: '⚖️' },
+    'mechanic': { label: 'Mechanic', icon: '🔩' },
+    'electrician': { label: 'Electrician', icon: '⚡' },
+    'tailor': { label: 'Tailor', icon: '✂️' },
+    'accountant': { label: 'Accountant', icon: '💼' }
+  };
+  
+  // Populate category (read-only)
+  const categoryInfo = categoryCards[category] || { label: category, icon: '' };
+  document.getElementById('editCategoryDisplay').textContent = `${categoryInfo.icon} ${categoryInfo.label}`;
+  
+  // Save to state
+  np2State.selectedCategory = category;
+  np2State.selectedRegion = jobData.region || 'CEBU';
+  np2State.selectedCity = jobData.city || 'CEBU CITY';
+  
+  console.log('💾 Saved to state:', { 
+    category: np2State.selectedCategory, 
+    region: np2State.selectedRegion, 
+    city: np2State.selectedCity 
+  });
+  
+  // Populate location (read-only)
+  const locationText = `${jobData.region || 'Unknown Region'} - ${jobData.city || 'Unknown City'}`;
+  document.getElementById('editLocationDisplay').textContent = locationText;
+  
+  // Populate title
+  document.getElementById('editTitleInput').value = jobData.title || '';
+  
+  // Populate date
+  document.getElementById('editDateInput').value = jobData.jobDate || '';
+  
+  // Populate time (custom dropdowns)
+  if (jobData.startTime) {
+    const [startHour, startPeriod] = jobData.startTime.split(' ');
+    const startHourDisplay = document.querySelector('#editStartHourDropdown .np2-edit-dropdown-display');
+    const startPeriodDisplay = document.querySelector('#editStartPeriodDropdown .np2-edit-dropdown-display');
+    if (startHourDisplay && startHour) {
+      startHourDisplay.setAttribute('data-value', startHour);
+      startHourDisplay.textContent = startHour;
+    }
+    if (startPeriodDisplay && startPeriod) {
+      startPeriodDisplay.setAttribute('data-value', startPeriod);
+      startPeriodDisplay.textContent = startPeriod;
+    }
+  }
+  if (jobData.endTime) {
+    const [endHour, endPeriod] = jobData.endTime.split(' ');
+    const endHourDisplay = document.querySelector('#editEndHourDropdown .np2-edit-dropdown-display');
+    const endPeriodDisplay = document.querySelector('#editEndPeriodDropdown .np2-edit-dropdown-display');
+    if (endHourDisplay && endHour) {
+      endHourDisplay.setAttribute('data-value', endHour);
+      endHourDisplay.textContent = endHour;
+    }
+    if (endPeriodDisplay && endPeriod) {
+      endPeriodDisplay.setAttribute('data-value', endPeriod);
+      endPeriodDisplay.textContent = endPeriod;
+    }
+  }
+  
+  // Populate extras (if any)
+  if (jobData.extras && Array.isArray(jobData.extras) && jobData.extras.length > 0) {
+    if (jobData.extras[0]) {
+      const extras1Group = document.getElementById('editExtras1Group');
+      const extras1Input = document.getElementById('editExtras1Input');
+      const extras1Label = document.getElementById('editExtras1Label');
+      if (extras1Group && extras1Input) {
+        extras1Group.style.display = 'flex';
+        extras1Input.value = jobData.extras[0];
+        if (extras1Label) extras1Label.textContent = 'Location Details';
+      }
+    }
+    if (jobData.extras[1]) {
+      const extras2Group = document.getElementById('editExtras2Group');
+      const extras2Input = document.getElementById('editExtras2Input');
+      const extras2Label = document.getElementById('editExtras2Label');
+      if (extras2Group && extras2Input) {
+        extras2Group.style.display = 'flex';
+        extras2Input.value = jobData.extras[1];
+        if (extras2Label) extras2Label.textContent = 'Additional Info';
+      }
+    }
+  }
+  
+  // Populate description
+  document.getElementById('editDescriptionInput').value = jobData.description || '';
+  
+  // Populate photo
+  const photoImage = document.getElementById('editPhotoImage');
+  if (jobData.thumbnail) {
+    photoImage.src = jobData.thumbnail;
+    photoImage.style.display = 'block';
+    // Save original thumbnail to state
+    np2State.photoDataUrl = jobData.thumbnail;
+  } else {
+    photoImage.style.display = 'none';
+    np2State.photoDataUrl = null;
+  }
+  
+  // Populate payment (custom dropdown)
+  const paymentTypeDisplay = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display');
+  const paymentType = jobData.paymentType || 'Per Job';
+  if (paymentTypeDisplay) {
+    paymentTypeDisplay.setAttribute('data-value', paymentType);
+    paymentTypeDisplay.textContent = paymentType;
+  }
+  document.getElementById('editPaymentAmountInput').value = jobData.paymentAmount || jobData.priceOffer || '';
+  
+  // Wire up buttons
+  initializeEditFormButtons(jobData, category);
+  
+  // Initialize custom dropdowns
+  initializeEditDropdowns();
+}
+
+// ========== EDIT MODE: MEMORY LEAK PREVENTION ==========
+// Store cleanup functions
+let editDropdownCleanup = null;
+let editButtonCleanup = null;
+
+// Master cleanup function for edit mode
+function cleanupEditMode() {
+  console.log('🧹 Cleaning up edit mode resources');
+  if (editDropdownCleanup) {
+    editDropdownCleanup();
+    editDropdownCleanup = null;
+  }
+  if (editButtonCleanup) {
+    editButtonCleanup();
+    editButtonCleanup = null;
+  }
+}
+
+function initializeEditDropdowns() {
+  console.log('🎨 Initializing edit form custom dropdowns');
+  
+  // Clean up previous listeners if any
+  if (editDropdownCleanup) {
+    editDropdownCleanup();
+  }
+  
+  const overlay = document.getElementById('editDropdownOverlay');
+  const menu = document.getElementById('editDropdownMenu');
+  let activeDropdown = null;
+  
+  // Array to store all event listeners for cleanup
+  const listeners = [];
+  
+  // Dropdown configurations
+  const dropdownConfigs = {
+    editStartHourDropdown: {
+      options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+      placeholder: 'Start'
+    },
+    editStartPeriodDropdown: {
+      options: ['AM', 'PM']
+    },
+    editEndHourDropdown: {
+      options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'],
+      placeholder: 'End'
+    },
+    editEndPeriodDropdown: {
+      options: ['AM', 'PM']
+    },
+    editPaymentTypeDropdown: {
+      options: ['Per Job', 'Per Hour']
+    }
+  };
+  
+  // Initialize each dropdown
+  Object.keys(dropdownConfigs).forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    const display = dropdown.querySelector('.np2-edit-dropdown-display');
+    const config = dropdownConfigs[dropdownId];
+    
+    const clickHandler = (e) => {
+      e.stopPropagation();
+      openDropdown(dropdown, config);
+    };
+    
+    display.addEventListener('click', clickHandler);
+    listeners.push({ element: display, event: 'click', handler: clickHandler });
+  });
+  
+  function openDropdown(dropdown, config) {
+    activeDropdown = dropdown;
+    const display = dropdown.querySelector('.np2-edit-dropdown-display');
+    const currentValue = display.getAttribute('data-value');
+    
+    // Clear menu
+    menu.innerHTML = '';
+    
+    // Add options
+    config.options.forEach(option => {
+      const optionEl = document.createElement('div');
+      optionEl.className = 'np2-edit-dropdown-option';
+      if (option === currentValue) {
+        optionEl.classList.add('selected');
+      }
+      optionEl.textContent = option;
+      optionEl.addEventListener('click', () => {
+        selectOption(dropdown, option, config);
+      });
+      menu.appendChild(optionEl);
+    });
+    
+    // Show overlay
+    dropdown.classList.add('active');
+    overlay.classList.add('show');
+  }
+  
+  function selectOption(dropdown, value, config) {
+    const display = dropdown.querySelector('.np2-edit-dropdown-display');
+    display.setAttribute('data-value', value);
+    display.textContent = value;
+    closeDropdown();
+  }
+  
+  function closeDropdown() {
+    if (activeDropdown) {
+      activeDropdown.classList.remove('active');
+      activeDropdown = null;
+    }
+    overlay.classList.remove('show');
+  }
+  
+  // Close on overlay click
+  const overlayClickHandler = (e) => {
+    if (e.target === overlay) {
+      closeDropdown();
+    }
+  };
+  overlay.addEventListener('click', overlayClickHandler);
+  listeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
+  
+  // Close on escape key
+  const escapeHandler = (e) => {
+    if (e.key === 'Escape' && activeDropdown) {
+      closeDropdown();
+    }
+  };
+  document.addEventListener('keydown', escapeHandler);
+  listeners.push({ element: document, event: 'keydown', handler: escapeHandler });
+  
+  // Store cleanup function
+  editDropdownCleanup = () => {
+    console.log('🧹 Cleaning up edit dropdown listeners');
+    listeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    listeners.length = 0; // Clear array
+  };
+}
+
+function initializeEditFormButtons(jobData, category) {
+  console.log('🔘 Initializing edit form buttons for jobId:', jobData.jobId);
+  
+  // Clean up previous handlers
+  if (editButtonCleanup) {
+    editButtonCleanup();
+  }
+  
+  // Cancel button
+  const cancelBtn = document.getElementById('editCancelBtn');
+  console.log('Cancel button found:', !!cancelBtn);
+  const cancelHandler = () => {
+    if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+      cleanupEditMode();
+      window.location.href = 'jobs.html?tab=listings';
+    }
+  };
+  if (cancelBtn) {
+    // Remove old listener if exists (using onclick pattern is safe from duplicates)
+    cancelBtn.onclick = cancelHandler;
+  }
+  
+  // Update button
+  const updateBtn = document.getElementById('editUpdateBtn');
+  console.log('Update button found:', !!updateBtn);
+  const updateHandler = () => {
+    console.log('🔵 Update button clicked!');
+    handleEditFormSubmit(jobData.jobId, category);
+  };
+  if (updateBtn) {
+    updateBtn.onclick = updateHandler;
+  } else {
+    console.error('❌ Update button NOT found in DOM');
+  }
+  
+  // Store cleanup (onclick doesn't need removal but tracking for consistency)
+  editButtonCleanup = () => {
+    console.log('🧹 Cleaning up edit button handlers');
+    if (cancelBtn) cancelBtn.onclick = null;
+    if (updateBtn) updateBtn.onclick = null;
+  };
+  
+  // Change photo button
+  const changePhotoBtn = document.getElementById('editChangePhotoBtn');
+  const photoInput = document.getElementById('editPhotoInput');
+  const photoChangeHandler = () => photoInput.click();
+  const photoInputHandler = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        document.getElementById('editPhotoImage').src = event.target.result;
+        document.getElementById('editPhotoImage').style.display = 'block';
+        np2State.photoFile = file;
+        np2State.photoDataUrl = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  if (changePhotoBtn && photoInput) {
+    changePhotoBtn.onclick = photoChangeHandler;
+    photoInput.onchange = photoInputHandler;
+    
+    // Add to cleanup
+    const oldCleanup = editButtonCleanup;
+    editButtonCleanup = () => {
+      console.log('🧹 Cleaning up edit button and photo handlers');
+      if (cancelBtn) cancelBtn.onclick = null;
+      if (updateBtn) updateBtn.onclick = null;
+      if (changePhotoBtn) changePhotoBtn.onclick = null;
+      if (photoInput) photoInput.onchange = null;
+    };
+  }
+}
+
+async function handleEditFormSubmit(jobId, category) {
+  console.log('📤 handleEditFormSubmit called with:', { jobId, category });
+  console.log('📤 Submitting edit form for job:', jobId);
+  
+  // Collect form data (from custom dropdowns)
+  const title = document.getElementById('editTitleInput').value.trim();
+  const date = document.getElementById('editDateInput').value;
+  const startHour = document.querySelector('#editStartHourDropdown .np2-edit-dropdown-display').getAttribute('data-value');
+  const startPeriod = document.querySelector('#editStartPeriodDropdown .np2-edit-dropdown-display').getAttribute('data-value');
+  const endHour = document.querySelector('#editEndHourDropdown .np2-edit-dropdown-display').getAttribute('data-value');
+  const endPeriod = document.querySelector('#editEndPeriodDropdown .np2-edit-dropdown-display').getAttribute('data-value');
+  const description = document.getElementById('editDescriptionInput').value.trim();
+  const paymentType = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display').getAttribute('data-value');
+  const paymentAmount = document.getElementById('editPaymentAmountInput').value;
+  
+  console.log('📋 Form data collected:', {
+    title, date, startHour, startPeriod, endHour, endPeriod,
+    description: description.substring(0, 50) + '...',
+    paymentType, paymentAmount
+  });
+  
+  // Validate required fields
+  if (!title || !date || !startHour || !endHour || !description || !paymentAmount) {
+    console.warn('⚠️ Validation failed - missing required fields');
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+  
+  console.log('✅ Validation passed');
+  
+  // Get location from state (set during showEditForm)
+  const region = np2State.selectedRegion || 'CEBU';
+  const city = np2State.selectedCity || 'CEBU CITY';
+  
+  // Build updated job object
+  const updatedJob = {
+    title,
+    region,
+    city,
+    category, // Include category
+    jobDate: date,
+    startTime: `${startHour} ${startPeriod}`,
+    endTime: `${endHour} ${endPeriod}`,
+    description,
+    paymentType,
+    paymentAmount: parseInt(paymentAmount),
+    priceOffer: parseInt(paymentAmount),
+    lastModified: new Date().toISOString()
+  };
+  
+  // Include photo (original or new)
+  if (np2State.photoDataUrl) {
+    updatedJob.thumbnail = np2State.photoDataUrl;
+  }
+  
+  // Include extras if they exist
+  const extras = [];
+  const extras1 = document.getElementById('editExtras1Input')?.value;
+  const extras2 = document.getElementById('editExtras2Input')?.value;
+  if (extras1) extras.push(extras1);
+  if (extras2) extras.push(extras2);
+  if (extras.length > 0) {
+    updatedJob.extras = extras;
+  }
+  
+  console.log('📦 Updated job data:', updatedJob);
+  
+  // Show preview overlay for confirmation
+  showEditPreview(updatedJob, category, jobId);
+}
+
+function showEditPreview(updatedJob, category, jobId) {
+  console.log('🎬 showEditPreview called with:', { updatedJob, category, jobId });
+  
+  // Populate preview overlay with updated data
+  const previewCategory = document.getElementById('previewCategory');
+  const previewLocation = document.getElementById('previewLocation');
+  const previewTitle = document.getElementById('previewTitle');
+  
+  console.log('Preview elements found:', {
+    previewCategory: !!previewCategory,
+    previewLocation: !!previewLocation,
+    previewTitle: !!previewTitle
+  });
+  
+  if (previewCategory) previewCategory.textContent = category.toUpperCase();
+  if (previewLocation) previewLocation.textContent = `${updatedJob.region || 'CEBU'} - ${updatedJob.city || 'CEBU CITY'}`;
+  if (previewTitle) previewTitle.textContent = updatedJob.title;
+  
+  // Format date for preview (parse in local timezone)
+  if (updatedJob.jobDate) {
+    let dateObj;
+    if (updatedJob.jobDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Parse YYYY-MM-DD in local timezone
+      const [year, month, day] = updatedJob.jobDate.split('-').map(Number);
+      dateObj = new Date(year, month - 1, day);
+    } else {
+      dateObj = new Date(updatedJob.jobDate);
+    }
+    const options = { month: 'short', day: 'numeric', year: 'numeric' };
+    document.getElementById('previewDate').textContent = dateObj.toLocaleDateString('en-US', options);
+  }
+  
+  document.getElementById('previewTime').textContent = `${updatedJob.startTime} - ${updatedJob.endTime}`;
+  document.getElementById('previewDescription').textContent = updatedJob.description;
+  document.getElementById('previewPaymentAmount').textContent = `₱${updatedJob.paymentAmount}`;
+  document.getElementById('previewPaymentType').textContent = updatedJob.paymentType;
+  
+  // Photo
+  if (updatedJob.thumbnail) {
+    const previewPhoto = document.getElementById('previewPhoto');
+    const previewPhotoContainer = document.getElementById('previewPhotoContainer');
+    if (previewPhoto) previewPhoto.src = updatedJob.thumbnail;
+    if (previewPhotoContainer) previewPhotoContainer.style.display = 'block';
+  }
+  
+  // Show preview overlay
+  const previewOverlay = document.getElementById('previewOverlay');
+  console.log('📺 Preview overlay element:', previewOverlay);
+  console.log('📺 Attempting to show preview overlay...');
+  
+  if (previewOverlay) {
+    previewOverlay.classList.add('active');
+    console.log('✅ Preview overlay active class added');
+    console.log('📺 Preview overlay classes:', previewOverlay.className);
+  } else {
+    console.error('❌ Preview overlay element NOT FOUND');
+  }
+  
+  // Wire up post button to actually update
+  const postJobBtn = document.getElementById('previewPostBtn'); // Correct ID
+  console.log('🔘 Post Job button found:', !!postJobBtn);
+  if (postJobBtn) {
+    postJobBtn.onclick = async () => {
+      console.log('🔵 Preview Post button clicked - updating job...');
+      // Hide preview, show loading
+      document.getElementById('previewOverlay').classList.remove('active');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
+      if (loadingText) loadingText.textContent = 'UPDATING GIG...';
+      if (loadingOverlay) loadingOverlay.classList.add('show');
+      
+      // Update job
+      const useFirebase = DataService.useFirebase();
+      console.log('🔥 Using Firebase for update:', useFirebase);
+      console.log('📦 Job data being sent to updateJob:', updatedJob);
+      
+      if (useFirebase && typeof updateJob === 'function') {
+        const result = await updateJob(jobId, updatedJob);
+        console.log('📥 Update result:', result);
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
+        
+        if (result.success) {
+          console.log('✅ Job updated successfully in Firebase');
+          showSuccessOverlay();
+        } else {
+          console.error('❌ Job update failed:', result.message);
+          showToast('Failed to update job: ' + result.message, 'error');
+        }
+      } else {
+        // localStorage fallback
+        const jobs = JSON.parse(localStorage.getItem('activeJobs') || '[]');
+        const jobIndex = jobs.findIndex(j => j.jobId === jobId);
+        if (jobIndex !== -1) {
+          jobs[jobIndex] = { ...jobs[jobIndex], ...updatedJob };
+          localStorage.setItem('activeJobs', JSON.stringify(jobs));
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          showSuccessOverlay();
+        } else {
+          if (loadingOverlay) loadingOverlay.classList.remove('show');
+          showToast('Job not found in localStorage', 'error');
+        }
+      }
+    };
+  }
+}
+
 function populateFormWithJobData(jobData, category, mode) {
   console.log(`📝 Populating form with job data (mode: ${mode}):`, jobData);
+  
+  // Set mode and IDs
+  np2State.mode = mode;
+  if (mode === 'edit') {
+    np2State.editJobId = jobData.jobId;
+    // Show edit form, hide multi-step
+    showEditForm(jobData, category);
+    return; // Exit early, edit form handles everything
+  } else if (mode === 'relist') {
+    np2State.relistJobId = jobData.jobId;
+  }
   
   // Set category
   np2State.selectedCategory = category;
@@ -2138,7 +2875,6 @@ function populateFormWithJobData(jobData, category, mode) {
     const descInput = document.getElementById('jobDescriptionTextarea');
     if (descInput) {
       descInput.value = jobData.description;
-      updateCharCounter('jobDescriptionTextarea', 'descriptionCharCount', 500);
     }
   }
   
@@ -2364,5 +3100,10 @@ document.addEventListener('DOMContentLoaded', function() {
   updateCityOptions();
   
   console.log('✅ ========== NEW POST 2 FULLY LOADED ==========');
+  
+  // Cleanup on page unload to prevent memory leaks
+  window.addEventListener('beforeunload', () => {
+    cleanupEditMode();
+  });
 });
 

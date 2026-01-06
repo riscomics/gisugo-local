@@ -7,7 +7,7 @@
   <!-- UNIFORM HEADER SYSTEM (shared) -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=4.3">
   <!-- NEW POST 2 STYLES (experimental redesign) -->
-  <link rel="stylesheet" href="public/css/new-post2.css?v=44.5">
+  <link rel="stylesheet" href="public/css/new-post2.css?v=46.0">
 </head>
 <body class="page-post2">
 
@@ -336,6 +336,122 @@
               <input type="number" class="np2-input np2-payment-input-large" id="paymentAmountInput" placeholder="0" min="0" max="9999" step="1" autocomplete="off" inputmode="numeric">
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT MODE: DROPDOWN OVERLAY -->
+    <div class="np2-edit-dropdown-overlay" id="editDropdownOverlay">
+      <div class="np2-edit-dropdown-menu" id="editDropdownMenu">
+        <!-- Options dynamically inserted here -->
+      </div>
+    </div>
+
+    <!-- EDIT MODE: SINGLE PAGE FORM -->
+    <div class="np2-edit-container" id="editModeContainer" style="display: none;">
+      <div class="np2-edit-card">
+        <div class="np2-edit-header">
+          <div class="np2-edit-title">Edit Your Gig Post</div>
+          <div class="np2-edit-subtitle">Update the details below</div>
+        </div>
+
+        <div class="np2-edit-body">
+          <!-- Category (Read-only display) -->
+          <div class="np2-edit-group">
+            <label class="np2-edit-label">Category</label>
+            <div class="np2-edit-readonly" id="editCategoryDisplay">Loading...</div>
+          </div>
+
+          <!-- Job Title -->
+          <div class="np2-edit-group">
+            <label class="np2-edit-label">Job Title<span class="np2-required">*</span></label>
+            <input type="text" class="np2-edit-input" id="editTitleInput" placeholder="e.g., Deliver package to downtown">
+          </div>
+
+          <!-- Location (Read-only display) -->
+          <div class="np2-edit-group">
+            <label class="np2-edit-label">Location</label>
+            <div class="np2-edit-readonly" id="editLocationDisplay">Loading...</div>
+          </div>
+
+          <!-- Date and Time Row -->
+          <div class="np2-edit-row">
+            <div class="np2-edit-group np2-edit-half">
+              <label class="np2-edit-label">Date<span class="np2-required">*</span></label>
+              <input type="date" class="np2-edit-input" id="editDateInput">
+            </div>
+            <div class="np2-edit-group np2-edit-half">
+              <label class="np2-edit-label">Time<span class="np2-required">*</span></label>
+              <div class="np2-edit-time-inputs">
+                <div class="np2-edit-dropdown" id="editStartHourDropdown">
+                  <div class="np2-edit-dropdown-display" data-value="">Start</div>
+                </div>
+                <div class="np2-edit-dropdown" id="editStartPeriodDropdown">
+                  <div class="np2-edit-dropdown-display" data-value="AM">AM</div>
+                </div>
+                <span class="np2-edit-time-separator">-</span>
+                <div class="np2-edit-dropdown" id="editEndHourDropdown">
+                  <div class="np2-edit-dropdown-display" data-value="">End</div>
+                </div>
+                <div class="np2-edit-dropdown" id="editEndPeriodDropdown">
+                  <div class="np2-edit-dropdown-display" data-value="PM">PM</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Extras (if applicable) -->
+          <div class="np2-edit-group" id="editExtras1Group" style="display: none;">
+            <label class="np2-edit-label" id="editExtras1Label">Extra Field 1</label>
+            <input type="text" class="np2-edit-input" id="editExtras1Input" readonly>
+          </div>
+          <div class="np2-edit-group" id="editExtras2Group" style="display: none;">
+            <label class="np2-edit-label" id="editExtras2Label">Extra Field 2</label>
+            <input type="text" class="np2-edit-input" id="editExtras2Input" readonly>
+          </div>
+
+          <!-- Description -->
+          <div class="np2-edit-group">
+            <label class="np2-edit-label">Job Description<span class="np2-required">*</span></label>
+            <textarea class="np2-edit-textarea" id="editDescriptionInput" rows="6" placeholder="Describe the job in detail..." maxlength="500"></textarea>
+          </div>
+
+          <!-- Photo -->
+          <div class="np2-edit-group">
+            <label class="np2-edit-label">Job Photo</label>
+            <div class="np2-edit-photo-preview" id="editPhotoPreview">
+              <img id="editPhotoImage" src="" alt="Current job photo">
+              <button class="np2-edit-change-photo-btn" id="editChangePhotoBtn">Change Photo</button>
+              <input type="file" id="editPhotoInput" accept="image/*" style="display: none;">
+            </div>
+          </div>
+
+          <!-- Payment -->
+          <div class="np2-edit-row">
+            <div class="np2-edit-group np2-edit-half">
+              <label class="np2-edit-label">Payment Type<span class="np2-required">*</span></label>
+              <div class="np2-edit-dropdown" id="editPaymentTypeDropdown">
+                <div class="np2-edit-dropdown-display" data-value="Per Job">Per Job</div>
+              </div>
+            </div>
+            <div class="np2-edit-group np2-edit-half">
+              <label class="np2-edit-label">Amount<span class="np2-required">*</span></label>
+              <div class="np2-edit-payment-input">
+                <span class="np2-edit-currency">₱</span>
+                <input type="number" class="np2-edit-input np2-edit-amount" id="editPaymentAmountInput" placeholder="0" min="0" max="9999">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Form Actions -->
+        <div class="np2-edit-actions">
+          <button class="np2-btn np2-btn-secondary" id="editCancelBtn">
+            <span>Cancel</span>
+          </button>
+          <button class="np2-btn np2-btn-success" id="editUpdateBtn">
+            <span>Update Gig Post</span>
+          </button>
         </div>
       </div>
     </div>
@@ -888,7 +1004,7 @@
   <!-- Loading Modal -->
   <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner"></div>
-    <div class="loading-text">Posting gig...</div>
+    <div class="loading-text" id="loadingText">Posting gig...</div>
   </div>
 
   <!-- Firebase SDK -->
@@ -900,7 +1016,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js"></script>
   <script src="public/js/firebase-auth.js"></script>
-  <script src="public/js/firebase-db.js"></script>
+  <script src="public/js/firebase-db.js?v=1.1"></script>
   <script src="public/js/firebase-storage.js"></script>
   
   <!-- SCRIPTS -->
@@ -909,7 +1025,7 @@
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
   <script src="public/js/jobs.js?v=14"></script>
-  <script src="public/js/new-post2.js?v=27.0"></script>
+  <script src="public/js/new-post2.js?v=30.3"></script>
 
 </body>
 </html>

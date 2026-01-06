@@ -397,6 +397,95 @@ function getUserJobListingsOffline(userId, statuses) {
 }
 
 /**
+ * Update an existing job (for edit mode)
+ * @param {string} jobId - Job document ID
+ * @param {Object} jobData - Updated job data
+ * @returns {Promise<Object>} - Result object
+ */
+async function updateJob(jobId, jobData) {
+  const db = getFirestore();
+  
+  if (!db) {
+    return updateJobOffline(jobId, jobData);
+  }
+  
+  try {
+    // First, get the existing job to preserve fields that shouldn't be changed
+    const existingJob = await db.collection('jobs').doc(jobId).get();
+    const existingData = existingJob.data();
+    
+    // Smart category handling: never save 'unknown' or empty, preserve existing
+    let finalCategory = jobData.category;
+    if (!finalCategory || finalCategory === 'unknown' || finalCategory === '') {
+      finalCategory = existingData?.category;
+      
+      // If existing is also empty, try to infer from jobPageUrl
+      if (!finalCategory && existingData?.jobPageUrl) {
+        const match = existingData.jobPageUrl.match(/category=([^&]+)/);
+        if (match) {
+          finalCategory = match[1];
+          console.log(`📍 Inferred category from jobPageUrl: ${finalCategory}`);
+        }
+      }
+      
+      if (!finalCategory) {
+        finalCategory = '';
+      }
+      console.log(`⚠️ Invalid category provided, resolved to: ${finalCategory}`);
+    }
+    
+    const updateData = {
+      title: jobData.title || '',
+      description: jobData.description || '',
+      category: finalCategory,
+      thumbnail: jobData.thumbnail || jobData.photo || existingData?.thumbnail || '',
+      region: jobData.region || 'CEBU',
+      city: jobData.city || 'CEBU CITY',
+      scheduledDate: jobData.jobDate ? (() => {
+        const [year, month, day] = jobData.jobDate.split('-').map(Number);
+        return firebase.firestore.Timestamp.fromDate(new Date(year, month - 1, day));
+      })() : (jobData.scheduledDate || null),
+      startTime: jobData.startTime,
+      endTime: jobData.endTime,
+      priceOffer: jobData.priceOffer || jobData.paymentAmount,
+      paymentType: jobData.paymentType || 'Per Hour',
+      extras: jobData.extras || [],
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    await db.collection('jobs').doc(jobId).update(updateData);
+    console.log(`✅ Job ${jobId} updated`);
+    return { success: true, message: 'Job updated', jobId };
+  } catch (error) {
+    console.error('❌ Error updating job:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+function updateJobOffline(jobId, jobData) {
+  const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
+  
+  for (const category of Object.keys(jobs)) {
+    const jobIndex = jobs[category].findIndex(j => j.jobId === jobId || j.id === jobId);
+    if (jobIndex !== -1) {
+      const existingJob = jobs[category][jobIndex];
+      jobs[category][jobIndex] = {
+        ...existingJob,
+        ...jobData,
+        datePosted: existingJob.datePosted,
+        createdAt: existingJob.createdAt,
+        applicationCount: existingJob.applicationCount || 0,
+        applicationIds: existingJob.applicationIds || [],
+        updatedAt: new Date().toISOString()
+      };
+      localStorage.setItem('gisugoJobs', JSON.stringify(jobs));
+      return { success: true, message: 'Job updated (offline)', jobId };
+    }
+  }
+  return { success: false, message: 'Job not found' };
+}
+
+/**
  * Update job status
  * @param {string} jobId - Job document ID
  * @param {string} newStatus - New status value

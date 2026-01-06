@@ -849,6 +849,12 @@ body:has(.jobs-header) {
   backdrop-filter: blur(4px);
 }
 
+.status-expired {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  backdrop-filter: blur(4px);
+}
+
 .listing-content {
   padding: 16px 20px;
   display: flex;
