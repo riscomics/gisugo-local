@@ -135,7 +135,10 @@ const np2State = {
   relistJobId: null,
   categoryLabel: '',
   categoryIcon: '',
-  categoryColor: ''
+  categoryColor: '',
+  // Last posted job (for View Post button)
+  lastPostedJobId: null,
+  lastPostedJobNumber: null
 };
 
 // ========================== LOCATION DATA ==========================
@@ -1623,6 +1626,10 @@ async function postJob() {
       if (result.success) {
         console.log('✅ Job saved to Firebase with ID:', result.jobId);
         
+        // Store the posted job ID for View Post button
+        np2State.lastPostedJobId = result.jobId;
+        np2State.lastPostedJobNumber = jobNumber;
+        
         // Hide loading modal
         if (loadingOverlay) {
           loadingOverlay.classList.remove('show');
@@ -1696,6 +1703,10 @@ async function postJob() {
     
     // CRITICAL: Also save to jobPreviewCards for listing pages
     saveToJobPreviewCards(job);
+    
+    // Store the posted job info for View Post button
+    np2State.lastPostedJobId = job.jobId;
+    np2State.lastPostedJobNumber = jobNumber;
     
     // Hide loading modal
     if (loadingOverlay) {
@@ -1849,31 +1860,35 @@ function initializeSuccessOverlay() {
   if (viewJobBtn) {
     viewJobBtn.addEventListener('click', function() {
       // Navigate to the specific job detail page
-      // Job data is accessible from the last saved job
       try {
+        // PRIORITY 1: Use lastPostedJobId if available (Firebase mode)
+        if (np2State.lastPostedJobId && np2State.lastPostedJobNumber) {
+          console.log('📍 Navigating to Firebase job:', np2State.lastPostedJobId);
+          window.location.href = `dynamic-job.html?jobId=${np2State.lastPostedJobId}&category=${np2State.selectedCategory}`;
+          return;
+        }
+        
+        // PRIORITY 2: Fall back to localStorage (Mock mode)
         const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
         const categoryJobs = allJobs[np2State.selectedCategory] || [];
         
-        // Get the most recently posted job (last in array if new, or find by editJobId if editing)
+        // Get the most recently posted job
         let targetJob;
         if (np2State.mode === 'edit' && np2State.editJobId) {
           targetJob = categoryJobs.find(j => j.jobId === np2State.editJobId);
-      } else {
-          // Get the last job (most recent)
+        } else {
           targetJob = categoryJobs[categoryJobs.length - 1];
         }
         
         if (targetJob && targetJob.jobNumber) {
-          // Navigate to dynamic job page with category and jobNumber
+          console.log('📍 Navigating to localStorage job:', targetJob.jobNumber);
           window.location.href = `dynamic-job.html?category=${np2State.selectedCategory}&jobNumber=${targetJob.jobNumber}`;
         } else {
-          // Fallback to category page if job not found
-          console.warn('Job not found in localStorage, redirecting to category page');
+          console.warn('Job not found, redirecting to category page');
           window.location.href = `${np2State.selectedCategory}.html`;
         }
       } catch (error) {
         console.error('Error navigating to job post:', error);
-        // Fallback to category page
         window.location.href = np2State.selectedCategory ? `${np2State.selectedCategory}.html` : 'jobs.html';
       }
     });
