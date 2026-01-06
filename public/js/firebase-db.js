@@ -48,9 +48,11 @@ async function createJob(jobData) {
       region: jobData.region || 'CEBU',
       city: jobData.city || 'CEBU CITY',
       
-      // Scheduling (convert date string to Timestamp)
-      scheduledDate: jobData.jobDate ? firebase.firestore.Timestamp.fromDate(new Date(jobData.jobDate)) : 
-                     (jobData.scheduledDate || null),
+      // Scheduling (convert date string to Timestamp in local timezone)
+      scheduledDate: jobData.jobDate ? (() => {
+        const [year, month, day] = jobData.jobDate.split('-').map(Number);
+        return firebase.firestore.Timestamp.fromDate(new Date(year, month - 1, day));
+      })() : (jobData.scheduledDate || null),
       startTime: jobData.startTime,
       endTime: jobData.endTime,
       
@@ -172,7 +174,16 @@ function createJobOffline(jobData) {
 // Format date for preview cards
 function formatDateForPreview(dateStr) {
   if (!dateStr) return 'TBD';
-  const date = new Date(dateStr);
+  
+  // Parse in local timezone to avoid date rollback
+  let date;
+  if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    date = new Date(year, month - 1, day);
+  } else {
+    date = new Date(dateStr);
+  }
+  
   if (isNaN(date.getTime())) return 'TBD';
   
   // Return full date with year (YYYY-MM-DD format) for proper sorting and expiration checking

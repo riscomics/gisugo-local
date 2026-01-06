@@ -1454,7 +1454,9 @@ function showPreview() {
   }
   
   // Date
-  const date = new Date(np2State.jobDate);
+  // Parse date in local timezone (avoid UTC conversion)
+  const [year, month, day] = np2State.jobDate.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   document.getElementById('previewDate').textContent = dateStr;
   
