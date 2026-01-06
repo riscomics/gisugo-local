@@ -48,8 +48,9 @@ async function createJob(jobData) {
       region: jobData.region || 'CEBU',
       city: jobData.city || 'CEBU CITY',
       
-      // Scheduling
-      scheduledDate: jobData.jobDate || jobData.scheduledDate,
+      // Scheduling (convert date string to Timestamp)
+      scheduledDate: jobData.jobDate ? firebase.firestore.Timestamp.fromDate(new Date(jobData.jobDate)) : 
+                     (jobData.scheduledDate || null),
       startTime: jobData.startTime,
       endTime: jobData.endTime,
       
@@ -172,8 +173,13 @@ function createJobOffline(jobData) {
 function formatDateForPreview(dateStr) {
   if (!dateStr) return 'TBD';
   const date = new Date(dateStr);
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[date.getMonth()]} ${date.getDate()}`;
+  if (isNaN(date.getTime())) return 'TBD';
+  
+  // Return full date with year (YYYY-MM-DD format) for proper sorting and expiration checking
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**

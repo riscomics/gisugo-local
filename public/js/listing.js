@@ -494,10 +494,24 @@ function parseJobDateTime(dateStr, timeStr) {
   if (!dateStr || !timeStr) return null;
   
   try {
-    // Parse date like "Jun 11" or "Jun 14" 
-    const currentYear = new Date().getFullYear();
-    const fullDateStr = `${dateStr} ${currentYear}`;
-    const dateObj = new Date(fullDateStr);
+    let dateObj;
+    
+    // Handle different date formats:
+    // 1. ISO format: "2026-01-10" (from localStorage)
+    // 2. Display format with year: "Jan 10, 2026" (from normalized Firebase)
+    // 3. Old format: "Jun 11" (backward compatibility)
+    
+    if (dateStr.includes('-') && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      // ISO format: "2026-01-10"
+      dateObj = new Date(dateStr);
+    } else if (dateStr.includes(',')) {
+      // Display format: "Jan 10, 2026"
+      dateObj = new Date(dateStr);
+    } else {
+      // Old format: "Jun 11" - add current year
+      const currentYear = new Date().getFullYear();
+      dateObj = new Date(`${dateStr} ${currentYear}`);
+    }
     
     // Check if date parsing failed
     if (isNaN(dateObj.getTime())) {
@@ -532,10 +546,20 @@ function parseJobEndTime(dateStr, timeStr) {
   if (!dateStr || !timeStr) return null;
   
   try {
-    // Parse date like "Jun 11" or "Jun 14" 
-    const currentYear = new Date().getFullYear();
-    const fullDateStr = `${dateStr} ${currentYear}`;
-    const dateObj = new Date(fullDateStr);
+    let dateObj;
+    
+    // Handle different date formats (same as parseJobDateTime)
+    if (dateStr.includes('-') && /^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      // ISO format: "2026-01-10"
+      dateObj = new Date(dateStr);
+    } else if (dateStr.includes(',')) {
+      // Display format: "Jan 10, 2026"
+      dateObj = new Date(dateStr);
+    } else {
+      // Old format: "Jun 11" - add current year
+      const currentYear = new Date().getFullYear();
+      dateObj = new Date(`${dateStr} ${currentYear}`);
+    }
     
     // Check if date parsing failed
     if (isNaN(dateObj.getTime())) {
@@ -595,11 +619,15 @@ async function filterAndSortJobs() {
   
   // Helper function to normalize Firebase data to UI format
   function _normalizeFirebaseJob(firebaseJob) {
-    // Format date
+    // Parse full date with year
     const date = firebaseJob.scheduledDate ? 
       (firebaseJob.scheduledDate.toDate ? firebaseJob.scheduledDate.toDate() : new Date(firebaseJob.scheduledDate)) 
       : null;
-    const formattedDate = date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBD';
+    
+    // Format for display (with year for clarity)
+    const formattedDate = date ? 
+      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 
+      'TBD';
     
     // Format time
     const timeDisplay = `${firebaseJob.startTime || 'TBD'} - ${firebaseJob.endTime || 'TBD'}`;
@@ -620,7 +648,10 @@ async function filterAndSortJobs() {
       city: firebaseJob.city,
       status: firebaseJob.status,
       templateUrl: firebaseJob.jobPageUrl || `dynamic-job.html?category=${firebaseJob.category}&jobNumber=${firebaseJob.jobId}`,
-      createdAt: firebaseJob.datePosted?.toDate?.()?.toISOString() || new Date().toISOString()
+      createdAt: firebaseJob.datePosted?.toDate?.()?.toISOString() || new Date().toISOString(),
+      // Store full date object for sorting and expiration checking
+      fullDate: date,
+      scheduledTimestamp: date ? date.getTime() : 0
     };
   }
 
@@ -642,6 +673,22 @@ async function filterAndSortJobs() {
       categoryCards = rawJobs.map(job => _normalizeFirebaseJob(job));
       console.log(`✅ Firebase: Found ${categoryCards.length} jobs (normalized for UI)`);
       
+      // Filter out expired gigs (past end time)
+      const now = new Date().getTime();
+      const beforeFilter = categoryCards.length;
+      categoryCards = categoryCards.filter(job => {
+        if (!job.fullDate) return true; // Keep jobs without dates (TBD)
+        
+        // Parse end time to get full expiration timestamp
+        const endTime = parseJobEndTime(job.date, job.time);
+        
+        // If no end time, use start of day after job date as expiration
+        const expirationTime = endTime || (job.scheduledTimestamp + (24 * 60 * 60 * 1000));
+        
+        return expirationTime >= now; // Only show future or current gigs
+      });
+      console.log(`🗑️  Filtered out ${beforeFilter - categoryCards.length} expired gigs`);
+      
     } catch (error) {
       console.error('❌ Firebase error, falling back to localStorage:', error);
       // Fall through to localStorage below
@@ -656,8 +703,29 @@ async function filterAndSortJobs() {
     } else {
       console.log('📦 Loading jobs from localStorage (Firebase returned no data)');
     }
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
+    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
     categoryCards = previewCards[currentCategory] || [];
+    
+    // Filter out expired gigs from localStorage too
+    const now = new Date().getTime();
+    const beforeFilter = categoryCards.length;
+    categoryCards = categoryCards.filter(job => {
+      if (!job.date || job.date === 'TBD') return true; // Keep jobs without dates
+      
+      // Parse end time to get full expiration timestamp
+      const endTime = parseJobEndTime(job.date, job.time);
+      
+      // If we have end time, use it; otherwise use start time
+      const expirationTime = endTime || parseJobDateTime(job.date, job.time);
+      
+      if (!expirationTime) return true; // Keep if we can't parse
+      
+      return expirationTime >= now; // Only show future or current gigs
+    });
+    
+    if (beforeFilter > categoryCards.length) {
+      console.log(`🗑️  Filtered out ${beforeFilter - categoryCards.length} expired gigs from localStorage`);
+    }
   }
   
   // ============================================================================
