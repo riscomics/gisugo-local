@@ -1782,6 +1782,7 @@ let processedJobPhoto = null;
 
 function processImageWithSmartStorage(file, callback) {
   const img = new Image();
+  const reader = new FileReader();
   
   img.onload = function() {
     // Calculate aspect ratios
@@ -1814,6 +1815,9 @@ function processImageWithSmartStorage(file, callback) {
           
           console.log('📸 Smart storage: DUAL versions created');
           callback(croppedDataURL); // Preview shows cropped version
+          
+          // ===== MEMORY CLEANUP =====
+          cleanupImageProcessing(img, reader);
         });
       } else {
         // Store only cropped version
@@ -1827,16 +1831,54 @@ function processImageWithSmartStorage(file, callback) {
         
         console.log('📸 Smart storage: CROP only (close to 16:9)');
         callback(croppedDataURL); // Preview shows cropped version
+        
+        // ===== MEMORY CLEANUP =====
+        cleanupImageProcessing(img, reader);
       }
     });
   };
   
+  img.onerror = function() {
+    console.error('Failed to load image for processing');
+    callback(null);
+    cleanupImageProcessing(img, reader);
+  };
+  
   // Load the image
-  const reader = new FileReader();
   reader.onload = function(e) {
     img.src = e.target.result;
   };
+  
+  reader.onerror = function() {
+    console.error('Failed to read image file');
+    callback(null);
+    cleanupImageProcessing(img, reader);
+  };
+  
   reader.readAsDataURL(file);
+}
+
+// Helper function to clean up memory after image processing
+function cleanupImageProcessing(img, reader) {
+  // Clear image source and handlers
+  if (img) {
+    img.src = '';
+    img.onload = null;
+    img.onerror = null;
+  }
+  
+  // Clear FileReader
+  if (reader) {
+    try {
+      reader.abort();
+    } catch (e) {
+      // Already completed, ignore
+    }
+    reader.onload = null;
+    reader.onerror = null;
+  }
+  
+  console.log('🧹 Memory cleaned up');
 }
 
 // Helper function to create cropped 16:9 version (500×281)
@@ -1870,6 +1912,11 @@ function createCroppedVersion(img, callback) {
   
   // Convert to data URL with 75% quality
   const croppedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+  
+  // Clean up canvas
+  canvas.width = 0;
+  canvas.height = 0;
+  
   callback(croppedDataURL);
 }
 
@@ -1898,6 +1945,11 @@ function createCompressedOriginal(img, callback) {
   
   // Convert to data URL with 75% quality
   const originalDataURL = canvas.toDataURL('image/jpeg', 0.75);
+  
+  // Clean up canvas
+  canvas.width = 0;
+  canvas.height = 0;
+  
   callback(originalDataURL);
 }
 

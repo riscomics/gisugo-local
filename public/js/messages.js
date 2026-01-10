@@ -7240,6 +7240,8 @@ function processChatImage(file, callback, errorCallback) {
     reader.onerror = function(error) {
         console.error('❌ FileReader error:', error);
         alert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
+        reader.onload = null;
+        reader.onerror = null;
         if (errorCallback) errorCallback('FileReader error');
     };
     
@@ -7253,6 +7255,8 @@ function processChatImage(file, callback, errorCallback) {
             img.src = '';
             img.onload = null;
             img.onerror = null;
+            reader.onload = null;
+            reader.onerror = null;
             if (errorCallback) errorCallback('Image loading timeout');
         }, 3000);
         
@@ -7264,6 +7268,8 @@ function processChatImage(file, callback, errorCallback) {
             img.src = '';
             img.onload = null;
             img.onerror = null;
+            reader.onload = null;
+            reader.onerror = null;
             if (errorCallback) errorCallback('Image load error');
         };
         
@@ -7286,10 +7292,12 @@ function processChatImage(file, callback, errorCallback) {
                 thumbnailComplete = true;
                 
                 if (fullSizeComplete) {
-                    // MEMORY CLEANUP: Free image object after both versions are done
+                    // MEMORY CLEANUP: Free image object and reader after both versions are done
                     img.src = '';
                     img.onload = null;
                     img.onerror = null;
+                    reader.onload = null;
+                    reader.onerror = null;
                     callback(result);
                 }
             }, function(error) {
@@ -7299,6 +7307,8 @@ function processChatImage(file, callback, errorCallback) {
                 img.src = '';
                 img.onload = null;
                 img.onerror = null;
+                reader.onload = null;
+                reader.onerror = null;
                 if (errorCallback) errorCallback('Thumbnail generation error');
             });
 
@@ -7309,10 +7319,12 @@ function processChatImage(file, callback, errorCallback) {
                 fullSizeComplete = true;
                 
                 if (thumbnailComplete) {
-                    // MEMORY CLEANUP: Free image object after both versions are done
+                    // MEMORY CLEANUP: Free image object and reader after both versions are done
                     img.src = '';
                     img.onload = null;
                     img.onerror = null;
+                    reader.onload = null;
+                    reader.onerror = null;
                     callback(result);
                 }
             }, function(error) {
@@ -7322,6 +7334,8 @@ function processChatImage(file, callback, errorCallback) {
                 img.src = '';
                 img.onload = null;
                 img.onerror = null;
+                reader.onload = null;
+                reader.onerror = null;
                 if (errorCallback) errorCallback('Full-size generation error');
             });
         };

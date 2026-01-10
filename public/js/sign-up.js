@@ -59,17 +59,17 @@ function checkPendingAuth() {
  * Pre-fill form fields from auth data
  */
 function prefillFromAuth(authData) {
-  // Pre-fill name if available
-  if (authData.displayName) {
-    const fullNameInput = document.getElementById('fullName');
-    if (fullNameInput && !fullNameInput.value) {
-      // Truncate to 15 chars if needed
-      fullNameInput.value = authData.displayName.substring(0, 15);
-      // Update character counter
-      const counter = document.getElementById('fullNameCounter');
-      if (counter) counter.textContent = fullNameInput.value.length;
+    // Pre-fill name if available
+    if (authData.displayName) {
+      const fullNameInput = document.getElementById('fullName');
+      if (fullNameInput && !fullNameInput.value) {
+        // Truncate to 50 chars if needed
+        fullNameInput.value = authData.displayName.substring(0, 50);
+        // Update character counter
+        const counter = document.getElementById('fullNameCounter');
+        if (counter) counter.textContent = fullNameInput.value.length;
+      }
     }
-  }
   
   // Pre-fill email if available (for display, may be read-only)
   if (authData.email) {
@@ -97,9 +97,17 @@ function prefillFromAuth(authData) {
   // Pre-fill profile photo if available
   if (authData.photoURL) {
     const previewImg = document.getElementById('photoPreviewImg');
+    const photoEmoji = document.getElementById('photoEmoji');
+    
     if (previewImg) {
       previewImg.src = authData.photoURL;
+      previewImg.style.display = 'block'; // Show the image
       selectedPhotoDataUrl = authData.photoURL;
+    }
+    
+    // Hide the emoji when photo is loaded
+    if (photoEmoji) {
+      photoEmoji.style.display = 'none';
     }
   }
   
@@ -190,35 +198,112 @@ function initializePhotoUpload() {
   }
 }
 
-// Auto crop and resize image to 500px width, maintaining aspect ratio
+// Smart profile photo processing - similar to gig creation system
+// Creates optimized versions based on image size and quality needs
 function processImageTo500Width(file, callback) {
   const img = new Image();
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
+  const reader = new FileReader();
+  
   img.onload = function() {
+    const originalSize = file.size;
+    const dimensions = `${img.width}×${img.height}`;
+    
+    console.log(`📸 Profile photo analysis:`, {
+      dimensions: dimensions,
+      originalSize: `${(originalSize / 1024).toFixed(1)}KB`,
+      aspectRatio: (img.width / img.height).toFixed(2)
+    });
+    
+    // Determine optimal processing strategy
+    const needsHighQuality = img.width > 800 || img.height > 800;
     const targetWidth = 500;
     const scale = targetWidth / img.width;
     const targetHeight = Math.round(img.height * scale);
+    
+    // Create canvas for resizing
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
     canvas.width = targetWidth;
     canvas.height = targetHeight;
+    
+    // Draw the resized image with high-quality smoothing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+    
+    // Use adaptive quality based on original size
+    const quality = needsHighQuality ? 0.88 : 0.92;
+    
     canvas.toBlob(function(blob) {
-      const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+      const dataURL = canvas.toDataURL('image/jpeg', quality);
+      const finalSize = blob.size;
+      
+      console.log(`✅ Profile photo processed:`, {
+        newDimensions: `${targetWidth}×${targetHeight}`,
+        finalSize: `${(finalSize / 1024).toFixed(1)}KB`,
+        reduction: `${((1 - finalSize / originalSize) * 100).toFixed(1)}%`,
+        quality: `${(quality * 100)}%`
+      });
+      
       callback(blob, dataURL);
-    }, 'image/jpeg', 0.92);
+      
+      // ===== MEMORY CLEANUP =====
+      // Clear image source (releases the data URL from memory)
+      img.src = '';
+      img.onload = null;
+      img.onerror = null;
+      
+      // Clear canvas (releases pixel data from memory)
+      canvas.width = 0;
+      canvas.height = 0;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Clear FileReader result
+      reader.abort();
+      reader.onload = null;
+      reader.onerror = null;
+      
+      console.log('🧹 Memory cleaned up');
+    }, 'image/jpeg', quality);
   };
-  const reader = new FileReader();
+  
+  img.onerror = function() {
+    console.error('Failed to load image for processing');
+    callback(null, null);
+    
+    // Cleanup on error
+    img.src = '';
+    img.onload = null;
+    img.onerror = null;
+    reader.abort();
+    reader.onload = null;
+    reader.onerror = null;
+  };
+  
   reader.onload = function(e) {
     img.src = e.target.result;
   };
+  
+  reader.onerror = function() {
+    console.error('Failed to read image file');
+    callback(null, null);
+    
+    // Cleanup on error
+    img.src = '';
+    img.onload = null;
+    img.onerror = null;
+    reader.abort();
+    reader.onload = null;
+    reader.onerror = null;
+  };
+  
   reader.readAsDataURL(file);
 }
 
 function handlePhotoUpload(event) {
   const file = event.target.files[0];
   if (file) {
-    // Validate file size (max 5MB)
+    // Validate file size (max 5MB before processing)
     if (file.size > 5 * 1024 * 1024) {
       showError('profilePhoto', 'Photo size must be less than 5MB');
       return;
@@ -228,15 +313,34 @@ function handlePhotoUpload(event) {
       showError('profilePhoto', 'Please select a valid image file');
       return;
     }
-    // Crop and resize, then preview and store blob for backend
+    
+    console.log(`📤 Processing profile photo: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+    
+    // Process and compress image with smart sizing
     processImageTo500Width(file, function(blob, dataURL) {
+      if (!blob || !dataURL) {
+        showError('profilePhoto', 'Failed to process image. Please try another photo.');
+        return;
+      }
+      
       const previewImg = document.getElementById('photoPreviewImg');
+      const photoEmoji = document.getElementById('photoEmoji');
+      
       if (previewImg) {
         previewImg.src = dataURL;
+        previewImg.style.display = 'block'; // Show the image
       }
+      
+      // Hide the emoji once photo is uploaded
+      if (photoEmoji) {
+        photoEmoji.style.display = 'none';
+      }
+      
       // Store the processed blob and data URL for backend upload
       selectedPhoto = blob;
       selectedPhotoDataUrl = dataURL;
+      
+      console.log('✅ Photo uploaded and preview shown');
     });
   }
 }
@@ -275,9 +379,9 @@ function initializeCharacterCounter() {
       fullNameCounter.textContent = currentLength;
       
       // Color coding for character count
-      if (currentLength >= 13) {
+      if (currentLength >= 45) {
         fullNameCounter.style.color = '#fbbf24'; // Warning color (yellow/orange)
-      } else if (currentLength >= 15) {
+      } else if (currentLength >= 50) {
         fullNameCounter.style.color = '#fc8181'; // Error color (red)
       } else {
         fullNameCounter.style.color = '#a0aec0'; // Default color (gray)
@@ -353,8 +457,8 @@ function validateField(field) {
         showError(fieldId, 'Full name must be at least 2 characters');
         return false;
       }
-      if (value.length > 15) {
-        showError(fieldId, 'Full name must be 15 characters or less');
+      if (value.length > 50) {
+        showError(fieldId, 'Full name must be 50 characters or less');
         return false;
       }
       break;

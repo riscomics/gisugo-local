@@ -474,6 +474,15 @@ function initializeEditProfileOverlay() {
           if (preview) {
             preview.src = e.target.result;
           }
+          
+          // ===== MEMORY CLEANUP =====
+          reader.onload = null;
+          reader.onerror = null;
+        };
+        reader.onerror = function() {
+          console.error('Failed to read profile photo file');
+          reader.onload = null;
+          reader.onerror = null;
         };
         reader.readAsDataURL(file);
       }

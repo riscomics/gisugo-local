@@ -464,6 +464,155 @@
     .success-btn {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     }
+    
+    /* Terms of Service & Privacy Policy Modals */
+    .terms-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .terms-modal-overlay.show {
+      display: flex;
+    }
+    
+    .terms-modal-content {
+      background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 16px;
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    
+    .terms-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    
+    .terms-modal-header h2 {
+      margin: 0;
+      color: #10b981;
+      font-size: 1.5rem;
+      font-weight: 700;
+      font-family: Arial, sans-serif;
+    }
+    
+    .terms-modal-close {
+      background: transparent;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.8rem;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+      line-height: 1;
+      padding: 0;
+    }
+    
+    .terms-modal-close:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+    
+    .terms-modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      color: #e5e7eb;
+      line-height: 1.7;
+      font-family: Arial, sans-serif;
+    }
+    
+    .terms-modal-body h3 {
+      color: #10b981;
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+    
+    .terms-modal-body h3:first-child {
+      margin-top: 0;
+    }
+    
+    .terms-modal-body p {
+      margin: 12px 0;
+      color: #d1d5db;
+    }
+    
+    .terms-modal-body ul {
+      margin: 12px 0;
+      padding-left: 24px;
+    }
+    
+    .terms-modal-body li {
+      margin: 8px 0;
+      color: #d1d5db;
+    }
+    
+    /* Scrollbar styling for modal body */
+    .terms-modal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .terms-modal-body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    
+    .terms-modal-body::-webkit-scrollbar-thumb {
+      background: rgba(16, 185, 129, 0.3);
+      border-radius: 4px;
+    }
+    
+    .terms-modal-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(16, 185, 129, 0.5);
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 600px) {
+      .terms-modal-content {
+        max-height: 85vh;
+      }
+      
+      .terms-modal-header {
+        padding: 16px 18px;
+      }
+      
+      .terms-modal-header h2 {
+        font-size: 1.25rem;
+      }
+      
+      .terms-modal-body {
+        padding: 18px;
+      }
+      
+      .terms-modal-body h3 {
+        font-size: 1.05rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -486,7 +635,8 @@
         <div class="form-section-header">Profile Photo</div>
         <div class="photo-upload-container">
           <div class="photo-preview" id="photoPreview">
-            <span class="photo-emoji">🤳</span>
+            <span class="photo-emoji" id="photoEmoji">🤳</span>
+            <img id="photoPreviewImg" style="display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
           </div>
           <div class="photo-upload-caption">Tap to Take a Clear Selfie</div>
           <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" capture="user" style="display: none;">
@@ -666,9 +816,9 @@
         <!-- Full Name -->
         <div class="form-group">
           <label for="fullName" class="form-label">Full Name *</label>
-          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="15" autocomplete="off" required>
+          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="50" autocomplete="off" required>
           <div class="character-counter">
-            <span id="fullNameCounter">0</span>/15 characters
+            <span id="fullNameCounter">0</span>/50 characters
           </div>
           <div class="form-error" id="fullNameError"></div>
         </div>
@@ -750,7 +900,7 @@
           <label class="checkbox-container">
             <input type="checkbox" id="termsAccepted" name="termsAccepted" required>
             <span class="checkmark"></span>
-            I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
+            I agree to the <a href="#" class="terms-link" id="termsOfServiceLink">Terms of Service</a> and <a href="#" class="terms-link" id="privacyPolicyLink">Privacy Policy</a>
           </label>
           <div class="form-error" id="termsError"></div>
         </div>
@@ -775,6 +925,115 @@
       <div class="success-title">Account Created!</div>
       <div class="success-message">Welcome to GISUGO! You can now start browsing and applying for jobs.</div>
       <button class="success-btn" onclick="window.location.href='index.html'">GO TO HOME</button>
+    </div>
+  </div>
+
+  <!-- Terms of Service Modal -->
+  <div class="terms-modal-overlay" id="termsOfServiceModal">
+    <div class="terms-modal-content">
+      <div class="terms-modal-header">
+        <h2>Terms of Service</h2>
+        <button class="terms-modal-close" id="termsOfServiceClose">✕</button>
+      </div>
+      <div class="terms-modal-body">
+        <h3>1. Acceptance of Terms</h3>
+        <p>By accessing and using GISUGO, you accept and agree to be bound by the terms and provision of this agreement.</p>
+        
+        <h3>2. Use License</h3>
+        <p>Permission is granted to temporarily use GISUGO for personal, non-commercial transitory viewing and job searching purposes only.</p>
+        
+        <h3>3. User Responsibilities</h3>
+        <p>Users must:</p>
+        <ul>
+          <li>Provide accurate and truthful information</li>
+          <li>Maintain the confidentiality of their account</li>
+          <li>Not engage in fraudulent activities</li>
+          <li>Respect other users and maintain professional conduct</li>
+          <li>Complete agreed-upon work or payment obligations</li>
+        </ul>
+        
+        <h3>4. Payment Terms</h3>
+        <p>GISUGO facilitates connections between customers and workers. Payment terms are agreed upon between parties. GISUGO is not responsible for payment disputes.</p>
+        
+        <h3>5. Account Termination</h3>
+        <p>We reserve the right to terminate or suspend accounts that violate these terms without prior notice.</p>
+        
+        <h3>6. Limitation of Liability</h3>
+        <p>GISUGO acts as a platform connecting customers and workers. We are not responsible for the quality of work, payment issues, or disputes between parties.</p>
+        
+        <h3>7. Intellectual Property</h3>
+        <p>All content, trademarks, and data on this platform are the property of GISUGO and are protected by intellectual property laws.</p>
+        
+        <h3>8. Changes to Terms</h3>
+        <p>We reserve the right to modify these terms at any time. Continued use of the platform constitutes acceptance of modified terms.</p>
+        
+        <h3>9. Contact Information</h3>
+        <p>For questions about these terms, please contact us through the platform.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy Policy Modal -->
+  <div class="terms-modal-overlay" id="privacyPolicyModal">
+    <div class="terms-modal-content">
+      <div class="terms-modal-header">
+        <h2>Privacy Policy</h2>
+        <button class="terms-modal-close" id="privacyPolicyClose">✕</button>
+      </div>
+      <div class="terms-modal-body">
+        <h3>1. Information We Collect</h3>
+        <p>We collect information you provide directly to us, including:</p>
+        <ul>
+          <li>Name, email address, phone number</li>
+          <li>Profile photo and personal information</li>
+          <li>Education level and work experience</li>
+          <li>Social media profile links (optional)</li>
+          <li>Job postings and application information</li>
+          <li>Chat and messaging data</li>
+        </ul>
+        
+        <h3>2. How We Use Your Information</h3>
+        <p>We use collected information to:</p>
+        <ul>
+          <li>Create and manage your account</li>
+          <li>Connect customers with workers</li>
+          <li>Process job applications and hiring</li>
+          <li>Enable communication between users</li>
+          <li>Improve our platform and services</li>
+          <li>Send notifications and updates</li>
+          <li>Verify user identities</li>
+        </ul>
+        
+        <h3>3. Information Sharing</h3>
+        <p>Your profile information is visible to other users on the platform. We do not sell your personal information to third parties.</p>
+        
+        <h3>4. Data Security</h3>
+        <p>We implement security measures to protect your information. However, no method of transmission over the internet is 100% secure.</p>
+        
+        <h3>5. Firebase and Third-Party Services</h3>
+        <p>We use Firebase for authentication, database, and storage. Your data is stored securely and subject to Google's privacy policies.</p>
+        
+        <h3>6. Cookies and Tracking</h3>
+        <p>We use cookies and similar tracking technologies to improve user experience and analyze platform usage.</p>
+        
+        <h3>7. Your Rights</h3>
+        <p>You have the right to:</p>
+        <ul>
+          <li>Access your personal information</li>
+          <li>Update or correct your information</li>
+          <li>Delete your account</li>
+          <li>Opt-out of communications</li>
+        </ul>
+        
+        <h3>8. Children's Privacy</h3>
+        <p>GISUGO is not intended for users under 18 years of age. We do not knowingly collect information from children.</p>
+        
+        <h3>9. Changes to Privacy Policy</h3>
+        <p>We may update this privacy policy from time to time. Continued use of the platform constitutes acceptance of the updated policy.</p>
+        
+        <h3>10. Contact Us</h3>
+        <p>If you have questions about this privacy policy, please contact us through the platform.</p>
+      </div>
     </div>
   </div>
 
@@ -1009,6 +1268,69 @@
       
       console.log('📱 Phone signup flow initialized');
     });
+    
+    // ===== TERMS OF SERVICE & PRIVACY POLICY MODALS =====
+    const termsOfServiceLink = document.getElementById('termsOfServiceLink');
+    const privacyPolicyLink = document.getElementById('privacyPolicyLink');
+    const termsOfServiceModal = document.getElementById('termsOfServiceModal');
+    const privacyPolicyModal = document.getElementById('privacyPolicyModal');
+    const termsOfServiceClose = document.getElementById('termsOfServiceClose');
+    const privacyPolicyClose = document.getElementById('privacyPolicyClose');
+    
+    // Open Terms of Service modal
+    if (termsOfServiceLink) {
+      termsOfServiceLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (termsOfServiceModal) {
+          termsOfServiceModal.classList.add('show');
+        }
+      });
+    }
+    
+    // Open Privacy Policy modal
+    if (privacyPolicyLink) {
+      privacyPolicyLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (privacyPolicyModal) {
+          privacyPolicyModal.classList.add('show');
+        }
+      });
+    }
+    
+    // Close Terms of Service modal
+    if (termsOfServiceClose) {
+      termsOfServiceClose.addEventListener('click', function() {
+        if (termsOfServiceModal) {
+          termsOfServiceModal.classList.remove('show');
+        }
+      });
+    }
+    
+    // Close Privacy Policy modal
+    if (privacyPolicyClose) {
+      privacyPolicyClose.addEventListener('click', function() {
+        if (privacyPolicyModal) {
+          privacyPolicyModal.classList.remove('show');
+        }
+      });
+    }
+    
+    // Close modals when clicking outside
+    if (termsOfServiceModal) {
+      termsOfServiceModal.addEventListener('click', function(e) {
+        if (e.target === termsOfServiceModal) {
+          termsOfServiceModal.classList.remove('show');
+        }
+      });
+    }
+    
+    if (privacyPolicyModal) {
+      privacyPolicyModal.addEventListener('click', function(e) {
+        if (e.target === privacyPolicyModal) {
+          privacyPolicyModal.classList.remove('show');
+        }
+      });
+    }
   </script>
 </body>
 </html> 
