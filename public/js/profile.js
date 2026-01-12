@@ -127,8 +127,8 @@ if (logoutBtn) {
     // Call logout function from firebase-auth.js
     if (typeof logout === 'function') {
       await logout();
-      // Redirect to landing page after logout
-      window.location.href = 'landing.html';
+      // Redirect to home page after logout
+      window.location.href = 'index.html';
     } else {
       console.error('Logout function not available');
     }

@@ -4577,9 +4577,11 @@ body::-webkit-scrollbar {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 12px 32px;
+  padding: 14px 48px;
+  width: 100%;
+  max-width: 280px;
   color: #fff;
-  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  font-size: clamp(1rem, 3.5vw, 1.15rem);
   font-weight: 700;
   font-family: Arial, Helvetica, sans-serif;
   cursor: pointer;
