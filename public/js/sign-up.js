@@ -371,6 +371,9 @@ function handlePhotoUpload(event) {
       return;
     }
     
+    // Clear any previous errors
+    clearError('profilePhoto');
+    
     console.log(`📤 Processing profile photo: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
     
     // Process and compress image with smart sizing
@@ -611,6 +614,14 @@ function showError(fieldId, message) {
   if (inputElement) {
     inputElement.classList.add('error');
   }
+  
+  // Special handling for photo preview error styling
+  if (fieldId === 'profilePhoto') {
+    const photoPreview = document.getElementById('photoPreview');
+    if (photoPreview) {
+      photoPreview.style.border = '3px solid #ef4444';
+    }
+  }
 }
 
 // Clear error message
@@ -624,6 +635,14 @@ function clearError(fieldId) {
   
   if (inputElement) {
     inputElement.classList.remove('error');
+  }
+  
+  // Special handling for photo preview error styling
+  if (fieldId === 'profilePhoto') {
+    const photoPreview = document.getElementById('photoPreview');
+    if (photoPreview) {
+      photoPreview.style.border = '';
+    }
   }
 }
 
@@ -714,6 +733,18 @@ function validateForm() {
       isValid = false;
     }
   });
+  
+  // Validate profile photo is uploaded (unless user came from OAuth with photo)
+  if (!selectedPhotoDataUrl && !authenticatedUser?.photoURL) {
+    showError('profilePhoto', 'Please upload a profile photo');
+    isValid = false;
+    
+    // Scroll to photo section
+    const photoPreview = document.getElementById('photo-preview');
+    if (photoPreview) {
+      photoPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
   
   return isValid;
 }
