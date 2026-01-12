@@ -1049,7 +1049,7 @@
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
-  <script src="public/js/sign-up.js?v=2.1"></script>
+  <script src="public/js/sign-up.js?v=2.2"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====
@@ -1161,7 +1161,7 @@
           try {
             // Call Firebase phone auth
             if (typeof sendPhoneVerificationCode === 'function') {
-              const result = await sendPhoneVerificationCode(fullPhoneNumber);
+              const result = await sendPhoneVerificationCode(fullPhoneNumber, 'sendOtpBtn');
               
               if (result.success) {
                 otpVerifySection.style.display = 'block';
@@ -1256,6 +1256,43 @@
             document.getElementById('otpCodeError').style.display = 'block';
             verifyOtpBtn.disabled = false;
             verifyOtpBtn.innerHTML = '<span>Verify & Continue</span>';
+          }
+        });
+      }
+      
+      // Resend OTP button click
+      if (resendOtpBtn) {
+        resendOtpBtn.addEventListener('click', async function() {
+          const phoneInput = document.getElementById('phoneAuth').value.trim().replace(/\D/g, '');
+          const countryCode = document.getElementById('countryCodeAuth').value;
+          const fullPhoneNumber = countryCode + phoneInput;
+          
+          resendOtpBtn.disabled = true;
+          resendOtpBtn.textContent = 'Sending...';
+          
+          try {
+            if (typeof sendPhoneVerificationCode === 'function') {
+              const result = await sendPhoneVerificationCode(fullPhoneNumber, 'sendOtpBtn');
+              
+              if (result.success) {
+                startResendCountdown();
+              } else {
+                document.getElementById('phoneAuthError').textContent = result.message || 'Failed to resend code';
+                document.getElementById('phoneAuthError').style.display = 'block';
+                resendOtpBtn.disabled = false;
+                resendOtpBtn.textContent = 'Resend Code';
+              }
+            } else {
+              // Mock for development
+              console.log('📱 Mock OTP resent to:', fullPhoneNumber);
+              startResendCountdown();
+            }
+          } catch (error) {
+            console.error('Resend error:', error);
+            document.getElementById('phoneAuthError').textContent = 'Failed to resend code';
+            document.getElementById('phoneAuthError').style.display = 'block';
+            resendOtpBtn.disabled = false;
+            resendOtpBtn.textContent = 'Resend Code';
           }
         });
       }

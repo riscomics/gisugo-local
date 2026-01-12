@@ -483,9 +483,10 @@ async function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
 /**
  * Send verification code to phone number
  * @param {string} phoneNumber - Phone number with country code (e.g., +639123456789)
+ * @param {string} recaptchaButtonId - Optional button ID for reCAPTCHA (defaults to 'phone-signin-btn')
  * @returns {Promise<Object>} - Result object with success status
  */
-async function sendPhoneVerificationCode(phoneNumber) {
+async function sendPhoneVerificationCode(phoneNumber, recaptchaButtonId = 'phone-signin-btn') {
   const auth = getFirebaseAuth();
   
   if (!auth) {
@@ -508,8 +509,8 @@ async function sendPhoneVerificationCode(phoneNumber) {
     
     // Initialize reCAPTCHA if not already done
     if (!phoneRecaptchaVerifier) {
-      console.log('🔐 Initializing reCAPTCHA...');
-      await initPhoneRecaptcha('phone-signin-btn');
+      console.log('🔐 Initializing reCAPTCHA on button:', recaptchaButtonId);
+      await initPhoneRecaptcha(recaptchaButtonId);
       
       if (!phoneRecaptchaVerifier) {
         return {
