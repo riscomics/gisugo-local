@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeGoogleSignIn();
   initializeFacebookSignIn();
   checkPendingAuth(); // Check if redirected from login with pending auth
+  checkExistingAuthUser(); // Check if user is already authenticated
   
   console.log('🔥 Sign-up form initialized with Firebase integration');
 });
@@ -52,6 +53,62 @@ function checkPendingAuth() {
       console.error('Error parsing pending auth data:', error);
       sessionStorage.removeItem('gisugo_pending_auth');
     }
+  }
+}
+
+/**
+ * Check if user is already authenticated in Firebase
+ * This handles "zombie users" who authenticated but didn't complete profile
+ */
+async function checkExistingAuthUser() {
+  // Only check if we don't already have an authenticated user from sessionStorage
+  if (authenticatedUser) {
+    console.log('✅ Already have authenticated user from sessionStorage');
+    return;
+  }
+  
+  // Check if Firebase is available
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    console.log('⚠️ Firebase not available, skipping auth check');
+    return;
+  }
+  
+  try {
+    // Wait for Firebase auth to initialize
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (user && !authenticatedUser) {
+        console.log('🔍 Found existing Firebase Auth user:', user.uid);
+        
+        // Check if they already have a complete profile
+        if (typeof checkUserHasProfile === 'function') {
+          const { hasProfile } = await checkUserHasProfile(user.uid);
+          
+          if (hasProfile) {
+            // They have a profile - redirect to home
+            console.log('✅ User has profile, redirecting to home');
+            window.location.href = 'index.html';
+            return;
+          }
+        }
+        
+        // No profile yet - capture this user and pre-fill form
+        console.log('📝 User authenticated but no profile - capturing for sign-up');
+        authenticatedUser = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          phoneNumber: user.phoneNumber || '',
+          provider: user.providerData?.[0]?.providerId || 'unknown'
+        };
+        
+        // Pre-fill form with available data
+        prefillFromAuth(authenticatedUser);
+        showAuthenticatedState(authenticatedUser.provider);
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error checking Firebase auth state:', error);
   }
 }
 

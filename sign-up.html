@@ -1049,7 +1049,7 @@
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
-  <script src="public/js/sign-up.js"></script>
+  <script src="public/js/sign-up.js?v=2.1"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====
@@ -1224,7 +1224,19 @@
               const result = await verifyPhoneCode(otpCode);
               
               if (result.success) {
-                // Phone verified! Mark section as complete
+                // Phone verified! Store authenticated user
+                if (typeof authenticatedUser !== 'undefined' && result.user) {
+                  authenticatedUser = {
+                    uid: result.user.uid,
+                    email: result.user.email || '',
+                    displayName: result.user.displayName || '',
+                    phoneNumber: result.user.phoneNumber || '',
+                    provider: result.user.providerData?.[0]?.providerId || 'phone'
+                  };
+                  console.log('📱 Authenticated user captured:', authenticatedUser.uid);
+                }
+                
+                // Mark section as complete
                 phoneOtpSection.innerHTML = '<div style="text-align:center;padding:20px;"><span style="font-size:2rem;">✅</span><p style="color:#10b981;font-weight:600;margin-top:10px;">Phone Verified!</p></div>';
                 console.log('✅ Phone verification successful');
               } else {
