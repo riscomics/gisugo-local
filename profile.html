@@ -123,6 +123,15 @@
               </div>
             </div>
           </div>
+          
+          <!-- Logout Button (only visible when viewing own profile) -->
+          <div class="logout-section" id="logoutSection" style="display: none;">
+            <button class="logout-btn" id="logoutBtn">
+              <span class="logout-icon">🚪</span>
+              <span class="logout-text">LOG OUT</span>
+            </button>
+          </div>
+          
           </div>
         </div>
       </div>
@@ -450,8 +459,9 @@
           <!-- Profile Photo Section -->
           <div class="edit-profile-section">
             <div class="edit-profile-photo-section">
-              <div class="edit-profile-photo-preview">
-                <img src="public/users/Peter-J-Ang-User-01.jpg" alt="Profile Photo" id="editProfilePhotoPreview">
+              <div class="edit-profile-photo-preview" id="editPhotoPreviewContainer">
+                <span class="edit-photo-placeholder" id="editPhotoPlaceholder">📷</span>
+                <img src="" alt="Profile Photo" id="editProfilePhotoPreview" style="display: none;">
               </div>
               <div class="edit-profile-photo-actions">
                 <label class="edit-profile-photo-btn" for="editProfilePhotoInput">

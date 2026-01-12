@@ -113,6 +113,28 @@ if (businessVerifiedBadgeGrid) {
   businessVerifiedBadgeGrid.style.cursor = 'pointer';
 }
 
+// Logout Button functionality
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', async function(e) {
+    e.preventDefault();
+    
+    // Confirm logout
+    if (!confirm('Are you sure you want to log out?')) {
+      return;
+    }
+    
+    // Call logout function from firebase-auth.js
+    if (typeof logout === 'function') {
+      await logout();
+      // Redirect to landing page after logout
+      window.location.href = 'landing.html';
+    } else {
+      console.error('Logout function not available');
+    }
+  });
+}
+
 // ===== PRO VERIFIED OVERLAY FUNCTIONALITY =====
 
 // Get pro prestige overlay elements
@@ -374,7 +396,16 @@ function populateEditProfileForm() {
   }
   if (photoPreview) {
     const photoSrc = profile.profilePhoto || profile.profileImage;
-    if (photoSrc) photoPreview.src = photoSrc;
+    const photoPlaceholder = document.getElementById('editPhotoPlaceholder');
+    
+    if (photoSrc) {
+      photoPreview.src = photoSrc;
+      photoPreview.style.display = 'block';
+      if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+    } else {
+      photoPreview.style.display = 'none';
+      if (photoPlaceholder) photoPlaceholder.style.display = 'flex';
+    }
   }
 
   // Social Media usernames (extracted from URLs)
@@ -471,8 +502,15 @@ function initializeEditProfileOverlay() {
         const reader = new FileReader();
         reader.onload = function(e) {
           const preview = document.getElementById('editProfilePhotoPreview');
+          const placeholder = document.getElementById('editPhotoPlaceholder');
+          
           if (preview) {
             preview.src = e.target.result;
+            preview.style.display = 'block';
+          }
+          
+          if (placeholder) {
+            placeholder.style.display = 'none';
           }
           
           // ===== MEMORY CLEANUP =====
@@ -1470,6 +1508,7 @@ function updateBadgeVisibility(userProfile) {
   const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
   const accountBtn = document.getElementById('accountBtn');
   const profilePhotoContainer = document.getElementById('profilePhotoContainer');
+  const logoutSection = document.getElementById('logoutSection');
   
   console.log('🔍 Updating badge visibility...');
   console.log('User logged in:', isUserLoggedIn());
@@ -1483,6 +1522,12 @@ function updateBadgeVisibility(userProfile) {
   if (accountBtn) {
     accountBtn.style.display = canAccessAccountSettings ? 'inline-flex' : 'none';
     console.log('Account button visibility:', canAccessAccountSettings ? 'visible' : 'hidden');
+  }
+  
+  // Logout button logic: Only show when viewing own profile
+  if (logoutSection) {
+    logoutSection.style.display = canAccessAccountSettings ? 'block' : 'none';
+    console.log('Logout button visibility:', canAccessAccountSettings ? 'visible' : 'hidden');
   }
   
   // Profile photo click-to-open: Only enable for profile owner
