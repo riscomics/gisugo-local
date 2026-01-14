@@ -1557,12 +1557,14 @@ function initializePreviewOverlay() {
   if (closeBtn) {
     closeBtn.addEventListener('click', function() {
       overlay.classList.remove('show');
+      overlay.classList.remove('active'); // Support both classes
     });
   }
   
   if (editBtn) {
     editBtn.addEventListener('click', function() {
       overlay.classList.remove('show');
+      overlay.classList.remove('active'); // Support both classes
     });
   }
   
@@ -1576,6 +1578,7 @@ function initializePreviewOverlay() {
   overlay.addEventListener('click', function(e) {
     if (e.target === overlay) {
       overlay.classList.remove('show');
+      overlay.classList.remove('active'); // Support both classes
     }
   });
 }
@@ -2427,7 +2430,21 @@ function showEditForm(jobData, category) {
   document.getElementById('editLocationDisplay').textContent = locationText;
   
   // Populate title
-  document.getElementById('editTitleInput').value = jobData.title || '';
+  const editTitleInput = document.getElementById('editTitleInput');
+  editTitleInput.value = jobData.title || '';
+  
+  // Initialize character counter
+  const editTitleCounter = document.getElementById('editTitleCounter');
+  if (editTitleCounter) {
+    editTitleCounter.textContent = `${editTitleInput.value.length}/55`;
+  }
+  
+  // Add input listener for character counter
+  editTitleInput.addEventListener('input', function() {
+    if (editTitleCounter) {
+      editTitleCounter.textContent = `${this.value.length}/55`;
+    }
+  });
   
   // Populate date
   document.getElementById('editDateInput').value = jobData.jobDate || '';
@@ -2837,8 +2854,17 @@ async function handleEditFormSubmit(jobId, category) {
   
   console.log('📦 Updated job data:', updatedJob);
   
-  // Show preview overlay for confirmation
-  showEditPreview(updatedJob, category, jobId);
+  // Show loading briefly while preparing preview
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  if (loadingText) loadingText.textContent = 'LOADING PREVIEW...';
+  if (loadingOverlay) loadingOverlay.classList.add('show');
+  
+  // Small delay to show loading animation
+  setTimeout(() => {
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
+    showEditPreview(updatedJob, category, jobId);
+  }, 300);
 }
 
 function showEditPreview(updatedJob, category, jobId) {
