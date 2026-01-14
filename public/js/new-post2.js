@@ -1605,74 +1605,26 @@ async function postJob() {
     extras.push(`${config.field2.label} ${np2State.extras2Value}`);
   }
   
-  // Prepare photo data (upload to Firebase Storage if available)
-  let thumbnailData, originalPhotoData;
-  
-  // Check if we have a photo to upload and if Firebase Storage is available
-  const hasPhoto = processedJobPhoto || np2State.photoDataUrl;
-  const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
-  
-  if (hasPhoto && useFirebaseStorage) {
-    console.log('📤 Uploading photo to Firebase Storage...');
-    
-    try {
-      // Generate temporary job ID for storage path
-      const tempJobId = `${np2State.selectedCategory}_${Date.now()}`;
-      
-      // Convert data URL to File object
-      let photoFile = np2State.photoFile;
-      
-      if (!photoFile && np2State.photoDataUrl) {
-        // Create File from data URL if original file is not available
-        const response = await fetch(np2State.photoDataUrl);
-        const blob = await response.blob();
-        photoFile = new File([blob], `job_photo_${tempJobId}.jpg`, { type: 'image/jpeg' });
-      }
-      
-      // Upload to Firebase Storage
-      const uploadResult = await uploadJobPhoto(tempJobId, photoFile);
-      
-      if (uploadResult.success) {
-        thumbnailData = uploadResult.url; // Firebase Storage URL
-        originalPhotoData = uploadResult.url; // Same URL (resizing handled by Storage)
-        console.log('✅ Photo uploaded to Storage:', uploadResult.url);
-      } else {
-        console.error('❌ Storage upload failed:', uploadResult.errors);
-        throw new Error('Photo upload failed');
-      }
-    } catch (error) {
-      console.error('❌ Error uploading photo:', error);
-      alert('Failed to upload photo. Please try again.');
-      return; // Stop job creation if photo upload fails
-    }
-  } else if (hasPhoto) {
-    // Fallback to base64 if Firebase Storage not available (offline mode)
-    if (processedJobPhoto) {
-      thumbnailData = processedJobPhoto.cropped;
-      originalPhotoData = processedJobPhoto.hasOriginal ? processedJobPhoto.original : processedJobPhoto.cropped;
-      console.log('📸 Using base64 photo (offline mode):', processedJobPhoto.hasOriginal ? 'DUAL (cropped + original)' : 'CROP only');
-    } else if (np2State.photoDataUrl) {
-      thumbnailData = np2State.photoDataUrl;
-      originalPhotoData = np2State.photoDataUrl;
-      console.warn('⚠️ Using unprocessed photo (offline mode)');
-    }
-  } else {
-    // No photo uploaded
-    thumbnailData = `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`;
-    originalPhotoData = null;
-    console.log('⚠️ No photo uploaded, using mock placeholder');
+  // Get current user
+  const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  if (!currentUser) {
+    alert('Please log in to post a gig.');
+    return;
   }
   
-  const job = {
-    jobId: `${np2State.selectedCategory}_job_2025_${jobNumber}`,
-    jobNumber: jobNumber,
-    posterId: 'user_peter_ang_001',
-    posterName: 'Peter J. Ang',
+  // Prepare poster info
+  const posterName = currentUser.displayName || 'Anonymous';
+  const posterThumbnail = currentUser.photoURL || null;
+  
+  // Create initial job object WITHOUT photo (to get Firestore jobId first)
+  const jobData = {
+    posterId: currentUser.uid,
+    posterName: posterName,
+    posterThumbnail: posterThumbnail,
     title: np2State.jobTitle,
     description: np2State.jobDescription,
     category: np2State.selectedCategory,
-    thumbnail: thumbnailData, // Compressed 500×281 cropped version
-    originalPhoto: originalPhotoData, // Compressed 720px max width version
+    thumbnail: null, // Will be updated after photo upload
     jobDate: np2State.jobDate,
     dateNeeded: np2State.jobDate,
     startTime: `${np2State.startHour} ${np2State.startPeriod}`,
@@ -1720,15 +1672,55 @@ async function postJob() {
           throw new Error('updateJob function not available');
         }
         console.log('✏️ EDIT MODE: Updating existing job:', np2State.editJobId);
-        result = await updateJob(np2State.editJobId, job);
+        result = await updateJob(np2State.editJobId, jobData);
       } 
       // NEW or RELIST MODE: Create new job
       else {
         if (typeof createJob !== 'function') {
           throw new Error('createJob function not available');
         }
-        console.log('📝 NEW/RELIST MODE: Creating new job');
-        result = await createJob(job);
+        console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
+        result = await createJob(jobData);
+        
+        // Now upload photo with the real jobId
+        if (result.success && result.jobId) {
+          const hasPhoto = processedJobPhoto || np2State.photoDataUrl;
+          const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
+          
+          if (hasPhoto && useFirebaseStorage) {
+            console.log('📤 Uploading photo with jobId:', result.jobId);
+            
+            try {
+              // Convert data URL to File object
+              let photoFile = np2State.photoFile;
+              
+              if (!photoFile && np2State.photoDataUrl) {
+                const response = await fetch(np2State.photoDataUrl);
+                const blob = await response.blob();
+                photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: 'image/jpeg' });
+              }
+              
+              // Upload to Firebase Storage with REAL jobId
+              const uploadResult = await uploadJobPhoto(result.jobId, photoFile, currentUser.uid);
+              
+              if (uploadResult.success) {
+                console.log('✅ Photo uploaded:', uploadResult.url);
+                
+                // Update job with photo URL
+                const photoUpdate = { thumbnail: uploadResult.url };
+                await updateJob(result.jobId, photoUpdate);
+                console.log('✅ Job updated with photo URL');
+              } else {
+                console.error('❌ Photo upload failed:', uploadResult.errors);
+                // Job was created but photo failed - user can edit later to add photo
+                alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
+              }
+            } catch (photoError) {
+              console.error('❌ Photo upload error:', photoError);
+              alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
+            }
+          }
+        }
       }
       
       if (result.success) {
@@ -1757,6 +1749,19 @@ async function postJob() {
     // ══════════════════════════════════════════════════════════════
     console.log('🧪 MOCK MODE: Saving job to localStorage...');
     
+    // Add mock photo data for offline mode
+    if (processedJobPhoto) {
+      jobData.thumbnail = processedJobPhoto.cropped;
+      jobData.originalPhoto = processedJobPhoto.hasOriginal ? processedJobPhoto.original : processedJobPhoto.cropped;
+    } else if (np2State.photoDataUrl) {
+      jobData.thumbnail = np2State.photoDataUrl;
+      jobData.originalPhoto = np2State.photoDataUrl;
+    }
+    
+    // Add mock jobId for localStorage
+    jobData.jobId = `${np2State.selectedCategory}_job_2025_${jobNumber}`;
+    jobData.jobNumber = jobNumber;
+    
     let allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
     console.log('📝 Existing jobs:', allJobs);
     
@@ -1770,12 +1775,12 @@ async function postJob() {
       const jobIndex = allJobs[np2State.selectedCategory].findIndex(j => j.jobId === np2State.editJobId);
       if (jobIndex !== -1) {
         // Preserve original creation data
-        job.datePosted = allJobs[np2State.selectedCategory][jobIndex].datePosted;
-        job.createdAt = allJobs[np2State.selectedCategory][jobIndex].createdAt;
-        job.applicationCount = allJobs[np2State.selectedCategory][jobIndex].applicationCount || 0;
-        job.applicationIds = allJobs[np2State.selectedCategory][jobIndex].applicationIds || [];
+        jobData.datePosted = allJobs[np2State.selectedCategory][jobIndex].datePosted;
+        jobData.createdAt = allJobs[np2State.selectedCategory][jobIndex].createdAt;
+        jobData.applicationCount = allJobs[np2State.selectedCategory][jobIndex].applicationCount || 0;
+        jobData.applicationIds = allJobs[np2State.selectedCategory][jobIndex].applicationIds || [];
         
-        allJobs[np2State.selectedCategory][jobIndex] = job;
+        allJobs[np2State.selectedCategory][jobIndex] = jobData;
         console.log('✏️ Job updated at index:', jobIndex);
       } else {
         console.error('❌ Job not found for editing:', np2State.editJobId);
@@ -1783,7 +1788,7 @@ async function postJob() {
       }
     } else {
       // NEW or RELIST MODE: Add new job
-      allJobs[np2State.selectedCategory].push(job);
+      allJobs[np2State.selectedCategory].push(jobData);
       console.log('📝 Job added to array. Total jobs in category:', allJobs[np2State.selectedCategory].length);
     }
     
