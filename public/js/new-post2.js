@@ -1706,10 +1706,15 @@ async function postJob() {
               if (uploadResult.success) {
                 console.log('✅ Photo uploaded:', uploadResult.url);
                 
-                // Update job with photo URL
-                const photoUpdate = { thumbnail: uploadResult.url };
-                await updateJob(result.jobId, photoUpdate);
-                console.log('✅ Job updated with photo URL');
+                // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
+                if (typeof getFirestore === 'function') {
+                  const db = getFirestore();
+                  await db.collection('jobs').doc(result.jobId).update({
+                    thumbnail: uploadResult.url,
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                  });
+                  console.log('✅ Job updated with photo URL');
+                }
               } else {
                 console.error('❌ Photo upload failed:', uploadResult.errors);
                 // Job was created but photo failed - user can edit later to add photo
