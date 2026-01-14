@@ -364,8 +364,11 @@
 
           <!-- Job Title -->
           <div class="np2-edit-group">
-            <label class="np2-edit-label">Job Title<span class="np2-required">*</span><span class="np2-char-counter" id="editTitleCounter">0/55</span></label>
-            <input type="text" class="np2-edit-input" id="editTitleInput" placeholder="e.g., Deliver package to downtown" maxlength="55">
+            <label class="np2-edit-label">Job Title<span class="np2-required">*</span></label>
+            <div class="np2-input-wrapper">
+              <input type="text" class="np2-edit-input" id="editTitleInput" placeholder="e.g., Deliver package to downtown" maxlength="55">
+              <div class="np2-char-counter"><span id="editTitleCharCount">0</span>/55</div>
+            </div>
           </div>
 
           <!-- Location (Read-only display) -->
@@ -1025,7 +1028,7 @@
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
   <script src="public/js/jobs.js?v=14"></script>
-  <script src="public/js/new-post2.js?v=32.2"></script>
+  <script src="public/js/new-post2.js?v=32.4"></script>
 
 </body>
 </html>

@@ -2431,18 +2431,18 @@ function showEditForm(jobData, category) {
   
   // Populate title
   const editTitleInput = document.getElementById('editTitleInput');
+  const editTitleCharCount = document.getElementById('editTitleCharCount');
   editTitleInput.value = jobData.title || '';
   
   // Initialize character counter
-  const editTitleCounter = document.getElementById('editTitleCounter');
-  if (editTitleCounter) {
-    editTitleCounter.textContent = `${editTitleInput.value.length}/55`;
+  if (editTitleCharCount) {
+    editTitleCharCount.textContent = editTitleInput.value.length;
   }
   
   // Add input listener for character counter
   editTitleInput.addEventListener('input', function() {
-    if (editTitleCounter) {
-      editTitleCounter.textContent = `${this.value.length}/55`;
+    if (editTitleCharCount) {
+      editTitleCharCount.textContent = this.value.length;
     }
   });
   
@@ -2753,6 +2753,15 @@ async function handleEditFormSubmit(jobId, category) {
   console.log('📤 handleEditFormSubmit called with:', { jobId, category });
   console.log('📤 Submitting edit form for job:', jobId);
   
+  // Show loading IMMEDIATELY before any processing
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.getElementById('loadingText');
+  if (loadingText) loadingText.textContent = 'PROCESSING...';
+  if (loadingOverlay) loadingOverlay.classList.add('show');
+  
+  // Allow UI to update before heavy processing
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
   // Collect form data (from custom dropdowns)
   const title = document.getElementById('editTitleInput').value.trim();
   const date = document.getElementById('editDateInput').value;
@@ -2773,6 +2782,7 @@ async function handleEditFormSubmit(jobId, category) {
   // Validate required fields
   if (!title || !date || !startHour || !endHour || !description || !paymentAmount) {
     console.warn('⚠️ Validation failed - missing required fields');
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
     showToast('Please fill in all required fields', 'error');
     return;
   }
@@ -2854,17 +2864,9 @@ async function handleEditFormSubmit(jobId, category) {
   
   console.log('📦 Updated job data:', updatedJob);
   
-  // Show loading briefly while preparing preview
-  const loadingOverlay = document.getElementById('loadingOverlay');
-  const loadingText = document.getElementById('loadingText');
-  if (loadingText) loadingText.textContent = 'LOADING PREVIEW...';
-  if (loadingOverlay) loadingOverlay.classList.add('show');
-  
-  // Small delay to show loading animation
-  setTimeout(() => {
-    if (loadingOverlay) loadingOverlay.classList.remove('show');
-    showEditPreview(updatedJob, category, jobId);
-  }, 300);
+  // Hide loading and show preview
+  if (loadingOverlay) loadingOverlay.classList.remove('show');
+  showEditPreview(updatedJob, category, jobId);
 }
 
 function showEditPreview(updatedJob, category, jobId) {

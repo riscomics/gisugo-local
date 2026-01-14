@@ -1830,6 +1830,7 @@ body::-webkit-scrollbar {
 .card-thumbnail {
   width: clamp(115px, 25vw, 230px);
   min-width: clamp(115px, 25vw, 230px);
+  height: clamp(115px, 25vw, 230px); /* Match width for square aspect */
   flex-shrink: 0;
   background: #1a1f2e;
   display: flex;
@@ -2083,6 +2084,7 @@ body::-webkit-scrollbar {
   .card-thumbnail {
     width: clamp(161px, 23vw, 207px);
     min-width: clamp(161px, 23vw, 207px);
+    height: clamp(161px, 23vw, 207px); /* Match width */
   }
   
   .card-content-box {
@@ -2130,6 +2132,7 @@ body::-webkit-scrollbar {
   .card-thumbnail {
     width: clamp(138px, 28vw, 173px);
     min-width: clamp(138px, 28vw, 173px);
+    height: clamp(138px, 28vw, 173px); /* Match width */
   }
   
   .card-content-box {
@@ -2196,6 +2199,7 @@ body::-webkit-scrollbar {
   .card-thumbnail {
     width: clamp(115px, 25vw, 150px);
     min-width: clamp(115px, 25vw, 150px);
+    height: clamp(115px, 25vw, 150px); /* Match width */
   }
   
   .card-content-box {
@@ -2242,6 +2246,7 @@ body::-webkit-scrollbar {
   .card-thumbnail {
     width: clamp(98px, 23vw, 127px);
     min-width: clamp(98px, 23vw, 127px);
+    height: clamp(98px, 23vw, 127px); /* Match width */
   }
   
   .card-content-box {
