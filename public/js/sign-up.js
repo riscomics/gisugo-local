@@ -662,11 +662,6 @@ async function handleFormSubmission(event) {
     // Collect profile data
     const profileData = collectFormData();
     
-    // Add profile photo if selected
-    if (selectedPhotoDataUrl) {
-      profileData.profilePhoto = selectedPhotoDataUrl;
-    }
-    
     let userId;
     
     // Check if user is already authenticated (from OAuth or login redirect)
@@ -706,6 +701,80 @@ async function handleFormSubmission(event) {
       console.log('✅ Email account created:', userId);
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // UPLOAD PHOTO TO STORAGE (if selected)
+    // ═══════════════════════════════════════════════════════════════
+    if (selectedPhoto && userId) {
+      console.log('📤 Uploading profile photo to Firebase Storage...');
+      
+      if (typeof uploadProfilePhoto === 'function') {
+        try {
+          // Convert blob to File if needed
+          const photoFile = selectedPhoto instanceof File ? selectedPhoto : 
+                           new File([selectedPhoto], `profile_${userId}.jpg`, { type: 'image/jpeg' });
+          
+          const uploadResult = await uploadProfilePhoto(userId, photoFile);
+          
+          if (uploadResult.success) {
+            profileData.profilePhoto = uploadResult.url;
+            console.log('✅ Photo uploaded to Storage:', uploadResult.url.substring(0, 60) + '...');
+          } else {
+            // Upload failed - abort signup
+            hideLoadingOverlay();
+            showError('profilePhoto', 'Failed to upload photo. Please try again.');
+            console.error('❌ Photo upload failed:', uploadResult.errors);
+            
+            // Delete the Auth user we just created (rollback)
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+              const currentUser = firebase.auth().currentUser;
+              if (currentUser) {
+                await currentUser.delete();
+                console.log('🔄 Rolled back: Auth user deleted');
+              }
+            }
+            return;
+          }
+        } catch (uploadError) {
+          hideLoadingOverlay();
+          showError('profilePhoto', 'Failed to upload photo. Please try again.');
+          console.error('❌ Photo upload error:', uploadError);
+          
+          // Delete the Auth user we just created (rollback)
+          if (typeof firebase !== 'undefined' && firebase.auth) {
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+              await currentUser.delete();
+              console.log('🔄 Rolled back: Auth user deleted');
+            }
+          }
+          return;
+        }
+      } else {
+        // Fallback to base64 ONLY if Storage is not available (offline mode)
+        console.warn('⚠️ uploadProfilePhoto not available, using base64 (offline mode)');
+        profileData.profilePhoto = selectedPhotoDataUrl;
+      }
+    } else if (authenticatedUser?.photoURL) {
+      // OAuth user already has a photo URL
+      profileData.profilePhoto = authenticatedUser.photoURL;
+    }
+    
+    // Update Firebase Auth profile (displayName and photoURL) for ALL auth methods
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser && profileData.fullName) {
+        try {
+          await currentUser.updateProfile({
+            displayName: profileData.fullName,
+            photoURL: profileData.profilePhoto || null
+          });
+          console.log('✅ Firebase Auth profile updated:', profileData.fullName);
+        } catch (error) {
+          console.error('⚠️ Failed to update Auth profile:', error);
+        }
+      }
+    }
+    
     // Now save/update the complete profile to Firestore
     if (userId && typeof createUserProfile === 'function') {
       await createUserProfile(userId, profileData);
@@ -735,7 +804,7 @@ function validateForm() {
   });
   
   // Validate profile photo is uploaded (unless user came from OAuth with photo)
-  if (!selectedPhotoDataUrl && !authenticatedUser?.photoURL) {
+  if (!selectedPhoto && !authenticatedUser?.photoURL) {
     showError('profilePhoto', 'Please upload a profile photo');
     isValid = false;
     

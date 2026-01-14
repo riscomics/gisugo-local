@@ -285,6 +285,9 @@ function normalizeFirebaseJob(job) {
 }
 
 function populateJobPage(jobData) {
+  // Store job data globally for customer profile link
+  window.currentJobData = jobData;
+  
   // Set page title (check both jobTitle and title fields)
   const jobTitle = jobData.jobTitle || jobData.title;
   document.title = `${jobTitle} - GISUGO`;
@@ -390,6 +393,26 @@ function populateJobPage(jobData) {
   document.getElementById('jobPaymentAmount').textContent = `₱${paymentAmount}`;
   document.getElementById('jobPaymentRate').textContent = paymentType;
   document.getElementById('modalPaymentAmount').textContent = `₱${paymentAmount}`;
+  
+  // Set customer info (poster)
+  const customerNameEl = document.getElementById('customerName');
+  const customerAvatarEl = document.getElementById('customerAvatar');
+  
+  if (customerNameEl) {
+    customerNameEl.textContent = jobData.posterName || 'Customer';
+  }
+  
+  if (customerAvatarEl) {
+    const avatarSrc = jobData.posterThumbnail || 'public/icons/default-avatar.png';
+    customerAvatarEl.src = avatarSrc;
+    customerAvatarEl.alt = jobData.posterName || 'Customer';
+    
+    // Add error handling for broken images
+    customerAvatarEl.onerror = function() {
+      console.warn('⚠️ Failed to load customer avatar, using default');
+      customerAvatarEl.src = 'public/icons/default-avatar.png';
+    };
+  }
 }
 
 function populateExtras(jobData) {
@@ -777,19 +800,12 @@ function initializeCustomerProfileLink() {
     customerProfileLink.addEventListener('click', function(e) {
       e.preventDefault();
       
-      // Get customer data to construct profile URL
-      const customerName = document.getElementById('customerName')?.textContent;
-      
-      if (customerName) {
-        // Convert customer name to URL-friendly format (similar to userId)
-        const userId = customerName.toLowerCase()
-          .replace(/\s+/g, '-')
-          .replace(/[^a-z0-9-]/g, '');
-        
-        // Navigate to profile page with userId parameter
-        window.location.href = `profile.html?userId=${userId}`;
+      // Use the actual posterId stored in the job data
+      if (window.currentJobData && window.currentJobData.posterId) {
+        // Navigate to profile page with the real userId
+        window.location.href = `profile.html?userId=${window.currentJobData.posterId}`;
       } else {
-        console.log('Customer name not found for profile link');
+        console.error('❌ Poster ID not found in job data');
       }
     });
   }

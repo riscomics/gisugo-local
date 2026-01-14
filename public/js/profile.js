@@ -613,34 +613,42 @@ async function saveProfileChanges() {
       };
       
       // Upload photo to Firebase Storage if changed
+      const oldPhotoUrl = profile.profilePhoto; // Store before upload
+      
       if (photoChanged && photoPreview) {
         console.log('📤 Uploading profile photo to Firebase Storage...');
         
         // Convert data URL back to file for upload
         if (typeof uploadProfilePhoto === 'function' && typeof dataUrlToFile === 'function') {
           try {
+            // ═══════════════════════════════════════════════════════════════
+            // UPLOAD NEW PHOTO FIRST (don't touch old yet)
+            // ═══════════════════════════════════════════════════════════════
             const photoFile = dataUrlToFile(photoPreview.src, `profile_${userId}.jpg`);
             const uploadResult = await uploadProfilePhoto(userId, photoFile);
             
-            if (uploadResult.success) {
-              newPhotoUrl = uploadResult.url;
-              updates.profilePhoto = newPhotoUrl;
-              console.log('✅ Photo uploaded to Storage:', newPhotoUrl.substring(0, 50) + '...');
-            } else {
+            if (!uploadResult.success) {
+              // Upload failed - abort operation
               console.error('❌ Photo upload failed:', uploadResult.errors);
-              // Fall back to data URL if Storage upload fails
-              updates.profilePhoto = photoPreview.src;
+              throw new Error('Photo upload failed');
             }
+            
+            newPhotoUrl = uploadResult.url;
+            updates.profilePhoto = newPhotoUrl;
+            console.log('✅ Photo uploaded to Storage:', newPhotoUrl.substring(0, 50) + '...');
+            
           } catch (uploadError) {
             console.error('❌ Photo upload error:', uploadError);
-            // Fall back to data URL
-            updates.profilePhoto = photoPreview.src;
+            alert('Failed to upload photo. Please try again.');
+            hideSavingModal();
+            return; // Abort - keep old photo
           }
         } else {
-          // Storage functions not available - use data URL
-          console.log('⚠️ Storage not available, using data URL');
-          updates.profilePhoto = photoPreview.src;
-          newPhotoUrl = photoPreview.src;
+          // Storage functions not available - offline mode
+          console.warn('⚠️ Storage not available, operation aborted');
+          alert('Photo upload requires internet connection.');
+          hideSavingModal();
+          return;
         }
       }
       
@@ -648,8 +656,26 @@ async function saveProfileChanges() {
       
       if (result.success) {
         console.log('✅ Profile saved to Firestore!');
+        
+        // ═══════════════════════════════════════════════════════════════
+        // DELETE OLD PHOTO (LAST - after everything else succeeds)
+        // ═══════════════════════════════════════════════════════════════
+        if (photoChanged && oldPhotoUrl && oldPhotoUrl.includes('firebasestorage')) {
+          if (typeof deletePhotoFromStorageUrl === 'function') {
+            console.log('🗑️ Deleting old profile photo...');
+            const deleteResult = await deletePhotoFromStorageUrl(oldPhotoUrl);
+            
+            if (deleteResult.success) {
+              console.log('✅ Old profile photo cleaned up');
+            } else {
+              console.error('⚠️ Old photo deletion failed (orphaned):', deleteResult.message);
+              // TODO: Track orphan in Firestore
+            }
+          }
+        }
       } else {
         console.error('❌ Failed to save to Firestore:', result.message);
+        // TODO: If we uploaded new photo but Firestore failed, track as orphan
       }
     } catch (error) {
       console.error('❌ Error saving to Firestore:', error);
@@ -812,23 +838,39 @@ function isUserLoggedIn() {
 
 // Check if current user is viewing their own profile
 function isOwnProfile() {
-  // In production, compare current authenticated user ID with profile user ID
-  // For now, we'll assume user is viewing their own profile for development
-  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isDevelopment) {
-    return true; // Mock own profile for development
+  // Get current authenticated user ID
+  const currentUserId = getCurrentUserId();
+  if (!currentUserId) {
+    return false; // Not logged in
   }
   
-  // TEMPORARY: For live demo purposes, simulate own profile
-  // TODO: Replace with real user ID comparison when authentication is implemented
-  return true; // Allow Account button to show on live site for demo
+  // Get profile user ID from URL or loaded profile
+  const profileUserId = getProfileUserId();
   
-  // Production logic would be:
-  // const currentUserId = getCurrentUserId();
-  // const profileUserId = getProfileUserId(); // Get from URL params or page data
-  // return currentUserId === profileUserId;
+  // Compare IDs
+  return currentUserId === profileUserId;
+}
+
+/**
+ * Get the user ID of the profile being viewed
+ * Reads from URL parameter or falls back to current user
+ */
+function getProfileUserId() {
+  // Check URL parameter first
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlUserId = urlParams.get('userId');
   
-  return false;
+  if (urlUserId) {
+    return urlUserId;
+  }
+  
+  // Check if profile is already loaded
+  if (window.currentUserProfile && window.currentUserProfile.userId) {
+    return window.currentUserProfile.userId;
+  }
+  
+  // Fall back to current user (viewing own profile)
+  return getCurrentUserId();
 }
 
 // Check if user has any verification status
@@ -2821,9 +2863,16 @@ async function waitForAuthAndLoadProfile() {
       });
       console.log('═══════════════════════════════════════════════════════');
       
+      // Determine which user profile to load
+      const profileUserId = getProfileUserId(); // Will check URL param or fall back to current user
+      const isViewingOwnProfile = (profileUserId === user.uid);
+      
+      console.log('👤 Profile to load:', profileUserId);
+      console.log('🔍 Viewing own profile:', isViewingOwnProfile);
+      
       // Load profile from Firestore
       if (typeof getUserProfile === 'function') {
-        const firebaseProfile = await getUserProfile(user.uid);
+        const firebaseProfile = await getUserProfile(profileUserId);
         
         if (firebaseProfile) {
           console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
@@ -2831,11 +2880,20 @@ async function waitForAuthAndLoadProfile() {
           hideProfileLoadingState();
           loadUserProfile(firebaseProfile);
         } else {
-          // User is authenticated but has no profile - redirect to sign-up
-          console.log('⚠️ No profile found, redirecting to complete sign-up...');
-          hideProfileLoadingState();
-          window.location.href = 'sign-up.html?complete=true';
-          return;
+          // Profile not found
+          if (isViewingOwnProfile) {
+            // User is authenticated but has no profile - redirect to sign-up
+            console.log('⚠️ No profile found, redirecting to complete sign-up...');
+            hideProfileLoadingState();
+            window.location.href = 'sign-up.html?complete=true';
+            return;
+          } else {
+            // Viewing someone else's profile that doesn't exist
+            console.error('❌ Profile not found for user:', profileUserId);
+            hideProfileLoadingState();
+            showProfileError('User profile not found.');
+            return;
+          }
         }
       } else {
         throw new Error('getUserProfile function not available');

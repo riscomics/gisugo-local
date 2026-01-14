@@ -34,11 +34,42 @@ async function createJob(jobData) {
       return { success: false, message: 'You must be logged in to post a job' };
     }
     
+    // Get user profile from Firestore for accurate poster info
+    let posterName = currentUser.displayName || 'Anonymous';
+    let posterThumbnail = currentUser.photoURL || '';
+    
+    console.log('🔍 Fetching user profile from Firestore for:', currentUser.uid);
+    console.log('📋 Current Auth data:', { 
+      displayName: currentUser.displayName, 
+      photoURL: currentUser.photoURL 
+    });
+    
+    try {
+      const userProfile = await getUserProfile(currentUser.uid);
+      console.log('📦 Firestore profile result:', userProfile);
+      
+      if (userProfile) {
+        console.log('✅ Using Firestore profile data:', {
+          fullName: userProfile.fullName,
+          profilePhoto: userProfile.profilePhoto
+        });
+        posterName = userProfile.fullName || posterName;
+        posterThumbnail = userProfile.profilePhoto || posterThumbnail;
+      } else {
+        console.warn('⚠️ No Firestore profile found, using Auth data');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user profile:', error);
+      console.warn('⚠️ Falling back to Auth data:', { posterName, posterThumbnail });
+    }
+    
+    console.log('🎯 Final poster data:', { posterName, posterThumbnail });
+    
     const jobDoc = {
       // Basic Job Information
       posterId: currentUser.uid,
-      posterName: currentUser.displayName || 'Anonymous',
-      posterThumbnail: currentUser.photoURL || '',
+      posterName: posterName,
+      posterThumbnail: posterThumbnail,
       title: jobData.title || jobData.jobTitle,
       description: jobData.description || '',
       category: jobData.category,
@@ -102,11 +133,19 @@ function createJobOffline(jobData) {
   const jobId = `${jobData.category}_job_${Date.now()}`;
   const category = jobData.category;
   
+  // Get current user info from Firebase Auth
+  const auth = getFirebaseAuth();
+  const currentUser = auth ? auth.currentUser : null;
+  const posterId = currentUser?.uid || getCurrentUserId() || 'offline_user';
+  const posterName = currentUser?.displayName || 'Demo User';
+  const posterThumbnail = currentUser?.photoURL || '';
+  
   const jobDoc = {
     jobId: jobId,
     jobNumber: Date.now().toString(),
-    posterId: getCurrentUserId() || 'offline_user',
-    posterName: 'Demo User',
+    posterId: posterId,
+    posterName: posterName,
+    posterThumbnail: posterThumbnail,
     title: jobData.title || jobData.jobTitle,
     description: jobData.description || '',
     category: category,
@@ -535,7 +574,7 @@ function updateJobStatusOffline(jobId, newStatus, additionalData) {
 }
 
 /**
- * Delete a job
+ * Delete a job with comprehensive cleanup (Firestore + Storage)
  * @param {string} jobId - Job document ID
  * @returns {Promise<Object>} - Result object
  */
@@ -547,27 +586,110 @@ async function deleteJob(jobId) {
   }
   
   try {
-    // Get job data for audit
+    // Get job data for audit and photo cleanup
     const jobDoc = await db.collection('jobs').doc(jobId).get();
     
     if (!jobDoc.exists) {
       return { success: false, message: 'Job not found' };
     }
     
-    // Create deletion record
+    const jobData = jobDoc.data();
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1: Delete photo from Firebase Storage (if it's a Storage URL)
+    // ═══════════════════════════════════════════════════════════════
+    if (jobData.thumbnail) {
+      const isStorageUrl = jobData.thumbnail.includes('firebasestorage.googleapis.com') || 
+                          jobData.thumbnail.includes('storage.googleapis.com');
+      
+      if (isStorageUrl) {
+        console.log('🗑️ Deleting photo from Firebase Storage...');
+        
+        try {
+          // Extract storage path from URL
+          const storage = getFirebaseStorage();
+          if (storage) {
+            // Method 1: Try to extract path from URL
+            let storagePath = null;
+            
+            // Parse URL to get the file path
+            const url = new URL(jobData.thumbnail);
+            const pathMatch = url.pathname.match(/\/o\/(.+)\?/);
+            
+            if (pathMatch) {
+              storagePath = decodeURIComponent(pathMatch[1]);
+              console.log('📍 Extracted storage path:', storagePath);
+              
+              // Delete the file
+              const fileRef = storage.ref().child(storagePath);
+              await fileRef.delete();
+              console.log('✅ Photo deleted from Storage');
+            } else {
+              console.warn('⚠️ Could not extract storage path from URL');
+            }
+          }
+        } catch (storageError) {
+          // Don't fail the entire deletion if photo deletion fails
+          if (storageError.code === 'storage/object-not-found') {
+            console.warn('⚠️ Photo already deleted from Storage');
+          } else {
+            console.error('❌ Error deleting photo from Storage:', storageError);
+          }
+        }
+      } else {
+        console.log('ℹ️ Photo is base64/local, no Storage cleanup needed');
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 2: Delete associated applications (optional - for complete cleanup)
+    // ═══════════════════════════════════════════════════════════════
+    if (jobData.applicationIds && jobData.applicationIds.length > 0) {
+      console.log(`🗑️ Deleting ${jobData.applicationIds.length} associated applications...`);
+      
+      const batch = db.batch();
+      for (const appId of jobData.applicationIds) {
+        const appRef = db.collection('applications').doc(appId);
+        batch.delete(appRef);
+      }
+      
+      try {
+        await batch.commit();
+        console.log('✅ Applications deleted');
+      } catch (appError) {
+        console.error('❌ Error deleting applications:', appError);
+        // Continue with job deletion even if applications fail
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 3: Create deletion audit record
+    // ═══════════════════════════════════════════════════════════════
     await db.collection('job_deletions').add({
       jobId: jobId,
       deletedBy: getCurrentUserId(),
       deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
       reason: 'user_requested',
-      jobData: jobDoc.data()
+      jobData: jobData,
+      photoDeleted: jobData.thumbnail ? jobData.thumbnail.includes('firebasestorage') : false,
+      applicationsDeleted: jobData.applicationIds ? jobData.applicationIds.length : 0
     });
     
-    // Delete the job
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 4: Delete the job document from Firestore
+    // ═══════════════════════════════════════════════════════════════
     await db.collection('jobs').doc(jobId).delete();
     
-    console.log(`✅ Job ${jobId} deleted`);
-    return { success: true, message: 'Job deleted successfully' };
+    console.log(`✅ Job ${jobId} deleted completely (Firestore + Storage + Applications)`);
+    return { 
+      success: true, 
+      message: 'Job deleted successfully',
+      cleanup: {
+        firestoreDeleted: true,
+        photoDeleted: jobData.thumbnail ? jobData.thumbnail.includes('firebasestorage') : false,
+        applicationsDeleted: jobData.applicationIds ? jobData.applicationIds.length : 0
+      }
+    };
     
   } catch (error) {
     console.error('❌ Error deleting job:', error);
@@ -623,12 +745,54 @@ async function applyForJob(jobId, applicationData) {
   }
   
   try {
+    // ═══════════════════════════════════════════════════════════════
+    // VALIDATION: Prevent self-application
+    // ═══════════════════════════════════════════════════════════════
+    const job = await getJobById(jobId);
+    
+    if (!job) {
+      return { success: false, message: 'Job not found' };
+    }
+    
+    if (job.posterId === currentUser.uid) {
+      console.warn('⚠️ User attempted to apply to their own gig');
+      return { 
+        success: false, 
+        message: 'You cannot apply to your own gig' 
+      };
+    }
+    
+    console.log('✅ Self-application check passed');
+    
+    // Get applicant profile from Firestore for accurate info
+    let applicantName = currentUser.displayName || 'Anonymous';
+    let applicantThumbnail = currentUser.photoURL || '';
+    
+    console.log('🔍 Fetching applicant profile from Firestore for:', currentUser.uid);
+    
+    try {
+      const applicantProfile = await getUserProfile(currentUser.uid);
+      
+      if (applicantProfile) {
+        console.log('✅ Using Firestore profile data for applicant');
+        applicantName = applicantProfile.fullName || applicantName;
+        applicantThumbnail = applicantProfile.profilePhoto || applicantThumbnail;
+      } else {
+        console.warn('⚠️ No Firestore profile found for applicant, using Auth data');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching applicant profile:', error);
+      console.warn('⚠️ Falling back to Auth data for applicant');
+    }
+    
+    console.log('🎯 Final applicant data:', { applicantName, applicantThumbnail });
+    
     // Create application document
     const application = {
       jobId: jobId,
       applicantId: currentUser.uid,
-      applicantName: currentUser.displayName || 'Anonymous',
-      applicantThumbnail: currentUser.photoURL || '',
+      applicantName: applicantName,
+      applicantThumbnail: applicantThumbnail,
       appliedAt: firebase.firestore.FieldValue.serverTimestamp(),
       status: 'pending',
       message: applicationData.message || '',
@@ -1262,6 +1426,54 @@ function getMonthStartTimestamp() {
 }
 
 // ============================================================================
+// USER PROFILE FUNCTIONS
+// ============================================================================
+
+/**
+ * Get user profile from Firestore
+ * @param {string} userId - User's UID
+ * @returns {Promise<Object|null>} - User profile or null if not found
+ */
+async function getUserProfile(userId) {
+  console.log('🔎 getUserProfile called for:', userId);
+  
+  const db = getFirestore();
+  
+  if (!db) {
+    console.error('❌ Firestore not available - cannot fetch profile');
+    return null;
+  }
+  
+  try {
+    console.log('📡 Querying Firestore: users/' + userId);
+    const userDoc = await db.collection('users').doc(userId).get();
+    
+    console.log('📨 Firestore response:', {
+      exists: userDoc.exists,
+      id: userDoc.id,
+      hasData: userDoc.exists ? Object.keys(userDoc.data()).length : 0
+    });
+    
+    if (userDoc.exists) {
+      const profileData = { userId: userDoc.id, ...userDoc.data() };
+      console.log('✅ Profile found:', {
+        userId: profileData.userId,
+        fullName: profileData.fullName,
+        email: profileData.email,
+        hasPhoto: !!profileData.profilePhoto
+      });
+      return profileData;
+    } else {
+      console.warn('⚠️ User profile not found in Firestore:', userId);
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Error getting user profile from Firestore:', error);
+    return null;
+  }
+}
+
+// ============================================================================
 // GLOBAL EXPORTS
 // ============================================================================
 
@@ -1272,6 +1484,9 @@ window.getJobsByCategory = getJobsByCategory;
 window.getUserJobListings = getUserJobListings;
 window.updateJobStatus = updateJobStatus;
 window.deleteJob = deleteJob;
+
+// Users
+window.getUserProfile = getUserProfile;
 
 // Applications
 window.applyForJob = applyForJob;

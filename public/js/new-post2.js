@@ -1605,21 +1605,62 @@ async function postJob() {
     extras.push(`${config.field2.label} ${np2State.extras2Value}`);
   }
   
-  // Prepare photo data (use processed versions if available)
+  // Prepare photo data (upload to Firebase Storage if available)
   let thumbnailData, originalPhotoData;
-  if (processedJobPhoto) {
-    thumbnailData = processedJobPhoto.cropped; // 500×281 for listing cards
-    originalPhotoData = processedJobPhoto.hasOriginal ? processedJobPhoto.original : processedJobPhoto.cropped; // 720px for detail page
-    console.log('📸 Using processed photo:', processedJobPhoto.hasOriginal ? 'DUAL (cropped + original)' : 'CROP only');
-  } else if (np2State.photoDataUrl) {
-    // Fallback if somehow photo wasn't processed
-    thumbnailData = np2State.photoDataUrl;
-    originalPhotoData = np2State.photoDataUrl;
-    console.warn('⚠️ Using unprocessed photo (shouldn\'t happen)');
+  
+  // Check if we have a photo to upload and if Firebase Storage is available
+  const hasPhoto = processedJobPhoto || np2State.photoDataUrl;
+  const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
+  
+  if (hasPhoto && useFirebaseStorage) {
+    console.log('📤 Uploading photo to Firebase Storage...');
+    
+    try {
+      // Generate temporary job ID for storage path
+      const tempJobId = `${np2State.selectedCategory}_${Date.now()}`;
+      
+      // Convert data URL to File object
+      let photoFile = np2State.photoFile;
+      
+      if (!photoFile && np2State.photoDataUrl) {
+        // Create File from data URL if original file is not available
+        const response = await fetch(np2State.photoDataUrl);
+        const blob = await response.blob();
+        photoFile = new File([blob], `job_photo_${tempJobId}.jpg`, { type: 'image/jpeg' });
+      }
+      
+      // Upload to Firebase Storage
+      const uploadResult = await uploadJobPhoto(tempJobId, photoFile);
+      
+      if (uploadResult.success) {
+        thumbnailData = uploadResult.url; // Firebase Storage URL
+        originalPhotoData = uploadResult.url; // Same URL (resizing handled by Storage)
+        console.log('✅ Photo uploaded to Storage:', uploadResult.url);
+      } else {
+        console.error('❌ Storage upload failed:', uploadResult.errors);
+        throw new Error('Photo upload failed');
+      }
+    } catch (error) {
+      console.error('❌ Error uploading photo:', error);
+      alert('Failed to upload photo. Please try again.');
+      return; // Stop job creation if photo upload fails
+    }
+  } else if (hasPhoto) {
+    // Fallback to base64 if Firebase Storage not available (offline mode)
+    if (processedJobPhoto) {
+      thumbnailData = processedJobPhoto.cropped;
+      originalPhotoData = processedJobPhoto.hasOriginal ? processedJobPhoto.original : processedJobPhoto.cropped;
+      console.log('📸 Using base64 photo (offline mode):', processedJobPhoto.hasOriginal ? 'DUAL (cropped + original)' : 'CROP only');
+    } else if (np2State.photoDataUrl) {
+      thumbnailData = np2State.photoDataUrl;
+      originalPhotoData = np2State.photoDataUrl;
+      console.warn('⚠️ Using unprocessed photo (offline mode)');
+    }
   } else {
     // No photo uploaded
     thumbnailData = `public/mock/mock-${np2State.selectedCategory}-post${jobNumber}.jpg`;
     originalPhotoData = null;
+    console.log('⚠️ No photo uploaded, using mock placeholder');
   }
   
   const job = {
@@ -2731,9 +2772,47 @@ async function handleEditFormSubmit(jobId, category) {
     lastModified: new Date().toISOString()
   };
   
-  // Include photo (original or new)
+  // Include photo (original or new) - upload to Firebase Storage if available
   if (np2State.photoDataUrl) {
-    updatedJob.thumbnail = np2State.photoDataUrl;
+    const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
+    
+    if (useFirebaseStorage && np2State.photoFile) {
+      console.log('📤 Uploading updated photo to Firebase Storage...');
+      
+      try {
+        // ═══════════════════════════════════════════════════════════════
+        // GET OLD PHOTO URL (for deletion after update succeeds)
+        // ═══════════════════════════════════════════════════════════════
+        if (typeof getJobById === 'function') {
+          const existingJob = await getJobById(jobId);
+          if (existingJob && existingJob.thumbnail) {
+            np2State.oldGigPhotoUrl = existingJob.thumbnail; // Store for later deletion
+          }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // UPLOAD NEW PHOTO FIRST (don't delete old yet)
+        // ═══════════════════════════════════════════════════════════════
+        const uploadResult = await uploadJobPhoto(jobId, np2State.photoFile);
+        
+        if (!uploadResult.success) {
+          console.error('❌ Storage upload failed:', uploadResult.errors);
+          showToast('Failed to upload photo', 'error');
+          return; // Abort - old photo still intact
+        }
+        
+        updatedJob.thumbnail = uploadResult.url; // Firebase Storage URL
+        console.log('✅ Updated photo uploaded to Storage:', uploadResult.url);
+        
+      } catch (error) {
+        console.error('❌ Error uploading photo:', error);
+        showToast('Failed to upload photo. Please try again.', 'error');
+        return;
+      }
+    } else {
+      // Use base64 if offline mode or photo wasn't changed
+      updatedJob.thumbnail = np2State.photoDataUrl;
+    }
   }
   
   // Include extras if they exist
@@ -2835,10 +2914,31 @@ function showEditPreview(updatedJob, category, jobId) {
         
         if (result.success) {
           console.log('✅ Job updated successfully in Firebase');
+          
+          // ═══════════════════════════════════════════════════════════════
+          // DELETE OLD PHOTO (LAST - after Firestore update succeeds)
+          // ═══════════════════════════════════════════════════════════════
+          if (np2State.oldGigPhotoUrl && np2State.oldGigPhotoUrl.includes('firebasestorage')) {
+            if (typeof deletePhotoFromStorageUrl === 'function') {
+              console.log('🗑️ Deleting old gig photo...');
+              const deleteResult = await deletePhotoFromStorageUrl(np2State.oldGigPhotoUrl);
+              
+              if (deleteResult.success) {
+                console.log('✅ Old gig photo cleaned up');
+              } else {
+                console.error('⚠️ Old photo deletion failed (orphaned):', deleteResult.message);
+                // TODO: Track orphan in Firestore
+              }
+            }
+            // Clear the stored URL
+            np2State.oldGigPhotoUrl = null;
+          }
+          
           showSuccessOverlay();
         } else {
           console.error('❌ Job update failed:', result.message);
           showToast('Failed to update job: ' + result.message, 'error');
+          // TODO: If we uploaded new photo but Firestore failed, track as orphan
         }
       } else {
         // localStorage fallback

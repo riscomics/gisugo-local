@@ -458,6 +458,62 @@ async function deleteFile(filePath) {
   }
 }
 
+/**
+ * Delete a photo from Storage by URL (helper for photo replacement)
+ * @param {string} photoUrl - Full Storage URL to delete
+ * @returns {Promise<Object>} - Result object
+ */
+async function deletePhotoFromStorageUrl(photoUrl) {
+  if (!photoUrl) {
+    return { success: true, message: 'No photo URL provided' };
+  }
+  
+  // Check if it's a Firebase Storage URL
+  const isStorageUrl = photoUrl.includes('firebasestorage.googleapis.com') || 
+                      photoUrl.includes('storage.googleapis.com');
+  
+  if (!isStorageUrl) {
+    console.log('ℹ️ Photo is base64/local, no Storage cleanup needed');
+    return { success: true, message: 'Not a Storage URL' };
+  }
+  
+  const storage = getFirebaseStorage();
+  
+  if (!storage) {
+    return { success: true, message: 'Storage not available (offline mode)' };
+  }
+  
+  try {
+    // Extract storage path from URL
+    const url = new URL(photoUrl);
+    const pathMatch = url.pathname.match(/\/o\/(.+)\?/);
+    
+    if (!pathMatch) {
+      console.warn('⚠️ Could not extract storage path from URL:', photoUrl);
+      return { success: false, message: 'Invalid Storage URL format' };
+    }
+    
+    const storagePath = decodeURIComponent(pathMatch[1]);
+    console.log('🗑️ Deleting old photo from Storage:', storagePath);
+    
+    // Delete the file
+    const fileRef = storage.ref().child(storagePath);
+    await fileRef.delete();
+    
+    console.log('✅ Old photo deleted from Storage');
+    return { success: true, path: storagePath };
+    
+  } catch (error) {
+    if (error.code === 'storage/object-not-found') {
+      console.warn('⚠️ Photo already deleted from Storage');
+      return { success: true, message: 'Already deleted' };
+    }
+    
+    console.error('❌ Error deleting photo from Storage:', error);
+    return { success: false, message: error.message };
+  }
+}
+
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
@@ -582,6 +638,7 @@ window.uploadProfilePhoto = uploadProfilePhoto;
 window.uploadJobPhoto = uploadJobPhoto;
 window.uploadVerificationDocuments = uploadVerificationDocuments;
 window.deleteFile = deleteFile;
+window.deletePhotoFromStorageUrl = deletePhotoFromStorageUrl;
 window.blobToDataUrl = blobToDataUrl;
 window.dataUrlToFile = dataUrlToFile;
 window.generateThumbnail = generateThumbnail;

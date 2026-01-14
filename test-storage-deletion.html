@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storage Deletion Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    .result {
+      padding: 20px;
+      margin: 10px 0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    .success { background: #10b981; }
+    .error { background: #ef4444; }
+    .info { background: #3b82f6; }
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background: #10b981;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover { background: #059669; }
+    button:disabled { background: #6b7280; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <h1>🧪 Firebase Storage Deletion Test</h1>
+  <p>This tests if your Firebase Storage rules allow file deletion.</p>
+  
+  <button id="runTest" onclick="runDeletionTest()">Run Test</button>
+  
+  <div id="results"></div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  
+  <!-- Firebase Config -->
+  <script src="public/js/firebase-config.js"></script>
+  
+  <script>
+    const resultsDiv = document.getElementById('results');
+    const testBtn = document.getElementById('runTest');
+    
+    function log(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `result ${type}`;
+      div.textContent = message;
+      resultsDiv.appendChild(div);
+    }
+    
+    // Wait for Firebase to initialize, then check auth
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (typeof firebase === 'undefined' || !firebase.apps.length) {
+          log('❌ Firebase failed to initialize', 'error');
+          return;
+        }
+        
+        firebase.auth().onAuthStateChanged((user) => {
+          if (user) {
+            log('✅ Logged in as: ' + (user.email || user.phoneNumber || user.uid), 'success');
+            testBtn.disabled = false;
+          } else {
+            log('⚠️ Not logged in. Please log in first.', 'error');
+            testBtn.disabled = true;
+          }
+        });
+      }, 500);
+    });
+    
+    async function runDeletionTest() {
+      resultsDiv.innerHTML = '';
+      testBtn.disabled = true;
+      
+      try {
+        // Get current user
+        const auth = firebase.auth();
+        const user = auth.currentUser;
+        
+        if (!user) {
+          log('❌ ERROR: Not logged in. Please log in first and retry.', 'error');
+          log('→ Go to login.html, sign in, then come back here', 'info');
+          testBtn.disabled = false;
+          return;
+        }
+        
+        log('✅ User authenticated: ' + user.uid, 'success');
+        
+        // Step 1: Create a test file
+        log('📤 Step 1: Uploading test file...', 'info');
+        
+        const storage = firebase.storage();
+        const testFileName = `test_delete_${Date.now()}.txt`;
+        const testPath = `profile_photos/${user.uid}_${testFileName}`;
+        const storageRef = storage.ref().child(testPath);
+        
+        const testData = 'This is a test file for deletion permissions.';
+        const blob = new Blob([testData], { type: 'text/plain' });
+        
+        let uploadSnapshot, uploadUrl;
+        
+        try {
+          uploadSnapshot = await storageRef.put(blob);
+          uploadUrl = await uploadSnapshot.ref.getDownloadURL();
+          log('✅ Upload succeeded: ' + testPath, 'success');
+          log('📍 URL: ' + uploadUrl.substring(0, 60) + '...', 'info');
+        } catch (uploadError) {
+          log('❌ UPLOAD FAILED!', 'error');
+          log('Error: ' + uploadError.message, 'error');
+          log('Code: ' + uploadError.code, 'error');
+          log('', 'info');
+          log('🚨 CRITICAL: Storage rules block uploads!', 'error');
+          log('', 'info');
+          log('FIX NOW - Update Firebase Storage Rules:', 'info');
+          log('1. Go to: https://console.firebase.google.com/project/gisugo1/storage/rules', 'info');
+          log('2. Replace ALL rules with this:', 'info');
+          log('', 'info');
+          log('rules_version = "2";', 'info');
+          log('service firebase.storage {', 'info');
+          log('  match /b/{bucket}/o {', 'info');
+          log('    match /profile_photos/{allPaths=**} {', 'info');
+          log('      allow read: if true;', 'info');
+          log('      allow write: if request.auth != null;', 'info');
+          log('      allow delete: if request.auth != null;', 'info');
+          log('    }', 'info');
+          log('    match /job_photos/{allPaths=**} {', 'info');
+          log('      allow read: if true;', 'info');
+          log('      allow write: if request.auth != null;', 'info');
+          log('      allow delete: if request.auth != null;', 'info');
+          log('    }', 'info');
+          log('  }', 'info');
+          log('}', 'info');
+          log('', 'info');
+          log('3. Click "Publish"', 'info');
+          log('4. Refresh this page and run test again', 'info');
+          testBtn.disabled = false;
+          return;
+        }
+        
+        // Step 2: Try to delete the file
+        log('🗑️ Step 2: Attempting to delete file...', 'info');
+        
+        try {
+          await storageRef.delete();
+          log('✅ DELETE SUCCEEDED!', 'success');
+          log('✅ Your Storage rules allow deletion.', 'success');
+          log('✅ Safe to proceed with photo management implementation.', 'success');
+        } catch (deleteError) {
+          log('❌ DELETE FAILED!', 'error');
+          log('Error: ' + deleteError.message, 'error');
+          log('Code: ' + deleteError.code, 'error');
+          
+          if (deleteError.code === 'storage/unauthorized') {
+            log('', 'info');
+            log('🚨 CRITICAL ISSUE: Storage rules do not allow deletion!', 'error');
+            log('', 'info');
+            log('FIX: Update Firebase Storage rules:', 'info');
+            log('1. Go to Firebase Console → Storage → Rules', 'info');
+            log('2. Change rules to allow delete:', 'info');
+            log('', 'info');
+            log('match /profile_photos/{userId}_{filename} {', 'info');
+            log('  allow read: if true;', 'info');
+            log('  allow write: if request.auth.uid == userId;', 'info');
+            log('  allow delete: if request.auth.uid == userId;  ← ADD THIS', 'info');
+            log('}', 'info');
+            log('', 'info');
+            log('⚠️ ALL PHOTO OPERATIONS WILL LEAK MEMORY WITHOUT THIS!', 'error');
+          }
+        }
+        
+      } catch (error) {
+        log('❌ Test failed: ' + error.message, 'error');
+        console.error(error);
+      }
+      
+      testBtn.disabled = false;
+    }
+  </script>
+</body>
+</html>

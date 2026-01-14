@@ -5062,7 +5062,7 @@ function initializeDynamicMessageSending(messageThread) {
  * @param {string} participantName - Name of the other participant
  * @param {string} jobTitle - Job title for context
  */
-function sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle) {
+async function sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle) {
     const messageText = messageInput.value.trim();
     
     if (messageText === '') {
@@ -5087,7 +5087,7 @@ function sendDynamicMessage(threadId, messageInput, scrollContainer, participant
     };
     
     // MOCK FRONTEND IMPLEMENTATION: Create message object for display
-    const newMessage = createMockMessage(messageText, threadId);
+    const newMessage = await createMockMessage(messageText, threadId);
     
     // Add message to the thread (at the top since newest are first)
     addMessageToThread(newMessage, scrollContainer);
@@ -5114,15 +5114,44 @@ function sendDynamicMessage(threadId, messageInput, scrollContainer, participant
 }
 
 /**
+ * Helper function to get current user's avatar from Firestore
+ * @returns {Promise<string>} User's profile photo URL or empty string
+ */
+async function getCurrentUserAvatar() {
+    const currentUser = getCurrentUser ? getCurrentUser() : null;
+    
+    if (!currentUser) {
+        console.warn('⚠️ No authenticated user for avatar');
+        return '';
+    }
+    
+    try {
+        if (typeof getUserProfile === 'function') {
+            const profile = await getUserProfile(currentUser.uid);
+            if (profile && profile.profilePhoto) {
+                return profile.profilePhoto;
+            }
+        }
+        
+        // Fallback to Auth photoURL
+        return currentUser.photoURL || '';
+    } catch (error) {
+        console.error('❌ Error fetching user avatar:', error);
+        return currentUser.photoURL || '';
+    }
+}
+
+/**
  * Create a mock message object for frontend display
  * BACKEND-READY: This structure matches your existing message format
  * @param {string} content - Message content
  * @param {string} threadId - Thread identifier
- * @returns {Object} Message object
+ * @returns {Promise<Object>} Message object
  */
-function createMockMessage(content, threadId) {
+async function createMockMessage(content, threadId) {
     const now = new Date();
     const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const avatar = await getCurrentUserAvatar();
     
     return {
         id: messageId,
@@ -5132,7 +5161,7 @@ function createMockMessage(content, threadId) {
         senderName: 'You',
         senderType: 'employer',
         direction: 'outgoing',
-        avatar: 'public/users/Peter-J-Ang-User-01.jpg', // Current user avatar
+        avatar: avatar, // Current user avatar from Firestore
         timestamp: now.toISOString(),
         timeDisplay: formatMessageTime(now),
         read: true
