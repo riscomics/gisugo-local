@@ -189,9 +189,9 @@ async function uploadProfilePhoto(userId, file) {
     // Compress image
     const compressedBlob = await compressImage(file);
     
-    // Create file reference
-    const fileName = `${userId}_${Date.now()}.jpg`;
-    const filePath = `${STORAGE_CONFIG.paths.profilePhotos}/${fileName}`;
+    // Create file reference (nested: profile_photos/{userId}/photo.jpg)
+    // Always same filename - replaces old photo automatically
+    const filePath = `${STORAGE_CONFIG.paths.profilePhotos}/${userId}/photo.jpg`;
     const fileRef = storage.ref().child(filePath);
     
     // Upload file
@@ -250,7 +250,7 @@ async function uploadProfilePhotoOffline(userId, file) {
  * @param {File} file - Image file to upload
  * @returns {Promise<Object>} - Result with download URL
  */
-async function uploadJobPhoto(jobId, file) {
+async function uploadJobPhoto(jobId, file, userId = null) {
   // Validate file
   const validation = validateFile(file, 'job');
   if (!validation.valid) {
@@ -267,12 +267,17 @@ async function uploadJobPhoto(jobId, file) {
   try {
     console.log('📤 Uploading job photo...');
     
+    // Get userId if not provided
+    if (!userId) {
+      const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+      userId = currentUser?.uid || 'unknown';
+    }
+    
     // Compress image
     const compressedBlob = await compressImage(file);
     
-    // Create file reference
-    const fileName = `${jobId}_${Date.now()}.jpg`;
-    const filePath = `${STORAGE_CONFIG.paths.jobPhotos}/${fileName}`;
+    // Create file reference (nested: job_photos/{userId}/{jobId}.jpg)
+    const filePath = `${STORAGE_CONFIG.paths.jobPhotos}/${userId}/${jobId}.jpg`;
     const fileRef = storage.ref().child(filePath);
     
     // Upload file
@@ -280,6 +285,7 @@ async function uploadJobPhoto(jobId, file) {
       contentType: 'image/jpeg',
       customMetadata: {
         jobId: jobId,
+        userId: userId,
         uploadedAt: new Date().toISOString()
       }
     });
