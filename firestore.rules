@@ -1,0 +1,176 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ═══════════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is the owner of a resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if user is admin (add your admin email here)
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email in [
+        'admin@gisugo.com',
+        'support@gisugo.com'
+      ];
+    }
+    
+    // Validate profile data structure
+    function isValidProfile() {
+      return request.resource.data.keys().hasAll(['userId', 'fullName', 'email', 'createdAt'])
+        && request.resource.data.userId is string
+        && request.resource.data.fullName is string
+        && request.resource.data.email is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.fullName.size() <= 100;
+    }
+    
+    // Validate job data structure
+    function isValidJob() {
+      return request.resource.data.keys().hasAll(['posterId', 'title', 'category', 'region', 'city'])
+        && request.resource.data.posterId is string
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 55
+        && request.resource.data.category is string
+        && request.resource.data.region is string
+        && request.resource.data.city is string;
+    }
+    
+    // Validate application data
+    function isValidApplication() {
+      return request.resource.data.keys().hasAll(['jobId', 'applicantId', 'appliedAt'])
+        && request.resource.data.jobId is string
+        && request.resource.data.applicantId is string
+        && request.resource.data.applicantId == request.auth.uid;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // USERS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
+    match /users/{userId} {
+      // Anyone can read any user profile (for displaying poster info, etc.)
+      allow read: if true;
+      
+      // Only authenticated users can create their own profile
+      allow create: if isAuthenticated() 
+        && request.auth.uid == userId 
+        && isValidProfile()
+        && request.resource.data.userId == userId;
+      
+      // Only the owner can update their own profile
+      allow update: if isOwner(userId)
+        && isValidProfile()
+        && request.resource.data.userId == userId;
+      
+      // Only the owner or admin can delete
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // JOBS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
+    match /jobs/{jobId} {
+      // Anyone can read all jobs (for browsing listings)
+      allow read: if true;
+      
+      // Only authenticated users can create jobs
+      allow create: if isAuthenticated()
+        && isValidJob()
+        && request.resource.data.posterId == request.auth.uid;
+      
+      // Only the job poster can update their own job
+      allow update: if isAuthenticated()
+        && resource.data.posterId == request.auth.uid;
+      
+      // Only the job poster or admin can delete
+      allow delete: if isAuthenticated()
+        && (resource.data.posterId == request.auth.uid || isAdmin());
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // APPLICATIONS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
+    match /applications/{applicationId} {
+      // Users can read their own applications or applications to their jobs
+      allow read: if isAuthenticated()
+        && (resource.data.applicantId == request.auth.uid 
+            || resource.data.posterId == request.auth.uid);
+      
+      // Authenticated users can create applications
+      allow create: if isAuthenticated()
+        && isValidApplication()
+        && request.resource.data.applicantId == request.auth.uid;
+      
+      // Only the applicant can update their own application
+      allow update: if isAuthenticated()
+        && resource.data.applicantId == request.auth.uid;
+      
+      // Applicant or job poster can delete
+      allow delete: if isAuthenticated()
+        && (resource.data.applicantId == request.auth.uid 
+            || resource.data.posterId == request.auth.uid);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // JOB DELETIONS COLLECTION (Audit Log)
+    // ═══════════════════════════════════════════════════════════════
+    match /job_deletions/{deletionId} {
+      // Only admins can read audit logs
+      allow read: if isAdmin();
+      
+      // System can create (through client for now, ideally Cloud Function)
+      allow create: if isAuthenticated();
+      
+      // No updates or deletes allowed (immutable audit trail)
+      allow update, delete: if false;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ORPHANED FILES COLLECTION (Future Feature)
+    // ═══════════════════════════════════════════════════════════════
+    match /orphaned_files/{fileId} {
+      // Only admins can read
+      allow read: if isAdmin();
+      
+      // System can create
+      allow create: if isAuthenticated();
+      
+      // Only admins can update/delete
+      allow update, delete: if isAdmin();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // MESSAGES/CHAT COLLECTION (Future Feature)
+    // ═══════════════════════════════════════════════════════════════
+    match /messages/{messageId} {
+      // Users can only read messages they're part of
+      allow read: if isAuthenticated()
+        && (resource.data.senderId == request.auth.uid 
+            || resource.data.receiverId == request.auth.uid);
+      
+      // Authenticated users can create messages
+      allow create: if isAuthenticated()
+        && request.resource.data.senderId == request.auth.uid;
+      
+      // No updates or deletes (messages are immutable)
+      allow update, delete: if false;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // DENY ALL OTHER COLLECTIONS BY DEFAULT
+    // ═══════════════════════════════════════════════════════════════
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
