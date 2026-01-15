@@ -54,7 +54,7 @@ function checkUserLoggedIn() {
 // Handle menu item click with auth check
 function handleMenuClick(link, requiresAuth) {
   // Check APP_CONFIG for dev mode
-  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : true;
+  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : false;
   const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
   
   // In dev mode or no Firebase: always allow navigation
@@ -73,7 +73,7 @@ function handleMenuClick(link, requiresAuth) {
 
 // Dynamically generates menu HTML with emojis
 function generateMenuHTML() {
-  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : true;
+  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : false;
   const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
   
   let menuHTML = MENU_ITEMS.map(item => {

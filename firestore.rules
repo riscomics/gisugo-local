@@ -16,11 +16,10 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Check if user is admin (add your admin email here)
+    // Check if user is admin
     function isAdmin() {
       return isAuthenticated() && request.auth.token.email in [
-        'admin@gisugo.com',
-        'support@gisugo.com'
+        'riscomics@gmail.com'
       ];
     }
     

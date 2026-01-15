@@ -15,8 +15,8 @@ const APP_CONFIG = {
     if (stored !== null) {
       return stored === 'true';
     }
-    // Default to true during development
-    return true;
+    // Default to false for production (Firebase mode)
+    return false;
   },
   
   set devMode(value) {
