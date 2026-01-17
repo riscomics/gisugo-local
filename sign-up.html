@@ -474,15 +474,15 @@
       height: 100%;
       background: rgba(0, 0, 0, 0.85);
       display: none;
-      align-items: center;
-      justify-content: center;
       z-index: 10000;
       padding: 20px;
-      overflow-y: auto;
+      overflow-y: auto; /* Overlay scrolls */
     }
     
     .terms-modal-overlay.show {
       display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     .terms-modal-content {
@@ -496,6 +496,7 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      margin: auto; /* Center if taller than viewport */
     }
     
     .terms-modal-header {
@@ -623,7 +624,7 @@
         <span>Back</span>
       </button>
       <div class="signup-header-title">CREATE ACCOUNT</div>
-      <div class="signup-header-spacer"></div>
+      <!-- Removed spacer - no home button on signup page -->
     </div>
     <div class="signup-header-borderline"></div>
   </div>

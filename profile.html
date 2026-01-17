@@ -120,22 +120,19 @@
           <div class="user-summary-header">ABOUT ME:</div>
           <div class="user-summary-container">
             <div class="user-summary-text" id="userSummary">Loading...</div>
-              </div>
-            </div>
           </div>
+        </div>
           
-          <!-- Logout Button (only visible when viewing own profile) -->
-          <div class="logout-section" id="logoutSection" style="display: none;">
-            <button class="logout-btn" id="logoutBtn">
-              <span class="logout-icon">🚪</span>
-              <span class="logout-text">LOG OUT</span>
-            </button>
-          </div>
-          
-          </div>
+        <!-- Logout Button (only visible when viewing own profile) -->
+        <div class="logout-section" id="logoutSection" style="display: none;">
+          <button class="logout-btn" id="logoutBtn">
+            <span class="logout-icon">🚪</span>
+            <span class="logout-text">LOG OUT</span>
+          </button>
         </div>
       </div>
     </div>
+  </div>
 
   <!-- Reviews as Customer Tab Content -->
   <div class="tab-content-wrapper" id="reviews-customer-content">
@@ -1076,6 +1073,21 @@
         <button class="explanation-cancel-btn" id="explanationCancelBtn">
           Maybe Later
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div class="modal-overlay" id="logoutConfirmationModal">
+    <div class="modal-content-simple">
+      <div class="modal-header-simple">
+        <span class="modal-icon-simple">🚪</span>
+        <h2 class="modal-title-simple">Confirm Logout</h2>
+      </div>
+      <p class="modal-message-simple">Are you sure you want to log out of your account?</p>
+      <div class="modal-buttons-simple">
+        <button class="modal-btn-confirm" id="confirmLogoutBtn">Log Out</button>
+        <button class="modal-btn-cancel" id="cancelLogoutBtn">Cancel</button>
       </div>
     </div>
   </div>

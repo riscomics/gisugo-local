@@ -6501,13 +6501,13 @@ async function handleSendContactMessage() {
                 participant1: {
                     userId: currentUser.uid,
                     userName: currentUserData.displayName,
-                    userThumbnail: currentUserData.photoURL || 'public/users/default-avatar.jpg',
+                    userThumbnail: currentUserData.photoURL || '👤', // Emoji fallback
                     role: currentUserRole
                 },
                 participant2: {
                     userId: recipientId,
                     userName: recipientData.displayName,
-                    userThumbnail: recipientData.photoURL || 'public/users/default-avatar.jpg',
+                    userThumbnail: recipientData.photoURL || '👤', // Emoji fallback
                     role: recipientRole
                 },
                 threadOrigin: applicationId ? 'application' : 'job', // 'application' if from Listings, 'job' if from Gigs Offered
@@ -6535,7 +6535,7 @@ async function handleSendContactMessage() {
             senderId: currentUser.uid,
             senderName: currentUserData.displayName,
             senderType: currentUserRole,
-            senderAvatar: currentUserData.photoURL || 'public/users/default-avatar.jpg',
+            senderAvatar: currentUserData.photoURL || '👤', // Emoji fallback
             content: message,
             messageType: 'text',
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -7668,6 +7668,7 @@ function showEmptyListingsState() {
     const listingsContainer = document.querySelector('.listings-container');
     if (!listingsContainer) return;
     
+    // Create empty state with auth-protected button
     listingsContainer.innerHTML = `
         <div class="empty-state">
             <div class="empty-state-icon">📝</div>
@@ -7676,9 +7677,22 @@ function showEmptyListingsState() {
                 You haven't posted any jobs yet.<br>
                 Start by creating your first job posting.
             </div>
-            <a href="new-post2.html" class="empty-state-btn">Post Your First Job</a>
+            <button class="empty-state-btn" id="emptyStatePostBtn">Post Your First Job</button>
         </div>
     `;
+    
+    // Add auth check to the button
+    const emptyStatePostBtn = document.getElementById('emptyStatePostBtn');
+    if (emptyStatePostBtn) {
+        emptyStatePostBtn.addEventListener('click', function() {
+            const isLoggedIn = typeof window.isLoggedIn === 'function' && window.isLoggedIn();
+            if (isLoggedIn) {
+                window.location.href = 'new-post2.html';
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+    }
 }
 
 async function updateTabCounts() {

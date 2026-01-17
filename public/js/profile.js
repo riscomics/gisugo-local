@@ -115,22 +115,43 @@ if (businessVerifiedBadgeGrid) {
 
 // Logout Button functionality
 const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', async function(e) {
+const logoutConfirmOverlay = document.getElementById('logoutConfirmOverlay');
+const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+
+if (logoutBtn && logoutConfirmOverlay) {
+  logoutBtn.addEventListener('click', function(e) {
     e.preventDefault();
-    
-    // Confirm logout
-    if (!confirm('Are you sure you want to log out?')) {
-      return;
-    }
-    
-    // Call logout function from firebase-auth.js
-    if (typeof logout === 'function') {
-      await logout();
-      // Redirect to home page after logout
-      window.location.href = 'index.html';
-    } else {
-      console.error('Logout function not available');
+    logoutConfirmOverlay.classList.add('show');
+  });
+  
+  if (confirmLogoutBtn) {
+    confirmLogoutBtn.addEventListener('click', async function() {
+      // Close modal
+      logoutConfirmOverlay.classList.remove('show');
+      
+      // Call logout function from firebase-auth.js
+      if (typeof logout === 'function') {
+        await logout();
+        // Redirect to home page after logout
+        window.location.href = 'index.html';
+      } else {
+        console.error('Logout function not available');
+        window.location.href = 'index.html';
+      }
+    });
+  }
+  
+  if (cancelLogoutBtn) {
+    cancelLogoutBtn.addEventListener('click', function() {
+      logoutConfirmOverlay.classList.remove('show');
+    });
+  }
+  
+  // Close on backdrop click
+  logoutConfirmOverlay.addEventListener('click', function(e) {
+    if (e.target === logoutConfirmOverlay) {
+      logoutConfirmOverlay.classList.remove('show');
     }
   });
 }

@@ -403,15 +403,24 @@ function populateJobPage(jobData) {
   }
   
   if (customerAvatarEl) {
-    const avatarSrc = jobData.posterThumbnail || 'public/icons/default-avatar.png';
-    customerAvatarEl.src = avatarSrc;
-    customerAvatarEl.alt = jobData.posterName || 'Customer';
+    const avatarSrc = jobData.posterThumbnail;
     
-    // Add error handling for broken images
-    customerAvatarEl.onerror = function() {
-      console.warn('⚠️ Failed to load customer avatar, using default');
-      customerAvatarEl.src = 'public/icons/default-avatar.png';
-    };
+    if (avatarSrc) {
+      customerAvatarEl.src = avatarSrc;
+      customerAvatarEl.alt = jobData.posterName || 'Customer';
+      customerAvatarEl.style.display = 'block';
+      
+      // Add error handling for broken images - use emoji
+      customerAvatarEl.onerror = function() {
+        console.warn('⚠️ Failed to load customer avatar, using emoji');
+        this.style.display = 'none';
+        this.parentElement.innerHTML = '<span style="font-size: 2.5rem;">👤</span>';
+      };
+    } else {
+      // No photo - use emoji
+      customerAvatarEl.style.display = 'none';
+      customerAvatarEl.parentElement.innerHTML = '<span style="font-size: 2.5rem;">👤</span>';
+    }
   }
 }
 

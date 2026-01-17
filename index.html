@@ -386,9 +386,20 @@
       document.addEventListener('DOMContentLoaded', function() {
         updateHomeMenu();
         
-        // Also listen for auth state changes
+        // Also listen for auth state changes and check for zombie users
         if (typeof firebase !== 'undefined' && firebase.auth) {
-          firebase.auth().onAuthStateChanged(function(user) {
+          firebase.auth().onAuthStateChanged(async function(user) {
+            if (user) {
+              // Check if user has completed profile - if not, redirect to signup
+              if (typeof checkUserHasProfile === 'function') {
+                const { hasProfile } = await checkUserHasProfile(user.uid);
+                if (!hasProfile) {
+                  console.log('⚠️ Zombie user detected - redirecting to complete profile');
+                  window.location.href = 'sign-up.html';
+                  return;
+                }
+              }
+            }
             updateHomeMenu();
           });
         }

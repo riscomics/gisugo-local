@@ -1125,20 +1125,26 @@
         }
         
         loadingOverlay.classList.add('show');
+        verifyOtpBtn.disabled = true;
         
         try {
           const result = await verifyPhoneCode(otpCode);
           
           if (result.success) {
             console.log('✅ Phone login successful - checking profile...');
+            // Don't hide loading - we're redirecting
             // Check if user has a GISUGO profile, redirect accordingly
             await handleAuthRedirect(result.user);
+            // If we reach here (shouldn't), keep loading visible
           } else {
+            // Only show error if verification actually failed
             loadingOverlay.classList.remove('show');
+            verifyOtpBtn.disabled = false;
             showOtpError(result.message);
           }
         } catch (error) {
           loadingOverlay.classList.remove('show');
+          verifyOtpBtn.disabled = false;
           showOtpError('Verification failed. Please try again.');
           console.error('OTP verification error:', error);
         }

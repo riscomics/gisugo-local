@@ -1779,13 +1779,30 @@ function initJobcatButtonAutoResize() {
 // 🎨 REPLACE PNG ICONS WITH EMOJIS (Header Buttons)
 // ========================================
 (function() {
-  // Replace Post icon
-  const postImg = document.querySelector('.jobcat-headerbuttons img[src*="Post.png"]');
+  // Replace Post icon and add auth check
+  const postBtn = document.getElementById('postBtn');
+  const postImg = postBtn?.querySelector('img[src*="Post.png"]');
   if (postImg) {
     const emojiDiv = document.createElement('div');
     emojiDiv.className = 'jobcat-icon-emoji';
     emojiDiv.textContent = '✏️';
     postImg.parentElement.replaceChild(emojiDiv, postImg);
+  }
+  
+  // Add click handler with auth check to Post button
+  if (postBtn) {
+    postBtn.addEventListener('click', function() {
+      // Check if user is logged in
+      const isLoggedIn = typeof window.isLoggedIn === 'function' && window.isLoggedIn();
+      
+      if (isLoggedIn) {
+        // Logged in - allow navigation
+        window.location.href = 'new-post2.html';
+      } else {
+        // Not logged in - redirect to login
+        window.location.href = 'login.html';
+      }
+    });
   }
 
   // Replace Search icon

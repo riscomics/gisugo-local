@@ -685,20 +685,26 @@ async function handleFormSubmission(event) {
         return;
       }
       
-      // Create account with Firebase
-      const result = await signUpWithEmail(email, password, profileData);
+      console.log('🔐 Creating new email/password account...');
+      
+      // DON'T pass profileData to signUpWithEmail - it will create a basic profile
+      // We'll update it later with complete data including photo
+      const result = await signUpWithEmail(email, password, {
+        fullName: profileData.fullName,
+        email: email
+      });
       
       if (!result.success) {
         hideLoadingOverlay();
         showError('email', result.message);
-        console.error('Account creation failed:', result.message);
+        console.error('❌ Account creation failed:', result.message);
         return;
       }
       
       userId = result.user?.uid;
       profileData.email = email;
       profileData.authProvider = 'email';
-      console.log('✅ Email account created:', userId);
+      console.log('✅ Firebase Auth account created:', userId);
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -719,35 +725,14 @@ async function handleFormSubmission(event) {
             profileData.profilePhoto = uploadResult.url;
             console.log('✅ Photo uploaded to Storage:', uploadResult.url.substring(0, 60) + '...');
           } else {
-            // Upload failed - abort signup
-            hideLoadingOverlay();
-            showError('profilePhoto', 'Failed to upload photo. Please try again.');
-            console.error('❌ Photo upload failed:', uploadResult.errors);
-            
-            // Delete the Auth user we just created (rollback)
-            if (typeof firebase !== 'undefined' && firebase.auth) {
-              const currentUser = firebase.auth().currentUser;
-              if (currentUser) {
-                await currentUser.delete();
-                console.log('🔄 Rolled back: Auth user deleted');
-              }
-            }
-            return;
+            // Photo upload failed - LOG IT but don't abort signup
+            console.error('⚠️ Photo upload failed, continuing without photo:', uploadResult.error);
+            profileData.profilePhoto = null; // No photo for now, user can update later
           }
         } catch (uploadError) {
-          hideLoadingOverlay();
-          showError('profilePhoto', 'Failed to upload photo. Please try again.');
-          console.error('❌ Photo upload error:', uploadError);
-          
-          // Delete the Auth user we just created (rollback)
-          if (typeof firebase !== 'undefined' && firebase.auth) {
-            const currentUser = firebase.auth().currentUser;
-            if (currentUser) {
-              await currentUser.delete();
-              console.log('🔄 Rolled back: Auth user deleted');
-            }
-          }
-          return;
+          // Photo upload error - LOG IT but don't abort signup  
+          console.error('⚠️ Photo upload error, continuing without photo:', uploadError);
+          profileData.profilePhoto = null; // No photo for now, user can update later
         }
       } else {
         // Fallback to base64 ONLY if Storage is not available (offline mode)
@@ -771,14 +756,64 @@ async function handleFormSubmission(event) {
           console.log('✅ Firebase Auth profile updated:', profileData.fullName);
         } catch (error) {
           console.error('⚠️ Failed to update Auth profile:', error);
+          // Continue anyway - not critical
         }
       }
     }
     
-    // Now save/update the complete profile to Firestore
-    if (userId && typeof createUserProfile === 'function') {
-      await createUserProfile(userId, profileData);
-      console.log('✅ Profile saved to Firestore');
+    // ═══════════════════════════════════════════════════════════════
+    // SAVE COMPLETE PROFILE TO FIRESTORE - THIS IS CRITICAL!
+    // ═══════════════════════════════════════════════════════════════
+    if (!userId) {
+      throw new Error('No userId - cannot save profile');
+    }
+    
+    console.log('💾 Saving complete profile to Firestore for user:', userId);
+    
+    if (typeof createUserProfile === 'function') {
+      try {
+        await createUserProfile(userId, profileData);
+        console.log('✅ Profile saved to Firestore successfully');
+      } catch (profileError) {
+        // This is CRITICAL - profile save failed
+        console.error('❌ CRITICAL: Failed to save profile to Firestore:', profileError);
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ROLLBACK: Clean up orphaned photo and Auth user (email/password only)
+        // ═══════════════════════════════════════════════════════════════
+        
+        // Delete orphaned photo if it was uploaded
+        if (profileData.profilePhoto && typeof deletePhotoFromStorage === 'function') {
+          try {
+            await deletePhotoFromStorage(profileData.profilePhoto);
+            console.log('✅ Orphaned photo cleaned up');
+          } catch (photoDeleteError) {
+            console.error('⚠️ Failed to delete orphaned photo:', photoDeleteError);
+          }
+        }
+        
+        // Delete Auth user ONLY if email/password (OAuth users already logged in elsewhere)
+        if (profileData.authProvider === 'email' && typeof firebase !== 'undefined' && firebase.auth) {
+          try {
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+              await currentUser.delete();
+              console.log('✅ Auth user rolled back');
+            }
+          } catch (authDeleteError) {
+            console.error('⚠️ Failed to delete Auth user during rollback:', authDeleteError);
+          }
+        }
+        
+        hideLoadingOverlay();
+        showError('email', 'Failed to save profile. Please try again.');
+        return;
+      }
+    } else {
+      console.error('❌ createUserProfile function not available!');
+      hideLoadingOverlay();
+      showError('email', 'Profile save function not available. Please refresh and try again.');
+      return;
     }
     
     // Show success overlay
@@ -787,7 +822,7 @@ async function handleFormSubmission(event) {
     
   } catch (error) {
     hideLoadingOverlay();
-    console.error('Account creation failed:', error);
+    console.error('❌ Account creation failed:', error);
     showError('email', 'Failed to create account. Please try again.');
   }
 }
@@ -1040,4 +1075,5 @@ function calculateAge(dateOfBirth) {
   }
   
   return age;
+} 
 } 
