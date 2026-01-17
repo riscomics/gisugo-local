@@ -774,10 +774,11 @@ async function handleFormSubmission(event) {
     }
     
     console.log('💾 Saving complete profile to Firestore for user:', userId);
-    console.log('📋 Profile data to save:', JSON.stringify(profileData, null, 2));
+    console.log('📋 Profile data keys:', Object.keys(profileData));
     
     if (typeof createUserProfile === 'function') {
       try {
+        console.log('📞 Calling createUserProfile...');
         await createUserProfile(userId, profileData);
         console.log('✅ Profile saved to Firestore successfully');
       } catch (profileError) {
