@@ -64,9 +64,23 @@ function handleMenuClick(link, requiresAuth) {
   }
   
   // Production mode: enforce auth for protected items
-  if (requiresAuth && !checkUserLoggedIn()) {
-    window.location.href = 'login.html';
+  if (requiresAuth) {
+    // Use onAuthStateChanged for reliable auth check (fixes Edge storage blocking issue)
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const unsubscribe = firebase.auth().onAuthStateChanged(function(user) {
+        unsubscribe(); // Unsubscribe immediately
+        if (user) {
+          window.location.href = link;
+        } else {
+          window.location.href = 'login.html';
+        }
+      });
+    } else {
+      // Firebase not available - redirect to login
+      window.location.href = 'login.html';
+    }
   } else {
+    // Not auth-required, navigate directly
     window.location.href = link;
   }
 }

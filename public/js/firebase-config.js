@@ -54,11 +54,37 @@ function initializeFirebase() {
   }
 
   try {
+    // Check if storage is available (Edge Tracking Prevention can block it)
+    let storageAvailable = true;
+    try {
+      localStorage.setItem('_test', '1');
+      localStorage.removeItem('_test');
+    } catch (e) {
+      storageAvailable = false;
+      console.error('🚫 Storage blocked by browser (Tracking Prevention?)');
+      console.warn('💡 In Edge: Go to edge://settings/privacy → Set Tracking prevention to Basic');
+    }
+    
     // Initialize Firebase app
     if (!firebase.apps.length) {
       firebaseApp = firebase.initializeApp(firebaseConfig);
     } else {
       firebaseApp = firebase.apps[0];
+    }
+    
+    // Set auth persistence to LOCAL for consistent behavior across browsers
+    // This ensures auth state persists across browser sessions
+    if (firebase.auth) {
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => {
+          console.log('🔐 Auth persistence set to LOCAL');
+          if (!storageAvailable) {
+            console.warn('⚠️ Auth persistence may not work - storage is blocked');
+          }
+        })
+        .catch((error) => {
+          console.warn('⚠️ Could not set auth persistence:', error);
+        });
     }
     
     firebaseInitialized = true;

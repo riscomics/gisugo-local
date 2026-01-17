@@ -1281,6 +1281,10 @@ function initJobcatButtonAutoResize() {
       const src = img.getAttribute('src');
       const iconName = src.substring(src.lastIndexOf('/') + 1);
       if (iconMap[iconName]) {
+        // POST BUTTON: Auth check handled by inline onclick in HTML
+        // (No JavaScript listener needed here)
+        
+        // Replace the icon
         const emojiDiv = document.createElement('div');
         emojiDiv.className = 'jobcat-icon-emoji';
         emojiDiv.textContent = iconMap[iconName];
@@ -1772,59 +1776,6 @@ function initJobcatButtonAutoResize() {
       gamingFilterBar: !!gamingFilterBar,
       gamingFilterPanel: !!gamingFilterPanel
     });
-  }
-})();
-
-// ========================================
-// 🎨 REPLACE PNG ICONS WITH EMOJIS (Header Buttons)
-// ========================================
-(function() {
-  // Replace Post icon and add auth check
-  const postBtn = document.getElementById('postBtn');
-  const postImg = postBtn?.querySelector('img[src*="Post.png"]');
-  if (postImg) {
-    const emojiDiv = document.createElement('div');
-    emojiDiv.className = 'jobcat-icon-emoji';
-    emojiDiv.textContent = '✏️';
-    postImg.parentElement.replaceChild(emojiDiv, postImg);
-  }
-  
-  // Add click handler with auth check to Post button
-  if (postBtn) {
-    postBtn.addEventListener('click', function() {
-      // Wait for Firebase to be ready before checking auth
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        const currentUser = firebase.auth().currentUser;
-        if (currentUser) {
-          // Logged in - allow navigation
-          window.location.href = 'new-post2.html';
-        } else {
-          // Not logged in - redirect to login
-          window.location.href = 'login.html';
-        }
-      } else {
-        // Firebase not loaded or not connected - redirect to login to be safe
-        window.location.href = 'login.html';
-      }
-    });
-  }
-
-  // Replace Search icon
-  const searchImg = document.querySelector('.jobcat-headerbuttons img[src*="search.png"]');
-  if (searchImg) {
-    const emojiDiv = document.createElement('div');
-    emojiDiv.className = 'jobcat-icon-emoji';
-    emojiDiv.textContent = '🔍';
-    searchImg.parentElement.replaceChild(emojiDiv, searchImg);
-  }
-
-  // Replace Menu icon
-  const menuImg = document.querySelector('.jobcat-headerbuttons img[src*="menu.png"]');
-  if (menuImg) {
-    const emojiDiv = document.createElement('div');
-    emojiDiv.className = 'jobcat-icon-emoji';
-    emojiDiv.textContent = '📋';
-    menuImg.parentElement.replaceChild(emojiDiv, menuImg);
   }
 })();
 

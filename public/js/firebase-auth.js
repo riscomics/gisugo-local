@@ -42,6 +42,13 @@ function onAuthStateChange(callback) {
 }
 
 // Get current authenticated user
+/**
+ * Get currently authenticated user
+ * @returns {Object|null} Current Firebase user or null
+ * @warning This returns the CACHED auth state. If called immediately on page load,
+ *          it may return null even if user is logged in (auth state not yet restored).
+ *          For reliable auth checks, use onAuthStateChanged() instead.
+ */
 function getCurrentUser() {
   const auth = getFirebaseAuth();
   if (auth) {
@@ -49,8 +56,14 @@ function getCurrentUser() {
   }
   
   // Fallback to localStorage for offline mode
-  const storedUser = localStorage.getItem('gisugo_current_user');
-  return storedUser ? JSON.parse(storedUser) : null;
+  // Note: This will fail if browser blocks storage (e.g., Edge Tracking Prevention)
+  try {
+    const storedUser = localStorage.getItem('gisugo_current_user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (e) {
+    console.warn('⚠️ localStorage blocked - cannot retrieve cached user');
+    return null;
+  }
 }
 
 // Get current user ID
@@ -62,7 +75,13 @@ function getCurrentUserId() {
   return null;
 }
 
-// Check if user is logged in
+/**
+ * Check if user is currently logged in
+ * @returns {boolean} True if user is logged in
+ * @warning This checks the CACHED auth state. For reliable auth checks on page load
+ *          or in click handlers, use firebase.auth().onAuthStateChanged() instead.
+ *          This is especially important when browser storage might be blocked.
+ */
 function isLoggedIn() {
   return getCurrentUser() !== null;
 }

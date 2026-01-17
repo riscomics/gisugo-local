@@ -1076,4 +1076,3 @@ function calculateAge(dateOfBirth) {
   
   return age;
 } 
-} 
