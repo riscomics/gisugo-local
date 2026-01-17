@@ -25,7 +25,7 @@ service cloud.firestore {
     
     // Validate profile data structure
     function isValidProfile() {
-      return request.resource.data.keys().hasAll(['userId', 'fullName', 'email', 'createdAt'])
+      return request.resource.data.keys().hasAll(['userId', 'fullName', 'email', 'accountCreated'])
         && request.resource.data.userId is string
         && request.resource.data.fullName is string
         && request.resource.data.email is string
