@@ -449,7 +449,7 @@ body::-webkit-scrollbar {
   height: 100%;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(8px);
-  z-index: 9999;
+  z-index: 95000; /* Higher than menu (9000) but lower than logout modal (99999) */
   display: none;
   align-items: center;
   justify-content: center;
@@ -633,7 +633,7 @@ body::-webkit-scrollbar {
   height: 100%;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-  z-index: 10000;
+  z-index: 95000; /* Higher than menu (9000) */
   display: none;
   align-items: center;
   justify-content: center;
@@ -1076,7 +1076,7 @@ body::-webkit-scrollbar {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.9);
-  z-index: 200000;
+  z-index: 95000; /* Higher than menu (9000) */
   display: none;
   align-items: center;
   justify-content: center;
@@ -1439,7 +1439,7 @@ body::-webkit-scrollbar {
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(8px);
-  z-index: 10000;
+  z-index: 95000; /* Higher than menu (9000) */
   display: none;
   align-items: center;
   justify-content: center;
@@ -1761,7 +1761,7 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 95000;
   opacity: 0;
   visibility: hidden;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -1997,7 +1997,7 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 95000;
   opacity: 0;
   visibility: hidden;
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -2618,7 +2618,7 @@ body::-webkit-scrollbar {
   border-radius: 1px;
   pointer-events: none;
   animation: confetti-burst 2s ease-out forwards;
-  z-index: 10002;
+  z-index: 95001; /* Above overlays but below logout modal */
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
 }
 
@@ -3090,7 +3090,7 @@ body::-webkit-scrollbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 95000; /* Higher than menu (9000) */
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
@@ -4620,7 +4620,7 @@ body::-webkit-scrollbar {
   display: none; /* Hidden by default */
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 99999; /* Higher than everything else */
   padding: 20px;
 }
 

@@ -36,7 +36,7 @@
   /* Z-index Properties */
   --header-z-index: 100;
   --header-borderline-z-index: 96;
-  --header-menu-z-index: 999;
+  --header-menu-z-index: 9000;
 }
 
 /* ===== GLOBAL SCROLL BAR HIDING ===== */
@@ -273,7 +273,7 @@ body::-webkit-scrollbar {
   width: 100vw;
   height: 100vh;
   background: transparent;
-  z-index: 10000;
+  z-index: var(--header-menu-z-index);
   display: flex;
   flex-direction: column;
   align-items: stretch;
