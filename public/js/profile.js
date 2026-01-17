@@ -113,61 +113,6 @@ if (businessVerifiedBadgeGrid) {
   businessVerifiedBadgeGrid.style.cursor = 'pointer';
 }
 
-// Logout Button functionality
-const logoutBtn = document.getElementById('logoutBtn');
-const logoutConfirmOverlay = document.getElementById('logoutConfirmationModal');
-const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
-const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
-
-if (logoutBtn && logoutConfirmOverlay) {
-  logoutBtn.addEventListener('click', function(e) {
-    e.preventDefault();
-    logoutConfirmOverlay.classList.add('show');
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
-  });
-  
-  if (confirmLogoutBtn) {
-    confirmLogoutBtn.addEventListener('click', async function() {
-      // Close modal
-      logoutConfirmOverlay.classList.remove('show');
-      document.body.style.overflow = ''; // Restore scrolling
-      
-      // Call logout function from firebase-auth.js
-      if (typeof logout === 'function') {
-        await logout();
-        // Redirect to home page after logout
-        window.location.href = 'index.html';
-      } else {
-        console.error('Logout function not available');
-        window.location.href = 'index.html';
-      }
-    });
-  }
-  
-  if (cancelLogoutBtn) {
-    cancelLogoutBtn.addEventListener('click', function() {
-      logoutConfirmOverlay.classList.remove('show');
-      document.body.style.overflow = ''; // Restore scrolling
-    });
-  }
-  
-  // Close on backdrop click
-  logoutConfirmOverlay.addEventListener('click', function(e) {
-    if (e.target === logoutConfirmOverlay) {
-      logoutConfirmOverlay.classList.remove('show');
-      document.body.style.overflow = ''; // Restore scrolling
-    }
-  });
-  
-  // Close on Escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && logoutConfirmOverlay.classList.contains('show')) {
-      logoutConfirmOverlay.classList.remove('show');
-      document.body.style.overflow = ''; // Restore scrolling
-    }
-  });
-}
-
 // ===== PRO VERIFIED OVERLAY FUNCTIONALITY =====
 
 // Get pro prestige overlay elements

@@ -741,12 +741,27 @@ body::-webkit-scrollbar {
   border-radius: clamp(8px, 2vw, 12px);
   overflow: hidden;
   border: 2px solid rgba(16, 185, 129, 0.4);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.edit-photo-placeholder {
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .edit-profile-photo-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .edit-profile-photo-btn {
@@ -4543,6 +4558,162 @@ body::-webkit-scrollbar {
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   white-space: pre-line; /* Preserve line breaks from text */
+}
+
+/* Logout Button Section */
+.logout-section {
+  margin-top: clamp(1.5rem, 4vw, 2rem);
+  display: flex;
+  justify-content: center;
+  padding-top: clamp(1rem, 3vw, 1.5rem);
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 14px 48px;
+  width: 100%;
+  max-width: 280px;
+  color: #fff;
+  font-size: clamp(1rem, 3.5vw, 1.15rem);
+  font-weight: 700;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  transform: translateY(-2px);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.logout-icon {
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+}
+
+.logout-text {
+  letter-spacing: 0.5px;
+}
+
+/* ===== LOGOUT CONFIRMATION MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: none; /* Hidden by default */
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-content-simple {
+  background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  text-align: center;
+  margin: auto;
+}
+
+.modal-header-simple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.modal-icon-simple {
+  font-size: 3rem;
+}
+
+.modal-title-simple {
+  color: #ef4444;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-message-simple {
+  color: #d1d5db;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.modal-buttons-simple {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.modal-btn-confirm,
+.modal-btn-cancel {
+  flex: 1;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.modal-btn-confirm {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modal-btn-confirm:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+  transform: translateY(-2px);
+}
+
+.modal-btn-cancel {
+  background: #374151;
+  color: #e5e7eb;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.modal-btn-cancel:hover {
+  background: #4b5563;
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .logout-btn {
+    padding: 14px 28px;
+    font-size: 1rem;
+  }
 }
 
 /* Reviews Container */

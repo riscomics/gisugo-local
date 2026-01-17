@@ -36,7 +36,7 @@
   /* Z-index Properties */
   --header-z-index: 100;
   --header-borderline-z-index: 96;
-  --header-menu-z-index: 9000;
+  --header-menu-z-index: 999;
 }
 
 /* ===== GLOBAL SCROLL BAR HIDING ===== */
