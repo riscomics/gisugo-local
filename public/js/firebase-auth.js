@@ -123,16 +123,9 @@ async function signUpWithEmail(email, password, profileData = {}) {
       });
     }
     
-    // Create user profile document in Firestore
-    const db = getFirestore();
-    if (db) {
-      await createUserProfile(user.uid, {
-        email: email,
-        ...profileData,
-        accountCreated: firebase.firestore.FieldValue.serverTimestamp(),
-        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
+    // DO NOT create Firestore profile here - let sign-up.js handle it with complete data
+    // This prevents double profile creation and ensures photo upload happens first
+    console.log('⏸️ Skipping profile creation - will be handled by sign-up.js');
     
     return {
       success: true,

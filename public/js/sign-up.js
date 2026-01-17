@@ -652,6 +652,11 @@ async function handleFormSubmission(event) {
   
   // Validate all fields
   if (!validateForm()) {
+    // Scroll to first error
+    const firstError = form.querySelector('.error-message.show');
+    if (firstError) {
+      firstError.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
     return;
   }
   
