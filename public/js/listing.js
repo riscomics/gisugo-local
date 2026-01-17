@@ -1792,14 +1792,18 @@ function initJobcatButtonAutoResize() {
   // Add click handler with auth check to Post button
   if (postBtn) {
     postBtn.addEventListener('click', function() {
-      // Check if user is logged in
-      const isLoggedIn = typeof window.isLoggedIn === 'function' && window.isLoggedIn();
-      
-      if (isLoggedIn) {
-        // Logged in - allow navigation
-        window.location.href = 'new-post2.html';
+      // Wait for Firebase to be ready before checking auth
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          // Logged in - allow navigation
+          window.location.href = 'new-post2.html';
+        } else {
+          // Not logged in - redirect to login
+          window.location.href = 'login.html';
+        }
       } else {
-        // Not logged in - redirect to login
+        // Firebase not loaded or not connected - redirect to login to be safe
         window.location.href = 'login.html';
       }
     });
