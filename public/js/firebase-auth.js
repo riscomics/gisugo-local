@@ -446,15 +446,27 @@ async function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
     phoneRecaptchaVerifier = null;
   }
   
+  // Also clear any existing reCAPTCHA widgets from the DOM
+  const button = document.getElementById(buttonId);
+  if (!button) {
+    console.error('❌ Button not found:', buttonId);
+    return null;
+  }
+  
+  // Remove any existing reCAPTCHA containers
+  const existingRecaptcha = button.querySelector('.grecaptcha-badge');
+  if (existingRecaptcha) {
+    console.log('🧹 Removing existing reCAPTCHA widget');
+    existingRecaptcha.remove();
+  }
+  
+  // Also check for any orphaned reCAPTCHA widgets in the body
+  document.querySelectorAll('.grecaptcha-badge').forEach(badge => {
+    badge.remove();
+  });
+  
   try {
     console.log('🔐 Initializing reCAPTCHA on button:', buttonId);
-    
-    // Check if button exists
-    const button = document.getElementById(buttonId);
-    if (!button) {
-      console.error('❌ Button not found:', buttonId);
-      return null;
-    }
     
     phoneRecaptchaVerifier = new firebase.auth.RecaptchaVerifier(buttonId, {
       'size': 'invisible',
@@ -464,6 +476,10 @@ async function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
       'expired-callback': () => {
         console.log('⚠️ reCAPTCHA expired, please try again');
         // Clear and reset
+        phoneRecaptchaVerifier = null;
+      },
+      'error-callback': () => {
+        console.log('❌ reCAPTCHA error occurred');
         phoneRecaptchaVerifier = null;
       }
     });
@@ -475,6 +491,13 @@ async function initPhoneRecaptcha(buttonId = 'phone-signin-btn') {
     return phoneRecaptchaVerifier;
   } catch (error) {
     console.error('❌ reCAPTCHA initialization error:', error);
+    
+    // If error is because reCAPTCHA is already rendered, try to use the existing one
+    if (error.code === 'auth/argument-error' && error.message.includes('reCAPTCHA has already been rendered')) {
+      console.log('⚠️ reCAPTCHA already rendered - using existing instance');
+      return phoneRecaptchaVerifier;
+    }
+    
     phoneRecaptchaVerifier = null;
     return null;
   }
@@ -507,17 +530,15 @@ async function sendPhoneVerificationCode(phoneNumber, recaptchaButtonId = 'phone
   try {
     console.log('📱 Sending verification code to:', phoneNumber);
     
-    // Initialize reCAPTCHA if not already done
+    // Always initialize fresh reCAPTCHA for new attempts
+    console.log('🔐 Initializing fresh reCAPTCHA on button:', recaptchaButtonId);
+    await initPhoneRecaptcha(recaptchaButtonId);
+    
     if (!phoneRecaptchaVerifier) {
-      console.log('🔐 Initializing reCAPTCHA on button:', recaptchaButtonId);
-      await initPhoneRecaptcha(recaptchaButtonId);
-      
-      if (!phoneRecaptchaVerifier) {
-        return {
-          success: false,
-          message: 'Security verification failed. Please refresh the page and try again.'
-        };
-      }
+      return {
+        success: false,
+        message: 'Security verification failed. Please refresh the page and try again.'
+      };
     }
     
     // Send verification code
@@ -544,19 +565,23 @@ async function sendPhoneVerificationCode(phoneNumber, recaptchaButtonId = 'phone
         errorMessage = 'Invalid phone number format. Use +639XXXXXXXXX';
         break;
       case 'auth/too-many-requests':
-        errorMessage = 'Too many attempts. Please try again later.';
+        errorMessage = 'Too many requests detected. Please wait a few minutes before trying again, or try refreshing the page.';
         break;
       case 'auth/quota-exceeded':
         errorMessage = 'SMS quota exceeded. Please try again tomorrow.';
         break;
       case 'auth/captcha-check-failed':
-        errorMessage = 'Security check failed. Please refresh and try again.';
+        errorMessage = 'Security check failed. Please refresh the page and try again.';
         break;
     }
     
-    // Reset reCAPTCHA on error
+    // Reset reCAPTCHA on error to allow retry
     if (phoneRecaptchaVerifier) {
-      phoneRecaptchaVerifier.clear();
+      try {
+        phoneRecaptchaVerifier.clear();
+      } catch (e) {
+        console.log('⚠️ Could not clear reCAPTCHA:', e.message);
+      }
       phoneRecaptchaVerifier = null;
     }
     
