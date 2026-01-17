@@ -654,9 +654,9 @@ async function saveProfileChanges() {
               throw new Error('Photo upload failed');
             }
             
-            newPhotoUrl = uploadResult.url;
-            updates.profilePhoto = newPhotoUrl;
-            console.log('✅ Photo uploaded to Storage:', newPhotoUrl.substring(0, 50) + '...');
+              newPhotoUrl = uploadResult.url;
+              updates.profilePhoto = newPhotoUrl;
+              console.log('✅ Photo uploaded to Storage:', newPhotoUrl.substring(0, 50) + '...');
             
           } catch (uploadError) {
             console.error('❌ Photo upload error:', uploadError);
@@ -2903,11 +2903,11 @@ async function waitForAuthAndLoadProfile() {
         } else {
           // Profile not found
           if (isViewingOwnProfile) {
-            // User is authenticated but has no profile - redirect to sign-up
-            console.log('⚠️ No profile found, redirecting to complete sign-up...');
-            hideProfileLoadingState();
-            window.location.href = 'sign-up.html?complete=true';
-            return;
+          // User is authenticated but has no profile - redirect to sign-up
+          console.log('⚠️ No profile found, redirecting to complete sign-up...');
+          hideProfileLoadingState();
+          window.location.href = 'sign-up.html?complete=true';
+          return;
           } else {
             // Viewing someone else's profile that doesn't exist
             console.error('❌ Profile not found for user:', profileUserId);

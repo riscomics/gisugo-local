@@ -10,6 +10,7 @@ let selectedPhotoDataUrl = null;
 
 // Track authenticated user (from OAuth or login redirect)
 let authenticatedUser = null;
+let isSigningUp = false; // Flag to prevent race conditions during signup
 
 // Initialize form when DOM loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -76,6 +77,12 @@ async function checkExistingAuthUser() {
   try {
     // Wait for Firebase auth to initialize
     firebase.auth().onAuthStateChanged(async (user) => {
+      // Skip checks during active signup to prevent race conditions
+      if (isSigningUp) {
+        console.log('⏸️ Skipping auth check - signup in progress');
+        return;
+      }
+      
       if (user && !authenticatedUser) {
         console.log('🔍 Found existing Firebase Auth user:', user.uid);
         
@@ -659,6 +666,9 @@ async function handleFormSubmission(event) {
     }
     return;
   }
+  
+  // Set signup flag to prevent race conditions
+  isSigningUp = true;
   
   // Show loading overlay
   showLoadingOverlay();
