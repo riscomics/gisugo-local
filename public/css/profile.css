@@ -28,7 +28,7 @@ body::-webkit-scrollbar {
   margin: 0;
   margin-top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 1px); /* Header + borderline + small gap */
   position: relative;
-  z-index: 1;
+  /* Removed z-index: 1 to prevent stacking context issues with overlays */
 }
 
 
@@ -3851,7 +3851,7 @@ body::-webkit-scrollbar {
   border-top: 2px solid rgba(16, 185, 129, 0.3);
   border-bottom: 2px solid rgba(16, 185, 129, 0.3);
   display: flex;
-  z-index: 98;
+  /* Removed z-index: 98 to prevent stacking context issues with overlays */
   margin-top: 0; /* No margin needed in relative positioning */
 }
 
