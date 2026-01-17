@@ -774,6 +774,7 @@ async function handleFormSubmission(event) {
     }
     
     console.log('💾 Saving complete profile to Firestore for user:', userId);
+    console.log('📋 Profile data to save:', JSON.stringify(profileData, null, 2));
     
     if (typeof createUserProfile === 'function') {
       try {
@@ -782,6 +783,7 @@ async function handleFormSubmission(event) {
       } catch (profileError) {
         // This is CRITICAL - profile save failed
         console.error('❌ CRITICAL: Failed to save profile to Firestore:', profileError);
+        console.error('Error details:', profileError.message, profileError.stack);
         
         // ═══════════════════════════════════════════════════════════════
         // ROLLBACK: Clean up orphaned photo and Auth user (email/password only)
