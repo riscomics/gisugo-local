@@ -408,25 +408,38 @@
       function updateHomeMenu() {
         const authMenuItem = document.getElementById('auth-menu-item');
         const authRequiredItems = document.querySelectorAll('.auth-required');
-        const userLoggedIn = typeof isLoggedIn === 'function' && isLoggedIn();
         
-        // Update auth menu item text
-        if (authMenuItem) {
-          if (userLoggedIn) {
-            authMenuItem.innerHTML = '<a href="#" onclick="handleLogout(); return false;">LOGOUT</a>';
-          } else {
+        // CRITICAL: Wait for Firebase auth to initialize before checking login state
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+          const currentUser = firebase.auth().currentUser;
+          const userLoggedIn = currentUser !== null;
+          
+          // Update auth menu item text
+          if (authMenuItem) {
+            if (userLoggedIn) {
+              authMenuItem.innerHTML = '<a href="#" onclick="handleLogout(); return false;">LOGOUT</a>';
+            } else {
+              authMenuItem.innerHTML = '<a href="login.html">LOGIN / SIGN UP</a>';
+            }
+          }
+          
+          // Show/hide auth-required menu items
+          authRequiredItems.forEach(item => {
+            if (userLoggedIn) {
+              item.style.display = '';
+            } else {
+              item.style.display = 'none';
+            }
+          });
+        } else {
+          // Firebase not loaded yet - show login by default (conservative)
+          if (authMenuItem) {
             authMenuItem.innerHTML = '<a href="login.html">LOGIN / SIGN UP</a>';
           }
-        }
-        
-        // Show/hide auth-required menu items
-        authRequiredItems.forEach(item => {
-          if (userLoggedIn) {
-            item.style.display = '';
-          } else {
+          authRequiredItems.forEach(item => {
             item.style.display = 'none';
-          }
-        });
+          });
+        }
       }
       
       async function handleLogout() {

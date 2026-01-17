@@ -1078,7 +1078,80 @@ function hideLoadingOverlay() {
 function showSuccessOverlay() {
   if (successOverlay) {
     successOverlay.classList.add('show');
+    // Launch confetti animation
+    launchConfetti();
   }
+}
+
+// Confetti animation for success modal
+function launchConfetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  const confettiPieces = [];
+  const confettiCount = 150;
+  const colors = ['#FFD700', '#4CAF50', '#2196F3', '#FF5722', '#9C27B0', '#FF4081'];
+  
+  // Create confetti pieces
+  for (let i = 0; i < confettiCount; i++) {
+    confettiPieces.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      rotation: Math.random() * 360,
+      rotationSpeed: Math.random() * 10 - 5,
+      size: Math.random() * 8 + 4,
+      speedX: Math.random() * 3 - 1.5,
+      speedY: Math.random() * 3 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      shape: Math.random() > 0.5 ? 'circle' : 'square'
+    });
+  }
+  
+  let animationFrame;
+  const animate = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    confettiPieces.forEach((piece, index) => {
+      ctx.save();
+      ctx.translate(piece.x, piece.y);
+      ctx.rotate((piece.rotation * Math.PI) / 180);
+      ctx.fillStyle = piece.color;
+      
+      if (piece.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(0, 0, piece.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-piece.size / 2, -piece.size / 2, piece.size, piece.size);
+      }
+      
+      ctx.restore();
+      
+      // Update position
+      piece.y += piece.speedY;
+      piece.x += piece.speedX;
+      piece.rotation += piece.rotationSpeed;
+      
+      // Remove pieces that fall off screen
+      if (piece.y > canvas.height + 20) {
+        confettiPieces.splice(index, 1);
+      }
+    });
+    
+    // Continue animation if there are still confetti pieces
+    if (confettiPieces.length > 0) {
+      animationFrame = requestAnimationFrame(animate);
+    } else {
+      cancelAnimationFrame(animationFrame);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+  
+  animate();
 }
 
 // Helper function to calculate age (matches profile.js)
