@@ -650,7 +650,31 @@
     
     /* ===== LOADING OVERLAY ===== */
     .loading-overlay {
-      background: rgba(26, 32, 44, 0.95) !important;
+      background: rgba(0, 0, 0, 0.85) !important;
+      backdrop-filter: blur(8px);
+    }
+    
+    .loading-emoji-container {
+      font-size: 48px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+    
+    .loading-emoji-container span {
+      display: inline-block;
+      animation: bounce 1s ease-in-out infinite;
+    }
+    
+    .loading-emoji-container span:nth-child(1) { animation-delay: 0s; }
+    .loading-emoji-container span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-emoji-container span:nth-child(3) { animation-delay: 0.3s; }
+    .loading-emoji-container span:nth-child(4) { animation-delay: 0.4s; }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
     
     .loading-spinner {
@@ -660,6 +684,35 @@
     
     .loading-text {
       color: #10b981 !important;
+    }
+    
+    .loading-text.welcome-message {
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff !important;
+    }
+    
+    .loading-text.welcome-message span {
+      display: inline-block;
+      opacity: 0;
+      animation: emphasizeWord 0.5s ease-out forwards;
+    }
+    
+    .loading-text.welcome-message span:nth-child(1) { animation-delay: 0s; }
+    .loading-text.welcome-message span:nth-child(2) { animation-delay: 0.2s; }
+    
+    @keyframes emphasizeWord {
+      0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.8);
+      }
+      50% {
+        transform: translateY(-5px) scale(1.1);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
     
     /* ===== MOBILE RESPONSIVE ===== */
@@ -836,8 +889,14 @@
 
   <!-- Loading Overlay -->
   <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-emoji-container" id="loadingEmojis">
+      <span>🏃‍♂️</span>
+      <span>💼</span>
+      <span>🏪</span>
+      <span>👥</span>
+    </div>
     <div class="loading-spinner"></div>
-    <div class="loading-text">Signing in...</div>
+    <div class="loading-text" id="loadingText">Signing in...</div>
   </div>
 
   <!-- Password Reset Overlay -->
@@ -880,9 +939,22 @@
       const loginForm = document.getElementById('loginForm');
       const submitBtn = document.getElementById('submitBtn');
       const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
       const googleSignInBtn = document.getElementById('googleSignInBtn');
       const forgotPasswordLink = document.getElementById('forgotPasswordLink');
       const resetOverlay = document.getElementById('resetOverlay');
+      
+      // Function to show friendly welcome animation
+      function showWelcomeAnimation() {
+        loadingText.className = 'loading-text welcome-message';
+        loadingText.innerHTML = '<span>Welcome</span> <span>back!</span>';
+      }
+      
+      // Function to reset loading state
+      function resetLoadingState() {
+        loadingText.className = 'loading-text';
+        loadingText.textContent = 'Signing in...';
+      }
       const resetCancelBtn = document.getElementById('resetCancelBtn');
       const resetSubmitBtn = document.getElementById('resetSubmitBtn');
       const resetSuccess = document.getElementById('resetSuccess');
@@ -913,15 +985,24 @@
           const result = await loginWithEmail(email, password);
           
           if (result.success) {
-            console.log('✅ Login successful - checking profile...');
+            console.log('✅ Login successful - showing welcome...');
+            
+            // Show welcome animation
+            showWelcomeAnimation();
+            
+            // Wait minimum time for user to see welcome message
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             // Check if user has a GISUGO profile, redirect accordingly
             await handleAuthRedirect(result.user);
           } else {
+            resetLoadingState();
             loadingOverlay.classList.remove('show');
             submitBtn.disabled = false;
             showError('password', result.message);
           }
         } catch (error) {
+          resetLoadingState();
           loadingOverlay.classList.remove('show');
           submitBtn.disabled = false;
           showError('password', 'Login failed. Please try again.');
@@ -937,14 +1018,23 @@
           const result = await loginWithGoogle();
           
           if (result.success) {
-            console.log('✅ Google sign-in successful - checking profile...');
+            console.log('✅ Google sign-in successful - showing welcome...');
+            
+            // Show welcome animation
+            showWelcomeAnimation();
+            
+            // Wait minimum time for user to see welcome message
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             // Check if user has a GISUGO profile, redirect accordingly
             await handleAuthRedirect(result.user);
           } else {
+            resetLoadingState();
             loadingOverlay.classList.remove('show');
             showError('email', result.message);
           }
         } catch (error) {
+          resetLoadingState();
           loadingOverlay.classList.remove('show');
           showError('email', 'Google sign-in failed. Please try again.');
           console.error('Google sign-in error:', error);
@@ -960,14 +1050,23 @@
           const result = await loginWithFacebook();
           
           if (result.success) {
-            console.log('✅ Facebook sign-in successful - checking profile...');
+            console.log('✅ Facebook sign-in successful - showing welcome...');
+            
+            // Show welcome animation
+            showWelcomeAnimation();
+            
+            // Wait minimum time for user to see welcome message
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             // Check if user has a GISUGO profile, redirect accordingly
             await handleAuthRedirect(result.user);
           } else {
+            resetLoadingState();
             loadingOverlay.classList.remove('show');
             showError('email', result.message);
           }
         } catch (error) {
+          resetLoadingState();
           loadingOverlay.classList.remove('show');
           showError('email', 'Facebook sign-in failed. Please try again.');
           console.error('Facebook sign-in error:', error);
@@ -1131,18 +1230,26 @@
           const result = await verifyPhoneCode(otpCode);
           
           if (result.success) {
-            console.log('✅ Phone login successful - checking profile...');
-            // Don't hide loading - we're redirecting
+            console.log('✅ Phone login successful - showing welcome...');
+            
+            // Show welcome animation
+            showWelcomeAnimation();
+            
+            // Wait minimum time for user to see welcome message
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             // Check if user has a GISUGO profile, redirect accordingly
             await handleAuthRedirect(result.user);
             // If we reach here (shouldn't), keep loading visible
           } else {
             // Only show error if verification actually failed
+            resetLoadingState();
             loadingOverlay.classList.remove('show');
             verifyOtpBtn.disabled = false;
             showOtpError(result.message);
           }
         } catch (error) {
+          resetLoadingState();
           loadingOverlay.classList.remove('show');
           verifyOtpBtn.disabled = false;
           showOtpError('Verification failed. Please try again.');
