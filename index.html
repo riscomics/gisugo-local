@@ -9,6 +9,66 @@
     <link rel="stylesheet" href="/gisugo-local/public/css/home.css?v=4.8">
     <!-- Add favicon -->
     <link rel="icon" type="image/png" href="/gisugo-local/public/images/favicon.png">
+    <style>
+      /* Loading Animation for Menu */
+      .menu-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+      }
+      
+      .menu-loading-spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-right: 10px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* Logout Loading Overlay */
+      .logout-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        flex-direction: column;
+      }
+      
+      .logout-overlay.active {
+        display: flex;
+      }
+      
+      .logout-spinner {
+        width: 60px;
+        height: 60px;
+        border: 5px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      
+      .logout-message {
+        color: #fff;
+        font-size: 18px;
+        font-weight: 500;
+      }
+    </style>
   </head>
   <body>
     <!-- Header -->
@@ -29,18 +89,11 @@
         <!-- Menu Overlay -->
         <nav class="menu-overlay">
           <ul class="menu-list" id="homeMenuList">
-            <!-- Auth-required items (hidden when not logged in) -->
-            <li class="auth-required"><a href="new-post2.html">NEW POST</a></li>
-            <li class="auth-required"><a href="profile.html">ACCOUNT</a></li>
-            <li class="auth-required"><a href="messages.html">MESSAGES</a></li>
-            <li class="auth-required"><a href="landing.html">FAVORITES</a></li>
-            <li class="auth-required"><a href="jobs.html">GIGS MANAGER</a></li>
-            <li class="auth-required"><a href="clear-storage.html">CLEAR DATA</a></li>
-            <!-- Public items (always visible) -->
-            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
-            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
-            <!-- Auth item (changes based on login state) -->
-            <li id="auth-menu-item" class="public-item"><a href="login.html">LOGIN / SIGN UP</a></li>
+            <!-- Loading state (shown initially until Firebase confirms auth state) -->
+            <li class="menu-loading">
+              <div class="menu-loading-spinner"></div>
+              <span>Loading...</span>
+            </li>
           </ul>
         </nav>
       </header>
@@ -48,6 +101,12 @@
     </div>
 
     <div class="header-spacer"></div>
+
+    <!-- Logout Loading Overlay -->
+    <div class="logout-overlay" id="logoutOverlay">
+      <div class="logout-spinner"></div>
+      <div class="logout-message">Logging out...</div>
+    </div>
 
     <!-- Video Section with Custom Thumbnail -->
     <section class="video-container">
@@ -384,11 +443,13 @@
       
       // Update menu visibility based on login status
       document.addEventListener('DOMContentLoaded', function() {
-        updateHomeMenu();
+        // ✅ PROPER FIX: Don't check auth before Firebase is ready
+        // Wait for onAuthStateChanged to fire (when Firebase confirms auth state)
         
-        // Also listen for auth state changes and check for zombie users
         if (typeof firebase !== 'undefined' && firebase.auth) {
           firebase.auth().onAuthStateChanged(async function(user) {
+            console.log('🔐 Firebase auth state confirmed:', user ? 'Logged in' : 'Logged out');
+            
             if (user) {
               // Check if user has completed profile - if not, redirect to signup
               if (typeof checkUserHasProfile === 'function') {
@@ -400,52 +461,77 @@
                 }
               }
             }
+            
+            // Now update menu with confirmed auth state
             updateHomeMenu();
           });
+        } else {
+          // Firebase not available - show logged out state
+          console.warn('⚠️ Firebase not available');
+          updateHomeMenu();
         }
       });
       
       function updateHomeMenu() {
-        const authMenuItem = document.getElementById('auth-menu-item');
-        const authRequiredItems = document.querySelectorAll('.auth-required');
+        const menuList = document.getElementById('homeMenuList');
         
-        // CRITICAL: Wait for Firebase auth to initialize before checking login state
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-          const currentUser = firebase.auth().currentUser;
-          const userLoggedIn = currentUser !== null;
-          
-          // Update auth menu item text
-          if (authMenuItem) {
-            if (userLoggedIn) {
-              authMenuItem.innerHTML = '<a href="#" onclick="handleLogout(); return false;">LOGOUT</a>';
-            } else {
-              authMenuItem.innerHTML = '<a href="login.html">LOGIN / SIGN UP</a>';
-            }
-          }
-          
-          // Show/hide auth-required menu items
-          authRequiredItems.forEach(item => {
-            if (userLoggedIn) {
-              item.style.display = '';
-            } else {
-              item.style.display = 'none';
-            }
-          });
+        if (!menuList) return;
+        
+        // Check auth state (safe to check now - only called from onAuthStateChanged)
+        const currentUser = (typeof firebase !== 'undefined' && firebase.auth) 
+          ? firebase.auth().currentUser 
+          : null;
+        const userLoggedIn = currentUser !== null;
+        
+        console.log('📋 Updating home menu - User logged in:', userLoggedIn);
+        
+        // Build menu HTML
+        let menuHTML = '';
+        
+        if (userLoggedIn) {
+          // Logged in - show all menu items + logout
+          menuHTML = `
+            <li class="auth-required"><a href="new-post2.html">NEW POST</a></li>
+            <li class="auth-required"><a href="profile.html">ACCOUNT</a></li>
+            <li class="auth-required"><a href="messages.html">MESSAGES</a></li>
+            <li class="auth-required"><a href="landing.html">FAVORITES</a></li>
+            <li class="auth-required"><a href="jobs.html">GIGS MANAGER</a></li>
+            <li class="auth-required"><a href="clear-storage.html">CLEAR DATA</a></li>
+            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
+            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
+            <li class="public-item"><a href="#" onclick="handleLogout(); return false;">LOGOUT</a></li>
+          `;
         } else {
-          // Firebase not loaded yet - show login by default (conservative)
-          if (authMenuItem) {
-            authMenuItem.innerHTML = '<a href="login.html">LOGIN / SIGN UP</a>';
-          }
-          authRequiredItems.forEach(item => {
-            item.style.display = 'none';
-          });
+          // Logged out - show public items + login
+          menuHTML = `
+            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
+            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
+            <li class="public-item"><a href="login.html">LOGIN / SIGN UP</a></li>
+          `;
         }
+        
+        // Update menu
+        menuList.innerHTML = menuHTML;
       }
       
       async function handleLogout() {
+        console.log('🚪 Logging out...');
+        
+        // Show loading overlay
+        const overlay = document.getElementById('logoutOverlay');
+        if (overlay) {
+          overlay.classList.add('active');
+        }
+        
+        // Perform logout
         if (typeof logout === 'function') {
           await logout();
-          window.location.reload();
+          // Redirect to home (reload to clear state)
+          window.location.href = 'index.html';
+        } else {
+          // Fallback if logout function not available
+          localStorage.removeItem('gisugo_current_user');
+          window.location.href = 'index.html';
         }
       }
     </script>
