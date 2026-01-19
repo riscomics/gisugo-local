@@ -2188,15 +2188,28 @@ function checkIfJobExpired(jobDate, endTime) {
         const now = new Date();
         let dateObj;
         
-        // Parse date (supports ISO format and display format)
-        if (jobDate.includes('-') && /^\d{4}-\d{2}-\d{2}/.test(jobDate)) {
-            const [year, month, day] = jobDate.split('-').map(Number);
-            dateObj = new Date(year, month - 1, day);
-        } else if (jobDate.includes(',')) {
-            dateObj = new Date(jobDate);
-        } else {
-            const currentYear = new Date().getFullYear();
-            dateObj = new Date(`${jobDate} ${currentYear}`);
+        // Handle Firestore Timestamp objects
+        if (jobDate && typeof jobDate.toDate === 'function') {
+            dateObj = jobDate.toDate();
+        }
+        // Handle Date objects
+        else if (jobDate instanceof Date) {
+            dateObj = jobDate;
+        }
+        // Parse string dates
+        else if (typeof jobDate === 'string') {
+            if (jobDate.includes('-') && /^\d{4}-\d{2}-\d{2}/.test(jobDate)) {
+                const [year, month, day] = jobDate.split('-').map(Number);
+                dateObj = new Date(year, month - 1, day);
+            } else if (jobDate.includes(',')) {
+                dateObj = new Date(jobDate);
+            } else {
+                const currentYear = new Date().getFullYear();
+                dateObj = new Date(`${jobDate} ${currentYear}`);
+            }
+        }
+        else {
+            return false;
         }
         
         if (isNaN(dateObj.getTime())) return false;
@@ -5869,7 +5882,7 @@ async function showApplicationsOverlay(jobData) {
     console.log('═══════════════════════════════════════════════════════');
     console.log('Job ID:', jobData.jobId);
     console.log('Job Title:', jobData.title);
-    console.log('Application Count:', jobData.applicationCount);
+    console.log('Application Count:', jobData.applicationCount || 0);
     console.log('═══════════════════════════════════════════════════════');
     
     const overlay = document.getElementById('applicationsOverlay');
@@ -5883,7 +5896,8 @@ async function showApplicationsOverlay(jobData) {
     }
     
     // Update overlay content
-    title.textContent = 'Applications for:';
+    const appCount = jobData.applicationCount || 0;
+    title.textContent = `Applications (${appCount})`;
     subtitle.textContent = jobData.title;
     
     // Get applications for this job
@@ -6028,6 +6042,19 @@ function formatTimeForDisplay(timestamp) {
     return `${hours}:${minutes} ${ampm}`;
 }
 
+// Helper function to convert Firestore Timestamp to ISO string
+function timestampToISOString(timestamp) {
+    if (!timestamp) return new Date().toISOString();
+    
+    if (typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toISOString();
+    } else if (timestamp instanceof Date) {
+        return timestamp.toISOString();
+    } else {
+        return new Date(timestamp).toISOString();
+    }
+}
+
 function generateApplicationCardHTML(application, jobTitle) {
     const stars = Array.from({length: 5}, (_, i) => 
         `<span class="star ${i < application.applicantProfile.averageRating ? 'filled' : ''}">★</span>`
@@ -6047,7 +6074,7 @@ function generateApplicationCardHTML(application, jobTitle) {
              data-price-type="${application.pricing.paymentType}"
              data-is-counter-offer="${application.pricing.isCounterOffer}"
              data-status="${application.status}"
-             data-timestamp="${application.appliedAt.toISOString()}">
+             data-timestamp="${timestampToISOString(application.appliedAt)}">
             <div class="application-job-title">
                 <span class="applicant-name" data-user-name="${application.applicantProfile.displayName}">${application.applicantProfile.displayName}</span>
                 <span class="price-offer">${application.displayData.formattedPrice}</span>
