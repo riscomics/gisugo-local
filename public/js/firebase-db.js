@@ -854,21 +854,36 @@ function applyForJobOffline(jobId, applicationData, currentUser) {
 async function getJobApplications(jobId) {
   const db = getFirestore();
   
+  console.log('🔍 firebase-db.js: getJobApplications() called');
+  console.log('   Querying with jobId:', jobId);
+  
   if (!db) {
+    console.log('   ⚠️ Offline mode - checking localStorage');
     const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
-    return applications.filter(app => app.jobId === jobId);
+    const filtered = applications.filter(app => app.jobId === jobId);
+    console.log('   Found', filtered.length, 'applications in localStorage');
+    return filtered;
   }
   
   try {
+    console.log('   📡 Querying Firestore: applications where jobId ==', jobId);
     const snapshot = await db.collection('applications')
       .where('jobId', '==', jobId)
       .orderBy('appliedAt', 'desc')
       .get();
     
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    console.log('   ✅ Firestore returned', snapshot.docs.length, 'documents');
+    
+    const results = snapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('      -', doc.id, '| jobId:', data.jobId, '| applicant:', data.applicantName);
+      return {
+        id: doc.id,
+        ...data
+      };
+    });
+    
+    return results;
     
   } catch (error) {
     console.error('❌ Error getting applications:', error);

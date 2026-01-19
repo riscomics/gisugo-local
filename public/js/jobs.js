@@ -5864,7 +5864,13 @@ function hideListingOptionsOverlay() {
 // ========================== APPLICATIONS OVERLAY HANDLERS ==========================
 
 async function showApplicationsOverlay(jobData) {
-    console.log(`📋 Opening applications overlay for job: ${jobData.jobId}`);
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('📋 OPENING APPLICATIONS OVERLAY');
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('Job ID:', jobData.jobId);
+    console.log('Job Title:', jobData.title);
+    console.log('Application Count:', jobData.applicationCount);
+    console.log('═══════════════════════════════════════════════════════');
     
     const overlay = document.getElementById('applicationsOverlay');
     const title = document.getElementById('applicationsTitle');
@@ -5881,7 +5887,8 @@ async function showApplicationsOverlay(jobData) {
     subtitle.textContent = jobData.title;
     
     // Get applications for this job
-    const jobApplications = getApplicationsForJob(jobData.jobId);
+    // Fetch applications (now async)
+    const jobApplications = await getApplicationsForJob(jobData.jobId);
     
     if (jobApplications && jobApplications.length > 0) {
         // Generate applications HTML  
@@ -5917,9 +5924,108 @@ async function showApplicationsOverlay(jobData) {
     initializeApplicationsOverlayHandlers();
 }
 
-function getApplicationsForJob(jobId) {
+async function getApplicationsForJob(jobId) {
+    console.log('───────────────────────────────────────────────────────');
+    console.log('📋 FETCHING APPLICATIONS');
+    console.log('───────────────────────────────────────────────────────');
+    console.log('Querying with Job ID:', jobId);
+    console.log('Firebase Mode:', typeof DataService !== 'undefined' && DataService.useFirebase());
+    console.log('───────────────────────────────────────────────────────');
+    
+    // Check if Firebase mode is active
+    const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+    
+    if (useFirebase && typeof getJobApplications === 'function') {
+        try {
+            const applications = await getJobApplications(jobId);
+            console.log('✅ Firebase Query Complete:');
+            console.log('   Found Applications:', applications.length);
+            if (applications.length > 0) {
+                console.log('   First Application:', {
+                    id: applications[0].id,
+                    jobId: applications[0].jobId,
+                    applicantName: applications[0].applicantName,
+                    status: applications[0].status
+                });
+            }
+            console.log('───────────────────────────────────────────────────────');
+            
+            // Transform Firebase data to match expected format
+            return applications.map(app => ({
+                applicationId: app.id,
+                applicantUid: app.applicantId,
+                jobId: app.jobId,
+                status: app.status || 'pending',
+                appliedAt: app.appliedAt,
+                updatedAt: app.updatedAt || app.appliedAt,
+                applicantProfile: {
+                    displayName: app.applicantName || 'Anonymous',
+                    photoURL: app.applicantThumbnail || 'public/users/placeholder.jpg',
+                    averageRating: app.averageRating || 0,
+                    totalReviews: app.totalReviews || 0,
+                    verified: app.verified || false,
+                    lastActive: app.lastActive || new Date()
+                },
+                pricing: {
+                    offeredAmount: app.counterOffer || 0,
+                    originalAmount: app.originalAmount || 0,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: app.counterOffer ? true : false
+                },
+                applicationMessage: app.message || '',
+                qualifications: app.qualifications || {},
+                displayData: {
+                    appliedDate: app.appliedAt ? formatDateForDisplay(app.appliedAt) : 'Unknown',
+                    appliedTime: app.appliedAt ? formatTimeForDisplay(app.appliedAt) : '',
+                    formattedPrice: app.counterOffer ? `₱${app.counterOffer} Per Job` : 'No offer'
+                }
+            }));
+        } catch (error) {
+            console.error('❌ Error fetching applications from Firebase:', error);
+            return [];
+        }
+    }
+    
+    // Fallback to mock data
+    console.log('🧪 Using mock applications data');
     const jobData = MOCK_APPLICATIONS.find(job => job.jobId === jobId);
     return jobData ? jobData.applications : [];
+}
+
+// Helper function to format date from Firestore Timestamp
+function formatDateForDisplay(timestamp) {
+    let date;
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+        date = timestamp;
+    } else {
+        date = new Date(timestamp);
+    }
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+// Helper function to format time from Firestore Timestamp
+function formatTimeForDisplay(timestamp) {
+    let date;
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+    } else if (timestamp instanceof Date) {
+        date = timestamp;
+    } else {
+        date = new Date(timestamp);
+    }
+    
+    let hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
 }
 
 function generateApplicationCardHTML(application, jobTitle) {
@@ -6967,62 +7073,99 @@ function hideHireConfirmationOverlay() {
     console.log('🔒 Hire confirmation overlay and parent modals closed');
 }
 
-function processHireConfirmation(workerData) {
+async function processHireConfirmation(workerData) {
     console.log('🎉 Processing hire confirmation for:', workerData);
     
     // Hide hire confirmation overlay
     hideHireConfirmationOverlay();
     
-    // Show success confirmation with celebration animation
-    showConfirmationWithCallback(
-        '🎉',
-        'Job Offer Sent!',
-        `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab with "Pending Offer" status.`,
-        async () => {
-            // This callback runs AFTER user clicks OK on success overlay
-            console.log('✅ User closed success overlay, starting offer process...');
-            
-            try {
-                // Close all overlays first
-                closeAllOverlaysAfterHire();
-                
-                // Create offered job for worker and pending hire for customer
-                const jobCard = document.querySelector(`[data-job-id="${workerData.jobId}"]`);
-                if (jobCard) {
-                    const jobData = extractJobDataFromCard(jobCard);
-                    if (jobData) {
-                        // Add to offered data for worker perspective
-                        await addToOfferedData(jobData, workerData);
-                        
-                        // Add to hiring data with pending status for customer perspective
-                        jobData.hiredWorker = workerData.userName;
-                        jobData.hiredWorkerPhoto = workerData.userPhoto;
-                        jobData.agreedPrice = workerData.priceOffer;
-                        jobData.priceType = workerData.priceType;
-                        jobData.status = 'pending-offer'; // New status for pending offers
-                        addToHiringData(jobData);
-                        console.log('✅ Job offer created for both worker and customer');
-                    }
-                }
-                
-                // Hold applications in reserve (don't reject yet)
-                // Applications will be restored if worker rejects or customer cancels
-                console.log('📋 Applications held in reserve until worker accepts offer');
-                
-                // Move job listing from Listings to Hiring tab with pending status
-                setTimeout(async () => {
-                    await moveJobListingToHiringWithData(workerData.jobId, workerData.userName, 'pending-offer');
-                }, 500);
-                
-            } catch (error) {
-                console.error('❌ Error in offer process:', error);
-            }
-        },
-        'celebration'
-    );
+    // Check if Firebase mode is active
+    const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
     
-    // TODO: Send hire notification to backend
-    console.log(`📤 Send hire notification to ${workerData.userName} (${workerData.userId}) for job ${workerData.jobId}`);
+    if (useFirebase && typeof hireWorker === 'function') {
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Save hire to database
+        // ══════════════════════════════════════════════════════════════
+        try {
+            console.log('🔥 Hiring worker via Firebase...');
+            
+            const result = await hireWorker(workerData.jobId, workerData.applicationId);
+            
+            if (result.success) {
+                console.log('✅ Worker hired successfully in Firebase');
+                
+                // Show success confirmation
+                showConfirmationWithCallback(
+                    '🎉',
+                    'Job Offer Sent!',
+                    `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab.`,
+                    async () => {
+                        console.log('✅ User closed success overlay');
+                        
+                        // Close all overlays
+                        closeAllOverlaysAfterHire();
+                        
+                        // Reload the listings tab to reflect changes
+                        setTimeout(async () => {
+                            await loadListingsContent();
+                            await loadHiringContent();
+                        }, 500);
+                    },
+                    'celebration'
+                );
+            } else {
+                console.error('❌ Hire failed:', result.message);
+                alert(result.message || 'Failed to hire worker. Please try again.');
+            }
+        } catch (error) {
+            console.error('❌ Error hiring worker:', error);
+            alert('An error occurred while hiring. Please try again.');
+        }
+    } else {
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE - Use existing mock data logic
+        // ══════════════════════════════════════════════════════════════
+        console.log('🧪 Using mock hire logic');
+        
+        showConfirmationWithCallback(
+            '🎉',
+            'Job Offer Sent!',
+            `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab with "Pending Offer" status.`,
+            async () => {
+                console.log('✅ User closed success overlay, starting offer process...');
+                
+                try {
+                    closeAllOverlaysAfterHire();
+                    
+                    const jobCard = document.querySelector(`[data-job-id="${workerData.jobId}"]`);
+                    if (jobCard) {
+                        const jobData = extractJobDataFromCard(jobCard);
+                        if (jobData) {
+                            await addToOfferedData(jobData, workerData);
+                            
+                            jobData.hiredWorker = workerData.userName;
+                            jobData.hiredWorkerPhoto = workerData.userPhoto;
+                            jobData.agreedPrice = workerData.priceOffer;
+                            jobData.priceType = workerData.priceType;
+                            jobData.status = 'pending-offer';
+                            addToHiringData(jobData);
+                            console.log('✅ Job offer created for both worker and customer');
+                        }
+                    }
+                    
+                    console.log('📋 Applications held in reserve until worker accepts offer');
+                    
+                    setTimeout(async () => {
+                        await moveJobListingToHiringWithData(workerData.jobId, workerData.userName, 'pending-offer');
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('❌ Error in offer process:', error);
+                }
+            },
+            'celebration'
+        );
+    }
 }
 
 function autoRejectOtherApplications(hiredApplicationId) {

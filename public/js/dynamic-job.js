@@ -609,22 +609,63 @@ function handleJobApplication() {
   
   // Prepare application data
   const { category, jobNumber } = getUrlParameters();
+  // jobNumber from URL IS the Firebase document ID (e.g., "job_abc123")
+  const jobId = jobNumber;
+  
   const applicationData = {
     message: message,
-    counterOffer: counterOffer ? parseFloat(counterOffer) : null,
-    jobId: `${category}-job-2025-${jobNumber}`,
-    timestamp: new Date().toISOString()
+    counterOffer: counterOffer ? parseFloat(counterOffer) : null
   };
   
-  console.log('Job application submitted:', applicationData);
+  console.log('📤 Submitting job application for jobId:', jobId, applicationData);
   
-  // Clear form and close apply modal
-  if (messageTextarea) messageTextarea.value = '';
-  if (counterOfferInput) counterOfferInput.value = '';
-  closeApplyModal();
+  // Show loading overlay
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  const loadingText = document.querySelector('#loadingOverlay .loading-text');
+  if (loadingOverlay) {
+    if (loadingText) loadingText.textContent = 'Sending Application...';
+    loadingOverlay.classList.add('show');
+  }
   
-  // Show confirmation overlay
-  showApplicationSentOverlay();
+  // Submit application to Firebase
+  if (typeof applyForJob === 'function') {
+    applyForJob(jobId, applicationData)
+      .then(result => {
+        // Hide loading
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
+        
+        if (result.success) {
+          console.log('✅ Application submitted successfully!');
+          console.log('   Application ID:', result.applicationId);
+          console.log('   Job ID:', jobId);
+          console.log('   🔍 Customer should query applications with jobId:', jobId);
+          
+          // Clear form and close apply modal
+          if (messageTextarea) messageTextarea.value = '';
+          if (counterOfferInput) counterOfferInput.value = '';
+          closeApplyModal();
+          
+          // Show confirmation overlay
+          showApplicationSentOverlay();
+        } else {
+          console.error('❌ Application submission failed:', result.message);
+          alert(result.message || 'Failed to submit application. Please try again.');
+        }
+      })
+      .catch(error => {
+        // Hide loading
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
+        
+        console.error('❌ Error submitting application:', error);
+        alert('An error occurred. Please try again.');
+      });
+  } else {
+    // Hide loading
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
+    
+    console.error('❌ applyForJob function not available');
+    alert('Application system unavailable. Please refresh the page.');
+  }
 }
 
 // Function to show application sent confirmation overlay
