@@ -764,6 +764,25 @@ async function applyForJob(jobId, applicationData) {
     
     console.log('✅ Self-application check passed');
     
+    // ═══════════════════════════════════════════════════════════════
+    // VALIDATION: Prevent duplicate applications
+    // ═══════════════════════════════════════════════════════════════
+    console.log('🔍 Checking for existing applications...');
+    const existingApplications = await db.collection('applications')
+      .where('jobId', '==', jobId)
+      .where('applicantId', '==', currentUser.uid)
+      .get();
+    
+    if (!existingApplications.empty) {
+      console.warn('⚠️ User already applied to this gig');
+      return { 
+        success: false, 
+        message: 'You have already applied to this gig' 
+      };
+    }
+    
+    console.log('✅ Duplicate application check passed');
+    
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';
     let applicantThumbnail = currentUser.photoURL || '';
@@ -945,6 +964,60 @@ async function hireWorker(jobId, applicationId) {
     
   } catch (error) {
     console.error('❌ Error hiring worker:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Reject a job application
+ * @param {string} applicationId - Application document ID
+ * @returns {Promise<Object>} - Result object
+ */
+async function rejectApplication(applicationId) {
+  const db = getFirestore();
+  
+  if (!db) {
+    return { success: true, message: 'Application rejected! (Offline mode)' };
+  }
+  
+  try {
+    // Get application data to verify it exists
+    const appDoc = await db.collection('applications').doc(applicationId).get();
+    
+    if (!appDoc.exists) {
+      return { success: false, message: 'Application not found' };
+    }
+    
+    const appData = appDoc.data();
+    
+    // Verify the current user is the job poster
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+      return { success: false, message: 'You must be logged in' };
+    }
+    
+    // Get job to verify poster
+    const jobDoc = await db.collection('jobs').doc(appData.jobId).get();
+    if (!jobDoc.exists) {
+      return { success: false, message: 'Job not found' };
+    }
+    
+    const jobData = jobDoc.data();
+    if (jobData.posterId !== currentUser.uid) {
+      return { success: false, message: 'You are not authorized to reject this application' };
+    }
+    
+    // Update application status to rejected
+    await db.collection('applications').doc(applicationId).update({
+      status: 'rejected',
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log('✅ Application rejected successfully:', applicationId);
+    return { success: true, message: 'Application rejected successfully!' };
+    
+  } catch (error) {
+    console.error('❌ Error rejecting application:', error);
     return { success: false, message: error.message };
   }
 }

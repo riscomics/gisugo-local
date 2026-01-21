@@ -5954,18 +5954,26 @@ async function getApplicationsForJob(jobId) {
             const applications = await getJobApplications(jobId);
             console.log('✅ Firebase Query Complete:');
             console.log('   Found Applications:', applications.length);
-            if (applications.length > 0) {
+            
+            // ═══════════════════════════════════════════════════════════════
+            // FILTER: Only show PENDING applications (hide rejected/accepted)
+            // ═══════════════════════════════════════════════════════════════
+            const pendingApplications = applications.filter(app => app.status === 'pending');
+            console.log('   Pending Applications:', pendingApplications.length);
+            console.log('   Filtered out:', applications.length - pendingApplications.length, 'non-pending');
+            
+            if (pendingApplications.length > 0) {
                 console.log('   First Application:', {
-                    id: applications[0].id,
-                    jobId: applications[0].jobId,
-                    applicantName: applications[0].applicantName,
-                    status: applications[0].status
+                    id: pendingApplications[0].id,
+                    jobId: pendingApplications[0].jobId,
+                    applicantName: pendingApplications[0].applicantName,
+                    status: pendingApplications[0].status
                 });
             }
             console.log('───────────────────────────────────────────────────────');
             
             // Transform Firebase data to match expected format
-            return applications.map(app => ({
+            return pendingApplications.map(app => ({
                 applicationId: app.id,
                 applicantUid: app.applicantId,
                 jobId: app.jobId,
@@ -6104,45 +6112,82 @@ function initializeApplicationsOverlayHandlers() {
     const overlay = document.getElementById('applicationsOverlay');
     if (!overlay || overlay.dataset.handlersInitialized) return;
     
+    // Clean up existing overlay handlers first
+    executeCleanupsByType('applications-overlay');
+    
     const closeBtn = document.getElementById('applicationsCloseBtn');
     
+    // Close button handler
+    const handleCloseClick = () => hideApplicationsOverlay();
     if (closeBtn) {
-        closeBtn.addEventListener('click', hideApplicationsOverlay);
+        closeBtn.addEventListener('click', handleCloseClick);
+        
+        // Register cleanup
+        registerCleanup('element', 'applications-overlay', () => {
+            console.log('🧹 Cleaning up applications overlay close button');
+            closeBtn.removeEventListener('click', handleCloseClick);
+        });
     }
     
-    // Close on backdrop click
-    overlay.addEventListener('click', (e) => {
+    // Backdrop click handler
+    const handleBackdropClick = (e) => {
         if (e.target === overlay) {
             hideApplicationsOverlay();
         }
+    };
+    overlay.addEventListener('click', handleBackdropClick);
+    
+    // Register backdrop cleanup
+    registerCleanup('element', 'applications-overlay', () => {
+        console.log('🧹 Cleaning up applications overlay backdrop');
+        overlay.removeEventListener('click', handleBackdropClick);
     });
     
     overlay.dataset.handlersInitialized = 'true';
 }
 
 function initializeApplicationCardHandlers() {
-    const applicationCards = document.querySelectorAll('#applicationsList .application-card');
+    // Clean up existing handlers first to prevent memory leaks
+    executeCleanupsByType('application-cards');
     
-    applicationCards.forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Prevent event bubbling
-            e.stopPropagation();
-            
-            // Get applicant data from the card
-            const userName = this.getAttribute('data-user-name');
-            const userId = this.getAttribute('data-user-id');
-            const userPhoto = this.getAttribute('data-user-photo');
-            const userRating = parseFloat(this.getAttribute('data-user-rating'));
-            const reviewCount = parseInt(this.getAttribute('data-review-count'));
-            const applicationId = this.getAttribute('data-application-id');
-            const jobTitle = this.getAttribute('data-job-title');
-            const jobId = this.getAttribute('data-job-id');
-            
-            console.log(`Opening application action overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
-            console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
-            
-            showApplicationActionOverlay(this);
-        });
+    const applicationsList = document.getElementById('applicationsList');
+    if (!applicationsList) return;
+    
+    // ═══════════════════════════════════════════════════════════════
+    // Use EVENT DELEGATION to prevent memory leaks
+    // Single listener on parent instead of multiple on each card
+    // ═══════════════════════════════════════════════════════════════
+    const handleCardClick = function(e) {
+        // Find the clicked application card (bubble up to find it)
+        const card = e.target.closest('.application-card');
+        if (!card) return;
+        
+        // Prevent event bubbling
+        e.stopPropagation();
+        
+        // Get applicant data from the card
+        const userName = card.getAttribute('data-user-name');
+        const userId = card.getAttribute('data-user-id');
+        const userPhoto = card.getAttribute('data-user-photo');
+        const userRating = parseFloat(card.getAttribute('data-user-rating'));
+        const reviewCount = parseInt(card.getAttribute('data-review-count'));
+        const applicationId = card.getAttribute('data-application-id');
+        const jobTitle = card.getAttribute('data-job-title');
+        const jobId = card.getAttribute('data-job-id');
+        
+        console.log(`Opening application action overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
+        console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
+        
+        showApplicationActionOverlay(card);
+    };
+    
+    // Add single delegated listener
+    applicationsList.addEventListener('click', handleCardClick);
+    
+    // Register cleanup to remove listener when overlay closes
+    registerCleanup('element', 'application-cards', () => {
+        console.log('🧹 Cleaning up application card handlers');
+        applicationsList.removeEventListener('click', handleCardClick);
     });
 }
 
@@ -6260,11 +6305,10 @@ function initializeApplicationActionHandlers() {
         return;
     }
     
-    // Always clean up and re-initialize to prevent duplicate handlers
-    if (overlay.dataset.actionHandlersInitialized) {
-        console.log('🔄 Cleaning up existing handlers...');
-        delete overlay.dataset.actionHandlersInitialized;
-    }
+    // ═══════════════════════════════════════════════════════════════
+    // MEMORY LEAK FIX: Clean up existing handlers before adding new ones
+    // ═══════════════════════════════════════════════════════════════
+    executeCleanupsByType('application-action-handlers');
     
     const profileBtn = document.getElementById('profileBtn');
     const contactBtn = document.getElementById('contactBtn');
@@ -6272,155 +6316,242 @@ function initializeApplicationActionHandlers() {
     const rejectBtn = document.getElementById('rejectJobBtn');
     
     // Handle profile button click
+    const handleProfileClick = function() {
+        console.log('🔍 Profile button clicked!');
+        const userName = this.getAttribute('data-user-name');
+        const userId = this.getAttribute('data-user-id');
+        
+        if (userName) {
+            // Convert user name to URL-friendly format
+            const urlUserId = userName.toLowerCase()
+                .replace(/\s+/g, '-')
+                .replace(/[^a-z0-9-]/g, '');
+            
+            console.log(`🔍 View profile for: ${userName} (${userId})`);
+            hideApplicationActionOverlay();
+            showConfirmation('🔍', 'Opening Profile', `Opening profile for ${userName}...`);
+            
+            // Navigate to profile page
+            setTimeout(() => {
+                window.location.href = `profile.html?userId=${urlUserId}`;
+            }, 1000);
+        }
+    };
+    
     if (profileBtn) {
         console.log('✅ Profile button found, adding event listener');
-        profileBtn.addEventListener('click', function() {
-            console.log('🔍 Profile button clicked!');
-            const userName = this.getAttribute('data-user-name');
-            const userId = this.getAttribute('data-user-id');
-            
-            if (userName) {
-                // Convert user name to URL-friendly format
-                const urlUserId = userName.toLowerCase()
-                    .replace(/\s+/g, '-')
-                    .replace(/[^a-z0-9-]/g, '');
-                
-                console.log(`🔍 View profile for: ${userName} (${userId})`);
-                hideApplicationActionOverlay();
-                showConfirmation('🔍', 'Opening Profile', `Opening profile for ${userName}...`);
-                
-                // Navigate to profile page
-                setTimeout(() => {
-                    window.location.href = `profile.html?userId=${urlUserId}`;
-                }, 1000);
-            }
+        profileBtn.addEventListener('click', handleProfileClick);
+        
+        // Register cleanup
+        registerCleanup('element', 'application-action-handlers', () => {
+            profileBtn.removeEventListener('click', handleProfileClick);
         });
     }
     
     // Handle contact button click
+    const handleContactClick = function() {
+        console.log('💬 Contact button clicked!');
+        const userName = this.getAttribute('data-user-name');
+        const userId = this.getAttribute('data-user-id');
+        const applicationId = this.getAttribute('data-application-id');
+        const jobId = overlay.getAttribute('data-job-id'); // Get jobId from overlay
+        
+        console.log('Contact button data:', { userName, userId, applicationId, jobId });
+        
+        if (userName && userId) {
+            console.log(`Opening contact message for ${userName}`);
+            
+            // Close the current overlay
+            hideApplicationActionOverlay();
+            
+            // Show contact message overlay with jobId and applicationId
+            showContactMessageOverlay(userId, userName, jobId, applicationId);
+        } else {
+            console.error('Missing contact button data attributes:', { userName, userId });
+        }
+    };
+    
     if (contactBtn) {
         console.log('✅ Contact button found, adding event listener');
-        contactBtn.addEventListener('click', function() {
-            console.log('💬 Contact button clicked!');
-            const userName = this.getAttribute('data-user-name');
-            const userId = this.getAttribute('data-user-id');
-            const applicationId = this.getAttribute('data-application-id');
-            const jobId = overlay.getAttribute('data-job-id'); // Get jobId from overlay
-            
-            console.log('Contact button data:', { userName, userId, applicationId, jobId });
-            
-            if (userName && userId) {
-                console.log(`Opening contact message for ${userName}`);
-                
-                // Close the current overlay
-                hideApplicationActionOverlay();
-                
-                // Show contact message overlay with jobId and applicationId
-                showContactMessageOverlay(userId, userName, jobId, applicationId);
-            } else {
-                console.error('Missing contact button data attributes:', { userName, userId });
-            }
+        contactBtn.addEventListener('click', handleContactClick);
+        
+        // Register cleanup
+        registerCleanup('element', 'application-action-handlers', () => {
+            contactBtn.removeEventListener('click', handleContactClick);
         });
     }
     
     // Handle hire button click
+    const handleHireClick = function() {
+        console.log('✅ Hire button clicked!');
+        const applicationId = this.getAttribute('data-application-id');
+        const userId = this.getAttribute('data-user-id');
+        const userName = this.getAttribute('data-user-name');
+        const jobId = this.getAttribute('data-job-id');
+        const jobTitle = this.getAttribute('data-job-title');
+        const userRating = this.getAttribute('data-user-rating');
+        const userPhoto = this.getAttribute('data-user-photo');
+        const priceOffer = this.getAttribute('data-price-offer');
+        const priceType = this.getAttribute('data-price-type');
+        
+        // Validate data before proceeding
+        if (!applicationId || !userId || !userName) {
+            console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
+            return;
+        }
+        
+        console.log('HIRE ACTION:', {
+            applicationId,
+            userId,
+            userName,
+            jobId,
+            jobTitle,
+            userRating,
+            userPhoto,
+            priceOffer,
+            priceType
+        });
+        
+        // Debug: Check if price data is being captured
+        console.log('🔍 PRICE DEBUG - Hire button price data:', {
+            priceOffer: priceOffer,
+            priceType: priceType,
+            priceOfferType: typeof priceOffer,
+            priceOfferLength: priceOffer?.length
+        });
+        
+        // Hide current action overlay
+        hideApplicationActionOverlay();
+        
+        // Show hire confirmation overlay with worker details
+        showHireConfirmationOverlay({
+            applicationId,
+            userId,
+            userName,
+            jobId,
+            jobTitle,
+            userRating: parseFloat(userRating) || 0,
+            userPhoto: userPhoto,
+            priceOffer: priceOffer,
+            priceType: priceType
+        });
+    };
+    
     if (hireBtn) {
         console.log('✅ Hire button found, adding event listener');
-        hireBtn.addEventListener('click', function() {
-            console.log('✅ Hire button clicked!');
-            const applicationId = this.getAttribute('data-application-id');
-            const userId = this.getAttribute('data-user-id');
-            const userName = this.getAttribute('data-user-name');
-            const jobId = this.getAttribute('data-job-id');
-            const jobTitle = this.getAttribute('data-job-title');
-            const userRating = this.getAttribute('data-user-rating');
-            const userPhoto = this.getAttribute('data-user-photo');
-            const priceOffer = this.getAttribute('data-price-offer');
-            const priceType = this.getAttribute('data-price-type');
-            
-            // Validate data before proceeding
-            if (!applicationId || !userId || !userName) {
-                console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
-                return;
-            }
-            
-            console.log('HIRE ACTION:', {
-                applicationId,
-                userId,
-                userName,
-                jobId,
-                jobTitle,
-                userRating,
-                userPhoto,
-                priceOffer,
-                priceType
-            });
-            
-            // Debug: Check if price data is being captured
-            console.log('🔍 PRICE DEBUG - Hire button price data:', {
-                priceOffer: priceOffer,
-                priceType: priceType,
-                priceOfferType: typeof priceOffer,
-                priceOfferLength: priceOffer?.length
-            });
-            
-            // Hide current action overlay
-            hideApplicationActionOverlay();
-            
-            // Show hire confirmation overlay with worker details
-            showHireConfirmationOverlay({
-                applicationId,
-                userId,
-                userName,
-                jobId,
-                jobTitle,
-                userRating: parseFloat(userRating) || 0,
-                userPhoto: userPhoto,
-                priceOffer: priceOffer,
-                priceType: priceType
-            });
+        hireBtn.addEventListener('click', handleHireClick);
+        
+        // Register cleanup
+        registerCleanup('element', 'application-action-handlers', () => {
+            hireBtn.removeEventListener('click', handleHireClick);
         });
     }
     
     // Handle reject button click
-    if (rejectBtn) {
-        console.log('✅ Reject button found, adding event listener');
-        rejectBtn.addEventListener('click', function() {
-            console.log('❌ Reject button clicked!');
-            const applicationId = this.getAttribute('data-application-id');
-            const userId = this.getAttribute('data-user-id');
-            const userName = this.getAttribute('data-user-name');
-            const jobId = this.getAttribute('data-job-id');
-            const jobTitle = this.getAttribute('data-job-title');
-            
-            // Validate data before proceeding
-            if (!applicationId || !userId || !userName) {
-                console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes');
-                return;
-            }
-            
-            console.log('REJECT ACTION:', {
-                applicationId,
-                userId,
-                userName,
-                jobId,
-                jobTitle
-            });
+    const handleRejectClick = async function() {
+        console.log('❌ Reject button clicked!');
+        const applicationId = this.getAttribute('data-application-id');
+        const userId = this.getAttribute('data-user-id');
+        const userName = this.getAttribute('data-user-name');
+        const jobId = this.getAttribute('data-job-id');
+        const jobTitle = this.getAttribute('data-job-title');
+        
+        // Validate data before proceeding
+        if (!applicationId || !userId || !userName) {
+            console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes');
+            return;
+        }
+        
+        console.log('REJECT ACTION:', {
+            applicationId,
+            userId,
+            userName,
+            jobId,
+            jobTitle
+        });
             
             // Close action overlay first
             hideApplicationActionOverlay();
             
-            // Show confirmation with rejection animation
+            // ═══════════════════════════════════════════════════════════════
+            // SHOW LOADING INDICATOR
+            // ═══════════════════════════════════════════════════════════════
+            const applicationCard = document.querySelector(`#applicationsList [data-application-id="${applicationId}"]`);
+            if (applicationCard) {
+                // Add a subtle loading state to the card
+                applicationCard.style.opacity = '0.6';
+                applicationCard.style.pointerEvents = 'none';
+                applicationCard.style.position = 'relative';
+                
+                // Add loading spinner
+                const loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'application-loading-spinner';
+                loadingSpinner.innerHTML = '<div class="spinner-icon">⏳</div>';
+                loadingSpinner.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 24px;
+                    animation: spin 1s linear infinite;
+                `;
+                applicationCard.appendChild(loadingSpinner);
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // FIREBASE: Reject application in Firestore
+            // ═══════════════════════════════════════════════════════════════
+            const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+            
+            if (useFirebase && typeof rejectApplication === 'function') {
+                try {
+                    console.log('🔥 Rejecting application in Firebase:', applicationId);
+                    const result = await rejectApplication(applicationId);
+                    
+                    if (!result.success) {
+                        console.error('❌ Failed to reject application:', result.message);
+                        
+                        // Remove loading state on error
+                        if (applicationCard) {
+                            applicationCard.style.opacity = '1';
+                            applicationCard.style.pointerEvents = 'auto';
+                            const spinner = applicationCard.querySelector('.application-loading-spinner');
+                            if (spinner) spinner.remove();
+                        }
+                        
+                        alert(result.message || 'Failed to reject application. Please try again.');
+                        return;
+                    }
+                    
+                    console.log('✅ Application rejected in Firebase');
+                } catch (error) {
+                    console.error('❌ Error rejecting application:', error);
+                    
+                    // Remove loading state on error
+                    if (applicationCard) {
+                        applicationCard.style.opacity = '1';
+                        applicationCard.style.pointerEvents = 'auto';
+                        const spinner = applicationCard.querySelector('.application-loading-spinner');
+                        if (spinner) spinner.remove();
+                    }
+                    
+                    alert('An error occurred while rejecting the application. Please try again.');
+                    return;
+                }
+            }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // SUCCESS: Show confirmation and remove from UI
+            // ═══════════════════════════════════════════════════════════════
             showConfirmation(
                 '❌',
                 'Application Rejected',
-                `${userName}'s application has been rejected. They will be notified appropriately.`,
+                `${userName}'s application has been rejected.`,
                 'rejection'
             );
             
             // Remove the application card from UI after confirmation
             setTimeout(() => {
-                const applicationCard = document.querySelector(`#applicationsList [data-application-id="${applicationId}"]`);
                 if (applicationCard) {
                     applicationCard.style.transition = 'all 0.3s ease';
                     applicationCard.style.opacity = '0';
@@ -6435,30 +6566,51 @@ function initializeApplicationActionHandlers() {
                             const applicationsList = document.getElementById('applicationsList');
                             applicationsList.innerHTML = `
                                 <div class="empty-state">
-                                    <div class="empty-state-icon">📋</div>
-                                    <div class="empty-state-title">No Applications Yet</div>
-                                    <div class="empty-state-message">This job hasn't received any applications yet.</div>
+                                    <div class="empty-state-icon">✅</div>
+                                    <div class="empty-state-title">All Applications Processed</div>
+                                    <div class="empty-state-message">No pending applications for this job.</div>
                                 </div>
                             `;
                         }
                     }, 300);
                 }
-            }, 500);
+            }, 200);
+    };
+    
+    if (rejectBtn) {
+        console.log('✅ Reject button found, adding event listener');
+        rejectBtn.addEventListener('click', handleRejectClick);
+        
+        // Register cleanup
+        registerCleanup('element', 'application-action-handlers', () => {
+            rejectBtn.removeEventListener('click', handleRejectClick);
         });
     }
     
     // Close on backdrop click
-    overlay.addEventListener('click', (e) => {
+    const handleBackdropClick = (e) => {
         if (e.target === overlay) {
             hideApplicationActionOverlay();
         }
+    };
+    overlay.addEventListener('click', handleBackdropClick);
+    
+    // Register backdrop cleanup
+    registerCleanup('element', 'application-action-handlers', () => {
+        overlay.removeEventListener('click', handleBackdropClick);
     });
     
     // Close with Escape key
-    document.addEventListener('keydown', function(e) {
+    const handleEscapeKey = function(e) {
         if (e.key === 'Escape' && overlay.classList.contains('show')) {
             hideApplicationActionOverlay();
         }
+    };
+    document.addEventListener('keydown', handleEscapeKey);
+    
+    // Register escape key cleanup
+    registerCleanup('element', 'application-action-handlers', () => {
+        document.removeEventListener('keydown', handleEscapeKey);
     });
     
     overlay.dataset.actionHandlersInitialized = 'true';
@@ -6719,6 +6871,9 @@ function hideApplicationActionOverlay() {
     const overlay = document.getElementById('applicationActionOverlay');
     if (!overlay) return;
     
+    // Clean up event listeners before hiding to prevent memory leaks
+    executeCleanupsByType('application-action-handlers');
+    
     overlay.classList.remove('show');
     
     // Clear handlers initialization flag to prevent memory leaks
@@ -6915,6 +7070,10 @@ function createConfetti(container) {
 function hideApplicationsOverlay() {
     const overlay = document.getElementById('applicationsOverlay');
     if (!overlay) return;
+    
+    // Clean up event listeners before hiding to prevent memory leaks
+    executeCleanupsByType('application-cards');
+    executeCleanupsByType('applications-overlay');
     
     overlay.classList.remove('show');
     

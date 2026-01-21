@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cleanup Duplicate Applications - GISUGO Admin</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 30px;
+      color: #856404;
+    }
+    
+    .warning strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 15px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .btn-danger:hover {
+      box-shadow: 0 10px 20px rgba(245, 87, 108, 0.3);
+    }
+    
+    .results {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .results h3 {
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    .result-item {
+      padding: 10px;
+      margin-bottom: 10px;
+      background: white;
+      border-radius: 5px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .result-item.duplicate {
+      border-left-color: #f5576c;
+    }
+    
+    .result-item.kept {
+      border-left-color: #28a745;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Cleanup Duplicate Applications</h1>
+    <p class="subtitle">Remove duplicate applications from the same user to the same job</p>
+    
+    <div class="warning">
+      <strong>⚠️ Warning:</strong>
+      This tool will find and remove duplicate applications. For each job+user combination, only the FIRST application will be kept.
+    </div>
+    
+    <button class="btn" id="scanBtn" onclick="scanDuplicates()">
+      🔍 Scan for Duplicates
+    </button>
+    
+    <button class="btn btn-danger" id="cleanupBtn" onclick="cleanupDuplicates()" disabled>
+      🗑️ Remove Duplicates
+    </button>
+    
+    <div class="results" id="results" style="display: none;"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Firebase Config -->
+  <script src="public/js/firebase-config.js"></script>
+  
+  <script>
+    let duplicateApplications = [];
+    
+    async function scanDuplicates() {
+      const scanBtn = document.getElementById('scanBtn');
+      const cleanupBtn = document.getElementById('cleanupBtn');
+      const results = document.getElementById('results');
+      
+      scanBtn.disabled = true;
+      cleanupBtn.disabled = true;
+      results.style.display = 'block';
+      results.innerHTML = '<div class="loading"><div class="spinner"></div><p>Scanning applications...</p></div>';
+      
+      try {
+        const db = firebase.firestore();
+        const applicationsSnapshot = await db.collection('applications').get();
+        
+        console.log(`📊 Total applications: ${applicationsSnapshot.size}`);
+        
+        // Group applications by jobId + applicantId
+        const applicationGroups = {};
+        
+        applicationsSnapshot.forEach(doc => {
+          const data = doc.data();
+          const key = `${data.jobId}_${data.applicantId}`;
+          
+          if (!applicationGroups[key]) {
+            applicationGroups[key] = [];
+          }
+          
+          applicationGroups[key].push({
+            id: doc.id,
+            jobId: data.jobId,
+            applicantId: data.applicantId,
+            applicantName: data.applicantName,
+            appliedAt: data.appliedAt,
+            status: data.status
+          });
+        });
+        
+        // Find duplicates
+        duplicateApplications = [];
+        let totalDuplicates = 0;
+        
+        Object.keys(applicationGroups).forEach(key => {
+          const apps = applicationGroups[key];
+          
+          if (apps.length > 1) {
+            // Sort by appliedAt (keep the first one)
+            apps.sort((a, b) => {
+              const timeA = a.appliedAt?.toDate ? a.appliedAt.toDate().getTime() : 0;
+              const timeB = b.appliedAt?.toDate ? b.appliedAt.toDate().getTime() : 0;
+              return timeA - timeB;
+            });
+            
+            // Mark duplicates (all except the first one)
+            const duplicates = apps.slice(1);
+            duplicateApplications.push(...duplicates.map(app => app.id));
+            totalDuplicates += duplicates.length;
+            
+            console.log(`🔍 Found ${duplicates.length} duplicate(s) for job ${apps[0].jobId} by ${apps[0].applicantName}`);
+          }
+        });
+        
+        // Display results
+        if (totalDuplicates === 0) {
+          results.innerHTML = `
+            <h3>✅ No Duplicates Found</h3>
+            <p>All applications are unique. No cleanup needed!</p>
+          `;
+        } else {
+          let html = `
+            <h3>🔍 Scan Results</h3>
+            <p><strong>${totalDuplicates} duplicate application(s) found</strong></p>
+            <p style="margin-top: 10px; margin-bottom: 15px;">Click "Remove Duplicates" to clean them up.</p>
+          `;
+          
+          Object.keys(applicationGroups).forEach(key => {
+            const apps = applicationGroups[key];
+            if (apps.length > 1) {
+              html += `<div class="result-item">`;
+              html += `<strong>${apps[0].applicantName}</strong> applied ${apps.length} times to job ${apps[0].jobId}<br>`;
+              html += `<small>Keeping: ${apps[0].id} (${formatDate(apps[0].appliedAt)})</small><br>`;
+              apps.slice(1).forEach(app => {
+                html += `<small style="color: #f5576c;">Removing: ${app.id} (${formatDate(app.appliedAt)})</small><br>`;
+              });
+              html += `</div>`;
+            }
+          });
+          
+          results.innerHTML = html;
+          cleanupBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('❌ Error scanning:', error);
+        results.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        scanBtn.disabled = false;
+      }
+    }
+    
+    async function cleanupDuplicates() {
+      if (duplicateApplications.length === 0) {
+        alert('No duplicates to remove!');
+        return;
+      }
+      
+      if (!confirm(`Are you sure you want to delete ${duplicateApplications.length} duplicate application(s)?\n\nThis action cannot be undone!`)) {
+        return;
+      }
+      
+      const cleanupBtn = document.getElementById('cleanupBtn');
+      const results = document.getElementById('results');
+      
+      cleanupBtn.disabled = true;
+      results.innerHTML = '<div class="loading"><div class="spinner"></div><p>Removing duplicates...</p></div>';
+      
+      try {
+        const db = firebase.firestore();
+        const batch = db.batch();
+        
+        duplicateApplications.forEach(appId => {
+          batch.delete(db.collection('applications').doc(appId));
+        });
+        
+        await batch.commit();
+        
+        console.log(`✅ Deleted ${duplicateApplications.length} duplicate applications`);
+        
+        results.innerHTML = `
+          <h3>✅ Cleanup Complete</h3>
+          <p><strong>${duplicateApplications.length} duplicate application(s) removed successfully!</strong></p>
+          <p style="margin-top: 10px;">You can scan again to verify.</p>
+        `;
+        
+        duplicateApplications = [];
+      } catch (error) {
+        console.error('❌ Error cleaning up:', error);
+        results.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+        cleanupBtn.disabled = false;
+      }
+    }
+    
+    function formatDate(timestamp) {
+      if (!timestamp) return 'Unknown';
+      if (timestamp.toDate) {
+        return timestamp.toDate().toLocaleString();
+      }
+      return new Date(timestamp).toLocaleString();
+    }
+    
+    // Check Firebase auth on load
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof firebase === 'undefined') {
+        alert('Firebase not loaded! Please check your internet connection.');
+        return;
+      }
+      
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (!user) {
+          alert('Please log in first!');
+          window.location.href = 'login.html';
+        } else {
+          console.log('✅ Logged in as:', user.email);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

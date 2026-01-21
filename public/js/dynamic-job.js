@@ -249,6 +249,9 @@ async function loadJobData() {
   // Populate the page with job data
   populateJobPage(job);
   
+  // Check if user has already applied to this job
+  await checkIfUserAlreadyApplied(jobNumber);
+  
   // Hide loading modal after page is populated
   if (loadingOverlay) {
     loadingOverlay.classList.remove('show');
@@ -988,6 +991,61 @@ function initializePhotoLightbox() {
   DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', escapeHandler);
 
   console.log('✅ Photo lightbox initialized');
+}
+
+// ========================== CHECK IF USER ALREADY APPLIED ==========================
+
+/**
+ * Check if the current user has already applied to this job
+ * @param {string} jobId - The job ID to check
+ */
+async function checkIfUserAlreadyApplied(jobId) {
+  const applyBtn = document.getElementById('jobApplyBtn');
+  if (!applyBtn) return;
+  
+  // Check if Firebase is available
+  const useFirebase = typeof firebase !== 'undefined' && firebase.auth && firebase.firestore;
+  if (!useFirebase) {
+    console.log('⚠️ Firebase not available, skipping duplicate application check');
+    return;
+  }
+  
+  // Get current user
+  const currentUser = firebase.auth().currentUser;
+  if (!currentUser) {
+    console.log('ℹ️ User not logged in, apply button remains enabled');
+    return;
+  }
+  
+  try {
+    console.log('🔍 Checking if user already applied to job:', jobId);
+    
+    const db = firebase.firestore();
+    const existingApplications = await db.collection('applications')
+      .where('jobId', '==', jobId)
+      .where('applicantId', '==', currentUser.uid)
+      .get();
+    
+    if (!existingApplications.empty) {
+      console.log('⚠️ User has already applied to this job');
+      
+      // Disable the apply button
+      applyBtn.disabled = true;
+      applyBtn.style.opacity = '0.5';
+      applyBtn.style.cursor = 'not-allowed';
+      applyBtn.querySelector('span').textContent = 'ALREADY APPLIED';
+      
+      // Add tooltip or message
+      applyBtn.title = 'You have already applied to this job';
+      
+      console.log('✅ Apply button disabled');
+    } else {
+      console.log('✅ User has not applied yet, button remains enabled');
+    }
+  } catch (error) {
+    console.error('❌ Error checking for existing applications:', error);
+    // Keep button enabled on error to not block legitimate applications
+  }
 }
 
 // Initialize everything when the page loads
