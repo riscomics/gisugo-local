@@ -1024,23 +1024,61 @@ async function checkIfUserAlreadyApplied(jobId) {
     const existingApplications = await db.collection('applications')
       .where('jobId', '==', jobId)
       .where('applicantId', '==', currentUser.uid)
+      .orderBy('appliedAt', 'desc')  // Most recent first
       .get();
     
-    if (!existingApplications.empty) {
-      console.log('⚠️ User has already applied to this job');
+    const applicationCount = existingApplications.size;
+    const mostRecentApp = existingApplications.empty ? null : existingApplications.docs[0].data();
+    
+    console.log(`📊 Application count: ${applicationCount}`);
+    if (mostRecentApp) {
+      console.log(`📊 Most recent status: ${mostRecentApp.status}`);
+    }
+    
+    if (applicationCount === 0) {
+      // Never applied - button stays as "APPLY TO JOB" (enabled)
+      console.log('✅ User has not applied yet, button remains enabled');
+      return;
       
-      // Disable the apply button
+    } else if (applicationCount === 1 && mostRecentApp.status === 'rejected') {
+      // ═══════════════════════════════════════════════════════════════
+      // Applied once, got rejected - show "APPLY AGAIN" (enabled)
+      // ═══════════════════════════════════════════════════════════════
+      console.log('♻️ User was rejected - showing APPLY AGAIN button');
+      
+      applyBtn.disabled = false;
+      applyBtn.style.opacity = '1';
+      applyBtn.style.cursor = 'pointer';
+      applyBtn.style.backgroundColor = '#ff9800';  // Orange for "try again"
+      applyBtn.querySelector('span').textContent = 'APPLY AGAIN';
+      applyBtn.title = 'You were rejected. You can apply one more time.';
+      
+      console.log('✅ Apply button set to "APPLY AGAIN" mode');
+      
+    } else {
+      // ═══════════════════════════════════════════════════════════════
+      // Either: pending, accepted, or 2+ applications - gray it out
+      // ═══════════════════════════════════════════════════════════════
+      console.log('🚫 User has already applied (cannot reapply)');
+      
       applyBtn.disabled = true;
       applyBtn.style.opacity = '0.5';
       applyBtn.style.cursor = 'not-allowed';
+      applyBtn.style.backgroundColor = '';  // Reset to default
       applyBtn.querySelector('span').textContent = 'ALREADY APPLIED';
       
-      // Add tooltip or message
-      applyBtn.title = 'You have already applied to this job';
+      // Set appropriate tooltip based on status
+      if (mostRecentApp.status === 'pending') {
+        applyBtn.title = 'Your application is pending review';
+      } else if (mostRecentApp.status === 'accepted') {
+        applyBtn.title = 'You have been hired for this job';
+      } else if (applicationCount >= 2) {
+        applyBtn.title = 'You have reached the maximum number of applications for this job';
+      } else {
+        applyBtn.title = 'You have already applied to this job';
+      }
       
       console.log('✅ Apply button disabled');
-    } else {
-      console.log('✅ User has not applied yet, button remains enabled');
     }
   } catch (error) {
     console.error('❌ Error checking for existing applications:', error);

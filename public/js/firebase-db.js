@@ -765,23 +765,60 @@ async function applyForJob(jobId, applicationData) {
     console.log('✅ Self-application check passed');
     
     // ═══════════════════════════════════════════════════════════════
-    // VALIDATION: Prevent duplicate applications
+    // VALIDATION: Smart reapplication system (max 2 applications)
     // ═══════════════════════════════════════════════════════════════
     console.log('🔍 Checking for existing applications...');
     const existingApplications = await db.collection('applications')
       .where('jobId', '==', jobId)
       .where('applicantId', '==', currentUser.uid)
+      .orderBy('appliedAt', 'desc')  // Most recent first
       .get();
     
-    if (!existingApplications.empty) {
-      console.warn('⚠️ User already applied to this gig');
-      return { 
-        success: false, 
-        message: 'You have already applied to this gig' 
+    const applicationCount = existingApplications.size;
+    
+    console.log(`📊 Existing application count: ${applicationCount}`);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // RULE 1: Block if 2+ applications already exist
+    // ═══════════════════════════════════════════════════════════════
+    if (applicationCount >= 2) {
+      console.warn('⚠️ User has reached maximum applications (2) for this gig');
+      return {
+        success: false,
+        message: 'You have reached the maximum number of applications for this job'
       };
     }
     
-    console.log('✅ Duplicate application check passed');
+    // ═══════════════════════════════════════════════════════════════
+    // RULE 2: Block if 1 application exists and it's pending or accepted
+    // ═══════════════════════════════════════════════════════════════
+    if (applicationCount === 1) {
+      const existingApp = existingApplications.docs[0].data();
+      console.log(`📊 Existing application status: ${existingApp.status}`);
+      
+      if (existingApp.status === 'pending') {
+        console.warn('⚠️ User already has a pending application for this gig');
+        return {
+          success: false,
+          message: 'You have already applied to this gig (application pending)'
+        };
+      }
+      
+      if (existingApp.status === 'accepted') {
+        console.warn('⚠️ User has already been hired for this gig');
+        return {
+          success: false,
+          message: 'You have already been hired for this job'
+        };
+      }
+      
+      // If status is 'rejected', allow reapplication
+      if (existingApp.status === 'rejected') {
+        console.log('♻️ User was rejected - allowing reapplication (2nd chance)');
+      }
+    }
+    
+    console.log('✅ Application validation check passed');
     
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';

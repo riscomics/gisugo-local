@@ -151,6 +151,11 @@
       This tool will find and remove duplicate applications. For each job+user combination, only the FIRST application will be kept.
     </div>
     
+    <div class="warning" style="background: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
+      <strong>ℹ️ Smart Cleanup Enabled:</strong>
+      Legitimate reapplications (1 rejected + 1 pending/accepted) are NOT flagged as duplicates. Only actual bugs/spam will be removed.
+    </div>
+    
     <button class="btn" id="scanBtn" onclick="scanDuplicates()">
       🔍 Scan for Duplicates
     </button>
@@ -224,6 +229,22 @@
               const timeB = b.appliedAt?.toDate ? b.appliedAt.toDate().getTime() : 0;
               return timeA - timeB;
             });
+            
+            // ═══════════════════════════════════════════════════════════════
+            // SMART CLEANUP: Check if this is a legitimate reapplication
+            // (1 rejected + 1 pending/accepted is allowed by design)
+            // ═══════════════════════════════════════════════════════════════
+            if (apps.length === 2) {
+              const firstApp = apps[0];
+              const secondApp = apps[1];
+              
+              // If first is rejected and second is pending/accepted, this is legitimate
+              if (firstApp.status === 'rejected' && 
+                  (secondApp.status === 'pending' || secondApp.status === 'accepted')) {
+                console.log(`✅ Legitimate reapplication for job ${firstApp.jobId} by ${firstApp.applicantName} (first rejected, second ${secondApp.status})`);
+                return; // Skip this group - it's not a duplicate
+              }
+            }
             
             // Mark duplicates (all except the first one)
             const duplicates = apps.slice(1);
