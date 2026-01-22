@@ -768,11 +768,31 @@ async function applyForJob(jobId, applicationData) {
     // VALIDATION: Smart reapplication system (max 2 applications)
     // ═══════════════════════════════════════════════════════════════
     console.log('🔍 Checking for existing applications...');
-    const existingApplications = await db.collection('applications')
-      .where('jobId', '==', jobId)
-      .where('applicantId', '==', currentUser.uid)
-      .orderBy('appliedAt', 'desc')  // Most recent first
-      .get();
+    
+    let existingApplications;
+    try {
+      existingApplications = await db.collection('applications')
+        .where('jobId', '==', jobId)
+        .where('applicantId', '==', currentUser.uid)
+        .orderBy('appliedAt', 'desc')  // Most recent first
+        .get();
+    } catch (indexError) {
+      // ═══════════════════════════════════════════════════════════════
+      // Firebase Index Missing - Show helpful error
+      // ═══════════════════════════════════════════════════════════════
+      if (indexError.code === 'failed-precondition' || indexError.message.includes('index')) {
+        console.error('❌ FIREBASE INDEX REQUIRED!');
+        console.error('📋 Error:', indexError.message);
+        console.error('🔗 Look for a link in the error above to create the index');
+        console.error('⏱️ After clicking the link, wait 5-10 minutes for index to build');
+        
+        return {
+          success: false,
+          message: '⚠️ Firebase index is being set up. Please check the browser console for a link to create the required index, then try again in 5-10 minutes.'
+        };
+      }
+      throw indexError; // Re-throw if it's a different error
+    }
     
     const applicationCount = existingApplications.size;
     
