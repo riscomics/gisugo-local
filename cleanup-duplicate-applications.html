@@ -164,6 +164,14 @@
       🗑️ Remove Duplicates
     </button>
     
+    <button class="btn" id="fixCountsBtn" onclick="fixApplicationCounts()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+      🔧 Fix Application Counts
+    </button>
+    
+    <button class="btn btn-danger" id="cleanOldGigsBtn" onclick="cleanOldGigs()">
+      🗑️ Delete Old Test Gigs
+    </button>
+    
     <div class="results" id="results" style="display: none;"></div>
   </div>
 
@@ -346,6 +354,183 @@
         return timestamp.toDate().toLocaleString();
       }
       return new Date(timestamp).toLocaleString();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // FIX APPLICATION COUNTS
+    // ═══════════════════════════════════════════════════════════════
+    async function fixApplicationCounts() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert('Please log in first!');
+        return;
+      }
+      
+      if (!confirm('This will recalculate application counts for ALL jobs based on pending applications only.\n\nContinue?')) {
+        return;
+      }
+      
+      const fixCountsBtn = document.getElementById('fixCountsBtn');
+      const results = document.getElementById('results');
+      
+      fixCountsBtn.disabled = true;
+      results.style.display = 'block';
+      results.innerHTML = '<div class="loading"><div class="spinner"></div><p>Fixing application counts...</p></div>';
+      
+      try {
+        const db = firebase.firestore();
+        
+        // Get all jobs
+        const jobsSnapshot = await db.collection('jobs').get();
+        let fixed = 0;
+        let checked = 0;
+        
+        for (const jobDoc of jobsSnapshot.docs) {
+          const jobId = jobDoc.id;
+          const jobTitle = jobDoc.data().title || 'Untitled';
+          checked++;
+          
+          // Count ONLY pending applications for this job
+          const pendingApps = await db.collection('applications')
+            .where('jobId', '==', jobId)
+            .where('status', '==', 'pending')
+            .get();
+          
+          const correctCount = pendingApps.size;
+          const currentCount = jobDoc.data().applicationCount || 0;
+          
+          if (correctCount !== currentCount) {
+            console.log(`📊 "${jobTitle}": Fixing count from ${currentCount} to ${correctCount}`);
+            await db.collection('jobs').doc(jobId).update({
+              applicationCount: correctCount
+            });
+            fixed++;
+          }
+        }
+        
+        results.innerHTML = `
+          <h3>✅ Fix Complete</h3>
+          <p><strong>Checked ${checked} job(s)</strong></p>
+          <p><strong>Fixed ${fixed} job(s)</strong></p>
+          <p style="margin-top: 10px; color: #666;">Application counts now show only pending applications!</p>
+        `;
+        
+        console.log(`✅ Fixed ${fixed} out of ${checked} jobs`);
+        
+      } catch (error) {
+        console.error('❌ Error fixing counts:', error);
+        results.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        fixCountsBtn.disabled = false;
+      }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // CLEAN OLD TEST GIGS (with timestamp IDs)
+    // ═══════════════════════════════════════════════════════════════
+    async function cleanOldGigs() {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        alert('Please log in first!');
+        return;
+      }
+      
+      const results = document.getElementById('results');
+      const cleanOldGigsBtn = document.getElementById('cleanOldGigsBtn');
+      
+      cleanOldGigsBtn.disabled = true;
+      results.style.display = 'block';
+      results.innerHTML = '<div class="loading"><div class="spinner"></div><p>Scanning for old test gigs...</p></div>';
+      
+      try {
+        const db = firebase.firestore();
+        const jobsSnapshot = await db.collection('jobs').get();
+        
+        const oldGigs = [];
+        const timestampPattern = /^\d{13}$/; // 13-digit timestamps
+        
+        // Find gigs with timestamp-based IDs
+        jobsSnapshot.docs.forEach(doc => {
+          if (timestampPattern.test(doc.id)) {
+            const data = doc.data();
+            oldGigs.push({
+              id: doc.id,
+              title: data.title || 'Untitled',
+              category: data.category || 'Unknown',
+              datePosted: data.datePosted?.toDate?.()?.toLocaleDateString() || 'Unknown'
+            });
+          }
+        });
+        
+        if (oldGigs.length === 0) {
+          results.innerHTML = `
+            <h3>✅ No Old Gigs Found</h3>
+            <p>All gigs have proper Firebase IDs!</p>
+          `;
+          cleanOldGigsBtn.disabled = false;
+          return;
+        }
+        
+        // Show list and confirm
+        let listHTML = oldGigs.map(gig => 
+          `<li><strong>${gig.title}</strong> (${gig.category}) - ID: ${gig.id}</li>`
+        ).join('');
+        
+        results.innerHTML = `
+          <h3>⚠️ Found ${oldGigs.length} Old Test Gig(s)</h3>
+          <ul style="text-align: left; margin: 15px 0;">${listHTML}</ul>
+          <button class="btn btn-danger" onclick="confirmDeleteOldGigs(${JSON.stringify(oldGigs).replace(/"/g, '&quot;')})">
+            Confirm Delete
+          </button>
+        `;
+        
+      } catch (error) {
+        console.error('❌ Error scanning:', error);
+        results.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        cleanOldGigsBtn.disabled = false;
+      }
+    }
+    
+    async function confirmDeleteOldGigs(oldGigs) {
+      if (!confirm(`Delete ${oldGigs.length} old test gig(s)?\n\nThis cannot be undone!`)) {
+        return;
+      }
+      
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="loading"><div class="spinner"></div><p>Deleting old gigs...</p></div>';
+      
+      try {
+        const db = firebase.firestore();
+        const batch = db.batch();
+        
+        oldGigs.forEach(gig => {
+          batch.delete(db.collection('jobs').doc(gig.id));
+        });
+        
+        await batch.commit();
+        
+        results.innerHTML = `
+          <h3>✅ Deleted Successfully</h3>
+          <p><strong>${oldGigs.length} old test gig(s) removed!</strong></p>
+          <p style="margin-top: 10px;">Refresh your listings page to see changes.</p>
+        `;
+        
+        console.log(`✅ Deleted ${oldGigs.length} old gigs`);
+        
+      } catch (error) {
+        console.error('❌ Error deleting:', error);
+        results.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      }
     }
     
     // Check Firebase auth on load

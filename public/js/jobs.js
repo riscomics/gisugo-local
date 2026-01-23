@@ -5895,6 +5895,19 @@ async function showApplicationsOverlay(jobData) {
         return;
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // SHOW LOADING ANIMATION
+    // ═══════════════════════════════════════════════════════════════
+    applicationsList.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading applications...</div>
+        </div>
+    `;
+    
+    // Show overlay immediately with loading state
+    overlay.classList.add('show');
+    
     // Update overlay content
     const appCount = jobData.applicationCount || 0;
     title.textContent = `Applications (${appCount})`;
@@ -5907,9 +5920,9 @@ async function showApplicationsOverlay(jobData) {
     if (jobApplications && jobApplications.length > 0) {
         // Generate applications HTML  
         const applicationsHTML = jobApplications.map(app => {
-            // Ensure application has the correct jobId
+            // Ensure application has the correct jobId and pass original job price
             app.jobId = jobData.jobId;
-            return generateApplicationCardHTML(app, jobData.title);
+            return generateApplicationCardHTML(app, jobData.title, jobData.price, jobData.paymentType);
         }).join('');
         
         applicationsList.innerHTML = applicationsHTML;
@@ -5930,9 +5943,6 @@ async function showApplicationsOverlay(jobData) {
     // Store job data for handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
-    
-    // Show overlay
-    overlay.classList.add('show');
     
     // Initialize close button handler
     initializeApplicationsOverlayHandlers();
@@ -6000,7 +6010,8 @@ async function getApplicationsForJob(jobId) {
                 displayData: {
                     appliedDate: app.appliedAt ? formatDateForDisplay(app.appliedAt) : 'Unknown',
                     appliedTime: app.appliedAt ? formatTimeForDisplay(app.appliedAt) : '',
-                    formattedPrice: app.counterOffer ? `₱${app.counterOffer} Per Job` : 'No offer'
+                    formattedPrice: app.counterOffer ? `₱${app.counterOffer} Per Job` : 'No offer',
+                    originalAmount: app.originalAmount || 0  // Store original for later use
                 }
             }));
         } catch (error) {
@@ -6063,10 +6074,27 @@ function timestampToISOString(timestamp) {
     }
 }
 
-function generateApplicationCardHTML(application, jobTitle) {
+function generateApplicationCardHTML(application, jobTitle, jobOriginalPrice, jobPaymentType) {
     const stars = Array.from({length: 5}, (_, i) => 
         `<span class="star ${i < application.applicantProfile.averageRating ? 'filled' : ''}">★</span>`
     ).join('');
+    
+    // ═══════════════════════════════════════════════════════════════
+    // SMART PRICE DISPLAY: Show counter offer OR original job price
+    // ═══════════════════════════════════════════════════════════════
+    let displayPrice;
+    if (application.pricing.isCounterOffer && application.pricing.offeredAmount) {
+        // Worker made a counter offer - show it
+        displayPrice = `₱${application.pricing.offeredAmount} Per Job`;
+    } else if (jobOriginalPrice) {
+        // No counter offer - show original job price
+        const paymentTypeText = jobPaymentType === 'per_hour' ? 'Per Hour' : 
+                                jobPaymentType === 'per_day' ? 'Per Day' : 'Per Job';
+        displayPrice = `₱${jobOriginalPrice} ${paymentTypeText}`;
+    } else {
+        // Fallback (shouldn't happen)
+        displayPrice = 'No offer';
+    }
 
     return `
         <div class="application-card" 
@@ -6078,14 +6106,14 @@ function generateApplicationCardHTML(application, jobTitle) {
              data-user-photo="${application.applicantProfile.photoURL}"
              data-user-rating="${application.applicantProfile.averageRating}"
              data-review-count="${application.applicantProfile.totalReviews}"
-             data-price-offer="${application.pricing.offeredAmount}"
+             data-price-offer="${application.pricing.offeredAmount || jobOriginalPrice}"
              data-price-type="${application.pricing.paymentType}"
              data-is-counter-offer="${application.pricing.isCounterOffer}"
              data-status="${application.status}"
              data-timestamp="${timestampToISOString(application.appliedAt)}">
             <div class="application-job-title">
                 <span class="applicant-name" data-user-name="${application.applicantProfile.displayName}">${application.applicantProfile.displayName}</span>
-                <span class="price-offer">${application.displayData.formattedPrice}</span>
+                <span class="price-offer">${displayPrice}</span>
             </div>
             <div class="application-header">
                 <div class="application-left">

@@ -1026,6 +1026,54 @@ async function hireWorker(jobId, applicationId) {
 }
 
 /**
+ * Fix application counts for all jobs (recalculate from actual pending applications)
+ * @returns {Promise<Object>} - Result object
+ */
+async function fixApplicationCounts() {
+  const db = getFirestore();
+  
+  if (!db) {
+    return { success: false, message: 'Firebase not available' };
+  }
+  
+  try {
+    console.log('🔧 Fixing application counts for all jobs...');
+    
+    // Get all jobs
+    const jobsSnapshot = await db.collection('jobs').get();
+    let fixed = 0;
+    
+    for (const jobDoc of jobsSnapshot.docs) {
+      const jobId = jobDoc.id;
+      
+      // Count ONLY pending applications for this job
+      const pendingApps = await db.collection('applications')
+        .where('jobId', '==', jobId)
+        .where('status', '==', 'pending')
+        .get();
+      
+      const correctCount = pendingApps.size;
+      const currentCount = jobDoc.data().applicationCount || 0;
+      
+      if (correctCount !== currentCount) {
+        console.log(`📊 Job ${jobId}: Fixing count from ${currentCount} to ${correctCount}`);
+        await db.collection('jobs').doc(jobId).update({
+          applicationCount: correctCount
+        });
+        fixed++;
+      }
+    }
+    
+    console.log(`✅ Fixed ${fixed} job(s)`);
+    return { success: true, message: `Fixed application counts for ${fixed} job(s)` };
+    
+  } catch (error) {
+    console.error('❌ Error fixing application counts:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
  * Reject a job application
  * @param {string} applicationId - Application document ID
  * @returns {Promise<Object>} - Result object
@@ -1070,7 +1118,15 @@ async function rejectApplication(applicationId) {
       rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
+    // ═══════════════════════════════════════════════════════════════
+    // UPDATE JOB APPLICATION COUNT (decrement for rejected)
+    // ═══════════════════════════════════════════════════════════════
+    await db.collection('jobs').doc(appData.jobId).update({
+      applicationCount: firebase.firestore.FieldValue.increment(-1)
+    });
+    
     console.log('✅ Application rejected successfully:', applicationId);
+    console.log('✅ Job application count decremented');
     return { success: true, message: 'Application rejected successfully!' };
     
   } catch (error) {

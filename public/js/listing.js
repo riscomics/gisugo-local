@@ -634,7 +634,7 @@ async function filterAndSortJobs() {
     
     return {
       id: firebaseJob.id,
-      jobNumber: firebaseJob.jobId,
+      jobNumber: firebaseJob.id,  // Use document ID, not jobId field
       category: firebaseJob.category,
       title: firebaseJob.title,
       photo: firebaseJob.thumbnail || 'public/images/placeholder.jpg',
@@ -647,7 +647,7 @@ async function filterAndSortJobs() {
       region: firebaseJob.region,
       city: firebaseJob.city,
       status: firebaseJob.status,
-      templateUrl: firebaseJob.jobPageUrl || `dynamic-job.html?category=${firebaseJob.category}&jobNumber=${firebaseJob.jobId}`,
+      templateUrl: firebaseJob.jobPageUrl || `dynamic-job.html?category=${firebaseJob.category}&jobNumber=${firebaseJob.id}`,  // Use document ID
       createdAt: firebaseJob.datePosted?.toDate?.()?.toISOString() || new Date().toISOString(),
       // Store full date object for sorting and expiration checking
       fullDate: date,
