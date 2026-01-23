@@ -535,6 +535,21 @@ function initializeApplyJob() {
     // Show modal when apply button is clicked
     applyBtn.addEventListener('click', function(e) {
       e.preventDefault();
+      
+      // ═══════════════════════════════════════════════════════════════
+      // AUTH CHECK: Must be logged in to apply
+      // ═══════════════════════════════════════════════════════════════
+      const useFirebase = typeof firebase !== 'undefined' && firebase.auth;
+      if (useFirebase) {
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+          // Not logged in - redirect to login page
+          console.log('⚠️ User must log in to apply');
+          window.location.href = 'login.html';
+          return;
+        }
+      }
+      
       // Scroll window to top to prevent Android keyboard positioning issues
       window.scrollTo(0, 0);
       applyOverlay.scrollTop = 0;

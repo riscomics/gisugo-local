@@ -5908,14 +5908,18 @@ async function showApplicationsOverlay(jobData) {
     // Show overlay immediately with loading state
     overlay.classList.add('show');
     
-    // Update overlay content
-    const appCount = jobData.applicationCount || 0;
-    title.textContent = `Applications (${appCount})`;
+    // Set subtitle first (we know the job title)
     subtitle.textContent = jobData.title;
     
     // Get applications for this job
     // Fetch applications (now async)
     const jobApplications = await getApplicationsForJob(jobData.jobId);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // USE ACTUAL COUNT (not stored count which might be wrong)
+    // ═══════════════════════════════════════════════════════════════
+    const actualCount = jobApplications ? jobApplications.length : 0;
+    title.textContent = `Applications (${actualCount})`;
     
     if (jobApplications && jobApplications.length > 0) {
         // Generate applications HTML  
@@ -5943,6 +5947,20 @@ async function showApplicationsOverlay(jobData) {
     // Store job data for handlers
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // UPDATE CARD'S DISPLAYED COUNT (in case Firestore count is wrong)
+    // ═══════════════════════════════════════════════════════════════
+    const listingCard = document.querySelector(`.listing-card[data-job-id="${jobData.jobId}"]`);
+    if (listingCard && actualCount !== jobData.applicationCount) {
+        console.log(`📊 Updating card count from ${jobData.applicationCount} to ${actualCount}`);
+        const appCountElement = listingCard.querySelector('.application-count');
+        if (appCountElement) {
+            const newText = actualCount === 1 ? '1 application' : `${actualCount} applications`;
+            appCountElement.textContent = newText;
+        }
+        listingCard.setAttribute('data-application-count', actualCount);
+    }
     
     // Initialize close button handler
     initializeApplicationsOverlayHandlers();
