@@ -2155,7 +2155,8 @@ function generateListingCardHTML(listing) {
              data-poster-id="${listing.posterId}"
              data-category="${listing.category}"
              data-application-count="${listing.applicationCount}"
-             data-job-page-url="${listing.jobPageUrl}">
+             data-job-page-url="${listing.jobPageUrl}"
+             data-status="${displayStatus}">
             <div class="listing-thumbnail">
                 <img src="${listing.thumbnail}" alt="${listing.title}">
                 <div class="status-badge status-${displayStatus}">${displayStatus.toUpperCase()}</div>
@@ -2338,6 +2339,7 @@ function extractJobDataFromCard(cardElement) {
         category: cardElement.getAttribute('data-category'),
         applicationCount: parseInt(cardElement.getAttribute('data-application-count')),
         jobPageUrl: cardElement.getAttribute('data-job-page-url'),
+        status: cardElement.getAttribute('data-status') || 'active',  // Get status from card
         title: cardElement.querySelector('.listing-title').textContent,
         thumbnail: cardElement.querySelector('.listing-thumbnail img').src
     };
@@ -2351,9 +2353,11 @@ async function showListingOptionsOverlay(jobData) {
     const subtitle = document.getElementById('listingOptionsSubtitle');
     const pauseBtn = document.getElementById('pauseJobBtn');
     
-    // Get full job data to check current status
-    const fullJobData = await getJobDataById(jobData.jobId);
-    const currentStatus = fullJobData ? fullJobData.status : 'active';
+    // ═══════════════════════════════════════════════════════════════
+    // OPTIMIZATION: Use status from card data (no Firebase call!)
+    // ═══════════════════════════════════════════════════════════════
+    const currentStatus = jobData.status || 'active';
+    console.log(`⚡ Using cached status: ${currentStatus} (no Firebase fetch)`);
     
     // Update overlay content
     title.textContent = 'Manage Job';
