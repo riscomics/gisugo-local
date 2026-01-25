@@ -990,12 +990,30 @@ async function hireWorker(jobId, applicationId) {
     
     const appData = appDoc.data();
     
-    // Update job with hired worker info
+    // Get job data to determine agreed price
+    const jobDoc = await db.collection('jobs').doc(jobId).get();
+    if (!jobDoc.exists) {
+      return { success: false, message: 'Job not found' };
+    }
+    
+    const jobData = jobDoc.data();
+    
+    // Determine agreed price: counter offer takes priority, otherwise use job's original price
+    const agreedPrice = appData.counterOffer || jobData.priceOffer;
+    
+    console.log('💰 Price negotiation:', {
+      originalJobPrice: jobData.priceOffer,
+      counterOffer: appData.counterOffer,
+      agreedPrice: agreedPrice
+    });
+    
+    // Update job with hired worker info AND agreed price
     await db.collection('jobs').doc(jobId).update({
       status: 'hired',
       hiredWorkerId: appData.applicantId,
       hiredWorkerName: appData.applicantName,
       hiredWorkerThumbnail: appData.applicantThumbnail,
+      agreedPrice: agreedPrice, // Store the agreed price
       hiredAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
@@ -1016,12 +1034,51 @@ async function hireWorker(jobId, applicationId) {
     });
     await batch.commit();
     
-    console.log('✅ Worker hired successfully');
+    console.log('✅ Worker hired successfully with agreed price:', agreedPrice);
     return { success: true, message: 'Worker hired successfully!' };
     
   } catch (error) {
     console.error('❌ Error hiring worker:', error);
     return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Get offered jobs for a worker (jobs with status 'hired' where they are the hired worker)
+ * @param {string} workerId - Worker's user ID
+ * @returns {Promise<Array>} - Array of offered job objects
+ */
+async function getOfferedJobsForWorker(workerId) {
+  const db = getFirestore();
+  
+  if (!db) {
+    console.log('⚠️ Firebase not available, returning empty offered jobs');
+    return [];
+  }
+  
+  try {
+    console.log(`🔍 Fetching offered jobs for worker: ${workerId}`);
+    
+    // Get jobs where status is 'hired' and worker is the hired worker
+    const offeredJobsSnapshot = await db.collection('jobs')
+      .where('status', '==', 'hired')
+      .where('hiredWorkerId', '==', workerId)
+      .get();
+    
+    console.log(`📊 Raw Firestore results: ${offeredJobsSnapshot.size} documents`);
+    
+    const offeredJobs = offeredJobsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      jobId: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log(`✅ Returning ${offeredJobs.length} offered jobs`);
+    return offeredJobs;
+    
+  } catch (error) {
+    console.error('❌ Error fetching offered jobs:', error);
+    return [];
   }
 }
 

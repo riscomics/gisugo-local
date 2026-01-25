@@ -298,16 +298,35 @@ window.JobsDataService = {
     // ===== NORMALIZE FIREBASE JOB DATA =====
     // Convert Firebase field names to expected format
     _normalizeFirebaseJob(job) {
+        // Extract numeric price from priceOffer string
+        const priceValue = job.priceOffer ? parseInt(job.priceOffer.toString().replace(/[₱,]/g, '')) : 0;
+        
+        // Normalize paymentType from "Per Hour" to "per_hour"
+        let normalizedPaymentType = 'per_job';
+        if (job.paymentType) {
+            if (job.paymentType.toLowerCase().includes('hour')) {
+                normalizedPaymentType = 'per_hour';
+            } else if (job.paymentType.toLowerCase().includes('day')) {
+                normalizedPaymentType = 'per_day';
+            } else {
+                normalizedPaymentType = 'per_job';
+            }
+        }
+        
         return {
             ...job,
             // Map scheduledDate -> jobDate
             jobDate: job.jobDate || job.scheduledDate,
             // Map id -> jobId (Firebase doc ID)
             jobId: job.jobId || job.id,
-            // Ensure priceOffer has peso sign
+            // Extract numeric price from priceOffer
+            price: priceValue,
+            // Normalize paymentType to lowercase with underscore
+            paymentType: normalizedPaymentType,
+            // Ensure priceOffer has peso sign (display format)
             priceOffer: job.priceOffer ? 
                 (job.priceOffer.toString().startsWith('₱') ? job.priceOffer : `₱${job.priceOffer}`) : 
-                '₱0',
+                `₱${priceValue}`,
             // Ensure thumbnail exists
             thumbnail: job.thumbnail || job.photo || 'public/images/placeholder.png',
             // Ensure applicationCount is a number
@@ -341,8 +360,10 @@ window.JobsDataService = {
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
                     const rawJobs = await getUserJobListings(user.uid, ['active', 'paused']);
+                    console.log('🔍 DEBUG - Raw Firebase job sample (FULL):', JSON.stringify(rawJobs[0], null, 2)); // Full debug
                     // Normalize Firebase data to match expected field names
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
+                    console.log('🔍 DEBUG - Normalized job sample (FULL):', JSON.stringify(jobs[0], null, 2)); // Full debug
                     console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
                     return jobs;
                 } else {
@@ -1015,39 +1036,40 @@ window.JobsDataService = {
     
     // Get offered jobs (simulates Firebase query) - NEW FOR GIGS OFFERED TAB
     async getOfferedJobs() {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const currentUserId = firebase.auth().currentUser.uid;
-        // 
-        // const offeredJobsSnapshot = await db.collection('jobs')
-        //     .where('status', '==', 'offered')
-        //     .where('hiredWorkerId', '==', currentUserId)
-        //     .orderBy('hiredAt', 'desc')
-        //     .get();
-        // 
-        // return offeredJobsSnapshot.docs.map(doc => {
-        //     const data = doc.data();
-        //     return {
-        //         jobId: doc.id,
-        //         posterId: data.posterId,
-        //         posterName: data.posterName,
-        //         posterThumbnail: data.posterThumbnail,
-        //         title: data.title,
-        //         description: data.description,
-        //         category: data.category,
-        //         thumbnail: data.thumbnail,
-        //         jobDate: data.scheduledDate,
-        //         startTime: data.startTime,
-        //         endTime: data.endTime,
-        //         priceOffer: data.agreedPrice,
-        //         datePosted: data.datePosted,
-        //         dateOffered: data.hiredAt,
-        //         status: 'offered',
-        //         hiredWorkerId: data.hiredWorkerId,
-        //         hiredWorkerName: data.hiredWorkerName,
-        //         role: 'worker' // Always worker perspective for offered jobs
-        //     };
-        // });
+        console.log(`📊 JobsDataService.getOfferedJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Load offered jobs from Firestore
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                const user = await DataService.waitForAuth();
+                if (!user) {
+                    console.log('⚠️ Not authenticated in Firebase mode');
+                    return [];
+                }
+                
+                // Use getOfferedJobsForWorker from firebase-db.js
+                if (typeof getOfferedJobsForWorker === 'function') {
+                    const rawJobs = await getOfferedJobsForWorker(user.uid);
+                    console.log(`🔥 Loaded ${rawJobs.length} offered jobs from Firebase`);
+                    // Normalize data if needed
+                    const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
+                    return jobs;
+                } else {
+                    console.error('❌ getOfferedJobsForWorker function not available');
+                    return [];
+                }
+            } catch (error) {
+                console.error('❌ Error loading offered jobs from Firebase:', error);
+                return [];
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE - Use mock data
+        // ══════════════════════════════════════════════════════════════
+        console.log('🧪 Loading offered jobs from MOCK data...');
         
         if (!MOCK_OFFERED_DATA) {
             MOCK_OFFERED_DATA = this._generateOfferedJobsData();
@@ -1559,6 +1581,14 @@ async function loadOfferedContent() {
     const container = document.querySelector('.offered-container');
     if (!container) return;
     
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading your job offers...</div>
+        </div>
+    `;
+    
     try {
         // Get all offered jobs for current user (worker perspective)
         console.log('🔄 Calling JobsDataService.getOfferedJobs()...');
@@ -1609,6 +1639,9 @@ function generateOfferedJobCard(job) {
     const userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
     const userName = job.posterName;
     
+    // Use agreed price if it exists, otherwise fall back to original price
+    const displayPrice = job.agreedPrice || job.priceOffer;
+    
     return `
         <div class="hiring-card worker offered-gig" 
              data-job-id="${job.jobId}"
@@ -1617,7 +1650,7 @@ function generateOfferedJobCard(job) {
              data-poster-thumbnail="${job.posterThumbnail}"
              data-category="${job.category}"
              data-role="${job.role}"
-             data-price-offer="${job.priceOffer}"
+             data-price-offer="${displayPrice}"
              data-date-offered="${job.dateOffered}">
             
             <div class="hiring-title">${job.title}</div>
@@ -1642,7 +1675,7 @@ function generateOfferedJobCard(job) {
                 
                 <div class="hiring-content">
                     <div class="hiring-left-content">
-                        <div class="hiring-price">${job.priceOffer}</div>
+                        <div class="hiring-price">${displayPrice}</div>
                         <div class="hiring-role-caption worker">${roleCaption}</div>
                     </div>
                     <div class="hiring-right-content">
@@ -2122,6 +2155,10 @@ async function loadListingsContent() {
     });
     
     // Generate listings HTML
+    console.log('🔍 DEBUG - Generating cards for', sortedListings.length, 'listings');
+    sortedListings.forEach((listing, index) => {
+        console.log(`   Card ${index+1}: ID=${listing.jobId}, price=${listing.price}, paymentType=${listing.paymentType}, status=${listing.status}`);
+    });
     const listingsHTML = sortedListings.map(listing => generateListingCardHTML(listing)).join('');
     container.innerHTML = listingsHTML;
     
@@ -2156,7 +2193,9 @@ function generateListingCardHTML(listing) {
              data-category="${listing.category}"
              data-application-count="${listing.applicationCount}"
              data-job-page-url="${listing.jobPageUrl}"
-             data-status="${displayStatus}">
+             data-status="${displayStatus}"
+             data-price="${listing.price || 0}"
+             data-payment-type="${listing.paymentType || 'per_job'}">
             <div class="listing-thumbnail">
                 <img src="${listing.thumbnail}" alt="${listing.title}">
                 <div class="status-badge status-${displayStatus}">${displayStatus.toUpperCase()}</div>
@@ -2321,28 +2360,50 @@ function formatJobDate(dateInput) {
 }
 
 function initializeListingCardHandlers() {
-    const listingCards = document.querySelectorAll('.listing-card');
+    const container = document.querySelector('.listings-container');
+    if (!container) return;
     
-    listingCards.forEach(card => {
-        card.addEventListener('click', async function(e) {
-            e.preventDefault();
-            const jobData = extractJobDataFromCard(this);
-            await showListingOptionsOverlay(jobData);
-        });
+    // Remove any existing delegated handler first
+    if (container.dataset.cardHandlerAttached === 'true') {
+        return; // Already initialized
+    }
+    
+    // Use event delegation - single handler on container instead of one per card
+    const cardClickHandler = async function(e) {
+        // Find the clicked card (traverse up from click target)
+        const card = e.target.closest('.listing-card');
+        if (!card) return;
+        
+        e.preventDefault();
+        const jobData = extractJobDataFromCard(card);
+        await showListingOptionsOverlay(jobData);
+    };
+    
+    container.addEventListener('click', cardClickHandler);
+    container.dataset.cardHandlerAttached = 'true';
+    
+    // Register cleanup for when listings tab is hidden
+    registerCleanup('listings', 'cardClickHandler', () => {
+        container.removeEventListener('click', cardClickHandler);
+        delete container.dataset.cardHandlerAttached;
     });
 }
 
 function extractJobDataFromCard(cardElement) {
-    return {
+    const extracted = {
         jobId: cardElement.getAttribute('data-job-id'),
         posterId: cardElement.getAttribute('data-poster-id'),
         category: cardElement.getAttribute('data-category'),
         applicationCount: parseInt(cardElement.getAttribute('data-application-count')),
         jobPageUrl: cardElement.getAttribute('data-job-page-url'),
-        status: cardElement.getAttribute('data-status') || 'active',  // Get status from card
+        status: cardElement.getAttribute('data-status') || 'active',
+        price: cardElement.getAttribute('data-price'),
+        paymentType: cardElement.getAttribute('data-payment-type'),
         title: cardElement.querySelector('.listing-title').textContent,
         thumbnail: cardElement.querySelector('.listing-thumbnail img').src
     };
+    
+    return extracted;
 }
 
 async function showListingOptionsOverlay(jobData) {
@@ -2381,6 +2442,8 @@ async function showListingOptionsOverlay(jobData) {
     overlay.setAttribute('data-job-page-url', jobData.jobPageUrl);
     overlay.setAttribute('data-current-status', currentStatus);
     overlay.setAttribute('data-title', jobData.title);
+    overlay.setAttribute('data-price', jobData.price || '0');
+    overlay.setAttribute('data-payment-type', jobData.paymentType || 'per_job');
     
     // Show overlay
     overlay.classList.add('show');
@@ -3341,7 +3404,37 @@ function showContactCustomerOverlay(jobData) {
 async function moveJobFromOfferedToAccepted(jobId) {
     console.log(`🔄 Moving job ${jobId} from offered to accepted status`);
     
-    // Find the job in offered data
+    // Check if Firebase mode is active
+    const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+    
+    if (useFirebase && typeof firebase !== 'undefined') {
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Update job status to accepted
+        // ══════════════════════════════════════════════════════════════
+        try {
+            const db = firebase.firestore();
+            
+            console.log('🔥 Accepting offer in Firebase...');
+            
+            // Update job: keep hired worker info but update status and add acceptedAt timestamp
+            await db.collection('jobs').doc(jobId).update({
+                // Status stays 'hired' (that's how we track offered/accepted jobs)
+                // but we add acceptedAt to distinguish between pending offer and accepted
+                acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                workerAccepted: true // Flag to indicate worker has accepted
+            });
+            
+            console.log('✅ Job offer accepted in Firebase');
+            return;
+        } catch (error) {
+            console.error('❌ Error accepting offer in Firebase:', error);
+            throw error;
+        }
+    }
+    
+    // ══════════════════════════════════════════════════════════════
+    // MOCK MODE - Move from offered to hiring data
+    // ══════════════════════════════════════════════════════════════
     if (!MOCK_OFFERED_DATA) return;
     
     const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
@@ -3359,7 +3452,7 @@ async function moveJobFromOfferedToAccepted(jobId) {
     // Convert to accepted job format and add to hiring data
     const acceptedJob = {
         ...offeredJob,
-        status: 'hired', // Use 'hired' status for accepted jobs (matches existing logic)
+        status: 'hired',
         dateHired: formatDateTime(new Date()),
         hiredWorkerName: offeredJob.hiredWorkerName,
         hiredWorkerId: offeredJob.hiredWorkerId,
@@ -3373,19 +3466,45 @@ async function moveJobFromOfferedToAccepted(jobId) {
     MOCK_HIRING_DATA.push(acceptedJob);
     
     console.log(`✅ Job ${jobId} successfully moved from offered to accepted`);
-    
-    // In Firebase, this would be:
-    // const db = firebase.firestore();
-    // await db.collection('jobs').doc(jobId).update({
-    //     status: 'hired',
-    //     acceptedAt: firebase.firestore.FieldValue.serverTimestamp()
-    // });
 }
 
 async function rejectGigOffer(jobId) {
     console.log(`❌ Rejecting gig offer ${jobId}`);
     
-    // Find and remove the job from offered data
+    // Check if Firebase mode is active
+    const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+    
+    if (useFirebase && typeof firebase !== 'undefined') {
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Update job status back to active
+        // ══════════════════════════════════════════════════════════════
+        try {
+            const db = firebase.firestore();
+            
+            console.log('🔥 Rejecting offer in Firebase...');
+            
+            // Update job: remove hired worker info and set status back to active
+            await db.collection('jobs').doc(jobId).update({
+                status: 'active',
+                hiredWorkerId: firebase.firestore.FieldValue.delete(),
+                hiredWorkerName: firebase.firestore.FieldValue.delete(),
+                hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+                agreedPrice: firebase.firestore.FieldValue.delete(),
+                hiredAt: firebase.firestore.FieldValue.delete(),
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            console.log('✅ Job offer rejected in Firebase, job restored to active');
+            return;
+        } catch (error) {
+            console.error('❌ Error rejecting offer in Firebase:', error);
+            throw error;
+        }
+    }
+    
+    // ══════════════════════════════════════════════════════════════
+    // MOCK MODE - Remove from offered data
+    // ══════════════════════════════════════════════════════════════
     if (!MOCK_OFFERED_DATA) return;
     
     const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
@@ -3398,12 +3517,6 @@ async function rejectGigOffer(jobId) {
     MOCK_OFFERED_DATA.splice(jobIndex, 1);
     
     console.log(`✅ Job ${jobId} successfully rejected and removed from offered data`);
-    
-    // In Firebase, this would involve:
-    // 1. Updating job status back to 'active'
-    // 2. Removing hiredWorkerId and related fields
-    // 3. Restoring other applications for the customer
-    // 4. Sending notification to customer about rejection
 }
 
 async function addToOfferedData(jobData, workerData) {
@@ -5761,7 +5874,7 @@ function initializeOptionsOverlayHandlers() {
             handleViewJob(jobData);
         };
         viewBtn.addEventListener('click', viewHandler);
-        registerCleanup('listings', 'viewBtn', () => {
+        registerCleanup('listings-overlay', 'viewBtn', () => {
             viewBtn.removeEventListener('click', viewHandler);
         });
     }
@@ -5774,7 +5887,7 @@ function initializeOptionsOverlayHandlers() {
             handleModifyJob(jobData);
         };
         modifyBtn.addEventListener('click', modifyHandler);
-        registerCleanup('listings', 'modifyBtn', () => {
+        registerCleanup('listings-overlay', 'modifyBtn', () => {
             modifyBtn.removeEventListener('click', modifyHandler);
         });
     }
@@ -5787,7 +5900,7 @@ function initializeOptionsOverlayHandlers() {
             handlePauseJob(jobData);
         };
         pauseBtn.addEventListener('click', pauseHandler);
-        registerCleanup('listings', 'pauseBtn', () => {
+        registerCleanup('listings-overlay', 'pauseBtn', () => {
             pauseBtn.removeEventListener('click', pauseHandler);
         });
     }
@@ -5800,7 +5913,7 @@ function initializeOptionsOverlayHandlers() {
             showApplicationsOverlay(jobData);
         };
         viewApplicationsBtn.addEventListener('click', applicationsHandler);
-        registerCleanup('listings', 'viewApplicationsBtn', () => {
+        registerCleanup('listings-overlay', 'viewApplicationsBtn', () => {
             viewApplicationsBtn.removeEventListener('click', applicationsHandler);
         });
     }
@@ -5813,7 +5926,7 @@ function initializeOptionsOverlayHandlers() {
             handleDeleteJob(jobData);
         };
         deleteBtn.addEventListener('click', deleteHandler);
-        registerCleanup('listings', 'deleteBtn', () => {
+        registerCleanup('listings-overlay', 'deleteBtn', () => {
             deleteBtn.removeEventListener('click', deleteHandler);
         });
     }
@@ -5825,7 +5938,7 @@ function initializeOptionsOverlayHandlers() {
             hideListingOptionsOverlay();
         };
         cancelBtn.addEventListener('click', cancelHandler);
-        registerCleanup('listings', 'cancelBtn', () => {
+        registerCleanup('listings-overlay', 'cancelBtn', () => {
             cancelBtn.removeEventListener('click', cancelHandler);
         });
     }
@@ -5837,7 +5950,7 @@ function initializeOptionsOverlayHandlers() {
         }
     };
     overlay.addEventListener('click', backgroundHandler);
-    registerCleanup('listings', 'overlayBackground', () => {
+    registerCleanup('listings-overlay', 'overlayBackground', () => {
         overlay.removeEventListener('click', backgroundHandler);
     });
 
@@ -5855,14 +5968,24 @@ function initializeOptionsOverlayHandlers() {
 
 function getJobDataFromOverlay() {
     const overlay = document.getElementById('listingOptionsOverlay');
-    return {
+    const extracted = {
         jobId: overlay.getAttribute('data-job-id'),
         posterId: overlay.getAttribute('data-poster-id'),
         category: overlay.getAttribute('data-category'),
         jobPageUrl: overlay.getAttribute('data-job-page-url'),
         currentStatus: overlay.getAttribute('data-current-status'),
-        title: overlay.getAttribute('data-title')
+        title: overlay.getAttribute('data-title'),
+        price: overlay.getAttribute('data-price'),
+        paymentType: overlay.getAttribute('data-payment-type')
     };
+    
+    console.log('🔍 DEBUG - getJobDataFromOverlay:', {
+        jobId: extracted.jobId,
+        price: extracted.price,
+        paymentType: extracted.paymentType
+    });
+    
+    return extracted;
 }
 
 function hideListingOptionsOverlay() {
@@ -5872,8 +5995,8 @@ function hideListingOptionsOverlay() {
     // Clear handlers initialization flag to allow re-initialization
     delete overlay.dataset.handlersInitialized;
     
-    // Clean up all listings overlay handlers
-    executeCleanupsByType('listings');
+    // Clean up ONLY the overlay handlers, NOT the card handlers
+    executeCleanupsByType('listings-overlay');
     
     console.log('🔧 Options overlay hidden and handlers cleaned up');
 }
@@ -5886,6 +6009,25 @@ async function showApplicationsOverlay(jobData) {
     console.log('═══════════════════════════════════════════════════════');
     console.log('Job ID:', jobData.jobId);
     console.log('Job Title:', jobData.title);
+    console.log('Job Price (from jobData):', jobData.price);
+    console.log('Payment Type (from jobData):', jobData.paymentType);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // FALLBACK: If price is missing from jobData, fetch from listing array
+    // ═══════════════════════════════════════════════════════════════
+    if (!jobData.price || jobData.price === '0' || jobData.price === 0) {
+        console.warn('⚠️ Price missing from jobData, fetching from listings array...');
+        const allListings = await JobsDataService.getAllJobs();
+        const matchingListing = allListings.find(job => job.jobId === jobData.jobId);
+        if (matchingListing) {
+            jobData.price = matchingListing.price;
+            jobData.paymentType = matchingListing.paymentType;
+            console.log('✅ Fetched price from listings:', jobData.price, jobData.paymentType);
+        }
+    }
+    
+    console.log('Job Price (final):', jobData.price);
+    console.log('Payment Type (final):', jobData.paymentType);
     console.log('Application Count:', jobData.applicationCount || 0);
     console.log('═══════════════════════════════════════════════════════');
     
@@ -7315,6 +7457,9 @@ async function processHireConfirmation(workerData) {
     // Hide hire confirmation overlay
     hideHireConfirmationOverlay();
     
+    // Show loading animation
+    showLoadingOverlay('Sending job offer...');
+    
     // Check if Firebase mode is active
     const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
     
@@ -7327,14 +7472,21 @@ async function processHireConfirmation(workerData) {
             
             const result = await hireWorker(workerData.jobId, workerData.applicationId);
             
+            // Hide loading
+            hideLoadingOverlay();
+            
             if (result.success) {
                 console.log('✅ Worker hired successfully in Firebase');
                 
-                // Show success confirmation
+                // Show success confirmation with better formatting
                 showConfirmationWithCallback(
                     '🎉',
                     'Job Offer Sent!',
-                    `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab.`,
+                    `<div style="line-height: 1.6;">
+                        <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
+                        <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
+                        <p style="margin: 0; color: #666;">The job will move to your <strong>Hiring</strong> tab.</p>
+                    </div>`,
                     async () => {
                         console.log('✅ User closed success overlay');
                         
@@ -7351,11 +7503,12 @@ async function processHireConfirmation(workerData) {
                 );
             } else {
                 console.error('❌ Hire failed:', result.message);
-                alert(result.message || 'Failed to hire worker. Please try again.');
+                showErrorNotification(result.message || 'Failed to hire worker. Please try again.');
             }
         } catch (error) {
+            hideLoadingOverlay();
             console.error('❌ Error hiring worker:', error);
-            alert('An error occurred while hiring. Please try again.');
+            showErrorNotification('An error occurred while hiring. Please try again.');
         }
     } else {
         // ══════════════════════════════════════════════════════════════
@@ -7363,10 +7516,17 @@ async function processHireConfirmation(workerData) {
         // ══════════════════════════════════════════════════════════════
         console.log('🧪 Using mock hire logic');
         
+        // Hide loading after short delay
+        setTimeout(() => hideLoadingOverlay(), 500);
+        
         showConfirmationWithCallback(
             '🎉',
             'Job Offer Sent!',
-            `You have sent a job offer to ${workerData.userName}. The worker will be notified and must accept the offer before work begins. The job will appear in your "Hiring" tab with "Pending Offer" status.`,
+            `<div style="line-height: 1.6;">
+                <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
+                <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
+                <p style="margin: 0; color: #666;">The job will move to your <strong>Hiring</strong> tab with "Pending Offer" status.</p>
+            </div>`,
             async () => {
                 console.log('✅ User closed success overlay, starting offer process...');
                 
@@ -7525,29 +7685,6 @@ async function moveJobListingToHiringWithData(jobId, workerName) {
 // Keep the old function for backward compatibility
 function moveJobListingToHiring(jobId, workerName) {
     return moveJobListingToHiringWithData(jobId, workerName);
-}
-
-function extractJobDataFromCard(jobCard) {
-    try {
-        return {
-            jobId: jobCard.getAttribute('data-job-id'),
-            title: jobCard.querySelector('.listing-title')?.textContent || 
-                   jobCard.querySelector('.job-title')?.textContent || 'Unknown Job',
-            description: jobCard.querySelector('.listing-description')?.textContent || 
-                        jobCard.querySelector('.job-description')?.textContent || '',
-            category: jobCard.getAttribute('data-category') || 'unknown',
-            location: jobCard.querySelector('.listing-location')?.textContent || 
-                     jobCard.querySelector('.job-location')?.textContent || '',
-            datePosted: jobCard.getAttribute('data-date-posted') || new Date().toISOString(),
-            salary: jobCard.querySelector('.listing-salary')?.textContent || 
-                   jobCard.querySelector('.job-salary')?.textContent || '',
-            thumbnail: jobCard.querySelector('.listing-thumbnail img')?.src || 
-                      jobCard.querySelector('.job-image img')?.src || ''
-        };
-    } catch (error) {
-        console.error('❌ Error extracting job data:', error);
-        return null;
-    }
 }
 
 function addToHiringData(jobData) {
@@ -7717,26 +7854,36 @@ async function handlePauseJob(jobData) {
     hideListingOptionsOverlay();
     
     try {
-        // Firebase data mapping for pause/activate:
-        if (action === 'pause') {
-            // db.collection('jobs').doc(jobData.jobId).update({
-            //     status: 'paused',
-            //     pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     isActive: false,
-            //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
-            // });
-        } else {
-            // db.collection('jobs').doc(jobData.jobId).update({
-            //     status: 'active',
-            //     activatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     isActive: true,
-            //     pausedAt: firebase.firestore.FieldValue.delete(),
-            //     lastModified: firebase.firestore.FieldValue.serverTimestamp()
-            // });
-        }
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Update status in Firestore
+        // ══════════════════════════════════════════════════════════════
+        const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
         
-        // Update status in mock data for demonstration
-        updateJobStatusInMockData(jobData.jobId, newStatus);
+        if (useFirebase && typeof firebase !== 'undefined') {
+            const db = firebase.firestore();
+            
+            if (action === 'pause') {
+                await db.collection('jobs').doc(jobData.jobId).update({
+                    status: 'paused',
+                    pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('🔥 Job paused in Firebase');
+            } else {
+                await db.collection('jobs').doc(jobData.jobId).update({
+                    status: 'active',
+                    activatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                console.log('🔥 Job activated in Firebase');
+            }
+        } else {
+            // ══════════════════════════════════════════════════════════════
+            // MOCK MODE - Update status in mock data
+            // ══════════════════════════════════════════════════════════════
+            console.log('🧪 Updating mock data');
+            updateJobStatusInMockData(jobData.jobId, newStatus);
+        }
         
         // Update the status badge in the UI immediately
         const statusBadge = document.querySelector(`[data-job-id="${jobData.jobId}"] .status-badge`);
@@ -7750,14 +7897,25 @@ async function handlePauseJob(jobData) {
             }
         }
         
+        // Update the data-status attribute on the card
+        const jobCard = document.querySelector(`[data-job-id="${jobData.jobId}"]`);
+        if (jobCard) {
+            console.log(`🔧 Updating card data-status from "${jobCard.getAttribute('data-status')}" to "${newStatus}"`);
+            jobCard.setAttribute('data-status', newStatus);
+            console.log(`✅ Card data-status now: ${jobCard.getAttribute('data-status')}`);
+        } else {
+            console.warn(`⚠️ Could not find job card with ID: ${jobData.jobId}`);
+        }
+        
         console.log(`${action === 'pause' ? '⏸️' : '▶️'} Job ${jobData.jobId} ${action}d successfully`);
         console.log(`📊 Status updated: ${currentStatus} → ${newStatus}`);
         console.log(`🔄 UI updated to show ${newStatus} status`);
         
         showSuccessNotification(`Job ${action}d successfully`);
         
-        // Update tab counts after status change
-        await updateTabCounts();
+        // Don't refresh listings - Firebase read has delay and will show stale data
+        // The UI is already updated correctly above
+        console.log('ℹ️ Skipping listings refresh to preserve immediate UI update');
         
     } catch (error) {
         console.error(`❌ Error ${action}ing job ${jobData.jobId}:`, error);
