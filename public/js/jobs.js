@@ -20,6 +20,26 @@ let MOCK_OFFERED_DATA = null; // ADD: Offered jobs data for worker perspective
 // Current user ID for testing different perspectives
 const CURRENT_USER_ID = 'user_peter_ang_001';
 
+// ===== LOADING OVERLAY FUNCTIONS =====
+function showLoadingOverlay(message = 'Loading...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const textEl = document.getElementById('loadingText');
+    
+    if (overlay) {
+        if (textEl) textEl.textContent = message;
+        overlay.style.display = 'flex';
+        console.log(`⏳ Loading: ${message}`);
+    }
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        console.log('✅ Loading complete');
+    }
+}
+
 // Global utility function for date formatting
 function formatDateTime(date) {
     return date.toISOString();
@@ -1640,7 +1660,9 @@ function generateOfferedJobCard(job) {
     const userName = job.posterName;
     
     // Use agreed price if it exists, otherwise fall back to original price
-    const displayPrice = job.agreedPrice || job.priceOffer;
+    // Format with peso symbol
+    const rawPrice = job.agreedPrice || job.priceOffer;
+    const displayPrice = formatPriceWithPeso(rawPrice) || `₱${rawPrice}`;
     
     return `
         <div class="hiring-card worker offered-gig" 
@@ -3353,35 +3375,47 @@ function hideRejectGigOfferOverlay() {
     console.log('❌ Reject gig offer overlay hidden');
 }
 
-function processRejectGigConfirmation(jobData) {
+async function processRejectGigConfirmation(jobData) {
     console.log('❌ Processing reject gig confirmation for:', jobData);
     
     // Hide rejection overlay
     hideRejectGigOfferOverlay();
     
-    // Show confirmation with rejection animation
-    showConfirmationWithCallback(
-        '❌',
-        'Gig Offer Rejected',
-        `You have rejected the job offer from ${jobData.posterName}. The customer has been notified of your decision.`,
-        async () => {
-            try {
-                // Remove job from offered data and restore applications for customer
-                await rejectGigOffer(jobData.jobId);
-                
-                // Refresh offered tab
-                await loadOfferedContent();
-                
-                // Update tab counts
-                await updateTabCounts();
-                
-                console.log('✅ Gig offer successfully rejected');
-            } catch (error) {
-                console.error('❌ Error in reject gig process:', error);
-            }
-        },
-        'rejection'
-    );
+    // Show loading while processing
+    showLoadingOverlay('Rejecting offer...');
+    
+    try {
+        // Remove job from offered data and restore applications for customer
+        await rejectGigOffer(jobData.jobId);
+        
+        // Hide loading
+        hideLoadingOverlay();
+        
+        // Show success confirmation
+        showConfirmationWithCallback(
+            '❌',
+            'Gig Offer Rejected',
+            `You have rejected the job offer from ${jobData.posterName}. The customer has been notified of your decision.`,
+            async () => {
+                try {
+                    // Refresh offered tab
+                    await loadOfferedContent();
+                    
+                    // Update tab counts
+                    await updateTabCounts();
+                    
+                    console.log('✅ Gig offer successfully rejected');
+                } catch (error) {
+                    console.error('❌ Error refreshing after rejection:', error);
+                }
+            },
+            'rejection'
+        );
+    } catch (error) {
+        hideLoadingOverlay();
+        console.error('❌ Error in reject gig process:', error);
+        showErrorNotification('Failed to reject offer. Please try again.');
+    }
 }
 
 // ===== CONTACT CUSTOMER OVERLAY FUNCTIONS =====
@@ -7132,7 +7166,7 @@ function showConfirmationWithCallback(icon, title, message, callback, animationT
     
     iconElement.textContent = icon;
     titleElement.textContent = title;
-    messageElement.textContent = message;
+    messageElement.innerHTML = message; // Use innerHTML to support HTML formatting
     
     // Clear previous animation classes
     modalElement.className = 'confirmation-modal';
@@ -7497,6 +7531,7 @@ async function processHireConfirmation(workerData) {
                         setTimeout(async () => {
                             await loadListingsContent();
                             await loadHiringContent();
+                            await updateTabCounts();
                         }, 500);
                     },
                     'celebration'
