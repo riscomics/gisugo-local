@@ -383,21 +383,39 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   console.log(`🔍 Fetching jobs for user: ${userId}, statuses: ${statuses.join(', ')}`);
   
   try {
-    // Simple query without orderBy to avoid composite index requirement
-    // We'll sort client-side for now
-    const snapshot = await db.collection('jobs')
+    // Query for jobs where user is the poster
+    const posterSnapshot = await db.collection('jobs')
       .where('posterId', '==', userId)
       .get();
     
-    console.log(`📊 Raw Firestore results: ${snapshot.docs.length} documents`);
+    // Query for jobs where user is the hired worker
+    const workerSnapshot = await db.collection('jobs')
+      .where('hiredWorkerId', '==', userId)
+      .get();
     
-    // Filter by status client-side and sort
-    const jobs = snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        jobId: doc.id, // Ensure jobId is set
-        ...doc.data()
-      }))
+    console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
+    
+    // Combine both snapshots and remove duplicates
+    const allDocs = [...posterSnapshot.docs, ...workerSnapshot.docs];
+    const uniqueJobIds = new Set();
+    const uniqueDocs = allDocs.filter(doc => {
+      if (uniqueJobIds.has(doc.id)) return false;
+      uniqueJobIds.add(doc.id);
+      return true;
+    });
+    
+    // Map to job objects, filter by status, and add role
+    const jobs = uniqueDocs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          jobId: doc.id, // Ensure jobId is set
+          ...data,
+          // Determine role: customer if they posted it, worker if they were hired
+          role: data.posterId === userId ? 'customer' : 'worker'
+        };
+      })
       .filter(job => statuses.includes(job.status))
       .sort((a, b) => {
         // Sort by datePosted descending

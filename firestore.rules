@@ -66,6 +66,13 @@ service cloud.firestore {
         && request.resource.data.status == 'active';
     }
     
+    // Check if hired worker is accepting the offer (changing to accepted status)
+    function isHiredWorkerAcceptingOffer() {
+      return resource.data.status == 'hired'
+        && resource.data.hiredWorkerId == request.auth.uid
+        && request.resource.data.status == 'accepted';
+    }
+    
     // ═══════════════════════════════════════════════════════════════
     // USERS COLLECTION
     // ═══════════════════════════════════════════════════════════════
@@ -103,10 +110,12 @@ service cloud.firestore {
       // Job poster can update their own job
       // OR any authenticated user can increment applicationCount (when applying)
       // OR hired worker can reject the offer (revert to active)
+      // OR hired worker can accept the offer (change to accepted)
       allow update: if isAuthenticated()
         && (resource.data.posterId == request.auth.uid
             || onlyUpdatingApplicationFields()
-            || isHiredWorkerRejectingOffer());
+            || isHiredWorkerRejectingOffer()
+            || isHiredWorkerAcceptingOffer());
       
       // Only the job poster or admin can delete
       allow delete: if isAuthenticated()

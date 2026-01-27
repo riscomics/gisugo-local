@@ -442,10 +442,12 @@ window.JobsDataService = {
                     return [];
                 }
                 
-                // Get jobs with 'hired' status for this user
+                // Get jobs with 'hired' and 'accepted' status for this user
+                // 'hired' = customer hired someone (appears in customer's Hiring tab)
+                // 'accepted' = worker accepted the offer (appears in worker's Working tab)
                 if (typeof getUserJobListings === 'function') {
-                    const jobs = await getUserJobListings(user.uid, ['hired']);
-                    console.log(`🔥 Loaded ${jobs.length} hired jobs from Firebase`);
+                    const jobs = await getUserJobListings(user.uid, ['hired', 'accepted']);
+                    console.log(`🔥 Loaded ${jobs.length} hired/accepted jobs from Firebase`);
                     return jobs;
                 }
                 return [];
@@ -1799,11 +1801,14 @@ async function loadAcceptedContent() {
     if (!container) return;
     
     try {
-        // Get all hired jobs and filter for worker perspective (where current user is the worker)
+        // Get all hired/accepted jobs and filter for worker perspective (where current user is the worker)
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
-        const workerJobs = allHiredJobs.filter(job => job.role === 'worker');
+        // Worker's Working tab shows only 'accepted' status (offers they've accepted)
+        const workerJobs = allHiredJobs.filter(job => 
+            job.role === 'worker' && job.status === 'accepted'
+        );
         
-        console.log(`🎯 Found ${workerJobs.length} worker perspective jobs for accepted gigs`);
+        console.log(`🎯 Found ${workerJobs.length} accepted worker jobs for Working tab`);
         
         if (workerJobs.length === 0) {
             showEmptyAcceptedState();
@@ -2545,11 +2550,14 @@ async function loadHiringContent() {
     `;
     
     try {
-        // Get all hired jobs and filter for customer perspective only (where current user is the customer)
+        // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
-        const customerJobs = allHiredJobs.filter(job => job.role === 'customer');
+        // Customer's Hiring tab shows only 'hired' status (pending worker acceptance) and 'accepted' status (worker accepted)
+        const customerJobs = allHiredJobs.filter(job => 
+            job.role === 'customer' && (job.status === 'hired' || job.status === 'accepted')
+        );
         
-        console.log(`👥 Found ${customerJobs.length} customer perspective jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
+        console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
         
         if (customerJobs.length === 0) {
             showEmptyHiringState();
@@ -3285,7 +3293,7 @@ function processAcceptGigConfirmation(jobData) {
     showConfirmationWithCallback(
         '🎉',
         'Gig Offer Accepted!',
-        `You have accepted the job offer from ${jobData.posterName}. The job will now appear in your "Gigs Accepted" tab. You can coordinate work details through messages.`,
+        `You have accepted the job offer from ${jobData.posterName}. The job will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
         async () => {
             try {
                 // Move job from offered to accepted status
@@ -3469,15 +3477,14 @@ async function moveJobFromOfferedToAccepted(jobId) {
             
             console.log('🔥 Accepting offer in Firebase...');
             
-            // Update job: keep hired worker info but update status and add acceptedAt timestamp
+            // Update job: change status to 'accepted' and add timestamp
             await db.collection('jobs').doc(jobId).update({
-                // Status stays 'hired' (that's how we track offered/accepted jobs)
-                // but we add acceptedAt to distinguish between pending offer and accepted
+                status: 'accepted', // Change from 'hired' to 'accepted'
                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 workerAccepted: true // Flag to indicate worker has accepted
             });
             
-            console.log('✅ Job offer accepted in Firebase');
+            console.log('✅ Job offer accepted in Firebase - status changed to accepted');
             return;
         } catch (error) {
             console.error('❌ Error accepting offer in Firebase:', error);
@@ -8361,9 +8368,15 @@ async function updateTabCounts() {
         const completedJobs = await getCompletedJobs();
         const offeredJobs = await JobsDataService.getOfferedJobs();
         
-        // Separate hired jobs by perspective
-        const customerHiringJobs = allHiredJobs.filter(job => job.role === 'customer');
-        const workerAcceptedJobs = allHiredJobs.filter(job => job.role === 'worker');
+        // Separate hired jobs by perspective and status
+        // Customer Hiring tab: Shows 'hired' and 'accepted' status (both pending and accepted workers)
+        const customerHiringJobs = allHiredJobs.filter(job => 
+            job.role === 'customer' && (job.status === 'hired' || job.status === 'accepted')
+        );
+        // Worker Working tab: Shows only 'accepted' status (offers they've accepted)
+        const workerAcceptedJobs = allHiredJobs.filter(job => 
+            job.role === 'worker' && job.status === 'accepted'
+        );
         
         // Separate completed jobs by perspective
         const customerCompletedJobs = completedJobs.filter(job => job.role === 'customer');
