@@ -347,6 +347,10 @@ window.JobsDataService = {
             priceOffer: job.priceOffer ? 
                 (job.priceOffer.toString().startsWith('₱') ? job.priceOffer : `₱${job.priceOffer}`) : 
                 `₱${priceValue}`,
+            // Normalize agreedPrice if it exists (for hired jobs)
+            agreedPrice: job.agreedPrice ? 
+                (job.agreedPrice.toString().startsWith('₱') ? job.agreedPrice : `₱${job.agreedPrice}`) : 
+                undefined,
             // Ensure thumbnail exists
             thumbnail: job.thumbnail || job.photo || 'public/images/placeholder.png',
             // Ensure applicationCount is a number
@@ -1673,7 +1677,8 @@ function generateOfferedJobCard(job) {
              data-category="${job.category}"
              data-role="${job.role}"
              data-price-offer="${displayPrice}"
-             data-date-offered="${job.dateOffered}">
+             data-date-offered="${job.dateOffered}"
+             data-job-page-url="${job.jobPageUrl || `dynamic-job.html?category=${job.category}&jobNumber=${job.jobId}`}">
             
             <div class="hiring-title">${job.title}</div>
             
@@ -1759,6 +1764,7 @@ function extractOfferedJobDataFromCard(cardElement) {
         role: cardElement.getAttribute('data-role'),
         priceOffer: cardElement.getAttribute('data-price-offer'),
         dateOffered: cardElement.getAttribute('data-date-offered'),
+        jobPageUrl: cardElement.getAttribute('data-job-page-url'),
         title: cardElement.querySelector('.hiring-title')?.textContent || 'Unknown Job'
     };
 }
@@ -2914,6 +2920,7 @@ async function showGigOfferOptionsOverlay(jobData) {
     overlay.setAttribute('data-job-title', jobData.title);
     overlay.setAttribute('data-price-offer', jobData.priceOffer);
     overlay.setAttribute('data-category', jobData.category);
+    overlay.setAttribute('data-job-page-url', jobData.jobPageUrl || `dynamic-job.html?category=${jobData.category}&jobNumber=${jobData.jobId}`);
     
     // Initialize handlers
     initializeGigOfferOverlayHandlers();
@@ -2931,6 +2938,7 @@ function initializeGigOfferOverlayHandlers() {
     const acceptBtn = document.getElementById('acceptOfferBtn');
     const rejectBtn = document.getElementById('rejectOfferBtn');
     const contactBtn = document.getElementById('contactCustomerBtn');
+    const viewGigPostBtn = document.getElementById('viewGigPostBtn');
     const closeBtn = document.getElementById('closeOfferOptionsBtn');
     
     console.log('🔧 Initializing gig offer overlay handlers');
@@ -2964,6 +2972,17 @@ function initializeGigOfferOverlayHandlers() {
             if (jobData) {
                 hideGigOfferOptionsOverlay();
                 showContactCustomerOverlay(jobData);
+            }
+        });
+    }
+    
+    // View Gig Post button
+    if (viewGigPostBtn) {
+        viewGigPostBtn.addEventListener('click', function() {
+            const jobPageUrl = overlay.getAttribute('data-job-page-url');
+            if (jobPageUrl) {
+                console.log('📄 Opening gig post:', jobPageUrl);
+                window.location.href = jobPageUrl;
             }
         });
     }
@@ -3525,7 +3544,8 @@ async function rejectGigOffer(jobId) {
                 hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
                 agreedPrice: firebase.firestore.FieldValue.delete(),
                 hiredAt: firebase.firestore.FieldValue.delete(),
-                rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                applicationCount: 0 // Reset to 0 since no pending applications remain after rejection
             });
             
             console.log('✅ Job offer rejected in Firebase, job restored to active');
@@ -6179,6 +6199,32 @@ async function getApplicationsForJob(jobId) {
                 });
             }
             console.log('───────────────────────────────────────────────────────');
+            
+            // ═══════════════════════════════════════════════════════════════
+            // AUTO-CORRECTION: Sync Firebase applicationCount if stale
+            // ═══════════════════════════════════════════════════════════════
+            try {
+                const db = firebase.firestore();
+                const jobDoc = await db.collection('jobs').doc(jobId).get();
+                if (jobDoc.exists) {
+                    const currentCount = jobDoc.data().applicationCount || 0;
+                    const actualCount = pendingApplications.length;
+                    
+                    if (currentCount !== actualCount) {
+                        console.log(`🔧 AUTO-FIX: applicationCount mismatch detected`);
+                        console.log(`   Firebase shows: ${currentCount}, Actual pending: ${actualCount}`);
+                        console.log(`   Updating Firebase to correct value...`);
+                        
+                        await db.collection('jobs').doc(jobId).update({
+                            applicationCount: actualCount
+                        });
+                        
+                        console.log(`✅ AUTO-FIX: applicationCount corrected to ${actualCount}`);
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Failed to auto-correct applicationCount:', error);
+            }
             
             // Transform Firebase data to match expected format
             return pendingApplications.map(app => ({

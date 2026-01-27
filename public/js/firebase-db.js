@@ -1014,7 +1014,8 @@ async function hireWorker(jobId, applicationId) {
       hiredWorkerName: appData.applicantName,
       hiredWorkerThumbnail: appData.applicantThumbnail,
       agreedPrice: agreedPrice, // Store the agreed price
-      hiredAt: firebase.firestore.FieldValue.serverTimestamp()
+      hiredAt: firebase.firestore.FieldValue.serverTimestamp(),
+      applicationCount: 0 // Reset to 0 since all applications are now processed
     });
     
     // Update application status
