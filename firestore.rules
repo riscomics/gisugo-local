@@ -73,6 +73,12 @@ service cloud.firestore {
         && request.resource.data.status == 'accepted';
     }
     
+    // Check if only updating appliedJobsCount (for job deletion cleanup)
+    function isUpdatingAppliedJobsCount() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      return affectedKeys.hasOnly(['appliedJobsCount']);
+    }
+    
     // ═══════════════════════════════════════════════════════════════
     // USERS COLLECTION
     // ═══════════════════════════════════════════════════════════════
@@ -87,9 +93,11 @@ service cloud.firestore {
         && request.resource.data.userId == userId;
       
       // Only the owner can update their own profile
-      allow update: if isOwner(userId)
+      // OR authenticated users can update appliedJobsCount (for job deletion cleanup)
+      allow update: if (isOwner(userId)
         && isValidProfile()
-        && request.resource.data.userId == userId;
+        && request.resource.data.userId == userId)
+        || (isAuthenticated() && isUpdatingAppliedJobsCount());
       
       // Only the owner or admin can delete
       allow delete: if isOwner(userId) || isAdmin();

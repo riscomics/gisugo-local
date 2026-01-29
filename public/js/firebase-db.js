@@ -660,11 +660,35 @@ async function deleteJob(jobId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Delete associated applications (optional - for complete cleanup)
+    // STEP 2: Delete associated applications & update applicant statistics
     // ═══════════════════════════════════════════════════════════════
     if (jobData.applicationIds && jobData.applicationIds.length > 0) {
       console.log(`🗑️ Deleting ${jobData.applicationIds.length} associated applications...`);
       
+      // First, get applicant IDs before deleting (we need this data for statistics)
+      const applicantIds = [];
+      try {
+        const appPromises = jobData.applicationIds.map(appId => 
+          db.collection('applications').doc(appId).get()
+        );
+        const appDocs = await Promise.all(appPromises);
+        
+        appDocs.forEach(appDoc => {
+          if (appDoc.exists) {
+            const applicantId = appDoc.data().applicantId;
+            if (applicantId) {
+              applicantIds.push(applicantId);
+            }
+          }
+        });
+        
+        console.log(`📊 Found ${applicantIds.length} applicants to update statistics for`);
+      } catch (fetchError) {
+        console.error('⚠️ Error fetching applicant IDs:', fetchError);
+        // Continue with deletion even if we can't get IDs
+      }
+      
+      // Delete applications
       const batch = db.batch();
       for (const appId of jobData.applicationIds) {
         const appRef = db.collection('applications').doc(appId);
@@ -677,6 +701,30 @@ async function deleteJob(jobId) {
       } catch (appError) {
         console.error('❌ Error deleting applications:', appError);
         // Continue with job deletion even if applications fail
+      }
+      
+      // Update applicant statistics (decrement their application counts)
+      if (applicantIds.length > 0) {
+        console.log('📊 Updating applicant statistics...');
+        try {
+          const userBatch = db.batch();
+          
+          // Remove duplicates (in case user applied multiple times)
+          const uniqueApplicantIds = [...new Set(applicantIds)];
+          
+          for (const applicantId of uniqueApplicantIds) {
+            const userRef = db.collection('users').doc(applicantId);
+            userBatch.update(userRef, {
+              appliedJobsCount: firebase.firestore.FieldValue.increment(-1)
+            });
+          }
+          
+          await userBatch.commit();
+          console.log(`✅ Updated statistics for ${uniqueApplicantIds.length} applicants`);
+        } catch (statsError) {
+          console.error('⚠️ Error updating applicant statistics:', statsError);
+          // Non-critical - continue with deletion
+        }
       }
     }
     
@@ -698,7 +746,22 @@ async function deleteJob(jobId) {
     // ═══════════════════════════════════════════════════════════════
     await db.collection('jobs').doc(jobId).delete();
     
-    console.log(`✅ Job ${jobId} deleted completely (Firestore + Storage + Applications)`);
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 5: Update poster statistics (decrement their job counts)
+    // ═══════════════════════════════════════════════════════════════
+    console.log('📊 Updating poster statistics...');
+    try {
+      const posterRef = db.collection('users').doc(jobData.posterId);
+      await posterRef.update({
+        activeJobsCount: firebase.firestore.FieldValue.increment(-1)
+      });
+      console.log('✅ Poster statistics updated');
+    } catch (posterError) {
+      console.error('⚠️ Error updating poster statistics:', posterError);
+      // Non-critical - job is already deleted
+    }
+    
+    console.log(`✅ Job ${jobId} deleted completely (Firestore + Storage + Applications + Statistics)`);
     return { 
       success: true, 
       message: 'Job deleted successfully',

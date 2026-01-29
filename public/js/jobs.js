@@ -1800,6 +1800,14 @@ async function loadAcceptedContent() {
     const container = document.querySelector('.accepted-container');
     if (!container) return;
     
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading your working jobs...</div>
+        </div>
+    `;
+    
     try {
         // Get all hired/accepted jobs and filter for worker perspective (where current user is the worker)
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
@@ -8023,6 +8031,9 @@ async function handleDeleteJob(jobData) {
     const confirmed = await showDeleteConfirmationDialog(confirmationData);
     if (!confirmed) return;
     
+    // Show loading animation
+    showLoadingOverlay('Deleting job...');
+    
     try {
         // Firebase data mapping for comprehensive deletion:
         
@@ -8106,11 +8117,17 @@ async function handleDeleteJob(jobData) {
         // Refresh listings to remove deleted job
         await refreshListingsAfterDeletion(jobData.jobId);
         
+        // Hide loading animation
+        hideLoadingOverlay();
+        
         // Show success notification
         showSuccessNotification('Job deleted successfully');
         
     } catch (error) {
         console.error(`❌ Error deleting job ${jobData.jobId}:`, error);
+        
+        // Hide loading animation
+        hideLoadingOverlay();
         
         // Detailed error handling for different failure scenarios
         if (error.code === 'permission-denied') {
