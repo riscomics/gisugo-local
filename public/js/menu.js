@@ -6,16 +6,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Use static image icon like main pages (no innerHTML swapping)
   const iconImg = menuButton ? menuButton.querySelector('img') : null;
 
-  // Toggle menu when hamburger button is clicked
-  menuButton.addEventListener('click', (event) => {
+  // Event handler functions (stored for cleanup)
+  const handleMenuClick = (event) => {
     event.stopPropagation(); // Prevent click from bubbling to document
     isMenuOpen = !isMenuOpen;
     menuOverlay.classList.toggle('active');
     // Keep icon static to match main pages
-  });
+  };
 
-  // Close menu when clicking outside
-  document.addEventListener('click', (event) => {
+  const handleDocumentClick = (event) => {
     if (isMenuOpen && 
         !menuButton.contains(event.target) && 
         !menuOverlay.contains(event.target)) {
@@ -23,16 +22,24 @@ document.addEventListener('DOMContentLoaded', () => {
       menuOverlay.classList.remove('active');
       // Keep icon static
     }
-  });
+  };
 
-  // Close menu when pressing Escape key
-  document.addEventListener('keydown', (event) => {
+  const handleEscapeKey = (event) => {
     if (event.key === 'Escape' && isMenuOpen) {
       isMenuOpen = false;
       menuOverlay.classList.remove('active');
       // Keep icon static
     }
-  });
+  };
+
+  // Toggle menu when hamburger button is clicked
+  menuButton.addEventListener('click', handleMenuClick);
+
+  // Close menu when clicking outside
+  document.addEventListener('click', handleDocumentClick);
+
+  // Close menu when pressing Escape key
+  document.addEventListener('keydown', handleEscapeKey);
 
   // Dropdown for service menu in listing header
   const serviceMenuBtn = document.getElementById('serviceMenuBtn');
@@ -83,4 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Cleanup: Remove event listeners on page unload (defensive, usually not needed for full page loads)
+  window.addEventListener('beforeunload', () => {
+    menuButton.removeEventListener('click', handleMenuClick);
+    document.removeEventListener('click', handleDocumentClick);
+    document.removeEventListener('keydown', handleEscapeKey);
+  });
 }); 

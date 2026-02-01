@@ -589,12 +589,14 @@
       }
       
       // Update menu visibility based on login status
+      let authUnsubscribe = null; // Store unsubscribe function to prevent memory leak
+      
       document.addEventListener('DOMContentLoaded', function() {
         // ✅ PROPER FIX: Don't check auth before Firebase is ready
         // Wait for onAuthStateChanged to fire (when Firebase confirms auth state)
         
         if (typeof firebase !== 'undefined' && firebase.auth) {
-          firebase.auth().onAuthStateChanged(async function(user) {
+          authUnsubscribe = firebase.auth().onAuthStateChanged(async function(user) {
             console.log('🔐 Firebase auth state confirmed:', user ? 'Logged in' : 'Logged out');
             
             if (user) {
@@ -616,6 +618,13 @@
           // Firebase not available - show logged out state
           console.warn('⚠️ Firebase not available');
           updateHomeMenu();
+        }
+      });
+      
+      // Cleanup: Unsubscribe from auth listener when page unloads
+      window.addEventListener('beforeunload', function() {
+        if (authUnsubscribe) {
+          authUnsubscribe();
         }
       });
       
@@ -681,6 +690,8 @@
         }
       }
       
+      let logoutTimeoutId = null; // Store timeout ID for cleanup
+      
       async function confirmLogout() {
         console.log('✅ Logout confirmed');
         
@@ -716,13 +727,20 @@
           new Promise(resolve => {
             const elapsed = Date.now() - startTime;
             const remaining = Math.max(0, minimumDisplayTime - elapsed);
-            setTimeout(resolve, remaining);
+            logoutTimeoutId = setTimeout(resolve, remaining);
           })
         ]);
         
         // Redirect to home (reload to clear state)
         window.location.href = 'index.html';
       }
+      
+      // Cleanup: Clear logout timeout if page unloads during logout
+      window.addEventListener('beforeunload', function() {
+        if (logoutTimeoutId) {
+          clearTimeout(logoutTimeoutId);
+        }
+      });
     </script>
 
     
