@@ -6,7 +6,7 @@
     <meta name="description" content="GISUGO - A marketplace for searching and posting jobs in your local neighborhood">
     <meta name="keywords" content="local service, gig economy, marketplace, jobs, services">
     <title>GISUGO - Local Service Marketplace</title>
-    <link rel="stylesheet" href="public/css/home.css?v=4.8">
+    <link rel="stylesheet" href="public/css/home.css?v=5.1">
     <!-- Add favicon -->
     <link rel="icon" type="image/png" href="public/images/favicon.png">
     <style>
@@ -46,10 +46,12 @@
         align-items: center;
         justify-content: center;
         z-index: 99998;
+        pointer-events: none;
       }
       
       .logout-confirm-overlay.active {
         display: flex;
+        pointer-events: auto;
       }
       
       .logout-confirm-modal {
@@ -129,10 +131,12 @@
         z-index: 99999;
         flex-direction: column;
         backdrop-filter: blur(8px);
+        pointer-events: none;
       }
       
       .logout-overlay.active {
         display: flex;
+        pointer-events: auto;
       }
       
       .logout-emoji {

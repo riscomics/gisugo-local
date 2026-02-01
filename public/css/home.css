@@ -78,7 +78,8 @@ html {
   width: 100%;
   overflow-x: hidden;
   background-color: #1a202c; /* Fallback for overscroll */
-  overscroll-behavior: none;
+  overscroll-behavior-x: none; /* Prevent horizontal bounce */
+  overscroll-behavior-y: auto; /* Allow pull-to-refresh */
 }
 
 body {
@@ -88,7 +89,8 @@ body {
   background-attachment: fixed;
   line-height: 1.6;
   padding-top: 0;
-  overscroll-behavior-y: none;
+  overscroll-behavior-x: none; /* Prevent horizontal bounce */
+  overscroll-behavior-y: auto; /* Allow pull-to-refresh */
   width: 100%;
   overflow-x: hidden;
   position: relative;
