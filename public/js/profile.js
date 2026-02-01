@@ -2755,6 +2755,9 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
     userSummaryElement.textContent = userProfile.userSummary;
   }
 
+  // Display activity statistics
+  displayActivityStatistics(userProfile);
+
   // Load reviews for this user profile (TODO: implement when reviews system is ready)
   // loadUserReviews();
   
@@ -3207,6 +3210,9 @@ function populateUserInformation(userProfile) {
   if (userSummaryElement && userProfile.userSummary) {
     userSummaryElement.textContent = userProfile.userSummary;
   }
+  
+  // Display activity statistics
+  displayActivityStatistics(userProfile);
 }
 
 // ===== VERIFICATION SYSTEM BACKEND MAPPING =====
@@ -3819,4 +3825,147 @@ function populateWorkerReviews(workerReviews = sampleWorkerReviews, userName = n
     const reviewCard = createReviewCard(review);
     container.appendChild(reviewCard);
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACTIVITY STATISTICS DISPLAY
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Display user activity statistics (worker & customer)
+ * @param {Object} userProfile - User profile data with statistics field
+ */
+function displayActivityStatistics(userProfile) {
+  console.log('📊 Displaying activity statistics...', userProfile.statistics);
+  
+  // Get stats from profile (with fallback for users without stats field)
+  const stats = userProfile.statistics || {
+    worker: { totalGigsCompleted: 0, totalEarned: 0, yearlyStats: {} },
+    customer: { totalGigsCompleted: 0, totalSpent: 0, yearlyStats: {} }
+  };
+  
+  // Worker stats
+  const workerGigsEl = document.getElementById('workerGigsCompleted');
+  const workerEarnedEl = document.getElementById('workerTotalEarned');
+  if (workerGigsEl) workerGigsEl.textContent = stats.worker.totalGigsCompleted || 0;
+  if (workerEarnedEl) workerEarnedEl.textContent = `₱${(stats.worker.totalEarned || 0).toLocaleString()}`;
+  
+  // Customer stats
+  const customerGigsEl = document.getElementById('customerGigsCompleted');
+  const customerSpentEl = document.getElementById('customerTotalSpent');
+  if (customerGigsEl) customerGigsEl.textContent = stats.customer.totalGigsCompleted || 0;
+  if (customerSpentEl) customerSpentEl.textContent = `₱${(stats.customer.totalSpent || 0).toLocaleString()}`;
+  
+  // Check if there's any activity
+  const hasWorkerActivity = (stats.worker.totalGigsCompleted || 0) > 0;
+  const hasCustomerActivity = (stats.customer.totalGigsCompleted || 0) > 0;
+  const hasAnyActivity = hasWorkerActivity || hasCustomerActivity;
+  
+  // Show/hide cards and no-activity message
+  const workerCard = document.getElementById('workerStatsCard');
+  const customerCard = document.getElementById('customerStatsCard');
+  const noActivityMsg = document.getElementById('noActivityMessage');
+  
+  if (hasAnyActivity) {
+    // Show cards with activity
+    if (workerCard) workerCard.style.display = hasWorkerActivity ? 'block' : 'none';
+    if (customerCard) customerCard.style.display = hasCustomerActivity ? 'block' : 'none';
+    if (noActivityMsg) noActivityMsg.style.display = 'none';
+    
+    // Populate year dropdowns if yearly data exists
+    if (hasWorkerActivity && stats.worker.yearlyStats) {
+      populateYearDropdown('worker', stats.worker.yearlyStats);
+    }
+    if (hasCustomerActivity && stats.customer.yearlyStats) {
+      populateYearDropdown('customer', stats.customer.yearlyStats);
+    }
+  } else {
+    // No activity - show message, hide cards
+    if (workerCard) workerCard.style.display = 'none';
+    if (customerCard) customerCard.style.display = 'none';
+    if (noActivityMsg) noActivityMsg.style.display = 'block';
+  }
+  
+  console.log('✅ Activity statistics displayed');
+}
+
+/**
+ * Populate year dropdown for worker or customer
+ * @param {string} role - 'worker' or 'customer'
+ * @param {Object} yearlyStats - Object with year keys (e.g., {"2025": {gigsCompleted: 5, earned: 1000}})
+ */
+function populateYearDropdown(role, yearlyStats) {
+  const years = Object.keys(yearlyStats || {}).sort((a, b) => b - a); // Descending order
+  
+  if (years.length === 0) return; // No yearly data
+  
+  const dropdown = document.getElementById(`${role}YearDropdown`);
+  const selector = document.getElementById(`${role}YearSelector`);
+  
+  if (!dropdown || !selector) return;
+  
+  // Show the selector
+  selector.style.display = 'flex';
+  
+  // Clear existing options except "All Time"
+  dropdown.innerHTML = '<option value="all">All Time</option>';
+  
+  // Add year options
+  years.forEach(year => {
+    const option = document.createElement('option');
+    option.value = year;
+    option.textContent = year;
+    dropdown.appendChild(option);
+  });
+  
+  // Add change handler
+  dropdown.addEventListener('change', function() {
+    displayYearlyBreakdown(role, this.value, yearlyStats);
+  });
+  
+  console.log(`📅 Populated ${role} year dropdown with years:`, years);
+}
+
+/**
+ * Display yearly breakdown when user selects a specific year
+ * @param {string} role - 'worker' or 'customer'
+ * @param {string} year - Selected year or 'all'
+ * @param {Object} yearlyStats - Yearly statistics object
+ */
+function displayYearlyBreakdown(role, year, yearlyStats) {
+  const breakdownEl = document.getElementById(`${role}YearlyStats`);
+  if (!breakdownEl) return;
+  
+  if (year === 'all') {
+    breakdownEl.style.display = 'none';
+    return;
+  }
+  
+  const yearData = yearlyStats[year];
+  if (!yearData) {
+    breakdownEl.style.display = 'none';
+    return;
+  }
+  
+  // Show breakdown
+  breakdownEl.style.display = 'block';
+  
+  const isWorker = role === 'worker';
+  const gigsLabel = isWorker ? 'Gigs Completed' : 'Gigs Hired';
+  const moneyLabel = isWorker ? 'Total Earned' : 'Total Spent';
+  const gigsValue = yearData.gigsCompleted || 0;
+  const moneyValue = isWorker ? (yearData.earned || 0) : (yearData.spent || 0);
+  
+  breakdownEl.innerHTML = `
+    <div class="yearly-stat-row">
+      <span class="yearly-stat-label">${gigsLabel}:</span>
+      <span class="yearly-stat-value">${gigsValue}</span>
+    </div>
+    <div class="yearly-stat-row">
+      <span class="yearly-stat-label">${moneyLabel}:</span>
+      <span class="yearly-stat-value">₱${moneyValue.toLocaleString()}</span>
+    </div>
+  `;
+  
+  console.log(`📊 Displayed ${year} breakdown for ${role}:`, yearData);
 }

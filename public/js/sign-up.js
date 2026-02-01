@@ -906,7 +906,6 @@ function collectFormData() {
     // Default values for new users
     rating: 0,
     reviewCount: 0,
-    jobsCompleted: 0,
     verification: {
       status: 'none',
       businessVerified: false,
