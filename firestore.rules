@@ -73,10 +73,23 @@ service cloud.firestore {
         && request.resource.data.status == 'accepted';
     }
     
+    // Check if customer is marking their hired job as complete
+    function isCustomerMarkingComplete() {
+      return resource.data.status == 'accepted'
+        && resource.data.posterId == request.auth.uid
+        && request.resource.data.status == 'completed';
+    }
+    
     // Check if only updating appliedJobsCount (for job deletion cleanup)
     function isUpdatingAppliedJobsCount() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
       return affectedKeys.hasOnly(['appliedJobsCount']);
+    }
+    
+    // Check if only updating statistics fields (for job completion)
+    function isUpdatingStatistics() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      return affectedKeys.hasOnly(['statistics']);
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -94,10 +107,12 @@ service cloud.firestore {
       
       // Only the owner can update their own profile
       // OR authenticated users can update appliedJobsCount (for job deletion cleanup)
+      // OR authenticated users can update statistics (for job completion)
       allow update: if (isOwner(userId)
         && isValidProfile()
         && request.resource.data.userId == userId)
-        || (isAuthenticated() && isUpdatingAppliedJobsCount());
+        || (isAuthenticated() && isUpdatingAppliedJobsCount())
+        || (isAuthenticated() && isUpdatingStatistics());
       
       // Only the owner or admin can delete
       allow delete: if isOwner(userId) || isAdmin();
@@ -119,11 +134,13 @@ service cloud.firestore {
       // OR any authenticated user can increment applicationCount (when applying)
       // OR hired worker can reject the offer (revert to active)
       // OR hired worker can accept the offer (change to accepted)
+      // OR customer can mark accepted job as completed
       allow update: if isAuthenticated()
         && (resource.data.posterId == request.auth.uid
             || onlyUpdatingApplicationFields()
             || isHiredWorkerRejectingOffer()
-            || isHiredWorkerAcceptingOffer());
+            || isHiredWorkerAcceptingOffer()
+            || isCustomerMarkingComplete());
       
       // Only the job poster or admin can delete
       allow delete: if isAuthenticated()

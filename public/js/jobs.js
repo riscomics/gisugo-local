@@ -991,69 +991,134 @@ window.JobsDataService = {
     
     // Get completed jobs (simulates Firebase query) - FIREBASE READY
     async getCompletedJobs() {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const currentUserId = firebase.auth().currentUser.uid;
-        // 
-        // const completedJobsSnapshot = await db.collection('jobs')
-        //     .where('status', '==', 'completed')
-        //     .where(firebase.firestore.Filter.or(
-        //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
-        //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
-        //     ))
-        //     .orderBy('completedAt', 'desc')
-        //     .get();
-        // 
-        // return completedJobsSnapshot.docs.map(doc => {
-        //     const data = doc.data();
-        //     return {
-        //         // Core job identification
-        //         jobId: doc.id,
-        //         posterId: data.posterId,
-        //         posterName: data.posterName,
-        //         posterThumbnail: data.posterThumbnail,
-        //         
-        //         // Job details - CONSISTENT WITH OTHER TABS
-        //         title: data.title,
-        //         category: data.category,
-        //         thumbnail: data.thumbnail,
-        //         
-        //         // Scheduling - FIREBASE TIMESTAMP FORMAT
-        //         scheduledDate: data.scheduledDate, // YYYY-MM-DD
-        //         startTime: data.startTime,
-        //         endTime: data.endTime,
-        //         
-        //         // Financial
-        //         priceOffer: data.priceOffer, // Consistent field name
-        //         
-        //         // Completion data - FIREBASE TIMESTAMPS
-        //         completedAt: data.completedAt.toDate(), // Firebase timestamp
-        //         completedBy: data.completedBy, // 'customer' | 'worker'
-        //         
-        //         // Hiring information - CONSISTENT WITH HIRING TAB
-        //         hiredWorkerId: data.hiredWorkerId,
-        //         hiredWorkerName: data.hiredWorkerName,
-        //         hiredWorkerThumbnail: data.hiredWorkerThumbnail,
-        //         
-        //         // Role determination - CONSISTENT LOGIC
-        //         role: data.posterId === currentUserId ? 'customer' : 'worker',
-        //         
-        //         // Rating and feedback - FIREBASE SUBCOLLECTION READY
-        //         rating: data.rating || 0,
-        //         feedback: data.feedback || null,
-        //         workerFeedback: data.workerFeedback || null,
-        //         workerRating: data.workerRating || 0,
-        //         
-        //         // Status tracking - CONSISTENT WITH OTHER TABS
-        //         status: data.status,
-        //         datePosted: data.datePosted.toDate(), // Firebase timestamp
-        //         
-        //         // Firebase metadata
-        //         lastModified: data.lastModified?.toDate(),
-        //         modifiedBy: data.modifiedBy
-        //     };
-        // });
+        console.log(`📊 JobsDataService.getCompletedJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
         
+        // ══════════════════════════════════════════════════════════════
+        // FIREBASE MODE - Load completed jobs from Firestore
+        // ══════════════════════════════════════════════════════════════
+        if (this._useFirebase()) {
+            try {
+                const user = await DataService.waitForAuth();
+                if (!user) {
+                    console.log('⚠️ Not authenticated in Firebase mode');
+                    return [];
+                }
+                
+                const currentUserId = user.uid;
+                console.log(`🔍 Fetching completed jobs for user: ${currentUserId}`);
+                
+                const db = firebase.firestore();
+                
+                // Query for completed jobs where user is the poster
+                const posterSnapshot = await db.collection('jobs')
+                    .where('status', '==', 'completed')
+                    .where('posterId', '==', currentUserId)
+                    .get();
+                
+                // Query for completed jobs where user is the hired worker
+                const workerSnapshot = await db.collection('jobs')
+                    .where('status', '==', 'completed')
+                    .where('hiredWorkerId', '==', currentUserId)
+                    .get();
+                
+                console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
+                
+                // Combine both snapshots and remove duplicates
+                const allDocs = [...posterSnapshot.docs, ...workerSnapshot.docs];
+                const uniqueJobIds = new Set();
+                const uniqueDocs = allDocs.filter(doc => {
+                    if (uniqueJobIds.has(doc.id)) return false;
+                    uniqueJobIds.add(doc.id);
+                    return true;
+                });
+                
+                console.log(`📊 Unique completed jobs: ${uniqueDocs.length}`);
+                
+                const completedJobs = uniqueDocs.map(doc => {
+                    const data = doc.data();
+                    const isCustomer = data.posterId === currentUserId;
+                    
+                    // Normalize paymentType
+                    let normalizedPaymentType = 'per_job';
+                    if (data.paymentType) {
+                        if (data.paymentType.toLowerCase().includes('hour')) {
+                            normalizedPaymentType = 'per_hour';
+                        } else if (data.paymentType.toLowerCase().includes('day')) {
+                            normalizedPaymentType = 'per_day';
+                        }
+                    }
+                    
+                    return {
+                        // Core job identification
+                        id: doc.id,
+                        jobId: doc.id,
+                        posterId: data.posterId,
+                        posterName: data.posterName,
+                        posterThumbnail: data.posterThumbnail,
+                        
+                        // Job details
+                        title: data.title,
+                        category: data.category,
+                        thumbnail: data.thumbnail,
+                        description: data.description,
+                        
+                        // Scheduling
+                        scheduledDate: data.scheduledDate,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        
+                        // Financial
+                        priceOffer: '₱' + (data.agreedPrice || data.priceOffer || 0),
+                        price: parseFloat(data.agreedPrice || data.priceOffer || 0),
+                        paymentType: normalizedPaymentType,
+                        
+                        // Completion data
+                        completedAt: data.completedAt,
+                        completedBy: data.completedBy,
+                        
+                        // Hiring information
+                        hiredWorkerId: data.hiredWorkerId,
+                        hiredWorkerName: data.hiredWorkerName,
+                        hiredWorkerThumbnail: data.hiredWorkerThumbnail,
+                        
+                        // Role determination
+                        role: isCustomer ? 'customer' : 'worker',
+                        
+                        // Rating and feedback (to be implemented)
+                        rating: data.rating || 0,
+                        feedback: data.feedback || null,
+                        workerFeedback: data.workerFeedback || null,
+                        workerRating: data.workerRating || 0,
+                        
+                        // Status tracking
+                        status: data.status,
+                        datePosted: data.datePosted,
+                        
+                        // Firebase metadata
+                        lastModified: data.lastModified,
+                        modifiedBy: data.modifiedBy
+                    };
+                });
+                
+                // Sort by completion date (most recent first)
+                completedJobs.sort((a, b) => {
+                    const timeA = a.completedAt?.seconds || 0;
+                    const timeB = b.completedAt?.seconds || 0;
+                    return timeB - timeA;
+                });
+                
+                console.log(`✅ Returning ${completedJobs.length} completed jobs`);
+                return completedJobs;
+                
+            } catch (error) {
+                console.error('❌ Error fetching completed jobs from Firebase:', error);
+                return [];
+            }
+        }
+        
+        // ══════════════════════════════════════════════════════════════
+        // MOCK MODE - Return mock data
+        // ══════════════════════════════════════════════════════════════
         if (!MOCK_COMPLETED_DATA) {
             MOCK_COMPLETED_DATA = generateCompletedJobsData();
         }
@@ -1938,7 +2003,7 @@ async function loadWorkerCompletedContent() {
     
     try {
         // Get all completed jobs and filter for worker perspective (where current user was the worker)
-        const allCompletedJobs = await getCompletedJobs();
+        const allCompletedJobs = await JobsDataService.getCompletedJobs();
         const workerCompletedJobs = allCompletedJobs.filter(job => job.role === 'worker');
         
         console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
@@ -3777,29 +3842,67 @@ function initializeCompleteJobConfirmationHandlers() {
             // Hide confirmation overlay
             overlay.classList.remove('show');
             
-            // Firebase Implementation - Mark job as completed:
-            // const db = firebase.firestore();
-            // const batch = db.batch();
-            // 
-            // // Update job status to completed
-            // const jobRef = db.collection('jobs').doc(jobId);
-            // batch.update(jobRef, {
-            //     status: 'completed',
-            //     completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     completedBy: 'customer',
-            //     completionConfirmed: true
-            // });
-            // 
-            // // Create completion record for tracking
-            // const completionRef = db.collection('job_completions').doc();
-            // batch.set(completionRef, {
-            //     jobId: jobId,
-            //     completedBy: firebase.auth().currentUser.uid,
-            //     completedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     workerNotified: false
-            // });
-            // 
-            // await batch.commit();
+            // ══════════════════════════════════════════════════════════════
+            // FIREBASE IMPLEMENTATION - Mark job as completed
+            // ══════════════════════════════════════════════════════════════
+            try {
+                showLoadingOverlay('Marking job as completed...');
+                
+                const db = firebase.firestore();
+                const jobRef = db.collection('jobs').doc(jobId);
+                
+                // Step 1: Get job data to retrieve price and worker ID
+                const jobDoc = await jobRef.get();
+                if (!jobDoc.exists) {
+                    throw new Error('Job not found');
+                }
+                
+                const jobData = jobDoc.data();
+                const agreedPrice = jobData.agreedPrice || jobData.priceOffer || 0;
+                const currentYear = new Date().getFullYear().toString();
+                
+                console.log('💰 Completing job with agreed price:', agreedPrice);
+                console.log('📅 Current year:', currentYear);
+                
+                // Step 2: Update job status to completed
+                await jobRef.update({
+                    status: 'completed',
+                    completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    completedBy: 'customer',
+                    completionConfirmed: true
+                });
+                
+                console.log('✅ Job status updated to completed');
+                
+                // Step 3: Update customer statistics
+                await db.collection('users').doc(jobData.posterId).update({
+                    'statistics.customer.totalGigsCompleted': firebase.firestore.FieldValue.increment(1),
+                    'statistics.customer.totalSpent': firebase.firestore.FieldValue.increment(agreedPrice),
+                    [`statistics.customer.yearlyStats.${currentYear}.gigsCompleted`]: firebase.firestore.FieldValue.increment(1),
+                    [`statistics.customer.yearlyStats.${currentYear}.spent`]: firebase.firestore.FieldValue.increment(agreedPrice)
+                });
+                
+                console.log('✅ Customer statistics updated');
+                
+                // Step 4: Update worker statistics
+                await db.collection('users').doc(jobData.hiredWorkerId).update({
+                    'statistics.worker.totalGigsCompleted': firebase.firestore.FieldValue.increment(1),
+                    'statistics.worker.totalEarned': firebase.firestore.FieldValue.increment(agreedPrice),
+                    [`statistics.worker.yearlyStats.${currentYear}.gigsCompleted`]: firebase.firestore.FieldValue.increment(1),
+                    [`statistics.worker.yearlyStats.${currentYear}.earned`]: firebase.firestore.FieldValue.increment(agreedPrice)
+                });
+                
+                console.log('✅ Worker statistics updated');
+                
+                hideLoadingOverlay();
+                
+            } catch (error) {
+                console.error('❌ Error marking job as completed:', error);
+                hideLoadingOverlay();
+                showErrorNotification('Failed to mark job as completed: ' + error.message);
+                return;
+            }
+            // ══════════════════════════════════════════════════════════════
             
             // Store job ID for data manipulation
             const successOverlay = document.getElementById('jobCompletedSuccessOverlay');
@@ -3932,7 +4035,7 @@ function initializeRelistJobConfirmationHandlers() {
                 console.log(`🔄 Creating job draft from completed job: ${jobId}`);
                 
                 // Get the completed job data to copy
-                const completedJobs = await getCompletedJobs();
+                const completedJobs = await JobsDataService.getCompletedJobs();
                 const sourceJob = completedJobs.find(j => j.jobId === jobId);
                 
                 if (sourceJob) {
@@ -4776,17 +4879,7 @@ async function initializePreviousTab() {
     executeCleanupsByType('previous-overlay');
     executeCleanupsByType('previous-feedback-overlay');
     
-    // Check if already loaded
-    if (container.children.length > 0) {
-        console.log('📜 Previous tab content exists, reinitializing handlers...');
-        // Reinitialize handlers for existing cards
-        initializeCompletedCardHandlers();
-        checkTruncatedFeedback();
-        createFeedbackExpandedOverlay();
-        return;
-    }
-    
-    // Load fresh content
+    // Always reload fresh content from Firebase
     await loadPreviousContent();
 }
 
@@ -4804,7 +4897,7 @@ async function loadPreviousContent() {
     
     try {
         // Get all completed jobs and filter for customer perspective only (where current user was the customer)
-        const allCompletedJobs = await getCompletedJobs();
+        const allCompletedJobs = await JobsDataService.getCompletedJobs();
         const customerCompletedJobs = allCompletedJobs.filter(job => job.role === 'customer');
         
         console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
@@ -5120,7 +5213,7 @@ function generateCompletedCardHTML(job) {
                         </div>
                         
                         <div class="completed-right-content">
-                            <div class="completed-price">${job.priceOffer.startsWith('₱') ? job.priceOffer : '₱' + job.priceOffer}</div>
+                            <div class="completed-price">${typeof job.priceOffer === 'number' ? '₱' + job.priceOffer : (job.priceOffer.startsWith('₱') ? job.priceOffer : '₱' + job.priceOffer)}</div>
                             <div class="completed-user-thumbnail">
                                 <img src="${userThumbnail}" alt="${userName}" loading="lazy">
                             </div>
@@ -5181,8 +5274,23 @@ function formatPriceWithPeso(price) {
     return price;
 }
 
-function formatCompletedDate(dateString) {
-    const date = new Date(dateString);
+function formatCompletedDate(timestamp) {
+    // Handle Firebase timestamp object
+    let date;
+    if (timestamp && timestamp.seconds) {
+        // Firebase Timestamp object
+        date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp instanceof Date) {
+        // Already a Date object
+        date = timestamp;
+    } else if (typeof timestamp === 'string') {
+        // String date
+        date = new Date(timestamp);
+    } else {
+        // Invalid input
+        return 'Invalid Date';
+    }
+    
     const now = new Date();
     const diffTime = now - date;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -5650,10 +5758,10 @@ function showEmptyPreviousState() {
     container.innerHTML = `
         <div class="empty-state">
             <div class="empty-state-icon">📜</div>
-            <div class="empty-state-title">No Completed Jobs Yet</div>
+            <div class="empty-state-title">No Completed Gigs Yet</div>
             <div class="empty-state-message">
-                Completed jobs will appear here once you finish working on hired jobs.
-                You can relist completed jobs or leave feedback for customers.
+                Completed gigs will appear here once you finish working on hired gigs.
+                You can relist completed gigs or leave feedback for customers.
             </div>
             <a href="jobs.html" class="empty-state-btn">
                 VIEW ACTIVE JOBS
@@ -8382,7 +8490,7 @@ async function updateTabCounts() {
         // Get data directly from their respective arrays
         const listingsJobs = await JobsDataService.getAllJobs();
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
-        const completedJobs = await getCompletedJobs();
+        const completedJobs = await JobsDataService.getCompletedJobs();
         const offeredJobs = await JobsDataService.getOfferedJobs();
         
         // Separate hired jobs by perspective and status
