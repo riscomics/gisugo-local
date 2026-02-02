@@ -108,11 +108,13 @@ service cloud.firestore {
       // Only the owner can update their own profile
       // OR authenticated users can update appliedJobsCount (for job deletion cleanup)
       // OR authenticated users can update statistics (for job completion)
+      // OR authenticated users can update review stats (averageRating, totalReviews)
       allow update: if (isOwner(userId)
         && isValidProfile()
         && request.resource.data.userId == userId)
         || (isAuthenticated() && isUpdatingAppliedJobsCount())
-        || (isAuthenticated() && isUpdatingStatistics());
+        || (isAuthenticated() && isUpdatingStatistics())
+        || (isAuthenticated() && isUpdatingReviewStats());
       
       // Only the owner or admin can delete
       allow delete: if isOwner(userId) || isAdmin();
@@ -135,12 +137,16 @@ service cloud.firestore {
       // OR hired worker can reject the offer (revert to active)
       // OR hired worker can accept the offer (change to accepted)
       // OR customer can mark accepted job as completed
+      // OR customer can submit review for completed job
+      // OR worker can submit review for completed job
       allow update: if isAuthenticated()
         && (resource.data.posterId == request.auth.uid
             || onlyUpdatingApplicationFields()
             || isHiredWorkerRejectingOffer()
             || isHiredWorkerAcceptingOffer()
-            || isCustomerMarkingComplete());
+            || isCustomerMarkingComplete()
+            || isCustomerSubmittingReview()
+            || isWorkerSubmittingReview());
       
       // Only the job poster or admin can delete
       allow delete: if isAuthenticated()
@@ -199,6 +205,33 @@ service cloud.firestore {
       
       // Only admins can update/delete
       allow update, delete: if isAdmin();
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // REVIEWS COLLECTION
+    // ═══════════════════════════════════════════════════════════════
+    match /reviews/{reviewId} {
+      // Anyone can read reviews (public for profile display)
+      allow read: if true;
+      
+      // Only authenticated users can create reviews for completed jobs
+      // Customer reviews worker, or worker reviews customer
+      allow create: if isAuthenticated()
+        && request.resource.data.reviewerUserId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'reviewId', 'jobId', 'reviewerUserId', 'revieweeUserId',
+          'reviewerRole', 'revieweeRole', 'rating', 'feedbackText'
+        ])
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      
+      // Only the review author can update their own review
+      allow update: if isAuthenticated()
+        && resource.data.reviewerUserId == request.auth.uid;
+      
+      // Only the review author or admin can delete
+      allow delete: if isAuthenticated()
+        && (resource.data.reviewerUserId == request.auth.uid || isAdmin());
     }
     
     // ═══════════════════════════════════════════════════════════════

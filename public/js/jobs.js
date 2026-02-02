@@ -1084,9 +1084,9 @@ window.JobsDataService = {
                         // Role determination
                         role: isCustomer ? 'customer' : 'worker',
                         
-                        // Rating and feedback (to be implemented)
-                        rating: data.rating || 0,
-                        feedback: data.feedback || null,
+                        // Rating and feedback from Firebase
+                        rating: data.customerRating || 0,
+                        feedback: data.customerFeedback || null,
                         workerFeedback: data.workerFeedback || null,
                         workerRating: data.workerRating || 0,
                         
@@ -4348,18 +4348,25 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         }
         
         if (job) {
-            // Submit feedback to Firebase (or mock for development)
+            // Submit feedback to Firebase
             try {
-                await submitJobCompletionFeedback(
+                showLoadingOverlay('Submitting feedback...');
+                
+                const result = await submitJobCompletionFeedback(
                     jobId,
                     job.hiredWorkerId || 'worker-user-id',
                     CURRENT_USER_ID,
                     rating,
                     feedbackText
                 );
-                console.log(`✅ Feedback submitted successfully for job ${jobId}`);
+                
+                hideLoadingOverlay();
+                console.log(`✅ Feedback submitted successfully:`, result);
             } catch (error) {
+                hideLoadingOverlay();
                 console.error('❌ Error submitting feedback:', error);
+                showErrorNotification('Failed to submit feedback: ' + error.message);
+                return; // Don't proceed with UI updates if submission failed
             }
         }
         
@@ -4481,66 +4488,80 @@ function getFeedbackRating() {
 // Firebase Integration Structure for Job Completion Feedback
 // This will replace the console.log when backend is ready
 async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, rating, feedbackText) {
-    // Firebase Implementation:
-    // const db = firebase.firestore();
-    // const batch = db.batch();
-    // const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-    // 
-    // // 1. Create review record in reviews collection
-    // const reviewRef = db.collection('reviews').doc();
-    // batch.set(reviewRef, {
-    //     reviewId: reviewRef.id,
-    //     jobId: jobId,
-    //     reviewerUserId: customerUserId,        // Customer leaving review
-    //     revieweeUserId: workerUserId,          // Worker being reviewed
-    //     reviewerRole: 'customer',
-    //     revieweeRole: 'worker',
-    //     rating: rating,                        // 1-5 stars
-    //     feedbackText: feedbackText,           // Optional text feedback
-    //     createdAt: timestamp,
-    //     modifiedAt: timestamp,
-    //     status: 'active',
-    //     helpful: 0,                           // For future voting system
-    //     reported: false
-    // });
-    // 
-    // // 2. Update worker's aggregate rating stats
-    // const workerStatsRef = db.collection('user_stats').doc(workerUserId);
-    // const workerStatsDoc = await workerStatsRef.get();
-    // 
-    // if (workerStatsDoc.exists) {
-    //     const currentStats = workerStatsDoc.data();
-    //     const currentRating = currentStats.averageRating || 0;
-    //     const currentCount = currentStats.reviewCount || 0;
-    //     
-    //     // Calculate new average rating
-    //     const newTotalRating = (currentRating * currentCount) + rating;
-    //     const newCount = currentCount + 1;
-    //     const newAverageRating = newTotalRating / newCount;
-    //     
-    //     batch.update(workerStatsRef, {
-    //         averageRating: newAverageRating,
-    //         reviewCount: newCount,
-    //         lastReviewAt: timestamp
-    //     });
-    // } else {
-    //     // First review for this worker
-    //     batch.set(workerStatsRef, {
-    //         averageRating: rating,
-    //         reviewCount: 1,
-    //         lastReviewAt: timestamp
-    //     }, { merge: true });
-    // }
-    // 
-    // // 3. Update job document with completion feedback flag
-    // const jobRef = db.collection('jobs').doc(jobId);
-    // batch.update(jobRef, {
-    //     customerFeedbackSubmitted: true,
-    //     customerFeedbackAt: timestamp,
-    //     customerRating: rating
-    // });
-    // 
-    // // 4. Create notification for worker
+    console.log('📝 Submitting job completion feedback:', { jobId, workerUserId, customerUserId, rating });
+    
+    const db = firebase.firestore();
+    const batch = db.batch();
+    const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    
+    // 1. Create review record in reviews collection
+    const reviewRef = db.collection('reviews').doc();
+    batch.set(reviewRef, {
+        reviewId: reviewRef.id,
+        jobId: jobId,
+        reviewerUserId: customerUserId,        // Customer leaving review
+        revieweeUserId: workerUserId,          // Worker being reviewed
+        reviewerRole: 'customer',
+        revieweeRole: 'worker',
+        rating: rating,                        // 1-5 stars
+        feedbackText: feedbackText,            // Text feedback
+        createdAt: timestamp,
+        modifiedAt: timestamp,
+        status: 'active',
+        helpful: 0,                            // For future voting system
+        reported: false
+    });
+    
+    console.log('✅ Review document prepared:', reviewRef.id);
+    
+    // 2. Update worker's aggregate rating in users collection
+    const workerRef = db.collection('users').doc(workerUserId);
+    const workerDoc = await workerRef.get();
+    
+    if (workerDoc.exists) {
+        const workerData = workerDoc.data();
+        const currentRating = workerData.averageRating || 0;
+        const currentCount = workerData.totalReviews || 0;
+        
+        // Calculate new average rating
+        const newTotalRating = (currentRating * currentCount) + rating;
+        const newCount = currentCount + 1;
+        const newAverageRating = parseFloat((newTotalRating / newCount).toFixed(2));
+        
+        console.log('📊 Updating worker rating:', { 
+            current: currentRating, 
+            count: currentCount, 
+            new: newAverageRating, 
+            newCount 
+        });
+        
+        batch.set(workerRef, {
+            averageRating: newAverageRating,
+            totalReviews: newCount,
+            lastReviewAt: timestamp
+        }, { merge: true });
+    } else {
+        // First review for this worker
+        console.log('⭐ First review for worker:', workerUserId);
+        batch.set(workerRef, {
+            averageRating: rating,
+            totalReviews: 1,
+            lastReviewAt: timestamp
+        }, { merge: true });
+    }
+    
+    // 3. Update job document with review data
+    const jobRef = db.collection('jobs').doc(jobId);
+    batch.set(jobRef, {
+        customerFeedbackSubmitted: true,
+        customerFeedbackAt: timestamp,
+        customerRating: rating,
+        customerFeedback: feedbackText
+    }, { merge: true });
+    
+    console.log('✅ Job review metadata prepared');
+    
+    // 4. Create notification for worker (skip for now - notifications not implemented)
     // const notificationRef = db.collection('notifications').doc();
     // batch.set(notificationRef, {
     //     recipientId: workerUserId,
@@ -4552,32 +4573,18 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
     //     createdAt: timestamp,
     //     read: false
     // });
-    // 
-    // // Commit all operations atomically
-    // await batch.commit();
-    // 
-    // return {
-    //     success: true,
-    //     reviewId: reviewRef.id,
-    //     newWorkerRating: newAverageRating,
-    //     newWorkerReviewCount: newCount
-    // };
     
-    // Mock implementation for development
-    console.log(`📝 Job completion feedback submitted:`, {
-        jobId,
-        workerUserId,
-        customerUserId,
-        rating,
-        feedbackText,
-        timestamp: new Date().toISOString()
-    });
+    // Commit all operations atomically
+    await batch.commit();
+    console.log('✅ Review batch committed successfully');
     
     return {
         success: true,
-        reviewId: `review_${Date.now()}`,
-        newWorkerRating: 4.5,
-        newWorkerReviewCount: 12
+        reviewId: reviewRef.id,
+        newWorkerRating: workerDoc.exists ? 
+            parseFloat(((workerDoc.data().averageRating || 0) * (workerDoc.data().totalReviews || 0) + rating) / ((workerDoc.data().totalReviews || 0) + 1).toFixed(2)) : 
+            rating,
+        newWorkerReviewCount: workerDoc.exists ? (workerDoc.data().totalReviews || 0) + 1 : 1
     };
 }
 
@@ -5134,14 +5141,24 @@ function generateCompletedCardHTML(job) {
     
     // Generate feedback section
     let feedbackHTML = '';
-    if (job.role === 'customer' && job.feedback) {
-        // Customer perspective: Show feedback left for worker
-        feedbackHTML = `
-            <div class="completed-feedback-section">
-                <div class="completed-feedback-label">Your Feedback</div>
-                <div class="completed-feedback-text">${job.feedback}</div>
-            </div>
-        `;
+    if (job.role === 'customer') {
+        if (job.feedback) {
+            // Customer perspective: Show feedback left for worker
+            feedbackHTML = `
+                <div class="completed-feedback-section">
+                    <div class="completed-feedback-label">Your Feedback</div>
+                    <div class="completed-feedback-text">${job.feedback}</div>
+                </div>
+            `;
+        } else {
+            // Customer perspective: Show instructions to leave feedback (if not yet submitted)
+            feedbackHTML = `
+                <div class="completed-feedback-section customer-instructions">
+                    <div class="completed-feedback-label">LEAVE FEEDBACK</div>
+                    <div class="completed-feedback-instructions">For ${job.hiredWorkerName}</div>
+                </div>
+            `;
+        }
     } else if (job.role === 'worker') {
         if (job.workerFeedback) {
             // Worker perspective: Show feedback left for customer
@@ -5342,7 +5359,8 @@ function initializeCompletedCardHandlers() {
                 console.log('📋 Job data:', jobData);
                 
                 // Check if this is an instruction box (for leaving feedback) or actual feedback text
-                const isInstructionBox = feedbackSection.classList.contains('worker-instructions');
+                const isInstructionBox = feedbackSection.classList.contains('worker-instructions') 
+                                      || feedbackSection.classList.contains('customer-instructions');
                 const hasInstructionText = feedbackSection.querySelector('.completed-feedback-instructions');
                 
                 if (isInstructionBox || hasInstructionText) {
@@ -5984,17 +6002,29 @@ function handleRelistCompletedJob(jobData) {
 }
 
 function handleLeaveFeedback(jobData) {
-    console.log(`💭 LEAVE FEEDBACK for customer: ${jobData.posterName}`);
+    console.log(`💭 LEAVE FEEDBACK:`, jobData);
     hidePreviousOptionsOverlay();
     
-    // Update feedback overlay content
-    document.getElementById('feedbackCustomerName').textContent = `Rate your experience working for ${jobData.posterName}`;
-    document.getElementById('feedbackCustomerNameSpan').textContent = jobData.posterName;
+    // Determine perspective based on role
+    const isCustomer = jobData.role === 'customer';
+    const targetPersonName = isCustomer ? jobData.hiredWorkerName : jobData.posterName;
+    const targetPersonLabel = isCustomer ? 'worker' : 'customer';
+    
+    // Update feedback overlay content based on perspective
+    if (isCustomer) {
+        document.getElementById('feedbackCustomerName').textContent = `Rate your experience with ${targetPersonName}`;
+        document.getElementById('feedbackCustomerNameSpan').textContent = targetPersonName;
+    } else {
+        document.getElementById('feedbackCustomerName').textContent = `Rate your experience working for ${targetPersonName}`;
+        document.getElementById('feedbackCustomerNameSpan').textContent = targetPersonName;
+    }
     
     // Store job data in the overlay for submission
     const feedbackOverlay = document.getElementById('leaveFeedbackOverlay');
     feedbackOverlay.setAttribute('data-job-id', jobData.jobId);
-    feedbackOverlay.setAttribute('data-customer-name', jobData.posterName);
+    feedbackOverlay.setAttribute('data-customer-name', targetPersonName);
+    feedbackOverlay.setAttribute('data-role', jobData.role); // Store role for submission
+    feedbackOverlay.setAttribute('data-target-user-id', isCustomer ? jobData.hiredWorkerId : jobData.posterId);
     
     // Reset feedback form
     resetCustomerFeedbackForm();
@@ -8938,7 +8968,9 @@ function handleCustomerFeedbackTextareaBlur(e) {
 async function submitCustomerFeedback() {
     const overlay = document.getElementById('leaveFeedbackOverlay');
     const jobId = overlay.getAttribute('data-job-id');
-    const customerName = overlay.getAttribute('data-customer-name');
+    const targetName = overlay.getAttribute('data-customer-name');
+    const targetUserId = overlay.getAttribute('data-target-user-id');
+    const role = overlay.getAttribute('data-role'); // 'customer' or 'worker'
     const rating = getCustomerFeedbackRating();
     const feedbackText = document.getElementById('customerFeedback').value.trim();
     
@@ -8952,47 +8984,99 @@ async function submitCustomerFeedback() {
         return;
     }
     
-    console.log('💭 Submitting customer feedback:', {
+    console.log('💭 Submitting feedback:', {
         jobId,
-        customerName,
+        targetName,
+        targetUserId,
+        role,
         rating,
         feedbackText
     });
     
     try {
-        // Firebase Implementation:
-        // const db = firebase.firestore();
-        // const currentUserId = firebase.auth().currentUser.uid;
-        // 
-        // await db.collection('feedback').add({
-        //     jobId: jobId,
-        //     fromUserId: currentUserId,
-        //     toUserId: customerUserId,
-        //     rating: rating,
-        //     feedbackText: feedbackText,
-        //     feedbackType: 'worker_to_customer',
-        //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        //     isPublic: true
-        // });
+        showLoadingOverlay('Submitting feedback...');
         
-        // Mock submission delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Get current user ID
+        const currentUserId = firebase.auth().currentUser.uid;
         
-        // Update mock data to reflect the new feedback
-        await updateCompletedJobWorkerFeedback(jobId, feedbackText, rating);
+        if (role === 'customer') {
+            // Customer leaving feedback for worker
+            // REUSE the existing submitJobCompletionFeedback function!
+            await submitJobCompletionFeedback(
+                jobId,
+                targetUserId, // worker ID
+                currentUserId, // customer ID
+                rating,
+                feedbackText
+            );
+        } else {
+            // Worker leaving feedback for customer
+            const db = firebase.firestore();
+            const batch = db.batch();
+            const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+            
+            // Create review document
+            const reviewRef = db.collection('reviews').doc();
+            batch.set(reviewRef, {
+                reviewId: reviewRef.id,
+                jobId: jobId,
+                reviewerUserId: currentUserId,     // Worker leaving review
+                revieweeUserId: targetUserId,      // Customer being reviewed
+                reviewerRole: 'worker',
+                revieweeRole: 'customer',
+                rating: rating,
+                feedbackText: feedbackText,
+                createdAt: timestamp,
+                modifiedAt: timestamp,
+                status: 'active',
+                helpful: 0,
+                reported: false
+            });
+            
+            // Update job document with worker feedback
+            const jobRef = db.collection('jobs').doc(jobId);
+            batch.set(jobRef, {
+                workerFeedbackSubmitted: true,
+                workerFeedbackAt: timestamp,
+                workerRating: rating,
+                workerFeedback: feedbackText
+            }, { merge: true });
+            
+            await batch.commit();
+            console.log('✅ Worker feedback and review submitted successfully');
+            
+            // OPTIONAL: Update customer's rating stats (non-critical, don't fail if it errors)
+            try {
+                const customerRef = db.collection('users').doc(targetUserId);
+                await customerRef.set({
+                    averageRating: rating,
+                    totalReviews: 1,
+                    lastReviewAt: timestamp
+                }, { merge: true });
+                console.log('✅ Customer rating stats updated');
+            } catch (statsError) {
+                console.warn('⚠️ Could not update customer stats (non-critical):', statsError.message);
+            }
+        }
         
+        hideLoadingOverlay();
         hideCustomerFeedbackOverlay();
-        showFeedbackSubmittedSuccess(customerName);
+        showFeedbackSubmittedSuccess(targetName);
         
-        // Reload worker completed content to show updated feedback
-        await loadWorkerCompletedContent();
+        // Reload completed content to show updated feedback
+        if (role === 'customer') {
+            await loadPreviousContent(); // Customer view
+        } else {
+            await loadWorkerCompletedContent(); // Worker view
+        }
         
-        // Also update tab counts in case anything changed
+        // Update tab counts
         await updateTabCounts();
         
     } catch (error) {
-        console.error('❌ Error submitting customer feedback:', error);
-        showErrorNotification('Failed to submit feedback. Please try again.');
+        hideLoadingOverlay();
+        console.error('❌ Error submitting feedback:', error);
+        showErrorNotification('Failed to submit feedback: ' + error.message);
     }
 }
 
