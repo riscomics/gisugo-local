@@ -192,10 +192,11 @@ service cloud.firestore {
       // and rely on client-side filtering by jobId
       allow read: if isAuthenticated();
       
-      // Authenticated users can create applications
+      // Authenticated users can create applications (but not to their own jobs)
       allow create: if isAuthenticated()
         && isValidApplication()
-        && request.resource.data.applicantId == request.auth.uid;
+        && request.resource.data.applicantId == request.auth.uid
+        && get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.posterId != request.auth.uid;
       
       // Job poster can update application status (hired/rejected)
       // Applicant can update their own application (withdraw, etc.)

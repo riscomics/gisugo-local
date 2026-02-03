@@ -252,13 +252,18 @@ async function loadJobData() {
   // Load customer rating from Firestore
   await loadCustomerRating(job.posterId);
   
-  // Check job status and hide Apply button if completed
+  // Check job status and poster, hide Apply button if needed
   const applyBtn = document.getElementById('jobApplyBtn');
+  const currentUser = firebase.auth ? firebase.auth().currentUser : null;
+  
   if (job.status === 'completed' && applyBtn) {
     console.log('🏁 Job is completed - hiding Apply button');
     applyBtn.style.display = 'none';
+  } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
+    console.log('👤 User is viewing their own job - hiding Apply button');
+    applyBtn.style.display = 'none';
   } else {
-    // Check if user has already applied to this job (only for active jobs)
+    // Check if user has already applied to this job (only for active jobs by other posters)
     await checkIfUserAlreadyApplied(jobNumber);
   }
   
@@ -712,6 +717,14 @@ function closeApplyModal() {
 function handleJobApplication() {
   const messageTextarea = document.getElementById('applyMessage');
   const counterOfferInput = document.getElementById('counterOfferAmount');
+  
+  // Check if user is trying to apply to their own job
+  const currentUser = firebase.auth ? firebase.auth().currentUser : null;
+  if (currentUser && window.currentJobData && window.currentJobData.posterId === currentUser.uid) {
+    console.error('🚫 User attempted to apply to their own job');
+    alert('You cannot apply to your own job posting!');
+    return;
+  }
   
   // Get form values
   const message = messageTextarea ? messageTextarea.value.trim() : '';
