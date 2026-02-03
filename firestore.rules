@@ -17,9 +17,11 @@ service cloud.firestore {
     }
     
     // Check if user is admin
+    // ADMIN FEATURE DISABLED FOR CLEAN TESTING
+    // To enable: Uncomment the email below when admin dashboard is ready
     function isAdmin() {
       return isAuthenticated() && request.auth.token.email in [
-        'riscomics@gmail.com'
+        // 'riscomics@gmail.com'  // Commented out for testing as regular user
       ];
     }
     
@@ -90,6 +92,34 @@ service cloud.firestore {
     function isUpdatingStatistics() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
       return affectedKeys.hasOnly(['statistics']);
+    }
+    
+    // Check if only updating review-related fields (for review submission)
+    function isUpdatingReviewStats() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      return affectedKeys.hasOnly(['averageRating', 'totalReviews', 'lastReviewAt']);
+    }
+    
+    // Check if customer is updating their job with review data
+    function isCustomerSubmittingReview() {
+      return resource.data.posterId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'customerFeedbackSubmitted', 
+          'customerFeedbackAt', 
+          'customerRating',
+          'customerFeedback'
+        ]);
+    }
+    
+    // Check if worker is updating their job with review data
+    function isWorkerSubmittingReview() {
+      return resource.data.hiredWorkerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'workerFeedbackSubmitted',
+          'workerFeedbackAt',
+          'workerRating',
+          'workerFeedback'
+        ]);
     }
     
     // ═══════════════════════════════════════════════════════════════

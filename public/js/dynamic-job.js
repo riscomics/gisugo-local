@@ -249,8 +249,18 @@ async function loadJobData() {
   // Populate the page with job data
   populateJobPage(job);
   
-  // Check if user has already applied to this job
-  await checkIfUserAlreadyApplied(jobNumber);
+  // Load customer rating from Firestore
+  await loadCustomerRating(job.posterId);
+  
+  // Check job status and hide Apply button if completed
+  const applyBtn = document.getElementById('jobApplyBtn');
+  if (job.status === 'completed' && applyBtn) {
+    console.log('🏁 Job is completed - hiding Apply button');
+    applyBtn.style.display = 'none';
+  } else {
+    // Check if user has already applied to this job (only for active jobs)
+    await checkIfUserAlreadyApplied(jobNumber);
+  }
   
   // Hide loading modal after page is populated
   if (loadingOverlay) {
@@ -424,6 +434,100 @@ function populateJobPage(jobData) {
       customerAvatarEl.style.display = 'none';
       customerAvatarEl.parentElement.innerHTML = '<span style="font-size: 2.5rem;">👤</span>';
     }
+  }
+}
+
+/**
+ * Render star rating visually
+ * @param {HTMLElement} container - Container element with .star children
+ * @param {number} rating - Rating value (0-5)
+ */
+function renderStars(container, rating) {
+  if (!container) return;
+  
+  const stars = container.querySelectorAll('.star');
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  
+  stars.forEach((star, index) => {
+    star.classList.remove('filled', 'half-filled');
+    
+    if (index < fullStars) {
+      star.classList.add('filled');
+      star.textContent = '★';
+    } else if (index === fullStars && hasHalfStar) {
+      star.classList.add('half-filled');
+      star.textContent = '★';
+    } else {
+      star.textContent = '☆';
+    }
+  });
+}
+
+/**
+ * Load and display customer (poster) rating from Firestore
+ * @param {string} posterId - The user ID of the job poster
+ */
+async function loadCustomerRating(posterId) {
+  if (!posterId) {
+    console.warn('⚠️ No posterId provided for customer rating');
+    return;
+  }
+  
+  try {
+    console.log(`⭐ Fetching customer rating for posterId: ${posterId}`);
+    
+    // Get customer rating element
+    const ratingElement = document.querySelector('.customer-rating');
+    const ratingCountElement = document.querySelector('.customer-rating .rating-count');
+    const ratingStarsContainer = document.querySelector('.customer-rating .rating-stars');
+    
+    if (!ratingElement) {
+      console.warn('⚠️ Customer rating element not found');
+      return;
+    }
+    
+    // Fetch poster's profile from Firestore
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+      const db = firebase.firestore();
+      const userDoc = await db.collection('users').doc(posterId).get();
+      
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const averageRating = userData.averageRating || 0;
+        const totalReviews = userData.totalReviews || 0;
+        
+        console.log(`⭐ Customer rating loaded: ${averageRating} stars (${totalReviews} reviews)`);
+        
+        // Update rating count
+        if (ratingCountElement) {
+          ratingCountElement.textContent = totalReviews;
+        }
+        
+        // Update data attributes
+        ratingElement.setAttribute('data-rating', averageRating);
+        ratingElement.setAttribute('data-count', totalReviews);
+        
+        // Render stars visually
+        if (ratingStarsContainer && typeof renderStars === 'function') {
+          renderStars(ratingStarsContainer, averageRating);
+        }
+        
+        console.log(`✅ Customer rating displayed: ${averageRating}/5 (${totalReviews} reviews)`);
+      } else {
+        console.warn(`⚠️ User profile not found for posterId: ${posterId}`);
+        // Set to 0 reviews if profile doesn't exist
+        if (ratingCountElement) ratingCountElement.textContent = '0';
+        if (ratingElement) {
+          ratingElement.setAttribute('data-rating', '0');
+          ratingElement.setAttribute('data-count', '0');
+        }
+      }
+    } else {
+      console.warn('⚠️ Firebase not available for customer rating');
+    }
+  } catch (error) {
+    console.error('❌ Error loading customer rating:', error);
   }
 }
 

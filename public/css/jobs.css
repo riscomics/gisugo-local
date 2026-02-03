@@ -2800,6 +2800,128 @@ body:has(.jobs-header) {
   margin-left: 1rem;
 }
 
+/* Celebratory Animation for Feedback Success */
+@keyframes celebrateBounce {
+  0% {
+    transform: scale(0.3) rotate(-10deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  70% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes celebrateIcon {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.5) rotate(180deg);
+  }
+  80% {
+    transform: scale(0.9) rotate(340deg);
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+@keyframes celebratePulse {
+  0%, 100% {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 0 rgba(46, 204, 113, 0.7);
+  }
+  50% {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 0 30px rgba(46, 204, 113, 0);
+  }
+}
+
+@keyframes confettiFall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(400px) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+.success-modal.celebrate-bounce {
+  animation: celebrateBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+             celebratePulse 1.5s ease-in-out;
+  position: relative;
+  overflow: visible;
+}
+
+/* Confetti particles */
+.success-modal.celebrate-bounce::before,
+.success-modal.celebrate-bounce::after {
+  content: '✨ ⭐ 🎉 ✨ ⭐ 🎉 ✨ ⭐';
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  letter-spacing: 2rem;
+  animation: confettiFall 2s ease-out forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.success-modal.celebrate-bounce::after {
+  animation-delay: 0.3s;
+  left: 30%;
+}
+
+.success-icon.celebrate-icon {
+  display: inline-block;
+  animation: celebrateIcon 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+             sparkle 1.5s ease-in-out 0.8s;
+  position: relative;
+}
+
+/* Sparkles around the icon */
+.success-icon.celebrate-icon::before,
+.success-icon.celebrate-icon::after {
+  content: '✨';
+  position: absolute;
+  font-size: 1.5rem;
+  animation: sparkle 0.8s ease-out;
+  pointer-events: none;
+}
+
+.success-icon.celebrate-icon::before {
+  top: -20px;
+  left: -30px;
+  animation-delay: 0.2s;
+}
+
+.success-icon.celebrate-icon::after {
+  top: -20px;
+  right: -30px;
+  animation-delay: 0.4s;
+}
+
 .success-subtitle {
   color: #ecf0f1;
   font-size: 1rem;

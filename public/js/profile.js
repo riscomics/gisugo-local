@@ -2709,20 +2709,25 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
   const starsContainer = document.getElementById('profileStars');
   const reviewsCountElement = document.getElementById('reviewsCount');
   
-  if (starsContainer && (userProfile.rating !== undefined)) {
-    const ratingValue = typeof userProfile.rating === 'number' ? userProfile.rating : userProfile.rating?.average;
-    if (ratingValue !== undefined) {
-      starsContainer.setAttribute('data-rating', ratingValue);
-      renderStars(starsContainer, ratingValue);
-    }
+  // Get rating value from Firebase fields (averageRating) or fallback to old format
+  const ratingValue = userProfile.averageRating !== undefined 
+    ? userProfile.averageRating 
+    : (typeof userProfile.rating === 'number' ? userProfile.rating : userProfile.rating?.average);
+  
+  // Get review count from Firebase fields (totalReviews) or fallback to old format
+  const reviewCount = userProfile.totalReviews !== undefined
+    ? userProfile.totalReviews
+    : (userProfile.reviewCount || userProfile.rating?.totalReviews || 0);
+  
+  if (starsContainer && ratingValue !== undefined) {
+    starsContainer.setAttribute('data-rating', ratingValue);
+    renderStars(starsContainer, ratingValue);
+    starsContainer.setAttribute('data-count', reviewCount);
+    console.log(`⭐ Profile rating updated: ${ratingValue} stars with ${reviewCount} reviews`);
   }
   
-  if (reviewsCountElement && (userProfile.reviewCount !== undefined || userProfile.rating?.totalReviews !== undefined)) {
-    const reviewCount = userProfile.reviewCount || userProfile.rating?.totalReviews;
+  if (reviewsCountElement) {
     reviewsCountElement.textContent = reviewCount;
-    if (starsContainer) {
-      starsContainer.setAttribute('data-count', reviewCount);
-    }
   }
   
   // Update social media links (make icons clickable if URLs provided)
@@ -3156,20 +3161,25 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
   const starsContainer = document.getElementById('profileStars');
   const reviewsCountElement = document.getElementById('reviewsCount');
   
-  if (starsContainer && (userProfile.rating !== undefined)) {
-    const ratingValue = typeof userProfile.rating === 'number' ? userProfile.rating : userProfile.rating?.average;
-    if (ratingValue !== undefined) {
-      starsContainer.setAttribute('data-rating', ratingValue);
-      renderStars(starsContainer, ratingValue);
-    }
+  // Get rating value from Firebase fields (averageRating) or fallback to old format
+  const ratingValue = userProfile.averageRating !== undefined 
+    ? userProfile.averageRating 
+    : (typeof userProfile.rating === 'number' ? userProfile.rating : userProfile.rating?.average);
+  
+  // Get review count from Firebase fields (totalReviews) or fallback to old format
+  const reviewCount = userProfile.totalReviews !== undefined
+    ? userProfile.totalReviews
+    : (userProfile.reviewCount || userProfile.rating?.totalReviews || 0);
+  
+  if (starsContainer && ratingValue !== undefined) {
+    starsContainer.setAttribute('data-rating', ratingValue);
+    renderStars(starsContainer, ratingValue);
+    starsContainer.setAttribute('data-count', reviewCount);
+    console.log(`⭐ Profile rating updated: ${ratingValue} stars with ${reviewCount} reviews`);
   }
   
-  if (reviewsCountElement && (userProfile.reviewCount !== undefined || userProfile.rating?.totalReviews !== undefined)) {
-    const reviewCount = userProfile.reviewCount || userProfile.rating?.totalReviews;
+  if (reviewsCountElement) {
     reviewsCountElement.textContent = reviewCount;
-    if (starsContainer) {
-      starsContainer.setAttribute('data-count', reviewCount);
-    }
   }
   
   // Update social media links (make icons clickable if URLs provided)
@@ -3708,6 +3718,104 @@ function getRandomUserThumbnail() {
 const sampleCustomerReviews = [];
 const sampleWorkerReviews = [];
 
+// ═══════════════════════════════════════════════════════════════
+// FIREBASE REVIEWS INTEGRATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get user ID from profile (currently viewing their own profile)
+ * @returns {string|null} User ID
+ */
+function getUserIdFromProfile() {
+  return getCurrentUserId();
+}
+
+/**
+ * Fetch reviews for a user from Firestore
+ * @param {string} userId - The user ID to fetch reviews for
+ * @param {string} role - 'customer' or 'worker' - the role being reviewed
+ * @returns {Promise<Array>} Array of formatted review objects
+ */
+async function fetchUserReviews(userId, role) {
+  try {
+    console.log(`🔍 Fetching ${role} reviews for user:`, userId);
+    
+    const db = firebase.firestore();
+    const reviewsRef = db.collection('reviews');
+    
+    // Query reviews where this user is the reviewee with the specified role
+    const snapshot = await reviewsRef
+      .where('revieweeUserId', '==', userId)
+      .where('revieweeRole', '==', role)
+      .orderBy('createdAt', 'desc')
+      .get();
+    
+    console.log(`📊 Found ${snapshot.size} ${role} reviews`);
+    
+    if (snapshot.empty) {
+      return [];
+    }
+    
+    // Format reviews for display
+    const reviews = [];
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      
+      // Fetch reviewer profile for thumbnail
+      let reviewerThumbnail = 'public/users/default-user.jpg';
+      try {
+        const reviewerDoc = await db.collection('users').doc(data.reviewerUserId).get();
+        if (reviewerDoc.exists) {
+          const reviewerData = reviewerDoc.data();
+          reviewerThumbnail = reviewerData.profilePhoto || reviewerData.profileImage || reviewerThumbnail;
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not fetch reviewer thumbnail:', err);
+      }
+      
+      // Fetch job details for title
+      let jobTitle = 'Completed Gig';
+      let jobPostUrl = null;
+      try {
+        const jobDoc = await db.collection('jobs').doc(data.jobId).get();
+        if (jobDoc.exists) {
+          const jobData = jobDoc.data();
+          jobTitle = jobData.title || jobTitle;
+          jobPostUrl = jobData.jobPageUrl || null;
+        }
+      } catch (err) {
+        console.warn('⚠️ Could not fetch job details:', err);
+      }
+      
+      // Format date
+      const feedbackDate = data.createdAt 
+        ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          })
+        : 'Recent';
+      
+      reviews.push({
+        jobTitle: jobTitle,
+        feedbackDate: feedbackDate,
+        rating: data.rating || 0,
+        userThumbnail: reviewerThumbnail,
+        feedbackText: data.feedbackText || 'No feedback provided.',
+        jobPostUrl: jobPostUrl,
+        reviewId: doc.id
+      });
+    }
+    
+    console.log(`✅ Formatted ${reviews.length} ${role} reviews`);
+    return reviews;
+    
+  } catch (error) {
+    console.error(`❌ Error fetching ${role} reviews:`, error);
+    return [];
+  }
+}
+
 // Create a review card element
 function createReviewCard(reviewData) {
   const reviewCard = document.createElement('div');
@@ -3774,12 +3882,30 @@ function generateStarsHTML(rating) {
 }
 
 // Populate customer reviews (backend ready)
-function populateCustomerReviews(customerReviews = sampleCustomerReviews, userName = null) {
+async function populateCustomerReviews(customerReviews = null, userName = null) {
   const container = document.getElementById('reviewsCustomerContainer');
   if (!container) return;
   
   // Get user name from profile or default
   const profileName = userName || document.querySelector('.full-name')?.textContent || 'this user';
+  
+  // Show loading state
+  container.innerHTML = `
+    <div style="text-align: center; color: #bfc6d0; padding: 2rem;">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+      <p>Loading reviews...</p>
+    </div>
+  `;
+  
+  // Fetch reviews from Firebase if not provided
+  if (customerReviews === null) {
+    const userId = getUserIdFromProfile();
+    if (userId) {
+      customerReviews = await fetchUserReviews(userId, 'customer');
+    } else {
+      customerReviews = sampleCustomerReviews;
+    }
+  }
   
   // Clear existing content
   container.innerHTML = '';
@@ -3798,15 +3924,35 @@ function populateCustomerReviews(customerReviews = sampleCustomerReviews, userNa
     const reviewCard = createReviewCard(review);
     container.appendChild(reviewCard);
   });
+  
+  console.log(`✅ Displayed ${customerReviews.length} customer reviews`);
 }
 
 // Populate worker reviews (backend ready)
-function populateWorkerReviews(workerReviews = sampleWorkerReviews, userName = null) {
+async function populateWorkerReviews(workerReviews = null, userName = null) {
   const container = document.getElementById('reviewsWorkerContainer');
   if (!container) return;
   
   // Get user name from profile or default
   const profileName = userName || document.querySelector('.full-name')?.textContent || 'this user';
+  
+  // Show loading state
+  container.innerHTML = `
+    <div style="text-align: center; color: #bfc6d0; padding: 2rem;">
+      <div style="font-size: 2rem; margin-bottom: 1rem;">⏳</div>
+      <p>Loading reviews...</p>
+    </div>
+  `;
+  
+  // Fetch reviews from Firebase if not provided
+  if (workerReviews === null) {
+    const userId = getUserIdFromProfile();
+    if (userId) {
+      workerReviews = await fetchUserReviews(userId, 'worker');
+    } else {
+      workerReviews = sampleWorkerReviews;
+    }
+  }
   
   // Clear existing content
   container.innerHTML = '';
@@ -3825,6 +3971,8 @@ function populateWorkerReviews(workerReviews = sampleWorkerReviews, userName = n
     const reviewCard = createReviewCard(review);
     container.appendChild(reviewCard);
   });
+  
+  console.log(`✅ Displayed ${workerReviews.length} worker reviews`);
 }
 
 // ═══════════════════════════════════════════════════════════════

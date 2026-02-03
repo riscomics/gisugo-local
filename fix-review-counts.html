@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Review Counts - Admin Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a202c;
+      color: #fff;
+    }
+    
+    .container {
+      background: #2d3748;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    
+    h1 {
+      color: #48bb78;
+      margin-top: 0;
+    }
+    
+    .info {
+      background: rgba(66, 153, 225, 0.1);
+      border-left: 4px solid #4299e1;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    
+    .warning {
+      background: rgba(237, 137, 54, 0.1);
+      border-left: 4px solid #ed8936;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    
+    button {
+      background: #48bb78;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px 0;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #38a169;
+    }
+    
+    button:disabled {
+      background: #4a5568;
+      cursor: not-allowed;
+    }
+    
+    #output {
+      background: #1a202c;
+      border: 1px solid #4a5568;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .log {
+      margin: 5px 0;
+    }
+    
+    .log.success {
+      color: #48bb78;
+    }
+    
+    .log.error {
+      color: #f56565;
+    }
+    
+    .log.info {
+      color: #4299e1;
+    }
+    
+    .log.warning {
+      color: #ed8936;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Fix Review Counts</h1>
+    
+    <div class="info">
+      <strong>What this does:</strong>
+      <ul>
+        <li>Fetches all reviews from Firestore</li>
+        <li>Calculates correct averageRating and totalReviews for each user</li>
+        <li>Updates user profiles with accurate counts</li>
+      </ul>
+    </div>
+    
+    <div class="warning">
+      <strong>⚠️ Important:</strong>
+      <ul>
+        <li>This will overwrite existing averageRating and totalReviews</li>
+        <li>Make sure you're logged in as admin</li>
+        <li>Click the button only once and wait for completion</li>
+      </ul>
+    </div>
+    
+    <button id="fixButton" onclick="fixReviewCounts()">Fix Review Counts</button>
+    
+    <div id="output"></div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Firebase Config -->
+  <script src="public/js/firebase-config.js"></script>
+  
+  <script>
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const logEl = document.createElement('div');
+      logEl.className = `log ${type}`;
+      logEl.textContent = message;
+      output.appendChild(logEl);
+      output.scrollTop = output.scrollHeight;
+      console.log(message);
+    }
+
+    async function fixReviewCounts() {
+      const button = document.getElementById('fixButton');
+      button.disabled = true;
+      button.textContent = 'Processing...';
+      
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+      
+      try {
+        log('🔧 Starting review count fix...', 'info');
+        log('', 'info');
+        
+        // Check Firebase
+        if (typeof firebase === 'undefined' || !firebase.firestore) {
+          log('❌ Firebase not initialized!', 'error');
+          return;
+        }
+        
+        const db = firebase.firestore();
+        
+        // 1. Fetch all reviews
+        log('📊 Fetching all reviews from Firestore...', 'info');
+        const reviewsSnapshot = await db.collection('reviews').get();
+        log(`✅ Found ${reviewsSnapshot.size} reviews total`, 'success');
+        log('', 'info');
+        
+        // 2. Group reviews by revieweeUserId
+        const userReviews = {};
+        
+        reviewsSnapshot.forEach(doc => {
+          const review = doc.data();
+          const userId = review.revieweeUserId;
+          
+          if (!userId) {
+            log(`⚠️ Skipping review ${doc.id} - no revieweeUserId`, 'warning');
+            return;
+          }
+          
+          if (!userReviews[userId]) {
+            userReviews[userId] = [];
+          }
+          
+          userReviews[userId].push({
+            rating: review.rating || 0,
+            createdAt: review.createdAt
+          });
+        });
+        
+        log(`📊 Found reviews for ${Object.keys(userReviews).length} unique users`, 'info');
+        log('', 'info');
+        
+        // 3. Calculate and update each user
+        let updatedCount = 0;
+        
+        for (const [userId, reviews] of Object.entries(userReviews)) {
+          const totalReviews = reviews.length;
+          const sumRatings = reviews.reduce((sum, r) => sum + r.rating, 0);
+          const averageRating = sumRatings / totalReviews;
+          
+          // Find most recent review
+          const sortedReviews = reviews.sort((a, b) => {
+            if (!a.createdAt || !b.createdAt) return 0;
+            return b.createdAt.seconds - a.createdAt.seconds;
+          });
+          const lastReviewAt = sortedReviews[0]?.createdAt || firebase.firestore.FieldValue.serverTimestamp();
+          
+          log(`👤 User ${userId}:`, 'info');
+          log(`   📊 Total Reviews: ${totalReviews}`, 'info');
+          log(`   ⭐ Average Rating: ${averageRating.toFixed(2)}`, 'info');
+          
+          try {
+            await db.collection('users').doc(userId).set({
+              averageRating: averageRating,
+              totalReviews: totalReviews,
+              lastReviewAt: lastReviewAt
+            }, { merge: true });
+            
+            log(`   ✅ Updated successfully`, 'success');
+            updatedCount++;
+          } catch (error) {
+            log(`   ❌ Update failed: ${error.message}`, 'error');
+          }
+          
+          log('', 'info');
+        }
+        
+        log('═══════════════════════════════════════', 'info');
+        log(`✅ Completed! Updated ${updatedCount} users`, 'success');
+        log('', 'info');
+        log('🎉 All review counts have been fixed!', 'success');
+        log('💡 Refresh user profiles to see updated counts', 'info');
+        
+        button.textContent = '✅ Done!';
+        
+      } catch (error) {
+        log(`❌ Error: ${error.message}`, 'error');
+        console.error(error);
+        button.disabled = false;
+        button.textContent = 'Fix Review Counts';
+      }
+    }
+  </script>
+</body>
+</html>

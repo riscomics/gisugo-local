@@ -9045,14 +9045,36 @@ async function submitCustomerFeedback() {
             await batch.commit();
             console.log('✅ Worker feedback and review submitted successfully');
             
-            // OPTIONAL: Update customer's rating stats (non-critical, don't fail if it errors)
+            // Update customer's rating stats (calculate proper average)
             try {
                 const customerRef = db.collection('users').doc(targetUserId);
+                const customerDoc = await customerRef.get();
+                
+                let newAverageRating, newTotalReviews;
+                
+                if (customerDoc.exists) {
+                    const customerData = customerDoc.data();
+                    const currentAvg = customerData.averageRating || 0;
+                    const currentCount = customerData.totalReviews || 0;
+                    
+                    // Calculate new average: (currentAvg * currentCount + newRating) / (currentCount + 1)
+                    newAverageRating = (currentAvg * currentCount + rating) / (currentCount + 1);
+                    newTotalReviews = currentCount + 1;
+                    
+                    console.log(`📊 Updating customer rating: ${currentAvg.toFixed(1)} (${currentCount}) → ${newAverageRating.toFixed(1)} (${newTotalReviews})`);
+                } else {
+                    // First review for this customer
+                    newAverageRating = rating;
+                    newTotalReviews = 1;
+                    console.log(`📊 Customer's first review: ${rating} stars`);
+                }
+                
                 await customerRef.set({
-                    averageRating: rating,
-                    totalReviews: 1,
+                    averageRating: newAverageRating,
+                    totalReviews: newTotalReviews,
                     lastReviewAt: timestamp
                 }, { merge: true });
+                
                 console.log('✅ Customer rating stats updated');
             } catch (statsError) {
                 console.warn('⚠️ Could not update customer stats (non-critical):', statsError.message);
@@ -9125,17 +9147,31 @@ function hideCustomerFeedbackOverlay() {
 function showFeedbackSubmittedSuccess(customerName) {
     const overlay = document.getElementById('feedbackSubmittedOverlay');
     const message = document.getElementById('feedbackSubmittedMessage');
+    const modal = overlay.querySelector('.success-modal');
+    const icon = overlay.querySelector('.success-icon');
     
     message.textContent = `Thank you! Your feedback for ${customerName} has been submitted successfully.`;
+    
+    // Reset animation classes
+    modal.classList.remove('celebrate-bounce');
+    icon.classList.remove('celebrate-icon');
     
     const okBtn = document.getElementById('feedbackSubmittedOkBtn');
     const okHandler = function() {
         overlay.classList.remove('show');
+        modal.classList.remove('celebrate-bounce');
+        icon.classList.remove('celebrate-icon');
         okBtn.removeEventListener('click', okHandler);
     };
     okBtn.addEventListener('click', okHandler);
     
     overlay.classList.add('show');
+    
+    // Trigger celebration animation after a brief delay to ensure show class is applied
+    setTimeout(() => {
+        modal.classList.add('celebrate-bounce');
+        icon.classList.add('celebrate-icon');
+    }, 50);
 }
 
 // ========================== DISPUTE HANDLING ==========================
