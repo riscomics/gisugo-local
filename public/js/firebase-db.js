@@ -1901,5 +1901,40 @@ async function sendContractVoidedNotification(workerId, workerName, jobId, jobTi
 
 window.sendContractVoidedNotification = sendContractVoidedNotification;
 
+/**
+ * Send notification to customer when worker rejects offer
+ * Integrates with existing ALERTS tab in Messages page
+ */
+async function sendOfferRejectedNotification(customerId, customerName, jobId, jobTitle, workerName) {
+  console.log('📬 sendOfferRejectedNotification() called');
+  console.log('📋 Customer:', customerName, '| Worker:', workerName, '| Job:', jobTitle);
+  
+  try {
+    // Use existing createNotification() function
+    const result = await createNotification(customerId, {
+      type: 'offer_rejected',
+      jobId: jobId,
+      jobTitle: jobTitle,
+      message: `${workerName} has rejected your job offer for "${jobTitle}". You can now consider other applicants.`,
+      actionRequired: false,
+      // Additional data for future use
+      workerName: workerName
+    });
+    
+    if (result.success) {
+      console.log('✅ Offer rejected notification sent to customer ALERTS tab');
+      return { success: true };
+    } else {
+      console.error('❌ Failed to send notification:', result.message);
+      return { success: false, message: result.message };
+    }
+  } catch (error) {
+    console.error('❌ Error sending offer rejected notification:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+window.sendOfferRejectedNotification = sendOfferRejectedNotification;
+
 console.log('📦 Firebase database module loaded');
 

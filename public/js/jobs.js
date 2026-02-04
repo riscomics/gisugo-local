@@ -3488,6 +3488,36 @@ async function processRejectGigConfirmation(jobData) {
         // Remove job from offered data and restore applications for customer
         await rejectGigOffer(jobData.jobId);
         
+        // ═══════════════════════════════════════════════════════════════
+        // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
+        // ═══════════════════════════════════════════════════════════════
+        try {
+            // TODO: Uncomment this block when you're ready to enable offer rejection notifications
+            /*
+            if (typeof sendOfferRejectedNotification === 'function') {
+                const currentUser = firebase.auth ? firebase.auth().currentUser : null;
+                const workerName = currentUser?.displayName || 'A worker';
+                
+                const notifResult = await sendOfferRejectedNotification(
+                    jobData.posterId,
+                    jobData.posterName,
+                    jobData.jobId,
+                    jobData.title,
+                    workerName
+                );
+                
+                if (notifResult.success) {
+                    console.log('✅ Customer will see notification in Messages > ALERTS tab');
+                }
+            }
+            */
+            console.log('📬 Offer rejection notifications ready (currently disabled)');
+            console.log('📋 To enable: Uncomment sendOfferRejectedNotification() in jobs.js line 3499');
+        } catch (notifError) {
+            console.error('⚠️ Error sending notification (non-critical):', notifError);
+            // Don't fail reject operation if notification fails
+        }
+        
         // Hide loading
         hideLoadingOverlay();
         
