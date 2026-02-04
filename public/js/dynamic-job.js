@@ -260,8 +260,13 @@ async function loadJobData() {
     console.log('🏁 Job is completed - hiding Apply button');
     applyBtn.style.display = 'none';
   } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
-    console.log('👤 User is viewing their own job - hiding Apply button');
-    applyBtn.style.display = 'none';
+    console.log('👤 User is viewing their own job - showing USER GIG button');
+    applyBtn.disabled = true;
+    applyBtn.style.opacity = '0.5';
+    applyBtn.style.cursor = 'not-allowed';
+    applyBtn.style.backgroundColor = '';
+    applyBtn.querySelector('span').textContent = 'USER GIG';
+    applyBtn.title = 'This is your own gig';
   } else {
     // Check if user has already applied to this job (only for active jobs by other posters)
     await checkIfUserAlreadyApplied(jobNumber);
