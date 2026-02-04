@@ -963,7 +963,8 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   const extra2Label = extra2Parts[0] ? extra2Parts[0].trim() : '';
   const extra2Value = extra2Parts[1] ? extra2Parts[1].trim() : '';
   
-  // Format rate badge text
+  // Format rate badge text and icon
+  const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
   const rateText = cardData.rate || payType;
   
   // TITLE-FIRST LAYOUT: Title spans full width, content below
@@ -992,7 +993,7 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
             <span class="footer-date">📅 ${cardData.date || 'TBD'}</span>
             <span class="footer-time">⏰ ${cardData.time || 'TBD'}</span>
           </div>
-          <div class="payment-badge">${rateText}</div>
+          <div class="payment-badge">${rateIcon} ${rateText}</div>
         </div>
       </div>
     </div>

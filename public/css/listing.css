@@ -1874,7 +1874,7 @@ body::-webkit-scrollbar {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   padding: clamp(12px, 2vw, 16px) clamp(12px, 2vw, 18px);
   background: rgba(255,255,255,0.03);
   border-left: none;
@@ -1890,7 +1890,6 @@ body::-webkit-scrollbar {
   justify-content: space-between;
   align-items: flex-start;
   gap: clamp(10px, 2vw, 16px);
-  flex: 1;
   margin-bottom: clamp(8px, 1.5vw, 12px);
 }
 
@@ -1899,6 +1898,7 @@ body::-webkit-scrollbar {
   flex-direction: column;
   gap: clamp(2px, 0.5vw, 4px);
   flex: 1;
+  margin-top: clamp(-4px, -0.8vw, -2px);
 }
 
 /* ============================
@@ -1914,9 +1914,9 @@ body::-webkit-scrollbar {
 
 .card-datetime {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: clamp(4px, 1vw, 8px);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(2px, 0.4vw, 4px);
   font-size: clamp(9px, 2.8vw, 16px);
   font-weight: 500;
   color: rgba(230,214,174,0.85);
@@ -2090,6 +2090,7 @@ body::-webkit-scrollbar {
   
   .card-content-box {
     padding: 16px 15px;
+    justify-content: center !important; /* Keep extras and date/time centered, not space-between */
   }
   
   .card-title {
@@ -2247,7 +2248,7 @@ body::-webkit-scrollbar {
   .card-thumbnail {
     width: clamp(98px, 23vw, 127px);
     min-width: clamp(98px, 23vw, 127px);
-    height: clamp(98px, 23vw, 127px); /* Match width */
+    /* No fixed height - let it stretch to fill card-body like other viewports */
   }
   
   .card-content-box {
