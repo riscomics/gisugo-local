@@ -2374,6 +2374,24 @@ body::-webkit-scrollbar {
 }
 
 /* ============================
+   RESPONSIVE: ≤375px (iOS AND SMALL PHONES - WRAPPING)
+   ============================ */
+@media (max-width: 375px) {
+  .card-title {
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: 2.5em;
+  }
+}
+
+/* ============================
    RESPONSIVE: 321-340px (SMALL PHONES)
    ============================ */
 @media (max-width: 340px) and (min-width: 321px) {
