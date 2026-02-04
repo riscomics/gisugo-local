@@ -2011,7 +2011,7 @@ body::-webkit-scrollbar {
   display: inline-flex;
   align-items: center;
   gap: clamp(1px, 0.3vw, 3px);
-  padding: clamp(2px, 0.5vw, 5px) clamp(4px, 0.8vw, 8px);
+  padding: clamp(2px, 0.5vw, 5px) clamp(3px, 0.6vw, 6px);
   background: rgba(16,185,129,0.15);
   border: 1px solid rgba(16,185,129,0.3);
   border-radius: clamp(4px, 0.8vw, 7px);
@@ -2111,7 +2111,7 @@ body::-webkit-scrollbar {
   
   .payment-badge {
     font-size: clamp(12px, 2.5vw, 15px); /* Increased */
-    padding: clamp(5px, 1vw, 7px) clamp(9px, 1.7vw, 12px);
+    padding: clamp(5px, 1vw, 7px) clamp(7px, 1.4vw, 10px);
   }
   
   .card-footer {
@@ -2175,7 +2175,7 @@ body::-webkit-scrollbar {
   
   .payment-badge {
     font-size: clamp(11px, 2.6vw, 14px); /* Increased */
-    padding: clamp(4px, 1vw, 6px) clamp(8px, 1.8vw, 11px);
+    padding: clamp(4px, 1vw, 6px) clamp(6px, 1.5vw, 9px);
   }
   
   .card-footer {
@@ -2226,7 +2226,7 @@ body::-webkit-scrollbar {
   
   .payment-badge {
     font-size: clamp(10px, 2.7vw, 13px); /* Increased */
-    padding: clamp(4px, 0.9vw, 5px) clamp(7px, 1.6vw, 10px);
+    padding: clamp(4px, 0.9vw, 5px) clamp(5px, 1.3vw, 8px);
   }
   
   .card-footer {
@@ -2290,7 +2290,7 @@ body::-webkit-scrollbar {
   
   .payment-badge {
     font-size: clamp(9px, 2.8vw, 12px);
-    padding: clamp(3px, 0.8vw, 5px) clamp(6px, 1.4vw, 9px);
+    padding: clamp(3px, 0.8vw, 5px) clamp(5px, 1.1vw, 7px);
   }
   
   .card-footer {
@@ -2350,7 +2350,7 @@ body::-webkit-scrollbar {
   
   .payment-badge {
     font-size: clamp(9px, 2.9vw, 11px);
-    padding: clamp(3px, 0.7vw, 4px) clamp(6px, 1.3vw, 8px);
+    padding: clamp(3px, 0.7vw, 4px) clamp(5px, 1vw, 6px);
   }
   
   .card-footer {
@@ -2408,7 +2408,7 @@ body::-webkit-scrollbar {
   
   .payment-badge {
     font-size: clamp(8px, 3vw, 11px);
-    padding: clamp(3px, 0.7vw, 4px) clamp(5px, 1.2vw, 7px);
+    padding: clamp(3px, 0.7vw, 4px) clamp(4px, 1vw, 6px);
   }
   
   .card-footer {
