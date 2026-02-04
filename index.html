@@ -590,6 +590,16 @@
       
       // Update menu visibility based on login status
       let authUnsubscribe = null; // Store unsubscribe function to prevent memory leak
+      let isNavigatingAway = false; // Track if user is navigating to another page
+      
+      // Detect when user clicks links to navigate away
+      document.addEventListener('click', function(e) {
+        const link = e.target.closest('a[href]');
+        if (link && link.href && !link.href.startsWith('#') && !link.href.includes('index.html')) {
+          isNavigatingAway = true;
+          console.log('🔗 Navigation detected, pausing auth checks');
+        }
+      }, true);
       
       document.addEventListener('DOMContentLoaded', function() {
         // ✅ PROPER FIX: Don't check auth before Firebase is ready
@@ -601,9 +611,10 @@
             
             if (user) {
               // Check if user has completed profile - if not, redirect to signup
-              if (typeof checkUserHasProfile === 'function') {
+              // BUT: Don't redirect if user is navigating away to another page
+              if (typeof checkUserHasProfile === 'function' && !isNavigatingAway) {
                 const { hasProfile } = await checkUserHasProfile(user.uid);
-                if (!hasProfile) {
+                if (!hasProfile && !isNavigatingAway) {
                   console.log('⚠️ Zombie user detected - redirecting to complete profile');
                   window.location.href = 'sign-up.html';
                   return;
