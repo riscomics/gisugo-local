@@ -384,14 +384,16 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   
   try {
     // Query for jobs where user is the poster
+    // Force server fetch to avoid stale cache
     const posterSnapshot = await db.collection('jobs')
       .where('posterId', '==', userId)
-      .get();
+      .get({ source: 'server' });
     
     // Query for jobs where user is the hired worker
+    // Force server fetch to avoid stale cache
     const workerSnapshot = await db.collection('jobs')
       .where('hiredWorkerId', '==', userId)
-      .get();
+      .get({ source: 'server' });
     
     console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
     
@@ -1142,12 +1144,24 @@ async function getOfferedJobsForWorker(workerId) {
     console.log(`🔍 Fetching offered jobs for worker: ${workerId}`);
     
     // Get jobs where status is 'hired' and worker is the hired worker
+    // Force server fetch to avoid stale cache when customer relists
     const offeredJobsSnapshot = await db.collection('jobs')
       .where('status', '==', 'hired')
       .where('hiredWorkerId', '==', workerId)
-      .get();
+      .get({ source: 'server' });
     
     console.log(`📊 Raw Firestore results: ${offeredJobsSnapshot.size} documents`);
+    
+    // Log each job's details for debugging
+    offeredJobsSnapshot.docs.forEach((doc, index) => {
+      const data = doc.data();
+      console.log(`📋 Offered Job ${index + 1}:`, {
+        jobId: doc.id,
+        status: data.status,
+        hiredWorkerId: data.hiredWorkerId,
+        title: data.title
+      });
+    });
     
     const offeredJobs = offeredJobsSnapshot.docs.map(doc => ({
       id: doc.id,
@@ -1846,6 +1860,46 @@ window.markNotificationRead = markNotificationRead;
 
 // Admin
 window.getAdminAnalytics = getAdminAnalytics;
+
+// ============================================================================
+// NOTIFICATION HELPER (Pre-wired for RELIST feature - uses existing ALERTS)
+// ============================================================================
+
+/**
+ * Send notification to worker when contract is voided
+ * Integrates with existing ALERTS tab in Messages page
+ */
+async function sendContractVoidedNotification(workerId, workerName, jobId, jobTitle, voidReason, customerName) {
+  console.log('📬 sendContractVoidedNotification() called');
+  console.log('📋 Worker:', workerName, '| Job:', jobTitle);
+  
+  try {
+    // Use existing createNotification() function
+    const result = await createNotification(workerId, {
+      type: 'contract_voided',
+      jobId: jobId,
+      jobTitle: jobTitle,
+      message: `Your contract for "${jobTitle}" has been voided. Reason: ${voidReason}`,
+      actionRequired: false,
+      // Additional data for future use
+      voidReason: voidReason,
+      customerName: customerName
+    });
+    
+    if (result.success) {
+      console.log('✅ Contract voided notification sent to ALERTS tab');
+      return { success: true };
+    } else {
+      console.error('❌ Failed to send notification:', result.message);
+      return { success: false, message: result.message };
+    }
+  } catch (error) {
+    console.error('❌ Error sending contract voided notification:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+window.sendContractVoidedNotification = sendContractVoidedNotification;
 
 console.log('📦 Firebase database module loaded');
 

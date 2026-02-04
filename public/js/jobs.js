@@ -3727,6 +3727,12 @@ async function handleCompleteJob(jobData) {
 
 async function handleRelistJob(jobData) {
     console.log(`🔄 RELIST job: ${jobData.jobId} (Customer perspective)`);
+    console.log(`📋 Job details:`, {
+        jobId: jobData.jobId,
+        title: jobData.title,
+        hiredWorkerId: jobData.hiredWorkerId,
+        hiredWorkerName: jobData.hiredWorkerName
+    });
     
     // Prevent multiple relist operations on the same job
     const overlay = document.getElementById('relistJobConfirmationOverlay');
@@ -3774,6 +3780,7 @@ async function handleRelistJob(jobData) {
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-job-title', jobData.title);
     overlay.setAttribute('data-worker-name', workerName);
+    overlay.setAttribute('data-hired-worker-id', job ? job.hiredWorkerId : '');
     overlay.removeAttribute('data-relist-type'); // Clear previous relist type
     
     overlay.classList.add('show');
@@ -4054,60 +4061,162 @@ function initializeRelistJobConfirmationHandlers() {
             } else {
                 // Handle hiring job relisting - REACTIVATE existing job (don't create new one)
                 const workerName = overlay.getAttribute('data-worker-name');
+                const hiredWorkerId = overlay.getAttribute('data-hired-worker-id');
                 
                 console.log(`🔄 RELIST hiring job: ${jobId} (Customer perspective) - REACTIVATING existing job`);
                 
-                // Find the job in hiring data to reactivate
-                if (MOCK_HIRING_DATA) {
-                    const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === jobId);
-                    if (jobToRelist) {
-                        // Remove from hiring data first
-                        MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== jobId);
-                        console.log(`🗑️ Removed job ${jobId} from MOCK_HIRING_DATA`);
+                // Check if Firebase mode is active
+                const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+                
+                if (useFirebase && typeof firebase !== 'undefined') {
+                    // ══════════════════════════════════════════════════════════════
+                    // FIREBASE MODE - Reactivate job in Firestore
+                    // ══════════════════════════════════════════════════════════════
+                    try {
+                        const db = firebase.firestore();
                         
-                        // Reactivate job by adding back to listings data with SAME ID
-                        if (!MOCK_LISTINGS_DATA) {
-                            MOCK_LISTINGS_DATA = [];
+                        console.log('🔥 Relisting job in Firebase...');
+                        console.log('📋 Job ID:', jobId);
+                        console.log('📋 Hired Worker ID:', hiredWorkerId);
+                        
+                        // Update job: remove hired worker info, set status back to active, add relist metadata
+                        await db.collection('jobs').doc(jobId).update({
+                            status: 'active',
+                            hiredWorkerId: firebase.firestore.FieldValue.delete(),
+                            hiredWorkerName: firebase.firestore.FieldValue.delete(),
+                            hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+                            agreedPrice: firebase.firestore.FieldValue.delete(),
+                            hiredAt: firebase.firestore.FieldValue.delete(),
+                            relistedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            relistReason: reason,
+                            voidedWorker: workerName,
+                            voidedWorkerId: hiredWorkerId,
+                            lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        
+                        console.log('✅ Job relisted in Firebase, restored to active status');
+                        
+                        // Verify the update by reading the document back
+                        const verifyDoc = await db.collection('jobs').doc(jobId).get();
+                        console.log('🔍 Verification - Job status after update:', verifyDoc.data().status);
+                        console.log('🔍 Verification - hiredWorkerId after update:', verifyDoc.data().hiredWorkerId || 'DELETED');
+                        
+                        // Update the worker's application status to 'voided' to notify them
+                        if (hiredWorkerId) {
+                            try {
+                                const applicationsSnapshot = await db.collection('applications')
+                                    .where('jobId', '==', jobId)
+                                    .where('applicantId', '==', hiredWorkerId)
+                                    .where('status', '==', 'accepted')
+                                    .get();
+                                
+                                const batch = db.batch();
+                                applicationsSnapshot.docs.forEach(doc => {
+                                    batch.update(doc.ref, {
+                                        status: 'voided',
+                                        voidedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                        voidReason: reason
+                                    });
+                                });
+                                await batch.commit();
+                                console.log('✅ Worker application marked as voided');
+                                
+                                // ═══════════════════════════════════════════════════════════════
+                                // SEND NOTIFICATION TO WORKER (Uses existing ALERTS tab)
+                                // ═══════════════════════════════════════════════════════════════
+                                try {
+                                    // TODO: Uncomment this block when you're ready to enable contract void notifications
+                                    /*
+                                    if (typeof sendContractVoidedNotification === 'function') {
+                                        const notifResult = await sendContractVoidedNotification(
+                                            hiredWorkerId,
+                                            workerName,
+                                            jobId,
+                                            jobTitle,
+                                            reason,
+                                            'Customer' // TODO: Get actual customer name from job.posterName
+                                        );
+                                        
+                                        if (notifResult.success) {
+                                            console.log('✅ Worker will see notification in Messages > ALERTS tab');
+                                        }
+                                    }
+                                    */
+                                    console.log('📬 Contract void notifications ready (currently disabled)');
+                                    console.log('📋 To enable: Uncomment sendContractVoidedNotification() in jobs.js line 4129');
+                                } catch (notifError) {
+                                    console.error('⚠️ Error sending notification (non-critical):', notifError);
+                                    // Don't fail relist operation if notification fails
+                                }
+                                
+                            } catch (appError) {
+                                console.error('⚠️ Error updating worker application:', appError);
+                                // Don't fail the relist operation if this fails
+                            }
                         }
                         
-                        // Restore original job with preserved applications (minus the hired worker)
-                        const reactivatedJob = {
-                            jobId: jobToRelist.jobId, // Keep original ID - THIS IS KEY!
-                            posterId: jobToRelist.posterId,
-                            posterName: jobToRelist.posterName,
-                            title: jobToRelist.title,
-                            category: jobToRelist.category,
-                            thumbnail: jobToRelist.thumbnail,
-                            jobDate: jobToRelist.jobDate,
-                            startTime: jobToRelist.startTime,
-                            endTime: jobToRelist.endTime,
-                            datePosted: new Date().toISOString(), // Update posted date to show as recent
-                            status: 'active', // Reactivate the job
-                            // Preserve applications but exclude the hired worker's application
-                            applicationCount: Math.max(0, (jobToRelist.originalApplicationCount || 0) - 1),
-                            applicationIds: (jobToRelist.originalApplicationIds || []).filter(id => id !== jobToRelist.hiredWorkerId),
-                            jobPageUrl: `${jobToRelist.category}.html`,
-                            // Store metadata about reactivation
-                            originalApplicationCount: jobToRelist.originalApplicationCount || 0,
-                            originalApplicationIds: jobToRelist.originalApplicationIds || [],
-                            reactivatedAt: new Date().toISOString(),
-                            reactivatedFrom: 'hiring',
-                            voidedWorker: workerName,
-                            voidedWorkerId: jobToRelist.hiredWorkerId
-                        };
+                        showContractVoidedSuccess(`Job reactivated successfully! "${jobTitle}" is now active in your Listings.`);
                         
-                        MOCK_LISTINGS_DATA.push(reactivatedJob);
-                        console.log(`✅ REACTIVATED job ${jobId} - moved from hiring to listings with ${reactivatedJob.applicationCount} preserved applications (excluded hired worker: ${workerName})`);
-                        
-                        // Show success message
-                        showContractVoidedSuccess(`Job reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
-                    } else {
-                        console.error(`❌ Source hiring job not found: ${jobId}`);
-                        showErrorNotification('Failed to relist job - source job not found');
+                    } catch (error) {
+                        console.error('❌ Error relisting job in Firebase:', error);
+                        showErrorNotification('Failed to relist job. Please try again.');
                     }
                 } else {
-                    console.error(`❌ MOCK_HIRING_DATA not available`);
-                    showErrorNotification('Failed to relist job - hiring data not available');
+                    // ══════════════════════════════════════════════════════════════
+                    // MOCK MODE - Move from hiring data back to listings
+                    // ══════════════════════════════════════════════════════════════
+                    if (MOCK_HIRING_DATA) {
+                        const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === jobId);
+                        if (jobToRelist) {
+                            // Remove from hiring data first
+                            MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== jobId);
+                            console.log(`🗑️ Removed job ${jobId} from MOCK_HIRING_DATA`);
+                            
+                            // Reactivate job by adding back to listings data with SAME ID
+                            if (!MOCK_LISTINGS_DATA) {
+                                MOCK_LISTINGS_DATA = [];
+                            }
+                            
+                            // Restore original job with preserved applications (minus the hired worker)
+                            const reactivatedJob = {
+                                jobId: jobToRelist.jobId, // Keep original ID - THIS IS KEY!
+                                posterId: jobToRelist.posterId,
+                                posterName: jobToRelist.posterName,
+                                title: jobToRelist.title,
+                                category: jobToRelist.category,
+                                thumbnail: jobToRelist.thumbnail,
+                                jobDate: jobToRelist.jobDate,
+                                startTime: jobToRelist.startTime,
+                                endTime: jobToRelist.endTime,
+                                datePosted: new Date().toISOString(), // Update posted date to show as recent
+                                status: 'active', // Reactivate the job
+                                // Preserve applications but exclude the hired worker's application
+                                applicationCount: Math.max(0, (jobToRelist.originalApplicationCount || 0) - 1),
+                                applicationIds: (jobToRelist.originalApplicationIds || []).filter(id => id !== jobToRelist.hiredWorkerId),
+                                jobPageUrl: `${jobToRelist.category}.html`,
+                                // Store metadata about reactivation
+                                originalApplicationCount: jobToRelist.originalApplicationCount || 0,
+                                originalApplicationIds: jobToRelist.originalApplicationIds || [],
+                                reactivatedAt: new Date().toISOString(),
+                                reactivatedFrom: 'hiring',
+                                voidedWorker: workerName,
+                                voidedWorkerId: jobToRelist.hiredWorkerId,
+                                relistReason: reason
+                            };
+                            
+                            MOCK_LISTINGS_DATA.push(reactivatedJob);
+                            console.log(`✅ REACTIVATED job ${jobId} - moved from hiring to listings with ${reactivatedJob.applicationCount} preserved applications (excluded hired worker: ${workerName})`);
+                            
+                            // Show success message
+                            showContractVoidedSuccess(`Job reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
+                        } else {
+                            console.error(`❌ Source hiring job not found: ${jobId}`);
+                            showErrorNotification('Failed to relist job - source job not found');
+                        }
+                    } else {
+                        console.error(`❌ MOCK_HIRING_DATA not available`);
+                        showErrorNotification('Failed to relist job - hiring data not available');
+                    }
                 }
             }
             
