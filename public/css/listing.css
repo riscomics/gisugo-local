@@ -610,26 +610,27 @@ body::-webkit-scrollbar {
   
   .jobcat-modal-container {
     width: 95%;
-    max-height: 90vh;
+    max-height: 92vh;
     animation: none;
   }
   
   .jobcat-modal-header {
-    padding: 20px;
+    padding: 14px 16px;
   }
   
   .jobcat-modal-title {
-    font-size: 20px;
+    font-size: 18px;
   }
   
   .jobcat-modal-body {
-    padding: 20px;
+    padding: 16px;
+    padding-bottom: 40px; /* Extra bottom padding to ensure last row is fully visible */
   }
   
   .jobcat-section-divider {
-    margin: 24px 0 16px 0;
-    padding: 10px 12px;
-    font-size: 0.95rem;
+    margin: 20px 0 14px 0;
+    padding: 8px 12px;
+    font-size: 0.9rem;
     letter-spacing: 0.5px;
   }
   
