@@ -3723,11 +3723,11 @@ const sampleWorkerReviews = [];
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get user ID from profile (currently viewing their own profile)
- * @returns {string|null} User ID
+ * Get user ID from profile being viewed (not necessarily the logged-in user)
+ * @returns {string|null} User ID of the profile being viewed
  */
 function getUserIdFromProfile() {
-  return getCurrentUserId();
+  return getProfileUserId();
 }
 
 /**
