@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firestore Diagnostic Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        .status { padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .result-section { margin: 20px 0; }
+        .fix-button { background: #28a745; }
+        .fix-button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Firestore Application Count Diagnostic</h1>
+        
+        <div id="auth-status" class="status info">
+            <strong>Status:</strong> Checking authentication...
+        </div>
+
+        <button id="check-btn" onclick="runDiagnostic()" disabled>
+            Run Diagnostic
+        </button>
+        
+        <button id="fix-btn" onclick="fixMismatch()" style="display:none;" class="fix-button">
+            Fix Mismatch
+        </button>
+        
+        <button onclick="checkUserApplications()" style="background:#6c757d;">
+            Check Peter John Ang's Applications
+        </button>
+        
+        <button onclick="findOrphanedApplications()" style="background:#dc3545;">
+            Find & Fix Orphaned Applications
+        </button>
+
+        <div id="results" class="result-section"></div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5w-ITUnCDaA-ZXTmwAwgGo1mErS-k-BE",
+            authDomain: "gisugo1.firebaseapp.com",
+            projectId: "gisugo1",
+            storageBucket: "gisugo1.firebasestorage.app",
+            messagingSenderId: "380568649178",
+            appId: "1:380568649178:web:725c745becbb89412094e3"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let currentJobData = null;
+        let currentActualCount = 0;
+
+        // Check auth status
+        auth.onAuthStateChanged(user => {
+            const authStatus = document.getElementById('auth-status');
+            const checkBtn = document.getElementById('check-btn');
+            
+            if (user) {
+                authStatus.className = 'status success';
+                authStatus.innerHTML = `<strong>✅ Logged in as:</strong> ${user.displayName || user.email}`;
+                checkBtn.disabled = false;
+            } else {
+                authStatus.className = 'status error';
+                authStatus.innerHTML = '<strong>❌ Not logged in!</strong> Please log in to your Gisugo account first.';
+                checkBtn.disabled = true;
+            }
+        });
+
+        async function runDiagnostic() {
+            const results = document.getElementById('results');
+            const fixBtn = document.getElementById('fix-btn');
+            fixBtn.style.display = 'none';
+            results.innerHTML = '<p>🔍 Searching for catering delivery job...</p>';
+
+            try {
+                // Search for the job
+                const jobsSnapshot = await db.collection('jobs')
+                    .where('title', '==', 'Need regular delivery to customers from our catering')
+                    .get();
+
+                if (jobsSnapshot.empty) {
+                    results.innerHTML += '<div class="status warning">⚠️ Job not found with exact title. Searching for jobs with "catering"...</div>';
+                    
+                    // Try broader search
+                    const allJobs = await db.collection('jobs').get();
+                    const cateringJobs = [];
+                    allJobs.forEach(doc => {
+                        const data = doc.data();
+                        if (data.title && data.title.toLowerCase().includes('catering')) {
+                            cateringJobs.push({ id: doc.id, ...data });
+                        }
+                    });
+
+                    if (cateringJobs.length > 0) {
+                        let html = `<div class="status info"><strong>Found ${cateringJobs.length} job(s) with "catering":</strong></div>`;
+                        cateringJobs.forEach(job => {
+                            html += `<pre>Job ID: ${job.id}
+Title: ${job.title}
+Poster: ${job.posterName || 'N/A'}
+Status: ${job.status}
+applicationCount: ${job.applicationCount || 0}</pre>`;
+                        });
+                        results.innerHTML += html;
+                        
+                        // Check first one automatically
+                        await checkJobApplications(cateringJobs[0].id);
+                    } else {
+                        results.innerHTML += '<div class="status error">❌ No jobs found with "catering" in title</div>';
+                    }
+                    return;
+                }
+
+                const jobDoc = jobsSnapshot.docs[0];
+                await checkJobApplications(jobDoc.id);
+
+            } catch (error) {
+                results.innerHTML += `<div class="status error"><strong>❌ Error:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function checkJobApplications(jobId) {
+            const results = document.getElementById('results');
+            const fixBtn = document.getElementById('fix-btn');
+
+            try {
+                // Get job data
+                const jobDoc = await db.collection('jobs').doc(jobId).get();
+                const jobData = jobDoc.data();
+                currentJobData = { id: jobId, ...jobData };
+
+                let html = '<div class="status success"><strong>✅ Job Found!</strong></div>';
+                html += `<pre><strong>📋 Job Details:</strong>
+Job ID: ${jobId}
+Title: ${jobData.title}
+Poster: ${jobData.posterName || 'N/A'} (${jobData.posterId})
+Status: ${jobData.status}
+applicationCount: ${jobData.applicationCount || 0}</pre>`;
+
+                // Get actual PENDING applications (applicationCount only tracks pending!)
+                const applicationsSnapshot = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('status', '==', 'pending')
+                    .get();
+
+                currentActualCount = applicationsSnapshot.size;
+                
+                // Also get total count for reference
+                const allApplicationsSnapshot = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .get();
+
+                html += `<pre><strong>📊 Applications Collection:</strong>
+Pending applications: ${currentActualCount}
+Total applications (all statuses): ${allApplicationsSnapshot.size}</pre>`;
+
+                if (allApplicationsSnapshot.size > 0) {
+                    html += '<pre><strong>All Application Details:</strong>';
+                    allApplicationsSnapshot.forEach((doc, index) => {
+                        const app = doc.data();
+                        const appliedDate = app.appliedAt ? app.appliedAt.toDate().toLocaleString() : 'N/A';
+                        const isPending = app.status === 'pending' ? ' ✅ PENDING' : '';
+                        html += `\n\n${index + 1}. Application ID: ${doc.id}
+   Applicant: ${app.applicantName || 'N/A'} (${app.applicantId})
+   Status: ${app.status}${isPending}
+   Applied: ${appliedDate}`;
+                    });
+                    html += '</pre>';
+                }
+
+                // Comparison
+                const storedCount = jobData.applicationCount || 0;
+                
+                html += '<hr><h2>📊 DIAGNOSIS:</h2>';
+
+                html += '<div class="status info"><strong>ℹ️ Note:</strong> applicationCount tracks <strong>PENDING</strong> applications only (not accepted/rejected/hired).</div>';
+                
+                if (storedCount !== currentActualCount) {
+                    html += `<div class="status error"><strong>❌ MISMATCH DETECTED!</strong><br>
+Job document says: <strong>${storedCount}</strong> pending applications<br>
+Actual pending in database: <strong>${currentActualCount}</strong> pending applications<br>
+Difference: <strong>${currentActualCount - storedCount}</strong></div>`;
+                    
+                    html += `<div class="status warning"><strong>💡 SOLUTION:</strong><br>
+Update job.applicationCount from ${storedCount} to ${currentActualCount}<br><br>
+Click the "Fix Mismatch" button below to automatically update it.</div>`;
+                    
+                    fixBtn.style.display = 'inline-block';
+                } else {
+                    html += '<div class="status success">✅ Counts match! No issue detected.</div>';
+                    fixBtn.style.display = 'none';
+                }
+
+                results.innerHTML = html;
+
+            } catch (error) {
+                results.innerHTML += `<div class="status error"><strong>❌ Error checking job:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function checkUserApplications() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔍 Searching for Peter John Ang\'s applications...</p>';
+
+            try {
+                // Find Peter John Ang user
+                const usersSnapshot = await db.collection('users')
+                    .where('fullName', '==', 'Peter John Ang')
+                    .get();
+
+                if (usersSnapshot.empty) {
+                    results.innerHTML = '<div class="status error">❌ Peter John Ang user not found</div>';
+                    return;
+                }
+
+                const userId = usersSnapshot.docs[0].id;
+                const userData = usersSnapshot.docs[0].data();
+
+                let html = `<div class="status success">✅ Found User: ${userData.fullName}</div>`;
+                html += `<pre>User ID: ${userId}\nEmail: ${userData.email || 'N/A'}</pre>`;
+
+                // Get all applications by this user
+                const applicationsSnapshot = await db.collection('applications')
+                    .where('applicantId', '==', userId)
+                    .get();
+
+                html += `<h3>📊 All Applications by Peter John Ang: ${applicationsSnapshot.size}</h3>`;
+
+                if (applicationsSnapshot.size > 0) {
+                    for (const appDoc of applicationsSnapshot.docs) {
+                        const app = appDoc.data();
+                        
+                        // Get job details
+                        const jobDoc = await db.collection('jobs').doc(app.jobId).get();
+                        const job = jobDoc.exists ? jobDoc.data() : null;
+
+                        const appliedDate = app.appliedAt ? app.appliedAt.toDate().toLocaleString() : 'N/A';
+                        
+                        html += `<div class="status info">
+<strong>Application ${appDoc.id}</strong><br>
+Job: ${job ? job.title : 'Unknown'} (${app.jobId})<br>
+Status: <strong>${app.status}</strong><br>
+Applied: ${appliedDate}<br>
+${app.counterOffer ? `Counter Offer: ₱${app.counterOffer}<br>` : ''}
+</div>`;
+                    }
+                }
+
+                results.innerHTML = html;
+
+            } catch (error) {
+                results.innerHTML += `<div class="status error"><strong>❌ Error:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function findOrphanedApplications() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔍 Searching for orphaned applications...</p>';
+
+            try {
+                // Find all 'accepted' applications
+                const acceptedApps = await db.collection('applications')
+                    .where('status', '==', 'accepted')
+                    .get();
+
+                let orphanedApps = [];
+
+                for (const appDoc of acceptedApps.docs) {
+                    const app = appDoc.data();
+                    
+                    // Check the job status
+                    const jobDoc = await db.collection('jobs').doc(app.jobId).get();
+                    if (!jobDoc.exists) {
+                        orphanedApps.push({
+                            appId: appDoc.id,
+                            app: app,
+                            job: null,
+                            reason: 'Job deleted'
+                        });
+                        continue;
+                    }
+
+                    const job = jobDoc.data();
+                    
+                    // If job is 'active' but application is 'accepted', it's orphaned!
+                    if (job.status === 'active') {
+                        orphanedApps.push({
+                            appId: appDoc.id,
+                            app: app,
+                            job: job,
+                            reason: 'Job is active but application is accepted'
+                        });
+                    }
+                    
+                    // If job is 'hired' but worker is different, it's orphaned!
+                    if ((job.status === 'hired' || job.status === 'accepted') && job.hiredWorkerId !== app.applicantId) {
+                        orphanedApps.push({
+                            appId: appDoc.id,
+                            app: app,
+                            job: job,
+                            reason: 'Different worker hired'
+                        });
+                    }
+                }
+
+                let html = `<h3>📊 Found ${orphanedApps.length} Orphaned Application(s)</h3>`;
+
+                if (orphanedApps.length === 0) {
+                    html += '<div class="status success">✅ No orphaned applications found!</div>';
+                } else {
+                    for (const orphan of orphanedApps) {
+                        html += `<div class="status warning">
+<strong>⚠️ Orphaned Application</strong><br>
+Application ID: ${orphan.appId}<br>
+Applicant: ${orphan.app.applicantName || 'N/A'}<br>
+Job: ${orphan.job ? orphan.job.title : 'DELETED'}<br>
+Job Status: ${orphan.job ? orphan.job.status : 'N/A'}<br>
+Reason: ${orphan.reason}
+</div>`;
+                    }
+
+                    html += `<button onclick="fixOrphanedApplications()" class="fix-button" style="display:inline-block;margin-top:20px;">
+Fix All Orphaned Applications
+</button>`;
+                }
+
+                results.innerHTML = html;
+                window.orphanedAppsCache = orphanedApps; // Store for fix function
+
+            } catch (error) {
+                results.innerHTML += `<div class="status error"><strong>❌ Error:</strong> ${error.message}</div>`;
+            }
+        }
+
+        async function fixOrphanedApplications() {
+            if (!window.orphanedAppsCache || window.orphanedAppsCache.length === 0) {
+                alert('No orphaned applications to fix!');
+                return;
+            }
+
+            const results = document.getElementById('results');
+            results.innerHTML += '<div class="status info">🔧 Fixing orphaned applications...</div>';
+
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                results.innerHTML += '<div class="status error">❌ Not authenticated!</div>';
+                return;
+            }
+
+            let fixedCount = 0;
+            let skippedCount = 0;
+            let errorCount = 0;
+
+            for (const orphan of window.orphanedAppsCache) {
+                try {
+                    // Only fix if current user is the job poster (has permission)
+                    if (orphan.job && orphan.job.posterId === currentUser.uid) {
+                        await db.collection('applications').doc(orphan.appId).update({
+                            status: 'rejected',
+                            rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            orphanedFixedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        fixedCount++;
+                        results.innerHTML += `<div class="status success">✅ Fixed: ${orphan.app.applicantName} - ${orphan.job.title.substring(0, 40)}...</div>`;
+                    } else if (orphan.app.applicantId === currentUser.uid) {
+                        // Current user is the applicant - can fix their own
+                        await db.collection('applications').doc(orphan.appId).update({
+                            status: 'rejected',
+                            rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            orphanedFixedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                        fixedCount++;
+                        results.innerHTML += `<div class="status success">✅ Fixed your application: ${orphan.job ? orphan.job.title.substring(0, 40) : 'DELETED JOB'}...</div>`;
+                    } else {
+                        skippedCount++;
+                        results.innerHTML += `<div class="status warning">⏭️ Skipped (no permission): ${orphan.app.applicantName} - ${orphan.job ? orphan.job.title.substring(0, 40) : 'DELETED'}...</div>`;
+                    }
+                } catch (error) {
+                    errorCount++;
+                    results.innerHTML += `<div class="status error">❌ Error: ${orphan.appId} - ${error.message}</div>`;
+                }
+            }
+
+            results.innerHTML += `<div class="status ${fixedCount > 0 ? 'success' : 'warning'}">
+<strong>📊 Summary:</strong><br>
+✅ Fixed: ${fixedCount}<br>
+⏭️ Skipped (no permission): ${skippedCount}<br>
+❌ Errors: ${errorCount}<br><br>
+${fixedCount > 0 ? 'Workers can now reapply to fixed jobs!' : 'You need to log in as the job poster or applicant to fix these.'}
+</div>`;
+        }
+
+        async function fixMismatch() {
+            if (!currentJobData) {
+                alert('No job data loaded!');
+                return;
+            }
+
+            const results = document.getElementById('results');
+            const fixBtn = document.getElementById('fix-btn');
+
+            try {
+                fixBtn.disabled = true;
+                results.innerHTML += '<div class="status info">🔧 Updating applicationCount...</div>';
+
+                await db.collection('jobs').doc(currentJobData.id).update({
+                    applicationCount: currentActualCount
+                });
+
+                results.innerHTML += `<div class="status success"><strong>✅ SUCCESS!</strong><br>
+Updated applicationCount from ${currentJobData.applicationCount || 0} to ${currentActualCount}<br><br>
+Refresh your Gigs Manager page to see the updated count!</div>`;
+
+                fixBtn.style.display = 'none';
+
+            } catch (error) {
+                results.innerHTML += `<div class="status error"><strong>❌ Fix failed:</strong> ${error.message}</div>`;
+                fixBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

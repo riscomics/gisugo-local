@@ -3646,6 +3646,12 @@ async function rejectGigOffer(jobId) {
             
             console.log('🔥 Rejecting offer in Firebase...');
             
+            // Get current user ID
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser) {
+                throw new Error('User not authenticated');
+            }
+            
             // Update job: remove hired worker info and set status back to active
             await db.collection('jobs').doc(jobId).update({
                 status: 'active',
@@ -3660,6 +3666,31 @@ async function rejectGigOffer(jobId) {
             });
             
             console.log('✅ Job offer rejected in Firebase, job restored to active');
+            
+            // ═══════════════════════════════════════════════════════════════
+            // UPDATE WORKER'S APPLICATION STATUS TO 'REJECTED'
+            // ═══════════════════════════════════════════════════════════════
+            try {
+                const applicationsSnapshot = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('applicantId', '==', currentUser.uid)
+                    .where('status', '==', 'accepted')
+                    .get();
+                
+                const batch = db.batch();
+                applicationsSnapshot.docs.forEach(doc => {
+                    batch.update(doc.ref, {
+                        status: 'rejected',
+                        rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                await batch.commit();
+                console.log('✅ Worker application status updated to rejected');
+            } catch (appError) {
+                console.error('⚠️ Error updating application status:', appError);
+                // Don't throw - job update succeeded, application update is non-critical
+            }
+            
             return;
         } catch (error) {
             console.error('❌ Error rejecting offer in Firebase:', error);
