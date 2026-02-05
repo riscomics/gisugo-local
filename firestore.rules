@@ -75,6 +75,13 @@ service cloud.firestore {
         && request.resource.data.status == 'accepted';
     }
     
+    // Check if hired worker is resigning from the job (after accepting)
+    function isHiredWorkerResigning() {
+      return (resource.data.status == 'hired' || resource.data.status == 'accepted')
+        && resource.data.hiredWorkerId == request.auth.uid
+        && request.resource.data.status == 'active';
+    }
+    
     // Check if customer is marking their hired job as complete
     function isCustomerMarkingComplete() {
       return resource.data.status == 'accepted'
@@ -166,6 +173,7 @@ service cloud.firestore {
       // OR any authenticated user can increment applicationCount (when applying)
       // OR hired worker can reject the offer (revert to active)
       // OR hired worker can accept the offer (change to accepted)
+      // OR hired worker can resign from the job (after accepting, revert to active)
       // OR customer can mark accepted job as completed
       // OR customer can submit review for completed job
       // OR worker can submit review for completed job
@@ -174,6 +182,7 @@ service cloud.firestore {
             || onlyUpdatingApplicationFields()
             || isHiredWorkerRejectingOffer()
             || isHiredWorkerAcceptingOffer()
+            || isHiredWorkerResigning()
             || isCustomerMarkingComplete()
             || isCustomerSubmittingReview()
             || isWorkerSubmittingReview());
@@ -280,6 +289,28 @@ service cloud.firestore {
       
       // No updates or deletes (messages are immutable)
       allow update, delete: if false;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // NOTIFICATIONS COLLECTION (ALERTS Tab in Messages)
+    // ═══════════════════════════════════════════════════════════════
+    match /notifications/{notificationId} {
+      // Users can only read their own notifications
+      allow read: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid;
+      
+      // Any authenticated user can create notifications (system-generated)
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['recipientId', 'type', 'message', 'createdAt'])
+        && request.resource.data.recipientId is string;
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid;
+      
+      // Users can delete their own notifications
+      allow delete: if isAuthenticated()
+        && resource.data.recipientId == request.auth.uid;
     }
     
     // ═══════════════════════════════════════════════════════════════

@@ -3654,6 +3654,7 @@ async function rejectGigOffer(jobId) {
                 hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
                 agreedPrice: firebase.firestore.FieldValue.delete(),
                 hiredAt: firebase.firestore.FieldValue.delete(),
+                acceptedAt: firebase.firestore.FieldValue.delete(), // Remove if worker had accepted before rejecting
                 rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 applicationCount: 0 // Reset to 0 since no pending applications remain after rejection
             });
@@ -4117,10 +4118,12 @@ function initializeRelistJobConfirmationHandlers() {
                             hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
                             agreedPrice: firebase.firestore.FieldValue.delete(),
                             hiredAt: firebase.firestore.FieldValue.delete(),
+                            acceptedAt: firebase.firestore.FieldValue.delete(), // Remove if worker had accepted before relist
                             relistedAt: firebase.firestore.FieldValue.serverTimestamp(),
                             relistReason: reason,
                             voidedWorker: workerName,
                             voidedWorkerId: hiredWorkerId,
+                            applicationCount: 0, // Reset for consistency (already 0 from hiring, but explicit is safer)
                             lastModified: firebase.firestore.FieldValue.serverTimestamp()
                         });
                         
@@ -4366,58 +4369,98 @@ function initializeResignJobConfirmationHandlers() {
             // Clear handlers initialization flag to allow re-initialization
             delete overlay.dataset.handlersInitialized;
             
-            // Firebase Implementation - Worker resignation:
-            // const db = firebase.firestore();
-            // const batch = db.batch();
-            // const currentUserId = 'current-user-id'; // Get from auth
-            // 
-            // // Update job to active status and remove hired worker data
-            // const jobRef = db.collection('jobs').doc(jobId);
-            // batch.update(jobRef, {
-            //     status: 'active',
-            //     hiredWorkerId: firebase.firestore.FieldValue.delete(),
-            //     hiredWorkerName: firebase.firestore.FieldValue.delete(),
-            //     hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
-            //     hiredAt: firebase.firestore.FieldValue.delete(),
-            //     resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     resignedBy: 'worker',
-            //     resignationReason: reason,
-            //     applicationCount: 0,
-            //     datePosted: firebase.firestore.FieldValue.serverTimestamp() // Refresh posting date
-            // });
-            // 
-            // // Create notification for the customer
-            // const notificationRef = db.collection('notifications').doc();
-            // batch.set(notificationRef, {
-            //     recipientId: customerName, // Should be posterId in real implementation
-            //     type: 'worker_resigned',
-            //     jobId: jobId,
-            //     jobTitle: jobTitle,
-            //     message: `The worker has resigned from "${jobTitle}". Reason: ${reason}. Your job is now active for new applications.`,
-            //     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     read: false
-            // });
-            // 
-            // // Create admin dashboard record for resignation tracking
-            // const resignationRef = db.collection('user_termination_records').doc();
-            // batch.set(resignationRef, {
-            //     customerId: customerName, // Should be posterId
-            //     workerId: currentUserId,
-            //     jobId: jobId,
-            //     jobTitle: jobTitle,
-            //     reason: reason,
-            //     terminatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-            //     type: 'worker_resigned'
-            // });
-            // 
-            // // Update worker's resignation count
-            // const workerStatsRef = db.collection('user_admin_stats').doc(currentUserId);
-            // batch.set(workerStatsRef, {
-            //     resignationCount: firebase.firestore.FieldValue.increment(1),
-            //     lastResignationAt: firebase.firestore.FieldValue.serverTimestamp()
-            // }, { merge: true });
-            // 
-            // await batch.commit();
+            // ═══════════════════════════════════════════════════════════════
+            // FIREBASE MODE - Worker resignation
+            // ═══════════════════════════════════════════════════════════════
+            const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+            
+            if (useFirebase && typeof firebase !== 'undefined') {
+                try {
+                    const db = firebase.firestore();
+                    const currentUser = firebase.auth().currentUser;
+                    const currentUserId = currentUser ? currentUser.uid : '';
+                    
+                    console.log('🔥 Processing resignation in Firebase...');
+                    console.log('📋 Job ID:', jobId);
+                    console.log('📋 Worker ID:', currentUserId);
+                    
+                    // Get job data to find customer ID
+                    const jobDoc = await db.collection('jobs').doc(jobId).get();
+                    const jobData = jobDoc.data();
+                    const customerId = jobData.posterId;
+                    
+                    // Update job: remove hired worker info, set status back to active
+                    await db.collection('jobs').doc(jobId).update({
+                        status: 'active',
+                        hiredWorkerId: firebase.firestore.FieldValue.delete(),
+                        hiredWorkerName: firebase.firestore.FieldValue.delete(),
+                        hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+                        agreedPrice: firebase.firestore.FieldValue.delete(),
+                        hiredAt: firebase.firestore.FieldValue.delete(),
+                        acceptedAt: firebase.firestore.FieldValue.delete(),
+                        resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        resignReason: reason,
+                        resignedWorkerId: currentUserId,
+                        resignedWorkerName: currentUser?.displayName || 'Worker',
+                        applicationCount: 0,
+                        lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    console.log('✅ Job resigned in Firebase, restored to active status');
+                    
+                    // Verify the update
+                    const verifyDoc = await db.collection('jobs').doc(jobId).get();
+                    console.log('🔍 Verification - Job status after resignation:', verifyDoc.data().status);
+                    
+                    // Update worker's application status to 'resigned'
+                    if (currentUserId) {
+                        try {
+                            const applicationsSnapshot = await db.collection('applications')
+                                .where('jobId', '==', jobId)
+                                .where('applicantId', '==', currentUserId)
+                                .where('status', '==', 'accepted')
+                                .get();
+                            
+                            const batch = db.batch();
+                            applicationsSnapshot.docs.forEach(doc => {
+                                batch.update(doc.ref, {
+                                    status: 'resigned',
+                                    resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                    resignReason: reason
+                                });
+                            });
+                            await batch.commit();
+                            console.log('✅ Worker application marked as resigned');
+                        } catch (appError) {
+                            console.error('⚠️ Error updating application:', appError);
+                        }
+                    }
+                    
+                    // ═══════════════════════════════════════════════════════════════
+                    // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
+                    // ═══════════════════════════════════════════════════════════════
+                    // TODO: Uncomment when ready to enable resignation notifications
+                    /*
+                    if (typeof sendWorkerResignedNotification === 'function') {
+                        const workerName = currentUser?.displayName || 'A worker';
+                        await sendWorkerResignedNotification(
+                            customerId,
+                            customerName,
+                            jobId,
+                            jobTitle,
+                            reason,
+                            workerName
+                        );
+                    }
+                    */
+                    console.log('📬 Worker resignation notifications ready (currently disabled)');
+                    
+                } catch (error) {
+                    console.error('❌ Error processing resignation in Firebase:', error);
+                    showErrorNotification('Failed to process resignation. Please try again.');
+                    return;
+                }
+            }
             
             // Store job ID for data manipulation
             const resignationOverlay = document.getElementById('resignationConfirmedOverlay');

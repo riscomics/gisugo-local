@@ -1936,5 +1936,41 @@ async function sendOfferRejectedNotification(customerId, customerName, jobId, jo
 
 window.sendOfferRejectedNotification = sendOfferRejectedNotification;
 
+/**
+ * Send notification to customer when worker resigns from job
+ * Integrates with existing ALERTS tab in Messages page
+ */
+async function sendWorkerResignedNotification(customerId, customerName, jobId, jobTitle, resignReason, workerName) {
+  console.log('📬 sendWorkerResignedNotification() called');
+  console.log('📋 Customer:', customerName, '| Worker:', workerName, '| Job:', jobTitle);
+  
+  try {
+    // Use existing createNotification() function
+    const result = await createNotification(customerId, {
+      type: 'worker_resigned',
+      jobId: jobId,
+      jobTitle: jobTitle,
+      message: `${workerName} has resigned from "${jobTitle}". Reason: ${resignReason}. Your job is now active for new applications.`,
+      actionRequired: false,
+      // Additional data for future reference
+      workerName: workerName,
+      resignReason: resignReason  // Matches job field naming
+    });
+    
+    if (result.success) {
+      console.log('✅ Worker resignation notification sent to customer ALERTS tab');
+      return { success: true };
+    } else {
+      console.error('❌ Failed to send notification:', result.message);
+      return { success: false, message: result.message };
+    }
+  } catch (error) {
+    console.error('❌ Error sending worker resignation notification:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+window.sendWorkerResignedNotification = sendWorkerResignedNotification;
+
 console.log('📦 Firebase database module loaded');
 
