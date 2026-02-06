@@ -1227,17 +1227,26 @@ async function checkIfUserAlreadyApplied(jobId) {
       applyBtn.style.opacity = '0.5';
       applyBtn.style.cursor = 'not-allowed';
       applyBtn.style.backgroundColor = '';  // Reset to default
-      applyBtn.querySelector('span').textContent = 'ALREADY APPLIED';
       
-      // Set appropriate tooltip based on status
-      if (mostRecentApp.status === 'pending') {
-        applyBtn.title = 'Your application is pending review';
-      } else if (mostRecentApp.status === 'accepted') {
-        applyBtn.title = 'You have been hired for this job';
-      } else if (applicationCount >= 2) {
-        applyBtn.title = 'You have reached the maximum number of applications for this job';
+      // Set button text based on application count
+      if (applicationCount >= 2) {
+        // User has used both application chances
+        applyBtn.querySelector('span').textContent = 'LIMIT REACHED';
+        applyBtn.title = 'You have reached the maximum number of applications (2) for this job';
+        console.log('🚫 Showing LIMIT REACHED (2+ applications)');
       } else {
-        applyBtn.title = 'You have already applied to this job';
+        // User has 1 application that's pending or accepted
+        applyBtn.querySelector('span').textContent = 'ALREADY APPLIED';
+        
+        // Set appropriate tooltip based on status
+        if (mostRecentApp.status === 'pending') {
+          applyBtn.title = 'Your application is pending review';
+        } else if (mostRecentApp.status === 'accepted') {
+          applyBtn.title = 'You have been hired for this job';
+        } else {
+          applyBtn.title = 'You have already applied to this job';
+        }
+        console.log('🚫 Showing ALREADY APPLIED (1 pending/accepted application)');
       }
       
       console.log('✅ Apply button disabled');
