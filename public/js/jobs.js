@@ -3805,9 +3805,13 @@ async function handleRelistJob(jobData) {
     
     hideHiringOptionsOverlay();
     
-    // Get worker name from job data
-    const hiredJobs = await JobsDataService.getAllHiredJobs();
-    const job = hiredJobs.find(j => j.jobId === jobData.jobId);
+    // Show loading animation while preparing confirmation modal
+    showLoadingOverlay('Loading...');
+    
+    try {
+        // Get worker name from job data
+        const hiredJobs = await JobsDataService.getAllHiredJobs();
+        const job = hiredJobs.find(j => j.jobId === jobData.jobId);
     const workerName = job ? job.hiredWorkerName : 'the worker';
     
     // Show relist confirmation overlay (overlay already defined above)
@@ -3850,6 +3854,14 @@ async function handleRelistJob(jobData) {
     
     // Initialize confirmation handlers
     initializeRelistJobConfirmationHandlers();
+    
+    } catch (error) {
+        console.error('❌ Error preparing relist modal:', error);
+        alert('Failed to load relist details. Please try again.');
+    } finally {
+        // Hide loading animation
+        hideLoadingOverlay();
+    }
 }
 
 async function handleResignJob(jobData) {
@@ -4099,6 +4111,9 @@ function initializeRelistJobConfirmationHandlers() {
             // Clear handlers initialization flag to allow re-initialization
             delete overlay.dataset.handlersInitialized;
             
+            // Show loading animation
+            showLoadingOverlay('Voiding contract...');
+            
             if (relistType === 'completed') {
                 // Handle completed job relisting - create draft
                 console.log(`🔄 Creating job draft from completed job: ${jobId}`);
@@ -4219,11 +4234,19 @@ function initializeRelistJobConfirmationHandlers() {
                             }
                         }
                         
+                        // Hide loading animation
+                        hideLoadingOverlay();
+                        
                         showContractVoidedSuccess(`Job reactivated successfully! "${jobTitle}" is now active in your Listings.`);
                         
                     } catch (error) {
                         console.error('❌ Error relisting job in Firebase:', error);
+                        hideLoadingOverlay();
                         showErrorNotification('Failed to relist job. Please try again.');
+                    } finally {
+                        // Reset processing flag
+                        overlay.dataset.processing = 'false';
+                        yesBtn.disabled = false;
                     }
                 } else {
                     // ══════════════════════════════════════════════════════════════
@@ -4400,6 +4423,9 @@ function initializeResignJobConfirmationHandlers() {
             // Clear handlers initialization flag to allow re-initialization
             delete overlay.dataset.handlersInitialized;
             
+            // Show loading animation
+            showLoadingOverlay('Resigning from job...');
+            
             // ═══════════════════════════════════════════════════════════════
             // FIREBASE MODE - Worker resignation
             // ═══════════════════════════════════════════════════════════════
@@ -4488,10 +4514,14 @@ function initializeResignJobConfirmationHandlers() {
                     
                 } catch (error) {
                     console.error('❌ Error processing resignation in Firebase:', error);
+                    hideLoadingOverlay();
                     showErrorNotification('Failed to process resignation. Please try again.');
                     return;
                 }
             }
+            
+            // Hide loading animation
+            hideLoadingOverlay();
             
             // Store job ID for data manipulation
             const resignationOverlay = document.getElementById('resignationConfirmedOverlay');
@@ -5074,12 +5104,12 @@ function showEmptyHiringState() {
             <div class="empty-state-icon">👥</div>
             <div class="empty-state-title">No Active Hires Yet</div>
             <div class="empty-state-message">
-                Jobs you've hired workers for or been hired to work on will appear here.
-                Check your active listings to hire workers or find work.
+                Jobs you've hired workers for will appear here.
+                Check your active listings to hire workers.
             </div>
-            <a href="jobs.html" class="empty-state-btn">
+            <button class="empty-state-btn" onclick="switchToRole('customer').then(() => switchToTab('listings'))">
                 VIEW LISTINGS
-            </a>
+            </button>
         </div>
     `;
 }
@@ -6518,14 +6548,18 @@ async function showApplicationsOverlay(jobData) {
     // UPDATE CARD'S DISPLAYED COUNT (in case Firestore count is wrong)
     // ═══════════════════════════════════════════════════════════════
     const listingCard = document.querySelector(`.listing-card[data-job-id="${jobData.jobId}"]`);
-    if (listingCard && actualCount !== jobData.applicationCount) {
-        console.log(`📊 Updating card count from ${jobData.applicationCount} to ${actualCount}`);
-        const appCountElement = listingCard.querySelector('.application-count');
-        if (appCountElement) {
-            const newText = actualCount === 1 ? '1 application' : `${actualCount} applications`;
-            appCountElement.textContent = newText;
+    // Always update the card count to match actual pending applications
+    if (listingCard) {
+        const storedCount = parseInt(listingCard.getAttribute('data-application-count')) || 0;
+        if (actualCount !== storedCount) {
+            console.log(`📊 Updating card count from ${storedCount} to ${actualCount}`);
+            const appCountElement = listingCard.querySelector('.application-count');
+            if (appCountElement) {
+                const newText = actualCount === 1 ? '1 application' : `${actualCount} applications`;
+                appCountElement.textContent = newText;
+            }
+            listingCard.setAttribute('data-application-count', actualCount);
         }
-        listingCard.setAttribute('data-application-count', actualCount);
     }
     
     // Initialize close button handler
@@ -6566,31 +6600,9 @@ async function getApplicationsForJob(jobId) {
             }
             console.log('───────────────────────────────────────────────────────');
             
-            // ═══════════════════════════════════════════════════════════════
-            // AUTO-CORRECTION: Sync Firebase applicationCount if stale
-            // ═══════════════════════════════════════════════════════════════
-            try {
-                const db = firebase.firestore();
-                const jobDoc = await db.collection('jobs').doc(jobId).get();
-                if (jobDoc.exists) {
-                    const currentCount = jobDoc.data().applicationCount || 0;
-                    const actualCount = pendingApplications.length;
-                    
-                    if (currentCount !== actualCount) {
-                        console.log(`🔧 AUTO-FIX: applicationCount mismatch detected`);
-                        console.log(`   Firebase shows: ${currentCount}, Actual pending: ${actualCount}`);
-                        console.log(`   Updating Firebase to correct value...`);
-                        
-                        await db.collection('jobs').doc(jobId).update({
-                            applicationCount: actualCount
-                        });
-                        
-                        console.log(`✅ AUTO-FIX: applicationCount corrected to ${actualCount}`);
-                    }
-                }
-            } catch (error) {
-                console.warn('⚠️ Failed to auto-correct applicationCount:', error);
-            }
+            // Note: Let increment/decrement operations handle count updates
+            // Just use actual pending count for display
+            const actualCount = pendingApplications.length;
             
             // Transform Firebase data to match expected format
             return pendingApplications.map(app => ({
@@ -8692,6 +8704,13 @@ async function updateTabCounts() {
     // Update notification counts on tabs after job operations
     console.log('🔢 Updating tab notification counts...');
     
+    // Show loading state on all tab counts
+    const tabCountElements = document.querySelectorAll('.notification-count');
+    tabCountElements.forEach(el => {
+        el.classList.add('loading');
+        el.textContent = ''; // Content added via CSS ::before for animation
+    });
+    
     // Debug current data status
     debugDataStatus();
     
@@ -8766,12 +8785,15 @@ async function updateTabCounts() {
         const previousCount = document.querySelector('#previousTab .notification-count');
         
         if (listingsCount) {
+            listingsCount.classList.remove('loading');
             listingsCount.textContent = counts.listings;
         }
         if (hiringCount) {
+            hiringCount.classList.remove('loading');
             hiringCount.textContent = counts.hiring;
         }
         if (previousCount) {
+            previousCount.classList.remove('loading');
             previousCount.textContent = counts.previous;
         }
         
@@ -8781,12 +8803,15 @@ async function updateTabCounts() {
         const workerCompletedCount = document.querySelector('#workerCompletedTab .notification-count');
         
         if (offeredCount) {
+            offeredCount.classList.remove('loading');
             offeredCount.textContent = counts.offered;
         }
         if (acceptedCount) {
+            acceptedCount.classList.remove('loading');
             acceptedCount.textContent = counts.accepted;
         }
         if (workerCompletedCount) {
+            workerCompletedCount.classList.remove('loading');
             workerCompletedCount.textContent = counts.workerCompleted;
         }
         

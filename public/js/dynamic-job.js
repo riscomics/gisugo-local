@@ -1192,18 +1192,28 @@ async function checkIfUserAlreadyApplied(jobId) {
       console.log('✅ User has not applied yet, button remains enabled');
       return;
       
-    } else if (applicationCount === 1 && mostRecentApp.status === 'rejected') {
+    } else if (applicationCount === 1 && (mostRecentApp.status === 'rejected' || mostRecentApp.status === 'voided' || mostRecentApp.status === 'resigned')) {
       // ═══════════════════════════════════════════════════════════════
-      // Applied once, got rejected - show "APPLY AGAIN" (enabled)
+      // Applied once, got rejected/voided/resigned - show "APPLY AGAIN" (enabled)
       // ═══════════════════════════════════════════════════════════════
-      console.log('♻️ User was rejected - showing APPLY AGAIN button');
+      let reason = '';
+      if (mostRecentApp.status === 'rejected') {
+        reason = 'You were rejected. You can apply one more time.';
+        console.log('♻️ User was rejected - showing APPLY AGAIN button');
+      } else if (mostRecentApp.status === 'voided') {
+        reason = 'Your contract was voided. You can apply one more time.';
+        console.log('♻️ User was voided (customer relisted) - showing APPLY AGAIN button');
+      } else if (mostRecentApp.status === 'resigned') {
+        reason = 'You resigned. You can apply one more time.';
+        console.log('♻️ User resigned - showing APPLY AGAIN button');
+      }
       
       applyBtn.disabled = false;
       applyBtn.style.opacity = '1';
       applyBtn.style.cursor = 'pointer';
       applyBtn.style.backgroundColor = '#ff9800';  // Orange for "try again"
       applyBtn.querySelector('span').textContent = 'APPLY AGAIN';
-      applyBtn.title = 'You were rejected. You can apply one more time.';
+      applyBtn.title = reason;
       
       console.log('✅ Apply button set to "APPLY AGAIN" mode');
       

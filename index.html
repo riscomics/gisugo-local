@@ -613,11 +613,19 @@
               // Check if user has completed profile - if not, redirect to signup
               // BUT: Don't redirect if user is navigating away to another page
               if (typeof checkUserHasProfile === 'function' && !isNavigatingAway) {
-                const { hasProfile } = await checkUserHasProfile(user.uid);
-                if (!hasProfile && !isNavigatingAway) {
-                  console.log('⚠️ Zombie user detected - redirecting to complete profile');
-                  window.location.href = 'sign-up.html';
-                  return;
+                try {
+                  const { hasProfile, error } = await checkUserHasProfile(user.uid);
+                  // Only redirect if we definitively know there's no profile
+                  // If there's an error (e.g., Firestore not ready), DON'T redirect
+                  if (!hasProfile && !error && !isNavigatingAway) {
+                    console.log('⚠️ Zombie user detected - redirecting to complete profile');
+                    window.location.href = 'sign-up.html';
+                    return;
+                  } else if (error) {
+                    console.warn('⚠️ Could not verify profile status - staying on page:', error);
+                  }
+                } catch (profileCheckError) {
+                  console.warn('⚠️ Profile check threw error - staying on page:', profileCheckError);
                 }
               }
             }

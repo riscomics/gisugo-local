@@ -915,9 +915,13 @@ async function applyForJob(jobId, applicationData) {
         };
       }
       
-      // If status is 'rejected', allow reapplication
+      // If status is 'rejected', 'voided', or 'resigned', allow reapplication
       if (existingApp.status === 'rejected') {
         console.log('♻️ User was rejected - allowing reapplication (2nd chance)');
+      } else if (existingApp.status === 'voided') {
+        console.log('♻️ User was voided (contract terminated by customer) - allowing reapplication (2nd chance)');
+      } else if (existingApp.status === 'resigned') {
+        console.log('♻️ User resigned (left the job) - allowing reapplication (2nd chance)');
       }
     }
     

@@ -70,6 +70,10 @@
         <button onclick="findOrphanedApplications()" style="background:#dc3545;">
             Find & Fix Orphaned Applications
         </button>
+        
+        <button onclick="checkMapleJob()" style="background:#ff6b6b;">
+            🔍 DEBUG: Check Maple Syrup Job
+        </button>
 
         <div id="results" class="result-section"></div>
     </div>
@@ -435,6 +439,92 @@ Fix All Orphaned Applications
 ❌ Errors: ${errorCount}<br><br>
 ${fixedCount > 0 ? 'Workers can now reapply to fixed jobs!' : 'You need to log in as the job poster or applicant to fix these.'}
 </div>`;
+        }
+
+        async function checkMapleJob() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>🔍 Searching for Maple Syrup job...</p>';
+
+            try {
+                // Find the job
+                const jobsSnapshot = await db.collection('jobs')
+                    .where('title', '>=', 'Deliver large crate of Maple')
+                    .where('title', '<=', 'Deliver large crate of Maple\uf8ff')
+                    .get();
+
+                if (jobsSnapshot.empty) {
+                    results.innerHTML = '<div class="status error">❌ Maple Syrup job not found</div>';
+                    return;
+                }
+
+                const jobDoc = jobsSnapshot.docs[0];
+                const jobData = jobDoc.data();
+                const jobId = jobDoc.id;
+
+                let html = `<div class="status success">✅ Job Found!</div>`;
+                html += `<pre><strong>📋 Job Details:</strong>
+Job ID: ${jobId}
+Title: ${jobData.title}
+Poster: ${jobData.posterName} (${jobData.posterId})
+Status: ${jobData.status}
+applicationCount: ${jobData.applicationCount || 0}</pre>`;
+
+                // Get ALL applications for this job
+                const applicationsSnapshot = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .get();
+
+                html += `<h3>📊 ALL Applications: ${applicationsSnapshot.size}</h3>`;
+
+                if (applicationsSnapshot.size > 0) {
+                    for (const appDoc of applicationsSnapshot.docs) {
+                        const app = appDoc.data();
+                        
+                        // Get actual user profile to verify
+                        const userDoc = await db.collection('users').doc(app.applicantId).get();
+                        const actualUserName = userDoc.exists ? userDoc.data().fullName : 'USER NOT FOUND';
+                        
+                        const appliedDate = app.appliedAt ? app.appliedAt.toDate().toLocaleString() : 'N/A';
+                        
+                        const nameMatch = actualUserName === app.applicantName ? '✅' : '❌ MISMATCH!';
+                        
+                        html += `<div class="status ${nameMatch === '✅' ? 'info' : 'error'}">
+<strong>Application ${appDoc.id}</strong><br>
+Stored Name: <strong>${app.applicantName}</strong><br>
+Actual User: <strong>${actualUserName}</strong> ${nameMatch}<br>
+Applicant ID: ${app.applicantId}<br>
+Status: <strong>${app.status}</strong><br>
+Applied: ${appliedDate}<br>
+${app.counterOffer ? `Counter Offer: ₱${app.counterOffer}<br>` : ''}
+</div>`;
+                    }
+                }
+
+                // Check if John John Yu has any applications
+                const usersSnapshot = await db.collection('users')
+                    .where('fullName', '==', 'John John Yu')
+                    .get();
+                
+                if (!usersSnapshot.empty) {
+                    const johnId = usersSnapshot.docs[0].id;
+                    html += `<hr><h3>🔍 John John Yu Check</h3>`;
+                    html += `<pre>John John Yu ID: ${johnId}</pre>`;
+                    
+                    const johnApps = await db.collection('applications')
+                        .where('jobId', '==', jobId)
+                        .where('applicantId', '==', johnId)
+                        .get();
+                    
+                    html += `<div class="status ${johnApps.size > 0 ? 'success' : 'warning'}">
+John John Yu applications to this job: <strong>${johnApps.size}</strong>
+</div>`;
+                }
+
+                results.innerHTML = html;
+
+            } catch (error) {
+                results.innerHTML += `<div class="status error"><strong>❌ Error:</strong> ${error.message}</div>`;
+            }
         }
 
         async function fixMismatch() {
