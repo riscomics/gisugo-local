@@ -77,9 +77,15 @@ service cloud.firestore {
     
     // Check if hired worker is resigning from the job (after accepting)
     function isHiredWorkerResigning() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
       return (resource.data.status == 'hired' || resource.data.status == 'accepted')
         && resource.data.hiredWorkerId == request.auth.uid
-        && request.resource.data.status == 'active';
+        && request.resource.data.status == 'active'
+        && affectedKeys.hasOnly([
+          'status', 'hiredWorkerId', 'hiredWorkerName', 'hiredWorkerThumbnail',
+          'agreedPrice', 'hiredAt', 'acceptedAt', 'resignedAt', 'resignReason',
+          'resignedWorkerId', 'resignedWorkerName', 'applicationCount', 'lastModified'
+        ]);
     }
     
     // Check if customer is marking their hired job as complete

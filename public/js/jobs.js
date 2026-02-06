@@ -2664,10 +2664,17 @@ function generateHiringCardHTML(job) {
     const roleClass = job.role; // 'customer' or 'worker'
     
     // Determine role caption and user info based on perspective
-    let roleCaption, userThumbnail, userName;
+    let roleCaption, userThumbnail, userName, statusClass = '';
     if (job.role === 'customer') {
-        // Customer perspective: I hired someone, show the worker's thumbnail
-        roleCaption = `YOU HIRED ${job.hiredWorkerName.toUpperCase()}`;
+        // Customer perspective: Distinguish between pending offer and accepted
+        if (job.status === 'hired') {
+            // Job offered but worker hasn't accepted yet
+            roleCaption = `YOU OFFERED ${job.hiredWorkerName.toUpperCase()}`;
+            statusClass = ' pending-offer';
+        } else {
+            // Worker has accepted (status === 'accepted')
+            roleCaption = `YOU HIRED ${job.hiredWorkerName.toUpperCase()}`;
+        }
         userThumbnail = job.hiredWorkerThumbnail;
         userName = job.hiredWorkerName;
     } else {
@@ -2682,7 +2689,7 @@ function generateHiringCardHTML(job) {
     const highlightClass = job.isNewlyHired ? ' newly-hired-highlight' : '';
     
     return `
-        <div class="hiring-card ${roleClass}${highlightClass}" 
+        <div class="hiring-card ${roleClass}${statusClass}${highlightClass}" 
              data-job-id="${job.jobId}"
              data-poster-id="${job.posterId}"
              data-category="${job.category}"
@@ -2712,7 +2719,11 @@ function generateHiringCardHTML(job) {
                 
                 <div class="hiring-content">
                     <div class="hiring-left-content">
-                        <div class="hiring-price">${job.priceOffer}</div>
+                        <div class="hiring-price-row">
+                            <div class="hiring-price">${job.priceOffer}</div>
+                            ${job.role === 'customer' && job.status === 'hired' ? '<div class="hiring-status-badge pending">PENDING</div>' : ''}
+                            ${job.role === 'customer' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">In Progress</div>' : ''}
+                        </div>
                         <div class="hiring-role-caption ${roleClass}">${roleCaption}</div>
                     </div>
                     <div class="hiring-right-content">
@@ -4406,6 +4417,17 @@ function initializeResignJobConfirmationHandlers() {
         yesBtn.onclick = null;
         const yesHandler = async function() {
             const overlay = document.getElementById('resignJobConfirmationOverlay');
+            
+            // Prevent multiple executions
+            if (overlay.dataset.processing === 'true') {
+                console.log('⚠️ Resignation already in progress, ignoring duplicate call');
+                return;
+            }
+            overlay.dataset.processing = 'true';
+            
+            // Disable the button to prevent rapid clicking
+            yesBtn.disabled = true;
+            
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const customerName = overlay.getAttribute('data-customer-name');
@@ -4414,6 +4436,8 @@ function initializeResignJobConfirmationHandlers() {
             // Validate reason input
             if (!reason || reason.length < 2) {
                 reasonError.classList.add('show');
+                overlay.dataset.processing = 'false'; // Reset processing flag
+                yesBtn.disabled = false; // Re-enable button
                 return;
             }
             
@@ -4517,6 +4541,10 @@ function initializeResignJobConfirmationHandlers() {
                     hideLoadingOverlay();
                     showErrorNotification('Failed to process resignation. Please try again.');
                     return;
+                } finally {
+                    // Reset processing flag after operation completes (success or error)
+                    overlay.dataset.processing = 'false';
+                    yesBtn.disabled = false;
                 }
             }
             
