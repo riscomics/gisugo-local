@@ -2722,8 +2722,8 @@ function generateHiringCardHTML(job) {
                         <div class="hiring-price">₱${job.priceOffer}</div>
                         <div class="hiring-role-caption ${roleClass}">${roleCaption}</div>
                         ${job.role === 'customer' && job.status === 'hired' ? '<div class="hiring-status-badge pending">Waiting for Worker</div>' : ''}
-                        ${job.role === 'customer' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">In Progress</div>' : ''}
-                        ${job.role === 'worker' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">In Progress</div>' : ''}
+                        ${job.role === 'customer' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">Work in Progress</div>' : ''}
+                        ${job.role === 'worker' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">Work in Progress</div>' : ''}
                     </div>
                     <div class="hiring-right-content">
                         <div class="hiring-user-thumbnail">

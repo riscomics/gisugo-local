@@ -826,7 +826,7 @@ body:has(.jobs-header) {
 }
 
 .hiring-status-badge.in-progress::after {
-  content: 'In Progress';
+  content: 'Work in Progress';
   position: absolute;
   top: 50%;
   left: 50%;
