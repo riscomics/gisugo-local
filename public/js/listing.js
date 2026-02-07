@@ -600,7 +600,7 @@ function ensureListingEmptyState(headerSpacer) {
   emptyState.id = 'listingEmptyState';
   emptyState.className = 'listing-empty-state';
   emptyState.innerHTML = `
-    <img class="listing-empty-graphic" src="public/images/logo.png" alt="GISUGO logo">
+    <img class="listing-empty-graphic" src="public/images/Gisugo-emblem.png" alt="GISUGO logo">
     <div class="listing-empty-title">No gigs yet</div>
     <div class="listing-empty-subtitle">Be the first to post in this category or check back soon.</div>
   `;
