@@ -91,7 +91,6 @@ function attachPostButtonHandler() {
 window.handlePostButtonClick = handlePostButtonClick;
 normalizeHeaderButtons();
 attachPostButtonHandler();
-
 // Service Menu Overlay
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
 const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
