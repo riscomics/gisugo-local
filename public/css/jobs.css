@@ -800,6 +800,8 @@ body:has(.jobs-header) {
   background: #fbbf24;
   animation: pendingFlash 2s ease-in-out infinite;
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+  font-size: 0.76rem;
+  padding: 3px 8px;
 }
 
 .hiring-status-badge.in-progress {
