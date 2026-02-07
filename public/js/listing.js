@@ -21,6 +21,76 @@ listingCssLinks.forEach(link => {
   link.setAttribute('href', `${baseHref}?v=${LISTING_CSS_VERSION}`);
 });
 
+function normalizeHeaderButtons() {
+  const headerButtons = document.querySelectorAll('.jobcat-headerbuttons .jobcat-headerbutton');
+  headerButtons.forEach(button => {
+    if (button.id) return;
+    const img = button.querySelector('img');
+    if (!img) return;
+    const alt = (img.getAttribute('alt') || '').toLowerCase();
+    const src = (img.getAttribute('src') || '').toLowerCase();
+    if (alt === 'post' || src.includes('post')) {
+      button.id = 'postBtn';
+    } else if (alt === 'search' || src.includes('search')) {
+      button.id = 'searchBtn';
+    }
+  });
+}
+
+// POST BUTTON AUTH CHECK (with zombie user detection)
+function handlePostButtonClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Wait for Firebase to be available
+  setTimeout(function() {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const auth = firebase.auth();
+    const currentUser = auth.currentUser;
+
+    if (!currentUser) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Check if user has profile in Firestore (prevent zombie users)
+    if (typeof checkUserHasProfile === 'function') {
+      checkUserHasProfile(currentUser.uid).then(function(result) {
+        if (result.hasProfile) {
+          window.location.href = 'new-post2.html';
+        } else {
+          // Zombie user - redirect to complete profile
+          window.location.href = 'sign-up.html';
+        }
+      }).catch(function(error) {
+        console.error('Profile check failed:', error);
+        window.location.href = 'login.html';
+      });
+    } else {
+      // Fallback: no profile check available
+      window.location.href = 'new-post2.html';
+    }
+  }, 50);
+
+  return false;
+}
+
+function attachPostButtonHandler() {
+  const postBtn = document.getElementById('postBtn');
+  if (!postBtn || postBtn.dataset.postBound === 'true') return;
+  if (!postBtn.getAttribute('onclick')) {
+    postBtn.addEventListener('click', handlePostButtonClick);
+  }
+  postBtn.dataset.postBound = 'true';
+}
+
+window.handlePostButtonClick = handlePostButtonClick;
+normalizeHeaderButtons();
+attachPostButtonHandler();
 // Service Menu Overlay
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
 const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
