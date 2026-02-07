@@ -792,6 +792,7 @@ body:has(.jobs-header) {
   letter-spacing: 0.3px;
   white-space: nowrap;
   align-self: flex-start;
+  position: relative;
 }
 
 .hiring-status-badge.pending {
@@ -802,10 +803,35 @@ body:has(.jobs-header) {
 }
 
 .hiring-status-badge.in-progress {
-  color: #1a1a1a;
-  background: #10b981;
-  animation: inProgressFlash 2s ease-in-out infinite;
+  color: #ffffff;
+  background: #1a3328;
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+  overflow: hidden;
+  border: 2px solid #10b981;
+}
+
+.hiring-status-badge.in-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 60%;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  animation: batteryPulse 2s ease-in-out infinite;
+}
+
+.hiring-status-badge.in-progress::after {
+  content: 'In Progress';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #ffffff;
+  font-weight: 700;
+  z-index: 1;
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes pendingFlash {
@@ -819,14 +845,14 @@ body:has(.jobs-header) {
   }
 }
 
-@keyframes inProgressFlash {
+@keyframes batteryPulse {
   0%, 100% {
+    width: 58%;
     opacity: 1;
-    transform: scale(1);
   }
   50% {
-    opacity: 0.6;
-    transform: scale(0.95);
+    width: 62%;
+    opacity: 0.9;
   }
 }
 
