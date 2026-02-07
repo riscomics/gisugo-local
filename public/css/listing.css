@@ -2481,7 +2481,7 @@ body::-webkit-scrollbar {
 }
 
 .listing-empty-graphic {
-  width: clamp(88px, 20vw, 160px);
+  width: clamp(96px, 22vw, 180px);
   height: auto;
   margin-bottom: clamp(12px, 3vw, 18px);
   filter: drop-shadow(0 6px 16px rgba(16, 185, 129, 0.35));
@@ -2499,7 +2499,7 @@ body::-webkit-scrollbar {
 .listing-empty-subtitle {
   font-size: clamp(18px, 4.2vw, 24px);
   color: rgba(230, 214, 174, 0.9);
-  line-height: 1.5;
+  line-height: 1.7;
   max-width: 40ch;
 }
 
