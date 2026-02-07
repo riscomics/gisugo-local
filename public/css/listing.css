@@ -2465,7 +2465,7 @@ body::-webkit-scrollbar {
   align-items: center;
   text-align: center;
   max-width: clamp(320px, 85vw, 620px);
-  margin: clamp(20px, 4vw, 40px) auto clamp(24px, 5vw, 48px);
+  margin: clamp(24px, 5vw, 52px) auto clamp(28px, 6vw, 64px);
   padding: clamp(20px, 4vw, 32px);
   border-radius: 16px;
   border: 2px dashed rgba(16, 185, 129, 0.4);
@@ -2477,27 +2477,57 @@ body::-webkit-scrollbar {
 
 .listing-empty-state.is-visible {
   display: flex;
+  animation: emptyStateFadeIn 0.5s ease-out;
 }
 
 .listing-empty-graphic {
-  width: clamp(72px, 18vw, 120px);
+  width: clamp(88px, 20vw, 160px);
   height: auto;
-  margin-bottom: clamp(10px, 2.5vw, 16px);
+  margin-bottom: clamp(12px, 3vw, 18px);
   filter: drop-shadow(0 6px 16px rgba(16, 185, 129, 0.35));
+  animation: emptyStateFloat 3.2s ease-in-out infinite;
 }
 
 .listing-empty-title {
-  font-size: clamp(18px, 4vw, 26px);
+  font-size: clamp(22px, 5vw, 34px);
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: clamp(6px, 1.5vw, 10px);
+  margin-bottom: clamp(8px, 2vw, 12px);
+  letter-spacing: 0.5px;
 }
 
 .listing-empty-subtitle {
-  font-size: clamp(13px, 3vw, 16px);
+  font-size: clamp(15px, 3.6vw, 20px);
   color: rgba(230, 214, 174, 0.9);
-  line-height: 1.4;
+  line-height: 1.5;
   max-width: 40ch;
+}
+
+@keyframes emptyStateFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes emptyStateFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listing-empty-state.is-visible,
+  .listing-empty-graphic {
+    animation: none;
+  }
 }
 .job-preview-extras {
   display: flex;
