@@ -590,6 +590,31 @@ function parseJobEndTime(dateStr, timeStr) {
   }
 }
 
+// Ensure there is a shared empty-state placeholder on listing pages
+function ensureListingEmptyState(headerSpacer) {
+  if (!headerSpacer || !headerSpacer.parentNode) return null;
+  let emptyState = document.getElementById('listingEmptyState');
+  if (emptyState) return emptyState;
+
+  emptyState = document.createElement('div');
+  emptyState.id = 'listingEmptyState';
+  emptyState.className = 'listing-empty-state';
+  emptyState.innerHTML = `
+    <img class="listing-empty-graphic" src="public/images/logo.png" alt="GISUGO logo">
+    <div class="listing-empty-title">No gigs yet</div>
+    <div class="listing-empty-subtitle">Be the first to post in this category or check back soon.</div>
+  `;
+
+  headerSpacer.parentNode.insertBefore(emptyState, headerSpacer.nextSibling);
+  return emptyState;
+}
+
+function setListingEmptyStateVisible(isVisible, headerSpacer) {
+  const emptyState = ensureListingEmptyState(headerSpacer);
+  if (!emptyState) return;
+  emptyState.classList.toggle('is-visible', isVisible);
+}
+
 // Filter and sort jobs based on selected criteria
 async function filterAndSortJobs() {
   const currentCategory = getCurrentCategory();
@@ -600,6 +625,9 @@ async function filterAndSortJobs() {
     return;
   }
   
+  // Hide empty state while loading new results
+  setListingEmptyStateVisible(false, headerSpacer);
+
   // Show loading modal
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) {
@@ -815,6 +843,9 @@ async function filterAndSortJobs() {
     const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
     headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
   });
+
+  // Show empty state when no gigs are available
+  setListingEmptyStateVisible(filteredJobs.length === 0, headerSpacer);
   
   // Apply truncation after cards are loaded
   setTimeout(truncateBarangayNames, 50);
