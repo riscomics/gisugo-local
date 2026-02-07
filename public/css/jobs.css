@@ -542,7 +542,7 @@ body:has(.jobs-header) {
   flex-direction: column;
   width: calc(100% - 20px);
   max-width: 700px;
-  height: 260px;
+  height: 280px;
   border-radius: 12px;
   margin: 0 auto 16px auto;
   cursor: pointer;
@@ -770,12 +770,7 @@ body:has(.jobs-header) {
 }
 
 /* Hiring Content - Updated Layout */
-.hiring-price-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+/* Hiring Content - Updated Layout */
 .hiring-price {
   font-size: 1.3rem;
   font-weight: 700;
@@ -790,12 +785,13 @@ body:has(.jobs-header) {
 }
 
 .hiring-status-badge {
-  font-size: 0.56rem;
+  font-size: 1rem;
   font-weight: 700;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 5px;
   letter-spacing: 0.3px;
   white-space: nowrap;
+  align-self: flex-start;
 }
 
 .hiring-status-badge.pending {
