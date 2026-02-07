@@ -808,6 +808,8 @@ body:has(.jobs-header) {
   box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
   overflow: hidden;
   border: 2px solid #10b981;
+  font-size: 0.75rem;
+  padding: 3px 8px;
 }
 
 .hiring-status-badge.in-progress::before {
