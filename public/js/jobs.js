@@ -2759,14 +2759,26 @@ function initializeHiringCardHandlers() {
 }
 
 function extractHiringJobDataFromCard(cardElement) {
+    const jobId = cardElement.getAttribute('data-job-id');
+    const posterId = cardElement.getAttribute('data-poster-id');
+    const category = cardElement.getAttribute('data-category');
+    const role = cardElement.getAttribute('data-role');
+    const hiredWorkerId = cardElement.getAttribute('data-hired-worker-id');
+    const hiredWorkerName = cardElement.getAttribute('data-hired-worker-name');
+    const title = cardElement.querySelector('.hiring-title')?.textContent || 'Unknown Job';
+    
+    // Get job status from the card's classList
+    const status = cardElement.classList.contains('pending-offer') ? 'hired' : 'accepted';
+    
     return {
-        jobId: cardElement.getAttribute('data-job-id'),
-        posterId: cardElement.getAttribute('data-poster-id'),
-        category: cardElement.getAttribute('data-category'),
-        role: cardElement.getAttribute('data-role'),
-        hiredWorkerId: cardElement.getAttribute('data-hired-worker-id'),
-        hiredWorkerName: cardElement.getAttribute('data-hired-worker-name'),
-        title: cardElement.querySelector('.hiring-title')?.textContent || 'Unknown Job'
+        jobId,
+        posterId,
+        category,
+        role,
+        hiredWorkerId,
+        hiredWorkerName,
+        title,
+        status
     };
 }
 
@@ -2792,22 +2804,36 @@ async function showHiringOptionsOverlay(jobData) {
     title.textContent = 'Manage Hiring';
     subtitle.textContent = `Choose an action for "${jobData.title}"`;
     
-    // Generate buttons based on role
+    // Generate buttons based on role and job status
     let buttonsHTML = '';
     
     if (jobData.role === 'customer') {
-        // Customer perspective: You hired someone
-        buttonsHTML = `
-            <button class="listing-option-btn modify" id="completeJobBtn">
-                MARK AS COMPLETED
-            </button>
-            <button class="listing-option-btn pause" id="relistJobBtn">
-                RELIST JOB (Void Current Hire)
-            </button>
-            <button class="listing-option-btn cancel" id="cancelHiringBtn">
-                CLOSE
-            </button>
-        `;
+        // Customer perspective: Check if worker has accepted or still pending
+        if (jobData.status === 'hired') {
+            // Offer pending - worker hasn't accepted yet
+            // Only show RELIST with "Retract Offer" text
+            buttonsHTML = `
+                <button class="listing-option-btn pause" id="relistJobBtn">
+                    RELIST GIG (Retract Offer)
+                </button>
+                <button class="listing-option-btn cancel" id="cancelHiringBtn">
+                    CLOSE
+                </button>
+            `;
+        } else {
+            // Worker has accepted - show both options
+            buttonsHTML = `
+                <button class="listing-option-btn modify" id="completeJobBtn">
+                    MARK AS COMPLETED
+                </button>
+                <button class="listing-option-btn pause" id="relistJobBtn">
+                    RELIST JOB (Void Current Hire)
+                </button>
+                <button class="listing-option-btn cancel" id="cancelHiringBtn">
+                    CLOSE
+                </button>
+            `;
+        }
     } else if (jobData.role === 'worker') {
         // Worker perspective: You were hired
         buttonsHTML = `
