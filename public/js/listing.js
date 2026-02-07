@@ -13,6 +13,14 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
+const LISTING_CSS_VERSION = '20260207f';
+const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
+listingCssLinks.forEach(link => {
+  const href = link.getAttribute('href') || '';
+  const baseHref = href.split('?')[0];
+  link.setAttribute('href', `${baseHref}?v=${LISTING_CSS_VERSION}`);
+});
+
 // Service Menu Overlay
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
 const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
