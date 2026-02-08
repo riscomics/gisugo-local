@@ -13,7 +13,7 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
-const LISTING_CSS_VERSION = '20260207f';
+const LISTING_CSS_VERSION = '20260208p';
 const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
 listingCssLinks.forEach(link => {
   const href = link.getAttribute('href') || '';
@@ -1920,37 +1920,37 @@ function initJobcatButtonAutoResize() {
     { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'basic' },
     { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
     { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
-    { emoji: '🧺', label: 'Laba', page: 'laba.html', section: 'basic' },
+    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'basic' },
     { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
     { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'basic' },
-    { emoji: '👶', label: 'Bantay', page: 'bantay.html', section: 'basic' },
+    { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'basic' },
     { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'basic' },
-    { emoji: '👔', label: 'Staff', page: 'staff.html', section: 'basic' },
-    { emoji: '👩‍💼👨‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
+    { emoji: '🙋🏻', label: 'Staff', page: 'staff.html', section: 'basic' },
+    { emoji: '👩🏻‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
     
     // SKILLED WORKER SECTION
     { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'skilled' },
-    { emoji: '🛡️', label: 'Security', page: 'security.html', section: 'skilled' },
-    { emoji: '🔧', label: 'Plumber', page: 'plumber.html', section: 'skilled' },
-    { emoji: '👷', label: 'Builder', page: 'builder.html', section: 'skilled' },
-    { emoji: '🎨', label: 'Painter', page: 'painter.html', section: 'skilled' },
+    { emoji: '👮🏻', label: 'Security', page: 'security.html', section: 'skilled' },
+    { emoji: '🚰', label: 'Plumber', page: 'plumber.html', section: 'skilled' },
+    { emoji: '👷🏻', label: 'Builder', page: 'builder.html', section: 'skilled' },
+    { emoji: '🖌️', label: 'Painter', page: 'painter.html', section: 'skilled' },
     { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'skilled' },
     { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'skilled' },
-    { emoji: '✍️', label: 'Editor', page: 'editor.html', section: 'skilled' },
+    { emoji: '🎬', label: 'Editor', page: 'editor.html', section: 'skilled' },
     { emoji: '🖼️', label: 'Artist', page: 'artist.html', section: 'skilled' },
     { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'skilled' },
-    { emoji: '🔬', label: 'Researcher', page: 'researcher.html', section: 'skilled' },
+    { emoji: '🔍', label: 'Researcher', page: 'researcher.html', section: 'skilled' },
     { emoji: '📱', label: 'Social', page: 'social.html', section: 'skilled' },
     { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'skilled' },
     { emoji: '🎥', label: 'Videographer', page: 'videographer.html', section: 'skilled' },
     { emoji: '🎵', label: 'Musician', page: 'musician.html', section: 'skilled' },
-    { emoji: '📝', label: 'Secretary', page: 'secretary.html', section: 'skilled' },
+    { emoji: '📋', label: 'Secretary', page: 'secretary.html', section: 'skilled' },
     { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'skilled' },
-    { emoji: '📋', label: 'Clerical', page: 'clerical.html', section: 'skilled' },
+    { emoji: '🗂️', label: 'Clerical', page: 'clerical.html', section: 'skilled' },
     
     // PROFESSIONAL SECTION
-    { emoji: '💉', label: 'Nurse', page: 'nurse.html', section: 'professional' },
-    { emoji: '⚕️', label: 'Doctor', page: 'doctor.html', section: 'professional' },
+    { emoji: '❤️‍🩹', label: 'Nurse', page: 'nurse.html', section: 'professional' },
+    { emoji: '🧑🏻‍⚕️', label: 'Doctor', page: 'doctor.html', section: 'professional' },
     { emoji: '⚖️', label: 'Lawyer', page: 'lawyer.html', section: 'professional' },
     { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'professional' },
     { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'professional' },
