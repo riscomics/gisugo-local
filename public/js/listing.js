@@ -13,7 +13,7 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
-const LISTING_CSS_VERSION = '20260208p';
+const LISTING_CSS_VERSION = '20260208q';
 const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
 listingCssLinks.forEach(link => {
   const href = link.getAttribute('href') || '';
@@ -1947,6 +1947,12 @@ function initJobcatButtonAutoResize() {
     { emoji: '📋', label: 'Secretary', page: 'secretary.html', section: 'skilled' },
     { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'skilled' },
     { emoji: '🗂️', label: 'Clerical', page: 'clerical.html', section: 'skilled' },
+    { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'skilled' },
+    { emoji: '💃', label: 'Performer', page: 'performer.html', section: 'skilled' },
+    { emoji: '💆🏻‍♀️', label: 'Massage', page: 'massage.html', section: 'skilled' },
+    { emoji: '👨🏻‍🔧', label: 'Handyman', page: 'handyman.html', section: 'skilled' },
+    { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'skilled' },
+    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'skilled' },
     
     // PROFESSIONAL SECTION
     { emoji: '❤️‍🩹', label: 'Nurse', page: 'nurse.html', section: 'professional' },
@@ -1960,7 +1966,10 @@ function initJobcatButtonAutoResize() {
     { emoji: '⚙️', label: 'Engineer', page: 'engineer.html', section: 'professional' },
     { emoji: '💻', label: 'Programmer', page: 'programmer.html', section: 'professional' },
     { emoji: '🧘', label: 'Therapist', page: 'therapist.html', section: 'professional' },
-    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'professional' }
+    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'professional' },
+    { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'professional' },
+    { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'professional' },
+    { emoji: '🎉', label: 'Planner', page: 'planner.html', section: 'professional' }
   ];
 
   // Get current page to mark active

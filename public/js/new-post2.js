@@ -297,7 +297,16 @@ const extrasConfig = {
   engineer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
   programmer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
   therapist: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
-  marketer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+  marketer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  gardner: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  performer: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  massage: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  handyman: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  barber: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  waiter: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  chef: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  ittech: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  planner: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
 };
 
 // ========================== HELPER FUNCTIONS ==========================
