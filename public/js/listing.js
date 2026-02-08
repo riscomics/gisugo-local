@@ -1932,7 +1932,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'skilled' },
     { emoji: '🛡️', label: 'Security', page: 'security.html', section: 'skilled' },
     { emoji: '🔧', label: 'Plumber', page: 'plumber.html', section: 'skilled' },
-    { emoji: '🏗️', label: 'Builder', page: 'builder.html', section: 'skilled' },
+    { emoji: '👷', label: 'Builder', page: 'builder.html', section: 'skilled' },
     { emoji: '🎨', label: 'Painter', page: 'painter.html', section: 'skilled' },
     { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'skilled' },
     { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'skilled' },
