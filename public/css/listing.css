@@ -2485,7 +2485,7 @@ body::-webkit-scrollbar {
   height: auto;
   margin-bottom: clamp(12px, 3vw, 18px);
   filter: drop-shadow(0 6px 16px rgba(16, 185, 129, 0.35));
-  animation: emptyStateFloat 3.2s ease-in-out infinite;
+  animation: float 3.2s ease-in-out infinite;
 }
 
 .listing-empty-title {
@@ -2511,15 +2511,6 @@ body::-webkit-scrollbar {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes emptyStateFloat {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
   }
 }
 
