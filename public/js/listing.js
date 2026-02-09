@@ -1923,12 +1923,12 @@ function initJobcatButtonAutoResize() {
     { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
     { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'basic' },
     { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'basic' },
-    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'basic' },
+    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'basic' },
     { emoji: '🙋🏻', label: 'Staff', page: 'staff.html', section: 'basic' },
-    { emoji: '👩🏻‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
+    { emoji: '👩‍💼👨‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
     
     // SKILLED WORKER SECTION
-    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'skilled' },
+    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'skilled' },
     { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'skilled' },
     { emoji: '👮🏻', label: 'Security', page: 'security.html', section: 'skilled' },
     { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'skilled' },
