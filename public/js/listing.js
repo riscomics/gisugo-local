@@ -996,13 +996,15 @@ function getCurrentCategory() {
   const title = document.title;
   const categoryMatch = title.match(/(\w+) Service/);
   if (categoryMatch) {
-    return categoryMatch[1].toLowerCase();
+    const category = categoryMatch[1].toLowerCase();
+    return category === 'realtor' ? 'planner' : category;
   }
   
   // Fallback: get from URL
   const url = window.location.pathname;
   const filename = url.substring(url.lastIndexOf('/') + 1);
-  return filename.replace('.html', '');
+  const category = filename.replace('.html', '');
+  return category === 'realtor' ? 'planner' : category;
 }
 
 // ============================================================================
@@ -1962,7 +1964,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'professional' },
     { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'professional' },
     { emoji: '🧘🏻', label: 'Therapist', page: 'therapist.html', section: 'professional' },
-    { emoji: '🎉', label: 'Planner', page: 'planner.html', section: 'professional' },
+    { emoji: '🏡', label: 'Realtor', page: 'planner.html', section: 'professional' },
     { emoji: '🧮', label: 'Accountant', page: 'accountant.html', section: 'professional' },
     { emoji: '💼', label: 'Consultant', page: 'consultant.html', section: 'professional' },
     { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'professional' },
