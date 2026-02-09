@@ -1590,3 +1590,19 @@ section {
 /* Keep existing media queries but override only if needed for extremes */
 
 
+/* ========================== EMOJI ICON SUPPORT ========================== */
+/* For service cards that use emojis instead of PNG images */
+
+.service-card__emoji {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #d4d4d4 0%, #c0c0c0 100%);
+  border-radius: 12px;
+}
+
+.service-card__emoji-icon {
+  font-size: 64px;
+  line-height: 1;
+}
+
