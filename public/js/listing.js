@@ -13,7 +13,7 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
-const LISTING_CSS_VERSION = '20260208q';
+const LISTING_CSS_VERSION = '20260208r';
 const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
 listingCssLinks.forEach(link => {
   const href = link.getAttribute('href') || '';
@@ -737,7 +737,6 @@ async function filterAndSortJobs() {
     
     // Format time
     const timeDisplay = `${firebaseJob.startTime || 'TBD'} - ${firebaseJob.endTime || 'TBD'}`;
-    
     return {
       id: firebaseJob.id,
       jobNumber: firebaseJob.id,  // Use document ID, not jobId field

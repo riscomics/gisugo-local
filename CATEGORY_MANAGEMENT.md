@@ -93,22 +93,31 @@ const jobCategories = [
 
 ---
 
-### 3. **Individual Listing Pages** 📄 42 HTML FILES
+### 3. **Individual Listing Pages** 📄 51 HTML FILES
 
-**Files:** All 42 category-specific HTML pages
+**Files:** All 51 category-specific HTML pages
 - `hatod.html`, `hakot.html`, `kompra.html`, `luto.html`, `hugas.html`, `laba.html`, `limpyo.html`, `tindera.html`, `bantay.html`, `trainer.html`, `staff.html`, `reception.html`
 - `driver.html`, `security.html`, `plumber.html`, `builder.html`, `painter.html`, `carpenter.html`, `creative.html`, `editor.html`, `artist.html`, `petcare.html`, `researcher.html`, `social.html`, `photographer.html`, `videographer.html`, `musician.html`, `secretary.html`, `tutor.html`, `clerical.html`
+- `gardner.html`, `performer.html`, `massage.html`, `handyman.html`, `barber.html`, `waiter.html` (NEW)
 - `nurse.html`, `doctor.html`, `lawyer.html`, `mechanic.html`, `electrician.html`, `tailor.html`, `accountant.html`, `consultant.html`, `engineer.html`, `programmer.html`, `therapist.html`, `marketer.html`
+- `chef.html`, `ittech.html`, `planner.html` (NEW)
 
 **Structure:** Each page is a copy of `hatod.html` with modifications:
 - Page title: `<title>Hatod Service - GISUGO</title>`
-- Active class on its own category card
+- Active class on its own category card in the modal
 - Service menu button shows category name: `<div>Hatod Gigs</div>`
+
+**CRITICAL ARCHITECTURE NOTE:**
+- **42 OLD pages** (pre-existing): NO hardcoded modal HTML - they rely 100% on `listing.js` to dynamically generate the category modal
+- **`hatod.html`**: HAS hardcoded modal HTML (acts as template)
+- **9 NEW pages** (gardner, performer, massage, handyman, barber, waiter, chef, ittech, planner): HAVE hardcoded modal HTML (copied from hatod.html template)
 
 **Impact:** When adding a new category, you must:
 1. Create a new HTML file (e.g., `newcategory.html`)
 2. Copy the structure from `hatod.html`
-3. Update the title, active class, and service name
+3. Update the title, active class (add to its own category), and service name
+4. **CRITICAL:** Add the new category to the hardcoded modal in the new HTML file itself
+5. **CRITICAL:** Update `listing.js` version number in ALL 51 category HTML files for cache busting
 
 ---
 
@@ -348,8 +357,10 @@ function isValidCategory() {
 2. `new-post2.html` - Add category card in "Select Gig Category" modal
 3. `index.html` - Add service card to homepage grid (PNG or emoji)
 4. `public/js/new-post2.js` - Add to `extrasConfig` (choose field pattern)
-5. Create `newcategory.html` - Copy from `hatod.html` and customize
-6. `hatod.html` - Add to modal structure (optional but recommended)
+5. Create `newcategory.html` - Copy from `hatod.html` and customize (title, service name, active class)
+6. **CRITICAL:** In the new `newcategory.html` file, add ALL new categories to its hardcoded modal (both in Skilled Worker AND Professional sections)
+7. `hatod.html` - Add to modal structure (keeps template up-to-date for future copies)
+8. **ALL 51 category HTML files** - Update `listing.js` version number (e.g., `v=20260208r`) for cache busting
 
 ### ⚠️ **CONSIDER UPDATING:**
 7. `firestore.rules` - Add to category whitelist (if validation implemented)
