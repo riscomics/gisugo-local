@@ -7024,20 +7024,17 @@ function initializeApplicationActionHandlers() {
         const userName = this.getAttribute('data-user-name');
         const userId = this.getAttribute('data-user-id');
         
-        if (userName) {
-            // Convert user name to URL-friendly format
-            const urlUserId = userName.toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/[^a-z0-9-]/g, '');
-            
+        if (userId && userName) {
             console.log(`🔍 View profile for: ${userName} (${userId})`);
             hideApplicationActionOverlay();
             showConfirmation('🔍', 'Opening Profile', `Opening profile for ${userName}...`);
             
-            // Navigate to profile page
+            // Navigate to profile page using Firebase UID (not slugified name)
             setTimeout(() => {
-                window.location.href = `profile.html?userId=${urlUserId}`;
+                window.location.href = `profile.html?userId=${userId}`;
             }, 1000);
+        } else {
+            console.error('❌ Missing userId or userName for profile navigation');
         }
     };
     
