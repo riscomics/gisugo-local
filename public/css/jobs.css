@@ -2352,7 +2352,7 @@ body:has(.jobs-header) {
 }
 
 .cancel-hire-btn {
-  flex: 1;
+  flex: 0.7;
   background: transparent;
   border: 2px solid #6b7280;
   color: #e5e7eb;
