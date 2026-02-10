@@ -712,6 +712,9 @@ async function filterAndSortJobs() {
     loadingOverlay.classList.add('show');
   }
   
+  // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
+  try {
+  
   // Clear existing job cards
   const existingCards = document.querySelectorAll('.job-preview-card');
   existingCards.forEach(card => card.remove());
@@ -927,9 +930,27 @@ async function filterAndSortJobs() {
   // Apply truncation after cards are loaded
   setTimeout(truncateBarangayNames, 50);
   
-  // Hide loading modal
-  if (loadingOverlay) {
-    loadingOverlay.classList.remove('show');
+  } catch (unexpectedError) {
+    // ⚠️ CRITICAL: Catch any unexpected errors
+    console.error('❌ Unexpected error in filterAndSortJobs:', unexpectedError);
+    // Show error state to user
+    const headerSpacer = document.querySelector('.header-spacer');
+    if (headerSpacer) {
+      setListingEmptyStateVisible(true, headerSpacer);
+      const emptyState = document.getElementById('listingEmptyState');
+      if (emptyState) {
+        emptyState.innerHTML = `
+          <div class="empty-state-icon">❌</div>
+          <div class="empty-state-text">Failed to load jobs. Please refresh the page.</div>
+        `;
+      }
+    }
+  } finally {
+    // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+      console.log('✅ Loading overlay hidden');
+    }
   }
 }
 
