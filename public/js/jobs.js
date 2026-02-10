@@ -1010,16 +1010,18 @@ window.JobsDataService = {
                 const db = firebase.firestore();
                 
                 // Query for completed jobs where user is the poster
+                // Force server read to avoid stale cache after feedback submission
                 const posterSnapshot = await db.collection('jobs')
                     .where('status', '==', 'completed')
                     .where('posterId', '==', currentUserId)
-                    .get();
+                    .get({ source: 'server' });
                 
                 // Query for completed jobs where user is the hired worker
+                // Force server read to avoid stale cache after feedback submission
                 const workerSnapshot = await db.collection('jobs')
                     .where('status', '==', 'completed')
                     .where('hiredWorkerId', '==', currentUserId)
-                    .get();
+                    .get({ source: 'server' });
                 
                 console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
                 
@@ -4677,7 +4679,9 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         showSuccessNotification('Job completed and feedback submitted');
         
         // Remove completed job from hiring data and transfer to completed data
-        if (completedJobId && MOCK_HIRING_DATA) {
+        // ONLY manipulate mock data if NOT in Firebase mode
+        const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+        if (!useFirebase && completedJobId && MOCK_HIRING_DATA) {
             const completedJob = MOCK_HIRING_DATA.find(job => job.jobId === completedJobId);
             if (completedJob) {
                 // Add to completed jobs data
@@ -4687,10 +4691,18 @@ function showJobCompletedSuccess(jobTitle, workerName) {
                 MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
                 console.log(`✅ Transferred completed job ${completedJobId} from Hiring to Previous tab`);
             }
+        } else if (useFirebase) {
+            console.log(`🔥 Firebase mode: Skipping mock data manipulation, will refresh from Firestore`);
         }
         
         // Reset feedback form for next use
         resetFeedbackForm();
+        
+        // In Firebase mode, add a small delay to ensure writes propagate before refresh
+        if (useFirebase) {
+            console.log('🔥 Waiting for Firebase propagation before refresh...');
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+        }
         
         // Refresh hiring tab content to remove completed job and previous tab to show new job
         await loadHiringContent();
