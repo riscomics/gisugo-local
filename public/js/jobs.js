@@ -4631,8 +4631,9 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         
         // Get job and user data for Firebase integration
         const jobId = overlay.getAttribute('data-completed-job-id');
-        const hiredJobs = await JobsDataService.getAllHiredJobs();
-        const job = hiredJobs.find(j => j.jobId === jobId);
+        // CRITICAL: Job was just marked as 'completed', so query completed jobs, not hired jobs!
+        const completedJobs = await JobsDataService.getCompletedJobs();
+        const job = completedJobs.find(j => j.jobId === jobId);
         
         // Validate required fields
         if (rating === 0) {
