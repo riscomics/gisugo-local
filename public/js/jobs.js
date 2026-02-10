@@ -4677,6 +4677,18 @@ function showJobCompletedSuccess(jobTitle, workerName) {
                 // Close the congratulations overlay so user can see the error
                 overlay.classList.remove('show');
                 
+                // Clear any pending scroll timeouts
+                if (window._feedbackScrollTimeouts) {
+                    window._feedbackScrollTimeouts.forEach(clearTimeout);
+                    window._feedbackScrollTimeouts = [];
+                }
+                
+                // Execute cleanup for feedback handlers
+                executeCleanupsByType('success');
+                
+                // Clear initialization flag
+                delete overlay.dataset.feedbackHandlersInitialized;
+                
                 showErrorNotification('Failed to submit feedback: ' + error.message);
                 return; // Don't proceed with UI updates if submission failed
             }
@@ -4689,6 +4701,13 @@ function showJobCompletedSuccess(jobTitle, workerName) {
             window._feedbackScrollTimeouts.forEach(clearTimeout);
             window._feedbackScrollTimeouts = [];
         }
+        
+        // Execute cleanup for feedback handlers
+        executeCleanupsByType('success');
+        console.log('🧹 Feedback handlers cleaned up after submission');
+        
+        // Clear initialization flag so modal can be re-initialized on next open
+        delete overlay.dataset.feedbackHandlersInitialized;
         
         // Find and slide out the card first
         const completedJobId = overlay.getAttribute('data-completed-job-id');
