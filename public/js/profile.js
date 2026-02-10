@@ -656,8 +656,8 @@ async function saveProfileChanges() {
         hideSavingModal();
         
         // Show specific error for name-locked users
-        if (result.code === 'NAME_LOCKED_VERIFIED') {
-          alert('🔒 Name Change Restricted\n\n' + result.message + '\n\nYour name is locked because your account is ID verified. This protects the trust and safety of the GISUGO community.');
+        if (result.code === 'NAME_CHANGE_LOCKED') {
+          alert('🔒 Name Change Requires Approval\n\n' + result.message + '\n\nThis protects the trust and safety of the GISUGO community.');
         } else {
           alert('Failed to save profile: ' + result.message);
         }

@@ -1002,22 +1002,16 @@ async function updateUserProfile(userId, updates) {
   }
   
   try {
-    // 🔒 SECURITY: Check if user is verified before allowing name changes
-    // NOTE: Proactive security for when ID verification system is wired to Firebase
-    // Currently harmless as no users have verification flags yet
+    // 🔒 SECURITY: Block name changes for all users
+    // Users must know their real name upon signup
+    // Name changes require admin approval via support
     if (updates.fullName) {
-      const userDoc = await db.collection('users').doc(userId).get();
-      const userData = userDoc.data();
-      
-      // Prevent name changes for verified users (Pro or Business)
-      if (userData?.verification?.proVerified || userData?.verification?.businessVerified) {
-        console.warn('🔒 Name change blocked: User is ID verified');
-        return { 
-          success: false, 
-          message: 'Cannot change name: Your account is ID verified. Contact support if you need to update your name.',
-          code: 'NAME_LOCKED_VERIFIED'
-        };
-      }
+      console.warn('🔒 Name change blocked: Requires admin approval');
+      return { 
+        success: false, 
+        message: 'Name changes require approval from Admin. Please contact support if you need to update your name.',
+        code: 'NAME_CHANGE_LOCKED'
+      };
     }
     
     await db.collection('users').doc(userId).update({
