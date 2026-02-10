@@ -928,7 +928,10 @@ async function filterAndSortJobs() {
   setListingEmptyStateVisible(filteredJobs.length === 0, headerSpacer);
   
   // Apply truncation after cards are loaded
-  setTimeout(truncateBarangayNames, 50);
+  const truncateTimer = setTimeout(truncateBarangayNames, 50);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(truncateTimer);
+  }
   
   } catch (unexpectedError) {
     // ⚠️ CRITICAL: Catch any unexpected errors
@@ -1005,7 +1008,10 @@ function truncateBarangayNames() {
 document.addEventListener('DOMContentLoaded', truncateBarangayNames);
 
 // Backup execution after a delay to catch any late-loading content
-setTimeout(truncateBarangayNames, 100);
+const backupTruncateTimer = setTimeout(truncateBarangayNames, 100);
+if (window._listingCleanup) {
+  window._listingCleanup.registerTimer(backupTruncateTimer);
+}
 
 // Also call on window load as a final backup
 window.addEventListener('load', truncateBarangayNames);
@@ -1153,9 +1159,12 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Apply filtering and sorting - now async for Firebase support
   await filterAndSortJobs();
   
-  setTimeout(() => {
+  const truncateTimer = setTimeout(() => {
     truncateBarangayNames();
   }, 50);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(truncateTimer);
+  }
   
   // Initialize jobcat overlay auto-resize
   initJobcatOverlayAutoResize();
@@ -1495,9 +1504,12 @@ function initJobcatButtonAutoResize() {
       e.stopPropagation();
       searchBarContainer.classList.add('show');
       collectJobCards(); // Refresh job cards list
-      setTimeout(() => {
+      const focusTimer = setTimeout(() => {
         if (searchInput) searchInput.focus();
       }, 400); // Wait for animation
+      if (window._listingCleanup) {
+        window._listingCleanup.registerTimer(focusTimer);
+      }
       console.log('🔍 Search opened for category:', getCurrentCategory(), 'region:', getSelectedRegion());
     });
   }
