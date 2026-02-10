@@ -4618,9 +4618,15 @@ function showJobCompletedSuccess(jobTitle, workerName) {
     message.textContent = `"${jobTitle}" has been marked as completed successfully!`;
     workerNameSpan.textContent = workerName;
     
-    // Initialize feedback systems
-    initializeFeedbackStarRating();
-    initializeFeedbackCharacterCount();
+    // Initialize feedback systems ONLY if not already initialized (prevent memory leaks)
+    if (!overlay.dataset.feedbackHandlersInitialized) {
+        initializeFeedbackStarRating();
+        initializeFeedbackCharacterCount();
+        overlay.dataset.feedbackHandlersInitialized = 'true';
+    } else {
+        // Just reset the form if already initialized
+        resetFeedbackForm();
+    }
     
     // Clear any existing handler and add new one with cleanup
     submitBtn.onclick = null;
@@ -4678,6 +4684,12 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         
         overlay.classList.remove('show');
         
+        // Clear any pending scroll timeouts to prevent memory leaks
+        if (window._feedbackScrollTimeouts) {
+            window._feedbackScrollTimeouts.forEach(clearTimeout);
+            window._feedbackScrollTimeouts = [];
+        }
+        
         // Find and slide out the card first
         const completedJobId = overlay.getAttribute('data-completed-job-id');
         const cardToRemove = document.querySelector(`[data-job-id="${completedJobId}"]`);
@@ -4734,37 +4746,42 @@ function initializeFeedbackStarRating() {
     stars.forEach((star, index) => {
         const rating = index + 1;
         
-        // Remove existing event listeners to prevent duplicates
-        star.replaceWith(star.cloneNode(true));
-    });
-    
-    // Re-select stars after cloning to remove listeners
-    const newStars = document.querySelectorAll('.feedback-star');
-    
-    newStars.forEach((star, index) => {
-        const rating = index + 1;
+        // Create handlers with proper cleanup
+        const mouseEnterHandler = () => {
+            highlightStars(rating, stars);
+        };
         
-        // Hover effect
-        star.addEventListener('mouseenter', () => {
-            highlightStars(rating, newStars);
-        });
-        
-        // Click to select rating
-        star.addEventListener('click', () => {
+        const clickHandler = () => {
             currentRating = rating;
-            selectStars(rating, newStars);
+            selectStars(rating, stars);
             updateJobCompletionSubmitButtonState();
+        };
+        
+        star.addEventListener('mouseenter', mouseEnterHandler);
+        star.addEventListener('click', clickHandler);
+        
+        // Register cleanup for each star
+        registerCleanup('success', `feedbackStar_${index}`, () => {
+            star.removeEventListener('mouseenter', mouseEnterHandler);
+            star.removeEventListener('click', clickHandler);
         });
     });
     
     // Reset to current rating when mouse leaves container
     const starsContainer = document.querySelector('.feedback-stars-container');
-    starsContainer.addEventListener('mouseleave', () => {
+    const containerLeaveHandler = () => {
         if (currentRating > 0) {
-            selectStars(currentRating, newStars);
+            selectStars(currentRating, stars);
         } else {
-            clearStars(newStars);
+            clearStars(stars);
         }
+    };
+    
+    starsContainer.addEventListener('mouseleave', containerLeaveHandler);
+    
+    // Register cleanup for container
+    registerCleanup('success', 'feedbackStarsContainer', () => {
+        starsContainer.removeEventListener('mouseleave', containerLeaveHandler);
     });
 }
 
@@ -4911,9 +4928,6 @@ function initializeFeedbackCharacterCount() {
     const submitBtn = document.getElementById('jobCompletedOkBtn');
     
     if (textarea && charCount) {
-        // Clear existing listeners
-        textarea.removeEventListener('input', updateFeedbackCharCount);
-        
         // Add input event listener with validation
         const updateHandler = function() {
             updateFeedbackCharCount();
@@ -4924,6 +4938,13 @@ function initializeFeedbackCharacterCount() {
         // Add mobile-specific event handlers to prevent zoom
         textarea.addEventListener('focus', handleFeedbackTextareaFocus);
         textarea.addEventListener('blur', handleFeedbackTextareaBlur);
+        
+        // Register cleanup for all textarea handlers
+        registerCleanup('success', 'feedbackTextarea', () => {
+            textarea.removeEventListener('input', updateHandler);
+            textarea.removeEventListener('focus', handleFeedbackTextareaFocus);
+            textarea.removeEventListener('blur', handleFeedbackTextareaBlur);
+        });
         
         // Initialize count and button state
         updateFeedbackCharCount();
@@ -4944,13 +4965,21 @@ function handleFeedbackTextareaFocus(e) {
         textarea.style.fontSize = '16px';
         
         // Small delay to allow keyboard to appear, then scroll into view
-        setTimeout(() => {
-            textarea.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'nearest'
-            });
+        // Track timeout for cleanup to prevent memory leaks
+        const timeoutId = setTimeout(() => {
+            // Only scroll if overlay is still shown
+            if (overlay.classList.contains('show')) {
+                textarea.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
         }, 300);
+        
+        // Store timeout ID for potential cleanup
+        if (!window._feedbackScrollTimeouts) window._feedbackScrollTimeouts = [];
+        window._feedbackScrollTimeouts.push(timeoutId);
     }
 }
 
