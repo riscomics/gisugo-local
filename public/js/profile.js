@@ -653,6 +653,15 @@ async function saveProfileChanges() {
         }
       } else {
         console.error('❌ Failed to save to Firestore:', result.message);
+        hideSavingModal();
+        
+        // Show specific error for name-locked users
+        if (result.code === 'NAME_LOCKED_VERIFIED') {
+          alert('🔒 Name Change Restricted\n\n' + result.message + '\n\nYour name is locked because your account is ID verified. This protects the trust and safety of the GISUGO community.');
+        } else {
+          alert('Failed to save profile: ' + result.message);
+        }
+        return; // Don't update UI if save failed
         // TODO: If we uploaded new photo but Firestore failed, track as orphan
       }
     } catch (error) {
