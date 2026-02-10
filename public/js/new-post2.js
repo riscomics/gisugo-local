@@ -306,7 +306,7 @@ const extrasConfig = {
   waiter: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   chef: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   ittech: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
-  planner: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+  realtor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
 };
 
 // ========================== HELPER FUNCTIONS ==========================
