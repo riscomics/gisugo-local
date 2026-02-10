@@ -1003,6 +1003,8 @@ async function updateUserProfile(userId, updates) {
   
   try {
     // 🔒 SECURITY: Check if user is verified before allowing name changes
+    // NOTE: Proactive security for when ID verification system is wired to Firebase
+    // Currently harmless as no users have verification flags yet
     if (updates.fullName) {
       const userDoc = await db.collection('users').doc(userId).get();
       const userData = userDoc.data();
