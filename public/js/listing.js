@@ -2255,7 +2255,10 @@ function initJobcatButtonAutoResize() {
   }
 
   // Initial observation
-  setTimeout(observeJobImages, 100);
+  const observeTimer = setTimeout(observeJobImages, 100);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(observeTimer);
+  }
 
   // Re-observe when new cards are added (e.g., after filtering)
   const cardsContainer = document.querySelector('.sortmenus');
