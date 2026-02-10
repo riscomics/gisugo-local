@@ -4651,10 +4651,13 @@ function showJobCompletedSuccess(jobTitle, workerName) {
             try {
                 showLoadingOverlay('Submitting feedback...');
                 
+                // Get actual Firebase auth UID (not mock ID)
+                const currentUserId = firebase.auth().currentUser.uid;
+                
                 const result = await submitJobCompletionFeedback(
                     jobId,
                     job.hiredWorkerId || 'worker-user-id',
-                    CURRENT_USER_ID,
+                    currentUserId,  // Use real Firebase UID, not mock CURRENT_USER_ID
                     rating,
                     feedbackText
                 );
@@ -4664,6 +4667,10 @@ function showJobCompletedSuccess(jobTitle, workerName) {
             } catch (error) {
                 hideLoadingOverlay();
                 console.error('❌ Error submitting feedback:', error);
+                
+                // Close the congratulations overlay so user can see the error
+                overlay.classList.remove('show');
+                
                 showErrorNotification('Failed to submit feedback: ' + error.message);
                 return; // Don't proceed with UI updates if submission failed
             }
