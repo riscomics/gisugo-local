@@ -7969,7 +7969,7 @@ async function processHireConfirmation(workerData) {
     hideHireConfirmationOverlay();
     
     // Show loading animation
-    showLoadingOverlay('Sending job offer...');
+    showLoadingOverlay('Sending Gig Offer');
     
     // Check if Firebase mode is active
     const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
@@ -7992,7 +7992,7 @@ async function processHireConfirmation(workerData) {
                 // Show success confirmation with better formatting
                 showConfirmationWithCallback(
                     '🎉',
-                    'Job Offer Sent!',
+                    'Gig Offer Sent!',
                     `<div style="line-height: 1.6;">
                         <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
                         <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
@@ -8033,7 +8033,7 @@ async function processHireConfirmation(workerData) {
         
         showConfirmationWithCallback(
             '🎉',
-            'Job Offer Sent!',
+            'Gig Offer Sent!',
             `<div style="line-height: 1.6;">
                 <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
                 <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
