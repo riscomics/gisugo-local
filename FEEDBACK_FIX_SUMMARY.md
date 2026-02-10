@@ -5,7 +5,25 @@ When marking a job complete from the Hiring tab and submitting feedback with a s
 
 ## Root Causes
 
-### 1. Mock Data Interference (Primary Issue)
+### 1. **CRITICAL BUG: Querying Wrong Collection (Primary Issue)** ❌
+```javascript
+// BROKEN CODE (Line 4634-4635)
+const hiredJobs = await JobsDataService.getAllHiredJobs();  // ← Queries status: 'hired' | 'accepted'
+const job = hiredJobs.find(j => j.jobId === jobId);        // ← Returns undefined!
+```
+
+**Problem**: After clicking "Yes" to confirm completion, the job status is changed from `"hired"/"accepted"` to `"completed"`. Then when the feedback overlay appears and user submits feedback, the code tries to find the job in `getAllHiredJobs()`, which only returns jobs with status `"hired"` or `"accepted"`. **The job is no longer there!**
+
+**Result**: `job` is `undefined`, so the `if (job)` check on line 4648 fails, and the entire Firebase feedback submission block is silently skipped.
+
+**Solution**: Query completed jobs instead:
+```javascript
+// FIXED CODE
+const completedJobs = await JobsDataService.getCompletedJobs();  // ← Queries status: 'completed'
+const job = completedJobs.find(j => j.jobId === jobId);          // ← Returns the job!
+```
+
+### 2. Mock Data Interference (Secondary Issue)
 ```javascript
 // OLD CODE (Line 4680-4690)
 if (completedJobId && MOCK_HIRING_DATA) {
@@ -31,7 +49,7 @@ if (!useFirebase && completedJobId && MOCK_HIRING_DATA) {
 }
 ```
 
-### 2. Firestore Cache Issue
+### 3. Firestore Cache Issue (Minor Optimization)
 ```javascript
 // OLD CODE (Lines 1013-1022)
 const posterSnapshot = await db.collection('jobs')
@@ -51,7 +69,7 @@ const posterSnapshot = await db.collection('jobs')
     .get({ source: 'server' }); // ← Force fresh read from server
 ```
 
-### 3. Timing/Race Condition
+### 4. Timing/Race Condition (Minor Optimization)
 **Problem**: Firebase writes might not propagate immediately, causing the refresh to happen before the data is fully written.
 
 **Solution**: Added 500ms delay before refresh in Firebase mode:
@@ -100,6 +118,6 @@ if (useFirebase) {
   - Lines 4669-4705: Skip mock data in Firebase mode, add propagation delay
   - Lines 1013-1022: Force server reads with `{ source: 'server' }`
 
-## Commit
-- **Hash**: c2bb24d
-- **Message**: "fix: Customer feedback not showing after Mark As Complete"
+## Commits
+1. **Hash**: c2bb24d - "fix: Customer feedback not showing after Mark As Complete" (Cache/timing improvements)
+2. **Hash**: 869377c - "fix(critical): Feedback not submitting after Mark As Complete" **← THE ACTUAL FIX**
