@@ -155,19 +155,18 @@ function getUrlParameters() {
 }
 
 async function loadJobData() {
-  // Show loading modal
+  // Show loading overlay
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) {
     loadingOverlay.classList.add('show');
   }
   
+  // ⚠️ CRITICAL: Wrap in try-finally to ensure loading always hides
+  try {
+  
   const { category, jobNumber } = getUrlParameters();
   
   if (!category || !jobNumber) {
-    // Hide loading modal on error
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('show');
-    }
     showErrorMessage('Invalid job URL. Missing category or job ID.');
     return;
   }
@@ -236,10 +235,6 @@ async function loadJobData() {
   
   if (!job) {
     console.error(`❌ Job not found in Firebase or localStorage`);
-    // Hide loading modal on error
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('show');
-    }
     showErrorMessage('Job not found. This job may have been removed or does not exist.');
     return;
   }
@@ -272,9 +267,16 @@ async function loadJobData() {
     await checkIfUserAlreadyApplied(jobNumber);
   }
   
-  // Hide loading modal after page is populated
-  if (loadingOverlay) {
-    loadingOverlay.classList.remove('show');
+  } catch (unexpectedError) {
+    // ⚠️ CRITICAL: Catch any unexpected errors
+    console.error('❌ Unexpected error in loadJobData:', unexpectedError);
+    showErrorMessage('Failed to load job. Please refresh the page.');
+  } finally {
+    // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+      console.log('✅ Loading overlay hidden');
+    }
   }
 }
 
