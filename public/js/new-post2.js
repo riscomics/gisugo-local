@@ -1715,14 +1715,16 @@ async function postJob() {
               let photoFile = np2State.photoFile;
               
               if (!photoFile && np2State.photoDataUrl) {
-                // Check if it's a Firebase Storage URL (use SDK's getBlob to avoid CORS issues)
+                // Check if it's a Firebase Storage URL (get authenticated URL to avoid CORS)
                 if (np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
-                  console.log('📥 Downloading photo from Firebase Storage via SDK (CORS-safe)...');
+                  console.log('📥 Downloading photo from Firebase Storage via authenticated URL...');
                   const storage = getFirebaseStorage();
                   const photoRef = storage.refFromURL(np2State.photoDataUrl);
-                  const blob = await photoRef.getBlob();
+                  const authenticatedUrl = await photoRef.getDownloadURL();
+                  const response = await fetch(authenticatedUrl);
+                  const blob = await response.blob();
                   photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: blob.type || 'image/jpeg' });
-                  console.log('✅ Photo downloaded from Storage:', blob.size, 'bytes');
+                  console.log('✅ Photo downloaded:', blob.size, 'bytes');
                 } else {
                   // Regular data URL - use fetch
                   const response = await fetch(np2State.photoDataUrl);
