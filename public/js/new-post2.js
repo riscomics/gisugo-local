@@ -3117,8 +3117,8 @@ function populateFormWithJobData(jobData, category, mode) {
     });
   }
   
-  // Set photo (only for edit mode, not relist)
-  if (mode === 'edit' && jobData.thumbnail) {
+  // Set photo (for both edit and relist modes)
+  if ((mode === 'edit' || mode === 'relist') && jobData.thumbnail) {
     np2State.photoDataUrl = jobData.thumbnail;
     const previewImage = document.getElementById('photoPreviewImage');
     const uploadArea = document.getElementById('photoUploadArea');
@@ -3129,8 +3129,8 @@ function populateFormWithJobData(jobData, category, mode) {
       preview.style.display = 'block';
     }
     
-    // Recreate processedJobPhoto object
-    if (jobData.originalPhoto) {
+    // Recreate processedJobPhoto object (edit mode only - relist will fetch and re-upload)
+    if (mode === 'edit' && jobData.originalPhoto) {
       processedJobPhoto = {
         cropped: jobData.thumbnail,
         original: jobData.originalPhoto,
