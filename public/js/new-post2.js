@@ -2543,8 +2543,7 @@ function showEditForm(jobData, category) {
     // RELIST: Don't pre-load photo - user must select manually
     photoImage.style.display = 'none';
     if (photoPlaceholder) {
-      photoPlaceholder.style.display = 'block';
-      photoPlaceholder.textContent = '📷 Please select a photo for your relisted gig';
+      photoPlaceholder.style.display = 'flex';
     }
     np2State.photoDataUrl = null;
     np2State.photoFile = null;

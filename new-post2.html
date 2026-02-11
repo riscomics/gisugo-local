@@ -424,7 +424,10 @@
             <label class="np2-edit-label">Gig Photo</label>
             <div class="np2-edit-photo-preview" id="editPhotoPreview">
               <img id="editPhotoImage" src="" alt="Current gig photo">
-              <div id="editPhotoPlaceholder" style="display: none; padding: 30px 20px; text-align: center; color: #e74c3c; font-size: 15px; font-weight: 500; background: #fff3f0; border: 2px dashed #e74c3c; border-radius: 12px; margin-bottom: 15px; line-height: 1.5;"></div>
+              <div id="editPhotoPlaceholder" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 60px; flex-direction: column; align-items: center; justify-content: center; gap: 15px; background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%); border: 3px dashed #e74c3c; border-radius: 12px; padding: 40px 20px;">
+                <div style="font-size: 64px; filter: drop-shadow(0 4px 8px rgba(231, 76, 60, 0.2));">📷</div>
+                <div style="font-size: 17px; font-weight: 600; color: #e74c3c; line-height: 1.6; text-align: center;">Please select a photo<br>for your relisted gig</div>
+              </div>
               <button class="np2-edit-change-photo-btn" id="editChangePhotoBtn">Change Photo</button>
               <input type="file" id="editPhotoInput" accept="image/*" style="display: none;">
             </div>
