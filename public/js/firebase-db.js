@@ -640,14 +640,10 @@ async function deleteJob(jobId) {
               storagePath = decodeURIComponent(pathMatch[1]);
               console.log('📍 Extracted storage path:', storagePath);
               
-              // CRITICAL: Only delete if this job OWNS the photo (matches jobId)
-              if (storagePath.includes(jobId)) {
-                const fileRef = storage.ref().child(storagePath);
-                await fileRef.delete();
-                console.log('✅ Photo deleted from Storage');
-              } else {
-                console.log('⚠️ Photo belongs to another job (URL reference) - skipping deletion');
-              }
+              // Delete the file
+              const fileRef = storage.ref().child(storagePath);
+              await fileRef.delete();
+              console.log('✅ Photo deleted from Storage');
             } else {
               console.warn('⚠️ Could not extract storage path from URL');
             }
