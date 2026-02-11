@@ -1702,76 +1702,31 @@ async function postJob() {
         console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
         result = await createJob(jobData);
         
-        // Now upload photo with the real jobId
-        if (result.success && result.jobId) {
-          const hasPhoto = np2State.photoFile || np2State.photoDataUrl;
+        // Upload photo with the real jobId (only if user selected a photo file)
+        if (result.success && result.jobId && np2State.photoFile) {
           const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
           
-          if (hasPhoto && useFirebaseStorage) {
+          if (useFirebaseStorage) {
             console.log('📤 Uploading photo with jobId:', result.jobId);
             
             try {
-              let photoFile = np2State.photoFile;
+              const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
               
-              // If no new file selected but we have a Firebase Storage URL (RELIST case), download and re-upload
-              if (!photoFile && np2State.photoDataUrl && np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
-                console.log('📥 Downloading original photo to duplicate for relisted job...');
+              if (uploadResult.success) {
+                console.log('✅ Photo uploaded:', uploadResult.url);
                 
-                try {
-                  // Use XMLHttpRequest with blob response type (better CORS handling than fetch)
-                  const blob = await new Promise((resolve, reject) => {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', np2State.photoDataUrl);
-                    xhr.responseType = 'blob';
-                    xhr.onload = () => {
-                      if (xhr.status === 200) {
-                        resolve(xhr.response);
-                      } else {
-                        reject(new Error(`HTTP ${xhr.status}`));
-                      }
-                    };
-                    xhr.onerror = () => reject(new Error('Network error'));
-                    xhr.send();
+                // Update job with photo URL
+                if (typeof getFirestore === 'function') {
+                  const db = getFirestore();
+                  await db.collection('jobs').doc(result.jobId).update({
+                    thumbnail: uploadResult.url,
+                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
                   });
-                  
-                  photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: blob.type || 'image/jpeg' });
-                  console.log('✅ Photo downloaded for duplication:', blob.size, 'bytes');
-                } catch (downloadError) {
-                  console.error('❌ Photo download failed:', downloadError);
-                  console.log('⚠️ FALLBACK: Using direct URL reference (not ideal - creates dependency on original)');
-                  // Fallback: update with original URL (not ideal but better than failing)
-                  if (typeof getFirestore === 'function') {
-                    const db = getFirestore();
-                    await db.collection('jobs').doc(result.jobId).update({
-                      thumbnail: np2State.photoDataUrl,
-                      lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                  }
-                  // Continue without error - job created successfully
-                  photoFile = null;
+                  console.log('✅ Job updated with photo URL');
                 }
-              }
-              
-              // Upload to Firebase Storage with REAL jobId (if we have a file)
-              if (photoFile) {
-                const uploadResult = await uploadJobPhoto(result.jobId, photoFile, currentUser.uid);
-                
-                if (uploadResult.success) {
-                  console.log('✅ Photo uploaded:', uploadResult.url);
-                  
-                  // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
-                  if (typeof getFirestore === 'function') {
-                    const db = getFirestore();
-                    await db.collection('jobs').doc(result.jobId).update({
-                      thumbnail: uploadResult.url,
-                      lastModified: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    console.log('✅ Job updated with photo URL');
-                  }
-                } else {
-                  console.error('❌ Photo upload failed:', uploadResult.errors);
-                  alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
-                }
+              } else {
+                console.error('❌ Photo upload failed:', uploadResult.errors);
+                alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
               }
             } catch (photoError) {
               console.error('❌ Photo upload error:', photoError);
@@ -2574,16 +2529,31 @@ function showEditForm(jobData, category) {
   // Populate description
   document.getElementById('editDescriptionInput').value = jobData.description || '';
   
-  // Populate photo
+  // Populate photo (for RELIST, clear photo and require new selection)
   const photoImage = document.getElementById('editPhotoImage');
-  if (jobData.thumbnail) {
-    photoImage.src = jobData.thumbnail;
-    photoImage.style.display = 'block';
-    // Save original thumbnail to state
-    np2State.photoDataUrl = jobData.thumbnail;
-  } else {
+  const photoPlaceholder = document.querySelector('.np2-edit-photo-placeholder');
+  
+  if (isRelist) {
+    // RELIST: Clear photo and show placeholder message
     photoImage.style.display = 'none';
     np2State.photoDataUrl = null;
+    np2State.photoFile = null;
+    if (photoPlaceholder) {
+      photoPlaceholder.style.display = 'flex';
+      photoPlaceholder.textContent = '📸 Photo required - Click "Change Photo" to select';
+    }
+  } else {
+    // EDIT: Show existing photo
+    if (jobData.thumbnail) {
+      photoImage.src = jobData.thumbnail;
+      photoImage.style.display = 'block';
+      np2State.photoDataUrl = jobData.thumbnail;
+      if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+    } else {
+      photoImage.style.display = 'none';
+      np2State.photoDataUrl = null;
+      if (photoPlaceholder) photoPlaceholder.style.display = 'flex';
+    }
   }
   
   // Populate payment (custom dropdown)
@@ -2769,7 +2739,11 @@ function initializeEditFormButtons(jobData, category, isRelist = false) {
   console.log('Update button found:', !!updateBtn);
   if (updateBtn) {
     if (isRelist) {
-      updateBtn.textContent = 'RELIST JOB';
+      updateBtn.textContent = 'RELIST GIG';
+      // Disable until photo is selected
+      updateBtn.disabled = true;
+      updateBtn.style.opacity = '0.5';
+      updateBtn.style.cursor = 'not-allowed';
       updateBtn.onclick = () => handleRelistFormSubmit(category);
     } else {
       updateBtn.textContent = 'UPDATE';
@@ -2795,10 +2769,23 @@ function initializeEditFormButtons(jobData, category, isRelist = false) {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        document.getElementById('editPhotoImage').src = event.target.result;
-        document.getElementById('editPhotoImage').style.display = 'block';
+        const photoImage = document.getElementById('editPhotoImage');
+        const photoPlaceholder = document.querySelector('.np2-edit-photo-placeholder');
+        
+        photoImage.src = event.target.result;
+        photoImage.style.display = 'block';
+        if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+        
         np2State.photoFile = file;
         np2State.photoDataUrl = event.target.result;
+        
+        // Enable RELIST GIG button if in relist mode
+        if (isRelist && updateBtn) {
+          updateBtn.disabled = false;
+          updateBtn.style.opacity = '1';
+          updateBtn.style.cursor = 'pointer';
+          console.log('✅ Photo selected - RELIST GIG button enabled');
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -2844,10 +2831,18 @@ function syncEditFormToState(category) {
 async function handleRelistFormSubmit(category) {
   console.log('📤 handleRelistFormSubmit - creating new job from relist');
   syncEditFormToState(category);
+  
+  // Validate all required fields including photo
   if (!np2State.jobTitle || !np2State.jobDate || !np2State.jobDescription || !np2State.paymentAmount) {
-    showToast('Please fill in all required fields', 'error');
+    alert('Please fill in all required fields');
     return;
   }
+  
+  if (!np2State.photoFile) {
+    alert('Please select a photo for your relisted gig');
+    return;
+  }
+  
   await postJob();
 }
 
