@@ -104,8 +104,24 @@ async function createJob(jobData) {
       applicationIds: [],
       
       // Technical
-      jobPageUrl: `dynamic-job.html?category=${jobData.category}&jobNumber=`
+      jobPageUrl: `dynamic-job.html?category=${jobData.category}&jobNumber=`,
+      
+      // Relist metadata (if present)
+      ...(jobData.originalJobId && {
+        originalJobId: jobData.originalJobId,
+        relistedFrom: jobData.relistedFrom,
+        relistedAt: jobData.relistedAt
+      })
     };
+    
+    // Log relist metadata if present
+    if (jobData.originalJobId) {
+      console.log('🔄 Relist metadata included:', {
+        originalJobId: jobData.originalJobId,
+        relistedFrom: jobData.relistedFrom,
+        relistedAt: jobData.relistedAt
+      });
+    }
     
     const docRef = await db.collection('jobs').add(jobDoc);
     
@@ -634,7 +650,7 @@ async function deleteJob(jobId) {
             
             // Parse URL to get the file path
             const url = new URL(jobData.thumbnail);
-            const pathMatch = url.pathname.match(/\/o\/(.+)\?/);
+            const pathMatch = url.pathname.match(/\/o\/(.+)$/);
             
             if (pathMatch) {
               storagePath = decodeURIComponent(pathMatch[1]);

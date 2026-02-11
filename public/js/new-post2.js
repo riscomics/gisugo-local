@@ -306,7 +306,7 @@ const extrasConfig = {
   waiter: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   chef: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   ittech: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
-  planner: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+  realtor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
 };
 
 // ========================== HELPER FUNCTIONS ==========================
@@ -1656,6 +1656,14 @@ async function postJob() {
     updatedAt: new Date().toISOString()
   };
   
+  // Add relist metadata if in relist mode
+  if (np2State.mode === 'relist' && np2State.relistJobId) {
+    jobData.originalJobId = np2State.relistJobId;
+    jobData.relistedFrom = np2State.relistJobId;
+    jobData.relistedAt = new Date().toISOString();
+    console.log('📋 RELIST MODE: Adding metadata for original job:', np2State.relistJobId);
+  }
+  
   // Save job using DataService pattern - CLEAN SEPARATION
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
   console.log(`📊 Saving job in ${useFirebase ? 'FIREBASE' : 'MOCK'} mode`);
@@ -1694,26 +1702,16 @@ async function postJob() {
         console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
         result = await createJob(jobData);
         
-        // Now upload photo with the real jobId
-        if (result.success && result.jobId) {
-          const hasPhoto = processedJobPhoto || np2State.photoDataUrl;
+        // Now upload photo with the real jobId (ONLY if user selected a new photo file)
+        if (result.success && result.jobId && np2State.photoFile) {
           const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
           
-          if (hasPhoto && useFirebaseStorage) {
+          if (useFirebaseStorage) {
             console.log('📤 Uploading photo with jobId:', result.jobId);
             
             try {
-              // Convert data URL to File object
-              let photoFile = np2State.photoFile;
-              
-              if (!photoFile && np2State.photoDataUrl) {
-                const response = await fetch(np2State.photoDataUrl);
-                const blob = await response.blob();
-                photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: 'image/jpeg' });
-              }
-              
               // Upload to Firebase Storage with REAL jobId
-              const uploadResult = await uploadJobPhoto(result.jobId, photoFile, currentUser.uid);
+              const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
               
               if (uploadResult.success) {
                 console.log('✅ Photo uploaded:', uploadResult.url);
@@ -1729,7 +1727,6 @@ async function postJob() {
                 }
               } else {
                 console.error('❌ Photo upload failed:', uploadResult.errors);
-                // Job was created but photo failed - user can edit later to add photo
                 alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
               }
             } catch (photoError) {
@@ -2238,6 +2235,19 @@ async function handleEditMode(jobId, category) {
 
 async function handleRelistMode(jobId, category) {
   try {
+    // Show loading overlay and hide multi-step UI immediately (prevents flash of empty form)
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    if (loadingText) loadingText.textContent = 'LOADING GIG...';
+    if (loadingOverlay) loadingOverlay.classList.add('show');
+    
+    const progressContainer = document.querySelector('.np2-progress-container');
+    const sections = document.querySelectorAll('.np2-section');
+    const navButtons = document.querySelector('.np2-nav-buttons');
+    if (progressContainer) progressContainer.style.display = 'none';
+    if (sections) sections.forEach(section => section.style.display = 'none');
+    if (navButtons) navButtons.style.display = 'none';
+    
     // Update page title
     const headerTitle = document.getElementById('newPostTitle') || document.querySelector('.np2-header-title');
     if (headerTitle) headerTitle.textContent = 'RELIST GIG';
@@ -2270,7 +2280,8 @@ async function handleRelistMode(jobId, category) {
             startTime: firebaseJob.startTime,
             endTime: firebaseJob.endTime,
             priceOffer: firebaseJob.priceOffer,
-            paymentType: firebaseJob.paymentType,
+            paymentType: firebaseJob.paymentType === 'per_hour' ? 'Per Hour' : (firebaseJob.paymentType === 'per_job' ? 'Per Job' : firebaseJob.paymentType || 'Per Job'),
+            paymentAmount: firebaseJob.priceOffer,
             region: firebaseJob.region,
             city: firebaseJob.city,
             extras: firebaseJob.extras || [],
@@ -2279,6 +2290,7 @@ async function handleRelistMode(jobId, category) {
           };
           
           populateFormWithJobData(jobData, category, 'relist');
+          if (loadingOverlay) setTimeout(() => loadingOverlay.classList.remove('show'), 300);
           return;
         }
       } catch (fbError) {
@@ -2290,6 +2302,7 @@ async function handleRelistMode(jobId, category) {
     const jobData = getCompletedJobData(jobId);
     if (!jobData || jobData === 'FIREBASE_PENDING') {
       console.error(`❌ Completed job not found: ${jobId}`);
+      if (loadingOverlay) loadingOverlay.classList.remove('show');
       showToast('Job not found. Redirecting to new post...', 'error');
       return;
     }
@@ -2299,9 +2312,12 @@ async function handleRelistMode(jobId, category) {
     console.log(`📂 Using category: ${actualCategory}`);
     
     populateFormWithJobData(jobData, actualCategory, 'relist');
+    if (loadingOverlay) setTimeout(() => loadingOverlay.classList.remove('show'), 300);
     
   } catch (error) {
     console.error(`❌ Error loading job for relisting:`, error);
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
     showToast('Error loading job data. Please try again.', 'error');
   }
 }
@@ -2374,11 +2390,12 @@ function getCompletedJobData(jobId) {
 
 // ========== EDIT MODE: SINGLE PAGE FORM ==========
 function showEditForm(jobData, category) {
-  console.log('🎨 Showing edit form with data:', jobData);
+  const isRelist = np2State.mode === 'relist';
+  console.log('🎨 Showing edit form with data:', jobData, isRelist ? '(RELIST)' : '(EDIT)');
   
   // Update page title
   const headerTitle = document.querySelector('.uniform-header-title');
-  if (headerTitle) headerTitle.textContent = 'Edit Gig Post';
+  if (headerTitle) headerTitle.textContent = isRelist ? 'RELIST GIG' : 'Edit Gig Post';
   
   // Hide multi-step UI
   document.querySelector('.np2-progress-container').style.display = 'none';
@@ -2448,12 +2465,17 @@ function showEditForm(jobData, category) {
     editTitleCharCount.textContent = editTitleInput.value.length;
   }
   
-  // Add input listener for character counter
-  editTitleInput.addEventListener('input', function() {
+  // Add input listener for character counter (tracked for cleanup)
+  const titleInputHandler = function() {
     if (editTitleCharCount) {
       editTitleCharCount.textContent = this.value.length;
     }
-  });
+  };
+  editTitleInput.addEventListener('input', titleInputHandler);
+  
+  // Store reference for cleanup
+  np2State.titleInputHandler = titleInputHandler;
+  np2State.editTitleInput = editTitleInput;
   
   // Populate date
   document.getElementById('editDateInput').value = jobData.jobDate || '';
@@ -2515,14 +2537,29 @@ function showEditForm(jobData, category) {
   
   // Populate photo
   const photoImage = document.getElementById('editPhotoImage');
-  if (jobData.thumbnail) {
-    photoImage.src = jobData.thumbnail;
-    photoImage.style.display = 'block';
-    // Save original thumbnail to state
-    np2State.photoDataUrl = jobData.thumbnail;
-  } else {
+  const photoPlaceholder = document.getElementById('editPhotoPlaceholder');
+  
+  if (isRelist) {
+    // RELIST: Don't pre-load photo - user must select manually
     photoImage.style.display = 'none';
+    if (photoPlaceholder) {
+      photoPlaceholder.style.display = 'flex';
+    }
     np2State.photoDataUrl = null;
+    np2State.photoFile = null;
+  } else {
+    // EDIT: Pre-load existing photo
+    if (jobData.thumbnail) {
+      photoImage.src = jobData.thumbnail;
+      photoImage.style.display = 'block';
+      if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+      // Save original thumbnail to state
+      np2State.photoDataUrl = jobData.thumbnail;
+    } else {
+      photoImage.style.display = 'none';
+      if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+      np2State.photoDataUrl = null;
+    }
   }
   
   // Populate payment (custom dropdown)
@@ -2534,8 +2571,8 @@ function showEditForm(jobData, category) {
   }
   document.getElementById('editPaymentAmountInput').value = jobData.paymentAmount || jobData.priceOffer || '';
   
-  // Wire up buttons
-  initializeEditFormButtons(jobData, category);
+  // Wire up buttons (relist uses different submit handler)
+  initializeEditFormButtons(jobData, category, isRelist);
   
   // Initialize custom dropdowns
   initializeEditDropdowns();
@@ -2682,8 +2719,8 @@ function initializeEditDropdowns() {
   };
 }
 
-function initializeEditFormButtons(jobData, category) {
-  console.log('🔘 Initializing edit form buttons for jobId:', jobData.jobId);
+function initializeEditFormButtons(jobData, category, isRelist = false) {
+  console.log('🔘 Initializing edit form buttons for jobId:', jobData.jobId, isRelist ? '(RELIST)' : '(EDIT)');
   
   // Clean up previous handlers
   if (editButtonCleanup) {
@@ -2696,23 +2733,28 @@ function initializeEditFormButtons(jobData, category) {
   const cancelHandler = () => {
     if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
       cleanupEditMode();
-      window.location.href = 'jobs.html?tab=listings';
+      window.location.href = isRelist ? 'jobs.html?tab=previous' : 'jobs.html?tab=listings';
     }
   };
   if (cancelBtn) {
-    // Remove old listener if exists (using onclick pattern is safe from duplicates)
     cancelBtn.onclick = cancelHandler;
   }
   
-  // Update button
+  // Update / Relist button
   const updateBtn = document.getElementById('editUpdateBtn');
   console.log('Update button found:', !!updateBtn);
-  const updateHandler = () => {
-    console.log('🔵 Update button clicked!');
-    handleEditFormSubmit(jobData.jobId, category);
-  };
   if (updateBtn) {
-    updateBtn.onclick = updateHandler;
+    if (isRelist) {
+      updateBtn.textContent = 'RELIST GIG';
+      updateBtn.onclick = () => handleRelistFormSubmit(category);
+      // Disable button initially for relist - enabled when photo selected
+      updateBtn.disabled = true;
+      updateBtn.style.opacity = '0.5';
+      updateBtn.style.cursor = 'not-allowed';
+    } else {
+      updateBtn.textContent = 'UPDATE';
+      updateBtn.onclick = () => handleEditFormSubmit(jobData.jobId, category);
+    }
   } else {
     console.error('❌ Update button NOT found in DOM');
   }
@@ -2733,10 +2775,22 @@ function initializeEditFormButtons(jobData, category) {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        document.getElementById('editPhotoImage').src = event.target.result;
-        document.getElementById('editPhotoImage').style.display = 'block';
+        const photoImage = document.getElementById('editPhotoImage');
+        const photoPlaceholder = document.getElementById('editPhotoPlaceholder');
+        
+        photoImage.src = event.target.result;
+        photoImage.style.display = 'block';
+        if (photoPlaceholder) photoPlaceholder.style.display = 'none';
+        
         np2State.photoFile = file;
         np2State.photoDataUrl = event.target.result;
+        
+        // Enable RELIST GIG button if in relist mode
+        if (isRelist && updateBtn) {
+          updateBtn.disabled = false;
+          updateBtn.style.opacity = '1';
+          updateBtn.style.cursor = 'pointer';
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -2745,17 +2799,53 @@ function initializeEditFormButtons(jobData, category) {
   if (changePhotoBtn && photoInput) {
     changePhotoBtn.onclick = photoChangeHandler;
     photoInput.onchange = photoInputHandler;
-    
-    // Add to cleanup
-    const oldCleanup = editButtonCleanup;
-    editButtonCleanup = () => {
-      console.log('🧹 Cleaning up edit button and photo handlers');
-      if (cancelBtn) cancelBtn.onclick = null;
-      if (updateBtn) updateBtn.onclick = null;
-      if (changePhotoBtn) changePhotoBtn.onclick = null;
-      if (photoInput) photoInput.onchange = null;
-    };
   }
+  
+  // Consolidate all button/input cleanup (overwrite, not extend)
+  editButtonCleanup = () => {
+    console.log('🧹 Cleaning up edit button and photo handlers');
+    if (cancelBtn) cancelBtn.onclick = null;
+    if (updateBtn) updateBtn.onclick = null;
+    if (changePhotoBtn) changePhotoBtn.onclick = null;
+    if (photoInput) photoInput.onchange = null;
+    // Clean up title input listener
+    if (np2State.titleInputHandler && np2State.editTitleInput) {
+      np2State.editTitleInput.removeEventListener('input', np2State.titleInputHandler);
+      np2State.titleInputHandler = null;
+      np2State.editTitleInput = null;
+    }
+  };
+}
+
+/**
+ * Sync edit form values to np2State so postJob() can use them for relist.
+ */
+function syncEditFormToState(category) {
+  np2State.jobTitle = document.getElementById('editTitleInput').value.trim();
+  np2State.jobDescription = document.getElementById('editDescriptionInput').value.trim();
+  np2State.jobDate = document.getElementById('editDateInput').value;
+  np2State.startHour = document.querySelector('#editStartHourDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || '12';
+  np2State.startPeriod = document.querySelector('#editStartPeriodDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'PM';
+  np2State.endHour = document.querySelector('#editEndHourDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || '12';
+  np2State.endPeriod = document.querySelector('#editEndPeriodDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'PM';
+  np2State.paymentType = document.querySelector('#editPaymentTypeDropdown .np2-edit-dropdown-display')?.getAttribute('data-value') || 'Per Job';
+  np2State.paymentAmount = document.getElementById('editPaymentAmountInput').value;
+  const extras1 = document.getElementById('editExtras1Input')?.value?.trim();
+  const extras2 = document.getElementById('editExtras2Input')?.value?.trim();
+  // Extract value part if format is "Label: Value" or "Label Value"
+  np2State.extras1Value = extras1 ? (extras1.includes(': ') ? extras1.split(': ').slice(1).join(': ').trim() : extras1) : null;
+  np2State.extras2Value = extras2 ? (extras2.includes(': ') ? extras2.split(': ').slice(1).join(': ').trim() : extras2) : null;
+  console.log('📋 Synced edit form to np2State:', { title: np2State.jobTitle, date: np2State.jobDate, payment: np2State.paymentAmount });
+}
+
+async function handleRelistFormSubmit(category) {
+  console.log('📤 handleRelistFormSubmit - creating new job from relist');
+  syncEditFormToState(category);
+  if (!np2State.jobTitle || !np2State.jobDate || !np2State.jobDescription || !np2State.paymentAmount) {
+    showToast('Please fill in all required fields', 'error');
+    return;
+  }
+  await postJob();
 }
 
 async function handleEditFormSubmit(jobId, category) {
@@ -3017,6 +3107,9 @@ function populateFormWithJobData(jobData, category, mode) {
     return; // Exit early, edit form handles everything
   } else if (mode === 'relist') {
     np2State.relistJobId = jobData.jobId;
+    // Use same single-page edit form for relist (all fields visible, pre-filled)
+    showEditForm(jobData, category);
+    return; // Exit early, edit form handles everything
   }
   
   // Set category
@@ -3117,8 +3210,8 @@ function populateFormWithJobData(jobData, category, mode) {
     });
   }
   
-  // Set photo (only for edit mode, not relist)
-  if (mode === 'edit' && jobData.thumbnail) {
+  // Set photo (for both edit and relist modes)
+  if ((mode === 'edit' || mode === 'relist') && jobData.thumbnail) {
     np2State.photoDataUrl = jobData.thumbnail;
     const previewImage = document.getElementById('photoPreviewImage');
     const uploadArea = document.getElementById('photoUploadArea');
@@ -3129,8 +3222,8 @@ function populateFormWithJobData(jobData, category, mode) {
       preview.style.display = 'block';
     }
     
-    // Recreate processedJobPhoto object
-    if (jobData.originalPhoto) {
+    // Recreate processedJobPhoto object (edit mode only - relist will fetch and re-upload)
+    if (mode === 'edit' && jobData.originalPhoto) {
       processedJobPhoto = {
         cropped: jobData.thumbnail,
         original: jobData.originalPhoto,

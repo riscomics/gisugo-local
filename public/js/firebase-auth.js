@@ -1002,6 +1002,18 @@ async function updateUserProfile(userId, updates) {
   }
   
   try {
+    // 🔒 SECURITY: Block name changes for all users
+    // Users must know their real name upon signup
+    // Name changes require admin approval via support
+    if (updates.fullName) {
+      console.warn('🔒 Name change blocked: Requires admin approval');
+      return { 
+        success: false, 
+        message: 'Name changes require approval from Admin. Please contact support if you need to update your name.',
+        code: 'NAME_CHANGE_LOCKED'
+      };
+    }
+    
     await db.collection('users').doc(userId).update({
       ...updates,
       lastModified: firebase.firestore.FieldValue.serverTimestamp()

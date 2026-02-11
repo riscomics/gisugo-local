@@ -155,19 +155,18 @@ function getUrlParameters() {
 }
 
 async function loadJobData() {
-  // Show loading modal
+  // Show loading overlay
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) {
     loadingOverlay.classList.add('show');
   }
   
+  // ⚠️ CRITICAL: Wrap in try-finally to ensure loading always hides
+  try {
+  
   const { category, jobNumber } = getUrlParameters();
   
   if (!category || !jobNumber) {
-    // Hide loading modal on error
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('show');
-    }
     showErrorMessage('Invalid job URL. Missing category or job ID.');
     return;
   }
@@ -236,10 +235,6 @@ async function loadJobData() {
   
   if (!job) {
     console.error(`❌ Job not found in Firebase or localStorage`);
-    // Hide loading modal on error
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('show');
-    }
     showErrorMessage('Job not found. This job may have been removed or does not exist.');
     return;
   }
@@ -260,21 +255,28 @@ async function loadJobData() {
     console.log('🏁 Job is completed - hiding Apply button');
     applyBtn.style.display = 'none';
   } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
-    console.log('👤 User is viewing their own job - showing USER GIG button');
+    console.log('👤 User is viewing their own job - showing YOUR GIG button');
     applyBtn.disabled = true;
     applyBtn.style.opacity = '0.5';
     applyBtn.style.cursor = 'not-allowed';
     applyBtn.style.backgroundColor = '';
-    applyBtn.querySelector('span').textContent = 'USER GIG';
+    applyBtn.querySelector('span').textContent = 'YOUR GIG';
     applyBtn.title = 'This is your own gig';
   } else {
     // Check if user has already applied to this job (only for active jobs by other posters)
     await checkIfUserAlreadyApplied(jobNumber);
   }
   
-  // Hide loading modal after page is populated
-  if (loadingOverlay) {
-    loadingOverlay.classList.remove('show');
+  } catch (unexpectedError) {
+    // ⚠️ CRITICAL: Catch any unexpected errors
+    console.error('❌ Unexpected error in loadJobData:', unexpectedError);
+    showErrorMessage('Failed to load job. Please refresh the page.');
+  } finally {
+    // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+      console.log('✅ Loading overlay hidden');
+    }
   }
 }
 
@@ -599,11 +601,13 @@ function initializeMenu() {
       }
     });
     
-    document.addEventListener('keydown', function(e) {
+    // Menu escape key handler - using cleanup registry
+    const menuEscapeHandler = function(e) {
       if (e.key === 'Escape') {
         menuOverlay.classList.remove('show');
       }
-    });
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', menuEscapeHandler);
   }
 }
 
@@ -701,12 +705,13 @@ function initializeApplyJob() {
       });
     }
     
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(e) {
+    // Close modal with Escape key - using cleanup registry
+    const applyModalEscapeHandler = function(e) {
       if (e.key === 'Escape' && applyOverlay.classList.contains('show')) {
         closeApplyModal();
       }
-    });
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', applyModalEscapeHandler);
   }
 }
 
@@ -892,7 +897,7 @@ function showValidationError(message, focusElement = null) {
     }
   };
   
-  // Close on Escape key
+  // Close on Escape key - using cleanup registry
   const handleEscKey = (e) => {
     if (e.key === 'Escape') {
       closeValidation();
@@ -901,7 +906,7 @@ function showValidationError(message, focusElement = null) {
   
   okBtn.addEventListener('click', closeValidation);
   overlay.addEventListener('click', handleBackdropClick);
-  document.addEventListener('keydown', handleEscKey);
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', handleEscKey);
 }
 
 // Function to close overlay AND navigate back to listings (for GOT IT button)
@@ -938,12 +943,13 @@ function initializeApplicationSentOverlay() {
       }
     });
     
-    // Escape key - just close overlay
-    document.addEventListener('keydown', function(e) {
+    // Escape key - just close overlay - using cleanup registry
+    const applicationSentEscapeHandler = function(e) {
       if (e.key === 'Escape' && applicationSentOverlay.classList.contains('show')) {
         closeApplicationSentOverlay();
       }
-    });
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', applicationSentEscapeHandler);
   }
 }
 
@@ -1012,9 +1018,11 @@ function initializeContactDropdown() {
       contactDropdown.classList.toggle('show');
     });
     
-    document.addEventListener('click', function() {
+    // Contact dropdown document click handler - using cleanup registry
+    const contactDropdownClickHandler = function() {
       contactDropdown.classList.remove('show');
-    });
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'click', contactDropdownClickHandler);
     
     // Handle dropdown item clicks
     contactDropdown.addEventListener('click', function(e) {

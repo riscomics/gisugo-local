@@ -712,6 +712,9 @@ async function filterAndSortJobs() {
     loadingOverlay.classList.add('show');
   }
   
+  // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
+  try {
+  
   // Clear existing job cards
   const existingCards = document.querySelectorAll('.job-preview-card');
   existingCards.forEach(card => card.remove());
@@ -925,11 +928,32 @@ async function filterAndSortJobs() {
   setListingEmptyStateVisible(filteredJobs.length === 0, headerSpacer);
   
   // Apply truncation after cards are loaded
-  setTimeout(truncateBarangayNames, 50);
+  const truncateTimer = setTimeout(truncateBarangayNames, 50);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(truncateTimer);
+  }
   
-  // Hide loading modal
-  if (loadingOverlay) {
-    loadingOverlay.classList.remove('show');
+  } catch (unexpectedError) {
+    // ⚠️ CRITICAL: Catch any unexpected errors
+    console.error('❌ Unexpected error in filterAndSortJobs:', unexpectedError);
+    // Show error state to user
+    const headerSpacer = document.querySelector('.header-spacer');
+    if (headerSpacer) {
+      setListingEmptyStateVisible(true, headerSpacer);
+      const emptyState = document.getElementById('listingEmptyState');
+      if (emptyState) {
+        emptyState.innerHTML = `
+          <div class="empty-state-icon">❌</div>
+          <div class="empty-state-text">Failed to load jobs. Please refresh the page.</div>
+        `;
+      }
+    }
+  } finally {
+    // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
+    if (loadingOverlay) {
+      loadingOverlay.classList.remove('show');
+      console.log('✅ Loading overlay hidden');
+    }
   }
 }
 
@@ -984,7 +1008,10 @@ function truncateBarangayNames() {
 document.addEventListener('DOMContentLoaded', truncateBarangayNames);
 
 // Backup execution after a delay to catch any late-loading content
-setTimeout(truncateBarangayNames, 100);
+const backupTruncateTimer = setTimeout(truncateBarangayNames, 100);
+if (window._listingCleanup) {
+  window._listingCleanup.registerTimer(backupTruncateTimer);
+}
 
 // Also call on window load as a final backup
 window.addEventListener('load', truncateBarangayNames);
@@ -1132,9 +1159,12 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Apply filtering and sorting - now async for Firebase support
   await filterAndSortJobs();
   
-  setTimeout(() => {
+  const truncateTimer = setTimeout(() => {
     truncateBarangayNames();
   }, 50);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(truncateTimer);
+  }
   
   // Initialize jobcat overlay auto-resize
   initJobcatOverlayAutoResize();
@@ -1474,9 +1504,12 @@ function initJobcatButtonAutoResize() {
       e.stopPropagation();
       searchBarContainer.classList.add('show');
       collectJobCards(); // Refresh job cards list
-      setTimeout(() => {
+      const focusTimer = setTimeout(() => {
         if (searchInput) searchInput.focus();
       }, 400); // Wait for animation
+      if (window._listingCleanup) {
+        window._listingCleanup.registerTimer(focusTimer);
+      }
       console.log('🔍 Search opened for category:', getCurrentCategory(), 'region:', getSelectedRegion());
     });
   }
@@ -1964,7 +1997,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'professional' },
     { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'professional' },
     { emoji: '🧘🏻', label: 'Therapist', page: 'therapist.html', section: 'professional' },
-    { emoji: '🏡', label: 'Realtor', page: 'planner.html', section: 'professional' },
+    { emoji: '🏡', label: 'Realtor', page: 'realtor.html', section: 'professional' },
     { emoji: '🧮', label: 'Accountant', page: 'accountant.html', section: 'professional' },
     { emoji: '💼', label: 'Consultant', page: 'consultant.html', section: 'professional' },
     { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'professional' },
@@ -2222,7 +2255,10 @@ function initJobcatButtonAutoResize() {
   }
 
   // Initial observation
-  setTimeout(observeJobImages, 100);
+  const observeTimer = setTimeout(observeJobImages, 100);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(observeTimer);
+  }
 
   // Re-observe when new cards are added (e.g., after filtering)
   const cardsContainer = document.querySelector('.sortmenus');

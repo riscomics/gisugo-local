@@ -1010,16 +1010,18 @@ window.JobsDataService = {
                 const db = firebase.firestore();
                 
                 // Query for completed jobs where user is the poster
+                // Force server read to avoid stale cache after feedback submission
                 const posterSnapshot = await db.collection('jobs')
                     .where('status', '==', 'completed')
                     .where('posterId', '==', currentUserId)
-                    .get();
+                    .get({ source: 'server' });
                 
                 // Query for completed jobs where user is the hired worker
+                // Force server read to avoid stale cache after feedback submission
                 const workerSnapshot = await db.collection('jobs')
                     .where('status', '==', 'completed')
                     .where('hiredWorkerId', '==', currentUserId)
-                    .get();
+                    .get({ source: 'server' });
                 
                 console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
                 
@@ -1676,7 +1678,7 @@ async function loadOfferedContent() {
     container.innerHTML = `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
-            <div class="loading-text">Loading your job offers...</div>
+            <div class="loading-text">Loading your gig offers...</div>
         </div>
     `;
     
@@ -1714,7 +1716,7 @@ function showEmptyOfferedState() {
         <div class="empty-state">
             <div class="empty-state-icon">💼</div>
             <div class="empty-state-title">Gigs Offered</div>
-            <div class="empty-state-message">Job offers from customers will appear here</div>
+            <div class="empty-state-message">Gig offers from customers will appear here</div>
         </div>
     `;
 }
@@ -2232,7 +2234,7 @@ async function loadListingsContent() {
     container.innerHTML = `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
-            <div class="loading-text">Loading your job listings...</div>
+            <div class="loading-text">Loading your gig listings...</div>
         </div>
     `;
     
@@ -2243,10 +2245,10 @@ async function loadListingsContent() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📋</div>
-                <div class="empty-state-title">No active job listings yet</div>
-                <div class="empty-state-message">Ready to post your first job? Create a listing and start finding help!</div>
+                <div class="empty-state-title">No active gig listings yet</div>
+                <div class="empty-state-message">Ready to post your first gig? Create a listing and start finding help!</div>
                 <button class="empty-state-btn" onclick="window.location.href='new-post2.html'">
-                    Post Your First Job
+                    Post Your First Gig
                 </button>
             </div>
         `;
@@ -2527,7 +2529,7 @@ async function showListingOptionsOverlay(jobData) {
     console.log(`⚡ Using cached status: ${currentStatus} (no Firebase fetch)`);
     
     // Update overlay content
-    title.textContent = 'Manage Job';
+    title.textContent = 'Manage Gig';
     subtitle.textContent = jobData.title;
     
     // Update pause/activate button text based on current status
@@ -2827,7 +2829,7 @@ async function showHiringOptionsOverlay(jobData) {
                     MARK AS COMPLETED
                 </button>
                 <button class="listing-option-btn pause" id="relistJobBtn">
-                    RELIST JOB (Void Current Hire)
+                    RELIST GIG (Void Current Hire)
                 </button>
                 <button class="listing-option-btn cancel" id="cancelHiringBtn">
                     CLOSE
@@ -2838,7 +2840,7 @@ async function showHiringOptionsOverlay(jobData) {
         // Worker perspective: You were hired
         buttonsHTML = `
             <button class="listing-option-btn delete" id="resignJobBtn">
-                RESIGN FROM JOB
+                RESIGN FROM GIG
             </button>
             <button class="listing-option-btn cancel" id="cancelHiringBtn">
                 CLOSE
@@ -3248,7 +3250,7 @@ function initializeDisclaimerLanguageTabs(modalId) {
     // Modal-specific messages
     const modalMessages = {
         acceptGig: {
-            enabled: 'This will confirm your commitment to complete the job.'
+            enabled: 'This will confirm your commitment to complete the gig.'
         },
         confirmHire: {
             enabled: 'All other applicants will be rejected.'
@@ -3402,7 +3404,7 @@ function processAcceptGigConfirmation(jobData) {
     showConfirmationWithCallback(
         '🎉',
         'Gig Offer Accepted!',
-        `You have accepted the job offer from ${jobData.posterName}. The job will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
+        `You have accepted the gig offer from ${jobData.posterName}. The gig will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
         async () => {
             try {
                 // Move job from offered to accepted status
@@ -3561,7 +3563,7 @@ async function processRejectGigConfirmation(jobData) {
         showConfirmationWithCallback(
             '❌',
             'Gig Offer Rejected',
-            `You have rejected the job offer from ${jobData.posterName}. The customer has been notified of your decision.`,
+            `You have rejected the gig offer from ${jobData.posterName}. The customer has been notified of your decision.`,
             async () => {
                 try {
                     // Refresh offered tab
@@ -4161,7 +4163,7 @@ function initializeRelistJobConfirmationHandlers() {
                 if (sourceJob) {
                     // Create new draft based on completed job
                     // In Firebase, this would create a new job document with status: 'draft'
-                    showSuccessNotification(`Job draft created! You can now edit details and repost "${jobTitle}".`);
+                    showSuccessNotification(`Gig draft created! You can now edit details and repost "${jobTitle}".`);
                     
                     // Navigate to new-post2.html with pre-filled data for editing
                     // In real implementation: window.location.href = `/new-post2.html?draft=${newDraftId}`;
@@ -4278,7 +4280,7 @@ function initializeRelistJobConfirmationHandlers() {
                     } catch (error) {
                         console.error('❌ Error relisting job in Firebase:', error);
                         hideLoadingOverlay();
-                        showErrorNotification('Failed to relist job. Please try again.');
+                        showErrorNotification('Failed to relist gig. Please try again.');
                     } finally {
                         // Reset processing flag
                         overlay.dataset.processing = 'false';
@@ -4331,7 +4333,7 @@ function initializeRelistJobConfirmationHandlers() {
                             console.log(`✅ REACTIVATED job ${jobId} - moved from hiring to listings with ${reactivatedJob.applicationCount} preserved applications (excluded hired worker: ${workerName})`);
                             
                             // Show success message
-                            showContractVoidedSuccess(`Job reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
+                            showContractVoidedSuccess(`Gig reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
                         } else {
                             console.error(`❌ Source hiring job not found: ${jobId}`);
                             showErrorNotification('Failed to relist job - source job not found');
@@ -4616,9 +4618,15 @@ function showJobCompletedSuccess(jobTitle, workerName) {
     message.textContent = `"${jobTitle}" has been marked as completed successfully!`;
     workerNameSpan.textContent = workerName;
     
-    // Initialize feedback systems
-    initializeFeedbackStarRating();
-    initializeFeedbackCharacterCount();
+    // Initialize feedback systems ONLY if not already initialized (prevent memory leaks)
+    if (!overlay.dataset.feedbackHandlersInitialized) {
+        initializeFeedbackStarRating();
+        initializeFeedbackCharacterCount();
+        overlay.dataset.feedbackHandlersInitialized = 'true';
+    } else {
+        // Just reset the form if already initialized
+        resetFeedbackForm();
+    }
     
     // Clear any existing handler and add new one with cleanup
     submitBtn.onclick = null;
@@ -4629,8 +4637,9 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         
         // Get job and user data for Firebase integration
         const jobId = overlay.getAttribute('data-completed-job-id');
-        const hiredJobs = await JobsDataService.getAllHiredJobs();
-        const job = hiredJobs.find(j => j.jobId === jobId);
+        // CRITICAL: Job was just marked as 'completed', so query completed jobs, not hired jobs!
+        const completedJobs = await JobsDataService.getCompletedJobs();
+        const job = completedJobs.find(j => j.jobId === jobId);
         
         // Validate required fields
         if (rating === 0) {
@@ -4648,10 +4657,13 @@ function showJobCompletedSuccess(jobTitle, workerName) {
             try {
                 showLoadingOverlay('Submitting feedback...');
                 
+                // Get actual Firebase auth UID (not mock ID)
+                const currentUserId = firebase.auth().currentUser.uid;
+                
                 const result = await submitJobCompletionFeedback(
                     jobId,
                     job.hiredWorkerId || 'worker-user-id',
-                    CURRENT_USER_ID,
+                    currentUserId,  // Use real Firebase UID, not mock CURRENT_USER_ID
                     rating,
                     feedbackText
                 );
@@ -4661,6 +4673,22 @@ function showJobCompletedSuccess(jobTitle, workerName) {
             } catch (error) {
                 hideLoadingOverlay();
                 console.error('❌ Error submitting feedback:', error);
+                
+                // Close the congratulations overlay so user can see the error
+                overlay.classList.remove('show');
+                
+                // Clear any pending scroll timeouts
+                if (window._feedbackScrollTimeouts) {
+                    window._feedbackScrollTimeouts.forEach(clearTimeout);
+                    window._feedbackScrollTimeouts = [];
+                }
+                
+                // Execute cleanup for feedback handlers
+                executeCleanupsByType('success');
+                
+                // Clear initialization flag
+                delete overlay.dataset.feedbackHandlersInitialized;
+                
                 showErrorNotification('Failed to submit feedback: ' + error.message);
                 return; // Don't proceed with UI updates if submission failed
             }
@@ -4668,16 +4696,31 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         
         overlay.classList.remove('show');
         
+        // Clear any pending scroll timeouts to prevent memory leaks
+        if (window._feedbackScrollTimeouts) {
+            window._feedbackScrollTimeouts.forEach(clearTimeout);
+            window._feedbackScrollTimeouts = [];
+        }
+        
+        // Execute cleanup for feedback handlers
+        executeCleanupsByType('success');
+        console.log('🧹 Feedback handlers cleaned up after submission');
+        
+        // Clear initialization flag so modal can be re-initialized on next open
+        delete overlay.dataset.feedbackHandlersInitialized;
+        
         // Find and slide out the card first
         const completedJobId = overlay.getAttribute('data-completed-job-id');
         const cardToRemove = document.querySelector(`[data-job-id="${completedJobId}"]`);
         
         // Slide out card and show toast
         await slideOutCard(cardToRemove, 'right');
-        showSuccessNotification('Job completed and feedback submitted');
+        showSuccessNotification('Gig completed and feedback submitted');
         
         // Remove completed job from hiring data and transfer to completed data
-        if (completedJobId && MOCK_HIRING_DATA) {
+        // ONLY manipulate mock data if NOT in Firebase mode
+        const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+        if (!useFirebase && completedJobId && MOCK_HIRING_DATA) {
             const completedJob = MOCK_HIRING_DATA.find(job => job.jobId === completedJobId);
             if (completedJob) {
                 // Add to completed jobs data
@@ -4687,10 +4730,18 @@ function showJobCompletedSuccess(jobTitle, workerName) {
                 MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
                 console.log(`✅ Transferred completed job ${completedJobId} from Hiring to Previous tab`);
             }
+        } else if (useFirebase) {
+            console.log(`🔥 Firebase mode: Skipping mock data manipulation, will refresh from Firestore`);
         }
         
         // Reset feedback form for next use
         resetFeedbackForm();
+        
+        // In Firebase mode, add a small delay to ensure writes propagate before refresh
+        if (useFirebase) {
+            console.log('🔥 Waiting for Firebase propagation before refresh...');
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+        }
         
         // Refresh hiring tab content to remove completed job and previous tab to show new job
         await loadHiringContent();
@@ -4714,37 +4765,42 @@ function initializeFeedbackStarRating() {
     stars.forEach((star, index) => {
         const rating = index + 1;
         
-        // Remove existing event listeners to prevent duplicates
-        star.replaceWith(star.cloneNode(true));
-    });
-    
-    // Re-select stars after cloning to remove listeners
-    const newStars = document.querySelectorAll('.feedback-star');
-    
-    newStars.forEach((star, index) => {
-        const rating = index + 1;
+        // Create handlers with proper cleanup
+        const mouseEnterHandler = () => {
+            highlightStars(rating, stars);
+        };
         
-        // Hover effect
-        star.addEventListener('mouseenter', () => {
-            highlightStars(rating, newStars);
-        });
-        
-        // Click to select rating
-        star.addEventListener('click', () => {
+        const clickHandler = () => {
             currentRating = rating;
-            selectStars(rating, newStars);
+            selectStars(rating, stars);
             updateJobCompletionSubmitButtonState();
+        };
+        
+        star.addEventListener('mouseenter', mouseEnterHandler);
+        star.addEventListener('click', clickHandler);
+        
+        // Register cleanup for each star
+        registerCleanup('success', `feedbackStar_${index}`, () => {
+            star.removeEventListener('mouseenter', mouseEnterHandler);
+            star.removeEventListener('click', clickHandler);
         });
     });
     
     // Reset to current rating when mouse leaves container
     const starsContainer = document.querySelector('.feedback-stars-container');
-    starsContainer.addEventListener('mouseleave', () => {
+    const containerLeaveHandler = () => {
         if (currentRating > 0) {
-            selectStars(currentRating, newStars);
+            selectStars(currentRating, stars);
         } else {
-            clearStars(newStars);
+            clearStars(stars);
         }
+    };
+    
+    starsContainer.addEventListener('mouseleave', containerLeaveHandler);
+    
+    // Register cleanup for container
+    registerCleanup('success', 'feedbackStarsContainer', () => {
+        starsContainer.removeEventListener('mouseleave', containerLeaveHandler);
     });
 }
 
@@ -4891,9 +4947,6 @@ function initializeFeedbackCharacterCount() {
     const submitBtn = document.getElementById('jobCompletedOkBtn');
     
     if (textarea && charCount) {
-        // Clear existing listeners
-        textarea.removeEventListener('input', updateFeedbackCharCount);
-        
         // Add input event listener with validation
         const updateHandler = function() {
             updateFeedbackCharCount();
@@ -4904,6 +4957,13 @@ function initializeFeedbackCharacterCount() {
         // Add mobile-specific event handlers to prevent zoom
         textarea.addEventListener('focus', handleFeedbackTextareaFocus);
         textarea.addEventListener('blur', handleFeedbackTextareaBlur);
+        
+        // Register cleanup for all textarea handlers
+        registerCleanup('success', 'feedbackTextarea', () => {
+            textarea.removeEventListener('input', updateHandler);
+            textarea.removeEventListener('focus', handleFeedbackTextareaFocus);
+            textarea.removeEventListener('blur', handleFeedbackTextareaBlur);
+        });
         
         // Initialize count and button state
         updateFeedbackCharCount();
@@ -4924,13 +4984,21 @@ function handleFeedbackTextareaFocus(e) {
         textarea.style.fontSize = '16px';
         
         // Small delay to allow keyboard to appear, then scroll into view
-        setTimeout(() => {
-            textarea.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center',
-                inline: 'nearest'
-            });
+        // Track timeout for cleanup to prevent memory leaks
+        const timeoutId = setTimeout(() => {
+            // Only scroll if overlay is still shown
+            if (overlay.classList.contains('show')) {
+                textarea.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            }
         }, 300);
+        
+        // Store timeout ID for potential cleanup
+        if (!window._feedbackScrollTimeouts) window._feedbackScrollTimeouts = [];
+        window._feedbackScrollTimeouts.push(timeoutId);
     }
 }
 
@@ -5051,7 +5119,7 @@ function showResignationConfirmed(jobTitle, customerName) {
         
         // Slide out card and show toast
         await slideOutCard(cardToRemove, 'right');
-        showSuccessNotification('You have resigned from this job');
+        showSuccessNotification('You have resigned from this gig');
         
         // Remove resigned job from hiring data (worker resignation = job simply disappears)
         if (resignedJobId && MOCK_HIRING_DATA) {
@@ -5087,7 +5155,7 @@ function showContractVoidedNegative(jobTitle, workerName) {
     const message = document.getElementById('contractVoidedNegativeMessage');
     const okBtn = document.getElementById('contractVoidedNegativeOkBtn');
     
-    message.textContent = `Contract with ${workerName} has been voided for "${jobTitle}". The job is now active for new applications.`;
+    message.textContent = `Contract with ${workerName} has been voided for "${jobTitle}". The gig is now active for new applications.`;
     
     // Clear any existing handler and add new one with cleanup
     okBtn.onclick = null;
@@ -6011,7 +6079,7 @@ async function showPreviousOptionsOverlay(jobData) {
     overlay.setAttribute('data-modified-by', jobData.modifiedBy || '');
     
     // Update title and subtitle
-    title.textContent = 'Completed Job Options';
+    title.textContent = 'Completed Gig Options';
     subtitle.textContent = `Choose an action for "${jobData.title}"`;
     
     // Generate buttons based on role
@@ -7024,20 +7092,17 @@ function initializeApplicationActionHandlers() {
         const userName = this.getAttribute('data-user-name');
         const userId = this.getAttribute('data-user-id');
         
-        if (userName) {
-            // Convert user name to URL-friendly format
-            const urlUserId = userName.toLowerCase()
-                .replace(/\s+/g, '-')
-                .replace(/[^a-z0-9-]/g, '');
-            
+        if (userId && userName) {
             console.log(`🔍 View profile for: ${userName} (${userId})`);
             hideApplicationActionOverlay();
             showConfirmation('🔍', 'Opening Profile', `Opening profile for ${userName}...`);
             
-            // Navigate to profile page
+            // Navigate to profile page using Firebase UID (not slugified name)
             setTimeout(() => {
-                window.location.href = `profile.html?userId=${urlUserId}`;
+                window.location.href = `profile.html?userId=${userId}`;
             }, 1000);
+        } else {
+            console.error('❌ Missing userId or userName for profile navigation');
         }
     };
     
@@ -7969,7 +8034,7 @@ async function processHireConfirmation(workerData) {
     hideHireConfirmationOverlay();
     
     // Show loading animation
-    showLoadingOverlay('Sending job offer...');
+    showLoadingOverlay('Sending Gig Offer');
     
     // Check if Firebase mode is active
     const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
@@ -7992,7 +8057,7 @@ async function processHireConfirmation(workerData) {
                 // Show success confirmation with better formatting
                 showConfirmationWithCallback(
                     '🎉',
-                    'Job Offer Sent!',
+                    'Gig Offer Sent!',
                     `<div style="line-height: 1.6;">
                         <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
                         <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
@@ -8033,7 +8098,7 @@ async function processHireConfirmation(workerData) {
         
         showConfirmationWithCallback(
             '🎉',
-            'Job Offer Sent!',
+            'Gig Offer Sent!',
             `<div style="line-height: 1.6;">
                 <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
                 <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
