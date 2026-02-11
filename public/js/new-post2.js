@@ -1662,12 +1662,6 @@ async function postJob() {
     jobData.relistedFrom = np2State.relistJobId;
     jobData.relistedAt = new Date().toISOString();
     console.log('📋 RELIST MODE: Adding metadata for original job:', np2State.relistJobId);
-    
-    // If user kept original photo (no new file selected), reference it directly
-    if (!np2State.photoFile && np2State.photoDataUrl && np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
-      jobData.thumbnail = np2State.photoDataUrl; // Reference original photo URL
-      console.log('📋 RELIST: Referencing original photo URL (no download/re-upload)');
-    }
   }
   
   // Save job using DataService pattern - CLEAN SEPARATION
@@ -1708,41 +1702,82 @@ async function postJob() {
         console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
         result = await createJob(jobData);
         
-        // Now upload photo with the real jobId (ONLY if user selected a NEW photo file)
-        if (result.success && result.jobId && np2State.photoFile) {
+        // Now upload photo with the real jobId
+        if (result.success && result.jobId) {
+          const hasPhoto = np2State.photoFile || np2State.photoDataUrl;
           const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
           
-          if (useFirebaseStorage) {
-            console.log('📤 Uploading NEW photo file with jobId:', result.jobId);
+          if (hasPhoto && useFirebaseStorage) {
+            console.log('📤 Uploading photo with jobId:', result.jobId);
             
             try {
-              // Upload to Firebase Storage with REAL jobId
-              const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
+              let photoFile = np2State.photoFile;
               
-              if (uploadResult.success) {
-                console.log('✅ Photo uploaded:', uploadResult.url);
+              // If no new file selected but we have a Firebase Storage URL (RELIST case), download and re-upload
+              if (!photoFile && np2State.photoDataUrl && np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
+                console.log('📥 Downloading original photo to duplicate for relisted job...');
                 
-                // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
-                if (typeof getFirestore === 'function') {
-                  const db = getFirestore();
-                  await db.collection('jobs').doc(result.jobId).update({
-                    thumbnail: uploadResult.url,
-                    lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                try {
+                  // Use XMLHttpRequest with blob response type (better CORS handling than fetch)
+                  const blob = await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', np2State.photoDataUrl);
+                    xhr.responseType = 'blob';
+                    xhr.onload = () => {
+                      if (xhr.status === 200) {
+                        resolve(xhr.response);
+                      } else {
+                        reject(new Error(`HTTP ${xhr.status}`));
+                      }
+                    };
+                    xhr.onerror = () => reject(new Error('Network error'));
+                    xhr.send();
                   });
-                  console.log('✅ Job updated with photo URL');
+                  
+                  photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: blob.type || 'image/jpeg' });
+                  console.log('✅ Photo downloaded for duplication:', blob.size, 'bytes');
+                } catch (downloadError) {
+                  console.error('❌ Photo download failed:', downloadError);
+                  console.log('⚠️ FALLBACK: Using direct URL reference (not ideal - creates dependency on original)');
+                  // Fallback: update with original URL (not ideal but better than failing)
+                  if (typeof getFirestore === 'function') {
+                    const db = getFirestore();
+                    await db.collection('jobs').doc(result.jobId).update({
+                      thumbnail: np2State.photoDataUrl,
+                      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                  }
+                  // Continue without error - job created successfully
+                  photoFile = null;
                 }
-              } else {
-                console.error('❌ Photo upload failed:', uploadResult.errors);
-                // Job was created but photo failed - user can edit later to add photo
-                alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
+              }
+              
+              // Upload to Firebase Storage with REAL jobId (if we have a file)
+              if (photoFile) {
+                const uploadResult = await uploadJobPhoto(result.jobId, photoFile, currentUser.uid);
+                
+                if (uploadResult.success) {
+                  console.log('✅ Photo uploaded:', uploadResult.url);
+                  
+                  // Update job with photo URL (direct Firestore update to avoid overwriting other fields)
+                  if (typeof getFirestore === 'function') {
+                    const db = getFirestore();
+                    await db.collection('jobs').doc(result.jobId).update({
+                      thumbnail: uploadResult.url,
+                      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log('✅ Job updated with photo URL');
+                  }
+                } else {
+                  console.error('❌ Photo upload failed:', uploadResult.errors);
+                  alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
+                }
               }
             } catch (photoError) {
               console.error('❌ Photo upload error:', photoError);
               alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
             }
           }
-        } else if (result.success && result.jobId && !np2State.photoFile && np2State.photoDataUrl && np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
-          console.log('✅ Using original photo URL (already set in jobData)');
         }
       }
       
