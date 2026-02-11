@@ -1656,6 +1656,14 @@ async function postJob() {
     updatedAt: new Date().toISOString()
   };
   
+  // Add relist metadata if in relist mode
+  if (np2State.mode === 'relist' && np2State.relistJobId) {
+    jobData.originalJobId = np2State.relistJobId;
+    jobData.relistedFrom = np2State.relistJobId;
+    jobData.relistedAt = new Date().toISOString();
+    console.log('📋 RELIST MODE: Adding metadata for original job:', np2State.relistJobId);
+  }
+  
   // Save job using DataService pattern - CLEAN SEPARATION
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
   console.log(`📊 Saving job in ${useFirebase ? 'FIREBASE' : 'MOCK'} mode`);
