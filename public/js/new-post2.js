@@ -1662,6 +1662,12 @@ async function postJob() {
     jobData.relistedFrom = np2State.relistJobId;
     jobData.relistedAt = new Date().toISOString();
     console.log('📋 RELIST MODE: Adding metadata for original job:', np2State.relistJobId);
+    
+    // If user kept original photo (no new file selected), reference it directly
+    if (!np2State.photoFile && np2State.photoDataUrl && np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
+      jobData.thumbnail = np2State.photoDataUrl; // Reference original photo URL
+      console.log('📋 RELIST: Referencing original photo URL (no download/re-upload)');
+    }
   }
   
   // Save job using DataService pattern - CLEAN SEPARATION
@@ -1702,39 +1708,16 @@ async function postJob() {
         console.log('📝 NEW/RELIST MODE: Creating new job (without photo)');
         result = await createJob(jobData);
         
-        // Now upload photo with the real jobId
-        if (result.success && result.jobId) {
-          const hasPhoto = processedJobPhoto || np2State.photoDataUrl;
+        // Now upload photo with the real jobId (ONLY if user selected a NEW photo file)
+        if (result.success && result.jobId && np2State.photoFile) {
           const useFirebaseStorage = typeof uploadJobPhoto === 'function' && typeof getFirebaseStorage === 'function' && getFirebaseStorage();
           
-          if (hasPhoto && useFirebaseStorage) {
-            console.log('📤 Uploading photo with jobId:', result.jobId);
+          if (useFirebaseStorage) {
+            console.log('📤 Uploading NEW photo file with jobId:', result.jobId);
             
             try {
-              // Convert data URL to File object
-              let photoFile = np2State.photoFile;
-              
-              if (!photoFile && np2State.photoDataUrl) {
-                // Check if it's a Firebase Storage URL (get authenticated URL to avoid CORS)
-                if (np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
-                  console.log('📥 Downloading photo from Firebase Storage via authenticated URL...');
-                  const storage = getFirebaseStorage();
-                  const photoRef = storage.refFromURL(np2State.photoDataUrl);
-                  const authenticatedUrl = await photoRef.getDownloadURL();
-                  const response = await fetch(authenticatedUrl);
-                  const blob = await response.blob();
-                  photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: blob.type || 'image/jpeg' });
-                  console.log('✅ Photo downloaded:', blob.size, 'bytes');
-                } else {
-                  // Regular data URL - use fetch
-                  const response = await fetch(np2State.photoDataUrl);
-                  const blob = await response.blob();
-                  photoFile = new File([blob], `job_photo_${result.jobId}.jpg`, { type: 'image/jpeg' });
-                }
-              }
-              
               // Upload to Firebase Storage with REAL jobId
-              const uploadResult = await uploadJobPhoto(result.jobId, photoFile, currentUser.uid);
+              const uploadResult = await uploadJobPhoto(result.jobId, np2State.photoFile, currentUser.uid);
               
               if (uploadResult.success) {
                 console.log('✅ Photo uploaded:', uploadResult.url);
@@ -1758,6 +1741,8 @@ async function postJob() {
               alert('Gig created, but photo upload failed. You can edit the gig to add a photo.');
             }
           }
+        } else if (result.success && result.jobId && !np2State.photoFile && np2State.photoDataUrl && np2State.photoDataUrl.includes('firebasestorage.googleapis.com')) {
+          console.log('✅ Using original photo URL (already set in jobData)');
         }
       }
       
