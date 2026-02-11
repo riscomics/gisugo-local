@@ -1678,7 +1678,7 @@ async function loadOfferedContent() {
     container.innerHTML = `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
-            <div class="loading-text">Loading your job offers...</div>
+            <div class="loading-text">Loading your gig offers...</div>
         </div>
     `;
     
@@ -1716,7 +1716,7 @@ function showEmptyOfferedState() {
         <div class="empty-state">
             <div class="empty-state-icon">💼</div>
             <div class="empty-state-title">Gigs Offered</div>
-            <div class="empty-state-message">Job offers from customers will appear here</div>
+            <div class="empty-state-message">Gig offers from customers will appear here</div>
         </div>
     `;
 }
@@ -2234,7 +2234,7 @@ async function loadListingsContent() {
     container.innerHTML = `
         <div class="loading-state">
             <div class="loading-spinner">🔄</div>
-            <div class="loading-text">Loading your job listings...</div>
+            <div class="loading-text">Loading your gig listings...</div>
         </div>
     `;
     
@@ -2245,10 +2245,10 @@ async function loadListingsContent() {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📋</div>
-                <div class="empty-state-title">No active job listings yet</div>
-                <div class="empty-state-message">Ready to post your first job? Create a listing and start finding help!</div>
+                <div class="empty-state-title">No active gig listings yet</div>
+                <div class="empty-state-message">Ready to post your first gig? Create a listing and start finding help!</div>
                 <button class="empty-state-btn" onclick="window.location.href='new-post2.html'">
-                    Post Your First Job
+                    Post Your First Gig
                 </button>
             </div>
         `;
@@ -2529,7 +2529,7 @@ async function showListingOptionsOverlay(jobData) {
     console.log(`⚡ Using cached status: ${currentStatus} (no Firebase fetch)`);
     
     // Update overlay content
-    title.textContent = 'Manage Job';
+    title.textContent = 'Manage Gig';
     subtitle.textContent = jobData.title;
     
     // Update pause/activate button text based on current status
@@ -2829,7 +2829,7 @@ async function showHiringOptionsOverlay(jobData) {
                     MARK AS COMPLETED
                 </button>
                 <button class="listing-option-btn pause" id="relistJobBtn">
-                    RELIST JOB (Void Current Hire)
+                    RELIST GIG (Void Current Hire)
                 </button>
                 <button class="listing-option-btn cancel" id="cancelHiringBtn">
                     CLOSE
@@ -2840,7 +2840,7 @@ async function showHiringOptionsOverlay(jobData) {
         // Worker perspective: You were hired
         buttonsHTML = `
             <button class="listing-option-btn delete" id="resignJobBtn">
-                RESIGN FROM JOB
+                RESIGN FROM GIG
             </button>
             <button class="listing-option-btn cancel" id="cancelHiringBtn">
                 CLOSE
@@ -3250,7 +3250,7 @@ function initializeDisclaimerLanguageTabs(modalId) {
     // Modal-specific messages
     const modalMessages = {
         acceptGig: {
-            enabled: 'This will confirm your commitment to complete the job.'
+            enabled: 'This will confirm your commitment to complete the gig.'
         },
         confirmHire: {
             enabled: 'All other applicants will be rejected.'
@@ -3404,7 +3404,7 @@ function processAcceptGigConfirmation(jobData) {
     showConfirmationWithCallback(
         '🎉',
         'Gig Offer Accepted!',
-        `You have accepted the job offer from ${jobData.posterName}. The job will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
+        `You have accepted the gig offer from ${jobData.posterName}. The gig will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
         async () => {
             try {
                 // Move job from offered to accepted status
@@ -3563,7 +3563,7 @@ async function processRejectGigConfirmation(jobData) {
         showConfirmationWithCallback(
             '❌',
             'Gig Offer Rejected',
-            `You have rejected the job offer from ${jobData.posterName}. The customer has been notified of your decision.`,
+            `You have rejected the gig offer from ${jobData.posterName}. The customer has been notified of your decision.`,
             async () => {
                 try {
                     // Refresh offered tab
@@ -4163,7 +4163,7 @@ function initializeRelistJobConfirmationHandlers() {
                 if (sourceJob) {
                     // Create new draft based on completed job
                     // In Firebase, this would create a new job document with status: 'draft'
-                    showSuccessNotification(`Job draft created! You can now edit details and repost "${jobTitle}".`);
+                    showSuccessNotification(`Gig draft created! You can now edit details and repost "${jobTitle}".`);
                     
                     // Navigate to new-post2.html with pre-filled data for editing
                     // In real implementation: window.location.href = `/new-post2.html?draft=${newDraftId}`;
@@ -4280,7 +4280,7 @@ function initializeRelistJobConfirmationHandlers() {
                     } catch (error) {
                         console.error('❌ Error relisting job in Firebase:', error);
                         hideLoadingOverlay();
-                        showErrorNotification('Failed to relist job. Please try again.');
+                        showErrorNotification('Failed to relist gig. Please try again.');
                     } finally {
                         // Reset processing flag
                         overlay.dataset.processing = 'false';
@@ -4333,7 +4333,7 @@ function initializeRelistJobConfirmationHandlers() {
                             console.log(`✅ REACTIVATED job ${jobId} - moved from hiring to listings with ${reactivatedJob.applicationCount} preserved applications (excluded hired worker: ${workerName})`);
                             
                             // Show success message
-                            showContractVoidedSuccess(`Job reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
+                            showContractVoidedSuccess(`Gig reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
                         } else {
                             console.error(`❌ Source hiring job not found: ${jobId}`);
                             showErrorNotification('Failed to relist job - source job not found');
@@ -4715,7 +4715,7 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         
         // Slide out card and show toast
         await slideOutCard(cardToRemove, 'right');
-        showSuccessNotification('Job completed and feedback submitted');
+        showSuccessNotification('Gig completed and feedback submitted');
         
         // Remove completed job from hiring data and transfer to completed data
         // ONLY manipulate mock data if NOT in Firebase mode
@@ -5119,7 +5119,7 @@ function showResignationConfirmed(jobTitle, customerName) {
         
         // Slide out card and show toast
         await slideOutCard(cardToRemove, 'right');
-        showSuccessNotification('You have resigned from this job');
+        showSuccessNotification('You have resigned from this gig');
         
         // Remove resigned job from hiring data (worker resignation = job simply disappears)
         if (resignedJobId && MOCK_HIRING_DATA) {
@@ -5155,7 +5155,7 @@ function showContractVoidedNegative(jobTitle, workerName) {
     const message = document.getElementById('contractVoidedNegativeMessage');
     const okBtn = document.getElementById('contractVoidedNegativeOkBtn');
     
-    message.textContent = `Contract with ${workerName} has been voided for "${jobTitle}". The job is now active for new applications.`;
+    message.textContent = `Contract with ${workerName} has been voided for "${jobTitle}". The gig is now active for new applications.`;
     
     // Clear any existing handler and add new one with cleanup
     okBtn.onclick = null;
@@ -6079,7 +6079,7 @@ async function showPreviousOptionsOverlay(jobData) {
     overlay.setAttribute('data-modified-by', jobData.modifiedBy || '');
     
     // Update title and subtitle
-    title.textContent = 'Completed Job Options';
+    title.textContent = 'Completed Gig Options';
     subtitle.textContent = `Choose an action for "${jobData.title}"`;
     
     // Generate buttons based on role

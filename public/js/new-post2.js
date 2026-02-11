@@ -2465,12 +2465,17 @@ function showEditForm(jobData, category) {
     editTitleCharCount.textContent = editTitleInput.value.length;
   }
   
-  // Add input listener for character counter
-  editTitleInput.addEventListener('input', function() {
+  // Add input listener for character counter (tracked for cleanup)
+  const titleInputHandler = function() {
     if (editTitleCharCount) {
       editTitleCharCount.textContent = this.value.length;
     }
-  });
+  };
+  editTitleInput.addEventListener('input', titleInputHandler);
+  
+  // Store reference for cleanup
+  np2State.titleInputHandler = titleInputHandler;
+  np2State.editTitleInput = editTitleInput;
   
   // Populate date
   document.getElementById('editDateInput').value = jobData.jobDate || '';
@@ -2795,17 +2800,22 @@ function initializeEditFormButtons(jobData, category, isRelist = false) {
   if (changePhotoBtn && photoInput) {
     changePhotoBtn.onclick = photoChangeHandler;
     photoInput.onchange = photoInputHandler;
-    
-    // Add to cleanup
-    const oldCleanup = editButtonCleanup;
-    editButtonCleanup = () => {
-      console.log('🧹 Cleaning up edit button and photo handlers');
-      if (cancelBtn) cancelBtn.onclick = null;
-      if (updateBtn) updateBtn.onclick = null;
-      if (changePhotoBtn) changePhotoBtn.onclick = null;
-      if (photoInput) photoInput.onchange = null;
-    };
   }
+  
+  // Consolidate all button/input cleanup (overwrite, not extend)
+  editButtonCleanup = () => {
+    console.log('🧹 Cleaning up edit button and photo handlers');
+    if (cancelBtn) cancelBtn.onclick = null;
+    if (updateBtn) updateBtn.onclick = null;
+    if (changePhotoBtn) changePhotoBtn.onclick = null;
+    if (photoInput) photoInput.onchange = null;
+    // Clean up title input listener
+    if (np2State.titleInputHandler && np2State.editTitleInput) {
+      np2State.editTitleInput.removeEventListener('input', np2State.titleInputHandler);
+      np2State.titleInputHandler = null;
+      np2State.editTitleInput = null;
+    }
+  };
 }
 
 /**
