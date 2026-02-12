@@ -171,5 +171,26 @@ function initializeSharedMenu() {
   console.log('Shared Menu: Successfully initialized');
 }
 
+// Track initialization to prevent duplicates
+let sharedMenuInitialized = false;
+
+function autoInitSharedMenu() {
+  if (sharedMenuInitialized) {
+    console.log('⚠️ Shared menu already initialized');
+    return;
+  }
+  initializeSharedMenu();
+  sharedMenuInitialized = true;
+}
+
 // Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeSharedMenu); 
+document.addEventListener('DOMContentLoaded', autoInitSharedMenu);
+
+// Re-initialize when page is restored from bfcache (mobile swipe back)
+window.addEventListener('pageshow', (event) => {
+  if (event.persisted) {
+    console.log('🔄 Page restored from cache - re-initializing shared menu');
+    sharedMenuInitialized = false;
+    autoInitSharedMenu();
+  }
+}); 

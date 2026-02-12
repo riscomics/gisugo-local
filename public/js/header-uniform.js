@@ -342,17 +342,40 @@ function debugUniformHeader(enable = true) {
 
 // ===== AUTO-INITIALIZATION =====
 
-// Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM loaded - checking for uniform header...');
+// Track initialization state
+let headerInitialized = false;
+
+function autoInitHeader() {
+    // Prevent double initialization
+    if (headerInitialized) {
+        console.log('⚠️ Header already initialized, skipping...');
+        return;
+    }
+    
+    console.log('📄 Checking for uniform header...');
     
     // Only auto-initialize if uniform header exists
     const uniformHeader = document.querySelector('.uniform-header');
     if (uniformHeader) {
         console.log('🎯 Uniform header found - auto-initializing...');
         initializeUniformHeader();
+        headerInitialized = true;
     } else {
         console.log('ℹ️ No uniform header found - skipping auto-initialization');
+    }
+}
+
+// Auto-initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', autoInitHeader);
+
+// CRITICAL: Re-initialize when page is restored from bfcache (mobile swipe back)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        // Page was loaded from bfcache (browser back/forward cache)
+        console.log('🔄 Page restored from cache - re-initializing header');
+        executeHeaderCleanups();
+        headerInitialized = false;
+        autoInitHeader();
     }
 });
 
