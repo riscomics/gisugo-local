@@ -92,6 +92,19 @@ function initializeFirebase() {
     // ═══════════════════════════════════════════════════════════════
     // Cache Firestore data locally for faster loads and offline access
     // Saves 600-900ms on repeat page visits by using local cache
+    //
+    // ⚠️ FUTURE FIREBASE SDK UPGRADE (v11+) - UPDATE THIS CODE:
+    // When upgrading Firebase SDK beyond v10.x, replace this block with:
+    //
+    //   firebase.firestore().settings({
+    //     cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+    //     experimentalForceLongPolling: false,
+    //     experimentalAutoDetectLongPolling: true
+    //   });
+    //
+    // Current method works but is deprecated in future versions.
+    // If you see error: "enablePersistence is not a function" - use code above
+    // ═══════════════════════════════════════════════════════════════
     if (firebase.firestore) {
       firebase.firestore().enablePersistence({ synchronizeTabs: true })
         .then(() => {
