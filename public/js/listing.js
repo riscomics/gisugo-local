@@ -900,32 +900,29 @@ async function filterAndSortJobs() {
   
   
   // ============================================================================
-  // ✅ FIREBASE-READY - RENDERING LOGIC (Keep this section as-is)
+  // 🔥 PAGINATION - STORE FILTERED JOBS & RENDER INITIAL BATCH
   // ============================================================================
-  // This rendering logic works perfectly with both mock data and Firebase data.
-  // No changes needed during Firebase migration.
+  // Store all filtered jobs for pagination, then render only the initial batch
   
-  // Create and insert filtered job cards in reverse order to get correct display order
-  let previousPayType = null;
-  let consecutiveCount = 0;
+  // Reset pagination state
+  PAGINATION.allJobs = filteredJobs;
+  PAGINATION.currentIndex = 0;
+  PAGINATION.displayedJobs = [];
+  PAGINATION.hasMore = filteredJobs.length > PAGINATION.initialBatchSize;
   
-  filteredJobs.reverse().forEach((cardData) => {
-    const currentPayType = cardData.rate || 'Per Hour';
-    
-    // Track consecutive cards of same pay type for subtle variations
-    if (currentPayType === previousPayType) {
-      consecutiveCount++;
-    } else {
-      consecutiveCount = 0;
-      previousPayType = currentPayType;
-    }
-    
-    const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
-    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
-  });
-
+  console.log(`📊 Total jobs after filtering: ${filteredJobs.length}`);
+  console.log(`📦 Initial batch size: ${PAGINATION.initialBatchSize}`);
+  
   // Show empty state when no gigs are available
-  setListingEmptyStateVisible(filteredJobs.length === 0, headerSpacer);
+  if (filteredJobs.length === 0) {
+    setListingEmptyStateVisible(true, headerSpacer);
+    return; // Exit early if no jobs
+  }
+  
+  setListingEmptyStateVisible(false, headerSpacer);
+  
+  // Render initial batch
+  renderJobBatch(PAGINATION.initialBatchSize, headerSpacer);
   
   // Apply truncation after cards are loaded
   const truncateTimer = setTimeout(truncateBarangayNames, 50);
@@ -954,6 +951,72 @@ async function filterAndSortJobs() {
       loadingOverlay.classList.remove('show');
       console.log('✅ Loading overlay hidden');
     }
+  }
+}
+
+// ============================================================================
+// 🔥 PAGINATION - RENDER JOB BATCH
+// ============================================================================
+// Renders a batch of job cards from the PAGINATION.allJobs array
+function renderJobBatch(batchSize, headerSpacer) {
+  if (!headerSpacer) {
+    console.error('❌ Header spacer not found for rendering job batch');
+    return;
+  }
+  
+  // Calculate how many jobs to render (don't exceed available jobs)
+  const remainingJobs = PAGINATION.allJobs.length - PAGINATION.currentIndex;
+  const jobsToRender = Math.min(batchSize, remainingJobs);
+  
+  if (jobsToRender === 0) {
+    console.log('✅ All jobs rendered');
+    PAGINATION.hasMore = false;
+    return;
+  }
+  
+  console.log(`📦 Rendering ${jobsToRender} jobs (index ${PAGINATION.currentIndex} to ${PAGINATION.currentIndex + jobsToRender - 1})`);
+  
+  // Get the batch of jobs to render
+  const jobBatch = PAGINATION.allJobs.slice(
+    PAGINATION.currentIndex, 
+    PAGINATION.currentIndex + jobsToRender
+  );
+  
+  // Track pay type for consecutive styling (continue from last displayed job)
+  let previousPayType = PAGINATION.displayedJobs.length > 0 
+    ? PAGINATION.displayedJobs[PAGINATION.displayedJobs.length - 1].rate || 'Per Hour'
+    : null;
+  let consecutiveCount = 0;
+  
+  // Render jobs in reverse order (so newest appear at top when inserted after header)
+  jobBatch.reverse().forEach((cardData) => {
+    const currentPayType = cardData.rate || 'Per Hour';
+    
+    // Track consecutive cards of same pay type for subtle variations
+    if (currentPayType === previousPayType) {
+      consecutiveCount++;
+    } else {
+      consecutiveCount = 0;
+      previousPayType = currentPayType;
+    }
+    
+    const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
+    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+    
+    // Add to displayed jobs
+    PAGINATION.displayedJobs.push(cardData);
+  });
+  
+  // Update pagination state
+  PAGINATION.currentIndex += jobsToRender;
+  PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length;
+  
+  console.log(`✅ Batch rendered. Displayed: ${PAGINATION.displayedJobs.length}/${PAGINATION.allJobs.length} jobs`);
+  
+  // Apply truncation after cards are loaded
+  const truncateTimer = setTimeout(truncateBarangayNames, 50);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(truncateTimer);
   }
 }
 
@@ -1017,6 +1080,20 @@ if (window._listingCleanup) {
 window.addEventListener('load', truncateBarangayNames);
 
 // ========================== JOB PREVIEW CARDS LOADING ==========================
+
+// ============================================================================
+// 🔥 INFINITE SCROLL PAGINATION STATE
+// ============================================================================
+// Manages progressive loading of gig cards (20 initial, 15 per batch)
+const PAGINATION = {
+  initialBatchSize: 20,
+  loadMoreBatchSize: 15,
+  allJobs: [],           // Full list of filtered/sorted jobs
+  displayedJobs: [],     // Jobs currently displayed
+  currentIndex: 0,       // Index of next job to display
+  isLoading: false,      // Prevent concurrent loads
+  hasMore: true          // Whether more jobs exist to load
+};
 
 function getCurrentCategory() {
   // Get category from page title or URL
@@ -1960,7 +2037,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'basic' },
     { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'basic' },
     { emoji: '🙋🏻', label: 'Staff', page: 'staff.html', section: 'basic' },
-    { emoji: '👩‍💼👨‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
+    { emoji: '👩🏻‍💼👨🏻‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
     
     // SKILLED WORKER SECTION
     { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'skilled' },
@@ -2280,6 +2357,129 @@ function initJobcatButtonAutoResize() {
   }
 
   console.log('✓ Lazy loading images initialized');
+})();
+
+// ============================================================================
+// 🔥 INFINITE SCROLL - AUTO-LOAD MORE JOBS
+// ============================================================================
+// Automatically load more jobs when user scrolls near bottom of page
+// ============================================================================
+
+(function() {
+  let scrollHandler;
+  
+  function handleInfiniteScroll() {
+    // Don't load if already loading, no more jobs, or page not ready
+    if (PAGINATION.isLoading || !PAGINATION.hasMore) {
+      return;
+    }
+    
+    // Calculate distance from bottom
+    const scrollPosition = window.scrollY + window.innerHeight;
+    const pageHeight = document.documentElement.scrollHeight;
+    const distanceFromBottom = pageHeight - scrollPosition;
+    
+    // Trigger when within 800px of bottom
+    if (distanceFromBottom < 800) {
+      loadMoreJobs();
+    }
+  }
+  
+  function loadMoreJobs() {
+    PAGINATION.isLoading = true;
+    console.log('📦 Loading more jobs...');
+    
+    const headerSpacer = document.querySelector('.jobcat-header-spacer');
+    if (!headerSpacer) {
+      console.error('❌ Header spacer not found');
+      PAGINATION.isLoading = false;
+      return;
+    }
+    
+    // Show subtle loading indicator
+    showLoadingIndicator();
+    
+    // Small delay to show indicator (prevents jarring immediate load)
+    const loadTimer = setTimeout(() => {
+      renderJobBatch(PAGINATION.loadMoreBatchSize, headerSpacer);
+      hideLoadingIndicator();
+      PAGINATION.isLoading = false;
+      
+      // Log progress
+      if (PAGINATION.hasMore) {
+        console.log(`📊 Progress: ${PAGINATION.displayedJobs.length}/${PAGINATION.allJobs.length} jobs loaded`);
+      } else {
+        console.log('✅ All jobs loaded');
+      }
+    }, 300);
+    
+    // Register timer for cleanup
+    if (window._listingCleanup) {
+      window._listingCleanup.registerTimer(loadTimer, 'timeout');
+    }
+  }
+  
+  function showLoadingIndicator() {
+    // Check if indicator already exists
+    let indicator = document.getElementById('paginationLoadingIndicator');
+    
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'paginationLoadingIndicator';
+      indicator.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 24px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: none;
+      `;
+      indicator.textContent = 'Loading more gigs...';
+      document.body.appendChild(indicator);
+    }
+    
+    indicator.style.display = 'block';
+  }
+  
+  function hideLoadingIndicator() {
+    const indicator = document.getElementById('paginationLoadingIndicator');
+    if (indicator) {
+      indicator.style.display = 'none';
+    }
+  }
+  
+  // Throttle scroll events (check at most every 150ms)
+  let scrollTimeout;
+  scrollHandler = function() {
+    if (scrollTimeout) return;
+    
+    scrollTimeout = setTimeout(() => {
+      handleInfiniteScroll();
+      scrollTimeout = null;
+    }, 150);
+    
+    // Register timeout for cleanup (defensive - setTimeout auto-clears, but good practice)
+    if (window._listingCleanup && scrollTimeout) {
+      window._listingCleanup.registerTimer(scrollTimeout, 'timeout');
+    }
+  };
+  
+  // Register scroll listener
+  window.addEventListener('scroll', scrollHandler, { passive: true });
+  
+  // Register for cleanup
+  if (window._listingCleanup) {
+    window._listingCleanup.registerListener(window, 'scroll', scrollHandler, { passive: true });
+  }
+  
+  console.log('✓ Infinite scroll initialized (trigger: 800px from bottom)');
 })();
 
 // ============================================================================
