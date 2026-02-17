@@ -1949,13 +1949,13 @@ function initJobcatButtonAutoResize() {
   // Job categories with emojis and page names
   const jobCategories = [
     // BASIC HELPER SECTION
-    { emoji: '🚗', label: 'Hatod', page: 'hatod.html', section: 'basic' },
-    { emoji: '📦', label: 'Hakot', page: 'hakot.html', section: 'basic' },
-    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'basic' },
-    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
-    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
-    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'basic' },
     { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
+    { emoji: '📦', label: 'Hakot', page: 'hakot.html', section: 'basic' },
+    { emoji: '🚗', label: 'Hatod', page: 'hatod.html', section: 'basic' },
+    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
+    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
+    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'basic' },
+    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'basic' },
     { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'basic' },
     { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'basic' },
     { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'basic' },
