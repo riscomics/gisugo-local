@@ -988,8 +988,14 @@ function renderJobBatch(batchSize, headerSpacer) {
     : null;
   let consecutiveCount = 0;
   
-  // Render jobs in reverse order (so newest appear at top when inserted after header)
-  jobBatch.reverse().forEach((cardData) => {
+  // Determine if this is the initial load or a pagination batch
+  const isInitialLoad = PAGINATION.displayedJobs.length === 0;
+  
+  // For initial load: render in reverse order (newest at top)
+  // For pagination: render in normal order (append to bottom)
+  const jobsToProcess = isInitialLoad ? jobBatch.reverse() : jobBatch;
+  
+  jobsToProcess.forEach((cardData) => {
     const currentPayType = cardData.rate || 'Per Hour';
     
     // Track consecutive cards of same pay type for subtle variations
@@ -1001,7 +1007,14 @@ function renderJobBatch(batchSize, headerSpacer) {
     }
     
     const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
-    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+    
+    if (isInitialLoad) {
+      // Initial load: insert after header (so newest are at top)
+      headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+    } else {
+      // Pagination: append to end of container
+      headerSpacer.parentNode.appendChild(jobCard);
+    }
     
     // Add to displayed jobs
     PAGINATION.displayedJobs.push(cardData);
