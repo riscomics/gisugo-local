@@ -943,6 +943,30 @@ async function applyForJob(jobId, applicationData) {
     
     console.log('✅ Application validation check passed');
     
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-PAUSE CHECK: Count total pending applications for this gig
+    // ═══════════════════════════════════════════════════════════════
+    console.log('🔍 Checking total application count for auto-pause logic...');
+    
+    const allApplicationsSnapshot = await db.collection('applications')
+      .where('jobId', '==', jobId)
+      .where('status', '==', 'pending')
+      .get();
+    
+    const totalPendingApplications = allApplicationsSnapshot.size;
+    console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
+    
+    // Block if gig already has 10+ applications (paused)
+    if (totalPendingApplications >= 10) {
+      console.warn('🛑 Gig has reached maximum applications (10) - currently paused');
+      return {
+        success: false,
+        message: 'This gig is currently paused due to high interest. The poster is reviewing applications.'
+      };
+    }
+    
+    console.log('✅ Auto-pause check passed - gig still accepting applications');
+    
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';
     let applicantThumbnail = currentUser.photoURL || '';
@@ -987,6 +1011,73 @@ async function applyForJob(jobId, applicationData) {
     });
     
     console.log('✅ Application submitted:', appRef.id);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // NOTIFICATION SYSTEM: Application received (with auto-pause)
+    // ═══════════════════════════════════════════════════════════════
+    const newTotalApplications = totalPendingApplications + 1;
+    console.log(`📊 New total pending applications: ${newTotalApplications}`);
+    
+    try {
+      // Check if notification already exists for this gig
+      const existingNotifSnapshot = await db.collection('notifications')
+        .where('recipientId', '==', job.posterId)
+        .where('jobId', '==', jobId)
+        .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused'])
+        .get();
+      
+      if (newTotalApplications === 1) {
+        // First application - create new notification
+        await createNotification(job.posterId, {
+          type: 'application_received',
+          jobId: jobId,
+          jobTitle: job.title || 'Your Gig',
+          message: `Your gig "${job.title}" has received an application`,
+          actionRequired: false
+        });
+        console.log('📬 Created first application notification');
+        
+      } else if (newTotalApplications === 5) {
+        // 5th application - update notification to milestone (attention theme)
+        if (existingNotifSnapshot.size > 0) {
+          const notifId = existingNotifSnapshot.docs[0].id;
+          await db.collection('notifications').doc(notifId).update({
+            type: 'application_milestone',
+            message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          console.log('📬 Updated to 5+ milestone notification');
+        }
+        
+      } else if (newTotalApplications === 10) {
+        // 10th application - pause gig and create red alert notification
+        await db.collection('jobs').doc(jobId).update({
+          status: 'paused',
+          pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          pauseReason: 'auto_paused_max_applications'
+        });
+        
+        // Delete old application notifications
+        const deletePromises = existingNotifSnapshot.docs.map(doc => 
+          db.collection('notifications').doc(doc.id).delete()
+        );
+        await Promise.all(deletePromises);
+        
+        // Create red alert notification
+        await createNotification(job.posterId, {
+          type: 'gig_auto_paused',
+          jobId: jobId,
+          jobTitle: job.title || 'Your Gig',
+          message: `🛑 Your gig "${job.title}" has been paused. You've received 10 applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
+          actionRequired: true
+        });
+        console.log('🛑 Paused gig and created auto-pause notification');
+      }
+      
+    } catch (notifError) {
+      console.error('❌ Error creating application notification:', notifError);
+      // Don't fail the application if notification fails
+    }
     
     return {
       success: true,
@@ -1738,6 +1829,140 @@ async function markNotificationRead(notificationId) {
 }
 
 // ============================================================================
+// REAL-TIME LISTENERS
+// ============================================================================
+
+/**
+ * Subscribe to user's notifications with real-time updates
+ * @param {Object} currentUser - Firebase auth user object
+ * @param {Function} callback - Function to call with updated notifications
+ * @returns {Function} - Unsubscribe function
+ */
+function subscribeToUserNotifications(currentUser, callback) {
+  const db = getFirestore();
+  
+  if (!db || !currentUser) {
+    console.warn('⚠️ Firebase not available or user not logged in for notifications listener');
+    return null;
+  }
+  
+  console.log('👂 Starting real-time listener for notifications');
+  
+  try {
+    const unsubscribe = db.collection('notifications')
+      .where('recipientId', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .onSnapshot(
+        (snapshot) => {
+          const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log(`🔔 Notifications updated: ${notifications.length} items`);
+          callback(notifications);
+        },
+        (error) => {
+          console.error('❌ Notifications listener error:', error);
+          callback([]);
+        }
+      );
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up notifications listener:', error);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to user's chat threads with real-time updates
+ * @param {Object} currentUser - Firebase auth user object
+ * @param {Function} callback - Function to call with updated threads
+ * @returns {Function} - Unsubscribe function
+ */
+function subscribeToUserThreads(currentUser, callback) {
+  const db = getFirestore();
+  
+  if (!db || !currentUser) {
+    console.warn('⚠️ Firebase not available or user not logged in for threads listener');
+    return null;
+  }
+  
+  console.log('👂 Starting real-time listener for chat threads');
+  
+  try {
+    const unsubscribe = db.collection('chat_threads')
+      .where('participantIds', 'array-contains', currentUser.uid)
+      .where('isActive', '==', true)
+      .orderBy('lastMessageTime', 'desc')
+      .limit(50)
+      .onSnapshot(
+        (snapshot) => {
+          const threads = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log(`💬 Threads updated: ${threads.length} items`);
+          callback(threads);
+        },
+        (error) => {
+          console.error('❌ Threads listener error:', error);
+          callback([]);
+        }
+      );
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up threads listener:', error);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to messages in a specific thread with real-time updates
+ * @param {string} threadId - Thread document ID
+ * @param {Function} callback - Function to call with updated messages
+ * @returns {Function} - Unsubscribe function
+ */
+function subscribeToThreadMessages(threadId, callback) {
+  const db = getFirestore();
+  
+  if (!db) {
+    console.warn('⚠️ Firebase not available for messages listener');
+    return null;
+  }
+  
+  console.log(`👂 Starting real-time listener for thread: ${threadId}`);
+  
+  try {
+    const unsubscribe = db.collection('chat_messages')
+      .where('threadId', '==', threadId)
+      .orderBy('timestamp', 'asc')
+      .limit(100)
+      .onSnapshot(
+        (snapshot) => {
+          const messages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log(`📨 Messages updated in thread ${threadId}: ${messages.length} items`);
+          callback(messages);
+        },
+        (error) => {
+          console.error(`❌ Messages listener error for thread ${threadId}:`, error);
+          callback([]);
+        }
+      );
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up messages listener:', error);
+    return null;
+  }
+}
+
+// ============================================================================
 // ADMIN ANALYTICS
 // ============================================================================
 
@@ -1877,6 +2102,11 @@ window.getUserChatThreads = getUserChatThreads;
 window.createNotification = createNotification;
 window.getUserNotifications = getUserNotifications;
 window.markNotificationRead = markNotificationRead;
+
+// Real-time Listeners
+window.subscribeToUserNotifications = subscribeToUserNotifications;
+window.subscribeToUserThreads = subscribeToUserThreads;
+window.subscribeToThreadMessages = subscribeToThreadMessages;
 
 // Admin
 window.getAdminAnalytics = getAdminAnalytics;

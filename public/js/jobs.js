@@ -3993,6 +3993,26 @@ function initializeCompleteJobConfirmationHandlers() {
                 
                 console.log('✅ Job status updated to completed');
                 
+                // Step 2b: Send notification to worker about completion (with feedback reminder)
+                try {
+                    if (typeof createNotification === 'function' && jobData.hiredWorkerId) {
+                        const customerProfile = await getUserProfile(jobData.posterId);
+                        const customerName = customerProfile?.fullName || 'Customer';
+                        
+                        await createNotification(jobData.hiredWorkerId, {
+                            type: 'job_completed',
+                            jobId: jobId,
+                            jobTitle: jobData.title || 'Gig',
+                            message: `"${jobData.title}" has been marked as complete! Don't forget to leave feedback for ${customerName} in your Completed tab.`,
+                            actionRequired: false
+                        });
+                        console.log('✅ Completion notification sent to worker');
+                    }
+                } catch (notifError) {
+                    console.error('❌ Error creating completion notification:', notifError);
+                    // Don't fail the completion if notification fails
+                }
+                
                 // Step 3: Update customer statistics
                 await db.collection('users').doc(jobData.posterId).update({
                     'statistics.customer.totalGigsCompleted': firebase.firestore.FieldValue.increment(1),
@@ -4913,18 +4933,25 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
     
     console.log('✅ Job review metadata prepared');
     
-    // 4. Create notification for worker (skip for now - notifications not implemented)
-    // const notificationRef = db.collection('notifications').doc();
-    // batch.set(notificationRef, {
-    //     recipientId: workerUserId,
-    //     type: 'review_received',
-    //     title: 'New Review Received',
-    //     message: `You received a ${rating}-star review for your completed job.`,
-    //     jobId: jobId,
-    //     reviewId: reviewRef.id,
-    //     createdAt: timestamp,
-    //     read: false
-    // });
+    // 4. Create notification for worker about customer feedback
+    try {
+      if (typeof createNotification === 'function') {
+        const jobDoc = await jobRef.get();
+        const jobData = jobDoc.data();
+        
+        await createNotification(workerUserId, {
+          type: 'feedback_received',
+          jobId: jobId,
+          jobTitle: jobData.title || 'Completed Gig',
+          message: `Customer left ${rating}-star feedback on "${jobData.title}"`,
+          actionRequired: false
+        });
+        console.log('✅ Feedback notification sent to worker');
+      }
+    } catch (notifError) {
+      console.error('❌ Error creating feedback notification:', notifError);
+      // Don't fail the feedback submission if notification fails
+    }
     
     // Commit all operations atomically
     await batch.commit();

@@ -1535,6 +1535,34 @@ body:has(.messages-header) {
   background: rgba(160, 174, 192, 0.08);
 }
 
+/* Theme: Attention (for 5+ applications milestone) */
+.notification-item.theme-attention {
+  border-left: 4px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.notification-item.theme-attention:hover {
+  background: rgba(245, 158, 11, 0.12) !important;
+}
+
+.notification-item.theme-attention .notification-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Theme: Alert (for auto-paused gigs with 10 applications) */
+.notification-item.theme-alert {
+  border-left: 4px solid #ef4444;
+  background: rgba(239, 68, 68, 0.10);
+}
+
+.notification-item.theme-alert:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.notification-item.theme-alert .notification-icon {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
 .read-indicator {
   position: absolute;
   top: clamp(10px, 2.5vw, 12px); /* Responsive top positioning */

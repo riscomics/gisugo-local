@@ -146,6 +146,13 @@ const CLEANUP_REGISTRY = {
     cleanupFunctions: new Set() // Track custom cleanup functions
 };
 
+// Global registry for Firebase real-time listeners
+const ACTIVE_LISTENERS = {
+    notifications: null,
+    threads: null,
+    activeThreadMessages: null
+};
+
 // MEMORY LEAK FIX: Enhanced cleanup utility
 function registerCleanup(type, key, cleanupFn) {
     if (type === 'function') {
@@ -161,6 +168,23 @@ function registerCleanup(type, key, cleanupFn) {
 // MEMORY LEAK FIX: Execute all registered cleanup functions
 function executeAllCleanups() {
     console.log('🧹 EXECUTING COMPREHENSIVE CLEANUP...');
+    
+    // Clean up Firebase real-time listeners
+    if (ACTIVE_LISTENERS.notifications) {
+        console.log('🧹 Cleaning up notifications listener');
+        ACTIVE_LISTENERS.notifications();
+        ACTIVE_LISTENERS.notifications = null;
+    }
+    if (ACTIVE_LISTENERS.threads) {
+        console.log('🧹 Cleaning up threads listener');
+        ACTIVE_LISTENERS.threads();
+        ACTIVE_LISTENERS.threads = null;
+    }
+    if (ACTIVE_LISTENERS.activeThreadMessages) {
+        console.log('🧹 Cleaning up active thread messages listener');
+        ACTIVE_LISTENERS.activeThreadMessages();
+        ACTIVE_LISTENERS.activeThreadMessages = null;
+    }
     
     // Clean up document listeners
     CLEANUP_REGISTRY.documentListeners.forEach((listener, key) => {
@@ -312,51 +336,200 @@ async function initializeCustomerMessagesTab() {
 }
 
 // Load segregated notifications based on role
-function loadWorkerNotifications() {
+async function loadWorkerNotifications() {
     const container = document.querySelector('#worker-alerts-content .notifications-container');
-    if (container) {
-        // Filter notifications for worker role
+    if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    
+    // Check if Firebase available
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
+        ? APP_CONFIG.useFirebaseData() 
+        : true;
+    
+    if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
+        // Fallback to mock data
+        console.log('🎮 Dev Mode: Loading mock worker notifications');
         const workerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
             notif.notificationType === 'interview_request'
         );
-        
-        const content = workerNotifications.map(notification => generateNotificationHTML(notification)).join('');
-        container.innerHTML = content;
-        
-        // Initialize event handlers
+        container.innerHTML = workerNotifications.map(generateNotificationHTML).join('');
         initializeNotifications();
         
         // Update count
         const countElement = document.querySelector('#workerAlertsTab .notification-count');
         if (countElement) {
-            countElement.textContent = workerNotifications.length;
+            countElement.textContent = workerNotifications.filter(n => !n.read).length;
+        }
+        return;
+    }
+    
+    try {
+        // Wait for Firebase auth state to be ready
+        const currentUser = await new Promise((resolve) => {
+            const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+        
+        if (!currentUser) {
+            // Not logged in - show empty state with login prompt
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            return;
         }
         
-        console.log('Worker notifications loaded:', workerNotifications.length);
+        console.log('✅ Worker alerts: User authenticated as', currentUser.uid);
+        
+        // Clean up existing listener
+        if (ACTIVE_LISTENERS.notifications) {
+            ACTIVE_LISTENERS.notifications();
+            ACTIVE_LISTENERS.notifications = null;
+        }
+        
+        // Subscribe to real-time notifications
+        ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
+            console.log('🔔 Worker alerts updated:', notifications.length);
+            
+            // Filter for worker role - EXCLUDE customer-only notifications
+            // Customer-only: offer_rejected, worker_resigned, application_received
+            const workerNotifications = notifications.filter(notif => {
+                const type = notif.type || notif.notificationType || '';
+                // Exclude customer-only notification types
+                return type !== 'offer_rejected' && 
+                       type !== 'worker_resigned' && 
+                       type !== 'application_received';
+            });
+            
+            if (workerNotifications.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">🎯</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                        <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                            Interview requests will appear here when<br>customers want to chat about your applications.
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = workerNotifications.map(generateNotificationHTML).join('');
+                initializeNotifications();
+            }
+            
+            // Update badge count (unread only)
+            const unreadCount = workerNotifications.filter(n => !n.read).length;
+            const countElement = document.querySelector('#workerAlertsTab .notification-count');
+            if (countElement) {
+                countElement.textContent = unreadCount;
+                countElement.style.display = unreadCount > 0 ? 'block' : 'none';
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error loading worker alerts:', error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
     }
 }
 
-function loadCustomerNotifications() {
+async function loadCustomerNotifications() {
     const container = document.querySelector('#customer-alerts-content .notifications-container');
-    if (container) {
-        // Filter notifications for customer role
+    if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    
+    // Check if Firebase available
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
+        ? APP_CONFIG.useFirebaseData() 
+        : true;
+    
+    if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
+        // Fallback to mock data
+        console.log('🎮 Dev Mode: Loading mock customer notifications');
         const customerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
             notif.notificationType !== 'interview_request'
         );
-        
-        const content = customerNotifications.map(notification => generateNotificationHTML(notification)).join('');
-        container.innerHTML = content;
-        
-        // Initialize event handlers
+        container.innerHTML = customerNotifications.map(generateNotificationHTML).join('');
         initializeNotifications();
         
         // Update count
         const countElement = document.querySelector('#customerAlertsTab .notification-count');
         if (countElement) {
-            countElement.textContent = customerNotifications.length;
+            countElement.textContent = customerNotifications.filter(n => !n.read).length;
+        }
+        return;
+    }
+    
+    try {
+        // Wait for Firebase auth state to be ready
+        const currentUser = await new Promise((resolve) => {
+            const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+        
+        if (!currentUser) {
+            // Not logged in - show empty state with login prompt
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            return;
         }
         
-        console.log('Customer notifications loaded:', customerNotifications.length);
+        console.log('✅ Customer alerts: User authenticated as', currentUser.uid);
+        
+        // Helper function to update customer UI
+        const updateCustomerUI = (notifications) => {
+            // Filter for customer role - ONLY customer-specific notifications
+            // Customer gets: offer_rejected, worker_resigned, application_received
+            const customerNotifications = notifications.filter(notif => {
+                const type = notif.type || notif.notificationType || '';
+                return type === 'offer_rejected' || 
+                       type === 'worker_resigned' || 
+                       type === 'application_received';
+            });
+            
+            if (customerNotifications.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">✨</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                        <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                            Alerts about applications, hires, and completions<br>will show up here when they arrive.
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = customerNotifications.map(generateNotificationHTML).join('');
+                initializeNotifications();
+            }
+            
+            // Update badge count (unread only)
+            const unreadCount = customerNotifications.filter(n => !n.read).length;
+            const countElement = document.querySelector('#customerAlertsTab .notification-count');
+            if (countElement) {
+                countElement.textContent = unreadCount;
+                countElement.style.display = unreadCount > 0 ? 'block' : 'none';
+            }
+        };
+        
+        // If listener already active (from Worker tab), get current notifications and update UI
+        if (ACTIVE_LISTENERS.notifications) {
+            console.log('🔔 Reusing existing notifications listener for customer view');
+            // We need to manually fetch current state since listener is already active
+            const notifications = await getUserNotifications(false);
+            updateCustomerUI(notifications);
+        } else {
+            // Subscribe to real-time notifications
+            ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
+                console.log('🔔 Customer alerts updated:', notifications.length);
+                updateCustomerUI(notifications);
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading customer alerts:', error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
     }
 }
 
@@ -2244,8 +2417,17 @@ function generateNotificationHTML(notification) {
         return `<button class="notification-action-btn ${action.type}" ${actionDataAttrs.join(' ')}>${action.text}</button>`;
     }).join('');
 
+    // Add theme class based on notification type
+    let themeClass = '';
+    const notifType = notification.type || '';
+    if (notifType === 'application_milestone') {
+        themeClass = 'theme-attention'; // Yellow/orange for 5+ applications
+    } else if (notifType === 'gig_auto_paused') {
+        themeClass = 'theme-alert'; // Red for auto-paused gigs
+    }
+
     return `
-        <div class="notification-item ${notification.type}" ${dataAttributes.join(' ')}>
+        <div class="notification-item ${notification.type} ${themeClass}" ${dataAttributes.join(' ')}>
             <div class="notification-icon ${notification.iconClass}">${notification.icon}</div>
             <div class="notification-content">
                 <div class="notification-title">${notification.title}</div>
