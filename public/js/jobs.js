@@ -2597,6 +2597,8 @@ function getApplicationsByJobId(jobId) {
     return jobData.applicationIds;
 }
 
+let _hiringTabUnsubscribe = null;
+
 async function initializeHiringTab() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
@@ -2609,20 +2611,60 @@ async function initializeHiringTab() {
     
     console.log('👥 Loading hiring tab...');
     await loadHiringContent();
-    console.log('👥 Hiring tab loaded, checking for captions and thumbnails...');
+    console.log('👥 Hiring tab loaded');
+    
+    // Set up real-time listener for hiring tab auto-refresh
+    setupHiringTabListener();
 }
 
-async function loadHiringContent() {
+function setupHiringTabListener() {
+    if (_hiringTabUnsubscribe) return;
+    
+    const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
+    if (!useFirebase || typeof firebase === 'undefined') return;
+    
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    
+    const db = firebase.firestore();
+    
+    _hiringTabUnsubscribe = db.collection('jobs')
+        .where('posterId', '==', user.uid)
+        .where('status', 'in', ['hired', 'accepted'])
+        .onSnapshot(snapshot => {
+            if (snapshot.metadata.hasPendingWrites) return;
+            
+            console.log('🔄 Hiring tab: detected job status change, refreshing...');
+            loadHiringContent();
+            updateTabCounts();
+        }, error => {
+            console.error('⚠️ Hiring tab listener error:', error);
+        });
+    
+    console.log('👂 Hiring tab real-time listener active');
+    
+    registerCleanup('function', 'hiringTabListener', () => {
+        if (_hiringTabUnsubscribe) {
+            _hiringTabUnsubscribe();
+            _hiringTabUnsubscribe = null;
+            console.log('🧹 Hiring tab listener cleaned up');
+        }
+    });
+}
+
+async function loadHiringContent(showLoading = true) {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
     
-    // Show loading state
-    container.innerHTML = `
-        <div class="loading-state">
-            <div class="loading-spinner">🔄</div>
-            <div class="loading-text">Loading your hired workers...</div>
-        </div>
-    `;
+    // Only show loading spinner on first load, not auto-refresh
+    if (showLoading && container.children.length === 0) {
+        container.innerHTML = `
+            <div class="loading-state">
+                <div class="loading-spinner">🔄</div>
+                <div class="loading-text">Loading your hired workers...</div>
+            </div>
+        `;
+    }
     
     try {
         // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
@@ -3438,6 +3480,9 @@ function showRejectGigOfferOverlay(jobData) {
         return;
     }
     
+    // Store full jobData on overlay for later use
+    overlay.dataset.jobData = JSON.stringify(jobData);
+    
     // Update customer name in warning text
     if (customerNameSpan) {
         customerNameSpan.textContent = jobData.posterName;
@@ -3474,12 +3519,8 @@ function initializeRejectGigOfferHandlers() {
     // Confirm reject button
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
-            const jobData = {
-                jobId: overlay.dataset.jobId,
-                posterName: overlay.dataset.posterName,
-                title: overlay.dataset.jobTitle
-            };
-            
+            // Retrieve full jobData from overlay
+            const jobData = JSON.parse(overlay.dataset.jobData || '{}');
             processRejectGigConfirmation(jobData);
         });
     }
@@ -3530,8 +3571,6 @@ async function processRejectGigConfirmation(jobData) {
         // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
         // ═══════════════════════════════════════════════════════════════
         try {
-            // TODO: Uncomment this block when you're ready to enable offer rejection notifications
-            /*
             if (typeof sendOfferRejectedNotification === 'function') {
                 const currentUser = firebase.auth ? firebase.auth().currentUser : null;
                 const workerName = currentUser?.displayName || 'A worker';
@@ -3548,9 +3587,6 @@ async function processRejectGigConfirmation(jobData) {
                     console.log('✅ Customer will see notification in Messages > ALERTS tab');
                 }
             }
-            */
-            console.log('📬 Offer rejection notifications ready (currently disabled)');
-            console.log('📋 To enable: Uncomment sendOfferRejectedNotification() in jobs.js line 3499');
         } catch (notifError) {
             console.error('⚠️ Error sending notification (non-critical):', notifError);
             // Don't fail reject operation if notification fails
@@ -3620,9 +3656,10 @@ async function moveJobFromOfferedToAccepted(jobId) {
             
             // Update job: change status to 'accepted' and add timestamp
             await db.collection('jobs').doc(jobId).update({
-                status: 'accepted', // Change from 'hired' to 'accepted'
+                status: 'accepted',
                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                workerAccepted: true // Flag to indicate worker has accepted
+                workerAccepted: true,
+                applicationCount: 0
             });
             
             // Get job data for notification
@@ -3631,13 +3668,36 @@ async function moveJobFromOfferedToAccepted(jobId) {
             
             console.log('🔔 About to create acceptance notification for customer:', jobData?.posterId);
             
-            // Show loading state during acceptance
             showLoadingOverlay('Processing acceptance...');
+            
+            // Worker accepted - now reject all other pending/offered applications for this job
+            try {
+                const otherApps = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('status', 'in', ['pending', 'offered'])
+                    .get();
+                
+                const currentUser = firebase.auth().currentUser;
+                const batch = db.batch();
+                let rejectedCount = 0;
+                otherApps.docs.forEach(doc => {
+                    if (doc.data().applicantId !== currentUser.uid) {
+                        batch.delete(doc.ref);
+                        rejectedCount++;
+                    } else {
+                        // Update the accepted worker's application status
+                        batch.update(doc.ref, { status: 'accepted' });
+                    }
+                });
+                await batch.commit();
+                console.log(`✅ Cleaned up ${rejectedCount} other applications after acceptance`);
+            } catch (cleanupError) {
+                console.error('⚠️ Error cleaning up other applications:', cleanupError);
+            }
             
             // Create notification for customer about offer acceptance
             try {
                 if (typeof createNotification === 'function' && jobData && jobData.posterId) {
-                    console.log('✅ createNotification function exists');
                     const currentUser = firebase.auth().currentUser;
                     const workerProfile = await getUserProfile(currentUser.uid);
                     const workerName = workerProfile?.fullName || 'Worker';
@@ -3646,7 +3706,7 @@ async function moveJobFromOfferedToAccepted(jobId) {
                         type: 'offer_accepted',
                         jobId: jobId,
                         jobTitle: jobData.title || 'Your Gig',
-                        message: `${workerName} has accepted your gig offer for "${jobData.title}"!`,
+                        message: `${workerName} has accepted your gig offer for "${jobData.title}"! Check Gigs Manager > Hiring tab.`,
                         actionRequired: false
                     });
                     console.log('✅ Acceptance notification result:', result);
@@ -3655,10 +3715,8 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 }
             } catch (notifError) {
                 console.error('❌ Error creating acceptance notification:', notifError);
-                // Don't fail the acceptance if notification fails
             }
             
-            // Hide loading state
             hideLoadingOverlay();
             
             console.log('✅ Job offer accepted in Firebase - status changed to accepted');
@@ -3726,7 +3784,14 @@ async function rejectGigOffer(jobId) {
                 throw new Error('User not authenticated');
             }
             
-            // Update job: remove hired worker info and set status back to active
+            // Count remaining pending applications to restore accurate count
+            const pendingApps = await db.collection('applications')
+                .where('jobId', '==', jobId)
+                .where('status', '==', 'pending')
+                .get();
+            const remainingCount = pendingApps.size;
+            
+            // Update job: remove hired worker info and restore to active
             await db.collection('jobs').doc(jobId).update({
                 status: 'active',
                 hiredWorkerId: firebase.firestore.FieldValue.delete(),
@@ -3734,35 +3799,29 @@ async function rejectGigOffer(jobId) {
                 hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
                 agreedPrice: firebase.firestore.FieldValue.delete(),
                 hiredAt: firebase.firestore.FieldValue.delete(),
-                acceptedAt: firebase.firestore.FieldValue.delete(), // Remove if worker had accepted before rejecting
+                acceptedAt: firebase.firestore.FieldValue.delete(),
                 rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                applicationCount: 0 // Reset to 0 since no pending applications remain after rejection
+                applicationCount: remainingCount
             });
             
-            console.log('✅ Job offer rejected in Firebase, job restored to active');
+            console.log(`✅ Job offer rejected in Firebase, job restored to active with ${remainingCount} pending applications`);
             
-            // ═══════════════════════════════════════════════════════════════
-            // UPDATE WORKER'S APPLICATION STATUS TO 'REJECTED'
-            // ═══════════════════════════════════════════════════════════════
+            // Delete the rejecting worker's application (offered status)
             try {
                 const applicationsSnapshot = await db.collection('applications')
                     .where('jobId', '==', jobId)
                     .where('applicantId', '==', currentUser.uid)
-                    .where('status', '==', 'accepted')
+                    .where('status', 'in', ['accepted', 'offered'])
                     .get();
                 
                 const batch = db.batch();
                 applicationsSnapshot.docs.forEach(doc => {
-                    batch.update(doc.ref, {
-                        status: 'rejected',
-                        rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    batch.delete(doc.ref);
                 });
                 await batch.commit();
-                console.log('✅ Worker application status updated to rejected');
+                console.log('✅ Rejecting worker\'s application removed');
             } catch (appError) {
-                console.error('⚠️ Error updating application status:', appError);
-                // Don't throw - job update succeeded, application update is non-critical
+                console.error('⚠️ Error removing worker application:', appError);
             }
             
             return;
@@ -4039,7 +4098,7 @@ function initializeCompleteJobConfirmationHandlers() {
                             type: 'job_completed',
                             jobId: jobId,
                             jobTitle: jobData.title || 'Gig',
-                            message: `"${jobData.title}" has been marked as complete! Don't forget to leave feedback for ${customerName} in your Completed tab.`,
+                            message: `"${jobData.title}" has been marked as complete by ${customerName}.`,
                             actionRequired: false
                         });
                         console.log('✅ Completion notification sent to worker');
@@ -4273,6 +4332,7 @@ function initializeRelistJobConfirmationHandlers() {
                         const verifyDoc = await db.collection('jobs').doc(jobId).get();
                         console.log('🔍 Verification - Job status after update:', verifyDoc.data().status);
                         console.log('🔍 Verification - hiredWorkerId after update:', verifyDoc.data().hiredWorkerId || 'DELETED');
+                        const jobData = verifyDoc.data();
                         
                         // Update the worker's application status to 'voided' to notify them
                         if (hiredWorkerId) {
@@ -4598,21 +4658,22 @@ function initializeResignJobConfirmationHandlers() {
                     // ═══════════════════════════════════════════════════════════════
                     // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
                     // ═══════════════════════════════════════════════════════════════
-                    // TODO: Uncomment when ready to enable resignation notifications
-                    /*
-                    if (typeof sendWorkerResignedNotification === 'function') {
-                        const workerName = currentUser?.displayName || 'A worker';
-                        await sendWorkerResignedNotification(
-                            customerId,
-                            customerName,
-                            jobId,
-                            jobTitle,
-                            reason,
-                            workerName
-                        );
+                    try {
+                        if (typeof sendWorkerResignedNotification === 'function') {
+                            const workerName = currentUser?.displayName || 'A worker';
+                            await sendWorkerResignedNotification(
+                                customerId,
+                                customerName,
+                                jobId,
+                                jobTitle,
+                                reason,
+                                workerName
+                            );
+                            console.log('✅ Worker resignation notification sent to customer');
+                        }
+                    } catch (notifError) {
+                        console.error('⚠️ Error sending resignation notification:', notifError);
                     }
-                    */
-                    console.log('📬 Worker resignation notifications ready (currently disabled)');
                     
                 } catch (error) {
                     console.error('❌ Error processing resignation in Firebase:', error);
@@ -4969,12 +5030,14 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
       if (typeof createNotification === 'function') {
         const jobDoc = await jobRef.get();
         const jobData = jobDoc.data();
+        const customerProfile = await getUserProfile(customerUserId);
+        const customerName = customerProfile?.fullName || 'Customer';
         
         await createNotification(workerUserId, {
           type: 'feedback_received',
           jobId: jobId,
           jobTitle: jobData.title || 'Completed Gig',
-          message: `Customer left ${rating}-star feedback on "${jobData.title}"`,
+          message: `${customerName} left ${rating}-star feedback on "${jobData.title}". Don't forget to leave your feedback in Gigs Manager > Completed tab.`,
           actionRequired: false
         });
         console.log('✅ Feedback notification sent to worker');
@@ -9458,6 +9521,28 @@ async function submitCustomerFeedback() {
             
             await batch.commit();
             console.log('✅ Worker feedback and review submitted successfully');
+            
+            // Send notification to customer about worker feedback
+            try {
+                if (typeof createNotification === 'function') {
+                    const jobDoc = await jobRef.get();
+                    const jobData = jobDoc.data();
+                    const workerProfile = await getUserProfile(currentUserId);
+                    const workerName = workerProfile?.fullName || 'Worker';
+                    
+                    await createNotification(targetUserId, {
+                        type: 'worker_feedback_received',
+                        jobId: jobId,
+                        jobTitle: jobData.title || 'Completed Gig',
+                        message: `${workerName} left ${rating}-star feedback for you on "${jobData.title}"`,
+                        actionRequired: false
+                    });
+                    console.log('✅ Worker feedback notification sent to customer');
+                }
+            } catch (notifError) {
+                console.error('❌ Error creating worker feedback notification:', notifError);
+                // Don't fail the feedback submission if notification fails
+            }
             
             // Update customer's rating stats (calculate proper average)
             try {

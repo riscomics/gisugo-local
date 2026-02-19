@@ -2040,8 +2040,8 @@ function initJobcatButtonAutoResize() {
   const jobCategories = [
     // BASIC HELPER SECTION
     { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
-    { emoji: '📦', label: 'Hakot', page: 'hakot.html', section: 'basic' },
-    { emoji: '🚗', label: 'Hatod', page: 'hatod.html', section: 'basic' },
+    { emoji: '🚚', label: 'Hakot', page: 'hakot.html', section: 'basic' },
+    { emoji: '📦', label: 'Hatod', page: 'hatod.html', section: 'basic' },
     { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
     { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
     { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'basic' },

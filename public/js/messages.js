@@ -411,7 +411,11 @@ async function loadWorkerNotifications() {
                     </div>
                 `;
             } else {
-                container.innerHTML = workerNotifications.map(generateNotificationHTML).join('');
+                // Deduplicate notifications by ID before rendering
+                const uniqueNotifications = Array.from(
+                    new Map(workerNotifications.map(n => [n.notificationId || n.id, n])).values()
+                );
+                container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
                 initializeNotifications();
             }
             
@@ -479,10 +483,10 @@ async function loadCustomerNotifications() {
         // Helper function to update customer UI
         const updateCustomerUI = (notifications) => {
             // Filter for customer role - ONLY customer-specific notifications
-            // Customer notifications: offer_accepted, application_received, application_milestone, gig_auto_paused, offer_rejected, worker_resigned
+            // Customer notifications: offer_accepted, application_received, application_milestone, gig_auto_paused, offer_rejected, worker_resigned, worker_feedback_received
             const customerNotifications = notifications.filter(notif => {
                 const type = notif.type || notif.notificationType || '';
-                const customerTypes = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned'];
+                const customerTypes = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
                 return customerTypes.includes(type);
             });
             
@@ -497,7 +501,11 @@ async function loadCustomerNotifications() {
                     </div>
                 `;
             } else {
-                container.innerHTML = customerNotifications.map(generateNotificationHTML).join('');
+                // Deduplicate notifications by ID before rendering
+                const uniqueNotifications = Array.from(
+                    new Map(customerNotifications.map(n => [n.notificationId || n.id, n])).values()
+                );
+                container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
                 initializeNotifications();
             }
             
@@ -2525,6 +2533,11 @@ function transformFirebaseNotification(notif) {
             iconClass = 'resign-icon';
             title = 'Worker Resigned';
             break;
+        case 'worker_feedback_received':
+            icon = '⭐';
+            iconClass = 'rating-icon';
+            title = 'Worker Feedback Received';
+            break;
     }
     
     // Format timestamp using user's local timezone
@@ -2557,8 +2570,12 @@ function transformFirebaseNotification(notif) {
             timeDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         }
         
-        // Always use user's locale for date display
-        dateDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        // Format date in user's local timezone
+        dateDisplay = createdDate.toLocaleDateString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric'
+        });
     }
     
     return {
