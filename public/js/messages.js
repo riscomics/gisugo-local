@@ -392,14 +392,12 @@ async function loadWorkerNotifications() {
         ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
             console.log('🔔 Worker alerts updated:', notifications.length);
             
-            // Filter for worker role - EXCLUDE customer-only notifications
-            // Customer-only: offer_rejected, worker_resigned, application_received
+            // Filter for worker role - INCLUDE only worker-specific notifications
+            // Worker notifications: offer_sent, interview_request, job_completed, feedback_received, contract_voided (relisted)
             const workerNotifications = notifications.filter(notif => {
                 const type = notif.type || notif.notificationType || '';
-                // Exclude customer-only notification types
-                return type !== 'offer_rejected' && 
-                       type !== 'worker_resigned' && 
-                       type !== 'application_received';
+                const workerTypes = ['offer_sent', 'interview_request', 'job_completed', 'feedback_received', 'contract_voided'];
+                return workerTypes.includes(type);
             });
             
             if (workerNotifications.length === 0) {
@@ -481,12 +479,11 @@ async function loadCustomerNotifications() {
         // Helper function to update customer UI
         const updateCustomerUI = (notifications) => {
             // Filter for customer role - ONLY customer-specific notifications
-            // Customer gets: offer_rejected, worker_resigned, application_received
+            // Customer notifications: offer_accepted, application_received, application_milestone, gig_auto_paused, offer_rejected, worker_resigned
             const customerNotifications = notifications.filter(notif => {
                 const type = notif.type || notif.notificationType || '';
-                return type === 'offer_rejected' || 
-                       type === 'worker_resigned' || 
-                       type === 'application_received';
+                const customerTypes = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned'];
+                return customerTypes.includes(type);
             });
             
             if (customerNotifications.length === 0) {
@@ -1675,7 +1672,7 @@ function updateNotificationCount(count) {
 } 
 
 // Mark notification as read functionality
-function markNotificationAsRead(notificationItem) {
+async function markNotificationAsRead(notificationItem) {
     if (!notificationItem.classList.contains('read')) {
         notificationItem.classList.add('read');
         
@@ -1688,11 +1685,23 @@ function markNotificationAsRead(notificationItem) {
             notificationItem.appendChild(readIndicator);
         }
         
+        // Update Firebase
+        const notificationId = notificationItem.dataset.notificationId;
+        if (notificationId && typeof markNotificationRead === 'function') {
+            try {
+                await markNotificationRead(notificationId);
+                // Update data attribute to reflect persisted state
+                notificationItem.dataset.read = 'true';
+                console.log('✅ Notification marked as read in Firebase:', notificationId);
+            } catch (error) {
+                console.error('❌ Error marking notification as read:', error);
+            }
+        }
+        
         // Update the notifications count
         updateNotificationsCount();
         
-        // Here you would send read status to backend
-        const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
+        const notificationTitle = notificationItem.querySelector('.notification-title')?.textContent || 'Unknown';
         console.log('Notification marked as read:', notificationTitle);
     }
 }
@@ -2388,26 +2397,32 @@ const MOCK_NOTIFICATIONS = [
 
 // Generate Notification HTML
 function generateNotificationHTML(notification) {
+    // Transform Firebase notification into display format
+    const transformed = transformFirebaseNotification(notification);
+    
+    // Use the actual read status from Firebase
+    const isRead = transformed.read === true || transformed.read === 'true';
+    
     const dataAttributes = [
-        `data-notification-id="${notification.id}"`,
-        `data-notification-type="${notification.notificationType}"`,
-        `data-read="${notification.read}"`,
-        `data-timestamp="${notification.timestamp}"`
+        `data-notification-id="${transformed.id}"`,
+        `data-notification-type="${transformed.notificationType}"`,
+        `data-read="${isRead}"`,
+        `data-timestamp="${transformed.timestamp}"`
     ];
 
     // Add conditional data attributes - check both top-level and relatedDocuments
-    const jobId = notification.jobId || notification.relatedDocuments?.jobId;
+    const jobId = transformed.jobId || transformed.relatedDocuments?.jobId;
     // REMOVED: applicationId - applications moved to jobs.html
-    const threadId = notification.threadId || notification.relatedDocuments?.threadId;
+    const threadId = transformed.threadId || transformed.relatedDocuments?.threadId;
     
     if (jobId) dataAttributes.push(`data-job-id="${jobId}"`);
-    if (notification.jobTitle) dataAttributes.push(`data-job-title="${notification.jobTitle}"`);
+    if (transformed.jobTitle) dataAttributes.push(`data-job-title="${transformed.jobTitle}"`);
     // REMOVED: applicationId data attribute - applications moved to jobs.html
     if (threadId) dataAttributes.push(`data-thread-id="${threadId}"`);
-    if (notification.userId) dataAttributes.push(`data-user-id="${notification.userId}"`);
-    if (notification.userName) dataAttributes.push(`data-user-name="${notification.userName}"`);
+    if (transformed.userId) dataAttributes.push(`data-user-id="${transformed.userId}"`);
+    if (transformed.userName) dataAttributes.push(`data-user-name="${transformed.userName}"`);
 
-    const actionsHTML = notification.actions.map(action => {
+    const actionsHTML = (transformed.actions || []).map(action => {
         const actionDataAttrs = [`data-action="${action.action}"`];
         // Use actionData for button-specific attributes
         if (action.actionData?.jobId) actionDataAttrs.push(`data-job-id="${action.actionData.jobId}"`);
@@ -2419,27 +2434,143 @@ function generateNotificationHTML(notification) {
 
     // Add theme class based on notification type
     let themeClass = '';
-    const notifType = notification.type || '';
+    const notifType = transformed.type || '';
     if (notifType === 'application_milestone') {
         themeClass = 'theme-attention'; // Yellow/orange for 5+ applications
     } else if (notifType === 'gig_auto_paused') {
         themeClass = 'theme-alert'; // Red for auto-paused gigs
     }
+    
+    // Add 'read' class if notification has been read
+    const readClass = isRead ? 'read' : '';
 
     return `
-        <div class="notification-item ${notification.type} ${themeClass}" ${dataAttributes.join(' ')}>
-            <div class="notification-icon ${notification.iconClass}">${notification.icon}</div>
+        <div class="notification-item ${transformed.type} ${themeClass} ${readClass}" ${dataAttributes.join(' ')}>
+            <div class="notification-icon ${transformed.iconClass}">${transformed.icon}</div>
             <div class="notification-content">
-                <div class="notification-title">${notification.title}</div>
-                <div class="notification-message">${notification.message}</div>
+                <div class="notification-title">${transformed.title}</div>
+                <div class="notification-message">${transformed.message}</div>
                 <div class="notification-meta">
-                    <span class="notification-time">${notification.timeDisplay}</span>
-                    <span class="notification-date">${notification.dateDisplay}</span>
+                    <span class="notification-time">${transformed.timeDisplay}</span>
+                    <span class="notification-date">${transformed.dateDisplay}</span>
                 </div>
                 ${actionsHTML ? `<div class="notification-actions">${actionsHTML}</div>` : ''}
             </div>
+            ${isRead ? '<div class="read-indicator">✓ Read</div>' : ''}
         </div>
     `;
+}
+
+// Transform Firebase notification into display format with icon, title, timestamps
+function transformFirebaseNotification(notif) {
+    const type = notif.type || '';
+    let icon = '🔔';
+    let iconClass = 'system-icon';
+    let title = 'Notification';
+    
+    // Map notification types to icons and titles
+    switch(type) {
+        case 'offer_sent':
+            icon = '💼';
+            iconClass = 'job-icon';
+            title = 'Gig Offer Received';
+            break;
+        case 'offer_accepted':
+            icon = '🎉';
+            iconClass = 'success-icon';
+            title = 'Offer Accepted';
+            break;
+        case 'interview_request':
+            icon = '💬';
+            iconClass = 'message-icon';
+            title = 'Interview Request';
+            break;
+        case 'job_completed':
+            icon = '✅';
+            iconClass = 'success-icon';
+            title = 'Gig Completed';
+            break;
+        case 'feedback_received':
+            icon = '⭐';
+            iconClass = 'rating-icon';
+            title = 'Feedback Received';
+            break;
+        case 'contract_voided':
+            icon = '🔄';
+            iconClass = 'warning-icon';
+            title = 'Contract Voided - Gig Relisted';
+            break;
+        case 'application_received':
+            icon = '📝';
+            iconClass = 'application-icon';
+            title = 'New Application';
+            break;
+        case 'application_milestone':
+            icon = '📊';
+            iconClass = 'milestone-icon';
+            title = 'Applications Update';
+            break;
+        case 'gig_auto_paused':
+            icon = '🛑';
+            iconClass = 'alert-icon';
+            title = 'Gig Auto-Paused';
+            break;
+        case 'offer_rejected':
+            icon = '❌';
+            iconClass = 'reject-icon';
+            title = 'Offer Declined';
+            break;
+        case 'worker_resigned':
+            icon = '🚪';
+            iconClass = 'resign-icon';
+            title = 'Worker Resigned';
+            break;
+    }
+    
+    // Format timestamp using user's local timezone
+    let timeDisplay = 'Just now';
+    let dateDisplay = 'Today';
+    
+    if (notif.createdAt) {
+        // Convert Firestore timestamp to local Date object
+        const createdDate = notif.createdAt.toDate ? notif.createdAt.toDate() : new Date(notif.createdAt);
+        const now = new Date();
+        
+        // Calculate difference in user's local time
+        const diffMs = now - createdDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) {
+            timeDisplay = 'Just now';
+        } else if (diffMins < 60) {
+            timeDisplay = `${diffMins}m ago`;
+        } else if (diffHours < 24) {
+            timeDisplay = `${diffHours}h ago`;
+        } else if (diffDays === 1) {
+            timeDisplay = 'Yesterday';
+        } else if (diffDays < 7) {
+            timeDisplay = `${diffDays} days ago`;
+        } else {
+            // Use user's locale for longer periods
+            timeDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+        
+        // Always use user's locale for date display
+        dateDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    
+    return {
+        ...notif,
+        icon,
+        iconClass,
+        title,
+        timeDisplay,
+        dateDisplay,
+        notificationType: type,
+        timestamp: notif.createdAt
+    };
 }
 
 // Generate All Notifications Content

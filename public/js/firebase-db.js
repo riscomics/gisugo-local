@@ -1229,6 +1229,28 @@ async function hireWorker(jobId, applicationId) {
     });
     await batch.commit();
     
+    console.log('🔔 About to create offer notification for worker:', appData.applicantId);
+    
+    // Create notification for worker about the gig offer
+    try {
+      if (typeof createNotification === 'function') {
+        console.log('✅ createNotification function exists');
+        const result = await createNotification(appData.applicantId, {
+          type: 'offer_sent',
+          jobId: jobId,
+          jobTitle: jobData.title || 'Gig',
+          message: `You've been offered the gig "${jobData.title}"! Check your Offered tab to accept or decline.`,
+          actionRequired: true
+        });
+        console.log('✅ Offer notification result:', result);
+      } else {
+        console.error('❌ createNotification function not found');
+      }
+    } catch (notifError) {
+      console.error('❌ Error creating offer notification:', notifError);
+      // Don't fail the hiring if notification fails
+    }
+    
     console.log('✅ Worker hired successfully with agreed price:', agreedPrice);
     return { success: true, message: 'Worker hired successfully!' };
     

@@ -3625,6 +3625,42 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 workerAccepted: true // Flag to indicate worker has accepted
             });
             
+            // Get job data for notification
+            const jobDoc = await db.collection('jobs').doc(jobId).get();
+            const jobData = jobDoc.data();
+            
+            console.log('🔔 About to create acceptance notification for customer:', jobData?.posterId);
+            
+            // Show loading state during acceptance
+            showLoadingOverlay('Processing acceptance...');
+            
+            // Create notification for customer about offer acceptance
+            try {
+                if (typeof createNotification === 'function' && jobData && jobData.posterId) {
+                    console.log('✅ createNotification function exists');
+                    const currentUser = firebase.auth().currentUser;
+                    const workerProfile = await getUserProfile(currentUser.uid);
+                    const workerName = workerProfile?.fullName || 'Worker';
+                    
+                    const result = await createNotification(jobData.posterId, {
+                        type: 'offer_accepted',
+                        jobId: jobId,
+                        jobTitle: jobData.title || 'Your Gig',
+                        message: `${workerName} has accepted your gig offer for "${jobData.title}"!`,
+                        actionRequired: false
+                    });
+                    console.log('✅ Acceptance notification result:', result);
+                } else {
+                    console.error('❌ createNotification not found or missing job data');
+                }
+            } catch (notifError) {
+                console.error('❌ Error creating acceptance notification:', notifError);
+                // Don't fail the acceptance if notification fails
+            }
+            
+            // Hide loading state
+            hideLoadingOverlay();
+            
             console.log('✅ Job offer accepted in Firebase - status changed to accepted');
             return;
         } catch (error) {
@@ -4262,8 +4298,6 @@ function initializeRelistJobConfirmationHandlers() {
                                 // SEND NOTIFICATION TO WORKER (Uses existing ALERTS tab)
                                 // ═══════════════════════════════════════════════════════════════
                                 try {
-                                    // TODO: Uncomment this block when you're ready to enable contract void notifications
-                                    /*
                                     if (typeof sendContractVoidedNotification === 'function') {
                                         const notifResult = await sendContractVoidedNotification(
                                             hiredWorkerId,
@@ -4271,16 +4305,13 @@ function initializeRelistJobConfirmationHandlers() {
                                             jobId,
                                             jobTitle,
                                             reason,
-                                            'Customer' // TODO: Get actual customer name from job.posterName
+                                            jobData.posterName || 'Customer'
                                         );
                                         
                                         if (notifResult.success) {
                                             console.log('✅ Worker will see notification in Messages > ALERTS tab');
                                         }
                                     }
-                                    */
-                                    console.log('📬 Contract void notifications ready (currently disabled)');
-                                    console.log('📋 To enable: Uncomment sendContractVoidedNotification() in jobs.js line 4129');
                                 } catch (notifError) {
                                     console.error('⚠️ Error sending notification (non-critical):', notifError);
                                     // Don't fail relist operation if notification fails
