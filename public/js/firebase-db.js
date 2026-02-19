@@ -861,6 +861,15 @@ async function applyForJob(jobId, applicationData) {
       };
     }
     
+    // Block applications to jobs that are already hired/accepted/completed
+    if (['hired', 'accepted', 'completed'].includes(job.status)) {
+      console.warn('⚠️ User attempted to apply to a job that is no longer accepting applications');
+      return {
+        success: false,
+        message: 'This gig is no longer accepting applications.'
+      };
+    }
+    
     console.log('✅ Self-application check passed');
     
     // ═══════════════════════════════════════════════════════════════
@@ -928,14 +937,6 @@ async function applyForJob(jobId, applicationData) {
         return {
           success: false,
           message: 'You have already been hired for this job'
-        };
-      }
-      
-      if (existingApp.status === 'offered') {
-        console.warn('⚠️ User already has an active offer for this gig');
-        return {
-          success: false,
-          message: 'You already have a pending offer for this gig'
         };
       }
       
@@ -1210,48 +1211,53 @@ async function hireWorker(jobId, applicationId) {
     });
     
     // Update job with hired worker info AND agreed price
-    // applicationCount preserved - other applications remain until worker accepts/rejects
     await db.collection('jobs').doc(jobId).update({
       status: 'hired',
       hiredWorkerId: appData.applicantId,
       hiredWorkerName: appData.applicantName,
       hiredWorkerThumbnail: appData.applicantThumbnail,
-      agreedPrice: agreedPrice,
-      hiredAt: firebase.firestore.FieldValue.serverTimestamp()
+      agreedPrice: agreedPrice, // Store the agreed price
+      hiredAt: firebase.firestore.FieldValue.serverTimestamp(),
+      applicationCount: 0 // Visually zeroed while waiting; restored if worker rejects
     });
     
-    // Update hired application status to 'offered' (not yet accepted by worker)
+    // Update application status of the chosen applicant to 'accepted' (offer extended)
     await db.collection('applications').doc(applicationId).update({
-      status: 'offered'
+      status: 'accepted'
     });
+    
+    // DO NOT reject other applications yet - keep them pending.
+    // They will only be rejected after the hired worker confirms acceptance.
+    // If the worker rejects the offer, other applicants remain available.
+    console.log('📋 Other applications kept pending until worker accepts offer');
     
     console.log('🔔 About to create offer notification for worker:', appData.applicantId);
     
-    // Create notification for worker about the gig offer (check for duplicates first)
+    // Create notification for worker about the gig offer (delete old ones first to prevent duplicates)
     try {
       if (typeof createNotification === 'function') {
-        console.log('✅ createNotification function exists');
-        
-        // Check if notification already exists for this job+worker combo
-        const existingNotif = await db.collection('notifications')
+        // Delete ALL existing offer_sent notifications for this worker (any job) to avoid stale ones
+        const existingNotifs = await db.collection('notifications')
           .where('recipientId', '==', appData.applicantId)
           .where('jobId', '==', jobId)
           .where('type', '==', 'offer_sent')
-          .limit(1)
           .get();
         
-        if (!existingNotif.empty) {
-          console.log('⚠️ Offer notification already exists, skipping duplicate');
-        } else {
-          const result = await createNotification(appData.applicantId, {
-            type: 'offer_sent',
-            jobId: jobId,
-            jobTitle: jobData.title || 'Gig',
-            message: `You've been offered the gig "${jobData.title}"! Check Gigs Manager > Offered tab to accept or decline.`,
-            actionRequired: true
-          });
-          console.log('✅ Offer notification result:', result);
+        if (!existingNotifs.empty) {
+          const deletePromises = existingNotifs.docs.map(doc => doc.ref.delete());
+          await Promise.all(deletePromises);
+          console.log(`🗑️ Deleted ${existingNotifs.size} old offer notification(s) for this job`);
         }
+        
+        // Create fresh notification
+        const result = await createNotification(appData.applicantId, {
+          type: 'offer_sent',
+          jobId: jobId,
+          jobTitle: jobData.title || 'Gig',
+          message: `You've been offered the gig "${jobData.title}"! Check Gigs Manager > Offered tab to accept or decline.`,
+          actionRequired: true
+        });
+        console.log('✅ Offer notification result:', result);
       } else {
         console.error('❌ createNotification function not found');
       }
@@ -2196,8 +2202,8 @@ async function sendOfferRejectedNotification(customerId, customerName, jobId, jo
       type: 'offer_rejected',
       jobId: jobId,
       jobTitle: jobTitle,
-      message: `${workerName} has rejected your job offer for "${jobTitle}". You can review other applicants in Gigs Manager.`,
-      actionRequired: true,
+      message: `${workerName} has rejected your job offer for "${jobTitle}". The job is now available for applications.`,
+      actionRequired: false,
       // Additional data for future use
       workerName: workerName
     });

@@ -1478,6 +1478,7 @@ async function switchToRole(roleType) {
     
     // NUCLEAR CLEANUP: Clear all overlay handlers when switching roles to prevent contamination
     executeCleanupsByType('hiring');
+    executeCleanupsByType('hiring-listener');
     executeCleanupsByType('accepted-overlay');
     
     // Update role button states
@@ -1594,6 +1595,11 @@ async function switchToCustomerTab(tabType) {
     }
     
     console.log(`🔄 Switched to customer tab: ${tabType}`);
+    
+    // Clean up hiring listener when leaving the hiring tab
+    if (tabType !== 'hiring') {
+        executeCleanupsByType('hiring-listener');
+    }
     
     // Load content based on tab type (existing functionality)
     if (tabType === 'listings') {
@@ -2597,74 +2603,58 @@ function getApplicationsByJobId(jobId) {
     return jobData.applicationIds;
 }
 
-let _hiringTabUnsubscribe = null;
-
 async function initializeHiringTab() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
     
-    // Check if already loaded
-    if (container.children.length > 0) {
-        console.log('👥 Hiring tab already loaded');
-        return;
+    // Clean up any existing listener
+    executeCleanupsByType('hiring-listener');
+    
+    console.log('👥 Loading hiring tab with real-time updates...');
+    await loadHiringContent();
+    
+    // Set up real-time listener so status changes (e.g., hired → accepted) refresh automatically
+    if (typeof firebase !== 'undefined') {
+        const user = firebase.auth().currentUser;
+        if (user && firebase.firestore) {
+            const db = firebase.firestore();
+            let isFirstSnapshot = true;
+            
+            const unsubscribe = db.collection('jobs')
+                .where('posterId', '==', user.uid)
+                .where('status', 'in', ['hired', 'accepted'])
+                .onSnapshot(snapshot => {
+                    if (isFirstSnapshot) {
+                        isFirstSnapshot = false;
+                        return; // Skip initial snapshot since loadHiringContent already rendered
+                    }
+                    console.log('🔄 Hiring tab: job status change detected, refreshing...');
+                    loadHiringContent();
+                }, err => {
+                    console.warn('⚠️ Hiring tab listener error:', err);
+                });
+            
+            registerCleanup('hiring-listener', 'jobs-snapshot', () => {
+                unsubscribe();
+                console.log('🧹 Hiring tab real-time listener unsubscribed');
+            });
+        }
     }
     
-    console.log('👥 Loading hiring tab...');
-    await loadHiringContent();
     console.log('👥 Hiring tab loaded');
-    
-    // Set up real-time listener for hiring tab auto-refresh
-    setupHiringTabListener();
 }
 
-function setupHiringTabListener() {
-    if (_hiringTabUnsubscribe) return;
-    
-    const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
-    if (!useFirebase || typeof firebase === 'undefined') return;
-    
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    
-    const db = firebase.firestore();
-    
-    _hiringTabUnsubscribe = db.collection('jobs')
-        .where('posterId', '==', user.uid)
-        .where('status', 'in', ['hired', 'accepted'])
-        .onSnapshot(snapshot => {
-            if (snapshot.metadata.hasPendingWrites) return;
-            
-            console.log('🔄 Hiring tab: detected job status change, refreshing...');
-            loadHiringContent();
-            updateTabCounts();
-        }, error => {
-            console.error('⚠️ Hiring tab listener error:', error);
-        });
-    
-    console.log('👂 Hiring tab real-time listener active');
-    
-    registerCleanup('function', 'hiringTabListener', () => {
-        if (_hiringTabUnsubscribe) {
-            _hiringTabUnsubscribe();
-            _hiringTabUnsubscribe = null;
-            console.log('🧹 Hiring tab listener cleaned up');
-        }
-    });
-}
-
-async function loadHiringContent(showLoading = true) {
+async function loadHiringContent() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
     
-    // Only show loading spinner on first load, not auto-refresh
-    if (showLoading && container.children.length === 0) {
-        container.innerHTML = `
-            <div class="loading-state">
-                <div class="loading-spinner">🔄</div>
-                <div class="loading-text">Loading your hired workers...</div>
-            </div>
-        `;
-    }
+    // Show loading state
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner">🔄</div>
+            <div class="loading-text">Loading your hired workers...</div>
+        </div>
+    `;
     
     try {
         // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
@@ -3656,10 +3646,9 @@ async function moveJobFromOfferedToAccepted(jobId) {
             
             // Update job: change status to 'accepted' and add timestamp
             await db.collection('jobs').doc(jobId).update({
-                status: 'accepted',
+                status: 'accepted', // Change from 'hired' to 'accepted'
                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                workerAccepted: true,
-                applicationCount: 0
+                workerAccepted: true // Flag to indicate worker has accepted
             });
             
             // Get job data for notification
@@ -3668,36 +3657,13 @@ async function moveJobFromOfferedToAccepted(jobId) {
             
             console.log('🔔 About to create acceptance notification for customer:', jobData?.posterId);
             
+            // Show loading state during acceptance
             showLoadingOverlay('Processing acceptance...');
-            
-            // Worker accepted - now reject all other pending/offered applications for this job
-            try {
-                const otherApps = await db.collection('applications')
-                    .where('jobId', '==', jobId)
-                    .where('status', 'in', ['pending', 'offered'])
-                    .get();
-                
-                const currentUser = firebase.auth().currentUser;
-                const batch = db.batch();
-                let rejectedCount = 0;
-                otherApps.docs.forEach(doc => {
-                    if (doc.data().applicantId !== currentUser.uid) {
-                        batch.delete(doc.ref);
-                        rejectedCount++;
-                    } else {
-                        // Update the accepted worker's application status
-                        batch.update(doc.ref, { status: 'accepted' });
-                    }
-                });
-                await batch.commit();
-                console.log(`✅ Cleaned up ${rejectedCount} other applications after acceptance`);
-            } catch (cleanupError) {
-                console.error('⚠️ Error cleaning up other applications:', cleanupError);
-            }
             
             // Create notification for customer about offer acceptance
             try {
                 if (typeof createNotification === 'function' && jobData && jobData.posterId) {
+                    console.log('✅ createNotification function exists');
                     const currentUser = firebase.auth().currentUser;
                     const workerProfile = await getUserProfile(currentUser.uid);
                     const workerName = workerProfile?.fullName || 'Worker';
@@ -3706,7 +3672,7 @@ async function moveJobFromOfferedToAccepted(jobId) {
                         type: 'offer_accepted',
                         jobId: jobId,
                         jobTitle: jobData.title || 'Your Gig',
-                        message: `${workerName} has accepted your gig offer for "${jobData.title}"! Check Gigs Manager > Hiring tab.`,
+                        message: `${workerName} has accepted your gig offer for "${jobData.title}"!`,
                         actionRequired: false
                     });
                     console.log('✅ Acceptance notification result:', result);
@@ -3715,11 +3681,54 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 }
             } catch (notifError) {
                 console.error('❌ Error creating acceptance notification:', notifError);
+                // Don't fail the acceptance if notification fails
             }
             
+            // Hide loading state
             hideLoadingOverlay();
             
             console.log('✅ Job offer accepted in Firebase - status changed to accepted');
+            
+            // Clean up offer_sent notification - no longer needed once accepted
+            try {
+                const currentUser = firebase.auth().currentUser;
+                if (currentUser) {
+                    const offerNotifs = await db.collection('notifications')
+                        .where('recipientId', '==', currentUser.uid)
+                        .where('jobId', '==', jobId)
+                        .where('type', '==', 'offer_sent')
+                        .get();
+                    if (!offerNotifs.empty) {
+                        const deletePromises = offerNotifs.docs.map(doc => doc.ref.delete());
+                        await Promise.all(deletePromises);
+                        console.log(`🗑️ Cleaned up ${offerNotifs.size} offer notification(s) after acceptance`);
+                    }
+                }
+            } catch (cleanupError) {
+                console.warn('⚠️ Could not clean up offer notifications:', cleanupError);
+            }
+            
+            // Now that worker has accepted, reject all other pending applications for this job
+            try {
+                const otherApps = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('status', '==', 'pending')
+                    .get();
+                if (!otherApps.empty) {
+                    const batch = db.batch();
+                    otherApps.docs.forEach(doc => {
+                        batch.update(doc.ref, {
+                            status: 'rejected',
+                            rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+                    await batch.commit();
+                    console.log(`✅ Rejected ${otherApps.size} other pending application(s) after worker accepted`);
+                }
+            } catch (rejectError) {
+                console.warn('⚠️ Could not reject other applications:', rejectError);
+            }
+            
             return;
         } catch (error) {
             console.error('❌ Error accepting offer in Firebase:', error);
@@ -3784,14 +3793,7 @@ async function rejectGigOffer(jobId) {
                 throw new Error('User not authenticated');
             }
             
-            // Count remaining pending applications to restore accurate count
-            const pendingApps = await db.collection('applications')
-                .where('jobId', '==', jobId)
-                .where('status', '==', 'pending')
-                .get();
-            const remainingCount = pendingApps.size;
-            
-            // Update job: remove hired worker info and restore to active
+            // Update job: remove hired worker info and set status back to active
             await db.collection('jobs').doc(jobId).update({
                 status: 'active',
                 hiredWorkerId: firebase.firestore.FieldValue.delete(),
@@ -3800,28 +3802,60 @@ async function rejectGigOffer(jobId) {
                 agreedPrice: firebase.firestore.FieldValue.delete(),
                 hiredAt: firebase.firestore.FieldValue.delete(),
                 acceptedAt: firebase.firestore.FieldValue.delete(),
-                rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                applicationCount: remainingCount
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                // applicationCount will be restored after tallying pending applications below
             });
             
-            console.log(`✅ Job offer rejected in Firebase, job restored to active with ${remainingCount} pending applications`);
+            console.log('✅ Job offer rejected in Firebase, job restored to active');
             
-            // Delete the rejecting worker's application (offered status)
+            // ═══════════════════════════════════════════════════════════════
+            // UPDATE WORKER'S APPLICATION STATUS TO 'REJECTED'
+            // ═══════════════════════════════════════════════════════════════
             try {
                 const applicationsSnapshot = await db.collection('applications')
                     .where('jobId', '==', jobId)
                     .where('applicantId', '==', currentUser.uid)
-                    .where('status', 'in', ['accepted', 'offered'])
+                    .where('status', '==', 'accepted')
                     .get();
                 
                 const batch = db.batch();
                 applicationsSnapshot.docs.forEach(doc => {
-                    batch.delete(doc.ref);
+                    batch.update(doc.ref, {
+                        status: 'rejected',
+                        rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
                 });
                 await batch.commit();
-                console.log('✅ Rejecting worker\'s application removed');
+                console.log('✅ Worker application status updated to rejected');
+                
+                // Count remaining pending applications and restore applicationCount
+                const pendingApps = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('status', '==', 'pending')
+                    .get();
+                await db.collection('jobs').doc(jobId).update({
+                    applicationCount: pendingApps.size
+                });
+                console.log(`✅ Restored applicationCount to ${pendingApps.size} pending application(s)`);
             } catch (appError) {
-                console.error('⚠️ Error removing worker application:', appError);
+                console.error('⚠️ Error updating application status:', appError);
+                // Don't throw - job update succeeded, application update is non-critical
+            }
+            
+            // Clean up offer_sent notification for this job (no longer relevant)
+            try {
+                const offerNotifs = await db.collection('notifications')
+                    .where('recipientId', '==', currentUser.uid)
+                    .where('jobId', '==', jobId)
+                    .where('type', '==', 'offer_sent')
+                    .get();
+                if (!offerNotifs.empty) {
+                    const deletePromises = offerNotifs.docs.map(doc => doc.ref.delete());
+                    await Promise.all(deletePromises);
+                    console.log(`🗑️ Cleaned up ${offerNotifs.size} offer notification(s) after rejection`);
+                }
+            } catch (cleanupError) {
+                console.warn('⚠️ Could not clean up offer notifications:', cleanupError);
             }
             
             return;

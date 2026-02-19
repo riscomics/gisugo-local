@@ -255,8 +255,8 @@ async function loadJobData() {
   const applyBtn = document.getElementById('jobApplyBtn');
   const currentUser = firebase.auth ? firebase.auth().currentUser : null;
   
-  if (job.status === 'completed' && applyBtn) {
-    console.log('🏁 Job is completed - hiding Apply button');
+  if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
+    console.log(`🏁 Job status is "${job.status}" - hiding Apply button`);
     applyBtn.style.display = 'none';
   } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
     console.log('👤 User is viewing their own job - showing YOUR GIG button');
@@ -276,7 +276,7 @@ async function loadJobData() {
   }
   
   // Ensure rating is loaded even if we didn't enter the else block
-  if (job.status === 'completed' || (currentUser && job.posterId === currentUser.uid)) {
+  if (['completed', 'hired', 'accepted'].includes(job.status) || (currentUser && job.posterId === currentUser.uid)) {
     await ratingPromise;
   }
   
