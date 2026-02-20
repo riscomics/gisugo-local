@@ -157,6 +157,12 @@ function initializeUniformMenu(config) {
             
             console.log('🍔 Menu button clicked');
             cleanMenuOverlay.classList.toggle('show');
+
+            // Position panel exactly below the borderline when opening
+            if (cleanMenuOverlay.classList.contains('show') &&
+                typeof positionSharedMenuPanel === 'function') {
+                positionSharedMenuPanel();
+            }
             
             // Add slight haptic feedback on mobile
             if (navigator.vibrate) {
@@ -209,10 +215,9 @@ function initializeMenuItems(menuOverlay) {
         return;
     }
 
-    // Check if shared-menu.js has already populated the menu
-    const existingItems = menuItemsContainer.querySelectorAll('.uniform-menu-item');
-    if (existingItems.length > 0) {
-        console.log(`✅ Found ${existingItems.length} existing menu items`);
+    // Check if shared-menu.js has already populated the menu (card-grid or legacy items)
+    if (menuItemsContainer.children.length > 0) {
+        console.log(`✅ Found ${menuItemsContainer.children.length} existing menu children`);
         return;
     }
 

@@ -120,6 +120,8 @@ const menuOverlay = document.getElementById('jobcatMenuOverlay');
 menuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
   menuOverlay.classList.add('show');
+  // Position popup panel exactly below the borderline
+  if (typeof positionSharedMenuPanel === 'function') positionSharedMenuPanel();
 });
 
 menuOverlay.addEventListener('click', function(e) {
