@@ -1,323 +1,198 @@
-/* GISUGO Forum - Coming Soon Styles */
+/* GISUGO Community Forum - v2.0 */
+
+:root {
+  --accent-color: #10b981;
+  --accent-glow: rgba(16, 185, 129, 0.3);
+  --bg-primary: #1e2533;
+  --bg-secondary: #252d3d;
+  --bg-card: #2a3347;
+  --text-primary: #f0f4f8;
+  --text-muted: #8896a7;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+}
 
 html {
   overflow-y: auto;
   height: auto;
-  /* Hide scrollbar for all browsers and devices */
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;     /* Firefox */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-html::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 body {
-  background: #363f4f !important;
+  background: var(--bg-primary);
   margin: 0;
-  padding: 110px 0 0 0; /* Add top padding for fixed header */
+  padding: 78px 0 0 0;
   font-family: Arial, Helvetica, sans-serif;
-  color: #f0e6d2;
+  color: var(--text-primary);
+  min-height: 100vh;
 }
 
-body::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
-}
-
-/* Header Styles - Based on jobs.css */
-.forum-header {
-  position: fixed;
-  width: 100%;
-  top: 0;
-  left: 0;
-  z-index: 100;
-  background: #363f4f;
-}
-
-.forum-header-title-container {  
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  height: 106px;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #363f4f;
-  position: relative;
-  padding-right: 15px;  
-}
-
-.forum-header-title {
-  display: flex;
-  text-align: center;
-  color: #fff;
-  font-size: 2.5rem;
-  font-weight: 800;
-  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-  letter-spacing: 0.01em;
-  line-height: 1.5;
-  display: -webkit-box;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  word-wrap: break-word;  
-}
-
-.forum-header-btn {
-  background: none;
-  border: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 88px;
-  height: 92px; 
-  color: rgb(188, 206, 212);
-  font-size: 18px;  
-  cursor: pointer;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s;
-  flex-shrink: 0;
-  margin-right: 1%;
-  margin-left: 1%;
-}
-
-.forum-header-btn:hover {
-  transform: scale(1.1);
-}
-
-.forum-header-btn img {
-  width: 100%;
-  height: 55px;
-  object-fit: contain;
-  margin-bottom: 4px;
-  transition: transform 0.15s;
-}
-
-.forum-header-borderline {
-  height: 4px;
-  width: 100%;
-  background: rgb(149, 149, 328);
-  position: fixed;
-  left: 0;
-  z-index: 96;
-}
-
-/* Menu Overlay - Based on jobs.css */
-.forum-menu-overlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 100vw;
-  height: 100vh;
-  background: transparent;
-  z-index: 999;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  box-sizing: border-box;
-  border: none;
-  transform: translateX(100%);
-  transition: transform 0.35s cubic-bezier(.77,0,.18,1);
-  pointer-events: none;
-}
-
-.forum-menu-overlay.show {
-  transform: translateX(0);
-  pointer-events: auto;
-}
-
-.forum-menu-items {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  justify-content: space-around;
-  align-items: center;
-  height: 100px;
-  background: #866f67;
-  border-bottom: 2px solid #222;
-}
-
-.forum-menu-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #f5f5f5;
-  font-size: 18px;
-  font-family: Arial, Helvetica, sans-serif;
-  width: 90px;
-  cursor: pointer;
-  user-select: none;
-  text-decoration: none;
-}
-
-.forum-menu-item img {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 4px;
-  object-fit: contain;
-}
-
-/* Main Content */
+/* ── Main Layout ────────────────────────────── */
 .forum-main {
-  padding: 40px 20px 60px 20px;
-  max-width: 1200px;
+  padding: 32px 16px 60px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
-/* Hero Section */
+/* ── Hero Section ───────────────────────────── */
 .coming-soon-hero {
   text-align: center;
-  padding: 60px 20px 80px 20px;
-  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  padding: 52px 24px 60px;
+  background: linear-gradient(160deg, #252d3d 0%, #1a2030 100%);
   border-radius: 20px;
-  margin-bottom: 60px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 48px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.08);
 }
 
 .hero-icon {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 .forum-emoji {
-  font-size: 5rem;
+  font-size: 4.5rem;
   display: inline-block;
-  animation: bounce 2s infinite;
+  animation: bounce 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.5));
 }
 
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-10px);
-  }
-  60% {
-    transform: translateY(-5px);
-  }
+  0%, 100% { transform: translateY(0); }
+  45%       { transform: translateY(-12px); }
+  65%       { transform: translateY(-6px); }
 }
 
 .hero-title {
-  font-size: 3.5rem;
+  font-size: clamp(1.8rem, 6vw, 3rem);
   font-weight: 800;
-  color: #e6d6ae;
-  margin-bottom: 15px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  margin: 0 0 10px;
+  letter-spacing: 0.02em;
 }
 
 .hero-subtitle {
-  font-size: 2rem;
-  font-weight: 600;
-  color: #f0932b;
-  margin-bottom: 20px;
+  font-size: clamp(0.95rem, 3vw, 1.2rem);
+  font-weight: 700;
+  color: var(--accent-color);
+  margin: 0 0 16px;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.15em;
 }
 
 .hero-description {
-  font-size: 1.2rem;
-  color: #cbd5e0;
-  max-width: 600px;
+  font-size: clamp(0.9rem, 2.5vw, 1.05rem);
+  color: var(--text-muted);
+  max-width: 480px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
-/* Features Section */
-.features-section {
-  margin-bottom: 80px;
-}
-
+/* ── Section Title ──────────────────────────── */
 .section-title {
-  font-size: 2.5rem;
+  font-size: clamp(1.1rem, 4vw, 1.6rem);
   font-weight: 700;
-  color: #e6d6ae;
+  color: var(--text-primary);
   text-align: center;
-  margin-bottom: 50px;
+  margin-bottom: 28px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
+}
+
+/* ── Features Grid ──────────────────────────── */
+.features-section {
+  margin-bottom: 56px;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 30px;
-  max-width: 1000px;
-  margin: 0 auto;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
 }
 
 .feature-card {
-  background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+  background: var(--bg-card);
   border-radius: 16px;
-  padding: 30px;
+  padding: 28px 22px;
   text-align: center;
-  transition: all 0.3s ease;
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  border-color: rgba(230, 214, 174, 0.3);
+  transform: translateY(-4px);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
 }
 
 .feature-icon {
-  font-size: 3rem;
-  margin-bottom: 20px;
+  font-size: 2.6rem;
+  margin-bottom: 16px;
   display: block;
+  line-height: 1;
 }
 
 .feature-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #e6d6ae;
-  margin-bottom: 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .feature-description {
-  font-size: 1rem;
-  color: #a0aec0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
   line-height: 1.6;
   margin: 0;
 }
 
-/* Notification Section */
+/* ── Notify Card ────────────────────────────── */
 .notification-section {
-  margin-bottom: 80px;
+  margin-bottom: 56px;
 }
 
 .notification-card {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(160deg, #1e3a5f 0%, #172a4a 100%);
   border-radius: 20px;
-  padding: 50px 40px;
+  padding: 44px 28px;
   text-align: center;
-  max-width: 600px;
-  margin: 0 auto;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.08);
 }
 
 .notification-icon {
-  font-size: 4rem;
-  margin-bottom: 25px;
+  font-size: 3.2rem;
+  margin-bottom: 20px;
   display: block;
+  filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.6));
 }
 
 .notification-title {
-  font-size: 2rem;
+  font-size: clamp(1.1rem, 4vw, 1.6rem);
   font-weight: 700;
-  color: #fff;
-  margin-bottom: 20px;
+  color: var(--text-primary);
+  margin: 0 0 14px;
 }
 
 .notification-description {
-  font-size: 1.1rem;
-  color: #dbeafe;
+  font-size: 0.95rem;
+  color: #93c5fd;
   line-height: 1.6;
-  margin-bottom: 40px;
+  margin: 0 0 32px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .notification-actions {
   display: flex;
-  gap: 20px;
+  gap: 14px;
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -325,52 +200,54 @@ body::-webkit-scrollbar {
 .notification-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 15px 30px;
+  gap: 8px;
+  padding: 13px 26px;
   border-radius: 10px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 700;
   text-decoration: none;
-  transition: all 0.3s ease;
+  letter-spacing: 0.04em;
+  transition: all 0.2s ease;
   cursor: pointer;
   border: none;
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .notification-btn.primary {
-  background: #fff;
-  color: #2563eb;
+  background: var(--accent-color);
+  color: #fff;
 }
 
 .notification-btn.primary:hover {
-  background: #f8fafc;
+  background: #0da872;
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
 }
 
 .notification-btn.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .notification-btn.secondary:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
 }
 
 .btn-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
-/* Timeline Section */
+/* ── Timeline ───────────────────────────────── */
 .timeline-section {
-  margin-bottom: 60px;
+  margin-bottom: 48px;
 }
 
 .timeline {
-  max-width: 800px;
+  max-width: 600px;
   margin: 0 auto;
   position: relative;
 }
@@ -378,116 +255,108 @@ body::-webkit-scrollbar {
 .timeline::before {
   content: '';
   position: absolute;
-  left: 30px;
+  left: 22px;
   top: 0;
   bottom: 0;
-  width: 4px;
-  background: linear-gradient(to bottom, #48bb78, #38a169, #2f855a);
+  width: 3px;
+  background: linear-gradient(to bottom, var(--accent-color), #0d9488, #4a5568);
   border-radius: 2px;
 }
 
 .timeline-item {
   position: relative;
-  padding-left: 80px;
-  margin-bottom: 40px;
+  padding-left: 62px;
+  margin-bottom: 24px;
 }
 
 .timeline-marker {
   position: absolute;
-  left: 18px;
-  top: 0;
-  width: 28px;
-  height: 28px;
+  left: 12px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 4px solid #4a5568;
-  background: #2d3748;
+  border: 3px solid #4a5568;
+  background: var(--bg-secondary);
 }
 
 .timeline-item.completed .timeline-marker {
-  background: #48bb78;
-  border-color: #38a169;
+  background: var(--accent-color);
+  border-color: #0da872;
 }
 
 .timeline-item.active .timeline-marker {
-  background: #f0932b;
-  border-color: #e67e22;
-  animation: pulse 2s infinite;
+  background: #f59e0b;
+  border-color: #d97706;
+  animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(240, 147, 43, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 15px rgba(240, 147, 43, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(240, 147, 43, 0);
-  }
+  0%   { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+  70%  { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
 }
 
 .timeline-content {
-  background: #2d3748;
+  background: var(--bg-card);
   border-radius: 12px;
-  padding: 25px;
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 20px;
+  border: 1px solid var(--border-subtle);
 }
 
 .timeline-item.completed .timeline-content {
-  border-color: rgba(72, 187, 120, 0.3);
-  background: linear-gradient(135deg, #2d3748 0%, #1a2e05 100%);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .timeline-item.active .timeline-content {
-  border-color: rgba(240, 147, 43, 0.3);
-  background: linear-gradient(135deg, #2d3748 0%, #7c2d12 100%);
+  border-color: rgba(245, 158, 11, 0.25);
 }
 
 .timeline-content h4 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #e6d6ae;
-  margin-bottom: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .timeline-content p {
-  font-size: 1rem;
-  color: #a0aec0;
-  margin-bottom: 15px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 10px;
   line-height: 1.5;
 }
 
 .timeline-date {
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding: 5px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
   border-radius: 20px;
   display: inline-block;
+  letter-spacing: 0.05em;
 }
 
 .timeline-item.completed .timeline-date {
-  background: rgba(72, 187, 120, 0.2);
-  color: #68d391;
+  background: rgba(16, 185, 129, 0.15);
+  color: #6ee7b7;
 }
 
 .timeline-item.active .timeline-date {
-  background: rgba(240, 147, 43, 0.2);
-  color: #fbd38d;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fcd34d;
 }
 
 .timeline-item:not(.completed):not(.active) .timeline-date {
-  background: rgba(160, 174, 192, 0.2);
-  color: #cbd5e0;
+  background: rgba(160, 174, 192, 0.12);
+  color: var(--text-muted);
 }
 
-/* Success Overlay */
+/* ── Notify Confirmation Overlay ────────────── */
 .success-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(6px);
   display: none;
   justify-content: center;
@@ -500,597 +369,107 @@ body::-webkit-scrollbar {
 }
 
 .success-modal {
-  background: #2c3e50;
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 500px;
+  background: var(--bg-card);
+  border-radius: 18px;
+  padding: 36px 28px;
+  max-width: 420px;
   width: 90%;
   text-align: center;
-  position: relative;
-  border: 2px solid #3498db;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 30px var(--accent-glow);
 }
 
 .success-icon {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  font-size: 3.5rem;
+  margin-bottom: 16px;
+  display: block;
 }
 
 .success-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #2ecc71;
-  margin-bottom: 1rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--accent-color);
+  margin: 0 0 14px;
 }
 
 .success-message {
-  color: #ecf0f1;
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
-  line-height: 1.4;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin: 0 0 24px;
+  line-height: 1.55;
 }
 
 .success-btn {
-  background: #2ecc71;
-  color: white;
+  background: var(--accent-color);
+  color: #fff;
   border: none;
-  padding: 0.8rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: bold;
+  padding: 12px 32px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
+  font-family: inherit;
+  letter-spacing: 0.05em;
 }
 
 .success-btn:hover {
-  background: #27ae60;
+  background: #0da872;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
 }
 
-/* Mobile Responsive Design */
-@media (max-width: 600px) {
+/* ── Responsive ─────────────────────────────── */
+@media (max-width: 480px) {
   body {
-    padding-top: 75px;
-  }
-  
-  .forum-header-title-container {
-    height: 68px;
-    padding-right: 5px; 
-  } 
-  
-  .forum-header-title {
-    font-size: 1.6rem;
-    padding-left: 5px;
-    padding-right: 5px;
-  }
-   
-  .forum-header-btn {
-    width: 45px;
-    height: 47px;
-    font-size: 12px;
-  }
-  
-  .forum-header-btn img {
-    width: auto;
-    height: 35px;
-    margin-bottom: 4px;
-  }
-  
-  .forum-menu-items {
-    height: 68px;
-  }
-  
-  .forum-menu-item {
-    font-size: 12px;
-    width: 45px;
-  }
-  
-  .forum-menu-item img {
-    width: 32px;
-    height: 32px;
+    padding-top: 72px;
   }
 
   .forum-main {
-    padding: 20px 15px 40px 15px;
+    padding: 24px 14px 48px;
   }
 
   .coming-soon-hero {
-    padding: 40px 15px 50px 15px;
-    margin-bottom: 40px;
-    border-radius: 15px;
+    padding: 36px 16px 44px;
+    margin-bottom: 32px;
   }
 
   .forum-emoji {
-    font-size: 3.5rem;
-  }
-
-  .hero-title {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-  }
-
-  .hero-subtitle {
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-  }
-
-  .hero-description {
-    font-size: 1rem;
-  }
-
-  .section-title {
-    font-size: 2rem;
-    margin-bottom: 30px;
+    font-size: 3.2rem;
   }
 
   .features-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 12px;
   }
 
   .feature-card {
-    padding: 20px;
-  }
-
-  .feature-icon {
-    font-size: 2.5rem;
-    margin-bottom: 15px;
-  }
-
-  .feature-title {
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-  }
-
-  .feature-description {
-    font-size: 0.9rem;
+    padding: 20px 16px;
   }
 
   .notification-card {
-    padding: 30px 20px;
-    margin: 0 15px;
-  }
-
-  .notification-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
-  }
-
-  .notification-title {
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-  }
-
-  .notification-description {
-    font-size: 1rem;
-    margin-bottom: 30px;
+    padding: 30px 18px;
   }
 
   .notification-actions {
     flex-direction: column;
-    gap: 15px;
+    align-items: stretch;
   }
 
   .notification-btn {
-    padding: 12px 25px;
-    font-size: 1rem;
+    justify-content: center;
   }
 
   .timeline::before {
-    left: 20px;
+    left: 14px;
   }
 
   .timeline-item {
-    padding-left: 60px;
-    margin-bottom: 30px;
+    padding-left: 46px;
   }
 
   .timeline-marker {
-    left: 8px;
-    width: 24px;
-    height: 24px;
-  }
-
-  .timeline-content {
-    padding: 20px;
-  }
-
-  .timeline-content h4 {
-    font-size: 1.1rem;
-  }
-
-  .timeline-content p {
-    font-size: 0.9rem;
-  }
-
-  .timeline-date {
-    font-size: 0.8rem;
-    padding: 4px 10px;
-  }
-
-  .success-modal {
-    padding: 1.5rem;
-    width: 95%;
-  }
-
-  .success-icon {
-    font-size: 3rem;
-  }
-
-  .success-title {
-    font-size: 1.5rem;
-  }
-
-  .success-message {
-    font-size: 1rem;
-  }
-
-  .success-btn {
-    padding: 0.7rem 1.5rem;
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 400px) {
-  body {
-    padding-top: 79px;
-  }
-  
-  .forum-header-title-container {
-    height: 66px;
-    padding-right: 3px; 
-  } 
-  
-  .forum-header-title {
-    font-size: 1.5rem;
-    padding-left: 3px;
-    padding-right: 3px;
-  }
-   
-  .forum-header-btn {
-    width: 42px;
-    height: 44px;
-    font-size: 11px;
-  }
-  
-  .forum-header-btn img {
-    width: auto;
-    height: 32px;
-    margin-bottom: 3px;
-  }
-  
-  .forum-menu-items {
-    height: 66px;
-  }
-  
-  .forum-menu-item {
-    font-size: 11px;
-    width: 42px;
-  }
-  
-  .forum-menu-item img {
-    width: 30px;
-    height: 30px;
-  }
-
-  .forum-main {
-    padding: 15px 10px 30px 10px;
-  }
-
-  .coming-soon-hero {
-    padding: 30px 10px 40px 10px;
-    margin-bottom: 30px;
-  }
-
-  .forum-emoji {
-    font-size: 3rem;
-  }
-
-  .hero-title {
-    font-size: 2rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1.3rem;
-  }
-
-  .hero-description {
-    font-size: 0.9rem;
-  }
-
-  .section-title {
-    font-size: 1.8rem;
-    margin-bottom: 25px;
-  }
-
-  .features-grid {
-    gap: 15px;
-  }
-
-  .feature-card {
-    padding: 15px;
-  }
-
-  .feature-icon {
-    font-size: 2.2rem;
-  }
-
-  .feature-title {
-    font-size: 1.1rem;
-  }
-
-  .feature-description {
-    font-size: 0.85rem;
-  }
-
-  .notification-card {
-    padding: 25px 15px;
-    margin: 0 10px;
-  }
-
-  .notification-title {
-    font-size: 1.3rem;
-  }
-
-  .notification-description {
-    font-size: 0.9rem;
-  }
-
-  .timeline-item {
-    padding-left: 50px;
-  }
-
-  .timeline-marker {
+    left: 4px;
     width: 20px;
     height: 20px;
   }
-
-  .timeline-content {
-    padding: 15px;
-  }
-
-  .timeline-content h4 {
-    font-size: 1rem;
-  }
-
-  .timeline-content p {
-    font-size: 0.85rem;
-  }
 }
-
-@media (max-width: 375px) {
-  body {
-    padding-top: 77px;
-  }
-  
-  .forum-header-title-container {
-    height: 64px;
-    padding-right: 3px; 
-  } 
-  
-  .forum-header-title {
-    font-size: 1.4rem;
-    padding-left: 3px;
-    padding-right: 3px;
-  }
-   
-  .forum-header-btn {
-    width: 40px;
-    height: 42px;
-    font-size: 10px;
-  }
-  
-  .forum-header-btn img {
-    width: auto;
-    height: 30px;
-    margin-bottom: 3px;
-  }
-  
-  .forum-menu-items {
-    height: 64px;
-  }
-  
-  .forum-menu-item {
-    font-size: 10px;
-    width: 40px;
-  }
-  
-  .forum-menu-item img {
-    width: 28px;
-    height: 28px;
-  }
-
-  .coming-soon-hero {
-    padding: 25px 8px 35px 8px;
-  }
-
-  .forum-emoji {
-    font-size: 2.8rem;
-  }
-
-  .hero-title {
-    font-size: 1.8rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1.2rem;
-  }
-
-  .section-title {
-    font-size: 1.6rem;
-  }
-
-  .notification-card {
-    padding: 20px 12px;
-  }
-
-  .notification-title {
-    font-size: 1.2rem;
-  }
-}
-
-@media (max-width: 320px) {
-  body {
-    padding-top: 75px;
-  }
-  
-  .forum-header-title-container {
-    height: 62px;
-    padding-right: 2px; 
-  } 
-  
-  .forum-header-title {
-    font-size: 1.3rem;
-    padding-left: 2px;
-    padding-right: 2px;
-  }
-   
-  .forum-header-btn {
-    width: 38px;
-    height: 40px;
-    font-size: 9px;
-  }
-  
-  .forum-header-btn img {
-    width: auto;
-    height: 28px;
-    margin-bottom: 2px;
-  }
-  
-  .forum-menu-items {
-    height: 62px;
-  }
-  
-  .forum-menu-item {
-    font-size: 9px;
-    width: 38px;
-  }
-  
-  .forum-menu-item img {
-    width: 26px;
-    height: 26px;
-  }
-
-  .forum-main {
-    padding: 10px 5px 25px 5px;
-  }
-
-  .coming-soon-hero {
-    padding: 20px 5px 30px 5px;
-    margin-bottom: 25px;
-  }
-
-  .forum-emoji {
-    font-size: 2.5rem;
-  }
-
-  .hero-title {
-    font-size: 1.6rem;
-  }
-
-  .hero-subtitle {
-    font-size: 1.1rem;
-  }
-
-  .hero-description {
-    font-size: 0.8rem;
-  }
-
-  .section-title {
-    font-size: 1.4rem;
-    margin-bottom: 20px;
-  }
-
-  .feature-card {
-    padding: 12px;
-  }
-
-  .feature-icon {
-    font-size: 2rem;
-  }
-
-  .feature-title {
-    font-size: 1rem;
-  }
-
-  .feature-description {
-    font-size: 0.8rem;
-  }
-
-  .notification-card {
-    padding: 15px 8px;
-    margin: 0 5px;
-  }
-
-  .notification-icon {
-    font-size: 2.5rem;
-  }
-
-  .notification-title {
-    font-size: 1.1rem;
-  }
-
-  .notification-description {
-    font-size: 0.8rem;
-  }
-
-  .notification-btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-  }
-
-  .timeline-item {
-    padding-left: 45px;
-    margin-bottom: 25px;
-  }
-
-  .timeline::before {
-    left: 15px;
-  }
-
-  .timeline-marker {
-    left: 3px;
-    width: 18px;
-    height: 18px;
-  }
-
-  .timeline-content {
-    padding: 12px;
-  }
-
-  .timeline-content h4 {
-    font-size: 0.9rem;
-  }
-
-  .timeline-content p {
-    font-size: 0.8rem;
-  }
-
-  .timeline-date {
-    font-size: 0.7rem;
-    padding: 3px 8px;
-  }
-
-  .success-modal {
-    padding: 1rem;
-    width: 98%;
-  }
-
-  .success-icon {
-    font-size: 2.5rem;
-  }
-
-  .success-title {
-    font-size: 1.3rem;
-  }
-
-  .success-message {
-    font-size: 0.9rem;
-  }
-
-  .success-btn {
-    padding: 0.6rem 1.2rem;
-    font-size: 0.8rem;
-  }
-} 

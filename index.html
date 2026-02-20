@@ -216,8 +216,11 @@
           <span class="header__menu-caption">Menu</span>
         </button>
         
+        <!-- Backdrop: closes menu when tapping outside (needed for iOS Safari) -->
+        <div class="menu-backdrop" id="menuBackdrop" onclick="closeHomeMenu()"></div>
+
         <!-- Menu Overlay -->
-        <nav class="menu-overlay">
+        <nav class="menu-overlay" id="homeMenuOverlay">
           <div class="home-menu-grid" id="homeMenuList">
             <!-- Loading state (shown initially until Firebase confirms auth state) -->
             <div class="menu-loading">
@@ -733,8 +736,8 @@
             ${navCard('💬', 'Messages',     'messages.html',  'cyan')}
             ${navCard('💼', 'Gigs Manager', 'jobs.html',      'green')}
             ${navCard('🛬', 'Landing',      'landing.html',   'pink')}
-            ${navCard('🚀', 'Updates',      'forum.html',     'orange')}
-            ${navCard('🎭', 'Forum',        'forum.html',     'teal')}
+            ${navCard('🚀', 'Updates',      'updates.html',   'orange')}
+            ${navCard('🎭', 'Community',    'forum.html',     'teal')}
             ${navCard('📬', 'Contact',      'contacts.html',  'blue')}
           `;
           logoutHTML = `

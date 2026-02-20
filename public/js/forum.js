@@ -1,63 +1,6 @@
 // GISUGO Forum - Coming Soon JavaScript
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeMenuOverlay();
-});
-
-// Menu Overlay Functionality
-function initializeMenuOverlay() {
-    const menuBtn = document.getElementById('menuBtn');
-    const menuOverlay = document.getElementById('menuOverlay');
-    
-    if (!menuBtn || !menuOverlay) {
-        console.error('Menu elements not found');
-        return;
-    }
-
-    // Show menu overlay
-    menuBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        showMenuOverlay();
-    });
-
-    // Hide menu overlay when clicking outside
-    document.addEventListener('click', function(e) {
-        if (menuOverlay.classList.contains('show') && !menuOverlay.contains(e.target) && e.target !== menuBtn) {
-            hideMenuOverlay();
-        }
-    });
-
-    // Prevent menu overlay clicks from closing the menu
-    menuOverlay.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-
-    // Close menu when pressing Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && menuOverlay.classList.contains('show')) {
-            hideMenuOverlay();
-        }
-    });
-}
-
-function showMenuOverlay() {
-    const menuOverlay = document.getElementById('menuOverlay');
-    if (menuOverlay) {
-        menuOverlay.classList.add('show');
-        // Prevent body scroll when menu is open
-        document.body.style.overflow = 'hidden';
-    }
-}
-
-function hideMenuOverlay() {
-    const menuOverlay = document.getElementById('menuOverlay');
-    if (menuOverlay) {
-        menuOverlay.classList.remove('show');
-        // Restore body scroll
-        document.body.style.overflow = '';
-    }
-}
+// Menu is handled by header-uniform.js + shared-menu.js
 
 // Coming Soon Overlay Functions
 function showComingSoonMessage() {

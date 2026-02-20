@@ -262,6 +262,20 @@ section {
   text-decoration: underline;
 }
 
+/* Invisible backdrop that closes the menu on outside tap (iOS Safari fix) */
+.menu-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 98;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.menu-backdrop.active {
+  display: block;
+}
+
 /* Menu Overlay - Graphic Card Grid */
 .menu-overlay {
   position: fixed;

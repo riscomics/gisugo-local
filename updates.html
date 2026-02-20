@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updates - GISUGO</title>
+    <link rel="icon" type="image/png" href="public/images/Gisugo-emblem.png">
+    <link rel="stylesheet" href="public/css/header-uniform.css?v=4.3">
+    <link rel="stylesheet" href="public/css/updates.css?v=1.0">
+</head>
+<body>
+
+    <!-- UNIFORM HEADER -->
+    <div class="uniform-header">
+        <div class="uniform-header-title-container">
+            <button class="uniform-header-btn back" aria-label="Back" onclick="window.location.href='index.html'">
+                <span class="btn-emoji back-emoji">←</span>
+                <span>Back</span>
+            </button>
+            <div class="uniform-header-title">Updates</div>
+            <button class="uniform-header-btn menu" id="uniformMenuBtn" aria-label="Menu">
+                <span class="btn-emoji">📋</span>
+                <span>Menu</span>
+            </button>
+        </div>
+        <div class="uniform-header-borderline"></div>
+    </div>
+
+    <!-- UNIFORM MENU OVERLAY -->
+    <div class="uniform-menu-overlay" id="uniformMenuOverlay">
+        <div class="uniform-menu-items"></div>
+    </div>
+
+    <main class="updates-main">
+
+        <!-- ── Featured Announcement + Video ───────────── -->
+        <section class="featured-section">
+            <div class="featured-badge">🚀 Latest Announcement</div>
+            <h1 class="featured-title">GISUGO Is Live!</h1>
+            <p class="featured-desc">
+                The Philippines' local gig marketplace is open. Post gigs, hire workers,
+                and get paid — all in one place.
+            </p>
+
+            <!-- YouTube Video Player -->
+            <!-- TO UPDATE: Change data-video-id to your YouTube video ID -->
+            <div class="video-wrapper" id="videoWrapper" data-video-id="lW4-uYgZZyg">
+                <div class="video-thumbnail" id="videoThumbnail" onclick="playUpdatesVideo()">
+                    <img
+                        class="video-thumb-img"
+                        src="https://img.youtube.com/vi/lW4-uYgZZyg/hqdefault.jpg"
+                        alt="Video thumbnail"
+                        loading="lazy">
+                    <div class="video-thumb-overlay">
+                        <div class="video-title-bar" id="videoTitleBar"></div>
+                        <div class="video-play-btn" aria-label="Play video">
+                            <span class="play-icon">▶</span>
+                        </div>
+                    </div>
+                </div>
+                <iframe
+                    id="updatesYoutubePlayer"
+                    src=""
+                    title="GISUGO Platform Overview"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    style="display:none;">
+                </iframe>
+            </div>
+        </section>
+
+        <!-- ── Changelog ───────────────────────────────── -->
+        <section class="changelog-section">
+            <h2 class="section-heading">
+                <span class="section-heading-icon">📋</span> Changelog
+            </h2>
+
+            <!-- v0.9 -->
+            <div class="changelog-entry">
+                <div class="changelog-header">
+                    <span class="version-badge">v0.9</span>
+                    <span class="changelog-date">Feb 2026</span>
+                </div>
+                <div class="changelog-tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-improved">Improved</span>
+                    <span class="tag tag-fixed">Fixed</span>
+                </div>
+                <ul class="changelog-list">
+                    <li><span class="tag tag-new">New</span> Alerts tab for workers and customers with real-time notifications</li>
+                    <li><span class="tag tag-new">New</span> Auto-refresh on Hiring tab when worker accepts an offer</li>
+                    <li><span class="tag tag-new">New</span> Application limit system — workers get 2 attempts per gig</li>
+                    <li><span class="tag tag-improved">Improved</span> Application deletion now waits for worker acceptance before removing other applicants</li>
+                    <li><span class="tag tag-improved">Improved</span> Duplicate notification prevention for offer notifications</li>
+                    <li><span class="tag tag-improved">Improved</span> Homepage menu redesigned with graphic card-grid layout</li>
+                    <li><span class="tag tag-fixed">Fixed</span> Offer rejection and resignation notifications now deliver correctly</li>
+                    <li><span class="tag tag-fixed">Fixed</span> Timestamps now reflect the user's local timezone</li>
+                    <li><span class="tag tag-fixed">Fixed</span> Mark as Read status now persists across tab switches</li>
+                </ul>
+            </div>
+
+            <!-- v0.8 -->
+            <div class="changelog-entry">
+                <div class="changelog-header">
+                    <span class="version-badge">v0.8</span>
+                    <span class="changelog-date">Jan 2026</span>
+                </div>
+                <div class="changelog-tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-improved">Improved</span>
+                </div>
+                <ul class="changelog-list">
+                    <li><span class="tag tag-new">New</span> Hiring tab for customers — track offers, acceptances, and active work</li>
+                    <li><span class="tag tag-new">New</span> Worker Offered tab — accept or decline gig offers from customers</li>
+                    <li><span class="tag tag-new">New</span> Counter-offer system — workers can propose a different price when applying</li>
+                    <li><span class="tag tag-new">New</span> Gig relisting (Void Contract) if the hiring relationship doesn't work out</li>
+                    <li><span class="tag tag-improved">Improved</span> Gig detail pages now show poster's average rating and review count</li>
+                    <li><span class="tag tag-improved">Improved</span> Auto-pause gig after 10 applications to prevent overload</li>
+                    <li><span class="tag tag-improved">Improved</span> Disclaimer modals updated with independent contractor language</li>
+                </ul>
+            </div>
+
+            <!-- v0.7 -->
+            <div class="changelog-entry">
+                <div class="changelog-header">
+                    <span class="version-badge">v0.7</span>
+                    <span class="changelog-date">Dec 2025</span>
+                </div>
+                <div class="changelog-tags">
+                    <span class="tag tag-new">New</span>
+                </div>
+                <ul class="changelog-list">
+                    <li><span class="tag tag-new">New</span> Gigs Manager — centralized hub for managing all active and past gigs</li>
+                    <li><span class="tag tag-new">New</span> Feedback & rating system — customers and workers rate each other after completion</li>
+                    <li><span class="tag tag-new">New</span> Completed gigs history tab for both workers and customers</li>
+                    <li><span class="tag tag-new">New</span> Worker resignation flow — resign from an active gig with a reason</li>
+                    <li><span class="tag tag-new">New</span> Job completion confirmation by customer</li>
+                </ul>
+            </div>
+
+            <!-- v0.6 -->
+            <div class="changelog-entry">
+                <div class="changelog-header">
+                    <span class="version-badge">v0.6</span>
+                    <span class="changelog-date">Nov 2025</span>
+                </div>
+                <div class="changelog-tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-improved">Improved</span>
+                </div>
+                <ul class="changelog-list">
+                    <li><span class="tag tag-new">New</span> New Post — multi-step gig creation with photo upload</li>
+                    <li><span class="tag tag-new">New</span> 50+ service categories across Basic Helper, Skilled Worker, and Professional tiers</li>
+                    <li><span class="tag tag-new">New</span> Region and city filtering on listing pages</li>
+                    <li><span class="tag tag-new">New</span> Infinite scroll with lazy-loaded gig cards</li>
+                    <li><span class="tag tag-improved">Improved</span> Category icons and emoji updated across listing and post pages</li>
+                </ul>
+            </div>
+
+            <!-- v0.5 -->
+            <div class="changelog-entry">
+                <div class="changelog-header">
+                    <span class="version-badge">v0.5</span>
+                    <span class="changelog-date">Oct 2025</span>
+                </div>
+                <div class="changelog-tags">
+                    <span class="tag tag-new">New</span>
+                </div>
+                <ul class="changelog-list">
+                    <li><span class="tag tag-new">New</span> Firebase authentication — sign up, log in, and persistent sessions</li>
+                    <li><span class="tag tag-new">New</span> User profiles with photo upload and bio</li>
+                    <li><span class="tag tag-new">New</span> Application system — workers apply, customers review and hire</li>
+                    <li><span class="tag tag-new">New</span> Firestore security rules for data access control</li>
+                    <li><span class="tag tag-new">New</span> Offline persistence for faster repeat loads</li>
+                </ul>
+            </div>
+
+        </section>
+
+        <!-- ── What's Coming ────────────────────────────── -->
+        <section class="roadmap-section">
+            <h2 class="section-heading">
+                <span class="section-heading-icon">🗺️</span> What's Coming
+            </h2>
+
+            <div class="roadmap-grid">
+                <div class="roadmap-card" data-color="#06b6d4">
+                    <div class="roadmap-icon">🎭</div>
+                    <div class="roadmap-label">Community Forum</div>
+                    <div class="roadmap-desc">Discussion boards, tips, success stories, and announcements for the GISUGO community</div>
+                    <div class="roadmap-status in-progress">In Progress</div>
+                </div>
+                <div class="roadmap-card" data-color="#8b5cf6">
+                    <div class="roadmap-icon">💬</div>
+                    <div class="roadmap-label">In-App Messaging</div>
+                    <div class="roadmap-desc">Direct chat between workers and customers within the platform</div>
+                    <div class="roadmap-status planned">Planned</div>
+                </div>
+                <div class="roadmap-card" data-color="#f59e0b">
+                    <div class="roadmap-icon">🪙</div>
+                    <div class="roadmap-label">Token System</div>
+                    <div class="roadmap-desc">Purchase tokens to post gigs and boost visibility in your area</div>
+                    <div class="roadmap-status planned">Planned</div>
+                </div>
+                <div class="roadmap-card" data-color="#10b981">
+                    <div class="roadmap-icon">📍</div>
+                    <div class="roadmap-label">Map View</div>
+                    <div class="roadmap-desc">Browse gigs near you on an interactive map filtered by distance</div>
+                    <div class="roadmap-status planned">Planned</div>
+                </div>
+                <div class="roadmap-card" data-color="#ec4899">
+                    <div class="roadmap-icon">🛡️</div>
+                    <div class="roadmap-label">Worker Verification</div>
+                    <div class="roadmap-desc">ID verification and skills badges to build trust with customers</div>
+                    <div class="roadmap-status planned">Planned</div>
+                </div>
+                <div class="roadmap-card" data-color="#f97316">
+                    <div class="roadmap-icon">📊</div>
+                    <div class="roadmap-label">Earnings Dashboard</div>
+                    <div class="roadmap-desc">Track gig history, earnings summary, and performance stats for workers</div>
+                    <div class="roadmap-status planned">Planned</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Stay Updated CTA ─────────────────────────── -->
+        <section class="cta-section">
+            <div class="cta-card">
+                <div class="cta-icon">🔔</div>
+                <h3 class="cta-title">Stay in the Loop</h3>
+                <p class="cta-desc">New features drop regularly. Check your Alerts tab for announcements, or visit this page for the full changelog.</p>
+                <a href="index.html" class="cta-btn">
+                    <span>Back to Home</span> 🏠
+                </a>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="public/js/firebase-config.js"></script>
+    <script src="public/js/firebase-auth.js"></script>
+    <script src="public/js/app-config.js"></script>
+    <script src="public/js/shared-menu.js?v=3.1"></script>
+    <script src="public/js/header-uniform.js?v=1.0"></script>
+    <script>
+        // ── Fetch YouTube video title via oEmbed (no API key needed) ──
+        (async function loadVideoTitle() {
+            const videoId = document.getElementById('videoWrapper').dataset.videoId;
+            const titleBar = document.getElementById('videoTitleBar');
+            try {
+                const res  = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`);
+                const data = await res.json();
+                if (titleBar && data.title) titleBar.textContent = data.title;
+            } catch (e) {
+                // Silently ignore — title bar stays empty if fetch fails
+            }
+        })();
+
+        // ── Video Player ──────────────────────────────────
+        // To update the video: change data-video-id on #videoWrapper
+        function playUpdatesVideo() {
+            const wrapper   = document.getElementById('videoWrapper');
+            const thumbnail = document.getElementById('videoThumbnail');
+            const iframe    = document.getElementById('updatesYoutubePlayer');
+            const videoId   = wrapper.dataset.videoId || 'dQw4w9WgXcQ';
+
+            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+            iframe.style.display = 'block';
+            thumbnail.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

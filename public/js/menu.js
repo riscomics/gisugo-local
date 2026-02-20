@@ -9,8 +9,9 @@ function initializeMenu() {
     return;
   }
   
-  const menuButton = document.querySelector('.header__menu');
+  const menuButton  = document.querySelector('.header__menu');
   const menuOverlay = document.querySelector('.menu-overlay');
+  const backdrop    = document.getElementById('menuBackdrop');
   
   if (!menuButton || !menuOverlay) {
     console.log('⚠️ Menu elements not found');
@@ -19,24 +20,26 @@ function initializeMenu() {
   
   let isMenuOpen = false;
 
-  // Use static image icon like main pages (no innerHTML swapping)
-  const iconImg = menuButton ? menuButton.querySelector('img') : null;
+  // Exposed globally so the backdrop onclick can call it
+  window.closeHomeMenu = function() {
+    isMenuOpen = false;
+    menuOverlay.classList.remove('active');
+    if (backdrop) backdrop.classList.remove('active');
+  };
 
   // Event handler functions (stored for cleanup)
   const handleMenuClick = (event) => {
-    event.stopPropagation(); // Prevent click from bubbling to document
+    event.stopPropagation();
     isMenuOpen = !isMenuOpen;
     menuOverlay.classList.toggle('active');
-    // Keep icon static to match main pages
+    if (backdrop) backdrop.classList.toggle('active', isMenuOpen);
   };
 
   const handleDocumentClick = (event) => {
     if (isMenuOpen && 
         !menuButton.contains(event.target) && 
         !menuOverlay.contains(event.target)) {
-      isMenuOpen = false;
-      menuOverlay.classList.remove('active');
-      // Keep icon static
+      window.closeHomeMenu();
     }
   };
 
@@ -167,6 +170,10 @@ function cleanupMenu() {
     menuHandlers.listingServiceMenu.overlay.removeEventListener('click', menuHandlers.listingServiceMenu.overlayClick);
   }
   
+  // Reset backdrop
+  const bd = document.getElementById('menuBackdrop');
+  if (bd) bd.classList.remove('active');
+
   menuHandlers = null;
   menuInitialized = false;
 }
