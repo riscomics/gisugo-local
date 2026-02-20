@@ -218,13 +218,13 @@
         
         <!-- Menu Overlay -->
         <nav class="menu-overlay">
-          <ul class="menu-list" id="homeMenuList">
+          <div class="home-menu-grid" id="homeMenuList">
             <!-- Loading state (shown initially until Firebase confirms auth state) -->
-            <li class="menu-loading">
+            <div class="menu-loading">
               <div class="menu-loading-spinner"></div>
               <span>Loading...</span>
-            </li>
-          </ul>
+            </div>
+          </div>
         </nav>
       </header>
       <div class="accent-line1"></div>
@@ -714,33 +714,55 @@
         
         console.log('📋 Updating home menu - User logged in:', userLoggedIn);
         
-        // Build menu HTML
-        let menuHTML = '';
-        
+        // Helper to build a nav card
+        function navCard(emoji, label, href, color) {
+          return `<a class="home-menu-card" href="${href}" data-color="${color}">
+            <span class="home-menu-card-icon">${emoji}</span>
+            <span class="home-menu-card-label">${label}</span>
+          </a>`;
+        }
+
+        let gridHTML = '';
+        let logoutHTML = '';
+
         if (userLoggedIn) {
-          // Logged in - show all menu items + logout
-          menuHTML = `
-            <li class="auth-required"><a href="new-post2.html">NEW POST</a></li>
-            <li class="auth-required"><a href="profile.html">ACCOUNT</a></li>
-            <li class="auth-required"><a href="messages.html">MESSAGES</a></li>
-            <li class="auth-required"><a href="landing.html">FAVORITES</a></li>
-            <li class="auth-required"><a href="jobs.html">GIGS MANAGER</a></li>
-            <li class="auth-required"><a href="clear-storage.html">CLEAR DATA</a></li>
-            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
-            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
-            <li class="public-item"><a href="#" onclick="handleLogout(); return false;">LOGOUT</a></li>
+          gridHTML = `
+            <div class="home-menu-section-label">Menu</div>
+            ${navCard('✏️', 'New Post',     'new-post2.html',    'amber')}
+            ${navCard('💬', 'Messages',     'messages.html',     'cyan')}
+            ${navCard('💼', 'Gigs Manager', 'jobs.html',         'green')}
+            ${navCard('🧑‍💼', 'Account',    'profile.html',      'purple')}
+            ${navCard('❤️', 'Favorites',    'landing.html',      'pink')}
+            ${navCard('🌐', 'Community',    'forum.html',        'teal')}
+            ${navCard('📬', 'Contact',      'contacts.html',     'orange')}
+            ${navCard('🗑️', 'Clear Data',   'clear-storage.html','gray')}
+          `;
+          logoutHTML = `
+            <div class="home-menu-logout-row">
+              <button class="home-menu-logout-btn" onclick="handleLogout()">
+                <span class="logout-icon">🚪</span> Log Out
+              </button>
+            </div>
           `;
         } else {
-          // Logged out - show public items + login
-          menuHTML = `
-            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
-            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
-            <li class="public-item"><a href="login.html">LOGIN / SIGN UP</a></li>
+          gridHTML = `
+            <div class="home-menu-section-label">Menu</div>
+            ${navCard('🌐', 'Community',   'forum.html',    'teal')}
+            ${navCard('📬', 'Contact',     'contacts.html', 'orange')}
+            <a class="home-menu-card home-menu-card--full" href="login.html" data-color="green">
+              <span class="home-menu-card-icon">🔐</span>
+              <span class="home-menu-card-label">Login / Sign Up</span>
+            </a>
           `;
         }
-        
+
         // Update menu
-        menuList.innerHTML = menuHTML;
+        menuList.innerHTML = gridHTML;
+        
+        // Attach logout row after the grid (outside grid div)
+        const existingLogout = menuList.parentElement.querySelector('.home-menu-logout-row');
+        if (existingLogout) existingLogout.remove();
+        if (logoutHTML) menuList.insertAdjacentHTML('afterend', logoutHTML);
       }
       
       function handleLogout() {
