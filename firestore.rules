@@ -1,3 +1,6 @@
+// ⚠️  DEPLOYMENT REQUIRED after ANY edit to this file.
+// Run: firebase deploy --only firestore:rules
+// Last deployed: 2026-02-20
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -299,11 +302,29 @@ service cloud.firestore {
     
     // ═══════════════════════════════════════════════════════════════
     // NOTIFICATIONS COLLECTION (ALERTS Tab in Messages)
-    // Last updated: 2026-02-19 17:06 - Simplified create rule
+    // Cross-user writes are intentional: applicants create notifications
+    // for job posters, customers create notifications for workers, etc.
     // ═══════════════════════════════════════════════════════════════
     match /notifications/{notificationId} {
-      // TEMPORARY: Completely open for testing
-      allow read, write: if true;
+      // Authenticated users can read any notification.
+      // This is required so the system can query existing notifications
+      // for another user (e.g., checking if a job already has an
+      // application_received notification before creating a new one).
+      allow read: if isAuthenticated();
+      
+      // Any authenticated user can create a notification for any recipient.
+      // Necessary because notifications are created cross-user client-side.
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['recipientId', 'type', 'message'])
+        && request.resource.data.recipientId is string
+        && request.resource.data.type is string;
+      
+      // Authenticated users can update notifications (mark as read, milestone updates).
+      allow update: if isAuthenticated();
+      
+      // Any authenticated user can delete (needed for duplicate cleanup and
+      // removing stale offer notifications on accept/reject).
+      allow delete: if isAuthenticated();
     }
     
     // ═══════════════════════════════════════════════════════════════
