@@ -659,12 +659,24 @@
       }, true);
       
       document.addEventListener('DOMContentLoaded', function() {
-        // ✅ PROPER FIX: Don't check auth before Firebase is ready
-        // Wait for onAuthStateChanged to fire (when Firebase confirms auth state)
-        
+
+        // ── Instant menu render from cache ──────────────────────────────
+        // Firebase stores the auth token in localStorage under this key.
+        // If it exists the user was logged in last time — render immediately
+        // so the spinner is never seen by returning users.
+        const CACHE_KEY = 'gisugo_menu_auth';
+        const cachedAuth = localStorage.getItem(CACHE_KEY);
+        if (cachedAuth !== null) {
+          updateHomeMenu(cachedAuth === 'true');
+          console.log('⚡ Menu rendered from cache:', cachedAuth === 'true' ? 'logged in' : 'logged out');
+        }
+        // ────────────────────────────────────────────────────────────────
+
         if (typeof firebase !== 'undefined' && firebase.auth) {
           authUnsubscribe = firebase.auth().onAuthStateChanged(async function(user) {
             console.log('🔐 Firebase auth state confirmed:', user ? 'Logged in' : 'Logged out');
+            // Persist state for next load so cache is always fresh
+            localStorage.setItem(CACHE_KEY, user ? 'true' : 'false');
             
             if (user) {
               // Check if user has completed profile - if not, redirect to signup
@@ -688,7 +700,7 @@
             }
             
             // Now update menu with confirmed auth state
-            updateHomeMenu();
+            updateHomeMenu(!!user);
           });
         } else {
           // Firebase not available - show logged out state
@@ -704,16 +716,17 @@
         }
       });
       
-      function updateHomeMenu() {
+      function updateHomeMenu(forcedState) {
         const menuList = document.getElementById('homeMenuList');
         
         if (!menuList) return;
         
-        // Check auth state (safe to check now - only called from onAuthStateChanged)
-        const currentUser = (typeof firebase !== 'undefined' && firebase.auth) 
-          ? firebase.auth().currentUser 
-          : null;
-        const userLoggedIn = currentUser !== null;
+        // Use forcedState from cache if provided, otherwise check Firebase directly
+        const userLoggedIn = (forcedState !== undefined)
+          ? forcedState
+          : ((typeof firebase !== 'undefined' && firebase.auth)
+              ? firebase.auth().currentUser !== null
+              : false);
         
         console.log('📋 Updating home menu - User logged in:', userLoggedIn);
         
