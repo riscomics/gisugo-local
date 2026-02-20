@@ -59,6 +59,19 @@ function initializeMenu() {
 
   // Close menu when pressing Escape key
   document.addEventListener('keydown', handleEscapeKey);
+
+  // Close menu then navigate when any link inside the overlay is clicked
+  const handleMenuLinkClick = (e) => {
+    const link = e.target.closest('a[href]');
+    if (link) {
+      e.preventDefault();
+      const href = link.href;
+      window.closeHomeMenu();
+      // Brief delay so the close animation plays before leaving
+      setTimeout(() => { window.location.href = href; }, 120);
+    }
+  };
+  menuOverlay.addEventListener('click', handleMenuLinkClick);
   
   // Store handlers for cleanup
   menuHandlers = {
@@ -184,10 +197,14 @@ document.addEventListener('DOMContentLoaded', initializeMenu);
 // CRITICAL: Re-initialize when page is restored from bfcache (mobile swipe back)
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) {
-    // Page was loaded from bfcache (browser back/forward cache)
     console.log('🔄 Page restored from cache - re-initializing menu');
     cleanupMenu();
     initializeMenu();
+    // Force close in case the menu was open when user navigated away
+    const overlay  = document.querySelector('.menu-overlay');
+    const backdrop = document.getElementById('menuBackdrop');
+    if (overlay)  overlay.classList.remove('active');
+    if (backdrop) backdrop.classList.remove('active');
   }
 });
 
