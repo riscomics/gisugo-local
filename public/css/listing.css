@@ -697,8 +697,8 @@ body::-webkit-scrollbar {
 .jobcat-menu-items {
   position: absolute;
   top: 80px; /* JS overrides this on every open */
-  right: 10px;
-  width: 290px;
+  right: clamp(6px, 2vw, 14px);
+  width: min(290px, calc(100vw - 20px));
   height: auto;
   max-height: calc(100vh - 120px);
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
@@ -744,8 +744,8 @@ body::-webkit-scrollbar {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 20px 10px 16px;
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(12px, 4vw, 20px) clamp(6px, 2vw, 10px) clamp(10px, 3vw, 16px);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
@@ -753,7 +753,7 @@ body::-webkit-scrollbar {
   cursor: pointer;
   transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
-  min-height: 100px;
+  min-height: clamp(80px, 22vw, 100px);
 }
 .unif-menu-card:hover, .unif-menu-card:active {
   background: rgba(255, 255, 255, 0.1);
@@ -776,12 +776,12 @@ body::-webkit-scrollbar {
 .unif-menu-card[data-color="blue"]:hover   .unif-menu-card-icon { filter: drop-shadow(0 0 8px #3b82f6); }
 .unif-menu-card[data-color="pink"]:hover   .unif-menu-card-icon { filter: drop-shadow(0 0 8px #ec4899); }
 .unif-menu-card-icon {
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
   line-height: 1;
   transition: filter 0.2s ease;
 }
 .unif-menu-card-label {
-  font-size: 0.68rem;
+  font-size: clamp(0.58rem, 2vw, 0.68rem);
   font-weight: 700;
   font-family: Arial, Helvetica, sans-serif;
   letter-spacing: 0.05em;
@@ -823,9 +823,21 @@ body::-webkit-scrollbar {
   transform: translateY(-1px);
 }
 
+@media (max-width: 400px) {
+  .jobcat-menu-items {
+    width: min(240px, calc(100vw - 16px));
+    right: clamp(4px, 1.5vw, 8px);
+    gap: 6px;
+    padding: 12px;
+  }
+  .jobcat-menu-items .unif-menu-card { padding: 14px 6px 12px; gap: 7px; min-height: 80px; }
+  .jobcat-menu-items .unif-menu-card-icon { font-size: clamp(1.4rem, 6vw, 2rem); }
+  .jobcat-menu-items .unif-menu-card-label { font-size: clamp(0.55rem, 2vw, 0.65rem); }
+}
+
 @media (max-width: 600px) {
   .jobcat-menu-items {
-    width: 270px;
+    width: min(270px, calc(100vw - 20px));
   }
 
   /* Modal text - controlled by JavaScript auto-resize */

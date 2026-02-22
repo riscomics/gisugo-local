@@ -779,6 +779,40 @@
         <span class="or-line"></span>
       </div>
       
+      <!-- Email Login Toggle -->
+      <button type="button" class="login-toggle-btn email-toggle-btn" id="emailToggleBtn">
+        <span>📧</span>
+        <span>Sign in with Email</span>
+        <span class="toggle-arrow">▼</span>
+      </button>
+      
+      <!-- Email Login Section (hidden until clicked) -->
+      <div class="login-section" id="email-login-section" style="display: none;">
+        <div class="form-group">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email address" autocomplete="email">
+          <div class="form-error" id="emailError"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" autocomplete="current-password">
+          <a href="#" class="forgot-password-link" id="forgotPasswordLink">Forgot password?</a>
+          <div class="form-error" id="passwordError"></div>
+        </div>
+
+        <button type="submit" class="signup-submit-btn" id="submitBtn">
+          <span>LOGIN</span>
+        </button>
+      </div>
+
+      <!-- OR divider -->
+      <div class="or-divider">
+        <span class="or-line"></span>
+        <span class="or-text">OR</span>
+        <span class="or-line"></span>
+      </div>
+
       <!-- Phone Login Button -->
       <button type="button" class="login-toggle-btn phone-login-btn" id="phoneLoginBtn">
         <span>📱</span>
@@ -821,7 +855,7 @@
         <div class="otp-section" id="otp-section" style="display: none;">
           <div class="form-group">
             <label for="otpCode" class="form-label">Verification Code</label>
-            <input type="text" id="otpCode" name="otpCode" class="form-input otp-input" placeholder="000000" maxlength="6" autocomplete="one-time-code">
+            <input type="text" id="otpCode" name="otpCode" class="form-input otp-input" placeholder="000000" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
             <div class="form-hint">Enter the code sent to your phone</div>
             <div class="form-error" id="otpError"></div>
           </div>
@@ -834,40 +868,6 @@
             Resend Code
           </button>
         </div>
-      </div>
-      
-      <!-- OR divider -->
-      <div class="or-divider">
-        <span class="or-line"></span>
-        <span class="or-text">OR</span>
-        <span class="or-line"></span>
-      </div>
-      
-      <!-- Email Login Toggle -->
-      <button type="button" class="login-toggle-btn email-toggle-btn" id="emailToggleBtn">
-        <span>📧</span>
-        <span>Sign in with Email</span>
-        <span class="toggle-arrow">▼</span>
-      </button>
-      
-      <!-- Email Login Section (hidden until clicked) -->
-      <div class="login-section" id="email-login-section" style="display: none;">
-        <div class="form-group">
-          <label for="email" class="form-label">Email Address</label>
-          <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email address" autocomplete="email">
-          <div class="form-error" id="emailError"></div>
-        </div>
-
-        <div class="form-group">
-          <label for="password" class="form-label">Password</label>
-          <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password" autocomplete="current-password">
-          <a href="#" class="forgot-password-link" id="forgotPasswordLink">Forgot password?</a>
-          <div class="form-error" id="passwordError"></div>
-        </div>
-
-        <button type="submit" class="signup-submit-btn" id="submitBtn">
-          <span>LOGIN</span>
-        </button>
       </div>
       
       <!-- OR divider -->
@@ -1174,6 +1174,32 @@
       const resendCodeBtn = document.getElementById('resend-code-btn');
       const otpSection = document.getElementById('otp-section');
       
+      // Enter key on phone number field → send code
+      document.getElementById('phoneNumber').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); phoneSignInBtn.click(); }
+      });
+
+      // Enter key on OTP field → verify
+      document.getElementById('otpCode').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); verifyOtpBtn.click(); }
+      });
+
+      // Enter key on phone number field → send code
+      document.getElementById('phoneNumber').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          phoneSignInBtn.click();
+        }
+      });
+
+      // Enter key on OTP field → verify
+      document.getElementById('otpCode').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          verifyOtpBtn.click();
+        }
+      });
+
       // Send verification code
       phoneSignInBtn.addEventListener('click', async function() {
         const phoneInput = document.getElementById('phoneNumber').value.trim().replace(/\D/g, ''); // Remove non-digits

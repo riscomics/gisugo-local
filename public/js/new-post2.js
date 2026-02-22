@@ -1978,14 +1978,34 @@ function initializeSuccessOverlay() {
   const viewJobBtn = document.getElementById('viewJobPostBtn');
   const gotItBtn = document.getElementById('gotItBtn');
   
+  function showNavLoading(text) {
+    // Immediately hide success overlay and all np2-overlays so nothing shows behind loading
+    const successOverlay = document.getElementById('successOverlay');
+    if (successOverlay) {
+      successOverlay.classList.remove('show');
+      successOverlay.style.display = 'none';
+    }
+    document.querySelectorAll('.np2-overlay').forEach(el => {
+      el.classList.remove('show');
+      el.style.display = 'none';
+    });
+
+    const lo = document.getElementById('loadingOverlay');
+    const lt = document.getElementById('loadingText');
+    if (lt) lt.textContent = text || 'Loading...';
+    if (lo) lo.classList.add('show');
+  }
+
   if (gigsManagerBtn) {
     gigsManagerBtn.addEventListener('click', function() {
+      showNavLoading('Opening Gigs Manager...');
       window.location.href = 'jobs.html';
     });
   }
   
   if (viewJobBtn) {
     viewJobBtn.addEventListener('click', function() {
+      showNavLoading('Opening your post...');
       // Navigate to the specific job detail page
       try {
         // PRIORITY 1: Use lastPostedJobId if available (Firebase mode)
@@ -2023,12 +2043,11 @@ function initializeSuccessOverlay() {
   
   if (gotItBtn) {
     gotItBtn.addEventListener('click', function() {
-      overlay.classList.remove('show');
+      showNavLoading('Loading listings...');
       // Navigate to the category page
       if (np2State.selectedCategory) {
         window.location.href = `${np2State.selectedCategory}.html`;
       } else {
-        // Reset form and go back to step 1
         resetForm();
       }
     });

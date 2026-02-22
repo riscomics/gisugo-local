@@ -21,6 +21,30 @@ listingCssLinks.forEach(link => {
   link.setAttribute('href', `${baseHref}?v=${LISTING_CSS_VERSION}`);
 });
 
+/**
+ * Format a gig price for display inside listing cards.
+ * Numbers ≥ 10,000 are condensed to k-notation to prevent layout overflow.
+ *   500       → ₱500
+ *   1500      → ₱1,500
+ *   10000     → ₱10k
+ *   25500     → ₱25k
+ *   100000    → ₱100k+
+ */
+function formatGigPrice(price) {
+  if (price === null || price === undefined || price === '') return '₱—';
+
+  // Strip ₱ and commas, then parse
+  const raw = typeof price === 'string'
+    ? parseFloat(price.replace(/[₱,\s]/g, ''))
+    : parseFloat(price);
+
+  if (isNaN(raw)) return '₱—';
+
+  if (raw >= 100000) return '₱' + Math.floor(raw / 1000) + 'k+';
+  if (raw >= 10000)  return '₱' + Math.floor(raw / 1000) + 'k';
+  return '₱' + raw.toLocaleString('en-PH');
+}
+
 function normalizeHeaderButtons() {
   const headerButtons = document.querySelectorAll('.jobcat-headerbuttons .jobcat-headerbutton');
   headerButtons.forEach(button => {
@@ -750,7 +774,7 @@ async function filterAndSortJobs() {
       photo: firebaseJob.thumbnail || 'public/images/placeholder.jpg',
       extra1: firebaseJob.extras?.[0] || '',
       extra2: firebaseJob.extras?.[1] || '',
-      price: `₱${firebaseJob.priceOffer || '0'}`,
+      price: formatGigPrice(firebaseJob.priceOffer),
       rate: firebaseJob.paymentType,
       date: formattedDate,
       time: timeDisplay,

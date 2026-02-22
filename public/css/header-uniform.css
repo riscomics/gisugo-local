@@ -294,8 +294,8 @@ body::-webkit-scrollbar {
 .uniform-menu-items {
   position: absolute;
   top: 80px; /* JS overrides this on every open */
-  right: 10px;
-  width: 290px;
+  right: clamp(6px, 2vw, 14px);
+  width: min(290px, calc(100vw - 20px));
   height: auto;
   max-height: calc(100vh - 120px);
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
@@ -342,8 +342,8 @@ body::-webkit-scrollbar {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 20px 10px 16px;
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(12px, 4vw, 20px) clamp(6px, 2vw, 10px) clamp(10px, 3vw, 16px);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
@@ -351,7 +351,7 @@ body::-webkit-scrollbar {
   transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
   -webkit-tap-highlight-color: transparent;
   text-decoration: none;
-  min-height: 100px;
+  min-height: clamp(80px, 22vw, 100px);
 }
 
 .unif-menu-card:hover,
@@ -371,7 +371,7 @@ body::-webkit-scrollbar {
 .unif-menu-card[data-color="pink"]:hover   { border-color: #ec4899; }
 
 .unif-menu-card-icon {
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
   line-height: 1;
   transition: filter 0.2s ease;
 }
@@ -386,7 +386,7 @@ body::-webkit-scrollbar {
 .unif-menu-card[data-color="pink"]:hover   .unif-menu-card-icon { filter: drop-shadow(0 0 8px #ec4899); }
 
 .unif-menu-card-label {
-  font-size: 0.68rem;
+  font-size: clamp(0.58rem, 2vw, 0.68rem);
   font-weight: 700;
   letter-spacing: 0.05em;
   color: rgba(255, 255, 255, 0.85);
@@ -468,8 +468,16 @@ html body:has(.uniform-header) {
     height: 20px !important;
   }
 
-  /* Ultra Small — narrow the floating popup */
-  .uniform-menu-items { width: 240px; right: 6px; }
+  /* Ultra Small — fluid popup, never wider than viewport minus safe margins */
+  .uniform-menu-items {
+    width: min(240px, calc(100vw - 16px));
+    right: clamp(4px, 1.5vw, 8px);
+    gap: 6px;
+    padding: 12px;
+  }
+  .unif-menu-card { padding: 14px 6px 12px; gap: 7px; min-height: 80px; }
+  .unif-menu-card-icon { font-size: clamp(1.4rem, 6vw, 2rem); }
+  .unif-menu-card-label { font-size: clamp(0.55rem, 2vw, 0.65rem); }
 }
 
 /* Small Mobile Screens (321px - 400px) */
@@ -495,8 +503,15 @@ html body:has(.uniform-header) {
     height: 22px !important;
   }
 
-  /* Small Mobile — slightly narrower popup */
-  .uniform-menu-items { width: 260px; }
+  /* Small Mobile — fluid */
+  .uniform-menu-items {
+    width: min(265px, calc(100vw - 18px));
+    gap: 8px;
+    padding: 14px;
+  }
+  .unif-menu-card { padding: 16px 8px 14px; gap: 8px; min-height: 88px; }
+  .unif-menu-card-icon { font-size: clamp(1.6rem, 6vw, 2.2rem); }
+  .unif-menu-card-label { font-size: clamp(0.6rem, 2vw, 0.68rem); }
 }
 
 /* Narrow Small Mobile (321px - 338px) - REDUCED TITLE FONT SIZE */
@@ -536,8 +551,8 @@ html body:has(.uniform-header) {
     height: 26px !important;
   }
 
-  /* Mobile — full-width popup */
-  .uniform-menu-items { width: 280px; }
+  /* Mobile — fluid */
+  .uniform-menu-items { width: min(280px, calc(100vw - 20px)); }
 }
 
 /* Tablet Screens (601px - 1023px) */
