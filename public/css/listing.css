@@ -711,8 +711,8 @@ body::-webkit-scrollbar {
     0 0 40px rgba(16, 185, 129, 0.15);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  padding: 16px;
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(10px, 3vw, 16px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -826,8 +826,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 400px) {
   .jobcat-menu-items {
-    width: min(240px, calc(100vw - 16px));
-    right: clamp(4px, 1.5vw, 8px);
+    width: 240px;
+    max-width: calc(100% - 16px);
+    right: 8px;
     gap: 6px;
     padding: 12px;
   }
@@ -838,7 +839,9 @@ body::-webkit-scrollbar {
 
 @media (max-width: 600px) {
   .jobcat-menu-items {
-    width: min(270px, calc(100vw - 20px));
+    width: 270px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
 
   /* Modal text - controlled by JavaScript auto-resize */

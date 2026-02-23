@@ -308,8 +308,8 @@ body::-webkit-scrollbar {
     0 0 40px rgba(16, 185, 129, 0.15);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  padding: 16px;
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(10px, 3vw, 16px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -471,8 +471,9 @@ html body:has(.uniform-header) {
 
   /* Ultra Small — fluid popup, never wider than viewport minus safe margins */
   .uniform-menu-items {
-    width: min(240px, calc(100vw - 16px));
-    right: clamp(4px, 1.5vw, 8px);
+    width: 240px;
+    max-width: calc(100% - 16px);
+    right: 8px;
     gap: 6px;
     padding: 12px;
   }
@@ -506,7 +507,9 @@ html body:has(.uniform-header) {
 
   /* Small Mobile — fluid */
   .uniform-menu-items {
-    width: min(265px, calc(100vw - 18px));
+    width: 265px;
+    max-width: calc(100% - 18px);
+    right: 9px;
     gap: 8px;
     padding: 14px;
   }
@@ -553,7 +556,7 @@ html body:has(.uniform-header) {
   }
 
   /* Mobile — fluid */
-  .uniform-menu-items { width: min(280px, calc(100vw - 20px)); }
+  .uniform-menu-items { width: 280px; max-width: calc(100% - 20px); right: 10px; }
 }
 
 /* Tablet Screens (601px - 1023px) */

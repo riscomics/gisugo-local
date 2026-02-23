@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -131,21 +131,21 @@
 </head>
 <body>
     <div class="container">
-        <h1>ðŸ” Application Count Diagnostic Guide</h1>
+        <h1>🔍 Application Count Diagnostic Guide</h1>
         <p class="subtitle">Understanding and fixing the applicationCount discrepancy issue</p>
 
         <div class="section">
-            <h2>ðŸ“‹ Issue Summary</h2>
+            <h2>📋 Issue Summary</h2>
             <p><strong>Problem:</strong> A user sees "ALREADY APPLIED" on a gig, but the job poster sees <code>applicationCount: 0</code>.</p>
             <p><strong>What this means:</strong></p>
             <ul>
-                <li>âœ… The application document <strong>WAS created</strong> in Firestore <code>applications</code> collection</li>
-                <li>âŒ The job document's <code>applicationCount</code> field <strong>WAS NOT incremented</strong></li>
+                <li>✅ The application document <strong>WAS created</strong> in Firestore <code>applications</code> collection</li>
+                <li>❌ The job document's <code>applicationCount</code> field <strong>WAS NOT incremented</strong></li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>ðŸ”¬ Root Cause Analysis</h2>
+            <h2>🔬 Root Cause Analysis</h2>
             <p>When an application is submitted, the code performs two operations:</p>
             <div class="code-block">
 <code>// Step 1: Create application document
@@ -169,12 +169,12 @@ await db.collection('jobs').doc(jobId).update({
         </div>
 
         <div class="section">
-            <h2>ðŸ” How to Verify in Firebase Console</h2>
+            <h2>🔍 How to Verify in Firebase Console</h2>
             
             <div class="step">
                 <span class="step-number">1</span>
                 <strong>Find the Application Document</strong>
-                <p>Go to Firebase Console â†’ Firestore Database â†’ <code>applications</code> collection</p>
+                <p>Go to Firebase Console → Firestore Database → <code>applications</code> collection</p>
                 <p>Search for applications where:</p>
                 <ul>
                     <li><code>applicantName</code> contains "Peter John Ang" or "Peter J. Ang"</li>
@@ -192,11 +192,11 @@ await db.collection('jobs').doc(jobId).update({
             <div class="step">
                 <span class="step-number">2</span>
                 <strong>Check the Job Document</strong>
-                <p>Go to Firestore Database â†’ <code>jobs</code> collection</p>
+                <p>Go to Firestore Database → <code>jobs</code> collection</p>
                 <p>Find the job document using the <code>jobId</code> from step 1</p>
                 <p><strong>Check these fields:</strong></p>
                 <ul>
-                    <li><code>applicationCount</code> - What is the current value? (Should be â‰¥ 1 if application exists)</li>
+                    <li><code>applicationCount</code> - What is the current value? (Should be ≥ 1 if application exists)</li>
                     <li><code>applicationIds</code> - Is the application ID from step 1 in this array?</li>
                     <li><code>postedBy</code> or <code>posterName</code> - Should be "Peter J. Ang"</li>
                 </ul>
@@ -212,17 +212,17 @@ await db.collection('jobs').doc(jobId).update({
             </div>
 
             <div class="info">
-                <strong>ðŸ’¡ Quick Check:</strong> If you see multiple applications for the same job but <code>applicationCount</code> is 0 or lower than the actual count, you've confirmed the discrepancy.
+                <strong>💡 Quick Check:</strong> If you see multiple applications for the same job but <code>applicationCount</code> is 0 or lower than the actual count, you've confirmed the discrepancy.
             </div>
         </div>
 
         <div class="section">
-            <h2>ðŸ› ï¸ How to Fix the Issue</h2>
+            <h2>🛠️ How to Fix the Issue</h2>
             
             <h3>Option 1: Manual Fix in Firebase Console (Quick Fix)</h3>
             <div class="step">
                 <span class="step-number">1</span>
-                <p>Go to Firestore Database â†’ <code>jobs</code> collection</p>
+                <p>Go to Firestore Database → <code>jobs</code> collection</p>
             </div>
             <div class="step">
                 <span class="step-number">2</span>
@@ -251,7 +251,7 @@ await db.collection('jobs').doc(jobId).update({
 
             <h3 style="margin-top: 30px;">Option 2: Re-apply Logic (Recommended for Future Prevention)</h3>
             <div class="warning">
-                <strong>âš ï¸ Important:</strong> Before implementing this, ensure the application submission code has proper error handling.
+                <strong>⚠️ Important:</strong> Before implementing this, ensure the application submission code has proper error handling.
             </div>
             
             <p><strong>Update the application submission code to:</strong></p>
@@ -299,12 +299,12 @@ await db.collection('jobs').doc(jobId).update({
 });</code>
             </div>
             <div class="info">
-                <strong>ðŸ’¡ Note:</strong> Transactions ensure both operations complete together or both fail, preventing this type of discrepancy.
+                <strong>💡 Note:</strong> Transactions ensure both operations complete together or both fail, preventing this type of discrepancy.
             </div>
         </div>
 
         <div class="section">
-            <h2>ðŸ”’ Check Firestore Security Rules</h2>
+            <h2>🔒 Check Firestore Security Rules</h2>
             <p>Verify that your Firestore rules allow users to update job documents:</p>
             <div class="code-block">
 <code>// Example rule (adjust based on your actual rules)
@@ -323,20 +323,20 @@ match /jobs/{jobId} {
         </div>
 
         <div class="section">
-            <h2>ðŸ“Š Prevention Checklist</h2>
+            <h2>📊 Prevention Checklist</h2>
             <ul>
-                <li>âœ… Use Firestore transactions for atomic operations</li>
-                <li>âœ… Add comprehensive error handling and logging</li>
-                <li>âœ… Verify Firestore security rules allow necessary updates</li>
-                <li>âœ… Add client-side validation before submission</li>
-                <li>âœ… Consider using Cloud Functions to handle application submission server-side</li>
-                <li>âœ… Add monitoring/alerts for application count discrepancies</li>
-                <li>âœ… Periodically audit applicationCount values against actual application counts</li>
+                <li>✅ Use Firestore transactions for atomic operations</li>
+                <li>✅ Add comprehensive error handling and logging</li>
+                <li>✅ Verify Firestore security rules allow necessary updates</li>
+                <li>✅ Add client-side validation before submission</li>
+                <li>✅ Consider using Cloud Functions to handle application submission server-side</li>
+                <li>✅ Add monitoring/alerts for application count discrepancies</li>
+                <li>✅ Periodically audit applicationCount values against actual application counts</li>
             </ul>
         </div>
 
         <div class="section">
-            <h2>ðŸ“ Summary</h2>
+            <h2>📝 Summary</h2>
             <div class="success">
                 <strong>Quick Action Items:</strong>
                 <ol>
