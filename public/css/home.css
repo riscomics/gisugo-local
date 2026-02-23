@@ -280,8 +280,9 @@ section {
 .menu-overlay {
   position: fixed;
   top: calc(var(--header-height) + var(--borderline-height));
-  right: clamp(6px, 2vw, 10px);
-  width: min(290px, calc(100vw - 20px));
+  right: 10px;
+  width: 290px;
+  max-width: calc(100% - 20px);
   height: auto;
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
   display: none;

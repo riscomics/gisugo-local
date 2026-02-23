@@ -294,8 +294,9 @@ body::-webkit-scrollbar {
 .uniform-menu-items {
   position: absolute;
   top: 80px; /* JS overrides this on every open */
-  right: clamp(6px, 2vw, 14px);
-  width: min(290px, calc(100vw - 20px));
+  right: 10px;
+  width: 290px;
+  max-width: calc(100% - 20px);
   height: auto;
   max-height: calc(100vh - 120px);
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
