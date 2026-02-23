@@ -77,41 +77,31 @@ function generateMenuHTML() {
 // Module-level reference so we can unsubscribe before re-subscribing
 let _logoutAuthUnsub = null;
 
-function _insertLogoutRow(container) {
-  const existing = container.querySelector('.unif-menu-logout-row');
-  if (existing) existing.remove();
-  const row = document.createElement('div');
-  row.className = 'unif-menu-logout-row';
-  row.innerHTML = `
-    <button class="unif-menu-logout-btn" onclick="handleSharedMenuLogout()">
-      <span>🚪</span> Log Out
-    </button>`;
-  container.appendChild(row);
-}
-
 // Append logout row for logged-in users
 function appendLogoutIfNeeded(container) {
   const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
   const isDevMode         = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : false;
+  if (!firebaseConnected || isDevMode) return;
 
-  // Pages without Firebase SDK (updates, forum, contacts): fall back to localStorage
-  if (!firebaseConnected) {
-    try {
-      if (localStorage.getItem('gisugo_current_user')) _insertLogoutRow(container);
-    } catch(e) {}
-    return;
+  // Always clean up the previous observer before creating a new one
+  if (_logoutAuthUnsub) {
+    _logoutAuthUnsub();
+    _logoutAuthUnsub = null;
   }
-
-  if (isDevMode) return;
-
-  // Pages with Firebase SDK: use auth state observer (original behaviour)
-  if (_logoutAuthUnsub) { _logoutAuthUnsub(); _logoutAuthUnsub = null; }
 
   if (typeof firebase !== 'undefined' && firebase.auth) {
     _logoutAuthUnsub = firebase.auth().onAuthStateChanged(function(user) {
       const existing = container.querySelector('.unif-menu-logout-row');
       if (existing) existing.remove();
-      if (user) _insertLogoutRow(container);
+      if (user) {
+        const row = document.createElement('div');
+        row.className = 'unif-menu-logout-row';
+        row.innerHTML = `
+          <button class="unif-menu-logout-btn" onclick="handleSharedMenuLogout()">
+            <span>🚪</span> Log Out
+          </button>`;
+        container.appendChild(row);
+      }
     });
   }
 }

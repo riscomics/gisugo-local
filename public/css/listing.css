@@ -697,9 +697,8 @@ body::-webkit-scrollbar {
 .jobcat-menu-items {
   position: absolute;
   top: 80px; /* JS overrides this on every open */
-  right: 10px;
-  width: 290px;
-  max-width: calc(100% - 20px);
+  right: clamp(6px, 2vw, 14px);
+  width: min(290px, calc(100vw - 20px));
   height: auto;
   max-height: calc(100vh - 120px);
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
@@ -711,8 +710,8 @@ body::-webkit-scrollbar {
     0 0 40px rgba(16, 185, 129, 0.15);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: clamp(6px, 2vw, 10px);
-  padding: clamp(10px, 3vw, 16px);
+  gap: 10px;
+  padding: 16px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -824,19 +823,10 @@ body::-webkit-scrollbar {
   transform: translateY(-1px);
 }
 
-@media (max-width: 600px) {
-  .jobcat-menu-items {
-    width: 220px;
-    max-width: calc(100% - 16px);
-    right: 8px;
-  }
-}
-
 @media (max-width: 400px) {
   .jobcat-menu-items {
-    width: 200px;
-    max-width: calc(100% - 12px);
-    right: 6px;
+    width: min(240px, calc(100vw - 16px));
+    right: clamp(4px, 1.5vw, 8px);
     gap: 6px;
     padding: 12px;
   }
@@ -845,23 +835,11 @@ body::-webkit-scrollbar {
   .jobcat-menu-items .unif-menu-card-label { font-size: clamp(0.55rem, 2vw, 0.65rem); }
 }
 
-@media (max-width: 375px) {
-  .jobcat-menu-items {
-    width: 180px;
-    max-width: calc(100% - 10px);
-    right: 5px;
-  }
-}
-
-@media (max-width: 320px) {
-  .jobcat-menu-items {
-    width: 160px;
-    max-width: calc(100% - 8px);
-    right: 4px;
-  }
-}
-
 @media (max-width: 600px) {
+  .jobcat-menu-items {
+    width: min(270px, calc(100vw - 20px));
+  }
+
   /* Modal text - controlled by JavaScript auto-resize */
   .jobcat-servicemenu-overlay a {
     /* font-size: clamp(1.35rem, 5vw, 1.8rem) !important; */ /* Removed - controlled by JavaScript */

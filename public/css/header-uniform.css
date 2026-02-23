@@ -294,9 +294,8 @@ body::-webkit-scrollbar {
 .uniform-menu-items {
   position: absolute;
   top: 80px; /* JS overrides this on every open */
-  right: 10px;
-  width: 290px;
-  max-width: calc(100% - 20px);
+  right: clamp(6px, 2vw, 14px);
+  width: min(290px, calc(100vw - 20px));
   height: auto;
   max-height: calc(100vh - 120px);
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
@@ -308,8 +307,8 @@ body::-webkit-scrollbar {
     0 0 40px rgba(16, 185, 129, 0.15);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: clamp(6px, 2vw, 10px);
-  padding: clamp(10px, 3vw, 16px);
+  gap: 10px;
+  padding: 16px;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -469,11 +468,10 @@ html body:has(.uniform-header) {
     height: 20px !important;
   }
 
-  /* Ultra Small — matches homepage menu size */
+  /* Ultra Small — fluid popup, never wider than viewport minus safe margins */
   .uniform-menu-items {
-    width: 160px;
-    max-width: calc(100% - 8px);
-    right: 4px;
+    width: min(240px, calc(100vw - 16px));
+    right: clamp(4px, 1.5vw, 8px);
     gap: 6px;
     padding: 12px;
   }
@@ -505,11 +503,9 @@ html body:has(.uniform-header) {
     height: 22px !important;
   }
 
-  /* Small Mobile — matches homepage menu size */
+  /* Small Mobile — fluid */
   .uniform-menu-items {
-    width: 200px;
-    max-width: calc(100% - 12px);
-    right: 6px;
+    width: min(265px, calc(100vw - 18px));
     gap: 8px;
     padding: 14px;
   }
@@ -529,15 +525,6 @@ html body:has(.uniform-header) {
 @media (min-width: 339px) and (max-width: 360px) {
   :root {
     --header-title-font-size: clamp(1.615rem, 3.8vw, 2.09rem); /* 5% reduction from base small mobile */
-  }
-}
-
-/* iPhone SE / 375px and below — tighter menu, matches homepage */
-@media (min-width: 321px) and (max-width: 375px) {
-  .uniform-menu-items {
-    width: 180px;
-    max-width: calc(100% - 10px);
-    right: 5px;
   }
 }
 
@@ -564,8 +551,8 @@ html body:has(.uniform-header) {
     height: 26px !important;
   }
 
-  /* Mobile — matches homepage menu size */
-  .uniform-menu-items { width: 220px; max-width: calc(100% - 16px); right: 8px; }
+  /* Mobile — fluid */
+  .uniform-menu-items { width: min(280px, calc(100vw - 20px)); }
 }
 
 /* Tablet Screens (601px - 1023px) */
