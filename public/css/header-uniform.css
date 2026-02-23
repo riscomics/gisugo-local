@@ -469,17 +469,12 @@ html body:has(.uniform-header) {
     height: 20px !important;
   }
 
-  /* Ultra Small — fluid popup, never wider than viewport minus safe margins */
+  /* Match homepage menu width behavior */
   .uniform-menu-items {
-    width: 240px;
-    max-width: calc(100% - 16px);
-    right: 8px;
-    gap: 6px;
-    padding: 12px;
+    width: 160px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
-  .unif-menu-card { padding: 14px 6px 12px; gap: 7px; min-height: 80px; }
-  .unif-menu-card-icon { font-size: clamp(1.4rem, 6vw, 2rem); }
-  .unif-menu-card-label { font-size: clamp(0.55rem, 2vw, 0.65rem); }
 }
 
 /* Small Mobile Screens (321px - 400px) */
@@ -505,17 +500,12 @@ html body:has(.uniform-header) {
     height: 22px !important;
   }
 
-  /* Small Mobile — fluid */
+  /* Match homepage menu width behavior */
   .uniform-menu-items {
-    width: 265px;
-    max-width: calc(100% - 18px);
-    right: 9px;
-    gap: 8px;
-    padding: 14px;
+    width: 200px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
-  .unif-menu-card { padding: 16px 8px 14px; gap: 8px; min-height: 88px; }
-  .unif-menu-card-icon { font-size: clamp(1.6rem, 6vw, 2.2rem); }
-  .unif-menu-card-label { font-size: clamp(0.6rem, 2vw, 0.68rem); }
 }
 
 /* Narrow Small Mobile (321px - 338px) - REDUCED TITLE FONT SIZE */
@@ -555,8 +545,16 @@ html body:has(.uniform-header) {
     height: 26px !important;
   }
 
-  /* Mobile — fluid */
-  .uniform-menu-items { width: 280px; max-width: calc(100% - 20px); right: 10px; }
+  /* Match homepage menu width behavior */
+  .uniform-menu-items { width: 220px; max-width: calc(100% - 20px); right: 10px; }
+}
+
+@media (max-width: 375px) {
+  .uniform-menu-items {
+    width: 180px;
+    max-width: calc(100% - 20px);
+    right: 10px;
+  }
 }
 
 /* Tablet Screens (601px - 1023px) */

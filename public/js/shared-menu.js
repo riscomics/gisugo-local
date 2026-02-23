@@ -57,17 +57,17 @@ function handleMenuClick(link, requiresAuth) {
 
 // Build a single card element string
 function buildCard(emoji, text, link, color, requiresAuth) {
-  return `<a class="unif-menu-card" href="${link}"
+  return `<a class="home-menu-card" href="${link}"
               data-color="${color}"
               onclick="sharedMenuNavigate(event,'${link}',${requiresAuth})">
-    <span class="unif-menu-card-icon">${emoji}</span>
-    <span class="unif-menu-card-label">${text}</span>
+    <span class="home-menu-card-icon">${emoji}</span>
+    <span class="home-menu-card-label">${text}</span>
   </a>`;
 }
 
 // Generate the full grid HTML (section label + cards)
 function generateMenuHTML() {
-  let html = '<div class="unif-menu-section-label">Menu</div>';
+  let html = '<div class="home-menu-section-label">Menu</div>';
   html += MENU_ITEMS.map(item =>
     buildCard(item.emoji, item.text, item.link, item.color, item.requiresAuth)
   ).join('');
@@ -91,13 +91,13 @@ function appendLogoutIfNeeded(container) {
 
   if (typeof firebase !== 'undefined' && firebase.auth) {
     _logoutAuthUnsub = firebase.auth().onAuthStateChanged(function(user) {
-      const existing = container.querySelector('.unif-menu-logout-row');
+      const existing = container.querySelector('.home-menu-logout-row');
       if (existing) existing.remove();
       if (user) {
         const row = document.createElement('div');
-        row.className = 'unif-menu-logout-row';
+        row.className = 'home-menu-logout-row';
         row.innerHTML = `
-          <button class="unif-menu-logout-btn" onclick="handleSharedMenuLogout()">
+          <button class="home-menu-logout-btn" onclick="handleSharedMenuLogout()">
             <span>🚪</span> Log Out
           </button>`;
         container.appendChild(row);

@@ -826,20 +826,15 @@ body::-webkit-scrollbar {
 
 @media (max-width: 400px) {
   .jobcat-menu-items {
-    width: 240px;
-    max-width: calc(100% - 16px);
-    right: 8px;
-    gap: 6px;
-    padding: 12px;
+    width: 200px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
-  .jobcat-menu-items .unif-menu-card { padding: 14px 6px 12px; gap: 7px; min-height: 80px; }
-  .jobcat-menu-items .unif-menu-card-icon { font-size: clamp(1.4rem, 6vw, 2rem); }
-  .jobcat-menu-items .unif-menu-card-label { font-size: clamp(0.55rem, 2vw, 0.65rem); }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 600px) and (min-width: 401px) {
   .jobcat-menu-items {
-    width: 270px;
+    width: 220px;
     max-width: calc(100% - 20px);
     right: 10px;
   }
@@ -864,6 +859,22 @@ body::-webkit-scrollbar {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     line-height: 1.4 !important;
+  }
+}
+
+@media (max-width: 375px) {
+  .jobcat-menu-items {
+    width: 180px;
+    max-width: calc(100% - 20px);
+    right: 10px;
+  }
+}
+
+@media (max-width: 320px) {
+  .jobcat-menu-items {
+    width: 160px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
 }
 

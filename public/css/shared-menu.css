@@ -1,0 +1,116 @@
+/* ============================================================
+   SHARED MENU CARD STYLES
+   Used by all non-home pages via shared-menu.js which outputs
+   .home-menu-card / .home-menu-card-icon / .home-menu-card-label
+   Panel/overlay CSS stays in listing.css and header-uniform.css
+   ============================================================ */
+
+.home-menu-section-label {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 0 2px 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 2px;
+  text-align: center;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.home-menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(12px, 4vw, 20px) clamp(6px, 2vw, 10px) clamp(10px, 3vw, 16px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  text-decoration: none;
+  min-height: clamp(80px, 22vw, 100px);
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+
+.home-menu-card:hover,
+.home-menu-card:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.04);
+}
+
+.home-menu-card-icon {
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  line-height: 1;
+  transition: filter 0.2s ease;
+}
+
+.home-menu-card-label {
+  font-size: clamp(0.58rem, 2vw, 0.68rem);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  text-transform: uppercase;
+  line-height: 1.3;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Color border glow on hover */
+.home-menu-card[data-color="amber"]:hover  { border-color: #f59e0b; }
+.home-menu-card[data-color="cyan"]:hover   { border-color: #06b6d4; }
+.home-menu-card[data-color="green"]:hover  { border-color: #10b981; }
+.home-menu-card[data-color="purple"]:hover { border-color: #8b5cf6; }
+.home-menu-card[data-color="teal"]:hover   { border-color: #14b8a6; }
+.home-menu-card[data-color="orange"]:hover { border-color: #f97316; }
+.home-menu-card[data-color="blue"]:hover   { border-color: #3b82f6; }
+.home-menu-card[data-color="pink"]:hover   { border-color: #ec4899; }
+.home-menu-card[data-color="gray"]:hover   { border-color: #94a3b8; }
+
+.home-menu-card[data-color="amber"]:hover  .home-menu-card-icon { filter: drop-shadow(0 0 8px #f59e0b); }
+.home-menu-card[data-color="cyan"]:hover   .home-menu-card-icon { filter: drop-shadow(0 0 8px #06b6d4); }
+.home-menu-card[data-color="green"]:hover  .home-menu-card-icon { filter: drop-shadow(0 0 8px #10b981); }
+.home-menu-card[data-color="purple"]:hover .home-menu-card-icon { filter: drop-shadow(0 0 8px #8b5cf6); }
+.home-menu-card[data-color="teal"]:hover   .home-menu-card-icon { filter: drop-shadow(0 0 8px #14b8a6); }
+.home-menu-card[data-color="orange"]:hover .home-menu-card-icon { filter: drop-shadow(0 0 8px #f97316); }
+.home-menu-card[data-color="blue"]:hover   .home-menu-card-icon { filter: drop-shadow(0 0 8px #3b82f6); }
+.home-menu-card[data-color="pink"]:hover   .home-menu-card-icon { filter: drop-shadow(0 0 8px #ec4899); }
+.home-menu-card[data-color="gray"]:hover   .home-menu-card-icon { filter: drop-shadow(0 0 8px #94a3b8); }
+
+/* Logout row — spans full width at bottom of grid */
+.home-menu-logout-row {
+  grid-column: 1 / -1;
+  padding: 0 2px 2px;
+}
+
+.home-menu-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 12px;
+  color: #f87171;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-family: Arial, Helvetica, sans-serif;
+  box-sizing: border-box;
+}
+
+.home-menu-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: #ef4444;
+}
