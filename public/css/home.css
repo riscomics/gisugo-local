@@ -267,7 +267,7 @@ section {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 98;
+  z-index: 999998;
   background: transparent;
   -webkit-tap-highlight-color: transparent;
 }
@@ -280,13 +280,12 @@ section {
 .menu-overlay {
   position: fixed;
   top: calc(var(--header-height) + var(--borderline-height));
-  right: 10px;
-  width: 290px;
-  max-width: calc(100% - 20px);
+  right: clamp(6px, 2vw, 10px);
+  width: min(290px, calc(100vw - 20px));
   height: auto;
   background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
   display: none;
-  z-index: 99;
+  z-index: 999999;
   border: 2px solid var(--accent-color);
   border-radius: 16px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 24px var(--accent-glow);
