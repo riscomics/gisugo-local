@@ -307,8 +307,8 @@ body::-webkit-scrollbar {
     0 0 40px rgba(16, 185, 129, 0.15);
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  padding: 16px;
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(10px, 3vw, 16px);
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -590,3 +590,22 @@ html body:has(.uniform-header) {
 /* Page-specific title overrides removed - titles now set directly in HTML */
 
 /* ===== UNIFORM HEADER SYSTEM READY FOR PRODUCTION ===== */
+
+/* ── Menu overlay — forced match to homepage card dimensions ── */
+.uniform-menu-items {
+  gap: clamp(6px, 2vw, 10px) !important;
+  padding: clamp(10px, 3vw, 16px) !important;
+  width: min(290px, calc(100vw - 20px)) !important;
+  right: clamp(6px, 2vw, 10px) !important;
+}
+.uniform-menu-items .unif-menu-card {
+  min-height: clamp(80px, 22vw, 100px) !important;
+  padding: clamp(12px, 4vw, 20px) clamp(6px, 2vw, 10px) clamp(10px, 3vw, 16px) !important;
+  gap: clamp(6px, 2vw, 10px) !important;
+}
+.uniform-menu-items .unif-menu-card-icon {
+  font-size: clamp(1.6rem, 6vw, 2.4rem) !important;
+}
+.uniform-menu-items .unif-menu-card-label {
+  font-size: clamp(0.58rem, 2vw, 0.68rem) !important;
+}
