@@ -13,10 +13,89 @@ const MENU_ITEMS = [
   { emoji: '📬', text: 'Contact',      link: 'contacts.html',  requiresAuth: false, color: 'pink'   },
 ];
 
+const SHARED_MENU_CSS_HREF = 'public/css/shared-menu.css?v=3.2';
+const LOGOUT_RETRY_DELAY_MS = 250;
+const LOGOUT_MAX_RETRIES = 20;
+const SHARED_MENU_DEPENDENCY_SCRIPTS = [
+  {
+    key: 'firebase-app-compat',
+    match: 'firebase-app-compat.js',
+    src: 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js'
+  },
+  {
+    key: 'firebase-auth-compat',
+    match: 'firebase-auth-compat.js',
+    src: 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js'
+  },
+  {
+    key: 'firebase-config',
+    match: 'public/js/firebase-config.js',
+    src: 'public/js/firebase-config.js'
+  },
+  {
+    key: 'firebase-auth-helper',
+    match: 'public/js/firebase-auth.js',
+    src: 'public/js/firebase-auth.js'
+  },
+  {
+    key: 'app-config',
+    match: 'public/js/app-config.js',
+    src: 'public/js/app-config.js?v=1.0'
+  }
+];
+const _scriptLoadPromises = new Map();
+
 function checkUserLoggedIn() {
   if (typeof APP_CONFIG !== 'undefined' && !APP_CONFIG.requireAuth()) return true;
   if (typeof isLoggedIn === 'function') return isLoggedIn();
   return false;
+}
+
+function ensureSharedMenuStylesheetLoaded() {
+  const hasSharedMenuCss = !!document.querySelector('link[href*="shared-menu.css"]');
+  if (hasSharedMenuCss) return;
+
+  const head = document.head || document.querySelector('head');
+  if (!head) return;
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = SHARED_MENU_CSS_HREF;
+  head.appendChild(link);
+  console.warn('Shared Menu: shared-menu.css was missing, injected dynamically');
+}
+
+function isScriptPresent(match) {
+  return !!document.querySelector(`script[src*="${match}"]`);
+}
+
+function loadScriptOnce(definition) {
+  if (isScriptPresent(definition.match)) {
+    return Promise.resolve();
+  }
+  if (_scriptLoadPromises.has(definition.key)) {
+    return _scriptLoadPromises.get(definition.key);
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = definition.src;
+    script.async = false;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load: ${definition.src}`));
+    (document.head || document.body || document.documentElement).appendChild(script);
+  });
+
+  _scriptLoadPromises.set(definition.key, promise);
+  return promise;
+}
+
+function bootstrapSharedMenuDependencies() {
+  let sequence = Promise.resolve();
+  SHARED_MENU_DEPENDENCY_SCRIPTS.forEach((definition) => {
+    sequence = sequence.then(() => loadScriptOnce(definition));
+  });
+  return sequence;
 }
 
 // Navigate with auth check — closes whichever overlay is active first
@@ -81,7 +160,7 @@ let _logoutAuthUnsub = null;
 function appendLogoutIfNeeded(container) {
   const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
   const isDevMode         = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : false;
-  if (!firebaseConnected || isDevMode) return;
+  if (!firebaseConnected || isDevMode) return false;
 
   // Always clean up the previous observer before creating a new one
   if (_logoutAuthUnsub) {
@@ -103,6 +182,23 @@ function appendLogoutIfNeeded(container) {
         container.appendChild(row);
       }
     });
+    return true;
+  }
+  return false;
+}
+
+function appendLogoutWithRetry(container, attempt = 0) {
+  if (!container) return;
+  const isDevMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : false;
+  if (isDevMode) return;
+
+  const attached = appendLogoutIfNeeded(container);
+  if (attached) return;
+
+  if (attempt < LOGOUT_MAX_RETRIES) {
+    setTimeout(() => appendLogoutWithRetry(container, attempt + 1), LOGOUT_RETRY_DELAY_MS);
+  } else {
+    console.warn('Shared Menu: logout observer not attached after retries');
   }
 }
 
@@ -126,7 +222,7 @@ window.handleSharedMenuLogout = handleSharedMenuLogout;
 function populateContainer(container) {
   if (!container) return;
   container.innerHTML = generateMenuHTML();
-  appendLogoutIfNeeded(container);
+  appendLogoutWithRetry(container);
 }
 
 // ── Initialize: detect which page type we're on ──────────────────────────────
@@ -165,11 +261,21 @@ function positionSharedMenuPanel() {
 window.positionSharedMenuPanel = positionSharedMenuPanel;
 
 let sharedMenuInitialized = false;
+let sharedMenuInitInProgress = false;
 
 function autoInitSharedMenu() {
-  if (sharedMenuInitialized) return;
-  initializeSharedMenu();
-  sharedMenuInitialized = true;
+  if (sharedMenuInitialized || sharedMenuInitInProgress) return;
+  sharedMenuInitInProgress = true;
+  ensureSharedMenuStylesheetLoaded();
+  bootstrapSharedMenuDependencies()
+    .catch((error) => {
+      console.warn('Shared Menu: dependency bootstrap issue, continuing anyway', error);
+    })
+    .finally(() => {
+      initializeSharedMenu();
+      sharedMenuInitialized = true;
+      sharedMenuInitInProgress = false;
+    });
 }
 
 document.addEventListener('DOMContentLoaded', autoInitSharedMenu);
