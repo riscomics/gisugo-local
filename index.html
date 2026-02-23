@@ -216,22 +216,23 @@
           <span class="header__menu-caption">Menu</span>
         </button>
         
-        <!-- Backdrop: closes menu when tapping outside (needed for iOS Safari) -->
-        <div class="menu-backdrop" id="menuBackdrop" onclick="closeHomeMenu()"></div>
-
-        <!-- Menu Overlay -->
-        <nav class="menu-overlay" id="homeMenuOverlay">
-          <div class="home-menu-grid" id="homeMenuList">
-            <!-- Loading state (shown initially until Firebase confirms auth state) -->
-            <div class="menu-loading">
-              <div class="menu-loading-spinner"></div>
-              <span>Loading...</span>
-            </div>
-          </div>
-        </nav>
       </header>
       <div class="accent-line1"></div>
     </div>
+
+    <!-- Backdrop: closes menu when tapping outside (moved outside header-wrapper for iOS Safari) -->
+    <div class="menu-backdrop" id="menuBackdrop" onclick="closeHomeMenu()"></div>
+
+    <!-- Menu Overlay (direct child of body so position:fixed works on iOS Safari) -->
+    <nav class="menu-overlay" id="homeMenuOverlay">
+      <div class="home-menu-grid" id="homeMenuList">
+        <!-- Loading state (shown initially until Firebase confirms auth state) -->
+        <div class="menu-loading">
+          <div class="menu-loading-spinner"></div>
+          <span>Loading...</span>
+        </div>
+      </div>
+    </nav>
 
     <div class="header-spacer"></div>
 
