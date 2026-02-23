@@ -156,12 +156,15 @@ function initializeUniformMenu(config) {
             e.stopPropagation();
             
             console.log('🍔 Menu button clicked');
-            cleanMenuOverlay.classList.toggle('show');
-
-            // Position panel exactly below the borderline when opening
-            if (cleanMenuOverlay.classList.contains('show') &&
-                typeof positionSharedMenuPanel === 'function') {
-                positionSharedMenuPanel();
+            if (window.SharedMenuController && typeof window.SharedMenuController.toggle === 'function') {
+                window.SharedMenuController.toggle(cleanMenuOverlay);
+            } else {
+                cleanMenuOverlay.classList.toggle('show');
+                // Position panel exactly below the borderline when opening
+                if (cleanMenuOverlay.classList.contains('show') &&
+                    typeof positionSharedMenuPanel === 'function') {
+                    positionSharedMenuPanel();
+                }
             }
             
             // Add slight haptic feedback on mobile
@@ -178,7 +181,11 @@ function initializeUniformMenu(config) {
         cleanMenuOverlay.addEventListener('click', function(e) {
             if (e.target === cleanMenuOverlay) {
                 console.log('🍔 Menu overlay clicked - closing menu');
-                cleanMenuOverlay.classList.remove('show');
+                if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+                    window.SharedMenuController.closeAll();
+                } else {
+                    cleanMenuOverlay.classList.remove('show');
+                }
             }
         });
 
@@ -192,7 +199,11 @@ function initializeUniformMenu(config) {
     const escapeHandler = function(e) {
         if (e.key === 'Escape' && cleanMenuOverlay.classList.contains('show')) {
             console.log('⌨️ Escape key pressed - closing menu');
-            cleanMenuOverlay.classList.remove('show');
+            if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+                window.SharedMenuController.closeAll();
+            } else {
+                cleanMenuOverlay.classList.remove('show');
+            }
         }
     };
     

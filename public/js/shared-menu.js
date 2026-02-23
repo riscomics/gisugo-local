@@ -98,14 +98,66 @@ function bootstrapSharedMenuDependencies() {
   return sequence;
 }
 
+function isHomeOverlayElement(overlay) {
+  if (!overlay) return false;
+  return overlay.classList.contains('menu-overlay') || overlay.id === 'homeMenuOverlay';
+}
+
+function setOverlayOpenState(overlay, shouldOpen) {
+  if (!overlay) return;
+  if (isHomeOverlayElement(overlay)) {
+    overlay.classList.toggle('active', shouldOpen);
+  } else {
+    overlay.classList.toggle('show', shouldOpen);
+  }
+}
+
+function isOverlayOpen(overlay) {
+  if (!overlay) return false;
+  return isHomeOverlayElement(overlay)
+    ? overlay.classList.contains('active')
+    : overlay.classList.contains('show');
+}
+
+function closeAllSharedMenuOverlays() {
+  const uOverlay = document.querySelector('.uniform-menu-overlay');
+  const jOverlay = document.getElementById('jobcatMenuOverlay');
+  const hOverlay = document.querySelector('.menu-overlay');
+  setOverlayOpenState(uOverlay, false);
+  setOverlayOpenState(jOverlay, false);
+  setOverlayOpenState(hOverlay, false);
+
+  const backdrop = document.getElementById('menuBackdrop');
+  if (backdrop) backdrop.classList.remove('active');
+}
+
+function openSharedMenuOverlay(overlay) {
+  if (!overlay) return;
+  closeAllSharedMenuOverlays();
+  setOverlayOpenState(overlay, true);
+  if (!isHomeOverlayElement(overlay) && typeof positionSharedMenuPanel === 'function') {
+    positionSharedMenuPanel();
+  }
+}
+
+function toggleSharedMenuOverlay(overlay) {
+  if (!overlay) return;
+  const currentlyOpen = isOverlayOpen(overlay);
+  if (currentlyOpen) {
+    setOverlayOpenState(overlay, false);
+    if (isHomeOverlayElement(overlay)) {
+      const backdrop = document.getElementById('menuBackdrop');
+      if (backdrop) backdrop.classList.remove('active');
+    }
+    return;
+  }
+  openSharedMenuOverlay(overlay);
+}
+
 // Navigate with auth check — closes whichever overlay is active first
 function sharedMenuNavigate(e, link, requiresAuth) {
   if (e) e.preventDefault();
-  // Close any open overlay
-  const uOverlay = document.querySelector('.uniform-menu-overlay');
-  if (uOverlay) uOverlay.classList.remove('show');
-  const jOverlay = document.getElementById('jobcatMenuOverlay');
-  if (jOverlay) jOverlay.classList.remove('show');
+  closeAllSharedMenuOverlays();
 
   setTimeout(() => handleMenuClick(link, requiresAuth), 120);
 }
@@ -203,10 +255,7 @@ function appendLogoutWithRetry(container, attempt = 0) {
 }
 
 async function handleSharedMenuLogout() {
-  const uOverlay = document.querySelector('.uniform-menu-overlay');
-  if (uOverlay) uOverlay.classList.remove('show');
-  const jOverlay = document.getElementById('jobcatMenuOverlay');
-  if (jOverlay) jOverlay.classList.remove('show');
+  closeAllSharedMenuOverlays();
 
   if (typeof logout === 'function') {
     const result = await logout();
@@ -294,3 +343,10 @@ window.addEventListener('pagehide', () => {
     _logoutAuthUnsub = null;
   }
 });
+
+window.SharedMenuController = {
+  open: openSharedMenuOverlay,
+  toggle: toggleSharedMenuOverlay,
+  closeAll: closeAllSharedMenuOverlays,
+  isOpen: isOverlayOpen
+};

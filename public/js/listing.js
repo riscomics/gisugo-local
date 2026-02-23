@@ -143,20 +143,32 @@ const menuOverlay = document.getElementById('jobcatMenuOverlay');
 
 menuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  menuOverlay.classList.add('show');
-  // Position popup panel exactly below the borderline
-  if (typeof positionSharedMenuPanel === 'function') positionSharedMenuPanel();
+  if (window.SharedMenuController && typeof window.SharedMenuController.open === 'function') {
+    window.SharedMenuController.open(menuOverlay);
+  } else {
+    menuOverlay.classList.add('show');
+    // Position popup panel exactly below the borderline
+    if (typeof positionSharedMenuPanel === 'function') positionSharedMenuPanel();
+  }
 });
 
 menuOverlay.addEventListener('click', function(e) {
   if (e.target === menuOverlay) {
-    menuOverlay.classList.remove('show');
+    if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+      window.SharedMenuController.closeAll();
+    } else {
+      menuOverlay.classList.remove('show');
+    }
   }
 });
 
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    menuOverlay.classList.remove('show');
+    if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+      window.SharedMenuController.closeAll();
+    } else {
+      menuOverlay.classList.remove('show');
+    }
   }
 });
 
