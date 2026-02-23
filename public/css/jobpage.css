@@ -1786,7 +1786,9 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-menu-items {
-    width: 270px;
+    width: 220px;
+    max-width: calc(100% - 16px);
+    right: 8px;
   }
   
   /* Job Photo Mobile Styles */
@@ -2204,7 +2206,9 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-menu-items {
-    width: 260px;
+    width: 200px;
+    max-width: calc(100% - 12px);
+    right: 6px;
   }
   
   /* Content adjustments for smaller screens */
@@ -2343,6 +2347,12 @@ body::-webkit-scrollbar {
     font-size: 18px;
     margin-bottom: 2px;
   }
+
+  .jobcat-menu-items {
+    width: 180px;
+    max-width: calc(100% - 10px);
+    right: 5px;
+  }
   
   .job-info-label {
     font-size: clamp(0.65rem, 3.8vw, 0.7rem);
@@ -2448,7 +2458,9 @@ body::-webkit-scrollbar {
   }
   
   .jobcat-menu-items {
-    width: 250px;
+    width: 160px;
+    max-width: calc(100% - 8px);
+    right: 4px;
   }
 
   .job-info-section {

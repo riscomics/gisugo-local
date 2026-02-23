@@ -469,11 +469,11 @@ html body:has(.uniform-header) {
     height: 20px !important;
   }
 
-  /* Ultra Small — fluid popup, never wider than viewport minus safe margins */
+  /* Ultra Small — matches homepage menu size */
   .uniform-menu-items {
-    width: 240px;
-    max-width: calc(100% - 16px);
-    right: 8px;
+    width: 160px;
+    max-width: calc(100% - 8px);
+    right: 4px;
     gap: 6px;
     padding: 12px;
   }
@@ -505,11 +505,11 @@ html body:has(.uniform-header) {
     height: 22px !important;
   }
 
-  /* Small Mobile — fluid */
+  /* Small Mobile — matches homepage menu size */
   .uniform-menu-items {
-    width: 265px;
-    max-width: calc(100% - 18px);
-    right: 9px;
+    width: 200px;
+    max-width: calc(100% - 12px);
+    right: 6px;
     gap: 8px;
     padding: 14px;
   }
@@ -529,6 +529,15 @@ html body:has(.uniform-header) {
 @media (min-width: 339px) and (max-width: 360px) {
   :root {
     --header-title-font-size: clamp(1.615rem, 3.8vw, 2.09rem); /* 5% reduction from base small mobile */
+  }
+}
+
+/* iPhone SE / 375px and below — tighter menu, matches homepage */
+@media (min-width: 321px) and (max-width: 375px) {
+  .uniform-menu-items {
+    width: 180px;
+    max-width: calc(100% - 10px);
+    right: 5px;
   }
 }
 
@@ -555,8 +564,8 @@ html body:has(.uniform-header) {
     height: 26px !important;
   }
 
-  /* Mobile — fluid */
-  .uniform-menu-items { width: 280px; max-width: calc(100% - 20px); right: 10px; }
+  /* Mobile — matches homepage menu size */
+  .uniform-menu-items { width: 220px; max-width: calc(100% - 16px); right: 8px; }
 }
 
 /* Tablet Screens (601px - 1023px) */

@@ -77,33 +77,41 @@ function generateMenuHTML() {
 // Module-level reference so we can unsubscribe before re-subscribing
 let _logoutAuthUnsub = null;
 
+function _insertLogoutRow(container) {
+  const existing = container.querySelector('.unif-menu-logout-row');
+  if (existing) existing.remove();
+  const row = document.createElement('div');
+  row.className = 'unif-menu-logout-row';
+  row.innerHTML = `
+    <button class="unif-menu-logout-btn" onclick="handleSharedMenuLogout()">
+      <span>🚪</span> Log Out
+    </button>`;
+  container.appendChild(row);
+}
+
 // Append logout row for logged-in users
 function appendLogoutIfNeeded(container) {
   const firebaseConnected = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.isFirebaseConnected : false;
   const isDevMode         = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : false;
-  if (!firebaseConnected || isDevMode) return;
 
-  // Always clean up the previous observer before creating a new one
-  if (_logoutAuthUnsub) {
-    _logoutAuthUnsub();
-    _logoutAuthUnsub = null;
-  }
-
-  if (typeof firebase !== 'undefined' && firebase.auth) {
+  // Firebase path: use auth state observer
+  if (firebaseConnected && !isDevMode && typeof firebase !== 'undefined' && firebase.auth) {
+    if (_logoutAuthUnsub) { _logoutAuthUnsub(); _logoutAuthUnsub = null; }
     _logoutAuthUnsub = firebase.auth().onAuthStateChanged(function(user) {
       const existing = container.querySelector('.unif-menu-logout-row');
       if (existing) existing.remove();
-      if (user) {
-        const row = document.createElement('div');
-        row.className = 'unif-menu-logout-row';
-        row.innerHTML = `
-          <button class="unif-menu-logout-btn" onclick="handleSharedMenuLogout()">
-            <span>🚪</span> Log Out
-          </button>`;
-        container.appendChild(row);
-      }
+      if (user) _insertLogoutRow(container);
     });
+    return;
   }
+
+  // Fallback: pages without Firebase SDK (updates, forum, contacts, etc.)
+  // Show logout if there is a local session in localStorage
+  try {
+    if (localStorage.getItem('gisugo_current_user')) {
+      _insertLogoutRow(container);
+    }
+  } catch (e) { /* localStorage blocked */ }
 }
 
 async function handleSharedMenuLogout() {
