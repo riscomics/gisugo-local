@@ -1159,7 +1159,7 @@ const PAGINATION = {
 const AD_PLACEHOLDER_TRIAL = {
   enabled: true,
   category: 'hatod',
-  imageSrc: 'public/ads/verify.png',
+  imageSrc: 'public/images/verify.png',
   targetUrl: 'profile.html',
   badgeText: 'Sponsored'
 };
