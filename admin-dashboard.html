@@ -2941,66 +2941,122 @@
                     <p class="section-subtitle">Configure feed cadence, zones, and ad inventory (local prototype)</p>
                 </div>
 
+                <div class="ad-hero">
+                    <div class="ad-hero-icon">✨</div>
+                    <div class="ad-hero-copy">
+                        <div class="ad-hero-title">Campaign Control Center</div>
+                        <div class="ad-hero-subtitle">Tune visibility, placement zones, and offer types with cleaner mobile controls.</div>
+                    </div>
+                </div>
+
                 <div class="ad-settings-layout">
                     <div class="ad-settings-card">
-                        <h2 class="ad-card-title">Global Ad Controls</h2>
-                        <div class="ad-field-grid">
-                            <label class="ad-field">
-                                <span>Ad System Enabled</span>
-                                <select id="adEnabled">
-                                    <option value="true">Enabled</option>
-                                    <option value="false">Disabled</option>
-                                </select>
-                            </label>
-
-                            <label class="ad-field">
-                                <span>Listing Frequency (cards)</span>
+                        <div class="ad-card-head">
+                            <div class="ad-card-icon">⚙️</div>
+                            <div>
+                                <h2 class="ad-card-title">Global Ad Controls</h2>
+                                <div class="ad-card-subtitle">Core behavior for listing cadence and slot toggles</div>
+                            </div>
+                            <div class="ad-card-head-right">
+                                <label class="ad-switch ad-switch-with-text">
+                                    <input type="checkbox" id="adEnabled" checked>
+                                    <span class="ad-switch-slider"></span>
+                                </label>
+                                <span id="adEnabledText" class="ad-head-switch-state">ON</span>
+                            </div>
+                        </div>
+                        <div class="ad-metrics-row">
+                            <label class="ad-control-tile">
+                                <div class="ad-control-top">
+                                    <span class="ad-control-icon">🔢</span>
+                                </div>
                                 <input type="number" id="adFrequencyCards" min="1" max="50" value="10">
+                                <span class="ad-control-caption">Frequency (cards)</span>
                             </label>
 
-                            <label class="ad-field">
-                                <span>Max Ads / Page Session</span>
+                            <label class="ad-control-tile">
+                                <div class="ad-control-top">
+                                    <span class="ad-control-icon">📦</span>
+                                </div>
                                 <input type="number" id="adMaxAdsPerSession" min="1" max="20" value="6">
+                                <span class="ad-control-caption">Max Ads / Session</span>
                             </label>
 
-                            <label class="ad-field">
-                                <span>Start After N Cards</span>
+                            <label class="ad-control-tile">
+                                <div class="ad-control-top">
+                                    <span class="ad-control-icon">⏳</span>
+                                </div>
                                 <input type="number" id="adStartAfterCards" min="0" max="100" value="0">
+                                <span class="ad-control-caption">Start After N Cards</span>
                             </label>
                         </div>
 
-                        <div class="ad-toggle-grid">
-                            <label class="ad-toggle"><input type="checkbox" id="adAllowTail" checked> Tail ad after last gig</label>
-                            <label class="ad-toggle"><input type="checkbox" id="adAllowEmpty" checked> Empty-state ad</label>
-                            <label class="ad-toggle"><input type="checkbox" id="zoneListingInline" checked> Listing inline zone</label>
-                            <label class="ad-toggle"><input type="checkbox" id="zoneProfileSlot" checked> Profile slot zone</label>
-                            <label class="ad-toggle"><input type="checkbox" id="zoneGigDetailSlot" checked> Gig detail zone</label>
+                        <div class="ad-toggle-list">
+                            <label class="ad-toggle-card">
+                                <div class="ad-toggle-copy">
+                                    <span class="ad-toggle-label">Tail ad after last gig</span>
+                                    <span class="ad-toggle-caption">Shows one extra ad after the final card in a category feed.</span>
+                                </div>
+                                <label class="ad-switch">
+                                    <input type="checkbox" id="adAllowTail" checked>
+                                    <span class="ad-switch-slider"></span>
+                                </label>
+                            </label>
+                            <label class="ad-toggle-card">
+                                <div class="ad-toggle-copy">
+                                    <span class="ad-toggle-label">Empty-state ad</span>
+                                    <span class="ad-toggle-caption">Shows an ad below the “No gigs yet” message.</span>
+                                </div>
+                                <label class="ad-switch">
+                                    <input type="checkbox" id="adAllowEmpty" checked>
+                                    <span class="ad-switch-slider"></span>
+                                </label>
+                            </label>
+                            <label class="ad-toggle-card">
+                                <div class="ad-toggle-copy">
+                                    <span class="ad-toggle-label">Listing inline zone</span>
+                                    <span class="ad-toggle-caption">Injects ad cards between gig cards in listing pages.</span>
+                                </div>
+                                <label class="ad-switch">
+                                    <input type="checkbox" id="zoneListingInline" checked>
+                                    <span class="ad-switch-slider"></span>
+                                </label>
+                            </label>
+                            <label class="ad-toggle-card">
+                                <div class="ad-toggle-copy">
+                                    <span class="ad-toggle-label">Profile slot zone</span>
+                                    <span class="ad-toggle-caption">Uses the profile body slot (replacing duplicate logout CTA).</span>
+                                </div>
+                                <label class="ad-switch">
+                                    <input type="checkbox" id="zoneProfileSlot" checked>
+                                    <span class="ad-switch-slider"></span>
+                                </label>
+                            </label>
+                            <label class="ad-toggle-card">
+                                <div class="ad-toggle-copy">
+                                    <span class="ad-toggle-label">Gig detail zone</span>
+                                    <span class="ad-toggle-caption">Shows a promo after customer details on gig detail pages.</span>
+                                </div>
+                                <label class="ad-switch">
+                                    <input type="checkbox" id="zoneGigDetailSlot" checked>
+                                    <span class="ad-switch-slider"></span>
+                                </label>
+                            </label>
                         </div>
                     </div>
 
                     <div class="ad-settings-card">
-                        <h2 class="ad-card-title">Add / Edit Ad Item</h2>
+                        <div class="ad-card-head">
+                            <div class="ad-card-icon">🎯</div>
+                            <div>
+                                <h2 class="ad-card-title">Add / Edit Ad Item</h2>
+                                <div class="ad-card-subtitle">Build a promo card and choose what happens on click</div>
+                            </div>
+                        </div>
                         <div class="ad-field-grid">
                             <label class="ad-field">
                                 <span>Ad ID</span>
                                 <input type="text" id="adItemId" placeholder="e.g. offer-verify-launch">
-                            </label>
-
-                            <label class="ad-field">
-                                <span>Type</span>
-                                <select id="adItemType">
-                                    <option value="site_offer">site_offer</option>
-                                    <option value="sponsored_external">sponsored_external</option>
-                                    <option value="video_popup">video_popup</option>
-                                </select>
-                            </label>
-
-                            <label class="ad-field">
-                                <span>Subtype</span>
-                                <select id="adItemSubtype">
-                                    <option value="in_app_offer">in_app_offer</option>
-                                    <option value="sponsor_paid">sponsor_paid</option>
-                                </select>
                             </label>
 
                             <label class="ad-field">
@@ -3012,9 +3068,26 @@
                                 <span>Alt Text</span>
                                 <input type="text" id="adItemAltText" placeholder="Get verified for safer gigs">
                             </label>
+                        </div>
 
+                        <div class="ad-action-row">
                             <label class="ad-field">
-                                <span>Action Type</span>
+                                <span>Action Target</span>
+                                <input type="text" id="adItemActionTarget" placeholder="profile.html or #accountOverlay">
+                            </label>
+                            <label class="ad-field">
+                                <span>Type</span>
+                                <select id="adItemType">
+                                    <option value="site_offer">site_offer</option>
+                                    <option value="sponsored_external">sponsored_external</option>
+                                    <option value="video_popup">video_popup</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="ad-ops-grid">
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">🧭</span><span>Action Type</span></span>
                                 <select id="adItemActionType">
                                     <option value="navigate">navigate</option>
                                     <option value="open_modal">open_modal</option>
@@ -3023,13 +3096,47 @@
                             </label>
 
                             <label class="ad-field">
-                                <span>Action Target</span>
-                                <input type="text" id="adItemActionTarget" placeholder="profile.html or #accountOverlay">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">⚖️</span><span>Weight (rotation)</span></span>
+                                <input type="number" id="adItemWeight" min="1" max="1000" value="100">
                             </label>
 
                             <label class="ad-field">
-                                <span>Weight (rotation)</span>
-                                <input type="number" id="adItemWeight" min="1" max="1000" value="100">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">🟢</span><span>Status</span></span>
+                                <select id="adItemStatus">
+                                    <option value="active">active</option>
+                                    <option value="paused">paused</option>
+                                    <option value="draft">draft</option>
+                                </select>
+                            </label>
+
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">👁️</span><span>Max<br>Impressions</span></span>
+                                <input type="number" id="adItemMaxImpressions" min="0" max="1000000" value="0">
+                                <span class="ad-field-caption">(0 = unlimited)</span>
+                            </label>
+
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">👆</span><span>Max<br>Clicks</span></span>
+                                <input type="number" id="adItemMaxClicks" min="0" max="1000000" value="0">
+                                <span class="ad-field-caption">(0 = unlimited)</span>
+                            </label>
+
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">📊</span><span>CTR<br>Rate</span></span>
+                                <input type="text" id="adItemCtr" value="0.00%" readonly>
+                                <span class="ad-field-caption">Clicks divided by impressions</span>
+                            </label>
+                        </div>
+
+                        <div class="ad-date-row">
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">🗓️</span><span>Start Date / Time</span></span>
+                                <input type="datetime-local" id="adItemStartAt">
+                            </label>
+
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">🏁</span><span>End Date / Time</span></span>
+                                <input type="datetime-local" id="adItemEndAt">
                             </label>
                         </div>
 
@@ -3040,13 +3147,25 @@
                     </div>
 
                     <div class="ad-settings-card">
-                        <h2 class="ad-card-title">Ad Inventory</h2>
+                        <div class="ad-card-head">
+                            <div class="ad-card-icon">🧩</div>
+                            <div>
+                                <h2 class="ad-card-title">Ad Inventory</h2>
+                                <div class="ad-card-subtitle">Reusable ad items ready for rotation</div>
+                            </div>
+                        </div>
                         <div id="adInventoryEmpty" class="ad-empty-note">No ad items yet.</div>
                         <div id="adInventoryList" class="ad-inventory-list"></div>
                     </div>
 
                     <div class="ad-settings-card">
-                        <h2 class="ad-card-title">Actions</h2>
+                        <div class="ad-card-head">
+                            <div class="ad-card-icon">💾</div>
+                            <div>
+                                <h2 class="ad-card-title">Actions</h2>
+                                <div class="ad-card-subtitle">Save, reset, or export your current setup</div>
+                            </div>
+                        </div>
                         <div class="ad-form-actions">
                             <button id="adSaveBtn" class="ad-btn primary">Save Ad Settings</button>
                             <button id="adResetBtn" class="ad-btn danger">Reset to Defaults</button>
