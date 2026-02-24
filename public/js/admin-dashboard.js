@@ -53,6 +53,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize system settings
     initializeSystemSettings();
+
+    // Initialize ad placement settings (Phase 3 scaffold)
+    initializeAdSettingsPanel();
     
     // Initialize admin profile dropdown
     initializeAdminDropdown();
@@ -229,6 +232,7 @@ function updatePageTitle(section) {
         'finance': 'Financial Management',
         'analytics': 'Platform Analytics',
         'moderation': 'Gig Moderation',
+        'ads': 'Ad Placement',
         'settings': 'System Settings'
     };
     
@@ -11216,6 +11220,322 @@ window.addEventListener('resize', () => {
         }
     }
 });
+
+// ===== AD PLACEMENT SETTINGS (PHASE 3) =====
+const AD_SETTINGS_STORAGE_KEY = 'gisugo_admin_ad_settings_v1';
+const DEFAULT_AD_PANEL_SETTINGS = {
+    enabled: true,
+    frequencyCards: 10,
+    maxAdsPerSession: 6,
+    startAfterCards: 0,
+    allowTailAd: true,
+    allowEmptyStateAd: true,
+    zones: {
+        listing_feed_inline: true,
+        profile_logout_slot: true,
+        gig_detail_post_customer: true
+    },
+    ads: [
+        {
+            id: 'offer-verify-launch',
+            type: 'site_offer',
+            subtype: 'in_app_offer',
+            imageSrc: 'public/images/verify.png',
+            altText: 'Get verified for safer gigs',
+            weight: 100,
+            action: {
+                type: 'open_modal',
+                target: '#accountOverlay'
+            }
+        }
+    ]
+};
+
+let adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+
+function initializeAdSettingsPanel() {
+    const adsSection = document.getElementById('ads');
+    if (!adsSection) return;
+
+    loadAdPanelState();
+    bindAdPanelActions();
+    renderAdInventoryList();
+    syncAdPanelFormFromState();
+    refreshAdJsonPreview();
+    console.log('📣 Ad placement settings panel initialized');
+}
+
+function loadAdPanelState() {
+    try {
+        const raw = localStorage.getItem(AD_SETTINGS_STORAGE_KEY);
+        if (!raw) {
+            adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        adPanelState = {
+            ...JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS)),
+            ...parsed,
+            zones: {
+                ...DEFAULT_AD_PANEL_SETTINGS.zones,
+                ...(parsed.zones || {})
+            },
+            ads: Array.isArray(parsed.ads) ? parsed.ads : [...DEFAULT_AD_PANEL_SETTINGS.ads]
+        };
+    } catch (error) {
+        console.warn('⚠️ Failed to load ad settings; using defaults.', error);
+        adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+    }
+}
+
+function saveAdPanelState() {
+    localStorage.setItem(AD_SETTINGS_STORAGE_KEY, JSON.stringify(adPanelState));
+    refreshAdJsonPreview();
+}
+
+function bindAdPanelActions() {
+    const saveBtn = document.getElementById('adSaveBtn');
+    const resetBtn = document.getElementById('adResetBtn');
+    const exportBtn = document.getElementById('adExportBtn');
+    const addOrUpdateBtn = document.getElementById('adAddOrUpdateBtn');
+    const clearFormBtn = document.getElementById('adClearFormBtn');
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            collectAdPanelControls();
+            saveAdPanelState();
+            flashButtonState(saveBtn, 'Saved');
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+            syncAdPanelFormFromState();
+            renderAdInventoryList();
+            saveAdPanelState();
+            refreshAdJsonPreview();
+            clearAdItemForm();
+            flashButtonState(resetBtn, 'Reset');
+        });
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            const jsonText = JSON.stringify(adPanelState, null, 2);
+            const preview = document.getElementById('adJsonPreview');
+            if (preview) preview.value = jsonText;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(jsonText);
+                    flashButtonState(exportBtn, 'Copied');
+                    return;
+                }
+            } catch (error) {
+                console.warn('Clipboard export failed, keeping JSON in preview.', error);
+            }
+            flashButtonState(exportBtn, 'Ready');
+        });
+    }
+
+    if (addOrUpdateBtn) {
+        addOrUpdateBtn.addEventListener('click', () => {
+            collectAdPanelControls();
+            upsertAdFromForm();
+            saveAdPanelState();
+            renderAdInventoryList();
+            refreshAdJsonPreview();
+            clearAdItemForm();
+            flashButtonState(addOrUpdateBtn, 'Updated');
+        });
+    }
+
+    if (clearFormBtn) {
+        clearFormBtn.addEventListener('click', clearAdItemForm);
+    }
+}
+
+function collectAdPanelControls() {
+    const enabled = document.getElementById('adEnabled');
+    const frequencyCards = document.getElementById('adFrequencyCards');
+    const maxAdsPerSession = document.getElementById('adMaxAdsPerSession');
+    const startAfterCards = document.getElementById('adStartAfterCards');
+    const allowTail = document.getElementById('adAllowTail');
+    const allowEmpty = document.getElementById('adAllowEmpty');
+    const zoneListingInline = document.getElementById('zoneListingInline');
+    const zoneProfileSlot = document.getElementById('zoneProfileSlot');
+    const zoneGigDetailSlot = document.getElementById('zoneGigDetailSlot');
+
+    adPanelState.enabled = enabled ? enabled.value === 'true' : true;
+    adPanelState.frequencyCards = frequencyCards ? Math.max(1, parseInt(frequencyCards.value, 10) || 10) : 10;
+    adPanelState.maxAdsPerSession = maxAdsPerSession ? Math.max(1, parseInt(maxAdsPerSession.value, 10) || 6) : 6;
+    adPanelState.startAfterCards = startAfterCards ? Math.max(0, parseInt(startAfterCards.value, 10) || 0) : 0;
+    adPanelState.allowTailAd = allowTail ? !!allowTail.checked : true;
+    adPanelState.allowEmptyStateAd = allowEmpty ? !!allowEmpty.checked : true;
+
+    adPanelState.zones = {
+        listing_feed_inline: zoneListingInline ? !!zoneListingInline.checked : true,
+        profile_logout_slot: zoneProfileSlot ? !!zoneProfileSlot.checked : true,
+        gig_detail_post_customer: zoneGigDetailSlot ? !!zoneGigDetailSlot.checked : true
+    };
+}
+
+function syncAdPanelFormFromState() {
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = String(value);
+    };
+    const setChecked = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.checked = !!value;
+    };
+
+    setValue('adEnabled', adPanelState.enabled ? 'true' : 'false');
+    setValue('adFrequencyCards', adPanelState.frequencyCards);
+    setValue('adMaxAdsPerSession', adPanelState.maxAdsPerSession);
+    setValue('adStartAfterCards', adPanelState.startAfterCards);
+    setChecked('adAllowTail', adPanelState.allowTailAd);
+    setChecked('adAllowEmpty', adPanelState.allowEmptyStateAd);
+    setChecked('zoneListingInline', adPanelState.zones.listing_feed_inline);
+    setChecked('zoneProfileSlot', adPanelState.zones.profile_logout_slot);
+    setChecked('zoneGigDetailSlot', adPanelState.zones.gig_detail_post_customer);
+}
+
+function getAdItemFormData() {
+    const adId = (document.getElementById('adItemId')?.value || '').trim();
+    const type = document.getElementById('adItemType')?.value || 'site_offer';
+    const subtype = document.getElementById('adItemSubtype')?.value || 'in_app_offer';
+    const imageSrc = (document.getElementById('adItemImageSrc')?.value || '').trim();
+    const altText = (document.getElementById('adItemAltText')?.value || '').trim();
+    const actionType = document.getElementById('adItemActionType')?.value || 'navigate';
+    const actionTarget = (document.getElementById('adItemActionTarget')?.value || '').trim();
+    const weight = Math.max(1, parseInt(document.getElementById('adItemWeight')?.value || '100', 10));
+
+    if (!adId || !imageSrc) {
+        return null;
+    }
+
+    return {
+        id: adId,
+        type,
+        subtype,
+        imageSrc,
+        altText: altText || adId,
+        weight,
+        action: {
+            type: actionType,
+            target: actionTarget
+        }
+    };
+}
+
+function upsertAdFromForm() {
+    const formData = getAdItemFormData();
+    if (!formData) return;
+
+    const existingIndex = adPanelState.ads.findIndex(ad => ad.id === formData.id);
+    if (existingIndex >= 0) {
+        adPanelState.ads[existingIndex] = formData;
+    } else {
+        adPanelState.ads.push(formData);
+    }
+}
+
+function clearAdItemForm() {
+    const fields = ['adItemId', 'adItemImageSrc', 'adItemAltText', 'adItemActionTarget'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const weight = document.getElementById('adItemWeight');
+    if (weight) weight.value = '100';
+    const type = document.getElementById('adItemType');
+    if (type) type.value = 'site_offer';
+    const subtype = document.getElementById('adItemSubtype');
+    if (subtype) subtype.value = 'in_app_offer';
+    const actionType = document.getElementById('adItemActionType');
+    if (actionType) actionType.value = 'navigate';
+}
+
+function renderAdInventoryList() {
+    const container = document.getElementById('adInventoryList');
+    const emptyState = document.getElementById('adInventoryEmpty');
+    if (!container || !emptyState) return;
+
+    container.innerHTML = '';
+    const items = Array.isArray(adPanelState.ads) ? adPanelState.ads : [];
+    emptyState.style.display = items.length ? 'none' : 'block';
+
+    items.forEach((ad) => {
+        const item = document.createElement('div');
+        item.className = 'ad-inventory-item';
+
+        const meta = document.createElement('div');
+        meta.className = 'ad-inventory-meta';
+        meta.innerHTML = `
+            <div class="ad-inventory-title">${ad.id}</div>
+            <div class="ad-inventory-sub">${ad.type} • ${ad.action?.type || 'navigate'} • w:${ad.weight || 100}</div>
+        `;
+
+        const actions = document.createElement('div');
+        actions.className = 'ad-inventory-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'ad-mini-btn';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => populateAdFormForEdit(ad));
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'ad-mini-btn';
+        removeBtn.textContent = 'Delete';
+        removeBtn.addEventListener('click', () => {
+            adPanelState.ads = adPanelState.ads.filter(itemAd => itemAd.id !== ad.id);
+            saveAdPanelState();
+            renderAdInventoryList();
+            refreshAdJsonPreview();
+        });
+
+        actions.appendChild(editBtn);
+        actions.appendChild(removeBtn);
+        item.appendChild(meta);
+        item.appendChild(actions);
+        container.appendChild(item);
+    });
+}
+
+function populateAdFormForEdit(ad) {
+    if (!ad) return;
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = value || '';
+    };
+    setValue('adItemId', ad.id);
+    setValue('adItemType', ad.type || 'site_offer');
+    setValue('adItemSubtype', ad.subtype || 'in_app_offer');
+    setValue('adItemImageSrc', ad.imageSrc);
+    setValue('adItemAltText', ad.altText);
+    setValue('adItemActionType', ad.action?.type || 'navigate');
+    setValue('adItemActionTarget', ad.action?.target || ad.action?.url || ad.action?.modalId || '');
+    setValue('adItemWeight', ad.weight || 100);
+}
+
+function refreshAdJsonPreview() {
+    const preview = document.getElementById('adJsonPreview');
+    if (!preview) return;
+    preview.value = JSON.stringify(adPanelState, null, 2);
+}
+
+function flashButtonState(button, text) {
+    if (!button) return;
+    const original = button.textContent;
+    button.textContent = text;
+    setTimeout(() => {
+        button.textContent = original;
+    }, 1200);
+}
 
 // ===== INITIALIZATION COMPLETE =====
 console.log('✅ Admin Dashboard JavaScript loaded successfully');

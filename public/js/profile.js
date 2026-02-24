@@ -2786,6 +2786,167 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
 // ===== DEMO TESTING =====
 // To test different verification states, change DEMO_CONFIG at top of file
 
+const PROFILE_AD_ZONE_CONFIG = {
+  enabled: true,
+  zoneId: 'profile_logout_slot',
+  ads: [
+    {
+      id: 'profile-offer-verify',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Get verified for safer gigs',
+      badgeText: '',
+      action: {
+        type: 'open_modal',
+        modalId: 'accountOverlay'
+      }
+    }
+  ]
+};
+
+let profileAdVideoEscHandler = null;
+
+function getProfileSlotAd() {
+  if (!PROFILE_AD_ZONE_CONFIG.enabled) return null;
+  const ads = Array.isArray(PROFILE_AD_ZONE_CONFIG.ads) ? PROFILE_AD_ZONE_CONFIG.ads : [];
+  return ads.find(ad => ad && ad.imageSrc) || null;
+}
+
+function ensureProfileAdVideoPopup() {
+  let popup = document.getElementById('profileAdVideoPopup');
+  if (popup) return popup;
+
+  popup = document.createElement('div');
+  popup.id = 'profileAdVideoPopup';
+  popup.className = 'profile-ad-video-popup';
+  popup.innerHTML = `
+    <div class="profile-ad-video-backdrop" data-close="true"></div>
+    <div class="profile-ad-video-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
+      <button type="button" class="profile-ad-video-close" aria-label="Close video offer">×</button>
+      <video class="profile-ad-video-player" controls playsinline preload="metadata"></video>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const closePopup = () => {
+    const player = popup.querySelector('.profile-ad-video-player');
+    if (player) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+    }
+    popup.classList.remove('is-visible');
+  };
+
+  const closeButton = popup.querySelector('.profile-ad-video-close');
+  const backdrop = popup.querySelector('.profile-ad-video-backdrop');
+  if (closeButton) closeButton.addEventListener('click', closePopup);
+  if (backdrop) backdrop.addEventListener('click', closePopup);
+  if (!profileAdVideoEscHandler) {
+    profileAdVideoEscHandler = (event) => {
+      if (event.key === 'Escape') closePopup();
+    };
+    document.addEventListener('keydown', profileAdVideoEscHandler);
+  }
+
+  return popup;
+}
+
+function openProfileAdModal(action) {
+  if (!action) return;
+  const selector = action.modalSelector || action.modalId;
+  if (!selector) return;
+
+  const modal = selector.startsWith && selector.startsWith('#')
+    ? document.querySelector(selector)
+    : document.getElementById(selector) || document.querySelector(selector);
+
+  if (!modal) {
+    console.warn('⚠️ Profile ad modal target not found:', selector);
+    return;
+  }
+
+  modal.classList.add('active');
+  modal.classList.add('show');
+  modal.classList.add('is-visible');
+  modal.classList.add('open');
+  modal.style.display = modal.style.display || 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function handleProfileAdAction(event, adConfig) {
+  const action = adConfig && adConfig.action ? adConfig.action : null;
+  if (!action || !action.type) return;
+
+  if (action.type === 'navigate' && action.url) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (action.type === 'open_modal') {
+    openProfileAdModal(action);
+    return;
+  }
+
+  if (action.type === 'open_video_popup') {
+    const popup = ensureProfileAdVideoPopup();
+    const player = popup ? popup.querySelector('.profile-ad-video-player') : null;
+    if (!player || !action.videoSrc) return;
+
+    player.src = action.videoSrc;
+    if (action.poster) {
+      player.poster = action.poster;
+    } else {
+      player.removeAttribute('poster');
+    }
+
+    popup.classList.add('is-visible');
+    const playAttempt = player.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        // Playback can require another direct tap on some mobile browsers.
+      });
+    }
+  }
+}
+
+function createProfileSlotAdCard(adConfig) {
+  const adCard = document.createElement('a');
+  adCard.className = 'profile-slot-ad-card';
+  adCard.href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
+  adCard.setAttribute('data-ad-zone', PROFILE_AD_ZONE_CONFIG.zoneId);
+  adCard.setAttribute('data-ad-id', adConfig.id || 'profile-ad');
+  adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
+
+  adCard.innerHTML = `
+    <div class="profile-slot-ad-media">
+      <img src="${adConfig.imageSrc}" alt="${adConfig.altText || 'Featured platform offer'}" loading="lazy">
+    </div>
+  `;
+
+  adCard.addEventListener('click', (event) => handleProfileAdAction(event, adConfig));
+  return adCard;
+}
+
+function initializeProfileAdSlot() {
+  const logoutSection = document.getElementById('profileAdSlot') || document.querySelector('.profile-logout-section');
+  if (!logoutSection) return;
+
+  const existingAd = logoutSection.querySelector('.profile-slot-ad-card');
+  if (existingAd) existingAd.remove();
+
+  // Always remove duplicate logout CTA from profile body.
+  logoutSection.innerHTML = '';
+
+  const adConfig = getProfileSlotAd();
+  if (!adConfig) return;
+
+  logoutSection.appendChild(createProfileSlotAdCard(adConfig));
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔥 Profile page loaded with Firebase integration');
@@ -2798,6 +2959,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Initialize edit profile overlay
   initializeEditProfileOverlay();
+
+  // Phase 2 ad zone: profile logout slot
+  initializeProfileAdSlot();
   
   console.log('Profile page initialization complete');
 });
@@ -3617,6 +3781,11 @@ function cleanupProfilePage() {
   const editProfileOverlay = document.getElementById('editProfileOverlay');
   if (editProfileOverlay && editProfileOverlay.classList.contains('show')) {
     editProfileOverlay.classList.remove('show');
+  }
+
+  if (profileAdVideoEscHandler) {
+    document.removeEventListener('keydown', profileAdVideoEscHandler);
+    profileAdVideoEscHandler = null;
   }
   
   console.log('🧹 Profile page cleanup completed');

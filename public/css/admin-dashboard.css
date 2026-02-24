@@ -10050,4 +10050,158 @@ body.admin-dashboard::-webkit-scrollbar {
     }
 }
 
+/* ===== AD PLACEMENT SECTION (PHASE 3) ===== */
+.ad-settings-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.ad-settings-card {
+    background: rgba(42, 52, 65, 0.9);
+    border: 1px solid rgba(16, 185, 129, 0.18);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.ad-card-title {
+    color: #10b981;
+    font-size: 1rem;
+    margin: 0 0 0.75rem 0;
+}
+
+.ad-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.ad-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: #e6d6ae;
+    font-size: 0.85rem;
+}
+
+.ad-field input,
+.ad-field select {
+    background: rgba(17, 24, 39, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    color: #e5e7eb;
+    border-radius: 8px;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.9rem;
+}
+
+.ad-toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+}
+
+.ad-toggle {
+    color: #e6d6ae;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.ad-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+}
+
+.ad-btn {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.9);
+    color: #f8fafc;
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+}
+
+.ad-btn.primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-color: rgba(16, 185, 129, 0.65);
+}
+
+.ad-btn.danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border-color: rgba(239, 68, 68, 0.65);
+}
+
+.ad-empty-note {
+    color: rgba(230, 214, 174, 0.7);
+    font-size: 0.85rem;
+    margin-bottom: 0.65rem;
+}
+
+.ad-inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.ad-inventory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 9px;
+    padding: 0.55rem 0.65rem;
+}
+
+.ad-inventory-meta {
+    min-width: 0;
+}
+
+.ad-inventory-title {
+    color: #f8fafc;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.ad-inventory-sub {
+    color: rgba(230, 214, 174, 0.75);
+    font-size: 0.75rem;
+}
+
+.ad-inventory-actions {
+    display: flex;
+    gap: 0.45rem;
+}
+
+.ad-mini-btn {
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(2, 6, 23, 0.8);
+    color: #f8fafc;
+    border-radius: 6px;
+    padding: 0.35rem 0.55rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.ad-json-preview {
+    width: 100%;
+    min-height: 180px;
+    margin-top: 0.8rem;
+    resize: vertical;
+    border-radius: 9px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(2, 6, 23, 0.92);
+    color: #d1fae5;
+    padding: 0.7rem;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
 /* ===== END OF ADMIN DASHBOARD CSS ===== */

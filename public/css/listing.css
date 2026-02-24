@@ -1798,6 +1798,11 @@ body::-webkit-scrollbar {
   display: block;
   min-height: clamp(150px, 22vw, 210px);
   background: #1f2937;
+  cursor: pointer;
+}
+
+.ad-placeholder-card[data-ad-zone="empty"] {
+  margin-top: 18px;
 }
 
 .ad-placeholder-media {
@@ -1835,6 +1840,59 @@ body::-webkit-scrollbar {
   letter-spacing: 0.2px;
   border-radius: 999px;
   padding: 5px 10px;
+}
+
+.ad-video-popup {
+  position: fixed;
+  inset: 0;
+  z-index: 1000000;
+  display: none;
+}
+
+.ad-video-popup.is-visible {
+  display: block;
+}
+
+.ad-video-popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.ad-video-popup-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 860px);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  background: #0b1220;
+}
+
+.ad-video-popup-player {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 78vh;
+  background: #000;
+}
+
+.ad-video-popup-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
 }
 
 /* ============================

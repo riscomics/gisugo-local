@@ -199,13 +199,8 @@
           </div>
         </div>
 
-        <!-- Logout Button Section -->
-        <div class="profile-logout-section">
-          <button class="profile-logout-btn" id="profileLogoutBtn">
-            <span class="logout-btn-emoji">🚪</span>
-            <span>LOG OUT</span>
-          </button>
-        </div>
+        <!-- Profile ad slot (Phase 2) -->
+        <div class="profile-logout-section" id="profileAdSlot"></div>
 
           </div>
         </div>
@@ -1156,29 +1151,6 @@
     </div>
   </div>
 
-  <!-- Logout Confirmation Modal -->
-  <div class="logout-confirm-overlay" id="logoutConfirmOverlay">
-    <div class="logout-confirm-modal">
-      <div class="logout-confirm-emoji">⚠️</div>
-      <div class="logout-confirm-title">Are you sure?</div>
-      <div class="logout-confirm-message">We'll miss you!</div>
-      <div class="logout-confirm-buttons">
-        <button class="logout-confirm-btn cancel" onclick="cancelProfileLogout()">Stay</button>
-        <button class="logout-confirm-btn confirm" onclick="confirmProfileLogout()">Log Out</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Logout Loading Overlay -->
-  <div class="logout-overlay" id="logoutOverlay">
-    <div class="logout-emoji">👋</div>
-    <div class="logout-spinner"></div>
-    <div class="logout-message">
-      <span>Come</span> <span>back</span> <span>again</span> <span>soon!</span>
-    </div>
-    <div class="logout-submessage">Logging out...</div>
-  </div>
-
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
@@ -1197,80 +1169,6 @@
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
   <script src="public/js/profile.js?v=31"></script>
-
-  <!-- Logout Button Handler -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const profileLogoutBtn = document.getElementById('profileLogoutBtn');
-      
-      if (profileLogoutBtn) {
-        profileLogoutBtn.addEventListener('click', handleProfileLogout);
-      }
-    });
-
-    function handleProfileLogout() {
-      console.log('🚪 Logout requested from profile - showing confirmation...');
-      
-      // Show confirmation modal
-      const confirmOverlay = document.getElementById('logoutConfirmOverlay');
-      if (confirmOverlay) {
-        confirmOverlay.classList.add('active');
-      }
-    }
-    
-    function cancelProfileLogout() {
-      console.log('❌ Logout cancelled');
-      
-      // Hide confirmation modal
-      const confirmOverlay = document.getElementById('logoutConfirmOverlay');
-      if (confirmOverlay) {
-        confirmOverlay.classList.remove('active');
-      }
-    }
-    
-    async function confirmProfileLogout() {
-      console.log('✅ Logout confirmed');
-      
-      // Hide confirmation modal
-      const confirmOverlay = document.getElementById('logoutConfirmOverlay');
-      if (confirmOverlay) {
-        confirmOverlay.classList.remove('active');
-      }
-      
-      // Show friendly loading overlay
-      const loadingOverlay = document.getElementById('logoutOverlay');
-      if (loadingOverlay) {
-        loadingOverlay.classList.add('active');
-      }
-      
-      // Add minimum display time so user sees the friendly animation (even if logout is instant)
-      const minimumDisplayTime = 2500; // 2.5 seconds
-      const startTime = Date.now();
-      
-      // Perform logout
-      let logoutPromise;
-      if (typeof logout === 'function') {
-        logoutPromise = logout();
-      } else {
-        // Fallback if logout function not available
-        localStorage.removeItem('gisugo_current_user');
-        logoutPromise = Promise.resolve();
-      }
-      
-      // Wait for both logout AND minimum display time
-      await Promise.all([
-        logoutPromise,
-        new Promise(resolve => {
-          const elapsed = Date.now() - startTime;
-          const remaining = Math.max(0, minimumDisplayTime - elapsed);
-          setTimeout(resolve, remaining);
-        })
-      ]);
-      
-      // Redirect to home (reload to clear state)
-      window.location.href = 'index.html';
-    }
-  </script>
 
 </body>
 </html> 

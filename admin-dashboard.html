@@ -91,6 +91,12 @@
                     <span class="menu-text">Analytics</span>
                 </div>
 
+                <!-- Ad Placement Section -->
+                <div class="menu-item" data-section="ads">
+                    <span class="menu-icon">📣</span>
+                    <span class="menu-text">Ad Placement</span>
+                </div>
+
                 <!-- System Settings Section -->
                 <div class="menu-item" data-section="settings">
                     <span class="menu-icon">⚙️</span>
@@ -2927,6 +2933,129 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Ad Placement Section -->
+            <section id="ads" class="content-section">
+                <div class="section-header">
+                    <h1 class="section-title">Ad Placement</h1>
+                    <p class="section-subtitle">Configure feed cadence, zones, and ad inventory (local prototype)</p>
+                </div>
+
+                <div class="ad-settings-layout">
+                    <div class="ad-settings-card">
+                        <h2 class="ad-card-title">Global Ad Controls</h2>
+                        <div class="ad-field-grid">
+                            <label class="ad-field">
+                                <span>Ad System Enabled</span>
+                                <select id="adEnabled">
+                                    <option value="true">Enabled</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Listing Frequency (cards)</span>
+                                <input type="number" id="adFrequencyCards" min="1" max="50" value="10">
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Max Ads / Page Session</span>
+                                <input type="number" id="adMaxAdsPerSession" min="1" max="20" value="6">
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Start After N Cards</span>
+                                <input type="number" id="adStartAfterCards" min="0" max="100" value="0">
+                            </label>
+                        </div>
+
+                        <div class="ad-toggle-grid">
+                            <label class="ad-toggle"><input type="checkbox" id="adAllowTail" checked> Tail ad after last gig</label>
+                            <label class="ad-toggle"><input type="checkbox" id="adAllowEmpty" checked> Empty-state ad</label>
+                            <label class="ad-toggle"><input type="checkbox" id="zoneListingInline" checked> Listing inline zone</label>
+                            <label class="ad-toggle"><input type="checkbox" id="zoneProfileSlot" checked> Profile slot zone</label>
+                            <label class="ad-toggle"><input type="checkbox" id="zoneGigDetailSlot" checked> Gig detail zone</label>
+                        </div>
+                    </div>
+
+                    <div class="ad-settings-card">
+                        <h2 class="ad-card-title">Add / Edit Ad Item</h2>
+                        <div class="ad-field-grid">
+                            <label class="ad-field">
+                                <span>Ad ID</span>
+                                <input type="text" id="adItemId" placeholder="e.g. offer-verify-launch">
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Type</span>
+                                <select id="adItemType">
+                                    <option value="site_offer">site_offer</option>
+                                    <option value="sponsored_external">sponsored_external</option>
+                                    <option value="video_popup">video_popup</option>
+                                </select>
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Subtype</span>
+                                <select id="adItemSubtype">
+                                    <option value="in_app_offer">in_app_offer</option>
+                                    <option value="sponsor_paid">sponsor_paid</option>
+                                </select>
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Image URL</span>
+                                <input type="text" id="adItemImageSrc" placeholder="public/images/verify.png">
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Alt Text</span>
+                                <input type="text" id="adItemAltText" placeholder="Get verified for safer gigs">
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Action Type</span>
+                                <select id="adItemActionType">
+                                    <option value="navigate">navigate</option>
+                                    <option value="open_modal">open_modal</option>
+                                    <option value="open_video_popup">open_video_popup</option>
+                                </select>
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Action Target</span>
+                                <input type="text" id="adItemActionTarget" placeholder="profile.html or #accountOverlay">
+                            </label>
+
+                            <label class="ad-field">
+                                <span>Weight (rotation)</span>
+                                <input type="number" id="adItemWeight" min="1" max="1000" value="100">
+                            </label>
+                        </div>
+
+                        <div class="ad-form-actions">
+                            <button id="adAddOrUpdateBtn" class="ad-btn primary">Add / Update Ad</button>
+                            <button id="adClearFormBtn" class="ad-btn">Clear Form</button>
+                        </div>
+                    </div>
+
+                    <div class="ad-settings-card">
+                        <h2 class="ad-card-title">Ad Inventory</h2>
+                        <div id="adInventoryEmpty" class="ad-empty-note">No ad items yet.</div>
+                        <div id="adInventoryList" class="ad-inventory-list"></div>
+                    </div>
+
+                    <div class="ad-settings-card">
+                        <h2 class="ad-card-title">Actions</h2>
+                        <div class="ad-form-actions">
+                            <button id="adSaveBtn" class="ad-btn primary">Save Ad Settings</button>
+                            <button id="adResetBtn" class="ad-btn danger">Reset to Defaults</button>
+                            <button id="adExportBtn" class="ad-btn">Export JSON</button>
+                        </div>
+                        <textarea id="adJsonPreview" class="ad-json-preview" readonly></textarea>
+                    </div>
+                </div>
+            </section>
 
             <!-- System Settings Section -->
             <section id="settings" class="content-section">

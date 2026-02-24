@@ -1278,6 +1278,168 @@ async function checkIfUserAlreadyApplied(jobId) {
   }
 }
 
+const GIG_DETAIL_AD_ZONE_CONFIG = {
+  enabled: true,
+  zoneId: 'gig_detail_post_customer',
+  ads: [
+    {
+      id: 'gig-detail-offer-verify',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Get verified for trust and safety',
+      badgeText: '',
+      action: {
+        type: 'navigate',
+        url: 'profile.html'
+      }
+    }
+  ]
+};
+
+let gigDetailAdVideoEscHandler = null;
+
+function getGigDetailSlotAd() {
+  if (!GIG_DETAIL_AD_ZONE_CONFIG.enabled) return null;
+  const ads = Array.isArray(GIG_DETAIL_AD_ZONE_CONFIG.ads) ? GIG_DETAIL_AD_ZONE_CONFIG.ads : [];
+  return ads.find(ad => ad && ad.imageSrc) || null;
+}
+
+function ensureGigDetailAdVideoPopup() {
+  let popup = document.getElementById('gigDetailAdVideoPopup');
+  if (popup) return popup;
+
+  popup = document.createElement('div');
+  popup.id = 'gigDetailAdVideoPopup';
+  popup.className = 'gig-detail-ad-video-popup';
+  popup.innerHTML = `
+    <div class="gig-detail-ad-video-backdrop" data-close="true"></div>
+    <div class="gig-detail-ad-video-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
+      <button type="button" class="gig-detail-ad-video-close" aria-label="Close video offer">×</button>
+      <video class="gig-detail-ad-video-player" controls playsinline preload="metadata"></video>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const closePopup = () => {
+    const player = popup.querySelector('.gig-detail-ad-video-player');
+    if (player) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+    }
+    popup.classList.remove('is-visible');
+  };
+
+  const closeButton = popup.querySelector('.gig-detail-ad-video-close');
+  const backdrop = popup.querySelector('.gig-detail-ad-video-backdrop');
+  if (closeButton) closeButton.addEventListener('click', closePopup);
+  if (backdrop) backdrop.addEventListener('click', closePopup);
+  if (!gigDetailAdVideoEscHandler) {
+    gigDetailAdVideoEscHandler = (event) => {
+      if (event.key === 'Escape') closePopup();
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', gigDetailAdVideoEscHandler);
+  }
+
+  return popup;
+}
+
+function openGigDetailAdModal(action) {
+  if (!action) return;
+  const selector = action.modalSelector || action.modalId;
+  if (!selector) return;
+
+  const modal = selector.startsWith && selector.startsWith('#')
+    ? document.querySelector(selector)
+    : document.getElementById(selector) || document.querySelector(selector);
+
+  if (!modal) {
+    console.warn('⚠️ Gig detail ad modal target not found:', selector);
+    return;
+  }
+
+  modal.classList.add('active');
+  modal.classList.add('show');
+  modal.classList.add('is-visible');
+  modal.classList.add('open');
+  modal.style.display = modal.style.display || 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function handleGigDetailAdAction(event, adConfig) {
+  const action = adConfig && adConfig.action ? adConfig.action : null;
+  if (!action || !action.type) return;
+
+  if (action.type === 'navigate' && action.url) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (action.type === 'open_modal') {
+    openGigDetailAdModal(action);
+    return;
+  }
+
+  if (action.type === 'open_video_popup') {
+    const popup = ensureGigDetailAdVideoPopup();
+    const player = popup ? popup.querySelector('.gig-detail-ad-video-player') : null;
+    if (!player || !action.videoSrc) return;
+
+    player.src = action.videoSrc;
+    if (action.poster) {
+      player.poster = action.poster;
+    } else {
+      player.removeAttribute('poster');
+    }
+
+    popup.classList.add('is-visible');
+    const playAttempt = player.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        // Playback can require another direct tap on some mobile browsers.
+      });
+    }
+  }
+}
+
+function createGigDetailAdCard(adConfig) {
+  const adCard = document.createElement('a');
+  adCard.className = 'gig-detail-slot-ad-card';
+  adCard.href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
+  adCard.setAttribute('data-ad-zone', GIG_DETAIL_AD_ZONE_CONFIG.zoneId);
+  adCard.setAttribute('data-ad-id', adConfig.id || 'gig-detail-ad');
+  adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
+
+  adCard.innerHTML = `
+    <div class="gig-detail-slot-ad-media">
+      <img src="${adConfig.imageSrc}" alt="${adConfig.altText || 'Featured platform offer'}" loading="lazy">
+    </div>
+  `;
+
+  adCard.addEventListener('click', (event) => handleGigDetailAdAction(event, adConfig));
+  return adCard;
+}
+
+function initializeGigDetailAdSlot() {
+  const customerSection = document.getElementById('customerSection');
+  if (!customerSection) return;
+
+  const existingSlot = document.getElementById('gigDetailAdSlot');
+  if (existingSlot) existingSlot.remove();
+
+  const adConfig = getGigDetailSlotAd();
+  if (!adConfig) return;
+
+  const slot = document.createElement('div');
+  slot.id = 'gigDetailAdSlot';
+  slot.className = 'gig-detail-ad-slot';
+  slot.appendChild(createGigDetailAdCard(adConfig));
+
+  customerSection.insertAdjacentElement('afterend', slot);
+}
+
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 Dynamic job page loading...');
@@ -1289,6 +1451,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeContactDropdown();
   initCounterOfferFormatting();
   initializePhotoLightbox();
+  initializeGigDetailAdSlot();
   
   console.log('✅ Dynamic job page initialization completed');
 }); 
