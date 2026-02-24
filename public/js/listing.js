@@ -947,6 +947,7 @@ async function filterAndSortJobs() {
   PAGINATION.currentIndex = 0;
   PAGINATION.displayedJobs = [];
   PAGINATION.hasMore = filteredJobs.length > PAGINATION.initialBatchSize;
+  PAGINATION.renderedBatches = 0;
   
   console.log(`📊 Total jobs after filtering: ${filteredJobs.length}`);
   console.log(`📦 Initial batch size: ${PAGINATION.initialBatchSize}`);
@@ -1013,6 +1014,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   }
   
   console.log(`📦 Rendering ${jobsToRender} jobs (index ${PAGINATION.currentIndex} to ${PAGINATION.currentIndex + jobsToRender - 1})`);
+  const currentBatchNumber = PAGINATION.renderedBatches + 1;
   
   // Get the batch of jobs to render
   const jobBatch = PAGINATION.allJobs.slice(
@@ -1057,10 +1059,17 @@ function renderJobBatch(batchSize, headerSpacer) {
     // Add to displayed jobs
     PAGINATION.displayedJobs.push(cardData);
   });
+
+  // Trial: inject one ad placeholder per rendered batch on hatod only
+  if (shouldInsertAdPlaceholder()) {
+    const adCard = createAdPlaceholderCard(currentBatchNumber);
+    headerSpacer.parentNode.appendChild(adCard);
+  }
   
   // Update pagination state
   PAGINATION.currentIndex += jobsToRender;
   PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length;
+  PAGINATION.renderedBatches = currentBatchNumber;
   
   console.log(`✅ Batch rendered. Displayed: ${PAGINATION.displayedJobs.length}/${PAGINATION.allJobs.length} jobs`);
   
@@ -1143,8 +1152,40 @@ const PAGINATION = {
   displayedJobs: [],     // Jobs currently displayed
   currentIndex: 0,       // Index of next job to display
   isLoading: false,      // Prevent concurrent loads
-  hasMore: true          // Whether more jobs exist to load
+  hasMore: true,         // Whether more jobs exist to load
+  renderedBatches: 0
 };
+
+const AD_PLACEHOLDER_TRIAL = {
+  enabled: true,
+  category: 'hatod',
+  imageSrc: 'public/ads/verify.png',
+  targetUrl: 'profile.html',
+  badgeText: 'Sponsored'
+};
+
+function shouldInsertAdPlaceholder() {
+  if (!AD_PLACEHOLDER_TRIAL.enabled) return false;
+  return getCurrentCategory() === AD_PLACEHOLDER_TRIAL.category;
+}
+
+function createAdPlaceholderCard(batchNumber) {
+  const adCard = document.createElement('a');
+  adCard.className = 'job-preview-card ad-placeholder-card';
+  adCard.href = AD_PLACEHOLDER_TRIAL.targetUrl;
+  adCard.setAttribute('data-ad-placeholder', 'true');
+  adCard.setAttribute('data-ad-batch', String(batchNumber));
+  adCard.setAttribute('aria-label', 'Sponsored content');
+
+  adCard.innerHTML = `
+    <div class="ad-placeholder-media">
+      <img src="${AD_PLACEHOLDER_TRIAL.imageSrc}" alt="Sponsored ad" loading="lazy">
+      <span class="ad-placeholder-badge">${AD_PLACEHOLDER_TRIAL.badgeText}</span>
+    </div>
+  `;
+
+  return adCard;
+}
 
 function getCurrentCategory() {
   // Get category from page title or URL
