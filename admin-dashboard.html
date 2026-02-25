@@ -3087,7 +3087,16 @@
 
                         <div class="ad-ops-grid">
                             <label class="ad-field">
-                                <span class="ad-field-icon-title"><span class="ad-field-icon">🧭</span><span>Action Type</span></span>
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">🟢</span><span>AD<br>Status</span></span>
+                                <select id="adItemStatus">
+                                    <option value="active">active</option>
+                                    <option value="paused">paused</option>
+                                    <option value="draft">draft</option>
+                                </select>
+                            </label>
+
+                            <label class="ad-field">
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">🧭</span><span>Action<br>Type</span></span>
                                 <select id="adItemActionType">
                                     <option value="navigate">navigate</option>
                                     <option value="open_modal">open_modal</option>
@@ -3096,17 +3105,8 @@
                             </label>
 
                             <label class="ad-field">
-                                <span class="ad-field-icon-title"><span class="ad-field-icon">⚖️</span><span>Weight (rotation)</span></span>
+                                <span class="ad-field-icon-title"><span class="ad-field-icon">⚖️</span><span>Weight<br>Rotation</span></span>
                                 <input type="number" id="adItemWeight" min="1" max="1000" value="100">
-                            </label>
-
-                            <label class="ad-field">
-                                <span class="ad-field-icon-title"><span class="ad-field-icon">🟢</span><span>Status</span></span>
-                                <select id="adItemStatus">
-                                    <option value="active">active</option>
-                                    <option value="paused">paused</option>
-                                    <option value="draft">draft</option>
-                                </select>
                             </label>
 
                             <label class="ad-field">
@@ -3126,6 +3126,7 @@
                                 <input type="text" id="adItemCtr" value="0.00%" readonly>
                                 <span class="ad-field-caption">Clicks divided by impressions</span>
                             </label>
+
                         </div>
 
                         <div class="ad-date-row">
