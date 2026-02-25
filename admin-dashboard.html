@@ -3052,8 +3052,21 @@
                                 <h2 class="ad-card-title">Add / Edit Ad Item</h2>
                                 <div class="ad-card-subtitle">Build a promo card and choose what happens on click</div>
                             </div>
+                            <div class="ad-card-head-right">
+                                <button type="button" class="ad-collapse-toggle" data-collapse-target="adItemCardBody" aria-expanded="true" aria-label="Collapse Add / Edit Ad Item section">Hide</button>
+                            </div>
                         </div>
+                        <div id="adItemCardBody" class="ad-card-body">
                         <div class="ad-field-grid">
+                            <label class="ad-field ad-field-full">
+                                <span>Type</span>
+                                <select id="adItemType">
+                                    <option value="site_offer">site_offer</option>
+                                    <option value="sponsored_external">sponsored_external</option>
+                                    <option value="video_popup">video_popup</option>
+                                </select>
+                            </label>
+
                             <label class="ad-field">
                                 <span>Ad ID</span>
                                 <input type="text" id="adItemId" placeholder="e.g. offer-verify-launch">
@@ -3071,17 +3084,25 @@
                         </div>
 
                         <div class="ad-action-row">
-                            <label class="ad-field">
+                            <label class="ad-field ad-type-field" data-ad-type="site_offer">
                                 <span>Action Target</span>
                                 <input type="text" id="adItemActionTarget" placeholder="profile.html or #accountOverlay">
+                                <span class="ad-field-caption">For site offers: modal selector or internal page route.</span>
                             </label>
-                            <label class="ad-field">
-                                <span>Type</span>
-                                <select id="adItemType">
-                                    <option value="site_offer">site_offer</option>
-                                    <option value="sponsored_external">sponsored_external</option>
-                                    <option value="video_popup">video_popup</option>
-                                </select>
+                            <label class="ad-field ad-type-field" data-ad-type="sponsored_external">
+                                <span>Destination URL</span>
+                                <input type="text" id="adItemExternalUrl" placeholder="https://example.com">
+                                <span class="ad-field-caption">Used for sponsored external ad clicks.</span>
+                            </label>
+                            <label class="ad-field ad-type-field" data-ad-type="video_popup">
+                                <span>YouTube URL</span>
+                                <input type="text" id="adItemVideoUrl" placeholder="https://www.youtube.com/watch?v=...">
+                                <span class="ad-field-caption">Watch, share, or embed URL supported.</span>
+                            </label>
+                            <label class="ad-field ad-type-field" data-ad-type="video_popup">
+                                <span>Video Thumbnail URL</span>
+                                <input type="text" id="adItemVideoThumbnail" placeholder="public/images/womensafety.jpg">
+                                <span class="ad-field-caption">Image shown on the ad card before opening the popup.</span>
                             </label>
                         </div>
 
@@ -3095,12 +3116,11 @@
                                 </select>
                             </label>
 
-                            <label class="ad-field">
+                            <label class="ad-field ad-type-field" data-ad-type="site_offer">
                                 <span class="ad-field-icon-title"><span class="ad-field-icon">🧭</span><span>Action<br>Type</span></span>
                                 <select id="adItemActionType">
                                     <option value="navigate">navigate</option>
                                     <option value="open_modal">open_modal</option>
-                                    <option value="open_video_popup">open_video_popup</option>
                                 </select>
                             </label>
 
@@ -3145,6 +3165,7 @@
                             <button id="adAddOrUpdateBtn" class="ad-btn primary">Add / Update Ad</button>
                             <button id="adClearFormBtn" class="ad-btn">Clear Form</button>
                         </div>
+                        </div>
                     </div>
 
                     <div class="ad-settings-card">
@@ -3154,9 +3175,14 @@
                                 <h2 class="ad-card-title">Ad Inventory</h2>
                                 <div class="ad-card-subtitle">Reusable ad items ready for rotation</div>
                             </div>
+                            <div class="ad-card-head-right">
+                                <button type="button" class="ad-collapse-toggle" data-collapse-target="adInventoryCardBody" aria-expanded="true" aria-label="Collapse Ad Inventory section">Hide</button>
+                            </div>
                         </div>
+                        <div id="adInventoryCardBody" class="ad-card-body">
                         <div id="adInventoryEmpty" class="ad-empty-note">No ad items yet.</div>
                         <div id="adInventoryList" class="ad-inventory-list"></div>
+                        </div>
                     </div>
 
                     <div class="ad-settings-card">
@@ -3166,13 +3192,18 @@
                                 <h2 class="ad-card-title">Actions</h2>
                                 <div class="ad-card-subtitle">Save, reset, or export your current setup</div>
                             </div>
+                            <div class="ad-card-head-right">
+                                <button type="button" class="ad-collapse-toggle" data-collapse-target="adActionsCardBody" aria-expanded="true" aria-label="Collapse Actions section">Hide</button>
+                            </div>
                         </div>
+                        <div id="adActionsCardBody" class="ad-card-body">
                         <div class="ad-form-actions">
                             <button id="adSaveBtn" class="ad-btn primary">Save Ad Settings</button>
                             <button id="adResetBtn" class="ad-btn danger">Reset to Defaults</button>
                             <button id="adExportBtn" class="ad-btn">Export JSON</button>
                         </div>
                         <textarea id="adJsonPreview" class="ad-json-preview" readonly></textarea>
+                        </div>
                     </div>
                 </div>
             </section>

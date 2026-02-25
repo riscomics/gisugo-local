@@ -2825,16 +2825,23 @@ function ensureProfileAdVideoPopup() {
     <div class="profile-ad-video-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
       <button type="button" class="profile-ad-video-close" aria-label="Close video offer">×</button>
       <video class="profile-ad-video-player" controls playsinline preload="metadata"></video>
+      <iframe class="profile-ad-video-iframe" title="Video offer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
     </div>
   `;
   document.body.appendChild(popup);
 
   const closePopup = () => {
     const player = popup.querySelector('.profile-ad-video-player');
+    const iframe = popup.querySelector('.profile-ad-video-iframe');
     if (player) {
       player.pause();
       player.removeAttribute('src');
       player.load();
+      player.style.display = 'block';
+    }
+    if (iframe) {
+      iframe.removeAttribute('src');
+      iframe.style.display = 'none';
     }
     popup.classList.remove('is-visible');
   };
@@ -2851,6 +2858,38 @@ function ensureProfileAdVideoPopup() {
   }
 
   return popup;
+}
+
+function isProfileAdYouTubeUrl(url) {
+  if (!url) return false;
+  return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function toProfileAdYouTubeEmbedUrl(url) {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').trim();
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/watch')) {
+      const id = parsed.searchParams.get('v');
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
+      const separator = parsed.search ? '&' : '?';
+      return `${parsed.toString()}${separator}autoplay=1`;
+    }
+  } catch (_) {
+    // fall through
+  }
+  return url;
 }
 
 function openProfileAdModal(action) {
@@ -2894,9 +2933,28 @@ function handleProfileAdAction(event, adConfig) {
   if (action.type === 'open_video_popup') {
     const popup = ensureProfileAdVideoPopup();
     const player = popup ? popup.querySelector('.profile-ad-video-player') : null;
-    if (!player || !action.videoSrc) return;
+    const iframe = popup ? popup.querySelector('.profile-ad-video-iframe') : null;
+    if (!player || !iframe) return;
 
-    player.src = action.videoSrc;
+    const sourceUrl = action.youtubeEmbed || action.videoSrc || action.target;
+    if (!sourceUrl) return;
+
+    if (isProfileAdYouTubeUrl(sourceUrl)) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      player.style.display = 'none';
+
+      iframe.src = toProfileAdYouTubeEmbedUrl(sourceUrl);
+      iframe.style.display = 'block';
+      popup.classList.add('is-visible');
+      return;
+    }
+
+    iframe.removeAttribute('src');
+    iframe.style.display = 'none';
+    player.style.display = 'block';
+    player.src = sourceUrl;
     if (action.poster) {
       player.poster = action.poster;
     } else {

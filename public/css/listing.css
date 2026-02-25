@@ -1915,7 +1915,18 @@ body::-webkit-scrollbar {
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: var(--ad-video-aspect, 16 / 9);
   max-height: 78vh;
+  background: #000;
+}
+
+.ad-video-popup-iframe {
+  display: none;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  aspect-ratio: var(--ad-video-aspect, 16 / 9);
+  max-height: 78vh;
+  border: 0;
   background: #000;
 }
 

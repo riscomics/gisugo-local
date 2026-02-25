@@ -10297,6 +10297,24 @@ body.admin-dashboard::-webkit-scrollbar {
     gap: 0.45rem;
 }
 
+.ad-collapse-toggle {
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.7);
+    color: #d1fae5;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.28rem 0.62rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ad-collapse-toggle:hover {
+    border-color: rgba(16, 185, 129, 0.7);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.26);
+    transform: translateY(-1px);
+}
+
 .ad-head-switch-state {
     color: #d1fae5;
     font-size: 0.72rem;
@@ -10338,6 +10356,14 @@ body.admin-dashboard::-webkit-scrollbar {
 .ad-field-grid {
     gap: 0.68rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ad-field-full {
+    grid-column: 1 / -1;
+}
+
+.ad-card-body.is-collapsed {
+    display: none;
 }
 
 .ad-field span {
@@ -10437,6 +10463,9 @@ body.admin-dashboard::-webkit-scrollbar {
 
 .ad-action-row {
     margin-top: 0.62rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.68rem;
 }
 
 .ad-action-row .ad-field {

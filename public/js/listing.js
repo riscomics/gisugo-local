@@ -1171,6 +1171,20 @@ const AD_TRIAL_CONFIG = {
   allowEmptyStateAd: true,
   ads: [
     {
+      id: 'video-safety-tips',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/womensafety.jpg',
+      altText: 'Watch quick platform guide',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://www.youtube.com/embed/ptHyvEeevR8?autoplay=1&loop=1&playlist=ptHyvEeevR8&rel=0&modestbranding=1',
+        poster: 'public/images/womensafety.jpg',
+        aspectRatio: '16:9'
+      }
+    },
+    {
       id: 'offer-verify',
       type: 'site_offer',
       subtype: 'in_app_offer',
@@ -1180,6 +1194,18 @@ const AD_TRIAL_CONFIG = {
       action: {
         type: 'navigate',
         url: 'profile.html'
+      }
+    },
+    {
+      id: 'sponsored-partner-spot',
+      type: 'sponsored_external',
+      subtype: 'sponsored_campaign',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Sponsored partner spotlight',
+      badgeText: 'Sponsored',
+      action: {
+        type: 'navigate',
+        url: 'https://example.com'
       }
     }
   ]
@@ -1294,6 +1320,7 @@ function ensureAdVideoPopup() {
     <div class="ad-video-popup-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
       <button type="button" class="ad-video-popup-close" aria-label="Close video offer">×</button>
       <video class="ad-video-popup-player" controls playsinline preload="metadata"></video>
+      <iframe class="ad-video-popup-iframe" title="Video offer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
     </div>
   `;
   document.body.appendChild(popup);
@@ -1325,20 +1352,111 @@ function closeAdVideoPopup() {
   const popup = document.getElementById('listingAdVideoPopup');
   if (!popup) return;
   const player = popup.querySelector('.ad-video-popup-player');
+  const iframe = popup.querySelector('.ad-video-popup-iframe');
   if (player) {
     player.pause();
     player.removeAttribute('src');
     player.load();
   }
+  if (iframe) {
+    iframe.removeAttribute('src');
+    iframe.style.display = 'none';
+  }
+  popup.style.removeProperty('--ad-video-aspect');
   popup.classList.remove('is-visible');
+}
+
+function normalizeAdAspectRatio(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const pairMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
+  if (pairMatch) {
+    const width = Number(pairMatch[1]);
+    const height = Number(pairMatch[2]);
+    if (width > 0 && height > 0) return `${width} / ${height}`;
+    return '';
+  }
+
+  const decimal = Number(trimmed);
+  if (!Number.isFinite(decimal) || decimal <= 0) return '';
+  return `${decimal} / 1`;
+}
+
+function resolveAdAspectRatio(actionConfig) {
+  if (!actionConfig) return '';
+  const raw = actionConfig.aspectRatio || actionConfig.videoAspectRatio || actionConfig.ratio;
+  return normalizeAdAspectRatio(raw);
+}
+
+function isYouTubeUrl(url) {
+  if (!url) return false;
+  return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function toYouTubeEmbedUrl(url) {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').trim();
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/watch')) {
+      const id = parsed.searchParams.get('v');
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
+      const separator = parsed.search ? '&' : '?';
+      return `${parsed.toString()}${separator}autoplay=1`;
+    }
+  } catch (_) {
+    // fall through to best-effort return
+  }
+  return url;
 }
 
 function openAdVideoPopup(actionConfig) {
   const popup = ensureAdVideoPopup();
   const player = popup.querySelector('.ad-video-popup-player');
-  if (!player || !actionConfig || !actionConfig.videoSrc) return;
+  const iframe = popup.querySelector('.ad-video-popup-iframe');
+  if (!player || !iframe || !actionConfig) return;
 
-  player.src = actionConfig.videoSrc;
+  const sourceUrl = actionConfig.youtubeEmbed || actionConfig.videoSrc || actionConfig.target;
+  if (!sourceUrl) return;
+  const configuredAspect = resolveAdAspectRatio(actionConfig);
+
+  if (isYouTubeUrl(sourceUrl)) {
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    player.style.display = 'none';
+
+    popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+    iframe.src = toYouTubeEmbedUrl(sourceUrl);
+    iframe.style.display = 'block';
+    popup.classList.add('is-visible');
+    return;
+  }
+
+  iframe.removeAttribute('src');
+  iframe.style.display = 'none';
+  player.style.display = 'block';
+  popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+
+  player.onloadedmetadata = () => {
+    if (configuredAspect) return;
+    if (player.videoWidth > 0 && player.videoHeight > 0) {
+      popup.style.setProperty('--ad-video-aspect', `${player.videoWidth} / ${player.videoHeight}`);
+    }
+  };
+  player.src = sourceUrl;
   if (actionConfig.poster) {
     player.poster = actionConfig.poster;
   } else {

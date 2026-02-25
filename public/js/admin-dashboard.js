@@ -11223,6 +11223,12 @@ window.addEventListener('resize', () => {
 
 // ===== AD PLACEMENT SETTINGS (PHASE 3) =====
 const AD_SETTINGS_STORAGE_KEY = 'gisugo_admin_ad_settings_v1';
+const AD_PANEL_COLLAPSE_STORAGE_KEY = 'gisugo_admin_ad_panel_collapse_v1';
+const DEFAULT_AD_PANEL_COLLAPSE_STATE = {
+    adItemCardBody: false,
+    adInventoryCardBody: false,
+    adActionsCardBody: false
+};
 const DEFAULT_AD_PANEL_SETTINGS = {
     enabled: true,
     frequencyCards: 10,
@@ -11258,15 +11264,19 @@ const DEFAULT_AD_PANEL_SETTINGS = {
 };
 
 let adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+let adPanelCollapseState = { ...DEFAULT_AD_PANEL_COLLAPSE_STATE };
 
 function initializeAdSettingsPanel() {
     const adsSection = document.getElementById('ads');
     if (!adsSection) return;
 
     loadAdPanelState();
+    loadAdPanelCollapseState();
     bindAdPanelActions();
+    setupAdPanelCollapsibles();
     renderAdInventoryList();
     syncAdPanelFormFromState();
+    applyAdPanelCollapseState();
     updateAdEnabledIndicator();
     refreshAdJsonPreview();
     console.log('📣 Ad placement settings panel initialized');
@@ -11300,6 +11310,33 @@ function saveAdPanelState() {
     refreshAdJsonPreview();
 }
 
+function loadAdPanelCollapseState() {
+    try {
+        const raw = localStorage.getItem(AD_PANEL_COLLAPSE_STORAGE_KEY);
+        if (!raw) {
+            const isMobile = window.innerWidth <= 768;
+            adPanelCollapseState = {
+                adItemCardBody: false,
+                adInventoryCardBody: isMobile,
+                adActionsCardBody: isMobile
+            };
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        adPanelCollapseState = {
+            ...DEFAULT_AD_PANEL_COLLAPSE_STATE,
+            ...(parsed || {})
+        };
+    } catch (error) {
+        console.warn('⚠️ Failed to load ad panel collapse state; using defaults.', error);
+        adPanelCollapseState = { ...DEFAULT_AD_PANEL_COLLAPSE_STATE };
+    }
+}
+
+function saveAdPanelCollapseState() {
+    localStorage.setItem(AD_PANEL_COLLAPSE_STORAGE_KEY, JSON.stringify(adPanelCollapseState));
+}
+
 function bindAdPanelActions() {
     const saveBtn = document.getElementById('adSaveBtn');
     const resetBtn = document.getElementById('adResetBtn');
@@ -11307,6 +11344,7 @@ function bindAdPanelActions() {
     const addOrUpdateBtn = document.getElementById('adAddOrUpdateBtn');
     const clearFormBtn = document.getElementById('adClearFormBtn');
     const enabledToggle = document.getElementById('adEnabled');
+    const adTypeSelect = document.getElementById('adItemType');
 
     if (enabledToggle) {
         enabledToggle.addEventListener('change', () => {
@@ -11368,6 +11406,49 @@ function bindAdPanelActions() {
     if (clearFormBtn) {
         clearFormBtn.addEventListener('click', clearAdItemForm);
     }
+
+    if (adTypeSelect) {
+        adTypeSelect.addEventListener('change', () => {
+            syncAdTypeFormState(adTypeSelect.value);
+        });
+    }
+}
+
+function setupAdPanelCollapsibles() {
+    const toggles = document.querySelectorAll('.ad-collapse-toggle[data-collapse-target]');
+    toggles.forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const targetId = toggle.getAttribute('data-collapse-target');
+            if (!targetId) return;
+            const current = !!adPanelCollapseState[targetId];
+            adPanelCollapseState[targetId] = !current;
+            applyAdPanelCollapseState();
+            saveAdPanelCollapseState();
+        });
+    });
+}
+
+function applyAdPanelCollapseState() {
+    const toggles = document.querySelectorAll('.ad-collapse-toggle[data-collapse-target]');
+    toggles.forEach((toggle) => {
+        const targetId = toggle.getAttribute('data-collapse-target');
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const isCollapsed = !!adPanelCollapseState[targetId];
+        target.classList.toggle('is-collapsed', isCollapsed);
+        toggle.textContent = isCollapsed ? 'Show' : 'Hide';
+        toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    });
+}
+
+function syncAdTypeFormState(currentType) {
+    const activeType = currentType || 'site_offer';
+    const conditionalFields = document.querySelectorAll('.ad-type-field[data-ad-type]');
+    conditionalFields.forEach((field) => {
+        const targetType = field.getAttribute('data-ad-type');
+        field.style.display = targetType === activeType ? '' : 'none';
+    });
 }
 
 function updateAdEnabledIndicator() {
@@ -11453,6 +11534,8 @@ function syncAdPanelFormFromState() {
     setChecked('zoneProfileSlot', adPanelState.zones.profile_logout_slot);
     setChecked('zoneGigDetailSlot', adPanelState.zones.gig_detail_post_customer);
     syncAdSystemDependentToggles(false);
+    const typeEl = document.getElementById('adItemType');
+    syncAdTypeFormState(typeEl ? typeEl.value : 'site_offer');
 }
 
 function getAdItemFormData() {
@@ -11460,16 +11543,35 @@ function getAdItemFormData() {
     const type = document.getElementById('adItemType')?.value || 'site_offer';
     const imageSrc = (document.getElementById('adItemImageSrc')?.value || '').trim();
     const altText = (document.getElementById('adItemAltText')?.value || '').trim();
-    const actionType = document.getElementById('adItemActionType')?.value || 'navigate';
+    const actionTypeInput = document.getElementById('adItemActionType')?.value || 'navigate';
     const actionTarget = (document.getElementById('adItemActionTarget')?.value || '').trim();
+    const externalUrl = (document.getElementById('adItemExternalUrl')?.value || '').trim();
+    const videoUrl = (document.getElementById('adItemVideoUrl')?.value || '').trim();
+    const videoThumbnail = (document.getElementById('adItemVideoThumbnail')?.value || '').trim();
     const weight = Math.max(1, parseInt(document.getElementById('adItemWeight')?.value || '100', 10));
     const status = document.getElementById('adItemStatus')?.value || 'active';
     const maxImpressions = Math.max(0, parseInt(document.getElementById('adItemMaxImpressions')?.value || '0', 10));
     const maxClicks = Math.max(0, parseInt(document.getElementById('adItemMaxClicks')?.value || '0', 10));
     const startAt = document.getElementById('adItemStartAt')?.value || '';
     const endAt = document.getElementById('adItemEndAt')?.value || '';
+    let resolvedActionType = actionTypeInput;
+    let resolvedActionTarget = actionTarget;
+    let resolvedVideoUrl = '';
+    let resolvedImageSrc = imageSrc;
 
-    if (!adId || !imageSrc) {
+    if (type === 'sponsored_external') {
+        resolvedActionType = 'navigate';
+        resolvedActionTarget = externalUrl;
+    } else if (type === 'video_popup') {
+        resolvedActionType = 'open_video_popup';
+        resolvedActionTarget = videoUrl;
+        resolvedVideoUrl = videoUrl;
+        if (videoThumbnail) {
+            resolvedImageSrc = videoThumbnail;
+        }
+    }
+
+    if (!adId || !resolvedImageSrc || !resolvedActionTarget) {
         return null;
     }
 
@@ -11477,7 +11579,7 @@ function getAdItemFormData() {
         id: adId,
         type,
         status,
-        imageSrc,
+        imageSrc: resolvedImageSrc,
         altText: altText || adId,
         weight,
         maxImpressions,
@@ -11487,8 +11589,10 @@ function getAdItemFormData() {
         startAt,
         endAt,
         action: {
-            type: actionType,
-            target: actionTarget
+            type: resolvedActionType,
+            target: resolvedActionTarget,
+            ...(resolvedVideoUrl ? { youtubeEmbed: resolvedVideoUrl } : {}),
+            ...(videoThumbnail ? { poster: videoThumbnail } : {})
         }
     };
 }
@@ -11512,7 +11616,7 @@ function upsertAdFromForm() {
 }
 
 function clearAdItemForm() {
-    const fields = ['adItemId', 'adItemImageSrc', 'adItemAltText', 'adItemActionTarget', 'adItemStartAt', 'adItemEndAt'];
+    const fields = ['adItemId', 'adItemImageSrc', 'adItemAltText', 'adItemActionTarget', 'adItemExternalUrl', 'adItemVideoUrl', 'adItemVideoThumbnail', 'adItemStartAt', 'adItemEndAt'];
     fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -11531,6 +11635,7 @@ function clearAdItemForm() {
     if (maxClicks) maxClicks.value = '0';
     const ctrField = document.getElementById('adItemCtr');
     if (ctrField) ctrField.value = '0.00%';
+    syncAdTypeFormState('site_offer');
 }
 
 function renderAdInventoryList() {
@@ -11618,8 +11723,27 @@ function populateAdFormForEdit(ad) {
     setValue('adItemType', ad.type || 'site_offer');
     setValue('adItemImageSrc', ad.imageSrc);
     setValue('adItemAltText', ad.altText);
-    setValue('adItemActionType', ad.action?.type || 'navigate');
-    setValue('adItemActionTarget', ad.action?.target || ad.action?.url || ad.action?.modalId || '');
+    const resolvedTarget = ad.action?.target || ad.action?.url || ad.action?.modalId || '';
+    const adType = ad.type || 'site_offer';
+    if (adType === 'sponsored_external') {
+        setValue('adItemActionType', 'navigate');
+        setValue('adItemExternalUrl', resolvedTarget);
+        setValue('adItemActionTarget', '');
+        setValue('adItemVideoUrl', '');
+        setValue('adItemVideoThumbnail', '');
+    } else if (adType === 'video_popup') {
+        setValue('adItemActionType', 'open_video_popup');
+        setValue('adItemVideoUrl', ad.action?.youtubeEmbed || resolvedTarget);
+        setValue('adItemVideoThumbnail', ad.action?.poster || ad.imageSrc || '');
+        setValue('adItemActionTarget', '');
+        setValue('adItemExternalUrl', '');
+    } else {
+        setValue('adItemActionType', ad.action?.type || 'navigate');
+        setValue('adItemActionTarget', resolvedTarget);
+        setValue('adItemExternalUrl', '');
+        setValue('adItemVideoUrl', '');
+        setValue('adItemVideoThumbnail', '');
+    }
     setValue('adItemWeight', ad.weight || 100);
     setValue('adItemStatus', ad.status || 'active');
     setValue('adItemMaxImpressions', ad.maxImpressions || 0);
@@ -11627,6 +11751,7 @@ function populateAdFormForEdit(ad) {
     setValue('adItemStartAt', ad.startAt || '');
     setValue('adItemEndAt', ad.endAt || '');
     setValue('adItemCtr', calculateCtr(ad.currentClicks || 0, ad.currentImpressions || 0));
+    syncAdTypeFormState(adType);
 }
 
 function formatAdDateWindow(startAt, endAt) {

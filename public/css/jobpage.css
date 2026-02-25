@@ -659,6 +659,15 @@ body::-webkit-scrollbar {
   background: #000;
 }
 
+.gig-detail-ad-video-iframe {
+  display: none;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: min(78vh, 560px);
+  border: 0;
+  background: #000;
+}
+
 .gig-detail-ad-video-close {
   position: absolute;
   top: 8px;
