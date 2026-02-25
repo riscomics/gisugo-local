@@ -2882,6 +2882,13 @@ function toProfileAdYouTubeEmbedUrl(url) {
       return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
     }
 
+    if (host.includes('youtube.com') && parsed.pathname.includes('/shorts/')) {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const id = parts[1];
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
     if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
       const separator = parsed.search ? '&' : '?';
       return `${parsed.toString()}${separator}autoplay=1`;
@@ -2973,11 +2980,17 @@ function handleProfileAdAction(event, adConfig) {
 
 function createProfileSlotAdCard(adConfig) {
   const adCard = document.createElement('a');
+  const href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
   adCard.className = 'profile-slot-ad-card';
-  adCard.href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
+  adCard.href = href;
   adCard.setAttribute('data-ad-zone', PROFILE_AD_ZONE_CONFIG.zoneId);
   adCard.setAttribute('data-ad-id', adConfig.id || 'profile-ad');
+  adCard.setAttribute('data-ad-type', adConfig.type || 'generic');
   adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
+  if (adConfig.type === 'sponsored_external' && href !== '#') {
+    adCard.target = '_blank';
+    adCard.rel = 'noopener noreferrer';
+  }
 
   adCard.innerHTML = `
     <div class="profile-slot-ad-media">

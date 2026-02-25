@@ -1179,9 +1179,21 @@ const AD_TRIAL_CONFIG = {
       badgeText: 'Platform Update',
       action: {
         type: 'open_video_popup',
-        target: 'https://www.youtube.com/embed/ptHyvEeevR8?autoplay=1&loop=1&playlist=ptHyvEeevR8&rel=0&modestbranding=1',
+        target: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
         poster: 'public/images/womensafety.jpg',
-        aspectRatio: '16:9'
+        aspectRatio: '9:16'
+      }
+    },
+    {
+      id: 'sponsored-partner-spot',
+      type: 'sponsored_external',
+      subtype: 'sponsored_campaign',
+      imageSrc: 'public/images/adsponsor.jpg',
+      altText: 'Sponsored partner spotlight',
+      badgeText: 'Sponsored',
+      action: {
+        type: 'navigate',
+        url: 'https://example.com'
       }
     },
     {
@@ -1194,18 +1206,6 @@ const AD_TRIAL_CONFIG = {
       action: {
         type: 'navigate',
         url: 'profile.html'
-      }
-    },
-    {
-      id: 'sponsored-partner-spot',
-      type: 'sponsored_external',
-      subtype: 'sponsored_campaign',
-      imageSrc: 'public/images/verify.png',
-      altText: 'Sponsored partner spotlight',
-      badgeText: 'Sponsored',
-      action: {
-        type: 'navigate',
-        url: 'https://example.com'
       }
     }
   ]
@@ -1290,6 +1290,18 @@ function resolveAdHref(adConfig) {
     return adConfig.action.url;
   }
   return '#';
+}
+
+function shouldOpenAdInNewTab(adConfig, href) {
+  if (!adConfig || adConfig.type !== 'sponsored_external') return false;
+  if (!href || href === '#') return false;
+
+  try {
+    const parsed = new URL(href, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch (_) {
+    return /^https?:\/\//i.test(href);
+  }
 }
 
 function syncEmptyStateAdPlacement(isVisible, emptyState) {
@@ -1412,6 +1424,13 @@ function toYouTubeEmbedUrl(url) {
       return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
     }
 
+    if (host.includes('youtube.com') && parsed.pathname.includes('/shorts/')) {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const id = parts[1];
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
     if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
       const separator = parsed.search ? '&' : '?';
       return `${parsed.toString()}${separator}autoplay=1`;
@@ -1512,11 +1531,17 @@ function handleAdCardAction(event, adConfig) {
 
 function createAdPlaceholderCard(adConfig, context = {}) {
   const adCard = document.createElement('a');
+  const href = resolveAdHref(adConfig);
   adCard.className = 'job-preview-card ad-placeholder-card';
-  adCard.href = resolveAdHref(adConfig);
+  adCard.href = href;
   adCard.setAttribute('data-ad-placeholder', 'true');
   adCard.setAttribute('data-ad-zone', context.zone || 'inline');
   adCard.setAttribute('data-ad-id', adConfig && adConfig.id ? adConfig.id : 'ad');
+  adCard.setAttribute('data-ad-type', adConfig && adConfig.type ? adConfig.type : 'generic');
+  if (shouldOpenAdInNewTab(adConfig, href)) {
+    adCard.target = '_blank';
+    adCard.rel = 'noopener noreferrer';
+  }
   if (typeof context.insertAfterGigCount === 'number') {
     adCard.setAttribute('data-ad-after-count', String(context.insertAfterGigCount));
   }
