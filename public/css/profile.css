@@ -4913,15 +4913,16 @@ body::-webkit-scrollbar {
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(78vh, 560px);
+  aspect-ratio: var(--ad-video-aspect, 16 / 9);
+  max-height: 78vh;
   background: #000;
 }
 
 .profile-ad-video-iframe {
   display: none;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  min-height: min(78vh, 560px);
+  aspect-ratio: var(--ad-video-aspect, 16 / 9);
+  max-height: 78vh;
   border: 0;
   background: #000;
 }

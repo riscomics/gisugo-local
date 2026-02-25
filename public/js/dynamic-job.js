@@ -1283,15 +1283,17 @@ const GIG_DETAIL_AD_ZONE_CONFIG = {
   zoneId: 'gig_detail_post_customer',
   ads: [
     {
-      id: 'gig-detail-offer-verify',
-      type: 'site_offer',
+      id: 'gig-detail-safety-video',
+      type: 'video_popup',
       subtype: 'in_app_offer',
-      imageSrc: 'public/images/verify.png',
-      altText: 'Get verified for trust and safety',
-      badgeText: '',
+      imageSrc: 'public/images/womensafety.jpg',
+      altText: 'Watch women safety tips while working',
+      badgeText: 'Platform Update',
       action: {
-        type: 'navigate',
-        url: 'profile.html'
+        type: 'open_video_popup',
+        target: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
+        poster: 'public/images/womensafety.jpg',
+        aspectRatio: '9:16'
       }
     }
   ]
@@ -1335,6 +1337,7 @@ function ensureGigDetailAdVideoPopup() {
       iframe.removeAttribute('src');
       iframe.style.display = 'none';
     }
+    popup.style.removeProperty('--ad-video-aspect');
     popup.classList.remove('is-visible');
   };
 
@@ -1436,6 +1439,7 @@ function handleGigDetailAdAction(event, adConfig) {
 
     const sourceUrl = action.youtubeEmbed || action.videoSrc || action.target;
     if (!sourceUrl) return;
+    const configuredAspect = resolveGigDetailAdAspectRatio(action);
 
     if (isGigDetailAdYouTubeUrl(sourceUrl)) {
       player.pause();
@@ -1443,6 +1447,7 @@ function handleGigDetailAdAction(event, adConfig) {
       player.load();
       player.style.display = 'none';
 
+      popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
       iframe.src = toGigDetailAdYouTubeEmbedUrl(sourceUrl);
       iframe.style.display = 'block';
       popup.classList.add('is-visible');
@@ -1452,6 +1457,13 @@ function handleGigDetailAdAction(event, adConfig) {
     iframe.removeAttribute('src');
     iframe.style.display = 'none';
     player.style.display = 'block';
+    popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+    player.onloadedmetadata = () => {
+      if (configuredAspect) return;
+      if (player.videoWidth > 0 && player.videoHeight > 0) {
+        popup.style.setProperty('--ad-video-aspect', `${player.videoWidth} / ${player.videoHeight}`);
+      }
+    };
     player.src = sourceUrl;
     if (action.poster) {
       player.poster = action.poster;
@@ -1469,6 +1481,41 @@ function handleGigDetailAdAction(event, adConfig) {
   }
 }
 
+function normalizeGigDetailAdAspectRatio(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const pairMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
+  if (pairMatch) {
+    const width = Number(pairMatch[1]);
+    const height = Number(pairMatch[2]);
+    if (width > 0 && height > 0) return `${width} / ${height}`;
+    return '';
+  }
+
+  const decimal = Number(trimmed);
+  if (!Number.isFinite(decimal) || decimal <= 0) return '';
+  return `${decimal} / 1`;
+}
+
+function resolveGigDetailAdAspectRatio(actionConfig) {
+  if (!actionConfig) return '';
+  const raw = actionConfig.aspectRatio || actionConfig.videoAspectRatio || actionConfig.ratio;
+  return normalizeGigDetailAdAspectRatio(raw);
+}
+
+function shouldOpenGigDetailAdInNewTab(adConfig, href) {
+  if (!adConfig || adConfig.type !== 'sponsored_external') return false;
+  if (!href || href === '#') return false;
+  try {
+    const parsed = new URL(href, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch (_) {
+    return /^https?:\/\//i.test(href);
+  }
+}
+
 function createGigDetailAdCard(adConfig) {
   const adCard = document.createElement('a');
   const href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
@@ -1478,7 +1525,7 @@ function createGigDetailAdCard(adConfig) {
   adCard.setAttribute('data-ad-id', adConfig.id || 'gig-detail-ad');
   adCard.setAttribute('data-ad-type', adConfig.type || 'generic');
   adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
-  if (adConfig.type === 'sponsored_external' && href !== '#') {
+  if (shouldOpenGigDetailAdInNewTab(adConfig, href)) {
     adCard.target = '_blank';
     adCard.rel = 'noopener noreferrer';
   }
