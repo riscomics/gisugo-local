@@ -745,11 +745,16 @@ async function filterAndSortJobs() {
   // Hide empty state while loading new results
   setListingEmptyStateVisible(false, headerSpacer);
 
-  // Show loading modal
+  // Show loading modal only if load is not instant (avoids loader flash on cache hits)
   const loadingOverlay = document.getElementById('loadingOverlay');
-  if (loadingOverlay) {
-    loadingOverlay.classList.add('show');
-  }
+  const LOADING_OVERLAY_DELAY_MS = 220;
+  let loadingOverlayVisible = false;
+  const loadingOverlayTimer = setTimeout(() => {
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('show');
+      loadingOverlayVisible = true;
+    }
+  }, LOADING_OVERLAY_DELAY_MS);
   
   // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
   try {
@@ -987,7 +992,8 @@ async function filterAndSortJobs() {
     }
   } finally {
     // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
-    if (loadingOverlay) {
+    clearTimeout(loadingOverlayTimer);
+    if (loadingOverlay && loadingOverlayVisible) {
       loadingOverlay.classList.remove('show');
       console.log('✅ Loading overlay hidden');
     }
@@ -2925,8 +2931,13 @@ function initJobcatButtonAutoResize() {
     console.log('✓ Memory cleanup complete');
   }
 
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', cleanup);
+  // Use pagehide to preserve bfcache on back/forward navigation.
+  // If event.persisted is true, browser is storing this page in bfcache,
+  // so we skip cleanup to keep instant back navigation.
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return;
+    cleanup();
+  });
   
   // Cleanup on visibility change (when tab is hidden for extended period)
   let hiddenTimer;

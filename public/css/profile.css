@@ -21,6 +21,14 @@ body {
 body::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
 }
+
+/* Prevent first-paint content flash before profile loader logic runs */
+body.page-profile.profile-preload .profile-subheader,
+body.page-profile.profile-preload .profile-tabs,
+body.page-profile.profile-preload .tab-content-wrapper {
+  visibility: hidden;
+  opacity: 0;
+}
  
 .profile-subheader {
   background-color: #242936;

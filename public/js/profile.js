@@ -3260,9 +3260,41 @@ document.addEventListener('DOMContentLoaded', async function() {
  * - Firebase mode: ONLY loads from Firebase, redirects if not authenticated
  * - Mock mode: ONLY loads from mock data, no Firebase calls
  */
+const PROFILE_VISIBILITY_SELECTORS = '.profile-subheader, .profile-tabs, .tab-content-wrapper';
+
+function setProfileShellVisibility(isVisible) {
+  const sections = document.querySelectorAll(PROFILE_VISIBILITY_SELECTORS);
+  sections.forEach(section => {
+    section.style.visibility = isVisible ? 'visible' : 'hidden';
+    section.style.opacity = isVisible ? '1' : '0';
+    if (isVisible) {
+      section.style.transition = 'opacity 0.3s ease';
+    }
+  });
+}
+
 async function waitForAuthAndLoadProfile() {
-  // Show loading state
-  showProfileLoadingState();
+  // Hide profile content immediately to avoid template flash before loader decision.
+  setProfileShellVisibility(false);
+
+  // Show loading state only for slower loads (avoid full-screen flash on fast/cache paths)
+  const PROFILE_LOADING_DELAY_MS = 220;
+  let profileLoadingVisible = false;
+  const profileLoadingTimer = setTimeout(() => {
+    showProfileLoadingState();
+    profileLoadingVisible = true;
+  }, PROFILE_LOADING_DELAY_MS);
+  const finishProfileLoading = () => {
+    clearTimeout(profileLoadingTimer);
+    if (profileLoadingVisible) {
+      hideProfileLoadingState();
+      profileLoadingVisible = false;
+      return;
+    }
+    // Overlay never shown; still restore hidden content.
+    setProfileShellVisibility(true);
+    document.body.classList.remove('profile-preload');
+  };
   
   // Check which mode we're in using DataService
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
@@ -3282,7 +3314,7 @@ async function waitForAuthAndLoadProfile() {
       if (!user) {
         // Not authenticated - redirect to login
         console.log('⚠️ Not authenticated in Firebase mode, redirecting to login...');
-        hideProfileLoadingState();
+        finishProfileLoading();
         window.location.href = 'login.html?redirect=profile.html';
         return;
       }
@@ -3325,20 +3357,22 @@ async function waitForAuthAndLoadProfile() {
         if (firebaseProfile) {
           console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
           window.currentUserProfile = firebaseProfile;
-          hideProfileLoadingState();
+          finishProfileLoading();
           loadUserProfile(firebaseProfile);
+          // Warm both review tabs in the background for faster tab switching.
+          setTimeout(() => prefetchProfileReviews(profileUserId), 0);
         } else {
           // Profile not found
           if (isViewingOwnProfile) {
           // User is authenticated but has no profile - redirect to sign-up
           console.log('⚠️ No profile found, redirecting to complete sign-up...');
-          hideProfileLoadingState();
+          finishProfileLoading();
           window.location.href = 'sign-up.html?complete=true';
           return;
           } else {
             // Viewing someone else's profile that doesn't exist
             console.error('❌ Profile not found for user:', profileUserId);
-            hideProfileLoadingState();
+            finishProfileLoading();
             showProfileError('User profile not found.');
             return;
           }
@@ -3349,7 +3383,7 @@ async function waitForAuthAndLoadProfile() {
       
     } catch (error) {
       console.error('❌ Error loading Firebase profile:', error);
-      hideProfileLoadingState();
+      finishProfileLoading();
       // Show error message instead of falling back to mock
       showProfileError('Failed to load profile. Please try again.');
     }
@@ -3364,7 +3398,7 @@ async function waitForAuthAndLoadProfile() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     window.currentUserProfile = sampleUserProfile;
-    hideProfileLoadingState();
+    finishProfileLoading();
     loadUserProfile(sampleUserProfile);
   }
 }
@@ -3373,8 +3407,10 @@ async function waitForAuthAndLoadProfile() {
  * Show profile loading error (Firebase mode only)
  */
 function showProfileError(message) {
-  const profileContainer = document.querySelector('.profile-container');
+  const profileContainer = document.querySelector('.profile-content-container');
   if (profileContainer) {
+    setProfileShellVisibility(true);
+    document.body.classList.remove('profile-preload');
     profileContainer.innerHTML = `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
                   min-height: 50vh; text-align: center; padding: 40px;">
@@ -3397,19 +3433,8 @@ function showProfileError(message) {
  * Show loading state while profile is being fetched - CLEAN SLATE
  */
 function showProfileLoadingState() {
-  // Completely hide all profile content
-  const profileContainer = document.querySelector('.profile-container');
-  if (profileContainer) {
-    profileContainer.style.visibility = 'hidden';
-    profileContainer.style.opacity = '0';
-  }
-  
-  // Hide any other profile sections that might be outside container
-  const profileSections = document.querySelectorAll('.profile-header, .profile-content, .profile-stats');
-  profileSections.forEach(section => {
-    section.style.visibility = 'hidden';
-    section.style.opacity = '0';
-  });
+  // Completely hide all profile shell content
+  setProfileShellVisibility(false);
   
   // Create full-screen loading overlay with fun animated emojis
   let loadingIndicator = document.getElementById('profileLoadingIndicator');
@@ -3491,21 +3516,9 @@ function showProfileLoadingState() {
  * Hide loading state when profile is ready
  */
 function hideProfileLoadingState() {
-  // Show all profile content with fade-in
-  const profileContainer = document.querySelector('.profile-container');
-  if (profileContainer) {
-    profileContainer.style.visibility = 'visible';
-    profileContainer.style.opacity = '1';
-    profileContainer.style.transition = 'opacity 0.3s ease';
-  }
-  
-  // Show other profile sections
-  const profileSections = document.querySelectorAll('.profile-header, .profile-content, .profile-stats');
-  profileSections.forEach(section => {
-    section.style.visibility = 'visible';
-    section.style.opacity = '1';
-    section.style.transition = 'opacity 0.3s ease';
-  });
+  // Show all profile shell content with fade-in
+  setProfileShellVisibility(true);
+  document.body.classList.remove('profile-preload');
   
   // Remove loading indicator with fade
   const loadingIndicator = document.getElementById('profileLoadingIndicator');
@@ -4076,12 +4089,25 @@ function cleanupProfilePage() {
     document.removeEventListener('keydown', profileAdVideoEscHandler);
     profileAdVideoEscHandler = null;
   }
+
+  // Clear review caches to avoid long-session accumulation.
+  if (window.__profileReviewDataCache && typeof window.__profileReviewDataCache.clear === 'function') {
+    window.__profileReviewDataCache.clear();
+  }
+  if (window.__profileReviewRequestCache && typeof window.__profileReviewRequestCache.clear === 'function') {
+    window.__profileReviewRequestCache.clear();
+  }
   
   console.log('🧹 Profile page cleanup completed');
 }
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', cleanupProfilePage);
+// Use pagehide to preserve bfcache on back/forward navigation.
+// If event.persisted is true, browser is storing this page in bfcache,
+// so we skip cleanup to keep instant back navigation.
+window.addEventListener('pagehide', (event) => {
+  if (event.persisted) return;
+  cleanupProfilePage();
+});
 
 // Production initialization (currently commented for development)
 /*
@@ -4197,6 +4223,52 @@ function getUserIdFromProfile() {
   return getProfileUserId();
 }
 
+const reviewDataCache = window.__profileReviewDataCache || new Map();
+window.__profileReviewDataCache = reviewDataCache;
+const reviewRequestCache = window.__profileReviewRequestCache || new Map();
+window.__profileReviewRequestCache = reviewRequestCache;
+
+function getReviewCacheKey(userId, role) {
+  return `${userId}:${role}`;
+}
+
+async function getOrFetchUserReviews(userId, role) {
+  const cacheKey = getReviewCacheKey(userId, role);
+
+  if (reviewDataCache.has(cacheKey)) {
+    return reviewDataCache.get(cacheKey);
+  }
+
+  if (reviewRequestCache.has(cacheKey)) {
+    return reviewRequestCache.get(cacheKey);
+  }
+
+  const requestPromise = fetchUserReviews(userId, role)
+    .then((reviews) => {
+      reviewDataCache.set(cacheKey, reviews);
+      reviewRequestCache.delete(cacheKey);
+      return reviews;
+    })
+    .catch((error) => {
+      reviewRequestCache.delete(cacheKey);
+      throw error;
+    });
+
+  reviewRequestCache.set(cacheKey, requestPromise);
+  return requestPromise;
+}
+
+function prefetchProfileReviews(userId) {
+  if (!userId) return;
+  ['customer', 'worker'].forEach((role) => {
+    const cacheKey = getReviewCacheKey(userId, role);
+    if (reviewDataCache.has(cacheKey) || reviewRequestCache.has(cacheKey)) return;
+    getOrFetchUserReviews(userId, role).catch((error) => {
+      console.warn(`⚠️ Prefetch ${role} reviews failed:`, error);
+    });
+  });
+}
+
 /**
  * Fetch reviews for a user from Firestore
  * @param {string} userId - The user ID to fetch reviews for
@@ -4223,47 +4295,67 @@ async function fetchUserReviews(userId, role) {
       return [];
     }
     
-    // Format reviews for display
-    const reviews = [];
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      
-      // Fetch reviewer profile for thumbnail
-      let reviewerThumbnail = 'public/users/default-user.jpg';
-      try {
-        const reviewerDoc = await db.collection('users').doc(data.reviewerUserId).get();
-        if (reviewerDoc.exists) {
-          const reviewerData = reviewerDoc.data();
-          reviewerThumbnail = reviewerData.profilePhoto || reviewerData.profileImage || reviewerThumbnail;
-        }
-      } catch (err) {
-        console.warn('⚠️ Could not fetch reviewer thumbnail:', err);
+    // Deduplicate and parallelize related lookups to avoid N+1 sequential latency.
+    const userDocCache = new Map();
+    const jobDocCache = new Map();
+
+    const getUserDoc = (reviewerUserId) => {
+      if (!reviewerUserId) return Promise.resolve(null);
+      if (!userDocCache.has(reviewerUserId)) {
+        userDocCache.set(
+          reviewerUserId,
+          db.collection('users').doc(reviewerUserId).get().catch((err) => {
+            console.warn('⚠️ Could not fetch reviewer thumbnail:', err);
+            return null;
+          })
+        );
       }
-      
-      // Fetch job details for title
+      return userDocCache.get(reviewerUserId);
+    };
+
+    const getJobDoc = (jobId) => {
+      if (!jobId) return Promise.resolve(null);
+      if (!jobDocCache.has(jobId)) {
+        jobDocCache.set(
+          jobId,
+          db.collection('jobs').doc(jobId).get().catch((err) => {
+            console.warn('⚠️ Could not fetch job details:', err);
+            return null;
+          })
+        );
+      }
+      return jobDocCache.get(jobId);
+    };
+
+    // Format reviews for display
+    const reviews = await Promise.all(snapshot.docs.map(async (doc) => {
+      const data = doc.data();
+
+      let reviewerThumbnail = 'public/users/default-user.jpg';
+      const reviewerDoc = await getUserDoc(data.reviewerUserId);
+      if (reviewerDoc && reviewerDoc.exists) {
+        const reviewerData = reviewerDoc.data();
+        reviewerThumbnail = reviewerData.profilePhoto || reviewerData.profileImage || reviewerThumbnail;
+      }
+
       let jobTitle = 'Completed Gig';
       let jobPostUrl = null;
-      try {
-        const jobDoc = await db.collection('jobs').doc(data.jobId).get();
-        if (jobDoc.exists) {
-          const jobData = jobDoc.data();
-          jobTitle = jobData.title || jobTitle;
-          jobPostUrl = jobData.jobPageUrl || null;
-        }
-      } catch (err) {
-        console.warn('⚠️ Could not fetch job details:', err);
+      const jobDoc = await getJobDoc(data.jobId);
+      if (jobDoc && jobDoc.exists) {
+        const jobData = jobDoc.data();
+        jobTitle = jobData.title || jobTitle;
+        jobPostUrl = jobData.jobPageUrl || null;
       }
-      
-      // Format date
-      const feedbackDate = data.createdAt 
-        ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
+
+      const feedbackDate = data.createdAt
+        ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
           })
         : 'Recent';
-      
-      reviews.push({
+
+      return {
         jobTitle: jobTitle,
         feedbackDate: feedbackDate,
         rating: data.rating || 0,
@@ -4271,8 +4363,8 @@ async function fetchUserReviews(userId, role) {
         feedbackText: data.feedbackText || 'No feedback provided.',
         jobPostUrl: jobPostUrl,
         reviewId: doc.id
-      });
-    }
+      };
+    }));
     
     console.log(`✅ Formatted ${reviews.length} ${role} reviews`);
     return reviews;
@@ -4368,7 +4460,7 @@ async function populateCustomerReviews(customerReviews = null, userName = null) 
   if (customerReviews === null) {
     const userId = getUserIdFromProfile();
     if (userId) {
-      customerReviews = await fetchUserReviews(userId, 'customer');
+      customerReviews = await getOrFetchUserReviews(userId, 'customer');
     } else {
       customerReviews = sampleCustomerReviews;
     }
@@ -4415,7 +4507,7 @@ async function populateWorkerReviews(workerReviews = null, userName = null) {
   if (workerReviews === null) {
     const userId = getUserIdFromProfile();
     if (userId) {
-      workerReviews = await fetchUserReviews(userId, 'worker');
+      workerReviews = await getOrFetchUserReviews(userId, 'worker');
     } else {
       workerReviews = sampleWorkerReviews;
     }
