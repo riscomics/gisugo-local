@@ -269,6 +269,112 @@ function clearTrackedInterval(intervalId) {
     CLEANUP_REGISTRY.intervals.delete(intervalId);
 }
 
+// ===== INPUT SECURITY GUARDRAILS (MESSAGES) =====
+function isAllowedTextCharacter(char) {
+    if (!char) return true;
+    if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+    if (/[.,!?'"()\/-]/.test(char)) return true;
+    if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+    return false;
+}
+
+function sanitizeTextInput(value) {
+    return Array.from(String(value || ''))
+        .filter(isAllowedTextCharacter)
+        .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+    return Array.from(String(value || ''))
+        .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+    let hint = document.getElementById('messages-input-guide');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'messages-input-guide';
+        hint.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(88vw, 360px);
+            padding: 8px;
+            border-radius: 16px;
+            background: repeating-linear-gradient(135deg, #facc15 0 10px, #111827 10px 20px);
+            color: #fee2e2;
+            text-align: center;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+            z-index: 11000;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            overflow: hidden;
+        `;
+        document.body.appendChild(hint);
+    }
+
+    hint.innerHTML = `
+        <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+            <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+            <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+            <div style="font-size:14px; font-weight:600; line-height:1.38;">${message}</div>
+        </div>
+    `;
+    hint.style.opacity = '1';
+    hint.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(window.__messagesInputGuideTimer);
+    window.__messagesInputGuideTimer = setTimeout(() => {
+        hint.style.opacity = '0';
+        hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+    }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+    if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+    inputEl.dataset.markupCharsBlocked = 'true';
+
+    const showGuide = () => {
+        const now = Date.now();
+        const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+        if (now - lastShownAt < 1500) return;
+        inputEl.dataset.inputGuideShownAt = String(now);
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    };
+
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+            e.preventDefault();
+            showGuide();
+        }
+    });
+
+    inputEl.addEventListener('paste', function(e) {
+        const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+        if (!hasUnsupportedTextChars(pastedText)) return;
+        e.preventDefault();
+        showGuide();
+        const cleaned = sanitizeTextInput(pastedText);
+        const start = inputEl.selectionStart ?? inputEl.value.length;
+        const end = inputEl.selectionEnd ?? inputEl.value.length;
+        inputEl.setRangeText(cleaned, start, end, 'end');
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    inputEl.addEventListener('input', function() {
+        const sanitized = sanitizeTextInput(inputEl.value);
+        if (sanitized !== inputEl.value) {
+            inputEl.value = sanitized;
+            showGuide();
+        }
+    });
+}
+
+function isAllowedImageFile(file) {
+    return !!(file && typeof file.type === 'string' && file.type.toLowerCase().startsWith('image/'));
+}
+
 // Role-specific tab initialization functions
 async function initializeWorkerAlertsTab() {
     console.log('📋 Initializing worker alerts tab');
@@ -3784,11 +3890,17 @@ function initializeContactMessageOverlay() {
     
     // Send button
     if (sendBtn && messageInput) {
+        blockUnsupportedCharsForInput(messageInput);
         sendBtn.addEventListener('click', function() {
             const message = messageInput.value.trim();
             const userId = messageInput.getAttribute('data-user-id');
             const userName = messageInput.getAttribute('data-user-name');
             const applicationId = messageInput.getAttribute('data-application-id');
+
+            if (hasUnsupportedTextChars(message)) {
+                showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+                return;
+            }
             
             if (message && userId && userName) {
                 // Here you would send the message to backend
@@ -6027,6 +6139,8 @@ function initializeChatInputFunctionality(modalOverlay) {
         console.error('❌ Chat input elements not found');
         return;
     }
+
+    blockUnsupportedCharsForInput(inputField);
     
     // Track listeners for cleanup
     const listeners = [];
@@ -6083,6 +6197,12 @@ function initializeChatInputFunctionality(modalOverlay) {
     const sendMessage = () => {
         const message = inputField.value.trim();
         if (message) {
+            if (hasUnsupportedTextChars(message)) {
+                showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+                return;
+            }
+
+            const safeMessage = sanitizeTextInput(message);
             console.log('📤 Sending message:', message);
             
             // Get thread data from modal
@@ -6094,7 +6214,7 @@ function initializeChatInputFunctionality(modalOverlay) {
                 threadId: threadId,
                 senderId: getCurrentUserId(),
                 receiverId: participantId,
-                content: message,
+                content: safeMessage,
                 timestamp: new Date().toISOString(),
                 type: 'text'
             };
@@ -6114,7 +6234,7 @@ function initializeChatInputFunctionality(modalOverlay) {
                     </div>
                 </div>
                 <div class="message-bubble outgoing">
-                    ${message}
+                    ${safeMessage}
                 </div>
             `;
             
@@ -6205,7 +6325,7 @@ function initializeChatInputFunctionality(modalOverlay) {
             }
             
             // Update the original thread's last message
-            updateThreadLastMessage(threadId, message);
+            updateThreadLastMessage(threadId, safeMessage);
         }
     };
     
@@ -6229,8 +6349,10 @@ function initializeChatInputFunctionality(modalOverlay) {
 
     photoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
+        if (isAllowedImageFile(file)) {
             handlePhotoUpload(file, modalOverlay);
+        } else if (file) {
+            showToast('Only image files are allowed for attachments.');
         }
         // Reset input so same file can be selected again
         photoInput.value = '';
@@ -7576,7 +7698,7 @@ window.forceResetAvatarOverlay = function() {
  * @param {Function} callback - Callback with processed image data
  */
 function processChatImage(file, callback, errorCallback) {
-    if (!file || !file.type.startsWith('image/')) {
+    if (!isAllowedImageFile(file)) {
         console.error('❌ Invalid file type for chat image');
         if (errorCallback) errorCallback('Invalid file type');
         return;
@@ -10037,6 +10159,11 @@ function sendReply() {
         showToast('Please enter a reply message');
         return;
     }
+
+    if (hasUnsupportedTextChars(replyText)) {
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+        return;
+    }
     
     // Use customer data for unified messages
     const actualRole = currentReplyRole === 'unified' ? 'customer' : currentReplyRole;
@@ -10276,6 +10403,7 @@ function initializeReplyModal() {
     const closeBtn = document.getElementById('closeReplyModal');
     const cancelBtn = document.getElementById('cancelReplyBtn');
     const sendBtn = document.getElementById('sendFloatingReplyBtn');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
     const photoInput = document.getElementById('floatingReplyAttachment');
     
     if (closeBtn) {
@@ -10289,6 +10417,8 @@ function initializeReplyModal() {
     if (sendBtn) {
         sendBtn.addEventListener('click', sendReply);
     }
+
+    blockUnsupportedCharsForInput(replyTextarea);
     
     // Initialize photo upload functionality
     if (photoInput) {
@@ -10315,7 +10445,7 @@ function handleReplyPhotoUpload(event) {
     if (!file) return;
     
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!isAllowedImageFile(file)) {
         showToast('Please select a valid image file');
         return;
     }

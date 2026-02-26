@@ -12,11 +12,119 @@ let selectedPhotoDataUrl = null;
 let authenticatedUser = null;
 let isSigningUp = false; // Flag to prevent race conditions during signup
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function sanitizeTextInput(value) {
+  return Array.from(String(value || ''))
+    .filter(isAllowedTextCharacter)
+    .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+  let hint = document.getElementById('signup-input-guide');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'signup-input-guide';
+    hint.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(88vw, 360px);
+      padding: 8px;
+      border-radius: 16px;
+      background: repeating-linear-gradient(
+        135deg,
+        #facc15 0 10px,
+        #111827 10px 20px
+      );
+      color: #fee2e2;
+      text-align: center;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+      z-index: 11000;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    `;
+    document.body.appendChild(hint);
+  }
+
+  hint.innerHTML = `
+    <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+      <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+      <div style="font-size:14px; font-weight:600; line-height:1.38;">
+        ${message}
+      </div>
+    </div>
+  `;
+  hint.style.opacity = '1';
+  hint.style.transform = 'translate(-50%, -50%) scale(1)';
+  clearTimeout(window.__signupInputGuideTimer);
+  window.__signupInputGuideTimer = setTimeout(() => {
+    hint.style.opacity = '0';
+    hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+  }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+  if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+  inputEl.dataset.markupCharsBlocked = 'true';
+
+  const showGuide = () => {
+    const now = Date.now();
+    const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+    if (now - lastShownAt < 1500) return;
+    inputEl.dataset.inputGuideShownAt = String(now);
+    showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+  };
+
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+      e.preventDefault();
+      showGuide();
+    }
+  });
+
+  inputEl.addEventListener('paste', function(e) {
+    const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+    if (!hasUnsupportedTextChars(pastedText)) return;
+    e.preventDefault();
+    showGuide();
+    const cleaned = sanitizeTextInput(pastedText);
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    inputEl.setRangeText(cleaned, start, end, 'end');
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  inputEl.addEventListener('input', function() {
+    const sanitized = sanitizeTextInput(inputEl.value);
+    if (sanitized !== inputEl.value) {
+      inputEl.value = sanitized;
+      showGuide();
+    }
+  });
+}
+
 // Initialize form when DOM loads
 document.addEventListener('DOMContentLoaded', function() {
   initializeForm();
   initializePhotoUpload();
   initializeCharacterCounter();
+  initializeTextInputProtection();
   initializeValidation();
   initializeGoogleSignIn();
   initializeFacebookSignIn();
@@ -25,6 +133,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   console.log('🔥 Sign-up form initialized with Firebase integration');
 });
+
+function initializeTextInputProtection() {
+  blockUnsupportedCharsForInput(document.getElementById('fullName'));
+  blockUnsupportedCharsForInput(document.getElementById('userSummary'));
+}
 
 /**
  * Check for pending auth data from login redirect
@@ -520,6 +633,10 @@ function validateField(field) {
         showError(fieldId, 'Full name is required');
         return false;
       }
+      if (hasUnsupportedTextChars(value)) {
+        showError(fieldId, 'Use letters, numbers, emojis, spaces, and basic punctuation only');
+        return false;
+      }
       if (value.length < 2) {
         showError(fieldId, 'Full name must be at least 2 characters');
         return false;
@@ -560,6 +677,10 @@ function validateField(field) {
     case 'userSummary':
       if (!value) {
         showError(fieldId, 'Introduction summary is required');
+        return false;
+      }
+      if (hasUnsupportedTextChars(value)) {
+        showError(fieldId, 'Use letters, numbers, emojis, spaces, and basic punctuation only');
         return false;
       }
       if (value.length < 50) {

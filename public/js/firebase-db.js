@@ -15,6 +15,32 @@
 // JOBS COLLECTION
 // ============================================================================
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function validateAllowedTextChars(fields) {
+  for (const field of fields) {
+    if (!field || typeof field.value !== 'string') continue;
+    if (hasUnsupportedTextChars(field.value)) {
+      return {
+        valid: false,
+        message: `${field.label} can only include letters, numbers, emojis, spaces, and basic punctuation.`
+      };
+    }
+  }
+  return { valid: true };
+}
+
 /**
  * Create a new job posting
  * @param {Object} jobData - Job data to create
@@ -22,6 +48,13 @@
  */
 async function createJob(jobData) {
   const db = getFirestore();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Job title', value: jobData?.title || jobData?.jobTitle || '' },
+    { label: 'Job description', value: jobData?.description || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!db) {
     // Offline mode - use localStorage
@@ -479,6 +512,13 @@ function getUserJobListingsOffline(userId, statuses) {
  */
 async function updateJob(jobId, jobData) {
   const db = getFirestore();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Job title', value: jobData?.title || '' },
+    { label: 'Job description', value: jobData?.description || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!db) {
     return updateJobOffline(jobId, jobData);
@@ -834,6 +874,12 @@ function deleteJobOffline(jobId) {
 async function applyForJob(jobId, applicationData) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Application message', value: applicationData?.message || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!currentUser) {
     return { success: false, message: 'You must be logged in to apply' };
@@ -1577,6 +1623,12 @@ function getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, current
 async function sendMessage(threadId, content) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Message', value: content || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!currentUser) {
     return { success: false, message: 'You must be logged in to send messages' };

@@ -13,6 +13,113 @@ const accountBtn = document.getElementById('accountBtn');
 const accountOverlay = document.getElementById('accountOverlay');
 const accountCloseBtn = document.getElementById('accountCloseBtn');
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function sanitizeTextInput(value) {
+  return Array.from(String(value || ''))
+    .filter(isAllowedTextCharacter)
+    .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+  let hint = document.getElementById('profile-input-guide');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'profile-input-guide';
+    hint.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(88vw, 360px);
+      padding: 8px;
+      border-radius: 16px;
+      background: repeating-linear-gradient(
+        135deg,
+        #facc15 0 10px,
+        #111827 10px 20px
+      );
+      color: #fee2e2;
+      text-align: center;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+      z-index: 11000;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    `;
+    document.body.appendChild(hint);
+  }
+
+  hint.innerHTML = `
+    <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+      <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+      <div style="font-size:14px; font-weight:600; line-height:1.38;">
+        ${message}
+      </div>
+    </div>
+  `;
+  hint.style.opacity = '1';
+  hint.style.transform = 'translate(-50%, -50%) scale(1)';
+  clearTimeout(window.__profileInputGuideTimer);
+  window.__profileInputGuideTimer = setTimeout(() => {
+    hint.style.opacity = '0';
+    hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+  }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+  if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+  inputEl.dataset.markupCharsBlocked = 'true';
+
+  const showGuide = () => {
+    const now = Date.now();
+    const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+    if (now - lastShownAt < 1500) return;
+    inputEl.dataset.inputGuideShownAt = String(now);
+    showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+  };
+
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+      e.preventDefault();
+      showGuide();
+    }
+  });
+
+  inputEl.addEventListener('paste', function(e) {
+    const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+    if (!hasUnsupportedTextChars(pastedText)) return;
+    e.preventDefault();
+    showGuide();
+    const cleaned = sanitizeTextInput(pastedText);
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    inputEl.setRangeText(cleaned, start, end, 'end');
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  inputEl.addEventListener('input', function() {
+    const sanitized = sanitizeTextInput(inputEl.value);
+    if (sanitized !== inputEl.value) {
+      inputEl.value = sanitized;
+      showGuide();
+    }
+  });
+}
+
 if (accountBtn && accountOverlay && accountCloseBtn) {
   // Open account overlay - uses guard function for defense-in-depth
   // FIREBASE TODO: This click handler is protected by both:
@@ -445,6 +552,11 @@ function initializeEditProfileOverlay() {
   const form = document.getElementById('editProfileForm');
   const aboutMeTextarea = document.getElementById('editAboutMe');
   const photoInput = document.getElementById('editProfilePhotoInput');
+  const firstNameInput = document.getElementById('editFirstName');
+  const lastNameInput = document.getElementById('editLastName');
+  const facebookInput = document.getElementById('editFacebook');
+  const instagramInput = document.getElementById('editInstagram');
+  const linkedInInput = document.getElementById('editLinkedIn');
 
   // Close button
   if (closeBtn) {
@@ -471,6 +583,13 @@ function initializeEditProfileOverlay() {
     // Set max length
     aboutMeTextarea.maxLength = 500;
   }
+
+  blockUnsupportedCharsForInput(firstNameInput);
+  blockUnsupportedCharsForInput(lastNameInput);
+  blockUnsupportedCharsForInput(aboutMeTextarea);
+  blockUnsupportedCharsForInput(facebookInput);
+  blockUnsupportedCharsForInput(instagramInput);
+  blockUnsupportedCharsForInput(linkedInInput);
 
   // Photo upload preview
   if (photoInput) {
@@ -532,6 +651,19 @@ async function saveProfileChanges() {
   const facebookUsername = document.getElementById('editFacebook')?.value?.trim() || '';
   const instagramUsername = document.getElementById('editInstagram')?.value?.trim() || '';
   const linkedinUsername = document.getElementById('editLinkedIn')?.value?.trim() || '';
+
+  if (
+    hasUnsupportedTextChars(firstName) ||
+    hasUnsupportedTextChars(lastName) ||
+    hasUnsupportedTextChars(aboutMe) ||
+    hasUnsupportedTextChars(facebookUsername) ||
+    hasUnsupportedTextChars(instagramUsername) ||
+    hasUnsupportedTextChars(linkedinUsername)
+  ) {
+    hideSavingModal();
+    showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    return;
+  }
   
   // Build full URLs from usernames
   const facebook = facebookUsername ? `https://facebook.com/${facebookUsername}` : '';

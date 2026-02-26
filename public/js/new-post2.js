@@ -141,6 +141,115 @@ const np2State = {
   lastPostedJobNumber: null
 };
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function sanitizeTextInput(value) {
+  return Array.from(String(value || ''))
+    .filter(isAllowedTextCharacter)
+    .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+  let hint = document.getElementById('np2-input-guide');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'np2-input-guide';
+    hint.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(88vw, 360px);
+      padding: 8px;
+      border-radius: 16px;
+      background: repeating-linear-gradient(
+        135deg,
+        #facc15 0 10px,
+        #111827 10px 20px
+      );
+      color: #fee2e2;
+      text-align: center;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+      z-index: 11000;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    `;
+    document.body.appendChild(hint);
+  }
+  hint.innerHTML = `
+    <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+      <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+      <div style="font-size:14px; font-weight:600; line-height:1.38;">
+        ${message}
+      </div>
+    </div>
+  `;
+  hint.style.opacity = '1';
+  hint.style.transform = 'translate(-50%, -50%) scale(1)';
+  clearTimeout(window.__np2InputGuideTimer);
+  window.__np2InputGuideTimer = setTimeout(() => {
+    hint.style.opacity = '0';
+    hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+  }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl, onSanitizedValue) {
+  if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+  inputEl.dataset.markupCharsBlocked = 'true';
+
+  const syncValue = () => {
+    const sanitized = sanitizeTextInput(inputEl.value);
+    if (sanitized !== inputEl.value) {
+      inputEl.value = sanitized;
+      if (typeof onSanitizedValue === 'function') onSanitizedValue(sanitized);
+      showInputGuide();
+    }
+  };
+
+  const showInputGuide = () => {
+    const now = Date.now();
+    const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+    if (now - lastShownAt < 1500) return;
+    inputEl.dataset.inputGuideShownAt = String(now);
+    showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+  };
+
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+      e.preventDefault();
+      showInputGuide();
+    }
+  });
+
+  inputEl.addEventListener('paste', function(e) {
+    const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+    if (!hasUnsupportedTextChars(pastedText)) return;
+    e.preventDefault();
+    showInputGuide();
+    const cleaned = sanitizeTextInput(pastedText);
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    inputEl.setRangeText(cleaned, start, end, 'end');
+    if (typeof onSanitizedValue === 'function') onSanitizedValue(inputEl.value);
+  });
+
+  inputEl.addEventListener('input', syncValue);
+}
+
 // ========================== LOCATION DATA ==========================
 
 const locationData = {
@@ -706,6 +815,10 @@ function validateCurrentStep() {
         showToast('Please enter a job title', 'error');
         return false;
       }
+      if (hasUnsupportedTextChars(np2State.jobTitle)) {
+        showToast('Title has unsupported symbols', 'error');
+        return false;
+      }
       // Validate title length (max 55 characters)
       if (np2State.jobTitle.length > 55) {
         showToast('Job title must be 55 characters or less', 'error');
@@ -749,6 +862,10 @@ function validateCurrentStep() {
       }
       if (!np2State.jobDescription.trim()) {
         showToast('Please enter a job description', 'error');
+        return false;
+      }
+      if (hasUnsupportedTextChars(np2State.jobDescription)) {
+        showToast('Description has unsupported symbols', 'error');
         return false;
       }
       // Validate description length
@@ -1209,6 +1326,10 @@ function initializeJobDetails() {
   
   // Title input with character counter
   if (titleInput && titleCharCount) {
+    blockUnsupportedCharsForInput(titleInput, function(sanitizedValue) {
+      np2State.jobTitle = sanitizedValue;
+      titleCharCount.textContent = sanitizedValue.length;
+    });
     titleInput.addEventListener('input', function() {
       np2State.jobTitle = this.value;
       titleCharCount.textContent = this.value.length;
@@ -1224,6 +1345,9 @@ function initializeJobDetails() {
   
   // Description textarea
   if (descriptionTextarea) {
+    blockUnsupportedCharsForInput(descriptionTextarea, function(sanitizedValue) {
+      np2State.jobDescription = sanitizedValue;
+    });
     descriptionTextarea.addEventListener('input', function() {
       np2State.jobDescription = this.value;
     });
@@ -2482,6 +2606,11 @@ function showEditForm(jobData, category) {
   const editTitleInput = document.getElementById('editTitleInput');
   const editTitleCharCount = document.getElementById('editTitleCharCount');
   editTitleInput.value = jobData.title || '';
+  blockUnsupportedCharsForInput(editTitleInput, function(sanitizedValue) {
+    if (editTitleCharCount) {
+      editTitleCharCount.textContent = sanitizedValue.length;
+    }
+  });
   
   // Initialize character counter
   if (editTitleCharCount) {
@@ -2556,7 +2685,9 @@ function showEditForm(jobData, category) {
   }
   
   // Populate description
-  document.getElementById('editDescriptionInput').value = jobData.description || '';
+  const editDescriptionInput = document.getElementById('editDescriptionInput');
+  editDescriptionInput.value = jobData.description || '';
+  blockUnsupportedCharsForInput(editDescriptionInput);
   
   // Populate photo
   const photoImage = document.getElementById('editPhotoImage');
