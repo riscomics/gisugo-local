@@ -1166,7 +1166,7 @@ const PAGINATION = {
 const AD_TRIAL_CONFIG = {
   enabled: true,
   category: 'all',
-  frequencyCards: 10,
+  frequencyCards: 6,
   allowTailAd: true,
   allowEmptyStateAd: true,
   ads: [
