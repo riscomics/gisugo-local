@@ -4805,16 +4805,14 @@ body::-webkit-scrollbar {
 .profile-slot-ad-media {
   position: relative;
   width: 100%;
-  aspect-ratio: 2 / 1;
   border-radius: inherit;
   overflow: hidden;
+  min-height: clamp(150px, 22vw, 210px);
 }
 
 .profile-slot-ad-media img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
+  height: auto;
   display: block;
 }
 
