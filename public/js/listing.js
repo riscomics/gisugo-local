@@ -1068,7 +1068,7 @@ function renderJobBatch(batchSize, headerSpacer) {
 
   // Optional tail placement: show one ad after the final gig in the listing
   if (!PAGINATION.hasMore && !AD_RENDER_STATE.tailInserted && shouldRenderAdsInCurrentListing() && AD_TRIAL_CONFIG.allowTailAd) {
-    const tailAd = getNextAdConfig();
+    const tailAd = getNextAdConfig('tail');
     if (tailAd) {
       const tailAdCard = createAdPlaceholderCard(tailAd, {
         zone: 'tail',
@@ -1167,6 +1167,7 @@ const AD_TRIAL_CONFIG = {
   enabled: true,
   category: 'all',
   frequencyCards: 6,
+  rotationMode: 'random',
   allowTailAd: true,
   allowEmptyStateAd: true,
   ads: [
@@ -1193,7 +1194,21 @@ const AD_TRIAL_CONFIG = {
       badgeText: 'Sponsored',
       action: {
         type: 'navigate',
-        url: 'https://example.com'
+        url: 'https://www.RealinterfaceStudios.com'
+      }
+    },
+    {
+      id: 'video-platform-updates',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/updatesbanner.jpg',
+      altText: 'Watch latest platform updates',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://youtu.be/L2GUEZpNCsQ',
+        poster: 'public/images/updatesbanner.jpg',
+        aspectRatio: '16:9'
       }
     },
     {
@@ -1207,6 +1222,20 @@ const AD_TRIAL_CONFIG = {
         type: 'navigate',
         url: 'profile.html'
       }
+    },
+    {
+      id: 'offer-share-gisugo',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/sharebanner.jpg',
+      altText: 'Share GisuGo with your network',
+      badgeText: '',
+      action: {
+        type: 'share',
+        title: 'Check out GisuGo',
+        text: 'Browse local gigs and opportunities on GisuGo.',
+        url: 'https://www.Gisugo.com'
+      }
     }
   ]
 };
@@ -1215,7 +1244,11 @@ const AD_RENDER_STATE = {
   rotationIndex: 0,
   inlineInsertions: 0,
   tailInserted: false,
-  emptyInserted: false
+  emptyInserted: false,
+  lastRandomAdId: null,
+  slotAssignments: {},
+  randomBag: [],
+  randomBagSignature: ''
 };
 
 function resetAdRenderState() {
@@ -1223,6 +1256,10 @@ function resetAdRenderState() {
   AD_RENDER_STATE.inlineInsertions = 0;
   AD_RENDER_STATE.tailInserted = false;
   AD_RENDER_STATE.emptyInserted = false;
+  AD_RENDER_STATE.lastRandomAdId = null;
+  AD_RENDER_STATE.slotAssignments = {};
+  AD_RENDER_STATE.randomBag = [];
+  AD_RENDER_STATE.randomBagSignature = '';
 }
 
 function shouldRenderAdsInCurrentListing() {
@@ -1237,9 +1274,88 @@ function getActiveAdPool() {
   return ads.filter(ad => ad && ad.imageSrc);
 }
 
-function getNextAdConfig() {
+function getAdPoolSignature(activeAds) {
+  if (!Array.isArray(activeAds)) return '';
+  return activeAds.map(ad => (ad && ad.id) ? ad.id : '').join('|');
+}
+
+function shuffleArray(values) {
+  const arr = Array.isArray(values) ? [...values] : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function refillRandomBag(activeAds) {
+  const ids = activeAds.map(ad => ad && ad.id).filter(Boolean);
+  if (ids.length === 0) {
+    AD_RENDER_STATE.randomBag = [];
+    return;
+  }
+  const shuffled = shuffleArray(ids);
+  if (
+    shuffled.length > 1 &&
+    AD_RENDER_STATE.lastRandomAdId &&
+    shuffled[0] === AD_RENDER_STATE.lastRandomAdId
+  ) {
+    const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+    const first = shuffled[0];
+    shuffled[0] = shuffled[swapIndex];
+    shuffled[swapIndex] = first;
+  }
+  AD_RENDER_STATE.randomBag = shuffled;
+}
+
+function getNextRandomAdConfig(activeAds) {
+  const signature = getAdPoolSignature(activeAds);
+  if (signature !== AD_RENDER_STATE.randomBagSignature) {
+    AD_RENDER_STATE.randomBagSignature = signature;
+    AD_RENDER_STATE.randomBag = [];
+  }
+  if (!Array.isArray(AD_RENDER_STATE.randomBag) || AD_RENDER_STATE.randomBag.length === 0) {
+    refillRandomBag(activeAds);
+  }
+  if (!Array.isArray(AD_RENDER_STATE.randomBag) || AD_RENDER_STATE.randomBag.length === 0) {
+    return activeAds[0] || null;
+  }
+
+  const nextId = AD_RENDER_STATE.randomBag.shift();
+  const nextAd = activeAds.find(ad => ad && ad.id === nextId);
+  if (!nextAd) {
+    return getNextRandomAdConfig(activeAds);
+  }
+  AD_RENDER_STATE.lastRandomAdId = nextAd.id || null;
+  return nextAd;
+}
+
+function getNextAdConfig(slotKey = '') {
   const activeAds = getActiveAdPool();
   if (activeAds.length === 0) return null;
+
+  const mode = AD_TRIAL_CONFIG.rotationMode || 'sequential';
+  if (mode === 'random') {
+    if (slotKey && AD_RENDER_STATE.slotAssignments && AD_RENDER_STATE.slotAssignments[slotKey]) {
+      const savedId = AD_RENDER_STATE.slotAssignments[slotKey];
+      const savedAd = activeAds.find(ad => ad && ad.id === savedId);
+      if (savedAd) {
+        AD_RENDER_STATE.lastRandomAdId = savedAd.id || null;
+        return savedAd;
+      }
+      delete AD_RENDER_STATE.slotAssignments[slotKey];
+    }
+
+    const randomAd = getNextRandomAdConfig(activeAds);
+    if (!randomAd) return null;
+    if (slotKey) {
+      AD_RENDER_STATE.slotAssignments[slotKey] = randomAd.id || '';
+    }
+    return randomAd;
+  }
+
   const ad = activeAds[AD_RENDER_STATE.rotationIndex % activeAds.length];
   AD_RENDER_STATE.rotationIndex += 1;
   return ad;
@@ -1262,7 +1378,7 @@ function renderInlineAdsByGigPositions(container) {
   // Rebuild inline placements from actual gig-card order after each render.
   AD_RENDER_STATE.rotationIndex = 0;
   for (let insertAfterCount = frequency; insertAfterCount < gigCards.length; insertAfterCount += frequency) {
-    const adConfig = getNextAdConfig();
+    const adConfig = getNextAdConfig(`inline-${insertAfterCount}`);
     if (!adConfig) break;
 
     const anchorCard = gigCards[insertAfterCount - 1];
@@ -1312,7 +1428,7 @@ function syncEmptyStateAdPlacement(isVisible, emptyState) {
   if (!isVisible || !emptyState) return;
   if (!shouldRenderAdsInCurrentListing() || !AD_TRIAL_CONFIG.allowEmptyStateAd) return;
 
-  const nextAd = getNextAdConfig();
+  const nextAd = getNextAdConfig('empty');
   if (!nextAd) return;
 
   const adCard = createAdPlaceholderCard(nextAd, { zone: 'empty' });
@@ -1512,6 +1628,45 @@ function openAdTargetModal(actionConfig) {
   modal.setAttribute('aria-hidden', 'false');
 }
 
+function normalizeShareUrl(rawUrl) {
+  if (!rawUrl) return window.location.href;
+  try {
+    return new URL(rawUrl, window.location.origin).toString();
+  } catch (_) {
+    return window.location.href;
+  }
+}
+
+async function openAdShare(actionConfig) {
+  const shareUrl = normalizeShareUrl(actionConfig && (actionConfig.url || actionConfig.target || actionConfig.shareUrl));
+  const shareData = {
+    title: (actionConfig && actionConfig.title) || 'GisuGo',
+    text: (actionConfig && actionConfig.text) || 'Check this out on GisuGo.',
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (_) {
+      // Fallback to copy flow when native share is unavailable/cancelled.
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied. You can now share it anywhere.');
+      return;
+    } catch (_) {
+      // fall through to prompt fallback
+    }
+  }
+
+  window.prompt('Copy this link to share:', shareUrl);
+}
+
 function handleAdCardAction(event, adConfig) {
   const action = adConfig && adConfig.action ? adConfig.action : null;
   if (!action || !action.type) return;
@@ -1526,6 +1681,8 @@ function handleAdCardAction(event, adConfig) {
     openAdTargetModal(action);
   } else if (action.type === 'open_video_popup') {
     openAdVideoPopup(action);
+  } else if (action.type === 'share') {
+    openAdShare(action);
   }
 }
 

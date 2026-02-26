@@ -1281,6 +1281,7 @@ async function checkIfUserAlreadyApplied(jobId) {
 const GIG_DETAIL_AD_ZONE_CONFIG = {
   enabled: true,
   zoneId: 'gig_detail_post_customer',
+  rotationMode: 'random',
   ads: [
     {
       id: 'gig-detail-safety-video',
@@ -1295,16 +1296,142 @@ const GIG_DETAIL_AD_ZONE_CONFIG = {
         poster: 'public/images/womensafety.jpg',
         aspectRatio: '9:16'
       }
+    },
+    {
+      id: 'gig-detail-sponsored-partner',
+      type: 'sponsored_external',
+      subtype: 'sponsored_campaign',
+      imageSrc: 'public/images/adsponsor.jpg',
+      altText: 'Sponsored partner spotlight',
+      badgeText: 'Sponsored',
+      action: {
+        type: 'navigate',
+        url: 'https://www.RealinterfaceStudios.com'
+      }
+    },
+    {
+      id: 'gig-detail-video-updates',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/updatesbanner.jpg',
+      altText: 'Watch latest platform updates',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://youtu.be/L2GUEZpNCsQ',
+        poster: 'public/images/updatesbanner.jpg',
+        aspectRatio: '16:9'
+      }
+    },
+    {
+      id: 'gig-detail-offer-verify',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Get verified for trust and safety',
+      badgeText: '',
+      action: {
+        type: 'navigate',
+        url: 'profile.html'
+      }
+    },
+    {
+      id: 'gig-detail-offer-share',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/sharebanner.jpg',
+      altText: 'Share GisuGo with your network',
+      badgeText: '',
+      action: {
+        type: 'share',
+        title: 'Check out GisuGo',
+        text: 'Browse local gigs and opportunities on GisuGo.',
+        url: 'https://www.Gisugo.com'
+      }
     }
   ]
 };
 
 let gigDetailAdVideoEscHandler = null;
+const GIG_DETAIL_AD_RENDER_STATE = {
+  rotationIndex: 0,
+  lastRandomAdId: null,
+  randomBag: [],
+  randomBagSignature: ''
+};
 
 function getGigDetailSlotAd() {
   if (!GIG_DETAIL_AD_ZONE_CONFIG.enabled) return null;
   const ads = Array.isArray(GIG_DETAIL_AD_ZONE_CONFIG.ads) ? GIG_DETAIL_AD_ZONE_CONFIG.ads : [];
-  return ads.find(ad => ad && ad.imageSrc) || null;
+  const activeAds = ads.filter(ad => ad && ad.imageSrc);
+  if (activeAds.length === 0) return null;
+
+  const mode = GIG_DETAIL_AD_ZONE_CONFIG.rotationMode || 'sequential';
+  if (mode === 'random') {
+    return getNextRandomGigDetailAd(activeAds);
+  }
+
+  const nextAd = activeAds[GIG_DETAIL_AD_RENDER_STATE.rotationIndex % activeAds.length];
+  GIG_DETAIL_AD_RENDER_STATE.rotationIndex += 1;
+  return nextAd || null;
+}
+
+function getGigDetailAdPoolSignature(activeAds) {
+  if (!Array.isArray(activeAds)) return '';
+  return activeAds.map(ad => (ad && ad.id) ? ad.id : '').join('|');
+}
+
+function shuffleGigDetailAds(values) {
+  const arr = Array.isArray(values) ? [...values] : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function refillGigDetailAdBag(activeAds) {
+  const ids = activeAds.map(ad => ad && ad.id).filter(Boolean);
+  if (ids.length === 0) {
+    GIG_DETAIL_AD_RENDER_STATE.randomBag = [];
+    return;
+  }
+  const shuffled = shuffleGigDetailAds(ids);
+  if (
+    shuffled.length > 1 &&
+    GIG_DETAIL_AD_RENDER_STATE.lastRandomAdId &&
+    shuffled[0] === GIG_DETAIL_AD_RENDER_STATE.lastRandomAdId
+  ) {
+    const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+    const first = shuffled[0];
+    shuffled[0] = shuffled[swapIndex];
+    shuffled[swapIndex] = first;
+  }
+  GIG_DETAIL_AD_RENDER_STATE.randomBag = shuffled;
+}
+
+function getNextRandomGigDetailAd(activeAds) {
+  const signature = getGigDetailAdPoolSignature(activeAds);
+  if (signature !== GIG_DETAIL_AD_RENDER_STATE.randomBagSignature) {
+    GIG_DETAIL_AD_RENDER_STATE.randomBagSignature = signature;
+    GIG_DETAIL_AD_RENDER_STATE.randomBag = [];
+  }
+  if (!Array.isArray(GIG_DETAIL_AD_RENDER_STATE.randomBag) || GIG_DETAIL_AD_RENDER_STATE.randomBag.length === 0) {
+    refillGigDetailAdBag(activeAds);
+  }
+  if (!Array.isArray(GIG_DETAIL_AD_RENDER_STATE.randomBag) || GIG_DETAIL_AD_RENDER_STATE.randomBag.length === 0) {
+    return activeAds[0] || null;
+  }
+
+  const nextId = GIG_DETAIL_AD_RENDER_STATE.randomBag.shift();
+  const nextAd = activeAds.find(ad => ad && ad.id === nextId);
+  if (!nextAd) {
+    return getNextRandomGigDetailAd(activeAds);
+  }
+  GIG_DETAIL_AD_RENDER_STATE.lastRandomAdId = nextAd.id || null;
+  return nextAd;
 }
 
 function ensureGigDetailAdVideoPopup() {
@@ -1416,6 +1543,45 @@ function openGigDetailAdModal(action) {
   modal.setAttribute('aria-hidden', 'false');
 }
 
+function normalizeGigDetailAdShareUrl(rawUrl) {
+  if (!rawUrl) return window.location.href;
+  try {
+    return new URL(rawUrl, window.location.origin).toString();
+  } catch (_) {
+    return window.location.href;
+  }
+}
+
+async function openGigDetailAdShare(action) {
+  const shareUrl = normalizeGigDetailAdShareUrl(action && (action.url || action.target || action.shareUrl));
+  const shareData = {
+    title: (action && action.title) || 'GisuGo',
+    text: (action && action.text) || 'Check this out on GisuGo.',
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (_) {
+      // Fallback to copy flow when native share is unavailable/cancelled.
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied. You can now share it anywhere.');
+      return;
+    } catch (_) {
+      // fall through to prompt fallback
+    }
+  }
+
+  window.prompt('Copy this link to share:', shareUrl);
+}
+
 function handleGigDetailAdAction(event, adConfig) {
   const action = adConfig && adConfig.action ? adConfig.action : null;
   if (!action || !action.type) return;
@@ -1478,6 +1644,11 @@ function handleGigDetailAdAction(event, adConfig) {
         // Playback can require another direct tap on some mobile browsers.
       });
     }
+    return;
+  }
+
+  if (action.type === 'share') {
+    openGigDetailAdShare(action);
   }
 }
 
