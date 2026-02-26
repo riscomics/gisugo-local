@@ -65,6 +65,15 @@ function formatRelativeDate(dateString) {
     }
 }
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Debug function to check data status
 function debugDataStatus() {
     console.log('🔍 DEBUG: Current data status:', {
@@ -8828,7 +8837,8 @@ async function showDeleteConfirmationDialog(jobData) {
         // Show application count warning if there are applications
         const appCount = parseInt(jobData.applicationCount) || 0;
         if (appCount > 0) {
-            applicationCount.innerHTML = `⚠️ This job has <strong>${appCount} application${appCount === 1 ? '' : 's'}</strong> that will also be deleted.`;
+            const safeCountText = escapeHtml(`${appCount} application${appCount === 1 ? '' : 's'}`);
+            applicationCount.innerHTML = `⚠️ This job has <strong>${safeCountText}</strong> that will also be deleted.`;
             applicationCount.style.display = 'block';
         } else {
             applicationCount.style.display = 'none';

@@ -1104,7 +1104,11 @@ function updateExtrasField(fieldNumber, fieldConfig) {
   if (!container || !label || !select || !value || !dropdown) return;
   
   // Update label
-  label.innerHTML = fieldConfig.label + '<span class="np2-required">*</span>';
+  label.textContent = fieldConfig.label || '';
+  const requiredMark = document.createElement('span');
+  requiredMark.className = 'np2-required';
+  requiredMark.textContent = '*';
+  label.appendChild(requiredMark);
   
   // Get menu type config
   const menuTypeConfig = menuTypes[fieldConfig.menuType];

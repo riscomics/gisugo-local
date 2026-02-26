@@ -1,5 +1,14 @@
 // GISUGO Admin Dashboard JavaScript
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Admin Dashboard initialized');
     
@@ -4638,7 +4647,9 @@ function showSuspendConfirmation() {
     const message = document.getElementById('suspendConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>${currentGigData.title}</strong> by ${currentGigData.posterName} will be moved to the "Suspended" tab.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safePoster = escapeHtml(currentGigData.posterName || '');
+        message.innerHTML = `<strong>${safeTitle}</strong> by ${safePoster} will be moved to the "Suspended" tab.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -4704,7 +4715,9 @@ function showRelistConfirmation() {
     const message = document.getElementById('relistConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>${currentGigData.title}</strong> by ${currentGigData.posterName} will be moved back to the "Posted" tab.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safePoster = escapeHtml(currentGigData.posterName || '');
+        message.innerHTML = `<strong>${safeTitle}</strong> by ${safePoster} will be moved back to the "Posted" tab.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -4757,7 +4770,9 @@ function showIgnoreConfirmation() {
     const message = document.getElementById('ignoreConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>${currentGigData.title}</strong> will be hidden from "Reported" and requires ${currentGigData.reportCount + 10} total reports to reappear.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safeThreshold = escapeHtml(String((currentGigData.reportCount || 0) + 10));
+        message.innerHTML = `<strong>${safeTitle}</strong> will be hidden from "Reported" and requires ${safeThreshold} total reports to reappear.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -4831,7 +4846,9 @@ function showDeleteConfirmation() {
     const message = document.getElementById('deleteConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>⚠️ Warning:</strong> <strong>"${currentGigData.title}"</strong> posted by ${currentGigData.posterName} will be permanently removed from the marketplace and database. This action cannot be undone.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safePoster = escapeHtml(currentGigData.posterName || '');
+        message.innerHTML = `<strong>⚠️ Warning:</strong> <strong>"${safeTitle}"</strong> posted by ${safePoster} will be permanently removed from the marketplace and database. This action cannot be undone.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }

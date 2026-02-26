@@ -4223,6 +4223,28 @@ function getUserIdFromProfile() {
   return getProfileUserId();
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url, fallback = '') {
+  if (!url) return fallback;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch (error) {
+    // fall through
+  }
+  return fallback;
+}
+
 const reviewDataCache = window.__profileReviewDataCache || new Map();
 window.__profileReviewDataCache = reviewDataCache;
 const reviewRequestCache = window.__profileReviewRequestCache || new Map();
@@ -4379,12 +4401,13 @@ async function fetchUserReviews(userId, role) {
 function createReviewCard(reviewData) {
   const reviewCard = document.createElement('div');
   reviewCard.className = 'review-card';
+  const safeJobPostUrl = sanitizeUrl(reviewData.jobPostUrl, '');
   
   // Add click functionality if jobPostUrl exists
-  if (reviewData.jobPostUrl) {
+  if (safeJobPostUrl) {
     reviewCard.style.cursor = 'pointer';
     reviewCard.addEventListener('click', function() {
-      window.location.href = reviewData.jobPostUrl;
+      window.location.href = safeJobPostUrl;
     });
     
     // Add hover effect
@@ -4398,23 +4421,28 @@ function createReviewCard(reviewData) {
       this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
     });
   }
+
+  const safeJobTitle = escapeHtml(reviewData.jobTitle || 'Completed Gig');
+  const safeFeedbackDate = escapeHtml(reviewData.feedbackDate || 'Recent');
+  const safeUserThumbnail = escapeHtml(sanitizeUrl(reviewData.userThumbnail, 'public/users/default-user.jpg'));
+  const safeFeedbackText = escapeHtml(reviewData.feedbackText || 'No feedback provided.');
   
   reviewCard.innerHTML = `
-    <div class="review-job-title">${reviewData.jobTitle}</div>
+    <div class="review-job-title">${safeJobTitle}</div>
     <div class="review-feedback-section">
       <div class="review-feedback-left">
-        <div class="review-feedback-date">${reviewData.feedbackDate}</div>
+        <div class="review-feedback-date">${safeFeedbackDate}</div>
         <div class="review-rating">
           ${generateStarsHTML(reviewData.rating)}
         </div>
         <div class="review-feedback-label">FEEDBACK:</div>
       </div>
       <div class="review-user-thumbnail">
-        <img src="${reviewData.userThumbnail}" alt="User thumbnail">
+        <img src="${safeUserThumbnail}" alt="User thumbnail">
       </div>
     </div>
     <div class="review-feedback-text">
-      ${reviewData.feedbackText}
+      ${safeFeedbackText}
     </div>
   `;
   
@@ -4470,10 +4498,11 @@ async function populateCustomerReviews(customerReviews = null, userName = null) 
   container.innerHTML = '';
   
   if (customerReviews.length === 0) {
+    const safeProfileName = escapeHtml(profileName);
     container.innerHTML = `
       <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
         <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} as a customer will be displayed here.</p>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a customer will be displayed here.</p>
       </div>
     `;
     return;
@@ -4517,10 +4546,11 @@ async function populateWorkerReviews(workerReviews = null, userName = null) {
   container.innerHTML = '';
   
   if (workerReviews.length === 0) {
+    const safeProfileName = escapeHtml(profileName);
     container.innerHTML = `
       <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
         <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} as a worker will be displayed here.</p>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a worker will be displayed here.</p>
       </div>
     `;
     return;

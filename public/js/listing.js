@@ -45,6 +45,28 @@ function formatGigPrice(price) {
   return '₱' + raw.toLocaleString('en-PH');
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url, fallback = '#') {
+  if (!url) return fallback;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch (error) {
+    // fall through
+  }
+  return fallback;
+}
+
 function normalizeHeaderButtons() {
   const headerButtons = document.querySelectorAll('.jobcat-headerbuttons .jobcat-headerbutton');
   headerButtons.forEach(button => {
@@ -1770,7 +1792,8 @@ function getCurrentCategory() {
 
 function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount = 0) {
   const cardElement = document.createElement('a');
-  cardElement.href = cardData.templateUrl || '#';
+  const safeTemplateUrl = sanitizeUrl(cardData.templateUrl, '#');
+  cardElement.href = safeTemplateUrl;
   
   // ============================================================================
   // 🔥 FIREBASE DATA ATTRIBUTES FOR TRACKING & ANALYTICS
@@ -1812,34 +1835,44 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   // Format rate badge text and icon
   const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
   const rateText = cardData.rate || payType;
+  const safeTitle = escapeHtml(cardData.title || 'Untitled Job');
+  const safePhoto = escapeHtml(sanitizeUrl(cardData.photo, 'public/images/placeholder.jpg'));
+  const safeExtra1Label = escapeHtml(extra1Label);
+  const safeExtra1Value = escapeHtml(extra1Value);
+  const safeExtra2Label = escapeHtml(extra2Label);
+  const safeExtra2Value = escapeHtml(extra2Value);
+  const safePrice = escapeHtml(cardData.price || '₱0');
+  const safeDate = escapeHtml(cardData.date || 'TBD');
+  const safeTime = escapeHtml(cardData.time || 'TBD');
+  const safeRateText = escapeHtml(rateText);
   
   // TITLE-FIRST LAYOUT: Title spans full width, content below
   cardElement.innerHTML = `
-    <h3 class="card-title">${cardData.title || 'Untitled Job'}</h3>
+    <h3 class="card-title">${safeTitle}</h3>
     <div class="card-body">
       <div class="card-thumbnail">
-        <img src="${cardData.photo || 'images/placeholder.jpg'}" alt="${cardData.title || 'Job preview'}" loading="lazy">
+        <img src="${safePhoto}" alt="${safeTitle}" loading="lazy">
     </div>
       <div class="card-content-box">
         <div class="card-top-section">
           <div class="card-extras-column">
             <div class="card-extra">
-              <span class="extra-label">${extra1Label}</span>
-              <span class="extra-value">${extra1Value}</span>
+              <span class="extra-label">${safeExtra1Label}</span>
+              <span class="extra-value">${safeExtra1Value}</span>
       </div>
             <div class="card-extra">
-              <span class="extra-label">${extra2Label}</span>
-              <span class="extra-value">${extra2Value}</span>
+              <span class="extra-label">${safeExtra2Label}</span>
+              <span class="extra-value">${safeExtra2Value}</span>
     </div>
       </div>
-          <div class="payment-amount">${cardData.price || '₱0'}</div>
+          <div class="payment-amount">${safePrice}</div>
         </div>
         <div class="card-bottom-row">
           <div class="card-datetime">
-            <span class="footer-date">📅 ${cardData.date || 'TBD'}</span>
-            <span class="footer-time">⏰ ${cardData.time || 'TBD'}</span>
+            <span class="footer-date">📅 ${safeDate}</span>
+            <span class="footer-time">⏰ ${safeTime}</span>
           </div>
-          <div class="payment-badge">${rateIcon} ${rateText}</div>
+          <div class="payment-badge">${rateIcon} ${safeRateText}</div>
         </div>
       </div>
     </div>
