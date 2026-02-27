@@ -4,11 +4,20 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "public",
+    "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      ".git/**",
+      ".firebase/**",
+      ".cursor/**",
+      "mcps/**",
+      "agent-transcripts/**",
+      "assets/**",
+      "terminals/**",
+      "README.md",
+      "docs/**"
     ]
   }
 }

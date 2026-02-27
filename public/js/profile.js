@@ -3187,7 +3187,7 @@ function openProfileAdModal(action) {
 function normalizeProfileAdShareUrl(rawUrl) {
   if (!rawUrl) return window.location.href;
   try {
-    return new URL(rawUrl, window.location.origin).toString();
+    return new URL(rawUrl, window.location.href).toString();
   } catch (_) {
     return window.location.href;
   }
@@ -4367,7 +4367,7 @@ function escapeHtml(value) {
 function sanitizeUrl(url, fallback = '') {
   if (!url) return fallback;
   try {
-    const parsed = new URL(url, window.location.origin);
+    const parsed = new URL(url, window.location.href);
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return parsed.toString();
     }

@@ -77,7 +77,7 @@ function escapeHtml(value) {
 function sanitizeUrl(url, fallback = '') {
     if (!url) return fallback;
     try {
-        const parsed = new URL(url, window.location.origin);
+        const parsed = new URL(url, window.location.href);
         if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
             return parsed.toString();
         }

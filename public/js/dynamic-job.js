@@ -1658,7 +1658,7 @@ function openGigDetailAdModal(action) {
 function normalizeGigDetailAdShareUrl(rawUrl) {
   if (!rawUrl) return window.location.href;
   try {
-    return new URL(rawUrl, window.location.origin).toString();
+    return new URL(rawUrl, window.location.href).toString();
   } catch (_) {
     return window.location.href;
   }
