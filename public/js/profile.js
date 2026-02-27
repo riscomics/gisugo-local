@@ -4364,10 +4364,22 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function getSiteBasePath() {
+  const path = window.location.pathname || '/';
+  const lastSlash = path.lastIndexOf('/');
+  const basePath = lastSlash >= 0 ? path.slice(0, lastSlash + 1) : '/';
+  return basePath.startsWith('/') ? basePath : `/${basePath}`;
+}
+
 function sanitizeUrl(url, fallback = '') {
   if (!url) return fallback;
   try {
-    const parsed = new URL(url, window.location.origin);
+    const trimmed = String(url).trim();
+    const basePath = getSiteBasePath();
+    const normalized = trimmed.startsWith('/') && basePath !== '/'
+      ? `${basePath.replace(/\/$/, '')}${trimmed}`
+      : trimmed;
+    const parsed = new URL(normalized, window.location.href);
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return parsed.toString();
     }
