@@ -725,6 +725,37 @@ async function filterAndSortJobs() {
   // Attempts to load from Firebase first, falls back to localStorage if offline
   
   let categoryCards = [];
+
+  function buildJobDetailUrl(firebaseJob) {
+    const jobId = firebaseJob?.id || firebaseJob?.jobId || firebaseJob?.jobNumber;
+    const category = firebaseJob?.category || currentCategory;
+    const safeCategory = category ? encodeURIComponent(category) : '';
+    const safeJobId = jobId ? encodeURIComponent(jobId) : '';
+    const fallbackUrl = `dynamic-job.html?category=${safeCategory}${safeJobId ? `&jobNumber=${safeJobId}` : ''}`;
+
+    const rawUrl = typeof firebaseJob?.jobPageUrl === 'string' ? firebaseJob.jobPageUrl.trim() : '';
+    if (!rawUrl) {
+      return fallbackUrl;
+    }
+
+    const lowerUrl = rawUrl.toLowerCase();
+    if (!lowerUrl.includes('dynamic-job.html')) {
+      return fallbackUrl;
+    }
+
+    let updatedUrl = rawUrl;
+    const hasCategory = /[?&]category=/.test(updatedUrl);
+    if (!hasCategory && safeCategory) {
+      updatedUrl += (updatedUrl.includes('?') ? '&' : '?') + `category=${safeCategory}`;
+    }
+
+    const hasJobParam = /[?&](jobNumber|jobId)=/.test(updatedUrl);
+    if (!hasJobParam && safeJobId) {
+      updatedUrl += (updatedUrl.includes('?') ? '&' : '?') + `jobNumber=${safeJobId}`;
+    }
+
+    return updatedUrl;
+  }
   
   // Helper function to normalize Firebase data to UI format
   function _normalizeFirebaseJob(firebaseJob) {
@@ -755,7 +786,7 @@ async function filterAndSortJobs() {
       region: firebaseJob.region,
       city: firebaseJob.city,
       status: firebaseJob.status,
-      templateUrl: firebaseJob.jobPageUrl || `dynamic-job.html?category=${firebaseJob.category}&jobNumber=${firebaseJob.id}`,  // Use document ID
+      templateUrl: buildJobDetailUrl(firebaseJob),
       createdAt: firebaseJob.datePosted?.toDate?.()?.toISOString() || new Date().toISOString(),
       // Store full date object for sorting and expiration checking
       fullDate: date,
