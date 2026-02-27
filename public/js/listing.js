@@ -21,6 +21,52 @@ listingCssLinks.forEach(link => {
   link.setAttribute('href', `${baseHref}?v=${LISTING_CSS_VERSION}`);
 });
 
+/**
+ * Format a gig price for display inside listing cards.
+ * Numbers ≥ 10,000 are condensed to k-notation to prevent layout overflow.
+ *   500       → ₱500
+ *   1500      → ₱1,500
+ *   10000     → ₱10k
+ *   25500     → ₱25k
+ *   100000    → ₱100k+
+ */
+function formatGigPrice(price) {
+  if (price === null || price === undefined || price === '') return '₱—';
+
+  // Strip ₱ and commas, then parse
+  const raw = typeof price === 'string'
+    ? parseFloat(price.replace(/[₱,\s]/g, ''))
+    : parseFloat(price);
+
+  if (isNaN(raw)) return '₱—';
+
+  if (raw >= 100000) return '₱' + Math.floor(raw / 1000) + 'k+';
+  if (raw >= 10000)  return '₱' + Math.floor(raw / 1000) + 'k';
+  return '₱' + raw.toLocaleString('en-PH');
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url, fallback = '#') {
+  if (!url) return fallback;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch (error) {
+    // fall through
+  }
+  return fallback;
+}
+
 function normalizeHeaderButtons() {
   const headerButtons = document.querySelectorAll('.jobcat-headerbuttons .jobcat-headerbutton');
   headerButtons.forEach(button => {
@@ -119,18 +165,32 @@ const menuOverlay = document.getElementById('jobcatMenuOverlay');
 
 menuBtn.addEventListener('click', function(e) {
   e.stopPropagation();
-  menuOverlay.classList.add('show');
+  if (window.SharedMenuController && typeof window.SharedMenuController.open === 'function') {
+    window.SharedMenuController.open(menuOverlay);
+  } else {
+    menuOverlay.classList.add('show');
+    // Position popup panel exactly below the borderline
+    if (typeof positionSharedMenuPanel === 'function') positionSharedMenuPanel();
+  }
 });
 
 menuOverlay.addEventListener('click', function(e) {
   if (e.target === menuOverlay) {
-    menuOverlay.classList.remove('show');
+    if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+      window.SharedMenuController.closeAll();
+    } else {
+      menuOverlay.classList.remove('show');
+    }
   }
 });
 
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    menuOverlay.classList.remove('show');
+    if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+      window.SharedMenuController.closeAll();
+    } else {
+      menuOverlay.classList.remove('show');
+    }
   }
 });
 
@@ -691,6 +751,7 @@ function setListingEmptyStateVisible(isVisible, headerSpacer) {
   const emptyState = ensureListingEmptyState(headerSpacer);
   if (!emptyState) return;
   emptyState.classList.toggle('is-visible', isVisible);
+  syncEmptyStateAdPlacement(isVisible, emptyState);
 }
 
 // Filter and sort jobs based on selected criteria
@@ -706,11 +767,16 @@ async function filterAndSortJobs() {
   // Hide empty state while loading new results
   setListingEmptyStateVisible(false, headerSpacer);
 
-  // Show loading modal
+  // Show loading modal only if load is not instant (avoids loader flash on cache hits)
   const loadingOverlay = document.getElementById('loadingOverlay');
-  if (loadingOverlay) {
-    loadingOverlay.classList.add('show');
-  }
+  const LOADING_OVERLAY_DELAY_MS = 220;
+  let loadingOverlayVisible = false;
+  const loadingOverlayTimer = setTimeout(() => {
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('show');
+      loadingOverlayVisible = true;
+    }
+  }, LOADING_OVERLAY_DELAY_MS);
   
   // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
   try {
@@ -718,6 +784,7 @@ async function filterAndSortJobs() {
   // Clear existing job cards
   const existingCards = document.querySelectorAll('.job-preview-card');
   existingCards.forEach(card => card.remove());
+  resetAdRenderState();
   
   // ============================================================================
   // 🔥 FIREBASE INTEGRATED - DATA FETCHING
@@ -779,7 +846,7 @@ async function filterAndSortJobs() {
       photo: firebaseJob.thumbnail || 'public/images/placeholder.jpg',
       extra1: firebaseJob.extras?.[0] || '',
       extra2: firebaseJob.extras?.[1] || '',
-      price: `₱${firebaseJob.priceOffer || '0'}`,
+      price: formatGigPrice(firebaseJob.priceOffer),
       rate: firebaseJob.paymentType,
       date: formattedDate,
       time: timeDisplay,
@@ -931,32 +998,29 @@ async function filterAndSortJobs() {
   
   
   // ============================================================================
-  // ✅ FIREBASE-READY - RENDERING LOGIC (Keep this section as-is)
+  // 🔥 PAGINATION - STORE FILTERED JOBS & RENDER INITIAL BATCH
   // ============================================================================
-  // This rendering logic works perfectly with both mock data and Firebase data.
-  // No changes needed during Firebase migration.
+  // Store all filtered jobs for pagination, then render only the initial batch
   
-  // Create and insert filtered job cards in reverse order to get correct display order
-  let previousPayType = null;
-  let consecutiveCount = 0;
+  // Reset pagination state
+  PAGINATION.allJobs = filteredJobs;
+  PAGINATION.currentIndex = 0;
+  PAGINATION.displayedJobs = [];
+  PAGINATION.hasMore = filteredJobs.length > PAGINATION.initialBatchSize;
   
-  filteredJobs.reverse().forEach((cardData) => {
-    const currentPayType = cardData.rate || 'Per Hour';
-    
-    // Track consecutive cards of same pay type for subtle variations
-    if (currentPayType === previousPayType) {
-      consecutiveCount++;
-    } else {
-      consecutiveCount = 0;
-      previousPayType = currentPayType;
-    }
-    
-    const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
-    headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
-  });
-
+  console.log(`📊 Total jobs after filtering: ${filteredJobs.length}`);
+  console.log(`📦 Initial batch size: ${PAGINATION.initialBatchSize}`);
+  
   // Show empty state when no gigs are available
-  setListingEmptyStateVisible(filteredJobs.length === 0, headerSpacer);
+  if (filteredJobs.length === 0) {
+    setListingEmptyStateVisible(true, headerSpacer);
+    return; // Exit early if no jobs
+  }
+  
+  setListingEmptyStateVisible(false, headerSpacer);
+  
+  // Render initial batch
+  renderJobBatch(PAGINATION.initialBatchSize, headerSpacer);
   
   // Apply truncation after cards are loaded
   const truncateTimer = setTimeout(truncateBarangayNames, 50);
@@ -981,10 +1045,105 @@ async function filterAndSortJobs() {
     }
   } finally {
     // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
-    if (loadingOverlay) {
+    clearTimeout(loadingOverlayTimer);
+    if (loadingOverlay && loadingOverlayVisible) {
       loadingOverlay.classList.remove('show');
       console.log('✅ Loading overlay hidden');
     }
+  }
+}
+
+// ============================================================================
+// 🔥 PAGINATION - RENDER JOB BATCH
+// ============================================================================
+// Renders a batch of job cards from the PAGINATION.allJobs array
+function renderJobBatch(batchSize, headerSpacer) {
+  if (!headerSpacer) {
+    console.error('❌ Header spacer not found for rendering job batch');
+    return;
+  }
+  
+  // Calculate how many jobs to render (don't exceed available jobs)
+  const remainingJobs = PAGINATION.allJobs.length - PAGINATION.currentIndex;
+  const jobsToRender = Math.min(batchSize, remainingJobs);
+  
+  if (jobsToRender === 0) {
+    console.log('✅ All jobs rendered');
+    PAGINATION.hasMore = false;
+    return;
+  }
+  
+  console.log(`📦 Rendering ${jobsToRender} jobs (index ${PAGINATION.currentIndex} to ${PAGINATION.currentIndex + jobsToRender - 1})`);
+  
+  // Get the batch of jobs to render
+  const jobBatch = PAGINATION.allJobs.slice(
+    PAGINATION.currentIndex, 
+    PAGINATION.currentIndex + jobsToRender
+  );
+  
+  // Track pay type for consecutive styling (continue from last displayed job)
+  let previousPayType = PAGINATION.displayedJobs.length > 0 
+    ? PAGINATION.displayedJobs[PAGINATION.displayedJobs.length - 1].rate || 'Per Hour'
+    : null;
+  let consecutiveCount = 0;
+  
+  // Determine if this is the initial load or a pagination batch
+  const isInitialLoad = PAGINATION.displayedJobs.length === 0;
+  
+  // For initial load: render in reverse order (newest at top)
+  // For pagination: render in normal order (append to bottom)
+  const jobsToProcess = isInitialLoad ? jobBatch.reverse() : jobBatch;
+  
+  jobsToProcess.forEach((cardData) => {
+    const currentPayType = cardData.rate || 'Per Hour';
+    
+    // Track consecutive cards of same pay type for subtle variations
+    if (currentPayType === previousPayType) {
+      consecutiveCount++;
+    } else {
+      consecutiveCount = 0;
+      previousPayType = currentPayType;
+    }
+    
+    const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
+    
+    if (isInitialLoad) {
+      // Initial load: insert after header (so newest are at top)
+      headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+    } else {
+      // Pagination: append to end of container
+      headerSpacer.parentNode.appendChild(jobCard);
+    }
+    
+    // Add to displayed jobs
+    PAGINATION.displayedJobs.push(cardData);
+
+  });
+  
+  // Update pagination state
+  PAGINATION.currentIndex += jobsToRender;
+  PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length;
+  renderInlineAdsByGigPositions(headerSpacer.parentNode);
+
+  // Optional tail placement: show one ad after the final gig in the listing
+  if (!PAGINATION.hasMore && !AD_RENDER_STATE.tailInserted && shouldRenderAdsInCurrentListing() && AD_TRIAL_CONFIG.allowTailAd) {
+    const tailAd = getNextAdConfig('tail');
+    if (tailAd) {
+      const tailAdCard = createAdPlaceholderCard(tailAd, {
+        zone: 'tail',
+        insertAfterGigCount: PAGINATION.displayedJobs.length
+      });
+      headerSpacer.parentNode.appendChild(tailAdCard);
+      AD_RENDER_STATE.tailInserted = true;
+    }
+  }
+  
+  console.log(`✅ Batch rendered. Displayed: ${PAGINATION.displayedJobs.length}/${PAGINATION.allJobs.length} jobs`);
+  
+  // Apply truncation after cards are loaded
+  const truncateTimer = setTimeout(truncateBarangayNames, 50);
+  if (window._listingCleanup) {
+    window._listingCleanup.registerTimer(truncateTimer);
   }
 }
 
@@ -1049,6 +1208,578 @@ window.addEventListener('load', truncateBarangayNames);
 
 // ========================== JOB PREVIEW CARDS LOADING ==========================
 
+// ============================================================================
+// 🔥 INFINITE SCROLL PAGINATION STATE
+// ============================================================================
+// Manages progressive loading of gig cards (20 initial, 15 per batch)
+const PAGINATION = {
+  initialBatchSize: 20,
+  loadMoreBatchSize: 15,
+  allJobs: [],           // Full list of filtered/sorted jobs
+  displayedJobs: [],     // Jobs currently displayed
+  currentIndex: 0,       // Index of next job to display
+  isLoading: false,      // Prevent concurrent loads
+  hasMore: true          // Whether more jobs exist to load
+};
+
+const AD_TRIAL_CONFIG = {
+  enabled: true,
+  category: 'all',
+  frequencyCards: 6,
+  rotationMode: 'random',
+  allowTailAd: true,
+  allowEmptyStateAd: true,
+  ads: [
+    {
+      id: 'video-safety-tips',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/womensafety.jpg',
+      altText: 'Watch quick platform guide',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
+        poster: 'public/images/womensafety.jpg',
+        aspectRatio: '9:16'
+      }
+    },
+    {
+      id: 'sponsored-partner-spot',
+      type: 'sponsored_external',
+      subtype: 'sponsored_campaign',
+      imageSrc: 'public/images/adsponsor.jpg',
+      altText: 'Sponsored partner spotlight',
+      badgeText: 'Sponsored',
+      action: {
+        type: 'navigate',
+        url: 'https://www.RealinterfaceStudios.com'
+      }
+    },
+    {
+      id: 'video-platform-updates',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/updatesbanner.jpg',
+      altText: 'Watch latest platform updates',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://youtu.be/L2GUEZpNCsQ',
+        poster: 'public/images/updatesbanner.jpg',
+        aspectRatio: '16:9'
+      }
+    },
+    {
+      id: 'offer-verify',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Get verified offer',
+      badgeText: '',
+      action: {
+        type: 'navigate',
+        url: 'profile.html'
+      }
+    },
+    {
+      id: 'offer-share-gisugo',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/sharebanner.jpg',
+      altText: 'Share GisuGo with your network',
+      badgeText: '',
+      action: {
+        type: 'share',
+        title: 'Check out GisuGo',
+        text: 'Browse local gigs and opportunities on GisuGo.',
+        url: 'https://www.Gisugo.com'
+      }
+    }
+  ]
+};
+
+const AD_RENDER_STATE = {
+  rotationIndex: 0,
+  inlineInsertions: 0,
+  tailInserted: false,
+  emptyInserted: false,
+  lastRandomAdId: null,
+  slotAssignments: {},
+  randomBag: [],
+  randomBagSignature: ''
+};
+
+function resetAdRenderState() {
+  AD_RENDER_STATE.rotationIndex = 0;
+  AD_RENDER_STATE.inlineInsertions = 0;
+  AD_RENDER_STATE.tailInserted = false;
+  AD_RENDER_STATE.emptyInserted = false;
+  AD_RENDER_STATE.lastRandomAdId = null;
+  AD_RENDER_STATE.slotAssignments = {};
+  AD_RENDER_STATE.randomBag = [];
+  AD_RENDER_STATE.randomBagSignature = '';
+}
+
+function shouldRenderAdsInCurrentListing() {
+  if (!AD_TRIAL_CONFIG.enabled) return false;
+  if (AD_TRIAL_CONFIG.category === 'all') return true;
+  return getCurrentCategory() === AD_TRIAL_CONFIG.category;
+}
+
+function getActiveAdPool() {
+  if (!shouldRenderAdsInCurrentListing()) return [];
+  const ads = Array.isArray(AD_TRIAL_CONFIG.ads) ? AD_TRIAL_CONFIG.ads : [];
+  return ads.filter(ad => ad && ad.imageSrc);
+}
+
+function getAdPoolSignature(activeAds) {
+  if (!Array.isArray(activeAds)) return '';
+  return activeAds.map(ad => (ad && ad.id) ? ad.id : '').join('|');
+}
+
+function shuffleArray(values) {
+  const arr = Array.isArray(values) ? [...values] : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function refillRandomBag(activeAds) {
+  const ids = activeAds.map(ad => ad && ad.id).filter(Boolean);
+  if (ids.length === 0) {
+    AD_RENDER_STATE.randomBag = [];
+    return;
+  }
+  const shuffled = shuffleArray(ids);
+  if (
+    shuffled.length > 1 &&
+    AD_RENDER_STATE.lastRandomAdId &&
+    shuffled[0] === AD_RENDER_STATE.lastRandomAdId
+  ) {
+    const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+    const first = shuffled[0];
+    shuffled[0] = shuffled[swapIndex];
+    shuffled[swapIndex] = first;
+  }
+  AD_RENDER_STATE.randomBag = shuffled;
+}
+
+function getNextRandomAdConfig(activeAds) {
+  const signature = getAdPoolSignature(activeAds);
+  if (signature !== AD_RENDER_STATE.randomBagSignature) {
+    AD_RENDER_STATE.randomBagSignature = signature;
+    AD_RENDER_STATE.randomBag = [];
+  }
+  if (!Array.isArray(AD_RENDER_STATE.randomBag) || AD_RENDER_STATE.randomBag.length === 0) {
+    refillRandomBag(activeAds);
+  }
+  if (!Array.isArray(AD_RENDER_STATE.randomBag) || AD_RENDER_STATE.randomBag.length === 0) {
+    return activeAds[0] || null;
+  }
+
+  const nextId = AD_RENDER_STATE.randomBag.shift();
+  const nextAd = activeAds.find(ad => ad && ad.id === nextId);
+  if (!nextAd) {
+    return getNextRandomAdConfig(activeAds);
+  }
+  AD_RENDER_STATE.lastRandomAdId = nextAd.id || null;
+  return nextAd;
+}
+
+function getNextAdConfig(slotKey = '') {
+  const activeAds = getActiveAdPool();
+  if (activeAds.length === 0) return null;
+
+  const mode = AD_TRIAL_CONFIG.rotationMode || 'sequential';
+  if (mode === 'random') {
+    if (slotKey && AD_RENDER_STATE.slotAssignments && AD_RENDER_STATE.slotAssignments[slotKey]) {
+      const savedId = AD_RENDER_STATE.slotAssignments[slotKey];
+      const savedAd = activeAds.find(ad => ad && ad.id === savedId);
+      if (savedAd) {
+        AD_RENDER_STATE.lastRandomAdId = savedAd.id || null;
+        return savedAd;
+      }
+      delete AD_RENDER_STATE.slotAssignments[slotKey];
+    }
+
+    const randomAd = getNextRandomAdConfig(activeAds);
+    if (!randomAd) return null;
+    if (slotKey) {
+      AD_RENDER_STATE.slotAssignments[slotKey] = randomAd.id || '';
+    }
+    return randomAd;
+  }
+
+  const ad = activeAds[AD_RENDER_STATE.rotationIndex % activeAds.length];
+  AD_RENDER_STATE.rotationIndex += 1;
+  return ad;
+}
+
+function renderInlineAdsByGigPositions(container) {
+  if (!container) return;
+
+  const existingInlineAds = container.querySelectorAll('[data-ad-zone="inline"]');
+  existingInlineAds.forEach(ad => ad.remove());
+  AD_RENDER_STATE.inlineInsertions = 0;
+
+  if (!shouldRenderAdsInCurrentListing()) return;
+  const frequency = Number(AD_TRIAL_CONFIG.frequencyCards) || 0;
+  if (frequency <= 0) return;
+
+  const gigCards = Array.from(container.querySelectorAll('.job-preview-card:not([data-ad-placeholder="true"])'));
+  if (gigCards.length === 0) return;
+
+  // Rebuild inline placements from actual gig-card order after each render.
+  AD_RENDER_STATE.rotationIndex = 0;
+  for (let insertAfterCount = frequency; insertAfterCount < gigCards.length; insertAfterCount += frequency) {
+    const adConfig = getNextAdConfig(`inline-${insertAfterCount}`);
+    if (!adConfig) break;
+
+    const anchorCard = gigCards[insertAfterCount - 1];
+    if (!anchorCard) continue;
+
+    const adCard = createAdPlaceholderCard(adConfig, {
+      zone: 'inline',
+      insertAfterGigCount: insertAfterCount
+    });
+    anchorCard.insertAdjacentElement('afterend', adCard);
+    AD_RENDER_STATE.inlineInsertions += 1;
+  }
+}
+
+function resolveAdBadgeText(adConfig) {
+  if (!adConfig) return '';
+  // House promos intentionally avoid a badge; reserve labels for paid sponsors.
+  if (adConfig.subtype === 'in_app_offer') return '';
+  return adConfig.badgeText || '';
+}
+
+function resolveAdHref(adConfig) {
+  if (!adConfig || !adConfig.action) return '#';
+  if (adConfig.action.type === 'navigate' && adConfig.action.url) {
+    return adConfig.action.url;
+  }
+  return '#';
+}
+
+function shouldOpenAdInNewTab(adConfig, href) {
+  if (!adConfig || adConfig.type !== 'sponsored_external') return false;
+  if (!href || href === '#') return false;
+
+  try {
+    const parsed = new URL(href, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch (_) {
+    return /^https?:\/\//i.test(href);
+  }
+}
+
+function syncEmptyStateAdPlacement(isVisible, emptyState) {
+  const existingEmptyAds = document.querySelectorAll('[data-ad-zone="empty"]');
+  existingEmptyAds.forEach(ad => ad.remove());
+  AD_RENDER_STATE.emptyInserted = false;
+
+  if (!isVisible || !emptyState) return;
+  if (!shouldRenderAdsInCurrentListing() || !AD_TRIAL_CONFIG.allowEmptyStateAd) return;
+
+  const nextAd = getNextAdConfig('empty');
+  if (!nextAd) return;
+
+  const adCard = createAdPlaceholderCard(nextAd, { zone: 'empty' });
+  emptyState.insertAdjacentElement('afterend', adCard);
+  AD_RENDER_STATE.emptyInserted = true;
+}
+
+function ensureAdVideoPopup() {
+  let popup = document.getElementById('listingAdVideoPopup');
+  if (popup) return popup;
+
+  popup = document.createElement('div');
+  popup.id = 'listingAdVideoPopup';
+  popup.className = 'ad-video-popup';
+  popup.innerHTML = `
+    <div class="ad-video-popup-backdrop" data-close="true"></div>
+    <div class="ad-video-popup-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
+      <button type="button" class="ad-video-popup-close" aria-label="Close video offer">×</button>
+      <video class="ad-video-popup-player" controls playsinline preload="metadata"></video>
+      <iframe class="ad-video-popup-iframe" title="Video offer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const closeButton = popup.querySelector('.ad-video-popup-close');
+  const backdrop = popup.querySelector('.ad-video-popup-backdrop');
+  if (closeButton) {
+    closeButton.addEventListener('click', closeAdVideoPopup);
+  }
+  if (backdrop) {
+    backdrop.addEventListener('click', closeAdVideoPopup);
+  }
+
+  const escHandler = (event) => {
+    if (event.key === 'Escape') {
+      closeAdVideoPopup();
+    }
+  };
+  if (window._listingCleanup && typeof window._listingCleanup.registerListener === 'function') {
+    window._listingCleanup.registerListener(document, 'keydown', escHandler);
+  } else {
+    document.addEventListener('keydown', escHandler);
+  }
+
+  return popup;
+}
+
+function closeAdVideoPopup() {
+  const popup = document.getElementById('listingAdVideoPopup');
+  if (!popup) return;
+  const player = popup.querySelector('.ad-video-popup-player');
+  const iframe = popup.querySelector('.ad-video-popup-iframe');
+  if (player) {
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+  }
+  if (iframe) {
+    iframe.removeAttribute('src');
+    iframe.style.display = 'none';
+  }
+  popup.style.removeProperty('--ad-video-aspect');
+  popup.classList.remove('is-visible');
+}
+
+function normalizeAdAspectRatio(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const pairMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
+  if (pairMatch) {
+    const width = Number(pairMatch[1]);
+    const height = Number(pairMatch[2]);
+    if (width > 0 && height > 0) return `${width} / ${height}`;
+    return '';
+  }
+
+  const decimal = Number(trimmed);
+  if (!Number.isFinite(decimal) || decimal <= 0) return '';
+  return `${decimal} / 1`;
+}
+
+function resolveAdAspectRatio(actionConfig) {
+  if (!actionConfig) return '';
+  const raw = actionConfig.aspectRatio || actionConfig.videoAspectRatio || actionConfig.ratio;
+  return normalizeAdAspectRatio(raw);
+}
+
+function isYouTubeUrl(url) {
+  if (!url) return false;
+  return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function toYouTubeEmbedUrl(url) {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').trim();
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/watch')) {
+      const id = parsed.searchParams.get('v');
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/shorts/')) {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const id = parts[1];
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
+      const separator = parsed.search ? '&' : '?';
+      return `${parsed.toString()}${separator}autoplay=1`;
+    }
+  } catch (_) {
+    // fall through to best-effort return
+  }
+  return url;
+}
+
+function openAdVideoPopup(actionConfig) {
+  const popup = ensureAdVideoPopup();
+  const player = popup.querySelector('.ad-video-popup-player');
+  const iframe = popup.querySelector('.ad-video-popup-iframe');
+  if (!player || !iframe || !actionConfig) return;
+
+  const sourceUrl = actionConfig.youtubeEmbed || actionConfig.videoSrc || actionConfig.target;
+  if (!sourceUrl) return;
+  const configuredAspect = resolveAdAspectRatio(actionConfig);
+
+  if (isYouTubeUrl(sourceUrl)) {
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    player.style.display = 'none';
+
+    popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+    iframe.src = toYouTubeEmbedUrl(sourceUrl);
+    iframe.style.display = 'block';
+    popup.classList.add('is-visible');
+    return;
+  }
+
+  iframe.removeAttribute('src');
+  iframe.style.display = 'none';
+  player.style.display = 'block';
+  popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+
+  player.onloadedmetadata = () => {
+    if (configuredAspect) return;
+    if (player.videoWidth > 0 && player.videoHeight > 0) {
+      popup.style.setProperty('--ad-video-aspect', `${player.videoWidth} / ${player.videoHeight}`);
+    }
+  };
+  player.src = sourceUrl;
+  if (actionConfig.poster) {
+    player.poster = actionConfig.poster;
+  } else {
+    player.removeAttribute('poster');
+  }
+
+  popup.classList.add('is-visible');
+  const playAttempt = player.play();
+  if (playAttempt && typeof playAttempt.catch === 'function') {
+    playAttempt.catch(() => {
+      // Playback may require an explicit user tap on some mobile browsers.
+    });
+  }
+}
+
+function openAdTargetModal(actionConfig) {
+  if (!actionConfig) return;
+  const selector = actionConfig.modalSelector || actionConfig.modalId;
+  if (!selector) return;
+
+  const modal = selector.startsWith('#')
+    ? document.querySelector(selector)
+    : document.getElementById(selector) || document.querySelector(selector);
+
+  if (!modal) {
+    console.warn('⚠️ Ad modal target not found:', selector);
+    return;
+  }
+
+  modal.classList.add('show');
+  modal.classList.add('is-visible');
+  modal.classList.add('open');
+  modal.style.display = modal.style.display || 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function normalizeShareUrl(rawUrl) {
+  if (!rawUrl) return window.location.href;
+  try {
+    return new URL(rawUrl, window.location.origin).toString();
+  } catch (_) {
+    return window.location.href;
+  }
+}
+
+async function openAdShare(actionConfig) {
+  const shareUrl = normalizeShareUrl(actionConfig && (actionConfig.url || actionConfig.target || actionConfig.shareUrl));
+  const shareData = {
+    title: (actionConfig && actionConfig.title) || 'GisuGo',
+    text: (actionConfig && actionConfig.text) || 'Check this out on GisuGo.',
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (_) {
+      // Fallback to copy flow when native share is unavailable/cancelled.
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied. You can now share it anywhere.');
+      return;
+    } catch (_) {
+      // fall through to prompt fallback
+    }
+  }
+
+  window.prompt('Copy this link to share:', shareUrl);
+}
+
+function handleAdCardAction(event, adConfig) {
+  const action = adConfig && adConfig.action ? adConfig.action : null;
+  if (!action || !action.type) return;
+
+  if (action.type === 'navigate') {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (action.type === 'open_modal') {
+    openAdTargetModal(action);
+  } else if (action.type === 'open_video_popup') {
+    openAdVideoPopup(action);
+  } else if (action.type === 'share') {
+    openAdShare(action);
+  }
+}
+
+function createAdPlaceholderCard(adConfig, context = {}) {
+  const adCard = document.createElement('a');
+  const href = resolveAdHref(adConfig);
+  adCard.className = 'job-preview-card ad-placeholder-card';
+  adCard.href = href;
+  adCard.setAttribute('data-ad-placeholder', 'true');
+  adCard.setAttribute('data-ad-zone', context.zone || 'inline');
+  adCard.setAttribute('data-ad-id', adConfig && adConfig.id ? adConfig.id : 'ad');
+  adCard.setAttribute('data-ad-type', adConfig && adConfig.type ? adConfig.type : 'generic');
+  if (shouldOpenAdInNewTab(adConfig, href)) {
+    adCard.target = '_blank';
+    adCard.rel = 'noopener noreferrer';
+  }
+  if (typeof context.insertAfterGigCount === 'number') {
+    adCard.setAttribute('data-ad-after-count', String(context.insertAfterGigCount));
+  }
+  adCard.setAttribute('aria-label', adConfig && adConfig.altText ? adConfig.altText : 'Promotion');
+
+  const badgeText = resolveAdBadgeText(adConfig);
+  const badgeMarkup = badgeText
+    ? `<span class="ad-placeholder-badge">${badgeText}</span>`
+    : '';
+
+  adCard.innerHTML = `
+    <div class="ad-placeholder-media">
+      <img src="${adConfig.imageSrc}" alt="${adConfig.altText || 'Promotion'}" loading="lazy">
+      ${badgeMarkup}
+    </div>
+  `;
+
+  adCard.addEventListener('click', (event) => handleAdCardAction(event, adConfig));
+
+  return adCard;
+}
+
 function getCurrentCategory() {
   // Get category from page title or URL
   const title = document.title;
@@ -1092,7 +1823,8 @@ function getCurrentCategory() {
 
 function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount = 0) {
   const cardElement = document.createElement('a');
-  cardElement.href = cardData.templateUrl || '#';
+  const safeTemplateUrl = sanitizeUrl(cardData.templateUrl, '#');
+  cardElement.href = safeTemplateUrl;
   
   // ============================================================================
   // 🔥 FIREBASE DATA ATTRIBUTES FOR TRACKING & ANALYTICS
@@ -1134,34 +1866,44 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   // Format rate badge text and icon
   const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
   const rateText = cardData.rate || payType;
+  const safeTitle = escapeHtml(cardData.title || 'Untitled Job');
+  const safePhoto = escapeHtml(sanitizeUrl(cardData.photo, 'public/images/placeholder.jpg'));
+  const safeExtra1Label = escapeHtml(extra1Label);
+  const safeExtra1Value = escapeHtml(extra1Value);
+  const safeExtra2Label = escapeHtml(extra2Label);
+  const safeExtra2Value = escapeHtml(extra2Value);
+  const safePrice = escapeHtml(cardData.price || '₱0');
+  const safeDate = escapeHtml(cardData.date || 'TBD');
+  const safeTime = escapeHtml(cardData.time || 'TBD');
+  const safeRateText = escapeHtml(rateText);
   
   // TITLE-FIRST LAYOUT: Title spans full width, content below
   cardElement.innerHTML = `
-    <h3 class="card-title">${cardData.title || 'Untitled Job'}</h3>
+    <h3 class="card-title">${safeTitle}</h3>
     <div class="card-body">
       <div class="card-thumbnail">
-        <img src="${cardData.photo || 'images/placeholder.jpg'}" alt="${cardData.title || 'Job preview'}" loading="lazy">
+        <img src="${safePhoto}" alt="${safeTitle}" loading="lazy">
     </div>
       <div class="card-content-box">
         <div class="card-top-section">
           <div class="card-extras-column">
             <div class="card-extra">
-              <span class="extra-label">${extra1Label}</span>
-              <span class="extra-value">${extra1Value}</span>
+              <span class="extra-label">${safeExtra1Label}</span>
+              <span class="extra-value">${safeExtra1Value}</span>
       </div>
             <div class="card-extra">
-              <span class="extra-label">${extra2Label}</span>
-              <span class="extra-value">${extra2Value}</span>
+              <span class="extra-label">${safeExtra2Label}</span>
+              <span class="extra-value">${safeExtra2Value}</span>
     </div>
       </div>
-          <div class="payment-amount">${cardData.price || '₱0'}</div>
+          <div class="payment-amount">${safePrice}</div>
         </div>
         <div class="card-bottom-row">
           <div class="card-datetime">
-            <span class="footer-date">📅 ${cardData.date || 'TBD'}</span>
-            <span class="footer-time">⏰ ${cardData.time || 'TBD'}</span>
+            <span class="footer-date">📅 ${safeDate}</span>
+            <span class="footer-time">⏰ ${safeTime}</span>
           </div>
-          <div class="payment-badge">${rateIcon} ${rateText}</div>
+          <div class="payment-badge">${rateIcon} ${safeRateText}</div>
         </div>
       </div>
     </div>
@@ -1320,7 +2062,11 @@ function handleResize() {
 // Initialize auto-resize when overlay is shown
 function initJobcatOverlayAutoResize() {
     // Listen for window resize
-    window.addEventListener('resize', handleResize);
+    if (window._listingCleanup && typeof window._listingCleanup.registerListener === 'function') {
+        window._listingCleanup.registerListener(window, 'resize', handleResize);
+    } else {
+        window.addEventListener('resize', handleResize);
+    }
     
     // Initial resize if overlay is already visible
     const overlay = document.querySelector('.jobcat-servicemenu-overlay');
@@ -1410,13 +2156,19 @@ function autoResizeJobcatButton() {
 
 // Initialize jobcat button auto-resize
 function initJobcatButtonAutoResize() {
-    // Resize on window resize
-    window.addEventListener('resize', () => {
+    const buttonResizeHandler = () => {
         clearTimeout(window.buttonResizeTimeout);
         window.buttonResizeTimeout = setTimeout(() => {
             autoResizeJobcatButton();
         }, 150);
-    });
+    };
+
+    // Resize on window resize
+    if (window._listingCleanup && typeof window._listingCleanup.registerListener === 'function') {
+        window._listingCleanup.registerListener(window, 'resize', buttonResizeHandler);
+    } else {
+        window.addEventListener('resize', buttonResizeHandler);
+    }
     
     // Resize when button text changes (when different job categories are selected)
     const observer = new MutationObserver(() => {
@@ -1426,6 +2178,9 @@ function initJobcatButtonAutoResize() {
     const serviceNameDiv = document.querySelector('.jobcat-servicename div:first-child');
     if (serviceNameDiv) {
         observer.observe(serviceNameDiv, { childList: true, subtree: true, characterData: true });
+        if (window._listingCleanup && typeof window._listingCleanup.registerObserver === 'function') {
+            window._listingCleanup.registerObserver(observer);
+        }
         // Initial resize
         setTimeout(autoResizeJobcatButton, 100);
     }
@@ -1981,8 +2736,8 @@ function initJobcatButtonAutoResize() {
   const jobCategories = [
     // BASIC HELPER SECTION
     { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
-    { emoji: '📦', label: 'Hakot', page: 'hakot.html', section: 'basic' },
-    { emoji: '🚗', label: 'Hatod', page: 'hatod.html', section: 'basic' },
+    { emoji: '🚚', label: 'Hakot', page: 'hakot.html', section: 'basic' },
+    { emoji: '📦', label: 'Hatod', page: 'hatod.html', section: 'basic' },
     { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
     { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
     { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'basic' },
@@ -1991,7 +2746,7 @@ function initJobcatButtonAutoResize() {
     { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'basic' },
     { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'basic' },
     { emoji: '🙋🏻', label: 'Staff', page: 'staff.html', section: 'basic' },
-    { emoji: '👩‍💼👨‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
+    { emoji: '👩🏻‍💼👨🏻‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
     
     // SKILLED WORKER SECTION
     { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'skilled' },
@@ -2136,11 +2891,21 @@ function initJobcatButtonAutoResize() {
   autoResizeJobCategoryText();
 
   // Run on window resize
-  window.addEventListener('resize', autoResizeJobCategoryText);
+  if (window._listingCleanup && typeof window._listingCleanup.registerListener === 'function') {
+    window._listingCleanup.registerListener(window, 'resize', autoResizeJobCategoryText);
+  } else {
+    window.addEventListener('resize', autoResizeJobCategoryText);
+    window._jobcatTextResizeHandler = autoResizeJobCategoryText;
+  }
 
   // Observe text changes (in case it's dynamically updated)
   const observer = new MutationObserver(autoResizeJobCategoryText);
   observer.observe(textDiv, { childList: true, characterData: true, subtree: true });
+  if (window._listingCleanup && typeof window._listingCleanup.registerObserver === 'function') {
+    window._listingCleanup.registerObserver(observer);
+  } else {
+    window._jobcatTextMutationObserver = observer;
+  }
 
   console.log('✓ Job category text auto-resize initialized');
 })();
@@ -2211,6 +2976,16 @@ function initJobcatButtonAutoResize() {
     cleanupRegistry.listeners = [];
     cleanupRegistry.observers = [];
     cleanupRegistry.timers = [];
+
+    // Cleanup early-bound handlers/observers created before registry init
+    if (window._jobcatTextResizeHandler) {
+      window.removeEventListener('resize', window._jobcatTextResizeHandler);
+      window._jobcatTextResizeHandler = null;
+    }
+    if (window._jobcatTextMutationObserver) {
+      window._jobcatTextMutationObserver.disconnect();
+      window._jobcatTextMutationObserver = null;
+    }
     
     // Clear card registry (WeakMap will auto-cleanup when cards are removed)
     if (window._cardRegistry) {
@@ -2220,8 +2995,13 @@ function initJobcatButtonAutoResize() {
     console.log('✓ Memory cleanup complete');
   }
 
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', cleanup);
+  // Use pagehide to preserve bfcache on back/forward navigation.
+  // If event.persisted is true, browser is storing this page in bfcache,
+  // so we skip cleanup to keep instant back navigation.
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return;
+    cleanup();
+  });
   
   // Cleanup on visibility change (when tab is hidden for extended period)
   let hiddenTimer;
@@ -2311,6 +3091,129 @@ function initJobcatButtonAutoResize() {
   }
 
   console.log('✓ Lazy loading images initialized');
+})();
+
+// ============================================================================
+// 🔥 INFINITE SCROLL - AUTO-LOAD MORE JOBS
+// ============================================================================
+// Automatically load more jobs when user scrolls near bottom of page
+// ============================================================================
+
+(function() {
+  let scrollHandler;
+  
+  function handleInfiniteScroll() {
+    // Don't load if already loading, no more jobs, or page not ready
+    if (PAGINATION.isLoading || !PAGINATION.hasMore) {
+      return;
+    }
+    
+    // Calculate distance from bottom
+    const scrollPosition = window.scrollY + window.innerHeight;
+    const pageHeight = document.documentElement.scrollHeight;
+    const distanceFromBottom = pageHeight - scrollPosition;
+    
+    // Trigger when within 800px of bottom
+    if (distanceFromBottom < 800) {
+      loadMoreJobs();
+    }
+  }
+  
+  function loadMoreJobs() {
+    PAGINATION.isLoading = true;
+    console.log('📦 Loading more jobs...');
+    
+    const headerSpacer = document.querySelector('.jobcat-header-spacer');
+    if (!headerSpacer) {
+      console.error('❌ Header spacer not found');
+      PAGINATION.isLoading = false;
+      return;
+    }
+    
+    // Show subtle loading indicator
+    showLoadingIndicator();
+    
+    // Small delay to show indicator (prevents jarring immediate load)
+    const loadTimer = setTimeout(() => {
+      renderJobBatch(PAGINATION.loadMoreBatchSize, headerSpacer);
+      hideLoadingIndicator();
+      PAGINATION.isLoading = false;
+      
+      // Log progress
+      if (PAGINATION.hasMore) {
+        console.log(`📊 Progress: ${PAGINATION.displayedJobs.length}/${PAGINATION.allJobs.length} jobs loaded`);
+      } else {
+        console.log('✅ All jobs loaded');
+      }
+    }, 300);
+    
+    // Register timer for cleanup
+    if (window._listingCleanup) {
+      window._listingCleanup.registerTimer(loadTimer, 'timeout');
+    }
+  }
+  
+  function showLoadingIndicator() {
+    // Check if indicator already exists
+    let indicator = document.getElementById('paginationLoadingIndicator');
+    
+    if (!indicator) {
+      indicator = document.createElement('div');
+      indicator.id = 'paginationLoadingIndicator';
+      indicator.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 24px;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 9999;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: none;
+      `;
+      indicator.textContent = 'Loading more gigs...';
+      document.body.appendChild(indicator);
+    }
+    
+    indicator.style.display = 'block';
+  }
+  
+  function hideLoadingIndicator() {
+    const indicator = document.getElementById('paginationLoadingIndicator');
+    if (indicator) {
+      indicator.style.display = 'none';
+    }
+  }
+  
+  // Throttle scroll events (check at most every 150ms)
+  let scrollTimeout;
+  scrollHandler = function() {
+    if (scrollTimeout) return;
+    
+    scrollTimeout = setTimeout(() => {
+      handleInfiniteScroll();
+      scrollTimeout = null;
+    }, 150);
+    
+    // Register timeout for cleanup (defensive - setTimeout auto-clears, but good practice)
+    if (window._listingCleanup && scrollTimeout) {
+      window._listingCleanup.registerTimer(scrollTimeout, 'timeout');
+    }
+  };
+  
+  // Register scroll listener
+  window.addEventListener('scroll', scrollHandler, { passive: true });
+  
+  // Register for cleanup
+  if (window._listingCleanup) {
+    window._listingCleanup.registerListener(window, 'scroll', scrollHandler, { passive: true });
+  }
+  
+  console.log('✓ Infinite scroll initialized (trigger: 800px from bottom)');
 })();
 
 // ============================================================================

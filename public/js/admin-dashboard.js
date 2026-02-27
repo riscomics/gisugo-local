@@ -1,5 +1,14 @@
 // GISUGO Admin Dashboard JavaScript
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Admin Dashboard initialized');
     
@@ -53,6 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize system settings
     initializeSystemSettings();
+
+    // Initialize ad placement settings (Phase 3 scaffold)
+    initializeAdSettingsPanel();
     
     // Initialize admin profile dropdown
     initializeAdminDropdown();
@@ -229,6 +241,7 @@ function updatePageTitle(section) {
         'finance': 'Financial Management',
         'analytics': 'Platform Analytics',
         'moderation': 'Gig Moderation',
+        'ads': 'Ad Placement',
         'settings': 'System Settings'
     };
     
@@ -4634,7 +4647,9 @@ function showSuspendConfirmation() {
     const message = document.getElementById('suspendConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>${currentGigData.title}</strong> by ${currentGigData.posterName} will be moved to the "Suspended" tab.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safePoster = escapeHtml(currentGigData.posterName || '');
+        message.innerHTML = `<strong>${safeTitle}</strong> by ${safePoster} will be moved to the "Suspended" tab.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -4700,7 +4715,9 @@ function showRelistConfirmation() {
     const message = document.getElementById('relistConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>${currentGigData.title}</strong> by ${currentGigData.posterName} will be moved back to the "Posted" tab.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safePoster = escapeHtml(currentGigData.posterName || '');
+        message.innerHTML = `<strong>${safeTitle}</strong> by ${safePoster} will be moved back to the "Posted" tab.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -4753,7 +4770,9 @@ function showIgnoreConfirmation() {
     const message = document.getElementById('ignoreConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>${currentGigData.title}</strong> will be hidden from "Reported" and requires ${currentGigData.reportCount + 10} total reports to reappear.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safeThreshold = escapeHtml(String((currentGigData.reportCount || 0) + 10));
+        message.innerHTML = `<strong>${safeTitle}</strong> will be hidden from "Reported" and requires ${safeThreshold} total reports to reappear.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -4827,7 +4846,9 @@ function showDeleteConfirmation() {
     const message = document.getElementById('deleteConfirmMessage');
     
     if (overlay && currentGigData) {
-        message.innerHTML = `<strong>⚠️ Warning:</strong> <strong>"${currentGigData.title}"</strong> posted by ${currentGigData.posterName} will be permanently removed from the marketplace and database. This action cannot be undone.`;
+        const safeTitle = escapeHtml(currentGigData.title || '');
+        const safePoster = escapeHtml(currentGigData.posterName || '');
+        message.innerHTML = `<strong>⚠️ Warning:</strong> <strong>"${safeTitle}"</strong> posted by ${safePoster} will be permanently removed from the marketplace and database. This action cannot be undone.`;
         overlay.classList.add('show');
         document.body.style.overflow = 'hidden';
     }
@@ -11216,6 +11237,568 @@ window.addEventListener('resize', () => {
         }
     }
 });
+
+// ===== AD PLACEMENT SETTINGS (PHASE 3) =====
+const AD_SETTINGS_STORAGE_KEY = 'gisugo_admin_ad_settings_v1';
+const AD_PANEL_COLLAPSE_STORAGE_KEY = 'gisugo_admin_ad_panel_collapse_v1';
+const DEFAULT_AD_PANEL_COLLAPSE_STATE = {
+    adItemCardBody: false,
+    adInventoryCardBody: false,
+    adActionsCardBody: false
+};
+const DEFAULT_AD_PANEL_SETTINGS = {
+    enabled: true,
+    frequencyCards: 10,
+    maxAdsPerSession: 6,
+    startAfterCards: 0,
+    allowTailAd: true,
+    allowEmptyStateAd: true,
+    zones: {
+        listing_feed_inline: true,
+        profile_logout_slot: true,
+        gig_detail_post_customer: true
+    },
+    ads: [
+        {
+            id: 'offer-verify-launch',
+            type: 'site_offer',
+            status: 'active',
+            imageSrc: 'public/images/verify.png',
+            altText: 'Get verified for safer gigs',
+            weight: 100,
+            maxImpressions: 0,
+            maxClicks: 0,
+            currentImpressions: 0,
+            currentClicks: 0,
+            startAt: '',
+            endAt: '',
+            action: {
+                type: 'open_modal',
+                target: '#accountOverlay'
+            }
+        }
+    ]
+};
+
+let adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+let adPanelCollapseState = { ...DEFAULT_AD_PANEL_COLLAPSE_STATE };
+
+function initializeAdSettingsPanel() {
+    const adsSection = document.getElementById('ads');
+    if (!adsSection) return;
+
+    loadAdPanelState();
+    loadAdPanelCollapseState();
+    bindAdPanelActions();
+    setupAdPanelCollapsibles();
+    renderAdInventoryList();
+    syncAdPanelFormFromState();
+    applyAdPanelCollapseState();
+    updateAdEnabledIndicator();
+    refreshAdJsonPreview();
+    console.log('📣 Ad placement settings panel initialized');
+}
+
+function loadAdPanelState() {
+    try {
+        const raw = localStorage.getItem(AD_SETTINGS_STORAGE_KEY);
+        if (!raw) {
+            adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        adPanelState = {
+            ...JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS)),
+            ...parsed,
+            zones: {
+                ...DEFAULT_AD_PANEL_SETTINGS.zones,
+                ...(parsed.zones || {})
+            },
+            ads: Array.isArray(parsed.ads) ? parsed.ads : [...DEFAULT_AD_PANEL_SETTINGS.ads]
+        };
+    } catch (error) {
+        console.warn('⚠️ Failed to load ad settings; using defaults.', error);
+        adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+    }
+}
+
+function saveAdPanelState() {
+    localStorage.setItem(AD_SETTINGS_STORAGE_KEY, JSON.stringify(adPanelState));
+    refreshAdJsonPreview();
+}
+
+function loadAdPanelCollapseState() {
+    try {
+        const raw = localStorage.getItem(AD_PANEL_COLLAPSE_STORAGE_KEY);
+        if (!raw) {
+            const isMobile = window.innerWidth <= 768;
+            adPanelCollapseState = {
+                adItemCardBody: false,
+                adInventoryCardBody: isMobile,
+                adActionsCardBody: isMobile
+            };
+            return;
+        }
+        const parsed = JSON.parse(raw);
+        adPanelCollapseState = {
+            ...DEFAULT_AD_PANEL_COLLAPSE_STATE,
+            ...(parsed || {})
+        };
+    } catch (error) {
+        console.warn('⚠️ Failed to load ad panel collapse state; using defaults.', error);
+        adPanelCollapseState = { ...DEFAULT_AD_PANEL_COLLAPSE_STATE };
+    }
+}
+
+function saveAdPanelCollapseState() {
+    localStorage.setItem(AD_PANEL_COLLAPSE_STORAGE_KEY, JSON.stringify(adPanelCollapseState));
+}
+
+function bindAdPanelActions() {
+    const saveBtn = document.getElementById('adSaveBtn');
+    const resetBtn = document.getElementById('adResetBtn');
+    const exportBtn = document.getElementById('adExportBtn');
+    const addOrUpdateBtn = document.getElementById('adAddOrUpdateBtn');
+    const clearFormBtn = document.getElementById('adClearFormBtn');
+    const enabledToggle = document.getElementById('adEnabled');
+    const adTypeSelect = document.getElementById('adItemType');
+
+    if (enabledToggle) {
+        enabledToggle.addEventListener('change', () => {
+            updateAdEnabledIndicator();
+            syncAdSystemDependentToggles(true);
+        });
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            collectAdPanelControls();
+            saveAdPanelState();
+            flashButtonState(saveBtn, 'Saved');
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            adPanelState = JSON.parse(JSON.stringify(DEFAULT_AD_PANEL_SETTINGS));
+            syncAdPanelFormFromState();
+            renderAdInventoryList();
+            saveAdPanelState();
+            refreshAdJsonPreview();
+            clearAdItemForm();
+            flashButtonState(resetBtn, 'Reset');
+        });
+    }
+
+    if (exportBtn) {
+        exportBtn.addEventListener('click', async () => {
+            const jsonText = JSON.stringify(adPanelState, null, 2);
+            const preview = document.getElementById('adJsonPreview');
+            if (preview) preview.value = jsonText;
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(jsonText);
+                    flashButtonState(exportBtn, 'Copied');
+                    return;
+                }
+            } catch (error) {
+                console.warn('Clipboard export failed, keeping JSON in preview.', error);
+            }
+            flashButtonState(exportBtn, 'Ready');
+        });
+    }
+
+    if (addOrUpdateBtn) {
+        addOrUpdateBtn.addEventListener('click', () => {
+            collectAdPanelControls();
+            upsertAdFromForm();
+            saveAdPanelState();
+            renderAdInventoryList();
+            refreshAdJsonPreview();
+            clearAdItemForm();
+            flashButtonState(addOrUpdateBtn, 'Updated');
+        });
+    }
+
+    if (clearFormBtn) {
+        clearFormBtn.addEventListener('click', clearAdItemForm);
+    }
+
+    if (adTypeSelect) {
+        adTypeSelect.addEventListener('change', () => {
+            syncAdTypeFormState(adTypeSelect.value);
+        });
+    }
+}
+
+function setupAdPanelCollapsibles() {
+    const toggles = document.querySelectorAll('.ad-collapse-toggle[data-collapse-target]');
+    toggles.forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const targetId = toggle.getAttribute('data-collapse-target');
+            if (!targetId) return;
+            const current = !!adPanelCollapseState[targetId];
+            adPanelCollapseState[targetId] = !current;
+            applyAdPanelCollapseState();
+            saveAdPanelCollapseState();
+        });
+    });
+}
+
+function applyAdPanelCollapseState() {
+    const toggles = document.querySelectorAll('.ad-collapse-toggle[data-collapse-target]');
+    toggles.forEach((toggle) => {
+        const targetId = toggle.getAttribute('data-collapse-target');
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const isCollapsed = !!adPanelCollapseState[targetId];
+        target.classList.toggle('is-collapsed', isCollapsed);
+        toggle.textContent = isCollapsed ? 'Show' : 'Hide';
+        toggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    });
+}
+
+function syncAdTypeFormState(currentType) {
+    const activeType = currentType || 'site_offer';
+    const conditionalFields = document.querySelectorAll('.ad-type-field[data-ad-type]');
+    conditionalFields.forEach((field) => {
+        const targetType = field.getAttribute('data-ad-type');
+        field.style.display = targetType === activeType ? '' : 'none';
+    });
+}
+
+function updateAdEnabledIndicator() {
+    const enabledEl = document.getElementById('adEnabled');
+    const stateEl = document.getElementById('adEnabledText');
+    if (!enabledEl || !stateEl) return;
+    const isOn = enabledEl.type === 'checkbox' ? !!enabledEl.checked : enabledEl.value === 'true';
+    stateEl.textContent = isOn ? 'ON' : 'OFF';
+}
+
+function syncAdSystemDependentToggles(forceOffWhenDisabled = false) {
+    const enabledEl = document.getElementById('adEnabled');
+    if (!enabledEl) return;
+    const isOn = enabledEl.type === 'checkbox' ? !!enabledEl.checked : enabledEl.value === 'true';
+
+    const dependentIds = ['adAllowTail', 'adAllowEmpty', 'zoneListingInline', 'zoneProfileSlot', 'zoneGigDetailSlot'];
+    dependentIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!isOn && forceOffWhenDisabled) {
+            el.checked = false;
+        }
+        el.disabled = !isOn;
+    });
+}
+
+function collectAdPanelControls() {
+    const enabled = document.getElementById('adEnabled');
+    const frequencyCards = document.getElementById('adFrequencyCards');
+    const maxAdsPerSession = document.getElementById('adMaxAdsPerSession');
+    const startAfterCards = document.getElementById('adStartAfterCards');
+    const allowTail = document.getElementById('adAllowTail');
+    const allowEmpty = document.getElementById('adAllowEmpty');
+    const zoneListingInline = document.getElementById('zoneListingInline');
+    const zoneProfileSlot = document.getElementById('zoneProfileSlot');
+    const zoneGigDetailSlot = document.getElementById('zoneGigDetailSlot');
+
+    if (enabled) {
+        adPanelState.enabled = enabled.type === 'checkbox' ? !!enabled.checked : enabled.value === 'true';
+    } else {
+        adPanelState.enabled = true;
+    }
+    adPanelState.frequencyCards = frequencyCards ? Math.max(1, parseInt(frequencyCards.value, 10) || 10) : 10;
+    adPanelState.maxAdsPerSession = maxAdsPerSession ? Math.max(1, parseInt(maxAdsPerSession.value, 10) || 6) : 6;
+    adPanelState.startAfterCards = startAfterCards ? Math.max(0, parseInt(startAfterCards.value, 10) || 0) : 0;
+    adPanelState.allowTailAd = allowTail ? !!allowTail.checked : true;
+    adPanelState.allowEmptyStateAd = allowEmpty ? !!allowEmpty.checked : true;
+
+    adPanelState.zones = {
+        listing_feed_inline: zoneListingInline ? !!zoneListingInline.checked : true,
+        profile_logout_slot: zoneProfileSlot ? !!zoneProfileSlot.checked : true,
+        gig_detail_post_customer: zoneGigDetailSlot ? !!zoneGigDetailSlot.checked : true
+    };
+}
+
+function syncAdPanelFormFromState() {
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = String(value);
+    };
+    const setChecked = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.checked = !!value;
+    };
+
+    const enabledEl = document.getElementById('adEnabled');
+    if (enabledEl) {
+        if (enabledEl.type === 'checkbox') {
+            enabledEl.checked = !!adPanelState.enabled;
+        } else {
+            enabledEl.value = adPanelState.enabled ? 'true' : 'false';
+        }
+    }
+    updateAdEnabledIndicator();
+    setValue('adFrequencyCards', adPanelState.frequencyCards);
+    setValue('adMaxAdsPerSession', adPanelState.maxAdsPerSession);
+    setValue('adStartAfterCards', adPanelState.startAfterCards);
+    setChecked('adAllowTail', adPanelState.allowTailAd);
+    setChecked('adAllowEmpty', adPanelState.allowEmptyStateAd);
+    setChecked('zoneListingInline', adPanelState.zones.listing_feed_inline);
+    setChecked('zoneProfileSlot', adPanelState.zones.profile_logout_slot);
+    setChecked('zoneGigDetailSlot', adPanelState.zones.gig_detail_post_customer);
+    syncAdSystemDependentToggles(false);
+    const typeEl = document.getElementById('adItemType');
+    syncAdTypeFormState(typeEl ? typeEl.value : 'site_offer');
+}
+
+function getAdItemFormData() {
+    const adId = (document.getElementById('adItemId')?.value || '').trim();
+    const type = document.getElementById('adItemType')?.value || 'site_offer';
+    const imageSrc = (document.getElementById('adItemImageSrc')?.value || '').trim();
+    const altText = (document.getElementById('adItemAltText')?.value || '').trim();
+    const actionTypeInput = document.getElementById('adItemActionType')?.value || 'navigate';
+    const actionTarget = (document.getElementById('adItemActionTarget')?.value || '').trim();
+    const externalUrl = (document.getElementById('adItemExternalUrl')?.value || '').trim();
+    const videoUrl = (document.getElementById('adItemVideoUrl')?.value || '').trim();
+    const videoThumbnail = (document.getElementById('adItemVideoThumbnail')?.value || '').trim();
+    const weight = Math.max(1, parseInt(document.getElementById('adItemWeight')?.value || '100', 10));
+    const status = document.getElementById('adItemStatus')?.value || 'active';
+    const maxImpressions = Math.max(0, parseInt(document.getElementById('adItemMaxImpressions')?.value || '0', 10));
+    const maxClicks = Math.max(0, parseInt(document.getElementById('adItemMaxClicks')?.value || '0', 10));
+    const startAt = document.getElementById('adItemStartAt')?.value || '';
+    const endAt = document.getElementById('adItemEndAt')?.value || '';
+    let resolvedActionType = actionTypeInput;
+    let resolvedActionTarget = actionTarget;
+    let resolvedVideoUrl = '';
+    let resolvedImageSrc = imageSrc;
+
+    if (type === 'sponsored_external') {
+        resolvedActionType = 'navigate';
+        resolvedActionTarget = externalUrl;
+    } else if (type === 'video_popup') {
+        resolvedActionType = 'open_video_popup';
+        resolvedActionTarget = videoUrl;
+        resolvedVideoUrl = videoUrl;
+        if (videoThumbnail) {
+            resolvedImageSrc = videoThumbnail;
+        }
+    }
+
+    if (!adId || !resolvedImageSrc || !resolvedActionTarget) {
+        return null;
+    }
+
+    return {
+        id: adId,
+        type,
+        status,
+        imageSrc: resolvedImageSrc,
+        altText: altText || adId,
+        weight,
+        maxImpressions,
+        maxClicks,
+        currentImpressions: 0,
+        currentClicks: 0,
+        startAt,
+        endAt,
+        action: {
+            type: resolvedActionType,
+            target: resolvedActionTarget,
+            ...(resolvedVideoUrl ? { youtubeEmbed: resolvedVideoUrl } : {}),
+            ...(videoThumbnail ? { poster: videoThumbnail } : {})
+        }
+    };
+}
+
+function upsertAdFromForm() {
+    const formData = getAdItemFormData();
+    if (!formData) return;
+
+    const existingIndex = adPanelState.ads.findIndex(ad => ad.id === formData.id);
+    if (existingIndex >= 0) {
+        const existing = adPanelState.ads[existingIndex];
+        adPanelState.ads[existingIndex] = {
+            ...existing,
+            ...formData,
+            currentImpressions: Number(existing.currentImpressions || 0),
+            currentClicks: Number(existing.currentClicks || 0)
+        };
+    } else {
+        adPanelState.ads.push(formData);
+    }
+}
+
+function clearAdItemForm() {
+    const fields = ['adItemId', 'adItemImageSrc', 'adItemAltText', 'adItemActionTarget', 'adItemExternalUrl', 'adItemVideoUrl', 'adItemVideoThumbnail', 'adItemStartAt', 'adItemEndAt'];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const weight = document.getElementById('adItemWeight');
+    if (weight) weight.value = '100';
+    const type = document.getElementById('adItemType');
+    if (type) type.value = 'site_offer';
+    const actionType = document.getElementById('adItemActionType');
+    if (actionType) actionType.value = 'navigate';
+    const status = document.getElementById('adItemStatus');
+    if (status) status.value = 'active';
+    const maxImpressions = document.getElementById('adItemMaxImpressions');
+    if (maxImpressions) maxImpressions.value = '0';
+    const maxClicks = document.getElementById('adItemMaxClicks');
+    if (maxClicks) maxClicks.value = '0';
+    const ctrField = document.getElementById('adItemCtr');
+    if (ctrField) ctrField.value = '0.00%';
+    syncAdTypeFormState('site_offer');
+}
+
+function renderAdInventoryList() {
+    const container = document.getElementById('adInventoryList');
+    const emptyState = document.getElementById('adInventoryEmpty');
+    if (!container || !emptyState) return;
+
+    container.innerHTML = '';
+    const items = Array.isArray(adPanelState.ads) ? adPanelState.ads : [];
+    emptyState.style.display = items.length ? 'none' : 'block';
+
+    items.forEach((ad) => {
+        const item = document.createElement('div');
+        item.className = 'ad-inventory-item';
+        const typeIconMap = {
+            site_offer: '🏷️',
+            sponsored_external: '📣',
+            video_popup: '🎬'
+        };
+        const typeIcon = typeIconMap[ad.type] || '🔔';
+
+        const meta = document.createElement('div');
+        meta.className = 'ad-inventory-meta';
+        const status = ad.status || 'active';
+        const impressionCap = Number(ad.maxImpressions || 0);
+        const clickCap = Number(ad.maxClicks || 0);
+        const ctr = calculateCtr(ad.currentClicks || 0, ad.currentImpressions || 0);
+        const impressionText = impressionCap > 0 ? `${ad.currentImpressions || 0}/${impressionCap}` : `${ad.currentImpressions || 0}/∞`;
+        const clickText = clickCap > 0 ? `${ad.currentClicks || 0}/${clickCap}` : `${ad.currentClicks || 0}/∞`;
+        const windowText = formatAdDateWindow(ad.startAt, ad.endAt);
+        meta.innerHTML = `
+            <div class="ad-inventory-title">${typeIcon} ${ad.id}</div>
+            <div class="ad-inventory-sub">${ad.type} • ${ad.action?.type || 'navigate'} • w:${ad.weight || 100} • ${status}</div>
+            <div class="ad-inventory-sub">Impressions: ${impressionText} • Clicks: ${clickText} • CTR: ${ctr}</div>
+            <div class="ad-inventory-sub">${windowText}</div>
+        `;
+
+        const actions = document.createElement('div');
+        actions.className = 'ad-inventory-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'ad-mini-btn';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => populateAdFormForEdit(ad));
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'ad-mini-btn';
+        removeBtn.textContent = 'Delete';
+        removeBtn.addEventListener('click', () => {
+            adPanelState.ads = adPanelState.ads.filter(itemAd => itemAd.id !== ad.id);
+            saveAdPanelState();
+            renderAdInventoryList();
+            refreshAdJsonPreview();
+        });
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'ad-mini-btn';
+        toggleBtn.textContent = status === 'paused' ? 'Resume' : 'Pause';
+        toggleBtn.addEventListener('click', () => {
+            const target = adPanelState.ads.find(itemAd => itemAd.id === ad.id);
+            if (!target) return;
+            target.status = target.status === 'paused' ? 'active' : 'paused';
+            saveAdPanelState();
+            renderAdInventoryList();
+            refreshAdJsonPreview();
+        });
+
+        actions.appendChild(editBtn);
+        actions.appendChild(toggleBtn);
+        actions.appendChild(removeBtn);
+        item.appendChild(meta);
+        item.appendChild(actions);
+        container.appendChild(item);
+    });
+}
+
+function populateAdFormForEdit(ad) {
+    if (!ad) return;
+    const setValue = (id, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = value || '';
+    };
+    setValue('adItemId', ad.id);
+    setValue('adItemType', ad.type || 'site_offer');
+    setValue('adItemImageSrc', ad.imageSrc);
+    setValue('adItemAltText', ad.altText);
+    const resolvedTarget = ad.action?.target || ad.action?.url || ad.action?.modalId || '';
+    const adType = ad.type || 'site_offer';
+    if (adType === 'sponsored_external') {
+        setValue('adItemActionType', 'navigate');
+        setValue('adItemExternalUrl', resolvedTarget);
+        setValue('adItemActionTarget', '');
+        setValue('adItemVideoUrl', '');
+        setValue('adItemVideoThumbnail', '');
+    } else if (adType === 'video_popup') {
+        setValue('adItemActionType', 'open_video_popup');
+        setValue('adItemVideoUrl', ad.action?.youtubeEmbed || resolvedTarget);
+        setValue('adItemVideoThumbnail', ad.action?.poster || ad.imageSrc || '');
+        setValue('adItemActionTarget', '');
+        setValue('adItemExternalUrl', '');
+    } else {
+        setValue('adItemActionType', ad.action?.type || 'navigate');
+        setValue('adItemActionTarget', resolvedTarget);
+        setValue('adItemExternalUrl', '');
+        setValue('adItemVideoUrl', '');
+        setValue('adItemVideoThumbnail', '');
+    }
+    setValue('adItemWeight', ad.weight || 100);
+    setValue('adItemStatus', ad.status || 'active');
+    setValue('adItemMaxImpressions', ad.maxImpressions || 0);
+    setValue('adItemMaxClicks', ad.maxClicks || 0);
+    setValue('adItemStartAt', ad.startAt || '');
+    setValue('adItemEndAt', ad.endAt || '');
+    setValue('adItemCtr', calculateCtr(ad.currentClicks || 0, ad.currentImpressions || 0));
+    syncAdTypeFormState(adType);
+}
+
+function formatAdDateWindow(startAt, endAt) {
+    if (!startAt && !endAt) return 'Schedule: always on';
+    const start = startAt ? `from ${startAt}` : 'from now';
+    const end = endAt ? `until ${endAt}` : 'until manually stopped';
+    return `Schedule: ${start} • ${end}`;
+}
+
+function calculateCtr(clicks, impressions) {
+    const c = Number(clicks || 0);
+    const i = Number(impressions || 0);
+    if (i <= 0) return '0.00%';
+    return `${((c / i) * 100).toFixed(2)}%`;
+}
+
+function refreshAdJsonPreview() {
+    const preview = document.getElementById('adJsonPreview');
+    if (!preview) return;
+    preview.value = JSON.stringify(adPanelState, null, 2);
+}
+
+function flashButtonState(button, text) {
+    if (!button) return;
+    const original = button.textContent;
+    button.textContent = text;
+    setTimeout(() => {
+        button.textContent = original;
+    }, 1200);
+}
 
 // ===== INITIALIZATION COMPLETE =====
 console.log('✅ Admin Dashboard JavaScript loaded successfully');

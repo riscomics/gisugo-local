@@ -7,8 +7,7 @@
     <meta name="keywords" content="local service, gig economy, marketplace, jobs, services">
     <title>GISUGO - Local Service Marketplace</title>
     <link rel="stylesheet" href="public/css/home.css?v=5.1">
-    <!-- Add favicon -->
-    <link rel="icon" type="image/png" href="public/images/favicon.png">
+    <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <style>
       /* Loading Animation for Menu */
       .menu-loading {
@@ -216,19 +215,23 @@
           <span class="header__menu-caption">Menu</span>
         </button>
         
-        <!-- Menu Overlay -->
-        <nav class="menu-overlay">
-          <ul class="menu-list" id="homeMenuList">
-            <!-- Loading state (shown initially until Firebase confirms auth state) -->
-            <li class="menu-loading">
-              <div class="menu-loading-spinner"></div>
-              <span>Loading...</span>
-            </li>
-          </ul>
-        </nav>
       </header>
       <div class="accent-line1"></div>
     </div>
+
+    <!-- Backdrop: closes menu when tapping outside (moved outside header-wrapper for iOS Safari) -->
+    <div class="menu-backdrop" id="menuBackdrop" onclick="closeHomeMenu()"></div>
+
+    <!-- Menu Overlay (direct child of body so position:fixed works on iOS Safari) -->
+    <nav class="menu-overlay" id="homeMenuOverlay">
+      <div class="home-menu-grid" id="homeMenuList">
+        <!-- Loading state (shown initially until Firebase confirms auth state) -->
+        <div class="menu-loading">
+          <div class="menu-loading-spinner"></div>
+          <span>Loading...</span>
+        </div>
+      </div>
+    </nav>
 
     <div class="header-spacer"></div>
 
@@ -656,12 +659,24 @@
       }, true);
       
       document.addEventListener('DOMContentLoaded', function() {
-        // ✅ PROPER FIX: Don't check auth before Firebase is ready
-        // Wait for onAuthStateChanged to fire (when Firebase confirms auth state)
-        
+
+        // ── Instant menu render from cache ──────────────────────────────
+        // Firebase stores the auth token in localStorage under this key.
+        // If it exists the user was logged in last time — render immediately
+        // so the spinner is never seen by returning users.
+        const CACHE_KEY = 'gisugo_menu_auth';
+        const cachedAuth = localStorage.getItem(CACHE_KEY);
+        if (cachedAuth !== null) {
+          updateHomeMenu(cachedAuth === 'true');
+          console.log('⚡ Menu rendered from cache:', cachedAuth === 'true' ? 'logged in' : 'logged out');
+        }
+        // ────────────────────────────────────────────────────────────────
+
         if (typeof firebase !== 'undefined' && firebase.auth) {
           authUnsubscribe = firebase.auth().onAuthStateChanged(async function(user) {
             console.log('🔐 Firebase auth state confirmed:', user ? 'Logged in' : 'Logged out');
+            // Persist state for next load so cache is always fresh
+            localStorage.setItem(CACHE_KEY, user ? 'true' : 'false');
             
             if (user) {
               // Check if user has completed profile - if not, redirect to signup
@@ -685,7 +700,7 @@
             }
             
             // Now update menu with confirmed auth state
-            updateHomeMenu();
+            updateHomeMenu(!!user);
           });
         } else {
           // Firebase not available - show logged out state
@@ -701,46 +716,69 @@
         }
       });
       
-      function updateHomeMenu() {
+      function updateHomeMenu(forcedState) {
         const menuList = document.getElementById('homeMenuList');
         
         if (!menuList) return;
         
-        // Check auth state (safe to check now - only called from onAuthStateChanged)
-        const currentUser = (typeof firebase !== 'undefined' && firebase.auth) 
-          ? firebase.auth().currentUser 
-          : null;
-        const userLoggedIn = currentUser !== null;
+        // Use forcedState from cache if provided, otherwise check Firebase directly
+        const userLoggedIn = (forcedState !== undefined)
+          ? forcedState
+          : ((typeof firebase !== 'undefined' && firebase.auth)
+              ? firebase.auth().currentUser !== null
+              : false);
         
         console.log('📋 Updating home menu - User logged in:', userLoggedIn);
         
-        // Build menu HTML
-        let menuHTML = '';
-        
+        // Helper to build a nav card
+        function navCard(emoji, label, href, color) {
+          return `<a class="home-menu-card" href="${href}" data-color="${color}">
+            <span class="home-menu-card-icon">${emoji}</span>
+            <span class="home-menu-card-label">${label}</span>
+          </a>`;
+        }
+
+        let gridHTML = '';
+        let logoutHTML = '';
+
         if (userLoggedIn) {
-          // Logged in - show all menu items + logout
-          menuHTML = `
-            <li class="auth-required"><a href="new-post2.html">NEW POST</a></li>
-            <li class="auth-required"><a href="profile.html">ACCOUNT</a></li>
-            <li class="auth-required"><a href="messages.html">MESSAGES</a></li>
-            <li class="auth-required"><a href="landing.html">FAVORITES</a></li>
-            <li class="auth-required"><a href="jobs.html">GIGS MANAGER</a></li>
-            <li class="auth-required"><a href="clear-storage.html">CLEAR DATA</a></li>
-            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
-            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
-            <li class="public-item"><a href="#" onclick="handleLogout(); return false;">LOGOUT</a></li>
+          gridHTML = `
+            <div class="home-menu-section-label">Menu</div>
+            ${navCard('✏️', 'Post Gig',     'new-post2.html', 'amber')}
+            ${navCard('😊', 'Account',      'profile.html',   'purple')}
+            ${navCard('💬', 'Messages',     'messages.html',  'cyan')}
+            ${navCard('💼', 'Gigs Manager', 'jobs.html',      'green')}
+            ${navCard('🛬', 'Landing',      'landing.html',   'pink')}
+            ${navCard('🚀', 'Updates',      'updates.html',   'orange')}
+            ${navCard('🎭', 'Community',    'forum.html',     'teal')}
+            ${navCard('📬', 'Contact',      'contacts.html',  'blue')}
+          `;
+          logoutHTML = `
+            <div class="home-menu-logout-row">
+              <button class="home-menu-logout-btn" onclick="handleLogout()">
+                <span class="logout-icon">🚪</span> Log Out
+              </button>
+            </div>
           `;
         } else {
-          // Logged out - show public items + login
-          menuHTML = `
-            <li class="public-item"><a href="forum.html">COMMUNITY FORUM</a></li>
-            <li class="public-item"><a href="contacts.html">CONTACT</a></li>
-            <li class="public-item"><a href="login.html">LOGIN / SIGN UP</a></li>
+          gridHTML = `
+            <div class="home-menu-section-label">Menu</div>
+            ${navCard('🌐', 'Community',   'forum.html',    'teal')}
+            ${navCard('📬', 'Contact',     'contacts.html', 'orange')}
+            <a class="home-menu-card home-menu-card--full" href="login.html" data-color="green">
+              <span class="home-menu-card-icon">🔐</span>
+              <span class="home-menu-card-label">Login / Sign Up</span>
+            </a>
           `;
         }
-        
+
         // Update menu
-        menuList.innerHTML = menuHTML;
+        menuList.innerHTML = gridHTML;
+        
+        // Attach logout row after the grid (outside grid div)
+        const existingLogout = menuList.parentElement.querySelector('.home-menu-logout-row');
+        if (existingLogout) existingLogout.remove();
+        if (logoutHTML) menuList.insertAdjacentHTML('afterend', logoutHTML);
       }
       
       function handleLogout() {

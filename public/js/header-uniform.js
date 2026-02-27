@@ -156,7 +156,16 @@ function initializeUniformMenu(config) {
             e.stopPropagation();
             
             console.log('🍔 Menu button clicked');
-            cleanMenuOverlay.classList.toggle('show');
+            if (window.SharedMenuController && typeof window.SharedMenuController.toggle === 'function') {
+                window.SharedMenuController.toggle(cleanMenuOverlay);
+            } else {
+                cleanMenuOverlay.classList.toggle('show');
+                // Position panel exactly below the borderline when opening
+                if (cleanMenuOverlay.classList.contains('show') &&
+                    typeof positionSharedMenuPanel === 'function') {
+                    positionSharedMenuPanel();
+                }
+            }
             
             // Add slight haptic feedback on mobile
             if (navigator.vibrate) {
@@ -172,7 +181,11 @@ function initializeUniformMenu(config) {
         cleanMenuOverlay.addEventListener('click', function(e) {
             if (e.target === cleanMenuOverlay) {
                 console.log('🍔 Menu overlay clicked - closing menu');
-                cleanMenuOverlay.classList.remove('show');
+                if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+                    window.SharedMenuController.closeAll();
+                } else {
+                    cleanMenuOverlay.classList.remove('show');
+                }
             }
         });
 
@@ -186,7 +199,11 @@ function initializeUniformMenu(config) {
     const escapeHandler = function(e) {
         if (e.key === 'Escape' && cleanMenuOverlay.classList.contains('show')) {
             console.log('⌨️ Escape key pressed - closing menu');
-            cleanMenuOverlay.classList.remove('show');
+            if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+                window.SharedMenuController.closeAll();
+            } else {
+                cleanMenuOverlay.classList.remove('show');
+            }
         }
     };
     
@@ -209,10 +226,9 @@ function initializeMenuItems(menuOverlay) {
         return;
     }
 
-    // Check if shared-menu.js has already populated the menu
-    const existingItems = menuItemsContainer.querySelectorAll('.uniform-menu-item');
-    if (existingItems.length > 0) {
-        console.log(`✅ Found ${existingItems.length} existing menu items`);
+    // Check if shared-menu.js has already populated the menu (card-grid or legacy items)
+    if (menuItemsContainer.children.length > 0) {
+        console.log(`✅ Found ${menuItemsContainer.children.length} existing menu children`);
         return;
     }
 
@@ -342,17 +358,40 @@ function debugUniformHeader(enable = true) {
 
 // ===== AUTO-INITIALIZATION =====
 
-// Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM loaded - checking for uniform header...');
+// Track initialization state
+let headerInitialized = false;
+
+function autoInitHeader() {
+    // Prevent double initialization
+    if (headerInitialized) {
+        console.log('⚠️ Header already initialized, skipping...');
+        return;
+    }
+    
+    console.log('📄 Checking for uniform header...');
     
     // Only auto-initialize if uniform header exists
     const uniformHeader = document.querySelector('.uniform-header');
     if (uniformHeader) {
         console.log('🎯 Uniform header found - auto-initializing...');
         initializeUniformHeader();
+        headerInitialized = true;
     } else {
         console.log('ℹ️ No uniform header found - skipping auto-initialization');
+    }
+}
+
+// Auto-initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', autoInitHeader);
+
+// CRITICAL: Re-initialize when page is restored from bfcache (mobile swipe back)
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        // Page was loaded from bfcache (browser back/forward cache)
+        console.log('🔄 Page restored from cache - re-initializing header');
+        executeHeaderCleanups();
+        headerInitialized = false;
+        autoInitHeader();
     }
 });
 

@@ -1,3 +1,6 @@
+// ⚠️  DEPLOYMENT REQUIRED after ANY edit to this file.
+// Run: firebase deploy --only firestore:rules
+// Last deployed: 2026-02-20
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -14,6 +17,15 @@ service cloud.firestore {
     // Check if user is the owner of a resource
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Safe numeric coercion helpers for optional fields.
+    function intOrZero(value) {
+      return value is int ? value : 0;
+    }
+
+    function numberOrZero(value) {
+      return value is number ? value : 0;
     }
     
     // Check if user is admin
@@ -98,19 +110,50 @@ service cloud.firestore {
     // Check if only updating appliedJobsCount (for job deletion cleanup)
     function isUpdatingAppliedJobsCount() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      return affectedKeys.hasOnly(['appliedJobsCount']);
+      let oldCount = intOrZero(resource.data.appliedJobsCount);
+      let newCount = intOrZero(request.resource.data.appliedJobsCount);
+      return affectedKeys.hasOnly(['appliedJobsCount'])
+        && request.resource.data.appliedJobsCount is int
+        && newCount >= 0
+        && (newCount == oldCount - 1 || newCount == oldCount + 1);
     }
     
     // Check if only updating statistics fields (for job completion)
     function isUpdatingStatistics() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      return affectedKeys.hasOnly(['statistics']);
+      let oldWorkerCompleted = intOrZero(resource.data.statistics.worker.totalGigsCompleted);
+      let newWorkerCompleted = intOrZero(request.resource.data.statistics.worker.totalGigsCompleted);
+      let oldCustomerCompleted = intOrZero(resource.data.statistics.customer.totalGigsCompleted);
+      let newCustomerCompleted = intOrZero(request.resource.data.statistics.customer.totalGigsCompleted);
+      let oldWorkerEarned = numberOrZero(resource.data.statistics.worker.totalEarned);
+      let newWorkerEarned = numberOrZero(request.resource.data.statistics.worker.totalEarned);
+      let oldCustomerSpent = numberOrZero(resource.data.statistics.customer.totalSpent);
+      let newCustomerSpent = numberOrZero(request.resource.data.statistics.customer.totalSpent);
+
+      return affectedKeys.hasOnly(['statistics'])
+        && request.resource.data.statistics is map
+        && newWorkerCompleted >= oldWorkerCompleted
+        && newCustomerCompleted >= oldCustomerCompleted
+        && newWorkerEarned >= oldWorkerEarned
+        && newCustomerSpent >= oldCustomerSpent
+        // Completed gig counts should only move by one per update.
+        && (newWorkerCompleted - oldWorkerCompleted) <= 1
+        && (newCustomerCompleted - oldCustomerCompleted) <= 1;
     }
     
     // Check if only updating review-related fields (for review submission)
     function isUpdatingReviewStats() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      return affectedKeys.hasOnly(['averageRating', 'totalReviews', 'lastReviewAt']);
+      let oldTotalReviews = intOrZero(resource.data.totalReviews);
+      let newTotalReviews = intOrZero(request.resource.data.totalReviews);
+
+      return affectedKeys.hasOnly(['averageRating', 'totalReviews', 'lastReviewAt'])
+        && request.resource.data.averageRating is number
+        && request.resource.data.averageRating >= 1
+        && request.resource.data.averageRating <= 5
+        && request.resource.data.totalReviews is int
+        // Review count can only advance by one per submitted review update.
+        && newTotalReviews == oldTotalReviews + 1;
     }
     
     // Check if customer is updating their job with review data
@@ -299,24 +342,29 @@ service cloud.firestore {
     
     // ═══════════════════════════════════════════════════════════════
     // NOTIFICATIONS COLLECTION (ALERTS Tab in Messages)
+    // Cross-user writes are intentional: applicants create notifications
+    // for job posters, customers create notifications for workers, etc.
     // ═══════════════════════════════════════════════════════════════
     match /notifications/{notificationId} {
-      // Users can only read their own notifications
-      allow read: if isAuthenticated()
-        && resource.data.recipientId == request.auth.uid;
+      // Authenticated users can read any notification.
+      // This is required so the system can query existing notifications
+      // for another user (e.g., checking if a job already has an
+      // application_received notification before creating a new one).
+      allow read: if isAuthenticated();
       
-      // Any authenticated user can create notifications (system-generated)
+      // Any authenticated user can create a notification for any recipient.
+      // Necessary because notifications are created cross-user client-side.
       allow create: if isAuthenticated()
-        && request.resource.data.keys().hasAll(['recipientId', 'type', 'message', 'createdAt'])
-        && request.resource.data.recipientId is string;
+        && request.resource.data.keys().hasAll(['recipientId', 'type', 'message'])
+        && request.resource.data.recipientId is string
+        && request.resource.data.type is string;
       
-      // Users can update their own notifications (mark as read)
-      allow update: if isAuthenticated()
-        && resource.data.recipientId == request.auth.uid;
+      // Authenticated users can update notifications (mark as read, milestone updates).
+      allow update: if isAuthenticated();
       
-      // Users can delete their own notifications
-      allow delete: if isAuthenticated()
-        && resource.data.recipientId == request.auth.uid;
+      // Any authenticated user can delete (needed for duplicate cleanup and
+      // removing stale offer notifications on accept/reject).
+      allow delete: if isAuthenticated();
     }
     
     // ═══════════════════════════════════════════════════════════════

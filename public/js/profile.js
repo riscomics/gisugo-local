@@ -13,6 +13,113 @@ const accountBtn = document.getElementById('accountBtn');
 const accountOverlay = document.getElementById('accountOverlay');
 const accountCloseBtn = document.getElementById('accountCloseBtn');
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function sanitizeTextInput(value) {
+  return Array.from(String(value || ''))
+    .filter(isAllowedTextCharacter)
+    .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+  let hint = document.getElementById('profile-input-guide');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'profile-input-guide';
+    hint.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(88vw, 360px);
+      padding: 8px;
+      border-radius: 16px;
+      background: repeating-linear-gradient(
+        135deg,
+        #facc15 0 10px,
+        #111827 10px 20px
+      );
+      color: #fee2e2;
+      text-align: center;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+      z-index: 11000;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    `;
+    document.body.appendChild(hint);
+  }
+
+  hint.innerHTML = `
+    <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+      <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+      <div style="font-size:14px; font-weight:600; line-height:1.38;">
+        ${message}
+      </div>
+    </div>
+  `;
+  hint.style.opacity = '1';
+  hint.style.transform = 'translate(-50%, -50%) scale(1)';
+  clearTimeout(window.__profileInputGuideTimer);
+  window.__profileInputGuideTimer = setTimeout(() => {
+    hint.style.opacity = '0';
+    hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+  }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+  if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+  inputEl.dataset.markupCharsBlocked = 'true';
+
+  const showGuide = () => {
+    const now = Date.now();
+    const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+    if (now - lastShownAt < 1500) return;
+    inputEl.dataset.inputGuideShownAt = String(now);
+    showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+  };
+
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+      e.preventDefault();
+      showGuide();
+    }
+  });
+
+  inputEl.addEventListener('paste', function(e) {
+    const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+    if (!hasUnsupportedTextChars(pastedText)) return;
+    e.preventDefault();
+    showGuide();
+    const cleaned = sanitizeTextInput(pastedText);
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    inputEl.setRangeText(cleaned, start, end, 'end');
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  inputEl.addEventListener('input', function() {
+    const sanitized = sanitizeTextInput(inputEl.value);
+    if (sanitized !== inputEl.value) {
+      inputEl.value = sanitized;
+      showGuide();
+    }
+  });
+}
+
 if (accountBtn && accountOverlay && accountCloseBtn) {
   // Open account overlay - uses guard function for defense-in-depth
   // FIREBASE TODO: This click handler is protected by both:
@@ -445,6 +552,11 @@ function initializeEditProfileOverlay() {
   const form = document.getElementById('editProfileForm');
   const aboutMeTextarea = document.getElementById('editAboutMe');
   const photoInput = document.getElementById('editProfilePhotoInput');
+  const firstNameInput = document.getElementById('editFirstName');
+  const lastNameInput = document.getElementById('editLastName');
+  const facebookInput = document.getElementById('editFacebook');
+  const instagramInput = document.getElementById('editInstagram');
+  const linkedInInput = document.getElementById('editLinkedIn');
 
   // Close button
   if (closeBtn) {
@@ -471,6 +583,13 @@ function initializeEditProfileOverlay() {
     // Set max length
     aboutMeTextarea.maxLength = 500;
   }
+
+  blockUnsupportedCharsForInput(firstNameInput);
+  blockUnsupportedCharsForInput(lastNameInput);
+  blockUnsupportedCharsForInput(aboutMeTextarea);
+  blockUnsupportedCharsForInput(facebookInput);
+  blockUnsupportedCharsForInput(instagramInput);
+  blockUnsupportedCharsForInput(linkedInInput);
 
   // Photo upload preview
   if (photoInput) {
@@ -532,6 +651,19 @@ async function saveProfileChanges() {
   const facebookUsername = document.getElementById('editFacebook')?.value?.trim() || '';
   const instagramUsername = document.getElementById('editInstagram')?.value?.trim() || '';
   const linkedinUsername = document.getElementById('editLinkedIn')?.value?.trim() || '';
+
+  if (
+    hasUnsupportedTextChars(firstName) ||
+    hasUnsupportedTextChars(lastName) ||
+    hasUnsupportedTextChars(aboutMe) ||
+    hasUnsupportedTextChars(facebookUsername) ||
+    hasUnsupportedTextChars(instagramUsername) ||
+    hasUnsupportedTextChars(linkedinUsername)
+  ) {
+    hideSavingModal();
+    showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    return;
+  }
   
   // Build full URLs from usernames
   const facebook = facebookUsername ? `https://facebook.com/${facebookUsername}` : '';
@@ -2786,6 +2918,456 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
 // ===== DEMO TESTING =====
 // To test different verification states, change DEMO_CONFIG at top of file
 
+const PROFILE_AD_ZONE_CONFIG = {
+  enabled: true,
+  zoneId: 'profile_logout_slot',
+  rotationMode: 'random',
+  ads: [
+    {
+      id: 'profile-safety-video',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/womensafety.jpg',
+      altText: 'Watch women safety tips while working',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
+        poster: 'public/images/womensafety.jpg',
+        aspectRatio: '9:16'
+      }
+    },
+    {
+      id: 'profile-sponsored-partner',
+      type: 'sponsored_external',
+      subtype: 'sponsored_campaign',
+      imageSrc: 'public/images/adsponsor.jpg',
+      altText: 'Sponsored partner spotlight',
+      badgeText: 'Sponsored',
+      action: {
+        type: 'navigate',
+        url: 'https://www.RealinterfaceStudios.com'
+      }
+    },
+    {
+      id: 'profile-video-updates',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/updatesbanner.jpg',
+      altText: 'Watch latest platform updates',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://youtu.be/L2GUEZpNCsQ',
+        poster: 'public/images/updatesbanner.jpg',
+        aspectRatio: '16:9'
+      }
+    },
+    {
+      id: 'profile-offer-verify',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Get verified for safer gigs',
+      badgeText: '',
+      action: {
+        type: 'open_modal',
+        modalId: 'accountOverlay'
+      }
+    },
+    {
+      id: 'profile-offer-share',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/sharebanner.jpg',
+      altText: 'Share GisuGo with your network',
+      badgeText: '',
+      action: {
+        type: 'share',
+        title: 'Check out GisuGo',
+        text: 'Browse local gigs and opportunities on GisuGo.',
+        url: 'https://www.Gisugo.com'
+      }
+    }
+  ]
+};
+
+let profileAdVideoEscHandler = null;
+const PROFILE_AD_RENDER_STATE = {
+  rotationIndex: 0,
+  lastRandomAdId: null,
+  randomBag: [],
+  randomBagSignature: ''
+};
+
+function getProfileSlotAd() {
+  if (!PROFILE_AD_ZONE_CONFIG.enabled) return null;
+  const ads = Array.isArray(PROFILE_AD_ZONE_CONFIG.ads) ? PROFILE_AD_ZONE_CONFIG.ads : [];
+  const activeAds = ads.filter(ad => ad && ad.imageSrc);
+  if (activeAds.length === 0) return null;
+
+  const mode = PROFILE_AD_ZONE_CONFIG.rotationMode || 'sequential';
+  if (mode === 'random') {
+    return getNextRandomProfileAd(activeAds);
+  }
+
+  const nextAd = activeAds[PROFILE_AD_RENDER_STATE.rotationIndex % activeAds.length];
+  PROFILE_AD_RENDER_STATE.rotationIndex += 1;
+  return nextAd || null;
+}
+
+function getProfileAdPoolSignature(activeAds) {
+  if (!Array.isArray(activeAds)) return '';
+  return activeAds.map(ad => (ad && ad.id) ? ad.id : '').join('|');
+}
+
+function shuffleProfileAds(values) {
+  const arr = Array.isArray(values) ? [...values] : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function refillProfileAdBag(activeAds) {
+  const ids = activeAds.map(ad => ad && ad.id).filter(Boolean);
+  if (ids.length === 0) {
+    PROFILE_AD_RENDER_STATE.randomBag = [];
+    return;
+  }
+  const shuffled = shuffleProfileAds(ids);
+  if (
+    shuffled.length > 1 &&
+    PROFILE_AD_RENDER_STATE.lastRandomAdId &&
+    shuffled[0] === PROFILE_AD_RENDER_STATE.lastRandomAdId
+  ) {
+    const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+    const first = shuffled[0];
+    shuffled[0] = shuffled[swapIndex];
+    shuffled[swapIndex] = first;
+  }
+  PROFILE_AD_RENDER_STATE.randomBag = shuffled;
+}
+
+function getNextRandomProfileAd(activeAds) {
+  const signature = getProfileAdPoolSignature(activeAds);
+  if (signature !== PROFILE_AD_RENDER_STATE.randomBagSignature) {
+    PROFILE_AD_RENDER_STATE.randomBagSignature = signature;
+    PROFILE_AD_RENDER_STATE.randomBag = [];
+  }
+  if (!Array.isArray(PROFILE_AD_RENDER_STATE.randomBag) || PROFILE_AD_RENDER_STATE.randomBag.length === 0) {
+    refillProfileAdBag(activeAds);
+  }
+  if (!Array.isArray(PROFILE_AD_RENDER_STATE.randomBag) || PROFILE_AD_RENDER_STATE.randomBag.length === 0) {
+    return activeAds[0] || null;
+  }
+
+  const nextId = PROFILE_AD_RENDER_STATE.randomBag.shift();
+  const nextAd = activeAds.find(ad => ad && ad.id === nextId);
+  if (!nextAd) {
+    return getNextRandomProfileAd(activeAds);
+  }
+  PROFILE_AD_RENDER_STATE.lastRandomAdId = nextAd.id || null;
+  return nextAd;
+}
+
+function ensureProfileAdVideoPopup() {
+  let popup = document.getElementById('profileAdVideoPopup');
+  if (popup) return popup;
+
+  popup = document.createElement('div');
+  popup.id = 'profileAdVideoPopup';
+  popup.className = 'profile-ad-video-popup';
+  popup.innerHTML = `
+    <div class="profile-ad-video-backdrop" data-close="true"></div>
+    <div class="profile-ad-video-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
+      <button type="button" class="profile-ad-video-close" aria-label="Close video offer">×</button>
+      <video class="profile-ad-video-player" controls playsinline preload="metadata"></video>
+      <iframe class="profile-ad-video-iframe" title="Video offer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const closePopup = () => {
+    const player = popup.querySelector('.profile-ad-video-player');
+    const iframe = popup.querySelector('.profile-ad-video-iframe');
+    if (player) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      player.style.display = 'block';
+    }
+    if (iframe) {
+      iframe.removeAttribute('src');
+      iframe.style.display = 'none';
+    }
+    popup.style.removeProperty('--ad-video-aspect');
+    popup.classList.remove('is-visible');
+  };
+
+  const closeButton = popup.querySelector('.profile-ad-video-close');
+  const backdrop = popup.querySelector('.profile-ad-video-backdrop');
+  if (closeButton) closeButton.addEventListener('click', closePopup);
+  if (backdrop) backdrop.addEventListener('click', closePopup);
+  if (!profileAdVideoEscHandler) {
+    profileAdVideoEscHandler = (event) => {
+      if (event.key === 'Escape') closePopup();
+    };
+    document.addEventListener('keydown', profileAdVideoEscHandler);
+  }
+
+  return popup;
+}
+
+function isProfileAdYouTubeUrl(url) {
+  if (!url) return false;
+  return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function toProfileAdYouTubeEmbedUrl(url) {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').trim();
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/watch')) {
+      const id = parsed.searchParams.get('v');
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/shorts/')) {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const id = parts[1];
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
+      const separator = parsed.search ? '&' : '?';
+      return `${parsed.toString()}${separator}autoplay=1`;
+    }
+  } catch (_) {
+    // fall through
+  }
+  return url;
+}
+
+function openProfileAdModal(action) {
+  if (!action) return;
+  const selector = action.modalSelector || action.modalId;
+  if (!selector) return;
+
+  const modal = selector.startsWith && selector.startsWith('#')
+    ? document.querySelector(selector)
+    : document.getElementById(selector) || document.querySelector(selector);
+
+  if (!modal) {
+    console.warn('⚠️ Profile ad modal target not found:', selector);
+    return;
+  }
+
+  modal.classList.add('active');
+  modal.classList.add('show');
+  modal.classList.add('is-visible');
+  modal.classList.add('open');
+  modal.style.display = modal.style.display || 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function normalizeProfileAdShareUrl(rawUrl) {
+  if (!rawUrl) return window.location.href;
+  try {
+    return new URL(rawUrl, window.location.origin).toString();
+  } catch (_) {
+    return window.location.href;
+  }
+}
+
+async function openProfileAdShare(action) {
+  const shareUrl = normalizeProfileAdShareUrl(action && (action.url || action.target || action.shareUrl));
+  const shareData = {
+    title: (action && action.title) || 'GisuGo',
+    text: (action && action.text) || 'Check this out on GisuGo.',
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (_) {
+      // Fallback to copy flow when native share is unavailable/cancelled.
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied. You can now share it anywhere.');
+      return;
+    } catch (_) {
+      // fall through to prompt fallback
+    }
+  }
+
+  window.prompt('Copy this link to share:', shareUrl);
+}
+
+function handleProfileAdAction(event, adConfig) {
+  const action = adConfig && adConfig.action ? adConfig.action : null;
+  if (!action || !action.type) return;
+
+  if (action.type === 'navigate' && action.url) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (action.type === 'open_modal') {
+    openProfileAdModal(action);
+    return;
+  }
+
+  if (action.type === 'open_video_popup') {
+    const popup = ensureProfileAdVideoPopup();
+    const player = popup ? popup.querySelector('.profile-ad-video-player') : null;
+    const iframe = popup ? popup.querySelector('.profile-ad-video-iframe') : null;
+    if (!player || !iframe) return;
+
+    const sourceUrl = action.youtubeEmbed || action.videoSrc || action.target;
+    if (!sourceUrl) return;
+    const configuredAspect = resolveProfileAdAspectRatio(action);
+
+    if (isProfileAdYouTubeUrl(sourceUrl)) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      player.style.display = 'none';
+
+      popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+      iframe.src = toProfileAdYouTubeEmbedUrl(sourceUrl);
+      iframe.style.display = 'block';
+      popup.classList.add('is-visible');
+      return;
+    }
+
+    iframe.removeAttribute('src');
+    iframe.style.display = 'none';
+    player.style.display = 'block';
+    popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+    player.onloadedmetadata = () => {
+      if (configuredAspect) return;
+      if (player.videoWidth > 0 && player.videoHeight > 0) {
+        popup.style.setProperty('--ad-video-aspect', `${player.videoWidth} / ${player.videoHeight}`);
+      }
+    };
+    player.src = sourceUrl;
+    if (action.poster) {
+      player.poster = action.poster;
+    } else {
+      player.removeAttribute('poster');
+    }
+
+    popup.classList.add('is-visible');
+    const playAttempt = player.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        // Playback can require another direct tap on some mobile browsers.
+      });
+    }
+    return;
+  }
+
+  if (action.type === 'share') {
+    openProfileAdShare(action);
+  }
+}
+
+function normalizeProfileAdAspectRatio(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const pairMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
+  if (pairMatch) {
+    const width = Number(pairMatch[1]);
+    const height = Number(pairMatch[2]);
+    if (width > 0 && height > 0) return `${width} / ${height}`;
+    return '';
+  }
+
+  const decimal = Number(trimmed);
+  if (!Number.isFinite(decimal) || decimal <= 0) return '';
+  return `${decimal} / 1`;
+}
+
+function resolveProfileAdAspectRatio(actionConfig) {
+  if (!actionConfig) return '';
+  const raw = actionConfig.aspectRatio || actionConfig.videoAspectRatio || actionConfig.ratio;
+  return normalizeProfileAdAspectRatio(raw);
+}
+
+function shouldOpenProfileAdInNewTab(adConfig, href) {
+  if (!adConfig || adConfig.type !== 'sponsored_external') return false;
+  if (!href || href === '#') return false;
+  try {
+    const parsed = new URL(href, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch (_) {
+    return /^https?:\/\//i.test(href);
+  }
+}
+
+function createProfileSlotAdCard(adConfig) {
+  const adCard = document.createElement('a');
+  const href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
+  adCard.className = 'profile-slot-ad-card';
+  adCard.href = href;
+  adCard.setAttribute('data-ad-zone', PROFILE_AD_ZONE_CONFIG.zoneId);
+  adCard.setAttribute('data-ad-id', adConfig.id || 'profile-ad');
+  adCard.setAttribute('data-ad-type', adConfig.type || 'generic');
+  adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
+  if (shouldOpenProfileAdInNewTab(adConfig, href)) {
+    adCard.target = '_blank';
+    adCard.rel = 'noopener noreferrer';
+  }
+
+  adCard.innerHTML = `
+    <div class="profile-slot-ad-media">
+      <img src="${adConfig.imageSrc}" alt="${adConfig.altText || 'Featured platform offer'}" loading="lazy">
+    </div>
+  `;
+
+  adCard.addEventListener('click', (event) => handleProfileAdAction(event, adConfig));
+  return adCard;
+}
+
+function initializeProfileAdSlot() {
+  const logoutSection = document.getElementById('profileAdSlot') || document.querySelector('.profile-logout-section');
+  if (!logoutSection) return;
+
+  const existingAd = logoutSection.querySelector('.profile-slot-ad-card');
+  if (existingAd) existingAd.remove();
+
+  // Always remove duplicate logout CTA from profile body.
+  logoutSection.innerHTML = '';
+
+  const adConfig = getProfileSlotAd();
+  if (!adConfig) return;
+
+  logoutSection.appendChild(createProfileSlotAdCard(adConfig));
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔥 Profile page loaded with Firebase integration');
@@ -2798,6 +3380,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Initialize edit profile overlay
   initializeEditProfileOverlay();
+
+  // Phase 2 ad zone: profile logout slot
+  initializeProfileAdSlot();
   
   console.log('Profile page initialization complete');
 });
@@ -2807,9 +3392,41 @@ document.addEventListener('DOMContentLoaded', async function() {
  * - Firebase mode: ONLY loads from Firebase, redirects if not authenticated
  * - Mock mode: ONLY loads from mock data, no Firebase calls
  */
+const PROFILE_VISIBILITY_SELECTORS = '.profile-subheader, .profile-tabs, .tab-content-wrapper';
+
+function setProfileShellVisibility(isVisible) {
+  const sections = document.querySelectorAll(PROFILE_VISIBILITY_SELECTORS);
+  sections.forEach(section => {
+    section.style.visibility = isVisible ? 'visible' : 'hidden';
+    section.style.opacity = isVisible ? '1' : '0';
+    if (isVisible) {
+      section.style.transition = 'opacity 0.3s ease';
+    }
+  });
+}
+
 async function waitForAuthAndLoadProfile() {
-  // Show loading state
-  showProfileLoadingState();
+  // Hide profile content immediately to avoid template flash before loader decision.
+  setProfileShellVisibility(false);
+
+  // Show loading state only for slower loads (avoid full-screen flash on fast/cache paths)
+  const PROFILE_LOADING_DELAY_MS = 220;
+  let profileLoadingVisible = false;
+  const profileLoadingTimer = setTimeout(() => {
+    showProfileLoadingState();
+    profileLoadingVisible = true;
+  }, PROFILE_LOADING_DELAY_MS);
+  const finishProfileLoading = () => {
+    clearTimeout(profileLoadingTimer);
+    if (profileLoadingVisible) {
+      hideProfileLoadingState();
+      profileLoadingVisible = false;
+      return;
+    }
+    // Overlay never shown; still restore hidden content.
+    setProfileShellVisibility(true);
+    document.body.classList.remove('profile-preload');
+  };
   
   // Check which mode we're in using DataService
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
@@ -2829,7 +3446,7 @@ async function waitForAuthAndLoadProfile() {
       if (!user) {
         // Not authenticated - redirect to login
         console.log('⚠️ Not authenticated in Firebase mode, redirecting to login...');
-        hideProfileLoadingState();
+        finishProfileLoading();
         window.location.href = 'login.html?redirect=profile.html';
         return;
       }
@@ -2872,20 +3489,22 @@ async function waitForAuthAndLoadProfile() {
         if (firebaseProfile) {
           console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
           window.currentUserProfile = firebaseProfile;
-          hideProfileLoadingState();
+          finishProfileLoading();
           loadUserProfile(firebaseProfile);
+          // Warm both review tabs in the background for faster tab switching.
+          setTimeout(() => prefetchProfileReviews(profileUserId), 0);
         } else {
           // Profile not found
           if (isViewingOwnProfile) {
           // User is authenticated but has no profile - redirect to sign-up
           console.log('⚠️ No profile found, redirecting to complete sign-up...');
-          hideProfileLoadingState();
+          finishProfileLoading();
           window.location.href = 'sign-up.html?complete=true';
           return;
           } else {
             // Viewing someone else's profile that doesn't exist
             console.error('❌ Profile not found for user:', profileUserId);
-            hideProfileLoadingState();
+            finishProfileLoading();
             showProfileError('User profile not found.');
             return;
           }
@@ -2896,7 +3515,7 @@ async function waitForAuthAndLoadProfile() {
       
     } catch (error) {
       console.error('❌ Error loading Firebase profile:', error);
-      hideProfileLoadingState();
+      finishProfileLoading();
       // Show error message instead of falling back to mock
       showProfileError('Failed to load profile. Please try again.');
     }
@@ -2911,7 +3530,7 @@ async function waitForAuthAndLoadProfile() {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     window.currentUserProfile = sampleUserProfile;
-    hideProfileLoadingState();
+    finishProfileLoading();
     loadUserProfile(sampleUserProfile);
   }
 }
@@ -2920,8 +3539,10 @@ async function waitForAuthAndLoadProfile() {
  * Show profile loading error (Firebase mode only)
  */
 function showProfileError(message) {
-  const profileContainer = document.querySelector('.profile-container');
+  const profileContainer = document.querySelector('.profile-content-container');
   if (profileContainer) {
+    setProfileShellVisibility(true);
+    document.body.classList.remove('profile-preload');
     profileContainer.innerHTML = `
       <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; 
                   min-height: 50vh; text-align: center; padding: 40px;">
@@ -2944,19 +3565,8 @@ function showProfileError(message) {
  * Show loading state while profile is being fetched - CLEAN SLATE
  */
 function showProfileLoadingState() {
-  // Completely hide all profile content
-  const profileContainer = document.querySelector('.profile-container');
-  if (profileContainer) {
-    profileContainer.style.visibility = 'hidden';
-    profileContainer.style.opacity = '0';
-  }
-  
-  // Hide any other profile sections that might be outside container
-  const profileSections = document.querySelectorAll('.profile-header, .profile-content, .profile-stats');
-  profileSections.forEach(section => {
-    section.style.visibility = 'hidden';
-    section.style.opacity = '0';
-  });
+  // Completely hide all profile shell content
+  setProfileShellVisibility(false);
   
   // Create full-screen loading overlay with fun animated emojis
   let loadingIndicator = document.getElementById('profileLoadingIndicator');
@@ -3038,21 +3648,9 @@ function showProfileLoadingState() {
  * Hide loading state when profile is ready
  */
 function hideProfileLoadingState() {
-  // Show all profile content with fade-in
-  const profileContainer = document.querySelector('.profile-container');
-  if (profileContainer) {
-    profileContainer.style.visibility = 'visible';
-    profileContainer.style.opacity = '1';
-    profileContainer.style.transition = 'opacity 0.3s ease';
-  }
-  
-  // Show other profile sections
-  const profileSections = document.querySelectorAll('.profile-header, .profile-content, .profile-stats');
-  profileSections.forEach(section => {
-    section.style.visibility = 'visible';
-    section.style.opacity = '1';
-    section.style.transition = 'opacity 0.3s ease';
-  });
+  // Show all profile shell content with fade-in
+  setProfileShellVisibility(true);
+  document.body.classList.remove('profile-preload');
   
   // Remove loading indicator with fade
   const loadingIndicator = document.getElementById('profileLoadingIndicator');
@@ -3618,12 +4216,30 @@ function cleanupProfilePage() {
   if (editProfileOverlay && editProfileOverlay.classList.contains('show')) {
     editProfileOverlay.classList.remove('show');
   }
+
+  if (profileAdVideoEscHandler) {
+    document.removeEventListener('keydown', profileAdVideoEscHandler);
+    profileAdVideoEscHandler = null;
+  }
+
+  // Clear review caches to avoid long-session accumulation.
+  if (window.__profileReviewDataCache && typeof window.__profileReviewDataCache.clear === 'function') {
+    window.__profileReviewDataCache.clear();
+  }
+  if (window.__profileReviewRequestCache && typeof window.__profileReviewRequestCache.clear === 'function') {
+    window.__profileReviewRequestCache.clear();
+  }
   
   console.log('🧹 Profile page cleanup completed');
 }
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', cleanupProfilePage);
+// Use pagehide to preserve bfcache on back/forward navigation.
+// If event.persisted is true, browser is storing this page in bfcache,
+// so we skip cleanup to keep instant back navigation.
+window.addEventListener('pagehide', (event) => {
+  if (event.persisted) return;
+  cleanupProfilePage();
+});
 
 // Production initialization (currently commented for development)
 /*
@@ -3739,6 +4355,74 @@ function getUserIdFromProfile() {
   return getProfileUserId();
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url, fallback = '') {
+  if (!url) return fallback;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.toString();
+    }
+  } catch (error) {
+    // fall through
+  }
+  return fallback;
+}
+
+const reviewDataCache = window.__profileReviewDataCache || new Map();
+window.__profileReviewDataCache = reviewDataCache;
+const reviewRequestCache = window.__profileReviewRequestCache || new Map();
+window.__profileReviewRequestCache = reviewRequestCache;
+
+function getReviewCacheKey(userId, role) {
+  return `${userId}:${role}`;
+}
+
+async function getOrFetchUserReviews(userId, role) {
+  const cacheKey = getReviewCacheKey(userId, role);
+
+  if (reviewDataCache.has(cacheKey)) {
+    return reviewDataCache.get(cacheKey);
+  }
+
+  if (reviewRequestCache.has(cacheKey)) {
+    return reviewRequestCache.get(cacheKey);
+  }
+
+  const requestPromise = fetchUserReviews(userId, role)
+    .then((reviews) => {
+      reviewDataCache.set(cacheKey, reviews);
+      reviewRequestCache.delete(cacheKey);
+      return reviews;
+    })
+    .catch((error) => {
+      reviewRequestCache.delete(cacheKey);
+      throw error;
+    });
+
+  reviewRequestCache.set(cacheKey, requestPromise);
+  return requestPromise;
+}
+
+function prefetchProfileReviews(userId) {
+  if (!userId) return;
+  ['customer', 'worker'].forEach((role) => {
+    const cacheKey = getReviewCacheKey(userId, role);
+    if (reviewDataCache.has(cacheKey) || reviewRequestCache.has(cacheKey)) return;
+    getOrFetchUserReviews(userId, role).catch((error) => {
+      console.warn(`⚠️ Prefetch ${role} reviews failed:`, error);
+    });
+  });
+}
+
 /**
  * Fetch reviews for a user from Firestore
  * @param {string} userId - The user ID to fetch reviews for
@@ -3765,47 +4449,67 @@ async function fetchUserReviews(userId, role) {
       return [];
     }
     
-    // Format reviews for display
-    const reviews = [];
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      
-      // Fetch reviewer profile for thumbnail
-      let reviewerThumbnail = 'public/users/default-user.jpg';
-      try {
-        const reviewerDoc = await db.collection('users').doc(data.reviewerUserId).get();
-        if (reviewerDoc.exists) {
-          const reviewerData = reviewerDoc.data();
-          reviewerThumbnail = reviewerData.profilePhoto || reviewerData.profileImage || reviewerThumbnail;
-        }
-      } catch (err) {
-        console.warn('⚠️ Could not fetch reviewer thumbnail:', err);
+    // Deduplicate and parallelize related lookups to avoid N+1 sequential latency.
+    const userDocCache = new Map();
+    const jobDocCache = new Map();
+
+    const getUserDoc = (reviewerUserId) => {
+      if (!reviewerUserId) return Promise.resolve(null);
+      if (!userDocCache.has(reviewerUserId)) {
+        userDocCache.set(
+          reviewerUserId,
+          db.collection('users').doc(reviewerUserId).get().catch((err) => {
+            console.warn('⚠️ Could not fetch reviewer thumbnail:', err);
+            return null;
+          })
+        );
       }
-      
-      // Fetch job details for title
+      return userDocCache.get(reviewerUserId);
+    };
+
+    const getJobDoc = (jobId) => {
+      if (!jobId) return Promise.resolve(null);
+      if (!jobDocCache.has(jobId)) {
+        jobDocCache.set(
+          jobId,
+          db.collection('jobs').doc(jobId).get().catch((err) => {
+            console.warn('⚠️ Could not fetch job details:', err);
+            return null;
+          })
+        );
+      }
+      return jobDocCache.get(jobId);
+    };
+
+    // Format reviews for display
+    const reviews = await Promise.all(snapshot.docs.map(async (doc) => {
+      const data = doc.data();
+
+      let reviewerThumbnail = 'public/users/default-user.jpg';
+      const reviewerDoc = await getUserDoc(data.reviewerUserId);
+      if (reviewerDoc && reviewerDoc.exists) {
+        const reviewerData = reviewerDoc.data();
+        reviewerThumbnail = reviewerData.profilePhoto || reviewerData.profileImage || reviewerThumbnail;
+      }
+
       let jobTitle = 'Completed Gig';
       let jobPostUrl = null;
-      try {
-        const jobDoc = await db.collection('jobs').doc(data.jobId).get();
-        if (jobDoc.exists) {
-          const jobData = jobDoc.data();
-          jobTitle = jobData.title || jobTitle;
-          jobPostUrl = jobData.jobPageUrl || null;
-        }
-      } catch (err) {
-        console.warn('⚠️ Could not fetch job details:', err);
+      const jobDoc = await getJobDoc(data.jobId);
+      if (jobDoc && jobDoc.exists) {
+        const jobData = jobDoc.data();
+        jobTitle = jobData.title || jobTitle;
+        jobPostUrl = jobData.jobPageUrl || null;
       }
-      
-      // Format date
-      const feedbackDate = data.createdAt 
-        ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', { 
-            month: 'short', 
-            day: 'numeric', 
-            year: 'numeric' 
+
+      const feedbackDate = data.createdAt
+        ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
           })
         : 'Recent';
-      
-      reviews.push({
+
+      return {
         jobTitle: jobTitle,
         feedbackDate: feedbackDate,
         rating: data.rating || 0,
@@ -3813,8 +4517,8 @@ async function fetchUserReviews(userId, role) {
         feedbackText: data.feedbackText || 'No feedback provided.',
         jobPostUrl: jobPostUrl,
         reviewId: doc.id
-      });
-    }
+      };
+    }));
     
     console.log(`✅ Formatted ${reviews.length} ${role} reviews`);
     return reviews;
@@ -3829,12 +4533,13 @@ async function fetchUserReviews(userId, role) {
 function createReviewCard(reviewData) {
   const reviewCard = document.createElement('div');
   reviewCard.className = 'review-card';
+  const safeJobPostUrl = sanitizeUrl(reviewData.jobPostUrl, '');
   
   // Add click functionality if jobPostUrl exists
-  if (reviewData.jobPostUrl) {
+  if (safeJobPostUrl) {
     reviewCard.style.cursor = 'pointer';
     reviewCard.addEventListener('click', function() {
-      window.location.href = reviewData.jobPostUrl;
+      window.location.href = safeJobPostUrl;
     });
     
     // Add hover effect
@@ -3848,23 +4553,28 @@ function createReviewCard(reviewData) {
       this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.12)';
     });
   }
+
+  const safeJobTitle = escapeHtml(reviewData.jobTitle || 'Completed Gig');
+  const safeFeedbackDate = escapeHtml(reviewData.feedbackDate || 'Recent');
+  const safeUserThumbnail = escapeHtml(sanitizeUrl(reviewData.userThumbnail, 'public/users/default-user.jpg'));
+  const safeFeedbackText = escapeHtml(reviewData.feedbackText || 'No feedback provided.');
   
   reviewCard.innerHTML = `
-    <div class="review-job-title">${reviewData.jobTitle}</div>
+    <div class="review-job-title">${safeJobTitle}</div>
     <div class="review-feedback-section">
       <div class="review-feedback-left">
-        <div class="review-feedback-date">${reviewData.feedbackDate}</div>
+        <div class="review-feedback-date">${safeFeedbackDate}</div>
         <div class="review-rating">
           ${generateStarsHTML(reviewData.rating)}
         </div>
         <div class="review-feedback-label">FEEDBACK:</div>
       </div>
       <div class="review-user-thumbnail">
-        <img src="${reviewData.userThumbnail}" alt="User thumbnail">
+        <img src="${safeUserThumbnail}" alt="User thumbnail">
       </div>
     </div>
     <div class="review-feedback-text">
-      ${reviewData.feedbackText}
+      ${safeFeedbackText}
     </div>
   `;
   
@@ -3910,7 +4620,7 @@ async function populateCustomerReviews(customerReviews = null, userName = null) 
   if (customerReviews === null) {
     const userId = getUserIdFromProfile();
     if (userId) {
-      customerReviews = await fetchUserReviews(userId, 'customer');
+      customerReviews = await getOrFetchUserReviews(userId, 'customer');
     } else {
       customerReviews = sampleCustomerReviews;
     }
@@ -3920,10 +4630,11 @@ async function populateCustomerReviews(customerReviews = null, userName = null) 
   container.innerHTML = '';
   
   if (customerReviews.length === 0) {
+    const safeProfileName = escapeHtml(profileName);
     container.innerHTML = `
       <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
         <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} as a customer will be displayed here.</p>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a customer will be displayed here.</p>
       </div>
     `;
     return;
@@ -3957,7 +4668,7 @@ async function populateWorkerReviews(workerReviews = null, userName = null) {
   if (workerReviews === null) {
     const userId = getUserIdFromProfile();
     if (userId) {
-      workerReviews = await fetchUserReviews(userId, 'worker');
+      workerReviews = await getOrFetchUserReviews(userId, 'worker');
     } else {
       workerReviews = sampleWorkerReviews;
     }
@@ -3967,10 +4678,11 @@ async function populateWorkerReviews(workerReviews = null, userName = null) {
   container.innerHTML = '';
   
   if (workerReviews.length === 0) {
+    const safeProfileName = escapeHtml(profileName);
     container.innerHTML = `
       <div style="text-align: center; color: #e6d6ae; padding: 2rem;">
         <h3 style="color: #e6d6ae; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">No Reviews Yet</h3>
-        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${profileName} as a worker will be displayed here.</p>
+        <p style="color: #bfc6d0; font-size: 1rem; line-height: 1.8;">All reviews of ${safeProfileName} as a worker will be displayed here.</p>
       </div>
     `;
     return;

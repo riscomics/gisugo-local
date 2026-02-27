@@ -65,6 +65,135 @@ function formatRelativeDate(dateString) {
     }
 }
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url, fallback = '') {
+    if (!url) return fallback;
+    try {
+        const parsed = new URL(url, window.location.origin);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.toString();
+        }
+    } catch (error) {
+        // fall through
+    }
+    return fallback;
+}
+
+function isAllowedTextCharacter(char) {
+    if (!char) return true;
+    if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+    if (/[.,!?'"()\/-]/.test(char)) return true;
+    if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+    return false;
+}
+
+function sanitizeTextInput(value) {
+    return Array.from(String(value || ''))
+        .filter(isAllowedTextCharacter)
+        .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+    return Array.from(String(value || ''))
+        .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+    let hint = document.getElementById('jobs-input-guide');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'jobs-input-guide';
+        hint.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(88vw, 360px);
+            padding: 8px;
+            border-radius: 16px;
+            background: repeating-linear-gradient(
+                135deg,
+                #facc15 0 10px,
+                #111827 10px 20px
+            );
+            color: #fee2e2;
+            text-align: center;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+            z-index: 11000;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            overflow: hidden;
+        `;
+        document.body.appendChild(hint);
+    }
+
+    hint.innerHTML = `
+        <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+            <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+            <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+            <div style="font-size:14px; font-weight:600; line-height:1.38;">
+                ${message}
+            </div>
+        </div>
+    `;
+    hint.style.opacity = '1';
+    hint.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(window.__jobsInputGuideTimer);
+    window.__jobsInputGuideTimer = setTimeout(() => {
+        hint.style.opacity = '0';
+        hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+    }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+    if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+    inputEl.dataset.markupCharsBlocked = 'true';
+
+    const showInputGuide = () => {
+        const now = Date.now();
+        const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+        if (now - lastShownAt < 1500) return;
+        inputEl.dataset.inputGuideShownAt = String(now);
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    };
+
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+            e.preventDefault();
+            showInputGuide();
+        }
+    });
+
+    inputEl.addEventListener('paste', function(e) {
+        const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+        if (!hasUnsupportedTextChars(pastedText)) return;
+        e.preventDefault();
+        showInputGuide();
+        const cleaned = sanitizeTextInput(pastedText);
+        const start = inputEl.selectionStart ?? inputEl.value.length;
+        const end = inputEl.selectionEnd ?? inputEl.value.length;
+        inputEl.setRangeText(cleaned, start, end, 'end');
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    inputEl.addEventListener('input', function() {
+        const sanitized = sanitizeTextInput(inputEl.value);
+        if (sanitized !== inputEl.value) {
+            inputEl.value = sanitized;
+            showInputGuide();
+        }
+    });
+}
+
 // Debug function to check data status
 function debugDataStatus() {
     console.log('🔍 DEBUG: Current data status:', {
@@ -1478,6 +1607,7 @@ async function switchToRole(roleType) {
     
     // NUCLEAR CLEANUP: Clear all overlay handlers when switching roles to prevent contamination
     executeCleanupsByType('hiring');
+    executeCleanupsByType('hiring-listener');
     executeCleanupsByType('accepted-overlay');
     
     // Update role button states
@@ -1594,6 +1724,11 @@ async function switchToCustomerTab(tabType) {
     }
     
     console.log(`🔄 Switched to customer tab: ${tabType}`);
+    
+    // Clean up hiring listener when leaving the hiring tab
+    if (tabType !== 'hiring') {
+        executeCleanupsByType('hiring-listener');
+    }
     
     // Load content based on tab type (existing functionality)
     if (tabType === 'listings') {
@@ -1736,47 +1871,64 @@ function generateOfferedJobCard(job) {
     // Format with peso symbol
     const rawPrice = job.agreedPrice || job.priceOffer;
     const displayPrice = formatPriceWithPeso(rawPrice) || `₱${rawPrice}`;
+    const safeJobId = escapeHtml(job.jobId || '');
+    const safePosterId = escapeHtml(job.posterId || '');
+    const safePosterName = escapeHtml(job.posterName || '');
+    const safePosterThumbnailData = escapeHtml(job.posterThumbnail || '');
+    const safeCategory = escapeHtml(job.category || '');
+    const safeRole = escapeHtml(job.role || 'worker');
+    const safeDisplayPrice = escapeHtml(displayPrice || '₱0');
+    const safeDateOffered = escapeHtml(job.dateOffered || '');
+    const safeJobPageUrl = escapeHtml(sanitizeUrl(job.jobPageUrl || `dynamic-job.html?category=${job.category}&jobNumber=${job.jobId}`, '#'));
+    const safeTitle = escapeHtml(job.title || 'Untitled Job');
+    const safeDueDate = escapeHtml(formatJobDate(job.jobDate));
+    const safeStartTime = escapeHtml(formatTime(job.startTime));
+    const safeEndTime = escapeHtml(formatTime(job.endTime));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
+    const safeRoleCaption = escapeHtml(roleCaption);
+    const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
+    const safeUserName = escapeHtml(userName || 'User');
     
     return `
         <div class="hiring-card worker offered-gig" 
-             data-job-id="${job.jobId}"
-             data-poster-id="${job.posterId}"
-             data-poster-name="${job.posterName}"
-             data-poster-thumbnail="${job.posterThumbnail}"
-             data-category="${job.category}"
-             data-role="${job.role}"
-             data-price-offer="${displayPrice}"
-             data-date-offered="${job.dateOffered}"
-             data-job-page-url="${job.jobPageUrl || `dynamic-job.html?category=${job.category}&jobNumber=${job.jobId}`}">
+             data-job-id="${safeJobId}"
+             data-poster-id="${safePosterId}"
+             data-poster-name="${safePosterName}"
+             data-poster-thumbnail="${safePosterThumbnailData}"
+             data-category="${safeCategory}"
+             data-role="${safeRole}"
+             data-price-offer="${safeDisplayPrice}"
+             data-date-offered="${safeDateOffered}"
+             data-job-page-url="${safeJobPageUrl}">
             
-            <div class="hiring-title">${job.title}</div>
+            <div class="hiring-title">${safeTitle}</div>
             
             <div class="hiring-date-time-row">
                 <div class="hiring-date-part">
                     <span class="hiring-date-label">DUE:</span>
-                    <span class="hiring-date-value">${formatJobDate(job.jobDate)}</span>
+                    <span class="hiring-date-value">${safeDueDate}</span>
                 </div>
                 <div class="hiring-time-part">
                     <span class="hiring-time-label">FROM:</span>
-                    <span class="hiring-time-value">${formatTime(job.startTime)}</span>
+                    <span class="hiring-time-value">${safeStartTime}</span>
                     <span class="hiring-time-label">TO:</span>
-                    <span class="hiring-time-value">${formatTime(job.endTime)}</span>
+                    <span class="hiring-time-value">${safeEndTime}</span>
                 </div>
             </div>
             
             <div class="hiring-main-row">
                 <div class="hiring-thumbnail">
-                    <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                    <img src="${safeThumbnail}" alt="${safeTitle}" loading="lazy">
                 </div>
                 
                 <div class="hiring-content">
                     <div class="hiring-left-content">
-                        <div class="hiring-price">${displayPrice}</div>
-                        <div class="hiring-role-caption worker">${roleCaption}</div>
+                        <div class="hiring-price">${safeDisplayPrice}</div>
+                        <div class="hiring-role-caption worker">${safeRoleCaption}</div>
                     </div>
                     <div class="hiring-right-content">
                         <div class="hiring-user-thumbnail">
-                            <img src="${userThumbnail}" alt="${userName}" loading="lazy">
+                            <img src="${safeUserThumbnail}" alt="${safeUserName}" loading="lazy">
                         </div>
                     </div>
                 </div>
@@ -2293,35 +2445,50 @@ function generateListingCardHTML(listing) {
             displayStatus = 'expired';
         }
     }
+    const safeDisplayStatus = escapeHtml(String(displayStatus || 'active').toLowerCase());
+    const safeDisplayStatusLabel = escapeHtml(String(displayStatus || 'active').toUpperCase());
+    const safeJobId = escapeHtml(listing.jobId || '');
+    const safePosterId = escapeHtml(listing.posterId || '');
+    const safeCategory = escapeHtml(listing.category || '');
+    const safeApplicationCount = escapeHtml(String(listing.applicationCount || 0));
+    const safeJobPageUrl = escapeHtml(sanitizeUrl(listing.jobPageUrl, '#'));
+    const safePrice = escapeHtml(String(listing.price || 0));
+    const safePaymentType = escapeHtml(listing.paymentType || 'per_job');
+    const safeThumbnail = escapeHtml(sanitizeUrl(listing.thumbnail, 'public/images/placeholder.jpg'));
+    const safeTitle = escapeHtml(listing.title || 'Untitled Job');
+    const safeJobDate = escapeHtml(jobDateFormatted);
+    const safeApplicationText = escapeHtml(applicationText);
+    const safeTimeRange = escapeHtml(timeRange);
+    const safeTimeAgo = escapeHtml(timeAgo);
     
     return `
         <div class="listing-card" 
-             data-job-id="${listing.jobId}" 
-             data-poster-id="${listing.posterId}"
-             data-category="${listing.category}"
-             data-application-count="${listing.applicationCount}"
-             data-job-page-url="${listing.jobPageUrl}"
-             data-status="${displayStatus}"
-             data-price="${listing.price || 0}"
-             data-payment-type="${listing.paymentType || 'per_job'}">
+             data-job-id="${safeJobId}" 
+             data-poster-id="${safePosterId}"
+             data-category="${safeCategory}"
+             data-application-count="${safeApplicationCount}"
+             data-job-page-url="${safeJobPageUrl}"
+             data-status="${safeDisplayStatus}"
+             data-price="${safePrice}"
+             data-payment-type="${safePaymentType}">
             <div class="listing-thumbnail">
-                <img src="${listing.thumbnail}" alt="${listing.title}">
-                <div class="status-badge status-${displayStatus}">${displayStatus.toUpperCase()}</div>
+                <img src="${safeThumbnail}" alt="${safeTitle}">
+                <div class="status-badge status-${safeDisplayStatus}">${safeDisplayStatusLabel}</div>
             </div>
             <div class="listing-content">
-                <div class="listing-title">${listing.title}</div>
+                <div class="listing-title">${safeTitle}</div>
                 <div class="listing-meta">
                     <div class="job-schedule">
                         <div class="job-date-row">
-                            <span class="job-date">📅 ${jobDateFormatted}</span>
+                            <span class="job-date">📅 ${safeJobDate}</span>
                         </div>
                         <div class="job-time-row">
-                            <div class="application-count">${applicationText}</div>
-                            <span class="job-time">🕒 ${timeRange}</span>
+                            <div class="application-count">${safeApplicationText}</div>
+                            <span class="job-time">🕒 ${safeTimeRange}</span>
                         </div>
                     </div>
                     <div class="posting-info">
-                        <span class="listing-time-ago">Posted ${timeAgo}</span>
+                        <span class="listing-time-ago">Posted ${safeTimeAgo}</span>
                     </div>
                 </div>
             </div>
@@ -2601,15 +2768,41 @@ async function initializeHiringTab() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
     
-    // Check if already loaded
-    if (container.children.length > 0) {
-        console.log('👥 Hiring tab already loaded');
-        return;
+    // Clean up any existing listener
+    executeCleanupsByType('hiring-listener');
+    
+    console.log('👥 Loading hiring tab with real-time updates...');
+    await loadHiringContent();
+    
+    // Set up real-time listener so status changes (e.g., hired → accepted) refresh automatically
+    if (typeof firebase !== 'undefined') {
+        const user = firebase.auth().currentUser;
+        if (user && firebase.firestore) {
+            const db = firebase.firestore();
+            let isFirstSnapshot = true;
+            
+            const unsubscribe = db.collection('jobs')
+                .where('posterId', '==', user.uid)
+                .where('status', 'in', ['hired', 'accepted'])
+                .onSnapshot(snapshot => {
+                    if (isFirstSnapshot) {
+                        isFirstSnapshot = false;
+                        return; // Skip initial snapshot since loadHiringContent already rendered
+                    }
+                    console.log('🔄 Hiring tab: job status change detected, refreshing...');
+                    loadHiringContent();
+                }, err => {
+                    console.warn('⚠️ Hiring tab listener error:', err);
+                });
+            
+            registerCleanup('hiring-listener', 'jobs-snapshot', () => {
+                unsubscribe();
+                console.log('🧹 Hiring tab real-time listener unsubscribed');
+            });
+        }
     }
     
-    console.log('👥 Loading hiring tab...');
-    await loadHiringContent();
-    console.log('👥 Hiring tab loaded, checking for captions and thumbnails...');
+    console.log('👥 Hiring tab loaded');
 }
 
 async function loadHiringContent() {
@@ -2689,47 +2882,62 @@ function generateHiringCardHTML(job) {
     
     // Add highlighting class for newly hired jobs
     const highlightClass = job.isNewlyHired ? ' newly-hired-highlight' : '';
+    const safeJobId = escapeHtml(job.jobId || '');
+    const safePosterId = escapeHtml(job.posterId || '');
+    const safeCategory = escapeHtml(job.category || '');
+    const safeRole = escapeHtml(job.role || '');
+    const safeHiredWorkerId = escapeHtml(job.hiredWorkerId || '');
+    const safeHiredWorkerNameData = escapeHtml(job.hiredWorkerName || '');
+    const safeTitle = escapeHtml(job.title || 'Untitled Job');
+    const safeDueDate = escapeHtml(formatJobDate(job.jobDate));
+    const safeStartTime = escapeHtml(formatTime(job.startTime));
+    const safeEndTime = escapeHtml(formatTime(job.endTime));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
+    const safePriceOffer = escapeHtml(`₱${job.priceOffer}`);
+    const safeRoleCaption = escapeHtml(roleCaption);
+    const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
+    const safeUserName = escapeHtml(userName || 'User');
     
     return `
         <div class="hiring-card ${roleClass}${statusClass}${highlightClass}" 
-             data-job-id="${job.jobId}"
-             data-poster-id="${job.posterId}"
-             data-category="${job.category}"
-             data-role="${job.role}"
-             data-hired-worker-id="${job.hiredWorkerId}"
-             data-hired-worker-name="${job.hiredWorkerName}">
+             data-job-id="${safeJobId}"
+             data-poster-id="${safePosterId}"
+             data-category="${safeCategory}"
+             data-role="${safeRole}"
+             data-hired-worker-id="${safeHiredWorkerId}"
+             data-hired-worker-name="${safeHiredWorkerNameData}">
             
-            <div class="hiring-title">${job.title}</div>
+            <div class="hiring-title">${safeTitle}</div>
             
             <div class="hiring-date-time-row">
                 <div class="hiring-date-part">
                     <span class="hiring-date-label">DUE:</span>
-                    <span class="hiring-date-value">${formatJobDate(job.jobDate)}</span>
+                    <span class="hiring-date-value">${safeDueDate}</span>
                 </div>
                 <div class="hiring-time-part">
                     <span class="hiring-time-label">FROM:</span>
-                    <span class="hiring-time-value">${formatTime(job.startTime)}</span>
+                    <span class="hiring-time-value">${safeStartTime}</span>
                     <span class="hiring-time-label">TO:</span>
-                    <span class="hiring-time-value">${formatTime(job.endTime)}</span>
+                    <span class="hiring-time-value">${safeEndTime}</span>
                 </div>
             </div>
             
             <div class="hiring-main-row">
                 <div class="hiring-thumbnail">
-                    <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                    <img src="${safeThumbnail}" alt="${safeTitle}" loading="lazy">
                 </div>
                 
                 <div class="hiring-content">
                     <div class="hiring-left-content">
-                        <div class="hiring-price">₱${job.priceOffer}</div>
-                        <div class="hiring-role-caption ${roleClass}">${roleCaption}</div>
+                        <div class="hiring-price">${safePriceOffer}</div>
+                        <div class="hiring-role-caption ${roleClass}">${safeRoleCaption}</div>
                         ${job.role === 'customer' && job.status === 'hired' ? '<div class="hiring-status-badge pending">Waiting for Worker</div>' : ''}
                         ${job.role === 'customer' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">Work in Progress</div>' : ''}
                         ${job.role === 'worker' && job.status === 'accepted' ? '<div class="hiring-status-badge in-progress">Work in Progress</div>' : ''}
                     </div>
                     <div class="hiring-right-content">
                         <div class="hiring-user-thumbnail">
-                            <img src="${userThumbnail}" alt="${userName}" loading="lazy">
+                            <img src="${safeUserThumbnail}" alt="${safeUserName}" loading="lazy">
                         </div>
                     </div>
                 </div>
@@ -3438,6 +3646,9 @@ function showRejectGigOfferOverlay(jobData) {
         return;
     }
     
+    // Store full jobData on overlay for later use
+    overlay.dataset.jobData = JSON.stringify(jobData);
+    
     // Update customer name in warning text
     if (customerNameSpan) {
         customerNameSpan.textContent = jobData.posterName;
@@ -3474,12 +3685,8 @@ function initializeRejectGigOfferHandlers() {
     // Confirm reject button
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
-            const jobData = {
-                jobId: overlay.dataset.jobId,
-                posterName: overlay.dataset.posterName,
-                title: overlay.dataset.jobTitle
-            };
-            
+            // Retrieve full jobData from overlay
+            const jobData = JSON.parse(overlay.dataset.jobData || '{}');
             processRejectGigConfirmation(jobData);
         });
     }
@@ -3530,8 +3737,6 @@ async function processRejectGigConfirmation(jobData) {
         // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
         // ═══════════════════════════════════════════════════════════════
         try {
-            // TODO: Uncomment this block when you're ready to enable offer rejection notifications
-            /*
             if (typeof sendOfferRejectedNotification === 'function') {
                 const currentUser = firebase.auth ? firebase.auth().currentUser : null;
                 const workerName = currentUser?.displayName || 'A worker';
@@ -3548,9 +3753,6 @@ async function processRejectGigConfirmation(jobData) {
                     console.log('✅ Customer will see notification in Messages > ALERTS tab');
                 }
             }
-            */
-            console.log('📬 Offer rejection notifications ready (currently disabled)');
-            console.log('📋 To enable: Uncomment sendOfferRejectedNotification() in jobs.js line 3499');
         } catch (notifError) {
             console.error('⚠️ Error sending notification (non-critical):', notifError);
             // Don't fail reject operation if notification fails
@@ -3625,7 +3827,84 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 workerAccepted: true // Flag to indicate worker has accepted
             });
             
+            // Get job data for notification
+            const jobDoc = await db.collection('jobs').doc(jobId).get();
+            const jobData = jobDoc.data();
+            
+            console.log('🔔 About to create acceptance notification for customer:', jobData?.posterId);
+            
+            // Show loading state during acceptance
+            showLoadingOverlay('Processing acceptance...');
+            
+            // Create notification for customer about offer acceptance
+            try {
+                if (typeof createNotification === 'function' && jobData && jobData.posterId) {
+                    console.log('✅ createNotification function exists');
+                    const currentUser = firebase.auth().currentUser;
+                    const workerProfile = await getUserProfile(currentUser.uid);
+                    const workerName = workerProfile?.fullName || 'Worker';
+                    
+                    const result = await createNotification(jobData.posterId, {
+                        type: 'offer_accepted',
+                        jobId: jobId,
+                        jobTitle: jobData.title || 'Your Gig',
+                        message: `${workerName} has accepted your gig offer for "${jobData.title}"!`,
+                        actionRequired: false
+                    });
+                    console.log('✅ Acceptance notification result:', result);
+                } else {
+                    console.error('❌ createNotification not found or missing job data');
+                }
+            } catch (notifError) {
+                console.error('❌ Error creating acceptance notification:', notifError);
+                // Don't fail the acceptance if notification fails
+            }
+            
+            // Hide loading state
+            hideLoadingOverlay();
+            
             console.log('✅ Job offer accepted in Firebase - status changed to accepted');
+            
+            // Clean up offer_sent notification - no longer needed once accepted
+            try {
+                const currentUser = firebase.auth().currentUser;
+                if (currentUser) {
+                    const offerNotifs = await db.collection('notifications')
+                        .where('recipientId', '==', currentUser.uid)
+                        .where('jobId', '==', jobId)
+                        .where('type', '==', 'offer_sent')
+                        .get();
+                    if (!offerNotifs.empty) {
+                        const deletePromises = offerNotifs.docs.map(doc => doc.ref.delete());
+                        await Promise.all(deletePromises);
+                        console.log(`🗑️ Cleaned up ${offerNotifs.size} offer notification(s) after acceptance`);
+                    }
+                }
+            } catch (cleanupError) {
+                console.warn('⚠️ Could not clean up offer notifications:', cleanupError);
+            }
+            
+            // Now that worker has accepted, reject all other pending applications for this job
+            try {
+                const otherApps = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('status', '==', 'pending')
+                    .get();
+                if (!otherApps.empty) {
+                    const batch = db.batch();
+                    otherApps.docs.forEach(doc => {
+                        batch.update(doc.ref, {
+                            status: 'rejected',
+                            rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+                    await batch.commit();
+                    console.log(`✅ Rejected ${otherApps.size} other pending application(s) after worker accepted`);
+                }
+            } catch (rejectError) {
+                console.warn('⚠️ Could not reject other applications:', rejectError);
+            }
+            
             return;
         } catch (error) {
             console.error('❌ Error accepting offer in Firebase:', error);
@@ -3698,9 +3977,9 @@ async function rejectGigOffer(jobId) {
                 hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
                 agreedPrice: firebase.firestore.FieldValue.delete(),
                 hiredAt: firebase.firestore.FieldValue.delete(),
-                acceptedAt: firebase.firestore.FieldValue.delete(), // Remove if worker had accepted before rejecting
-                rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                applicationCount: 0 // Reset to 0 since no pending applications remain after rejection
+                acceptedAt: firebase.firestore.FieldValue.delete(),
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                // applicationCount will be restored after tallying pending applications below
             });
             
             console.log('✅ Job offer rejected in Firebase, job restored to active');
@@ -3724,9 +4003,35 @@ async function rejectGigOffer(jobId) {
                 });
                 await batch.commit();
                 console.log('✅ Worker application status updated to rejected');
+                
+                // Count remaining pending applications and restore applicationCount
+                const pendingApps = await db.collection('applications')
+                    .where('jobId', '==', jobId)
+                    .where('status', '==', 'pending')
+                    .get();
+                await db.collection('jobs').doc(jobId).update({
+                    applicationCount: pendingApps.size
+                });
+                console.log(`✅ Restored applicationCount to ${pendingApps.size} pending application(s)`);
             } catch (appError) {
                 console.error('⚠️ Error updating application status:', appError);
                 // Don't throw - job update succeeded, application update is non-critical
+            }
+            
+            // Clean up offer_sent notification for this job (no longer relevant)
+            try {
+                const offerNotifs = await db.collection('notifications')
+                    .where('recipientId', '==', currentUser.uid)
+                    .where('jobId', '==', jobId)
+                    .where('type', '==', 'offer_sent')
+                    .get();
+                if (!offerNotifs.empty) {
+                    const deletePromises = offerNotifs.docs.map(doc => doc.ref.delete());
+                    await Promise.all(deletePromises);
+                    console.log(`🗑️ Cleaned up ${offerNotifs.size} offer notification(s) after rejection`);
+                }
+            } catch (cleanupError) {
+                console.warn('⚠️ Could not clean up offer notifications:', cleanupError);
             }
             
             return;
@@ -3993,6 +4298,26 @@ function initializeCompleteJobConfirmationHandlers() {
                 
                 console.log('✅ Job status updated to completed');
                 
+                // Step 2b: Send notification to worker about completion (with feedback reminder)
+                try {
+                    if (typeof createNotification === 'function' && jobData.hiredWorkerId) {
+                        const customerProfile = await getUserProfile(jobData.posterId);
+                        const customerName = customerProfile?.fullName || 'Customer';
+                        
+                        await createNotification(jobData.hiredWorkerId, {
+                            type: 'job_completed',
+                            jobId: jobId,
+                            jobTitle: jobData.title || 'Gig',
+                            message: `"${jobData.title}" has been marked as complete by ${customerName}.`,
+                            actionRequired: false
+                        });
+                        console.log('✅ Completion notification sent to worker');
+                    }
+                } catch (notifError) {
+                    console.error('❌ Error creating completion notification:', notifError);
+                    // Don't fail the completion if notification fails
+                }
+                
                 // Step 3: Update customer statistics
                 await db.collection('users').doc(jobData.posterId).update({
                     'statistics.customer.totalGigsCompleted': firebase.firestore.FieldValue.increment(1),
@@ -4217,6 +4542,7 @@ function initializeRelistJobConfirmationHandlers() {
                         const verifyDoc = await db.collection('jobs').doc(jobId).get();
                         console.log('🔍 Verification - Job status after update:', verifyDoc.data().status);
                         console.log('🔍 Verification - hiredWorkerId after update:', verifyDoc.data().hiredWorkerId || 'DELETED');
+                        const jobData = verifyDoc.data();
                         
                         // Update the worker's application status to 'voided' to notify them
                         if (hiredWorkerId) {
@@ -4242,8 +4568,6 @@ function initializeRelistJobConfirmationHandlers() {
                                 // SEND NOTIFICATION TO WORKER (Uses existing ALERTS tab)
                                 // ═══════════════════════════════════════════════════════════════
                                 try {
-                                    // TODO: Uncomment this block when you're ready to enable contract void notifications
-                                    /*
                                     if (typeof sendContractVoidedNotification === 'function') {
                                         const notifResult = await sendContractVoidedNotification(
                                             hiredWorkerId,
@@ -4251,16 +4575,13 @@ function initializeRelistJobConfirmationHandlers() {
                                             jobId,
                                             jobTitle,
                                             reason,
-                                            'Customer' // TODO: Get actual customer name from job.posterName
+                                            jobData.posterName || 'Customer'
                                         );
                                         
                                         if (notifResult.success) {
                                             console.log('✅ Worker will see notification in Messages > ALERTS tab');
                                         }
                                     }
-                                    */
-                                    console.log('📬 Contract void notifications ready (currently disabled)');
-                                    console.log('📋 To enable: Uncomment sendContractVoidedNotification() in jobs.js line 4129');
                                 } catch (notifError) {
                                     console.error('⚠️ Error sending notification (non-critical):', notifError);
                                     // Don't fail relist operation if notification fails
@@ -4547,21 +4868,22 @@ function initializeResignJobConfirmationHandlers() {
                     // ═══════════════════════════════════════════════════════════════
                     // SEND NOTIFICATION TO CUSTOMER (Uses existing ALERTS tab)
                     // ═══════════════════════════════════════════════════════════════
-                    // TODO: Uncomment when ready to enable resignation notifications
-                    /*
-                    if (typeof sendWorkerResignedNotification === 'function') {
-                        const workerName = currentUser?.displayName || 'A worker';
-                        await sendWorkerResignedNotification(
-                            customerId,
-                            customerName,
-                            jobId,
-                            jobTitle,
-                            reason,
-                            workerName
-                        );
+                    try {
+                        if (typeof sendWorkerResignedNotification === 'function') {
+                            const workerName = currentUser?.displayName || 'A worker';
+                            await sendWorkerResignedNotification(
+                                customerId,
+                                customerName,
+                                jobId,
+                                jobTitle,
+                                reason,
+                                workerName
+                            );
+                            console.log('✅ Worker resignation notification sent to customer');
+                        }
+                    } catch (notifError) {
+                        console.error('⚠️ Error sending resignation notification:', notifError);
                     }
-                    */
-                    console.log('📬 Worker resignation notifications ready (currently disabled)');
                     
                 } catch (error) {
                     console.error('❌ Error processing resignation in Firebase:', error);
@@ -4649,6 +4971,10 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         
         if (feedbackText.length < 2) {
             showErrorNotification('Please provide feedback with at least 2 characters');
+            return;
+        }
+        if (hasUnsupportedTextChars(feedbackText)) {
+            showErrorNotification('Feedback has unsupported symbols');
             return;
         }
         
@@ -4913,18 +5239,27 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
     
     console.log('✅ Job review metadata prepared');
     
-    // 4. Create notification for worker (skip for now - notifications not implemented)
-    // const notificationRef = db.collection('notifications').doc();
-    // batch.set(notificationRef, {
-    //     recipientId: workerUserId,
-    //     type: 'review_received',
-    //     title: 'New Review Received',
-    //     message: `You received a ${rating}-star review for your completed job.`,
-    //     jobId: jobId,
-    //     reviewId: reviewRef.id,
-    //     createdAt: timestamp,
-    //     read: false
-    // });
+    // 4. Create notification for worker about customer feedback
+    try {
+      if (typeof createNotification === 'function') {
+        const jobDoc = await jobRef.get();
+        const jobData = jobDoc.data();
+        const customerProfile = await getUserProfile(customerUserId);
+        const customerName = customerProfile?.fullName || 'Customer';
+        
+        await createNotification(workerUserId, {
+          type: 'feedback_received',
+          jobId: jobId,
+          jobTitle: jobData.title || 'Completed Gig',
+          message: `${customerName} left ${rating}-star feedback on "${jobData.title}". Don't forget to leave your feedback in Gigs Manager > Completed tab.`,
+          actionRequired: false
+        });
+        console.log('✅ Feedback notification sent to worker');
+      }
+    } catch (notifError) {
+      console.error('❌ Error creating feedback notification:', notifError);
+      // Don't fail the feedback submission if notification fails
+    }
     
     // Commit all operations atomically
     await batch.commit();
@@ -4947,6 +5282,7 @@ function initializeFeedbackCharacterCount() {
     const submitBtn = document.getElementById('jobCompletedOkBtn');
     
     if (textarea && charCount) {
+        blockUnsupportedCharsForInput(textarea);
         // Add input event listener with validation
         const updateHandler = function() {
             updateFeedbackCharCount();
@@ -5502,6 +5838,27 @@ function generateCompletedCardHTML(job) {
         }
     }
     const starsHTML = generateStarRatingHTML(displayRating);
+    const safeRoleClass = escapeHtml(roleClass || '');
+    const safeJobId = escapeHtml(job.jobId || '');
+    const safePosterId = escapeHtml(job.posterId || '');
+    const safeCategory = escapeHtml(job.category || '');
+    const safeRole = escapeHtml(job.role || '');
+    const safeHiredWorkerId = escapeHtml(job.hiredWorkerId || '');
+    const safeHiredWorkerName = escapeHtml(job.hiredWorkerName || '');
+    const safePosterName = escapeHtml(job.posterName || '');
+    const safeHasWorkerFeedback = escapeHtml(job.role === 'worker' && job.workerFeedback ? 'true' : 'false');
+    const safeTitle = escapeHtml(job.title || 'Untitled Job');
+    const safeJobDate = escapeHtml(formatJobDate(job.jobDate));
+    const safeStartTime = escapeHtml(formatTime(job.startTime));
+    const safeEndTime = escapeHtml(formatTime(job.endTime));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
+    const safeRoleCaption = escapeHtml(roleCaption);
+    const safeCompletedDate = escapeHtml(formatCompletedDate(job.completedAt));
+    const safeRatingCount = escapeHtml(ratingCount);
+    const safePriceOffer = escapeHtml(typeof job.priceOffer === 'number' ? '₱' + job.priceOffer : ((job.priceOffer || '').startsWith('₱') ? job.priceOffer : '₱' + (job.priceOffer || 0)));
+    const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
+    const safeUserName = escapeHtml(userName || 'User');
+    const safeUserLabel = escapeHtml(userLabel);
     
     // Generate feedback section
     let feedbackHTML = '';
@@ -5511,7 +5868,7 @@ function generateCompletedCardHTML(job) {
             feedbackHTML = `
                 <div class="completed-feedback-section">
                     <div class="completed-feedback-label">Your Feedback</div>
-                    <div class="completed-feedback-text">${job.feedback}</div>
+                    <div class="completed-feedback-text">${escapeHtml(job.feedback)}</div>
                 </div>
             `;
         } else {
@@ -5519,7 +5876,7 @@ function generateCompletedCardHTML(job) {
             feedbackHTML = `
                 <div class="completed-feedback-section customer-instructions">
                     <div class="completed-feedback-label">LEAVE FEEDBACK</div>
-                    <div class="completed-feedback-instructions">For ${job.hiredWorkerName}</div>
+                    <div class="completed-feedback-instructions">For ${escapeHtml(job.hiredWorkerName || '')}</div>
                 </div>
             `;
         }
@@ -5529,7 +5886,7 @@ function generateCompletedCardHTML(job) {
             feedbackHTML = `
                 <div class="completed-feedback-section">
                     <div class="completed-feedback-label">Your Feedback</div>
-                    <div class="completed-feedback-text">${job.workerFeedback}</div>
+                    <div class="completed-feedback-text">${escapeHtml(job.workerFeedback)}</div>
                 </div>
             `;
         } else {
@@ -5537,68 +5894,68 @@ function generateCompletedCardHTML(job) {
             feedbackHTML = `
                 <div class="completed-feedback-section worker-instructions">
                     <div class="completed-feedback-label">LEAVE FEEDBACK</div>
-                    <div class="completed-feedback-instructions">For ${job.posterName}</div>
+                    <div class="completed-feedback-instructions">For ${escapeHtml(job.posterName || '')}</div>
                 </div>
             `;
         }
     }
     
     return `
-        <div class="completed-card ${roleClass}" 
-             data-job-id="${job.jobId}"
-             data-poster-id="${job.posterId}"
-             data-category="${job.category}"
-             data-role="${job.role}"
-             data-hired-worker-id="${job.hiredWorkerId}"
-             data-hired-worker-name="${job.hiredWorkerName}"
-             data-poster-name="${job.posterName}"
-             data-has-worker-feedback="${job.role === 'worker' && job.workerFeedback ? 'true' : 'false'}">
+        <div class="completed-card ${safeRoleClass}" 
+             data-job-id="${safeJobId}"
+             data-poster-id="${safePosterId}"
+             data-category="${safeCategory}"
+             data-role="${safeRole}"
+             data-hired-worker-id="${safeHiredWorkerId}"
+             data-hired-worker-name="${safeHiredWorkerName}"
+             data-poster-name="${safePosterName}"
+             data-has-worker-feedback="${safeHasWorkerFeedback}">
             
-            <div class="completed-title">${job.title}</div>
+            <div class="completed-title">${safeTitle}</div>
             
             <div class="completed-date-time-row">
                 <div class="completed-date-part">
                     <span class="completed-date-label">DATE:</span>
-                    <span class="completed-date-value">${formatJobDate(job.jobDate)}</span>
+                    <span class="completed-date-value">${safeJobDate}</span>
                 </div>
                 <div class="completed-time-part">
                     <span class="completed-time-label">FROM:</span>
-                    <span class="completed-time-value">${formatTime(job.startTime)}</span>
+                    <span class="completed-time-value">${safeStartTime}</span>
                     <span class="completed-time-label">TO:</span>
-                    <span class="completed-time-value">${formatTime(job.endTime)}</span>
+                    <span class="completed-time-value">${safeEndTime}</span>
                 </div>
             </div>
             
             <div class="completed-main-row">
                 <div class="completed-thumbnail">
-                    <img src="${job.thumbnail}" alt="${job.title}" loading="lazy">
+                    <img src="${safeThumbnail}" alt="${safeTitle}" loading="lazy">
                     <div class="completed-overlay-badge">COMPLETED</div>
                 </div>
                 
                 <div class="completed-content">
                     <div class="completed-upper-row">
                         <div class="completed-left-content">
-                            <div class="completed-role-caption ${roleClass}">${roleCaption}</div>
+                            <div class="completed-role-caption ${safeRoleClass}">${safeRoleCaption}</div>
                             
                             <div class="completed-info-section">
-                                <div class="completed-on-date">Completed ${formatCompletedDate(job.completedAt)}</div>
+                                <div class="completed-on-date">Completed ${safeCompletedDate}</div>
                             </div>
                             
                             <div class="completed-rating-section">
                                 <div class="completed-rating-label">Rating</div>
                                 <div class="completed-rating-stars">
                                     ${starsHTML}
-                                    <span class="completed-rating-count">${ratingCount}</span>
+                                    <span class="completed-rating-count">${safeRatingCount}</span>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="completed-right-content">
-                            <div class="completed-price">${typeof job.priceOffer === 'number' ? '₱' + job.priceOffer : (job.priceOffer.startsWith('₱') ? job.priceOffer : '₱' + job.priceOffer)}</div>
+                            <div class="completed-price">${safePriceOffer}</div>
                             <div class="completed-user-thumbnail">
-                                <img src="${userThumbnail}" alt="${userName}" loading="lazy">
+                                <img src="${safeUserThumbnail}" alt="${safeUserName}" loading="lazy">
                             </div>
-                            <div class="completed-user-label">${userLabel}</div>
+                            <div class="completed-user-label">${safeUserLabel}</div>
                         </div>
                     </div>
                     
@@ -6838,42 +7195,59 @@ function generateApplicationCardHTML(application, jobTitle, jobOriginalPrice, jo
         // Fallback (shouldn't happen)
         displayPrice = 'No offer';
     }
+    const safeApplicationId = escapeHtml(application.applicationId || '');
+    const safeApplicantUid = escapeHtml(application.applicantUid || '');
+    const safeJobId = escapeHtml(application.jobId || '');
+    const safeJobTitle = escapeHtml(jobTitle || 'Untitled Job');
+    const safeApplicantName = escapeHtml(application.applicantProfile.displayName || 'Applicant');
+    const safeApplicantPhoto = escapeHtml(sanitizeUrl(application.applicantProfile.photoURL, 'public/users/default-user.jpg'));
+    const safeApplicantRating = escapeHtml(String(application.applicantProfile.averageRating || 0));
+    const safeTotalReviews = escapeHtml(String(application.applicantProfile.totalReviews || 0));
+    const safePriceOffer = escapeHtml(String(application.pricing.offeredAmount || jobOriginalPrice || 0));
+    const safePriceType = escapeHtml(application.pricing.paymentType || '');
+    const safeIsCounterOffer = escapeHtml(String(application.pricing.isCounterOffer || false));
+    const safeStatus = escapeHtml(application.status || '');
+    const safeTimestamp = escapeHtml(timestampToISOString(application.appliedAt));
+    const safeDisplayPrice = escapeHtml(displayPrice);
+    const safeAppliedDate = escapeHtml(application.displayData.appliedDate || '');
+    const safeAppliedTime = escapeHtml(application.displayData.appliedTime || '');
+    const safeMessage = escapeHtml(application.applicationMessage || '');
 
     return `
         <div class="application-card" 
-             data-application-id="${application.applicationId}" 
-             data-user-id="${application.applicantUid}" 
-             data-job-id="${application.jobId}"
-             data-job-title="${jobTitle}"
-             data-user-name="${application.applicantProfile.displayName}"
-             data-user-photo="${application.applicantProfile.photoURL}"
-             data-user-rating="${application.applicantProfile.averageRating}"
-             data-review-count="${application.applicantProfile.totalReviews}"
-             data-price-offer="${application.pricing.offeredAmount || jobOriginalPrice}"
-             data-price-type="${application.pricing.paymentType}"
-             data-is-counter-offer="${application.pricing.isCounterOffer}"
-             data-status="${application.status}"
-             data-timestamp="${timestampToISOString(application.appliedAt)}">
+             data-application-id="${safeApplicationId}" 
+             data-user-id="${safeApplicantUid}" 
+             data-job-id="${safeJobId}"
+             data-job-title="${safeJobTitle}"
+             data-user-name="${safeApplicantName}"
+             data-user-photo="${safeApplicantPhoto}"
+             data-user-rating="${safeApplicantRating}"
+             data-review-count="${safeTotalReviews}"
+             data-price-offer="${safePriceOffer}"
+             data-price-type="${safePriceType}"
+             data-is-counter-offer="${safeIsCounterOffer}"
+             data-status="${safeStatus}"
+             data-timestamp="${safeTimestamp}">
             <div class="application-job-title">
-                <span class="applicant-name" data-user-name="${application.applicantProfile.displayName}">${application.applicantProfile.displayName}</span>
-                <span class="price-offer">${displayPrice}</span>
+                <span class="applicant-name" data-user-name="${safeApplicantName}">${safeApplicantName}</span>
+                <span class="price-offer">${safeDisplayPrice}</span>
             </div>
             <div class="application-header">
                 <div class="application-left">
-                    <div class="application-date">${application.displayData.appliedDate}</div>
-                    <div class="application-time">${application.displayData.appliedTime}</div>
-                    <div class="application-rating" data-user-rating="${application.applicantProfile.averageRating}" data-review-count="${application.applicantProfile.totalReviews}">
+                    <div class="application-date">${safeAppliedDate}</div>
+                    <div class="application-time">${safeAppliedTime}</div>
+                    <div class="application-rating" data-user-rating="${safeApplicantRating}" data-review-count="${safeTotalReviews}">
                         <div class="stars">${stars}</div>
-                        <span class="review-count">(${application.applicantProfile.totalReviews})</span>
+                        <span class="review-count">(${safeTotalReviews})</span>
                     </div>
                 </div>
                 <div class="applicant-photo">
-                    <img src="${application.applicantProfile.photoURL}" alt="${application.applicantProfile.displayName}" data-user-photo="${application.applicantProfile.photoURL}">
+                    <img src="${safeApplicantPhoto}" alt="${safeApplicantName}" data-user-photo="${safeApplicantPhoto}">
                 </div>
             </div>
             <div class="application-message">
                 <strong>MESSAGE:</strong>
-                ${application.applicationMessage}
+                ${safeMessage}
             </div>
         </div>
     `;
@@ -7393,6 +7767,9 @@ function showContactMessageOverlay(userId, userName, jobId = null, applicationId
     const closeBtn = document.getElementById('contactCloseBtn');
     
     if (!overlay) return;
+    if (messageInput) {
+        blockUnsupportedCharsForInput(messageInput);
+    }
     
     // Set user information
     userNameElement.textContent = `Contact ${userName}`;
@@ -7481,6 +7858,11 @@ async function handleSendContactMessage() {
     
     if (!message) {
         console.log('⚠️ No message entered, focusing input');
+        messageInput.focus();
+        return;
+    }
+    if (hasUnsupportedTextChars(message)) {
+        showErrorNotification('Message has unsupported symbols');
         messageInput.focus();
         return;
     }
@@ -8673,7 +9055,8 @@ async function showDeleteConfirmationDialog(jobData) {
         // Show application count warning if there are applications
         const appCount = parseInt(jobData.applicationCount) || 0;
         if (appCount > 0) {
-            applicationCount.innerHTML = `⚠️ This job has <strong>${appCount} application${appCount === 1 ? '' : 's'}</strong> that will also be deleted.`;
+            const safeCountText = escapeHtml(`${appCount} application${appCount === 1 ? '' : 's'}`);
+            applicationCount.innerHTML = `⚠️ This job has <strong>${safeCountText}</strong> that will also be deleted.`;
             applicationCount.style.display = 'block';
         } else {
             applicationCount.style.display = 'none';
@@ -9269,6 +9652,7 @@ function initializeCustomerFeedbackCharacterCount() {
     const submitBtn = document.getElementById('submitCustomerFeedbackBtn');
     
     if (!textarea || !charCount || !submitBtn) return;
+    blockUnsupportedCharsForInput(textarea);
     
     const updateHandler = function() {
         const count = textarea.value.length;
@@ -9339,6 +9723,10 @@ async function submitCustomerFeedback() {
         showErrorNotification('Feedback must be at least 2 characters long');
         return;
     }
+    if (hasUnsupportedTextChars(feedbackText)) {
+        showErrorNotification('Feedback has unsupported symbols');
+        return;
+    }
     
     console.log('💭 Submitting feedback:', {
         jobId,
@@ -9400,6 +9788,28 @@ async function submitCustomerFeedback() {
             
             await batch.commit();
             console.log('✅ Worker feedback and review submitted successfully');
+            
+            // Send notification to customer about worker feedback
+            try {
+                if (typeof createNotification === 'function') {
+                    const jobDoc = await jobRef.get();
+                    const jobData = jobDoc.data();
+                    const workerProfile = await getUserProfile(currentUserId);
+                    const workerName = workerProfile?.fullName || 'Worker';
+                    
+                    await createNotification(targetUserId, {
+                        type: 'worker_feedback_received',
+                        jobId: jobId,
+                        jobTitle: jobData.title || 'Completed Gig',
+                        message: `${workerName} left ${rating}-star feedback for you on "${jobData.title}"`,
+                        actionRequired: false
+                    });
+                    console.log('✅ Worker feedback notification sent to customer');
+                }
+            } catch (notifError) {
+                console.error('❌ Error creating worker feedback notification:', notifError);
+                // Don't fail the feedback submission if notification fails
+            }
             
             // Update customer's rating stats (calculate proper average)
             try {

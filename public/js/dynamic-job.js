@@ -45,6 +45,117 @@ window.addEventListener('beforeunload', function() {
   DYNAMIC_JOB_CLEANUP_REGISTRY.cleanup();
 });
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function sanitizeTextInput(value) {
+  return Array.from(String(value || ''))
+    .filter(isAllowedTextCharacter)
+    .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuide(message) {
+  let hint = document.getElementById('dynamicInputHint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'dynamicInputHint';
+    hint.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(88vw, 360px);
+      padding: 8px;
+      border-radius: 16px;
+      background: repeating-linear-gradient(
+        135deg,
+        #facc15 0 10px,
+        #111827 10px 20px
+      );
+      color: #fee2e2;
+      text-align: center;
+      box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+      overflow: hidden;
+    `;
+    document.body.appendChild(hint);
+  }
+
+  hint.innerHTML = `
+    <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+      <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+      <div style="font-size:14px; font-weight:600; line-height:1.38;">
+        ${message}
+      </div>
+    </div>
+  `;
+  hint.style.opacity = '1';
+  hint.style.transform = 'translate(-50%, -50%) scale(1)';
+  clearTimeout(window.__dynamicInputHintTimer);
+  window.__dynamicInputHintTimer = setTimeout(() => {
+    hint.style.opacity = '0';
+    hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+  }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+  if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+  inputEl.dataset.markupCharsBlocked = 'true';
+
+  const showGuideOnce = () => {
+    const now = Date.now();
+    const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+    if (now - lastShownAt < 1500) return;
+    inputEl.dataset.inputGuideShownAt = String(now);
+    showInputGuide('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+  };
+
+  const keydownHandler = function(e) {
+    if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+      e.preventDefault();
+      showGuideOnce();
+    }
+  };
+
+  const pasteHandler = function(e) {
+    const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+    if (!hasUnsupportedTextChars(pastedText)) return;
+    e.preventDefault();
+    showGuideOnce();
+    const cleaned = sanitizeTextInput(pastedText);
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    inputEl.setRangeText(cleaned, start, end, 'end');
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  const inputHandler = function() {
+    const sanitized = sanitizeTextInput(inputEl.value);
+    if (sanitized !== inputEl.value) {
+      inputEl.value = sanitized;
+      showGuideOnce();
+    }
+  };
+
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(inputEl, 'keydown', keydownHandler);
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(inputEl, 'paste', pasteHandler);
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(inputEl, 'input', inputHandler);
+}
+
 // Category configuration for extras
 const extrasConfig = {
   hatod: {
@@ -244,15 +355,19 @@ async function loadJobData() {
   // Populate the page with job data
   populateJobPage(job);
   
-  // Load customer rating from Firestore
-  await loadCustomerRating(job.posterId);
+  // ═══════════════════════════════════════════════════════════════
+  // PARALLEL REQUESTS OPTIMIZATION
+  // ═══════════════════════════════════════════════════════════════
+  // Load customer rating in parallel with other UI setup
+  // Saves 200-300ms by not blocking on rating fetch
+  const ratingPromise = loadCustomerRating(job.posterId);
   
   // Check job status and poster, hide Apply button if needed
   const applyBtn = document.getElementById('jobApplyBtn');
   const currentUser = firebase.auth ? firebase.auth().currentUser : null;
   
-  if (job.status === 'completed' && applyBtn) {
-    console.log('🏁 Job is completed - hiding Apply button');
+  if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
+    console.log(`🏁 Job status is "${job.status}" - hiding Apply button`);
     applyBtn.style.display = 'none';
   } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
     console.log('👤 User is viewing their own job - showing YOUR GIG button');
@@ -264,7 +379,16 @@ async function loadJobData() {
     applyBtn.title = 'This is your own gig';
   } else {
     // Check if user has already applied to this job (only for active jobs by other posters)
-    await checkIfUserAlreadyApplied(jobNumber);
+    // Run in parallel with rating fetch
+    await Promise.all([
+      ratingPromise,
+      checkIfUserAlreadyApplied(jobNumber)
+    ]);
+  }
+  
+  // Ensure rating is loaded even if we didn't enter the else block
+  if (['completed', 'hired', 'accepted'].includes(job.status) || (currentUser && job.posterId === currentUser.uid)) {
+    await ratingPromise;
   }
   
   } catch (unexpectedError) {
@@ -633,6 +757,7 @@ function initializeApplyJob() {
     
     // Prevent Enter key from submitting in textarea/input
     if (messageTextarea) {
+      blockUnsupportedCharsForInput(messageTextarea);
       messageTextarea.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
@@ -1265,6 +1390,457 @@ async function checkIfUserAlreadyApplied(jobId) {
   }
 }
 
+const GIG_DETAIL_AD_ZONE_CONFIG = {
+  enabled: true,
+  zoneId: 'gig_detail_post_customer',
+  rotationMode: 'random',
+  ads: [
+    {
+      id: 'gig-detail-safety-video',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/womensafety.jpg',
+      altText: 'Watch women safety tips while working',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://www.youtube.com/shorts/BVCmz9KnwWk',
+        poster: 'public/images/womensafety.jpg',
+        aspectRatio: '9:16'
+      }
+    },
+    {
+      id: 'gig-detail-sponsored-partner',
+      type: 'sponsored_external',
+      subtype: 'sponsored_campaign',
+      imageSrc: 'public/images/adsponsor.jpg',
+      altText: 'Sponsored partner spotlight',
+      badgeText: 'Sponsored',
+      action: {
+        type: 'navigate',
+        url: 'https://www.RealinterfaceStudios.com'
+      }
+    },
+    {
+      id: 'gig-detail-video-updates',
+      type: 'video_popup',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/updatesbanner.jpg',
+      altText: 'Watch latest platform updates',
+      badgeText: 'Platform Update',
+      action: {
+        type: 'open_video_popup',
+        target: 'https://youtu.be/L2GUEZpNCsQ',
+        poster: 'public/images/updatesbanner.jpg',
+        aspectRatio: '16:9'
+      }
+    },
+    {
+      id: 'gig-detail-offer-verify',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/verify.png',
+      altText: 'Get verified for trust and safety',
+      badgeText: '',
+      action: {
+        type: 'navigate',
+        url: 'profile.html'
+      }
+    },
+    {
+      id: 'gig-detail-offer-share',
+      type: 'site_offer',
+      subtype: 'in_app_offer',
+      imageSrc: 'public/images/sharebanner.jpg',
+      altText: 'Share GisuGo with your network',
+      badgeText: '',
+      action: {
+        type: 'share',
+        title: 'Check out GisuGo',
+        text: 'Browse local gigs and opportunities on GisuGo.',
+        url: 'https://www.Gisugo.com'
+      }
+    }
+  ]
+};
+
+let gigDetailAdVideoEscHandler = null;
+const GIG_DETAIL_AD_RENDER_STATE = {
+  rotationIndex: 0,
+  lastRandomAdId: null,
+  randomBag: [],
+  randomBagSignature: ''
+};
+
+function getGigDetailSlotAd() {
+  if (!GIG_DETAIL_AD_ZONE_CONFIG.enabled) return null;
+  const ads = Array.isArray(GIG_DETAIL_AD_ZONE_CONFIG.ads) ? GIG_DETAIL_AD_ZONE_CONFIG.ads : [];
+  const activeAds = ads.filter(ad => ad && ad.imageSrc);
+  if (activeAds.length === 0) return null;
+
+  const mode = GIG_DETAIL_AD_ZONE_CONFIG.rotationMode || 'sequential';
+  if (mode === 'random') {
+    return getNextRandomGigDetailAd(activeAds);
+  }
+
+  const nextAd = activeAds[GIG_DETAIL_AD_RENDER_STATE.rotationIndex % activeAds.length];
+  GIG_DETAIL_AD_RENDER_STATE.rotationIndex += 1;
+  return nextAd || null;
+}
+
+function getGigDetailAdPoolSignature(activeAds) {
+  if (!Array.isArray(activeAds)) return '';
+  return activeAds.map(ad => (ad && ad.id) ? ad.id : '').join('|');
+}
+
+function shuffleGigDetailAds(values) {
+  const arr = Array.isArray(values) ? [...values] : [];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
+function refillGigDetailAdBag(activeAds) {
+  const ids = activeAds.map(ad => ad && ad.id).filter(Boolean);
+  if (ids.length === 0) {
+    GIG_DETAIL_AD_RENDER_STATE.randomBag = [];
+    return;
+  }
+  const shuffled = shuffleGigDetailAds(ids);
+  if (
+    shuffled.length > 1 &&
+    GIG_DETAIL_AD_RENDER_STATE.lastRandomAdId &&
+    shuffled[0] === GIG_DETAIL_AD_RENDER_STATE.lastRandomAdId
+  ) {
+    const swapIndex = 1 + Math.floor(Math.random() * (shuffled.length - 1));
+    const first = shuffled[0];
+    shuffled[0] = shuffled[swapIndex];
+    shuffled[swapIndex] = first;
+  }
+  GIG_DETAIL_AD_RENDER_STATE.randomBag = shuffled;
+}
+
+function getNextRandomGigDetailAd(activeAds) {
+  const signature = getGigDetailAdPoolSignature(activeAds);
+  if (signature !== GIG_DETAIL_AD_RENDER_STATE.randomBagSignature) {
+    GIG_DETAIL_AD_RENDER_STATE.randomBagSignature = signature;
+    GIG_DETAIL_AD_RENDER_STATE.randomBag = [];
+  }
+  if (!Array.isArray(GIG_DETAIL_AD_RENDER_STATE.randomBag) || GIG_DETAIL_AD_RENDER_STATE.randomBag.length === 0) {
+    refillGigDetailAdBag(activeAds);
+  }
+  if (!Array.isArray(GIG_DETAIL_AD_RENDER_STATE.randomBag) || GIG_DETAIL_AD_RENDER_STATE.randomBag.length === 0) {
+    return activeAds[0] || null;
+  }
+
+  const nextId = GIG_DETAIL_AD_RENDER_STATE.randomBag.shift();
+  const nextAd = activeAds.find(ad => ad && ad.id === nextId);
+  if (!nextAd) {
+    return getNextRandomGigDetailAd(activeAds);
+  }
+  GIG_DETAIL_AD_RENDER_STATE.lastRandomAdId = nextAd.id || null;
+  return nextAd;
+}
+
+function ensureGigDetailAdVideoPopup() {
+  let popup = document.getElementById('gigDetailAdVideoPopup');
+  if (popup) return popup;
+
+  popup = document.createElement('div');
+  popup.id = 'gigDetailAdVideoPopup';
+  popup.className = 'gig-detail-ad-video-popup';
+  popup.innerHTML = `
+    <div class="gig-detail-ad-video-backdrop" data-close="true"></div>
+    <div class="gig-detail-ad-video-dialog" role="dialog" aria-modal="true" aria-label="Video offer">
+      <button type="button" class="gig-detail-ad-video-close" aria-label="Close video offer">×</button>
+      <video class="gig-detail-ad-video-player" controls playsinline preload="metadata"></video>
+      <iframe class="gig-detail-ad-video-iframe" title="Video offer" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  `;
+  document.body.appendChild(popup);
+
+  const closePopup = () => {
+    const player = popup.querySelector('.gig-detail-ad-video-player');
+    const iframe = popup.querySelector('.gig-detail-ad-video-iframe');
+    if (player) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      player.style.display = 'block';
+    }
+    if (iframe) {
+      iframe.removeAttribute('src');
+      iframe.style.display = 'none';
+    }
+    popup.style.removeProperty('--ad-video-aspect');
+    popup.classList.remove('is-visible');
+  };
+
+  const closeButton = popup.querySelector('.gig-detail-ad-video-close');
+  const backdrop = popup.querySelector('.gig-detail-ad-video-backdrop');
+  if (closeButton) closeButton.addEventListener('click', closePopup);
+  if (backdrop) backdrop.addEventListener('click', closePopup);
+  if (!gigDetailAdVideoEscHandler) {
+    gigDetailAdVideoEscHandler = (event) => {
+      if (event.key === 'Escape') closePopup();
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', gigDetailAdVideoEscHandler);
+  }
+
+  return popup;
+}
+
+function isGigDetailAdYouTubeUrl(url) {
+  if (!url) return false;
+  return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function toGigDetailAdYouTubeEmbedUrl(url) {
+  try {
+    const parsed = new URL(url, window.location.origin);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').trim();
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/watch')) {
+      const id = parsed.searchParams.get('v');
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/shorts/')) {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const id = parts[1];
+      if (!id) return '';
+      return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+    }
+
+    if (host.includes('youtube.com') && parsed.pathname.includes('/embed/')) {
+      const separator = parsed.search ? '&' : '?';
+      return `${parsed.toString()}${separator}autoplay=1`;
+    }
+  } catch (_) {
+    // fall through
+  }
+  return url;
+}
+
+function openGigDetailAdModal(action) {
+  if (!action) return;
+  const selector = action.modalSelector || action.modalId;
+  if (!selector) return;
+
+  const modal = selector.startsWith && selector.startsWith('#')
+    ? document.querySelector(selector)
+    : document.getElementById(selector) || document.querySelector(selector);
+
+  if (!modal) {
+    console.warn('⚠️ Gig detail ad modal target not found:', selector);
+    return;
+  }
+
+  modal.classList.add('active');
+  modal.classList.add('show');
+  modal.classList.add('is-visible');
+  modal.classList.add('open');
+  modal.style.display = modal.style.display || 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function normalizeGigDetailAdShareUrl(rawUrl) {
+  if (!rawUrl) return window.location.href;
+  try {
+    return new URL(rawUrl, window.location.origin).toString();
+  } catch (_) {
+    return window.location.href;
+  }
+}
+
+async function openGigDetailAdShare(action) {
+  const shareUrl = normalizeGigDetailAdShareUrl(action && (action.url || action.target || action.shareUrl));
+  const shareData = {
+    title: (action && action.title) || 'GisuGo',
+    text: (action && action.text) || 'Check this out on GisuGo.',
+    url: shareUrl
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData);
+      return;
+    } catch (_) {
+      // Fallback to copy flow when native share is unavailable/cancelled.
+    }
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('Link copied. You can now share it anywhere.');
+      return;
+    } catch (_) {
+      // fall through to prompt fallback
+    }
+  }
+
+  window.prompt('Copy this link to share:', shareUrl);
+}
+
+function handleGigDetailAdAction(event, adConfig) {
+  const action = adConfig && adConfig.action ? adConfig.action : null;
+  if (!action || !action.type) return;
+
+  if (action.type === 'navigate' && action.url) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (action.type === 'open_modal') {
+    openGigDetailAdModal(action);
+    return;
+  }
+
+  if (action.type === 'open_video_popup') {
+    const popup = ensureGigDetailAdVideoPopup();
+    const player = popup ? popup.querySelector('.gig-detail-ad-video-player') : null;
+    const iframe = popup ? popup.querySelector('.gig-detail-ad-video-iframe') : null;
+    if (!player || !iframe) return;
+
+    const sourceUrl = action.youtubeEmbed || action.videoSrc || action.target;
+    if (!sourceUrl) return;
+    const configuredAspect = resolveGigDetailAdAspectRatio(action);
+
+    if (isGigDetailAdYouTubeUrl(sourceUrl)) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+      player.style.display = 'none';
+
+      popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+      iframe.src = toGigDetailAdYouTubeEmbedUrl(sourceUrl);
+      iframe.style.display = 'block';
+      popup.classList.add('is-visible');
+      return;
+    }
+
+    iframe.removeAttribute('src');
+    iframe.style.display = 'none';
+    player.style.display = 'block';
+    popup.style.setProperty('--ad-video-aspect', configuredAspect || '16 / 9');
+    player.onloadedmetadata = () => {
+      if (configuredAspect) return;
+      if (player.videoWidth > 0 && player.videoHeight > 0) {
+        popup.style.setProperty('--ad-video-aspect', `${player.videoWidth} / ${player.videoHeight}`);
+      }
+    };
+    player.src = sourceUrl;
+    if (action.poster) {
+      player.poster = action.poster;
+    } else {
+      player.removeAttribute('poster');
+    }
+
+    popup.classList.add('is-visible');
+    const playAttempt = player.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        // Playback can require another direct tap on some mobile browsers.
+      });
+    }
+    return;
+  }
+
+  if (action.type === 'share') {
+    openGigDetailAdShare(action);
+  }
+}
+
+function normalizeGigDetailAdAspectRatio(value) {
+  if (!value || typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  const pairMatch = trimmed.match(/^(\d+(?:\.\d+)?)\s*[:/]\s*(\d+(?:\.\d+)?)$/);
+  if (pairMatch) {
+    const width = Number(pairMatch[1]);
+    const height = Number(pairMatch[2]);
+    if (width > 0 && height > 0) return `${width} / ${height}`;
+    return '';
+  }
+
+  const decimal = Number(trimmed);
+  if (!Number.isFinite(decimal) || decimal <= 0) return '';
+  return `${decimal} / 1`;
+}
+
+function resolveGigDetailAdAspectRatio(actionConfig) {
+  if (!actionConfig) return '';
+  const raw = actionConfig.aspectRatio || actionConfig.videoAspectRatio || actionConfig.ratio;
+  return normalizeGigDetailAdAspectRatio(raw);
+}
+
+function shouldOpenGigDetailAdInNewTab(adConfig, href) {
+  if (!adConfig || adConfig.type !== 'sponsored_external') return false;
+  if (!href || href === '#') return false;
+  try {
+    const parsed = new URL(href, window.location.origin);
+    return parsed.origin !== window.location.origin;
+  } catch (_) {
+    return /^https?:\/\//i.test(href);
+  }
+}
+
+function createGigDetailAdCard(adConfig) {
+  const adCard = document.createElement('a');
+  const href = (adConfig.action && adConfig.action.type === 'navigate' && adConfig.action.url) ? adConfig.action.url : '#';
+  adCard.className = 'gig-detail-slot-ad-card';
+  adCard.href = href;
+  adCard.setAttribute('data-ad-zone', GIG_DETAIL_AD_ZONE_CONFIG.zoneId);
+  adCard.setAttribute('data-ad-id', adConfig.id || 'gig-detail-ad');
+  adCard.setAttribute('data-ad-type', adConfig.type || 'generic');
+  adCard.setAttribute('aria-label', adConfig.altText || 'Featured platform offer');
+  if (shouldOpenGigDetailAdInNewTab(adConfig, href)) {
+    adCard.target = '_blank';
+    adCard.rel = 'noopener noreferrer';
+  }
+
+  adCard.innerHTML = `
+    <div class="gig-detail-slot-ad-media">
+      <img src="${adConfig.imageSrc}" alt="${adConfig.altText || 'Featured platform offer'}" loading="lazy">
+    </div>
+  `;
+
+  adCard.addEventListener('click', (event) => handleGigDetailAdAction(event, adConfig));
+  return adCard;
+}
+
+function initializeGigDetailAdSlot() {
+  const customerSection = document.getElementById('customerSection');
+  if (!customerSection) return;
+
+  const existingSlot = document.getElementById('gigDetailAdSlot');
+  if (existingSlot) existingSlot.remove();
+
+  const adConfig = getGigDetailSlotAd();
+  if (!adConfig) return;
+
+  const slot = document.createElement('div');
+  slot.id = 'gigDetailAdSlot';
+  slot.className = 'gig-detail-ad-slot';
+  slot.appendChild(createGigDetailAdCard(adConfig));
+
+  customerSection.insertAdjacentElement('afterend', slot);
+}
+
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 Dynamic job page loading...');
@@ -1276,6 +1852,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeContactDropdown();
   initCounterOfferFormatting();
   initializePhotoLightbox();
+  initializeGigDetailAdSlot();
   
   console.log('✅ Dynamic job page initialization completed');
 }); 

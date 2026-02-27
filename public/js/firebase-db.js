@@ -15,6 +15,32 @@
 // JOBS COLLECTION
 // ============================================================================
 
+function isAllowedTextCharacter(char) {
+  if (!char) return true;
+  if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+  return false;
+}
+
+function hasUnsupportedTextChars(value) {
+  return Array.from(String(value || ''))
+    .some((char) => !isAllowedTextCharacter(char));
+}
+
+function validateAllowedTextChars(fields) {
+  for (const field of fields) {
+    if (!field || typeof field.value !== 'string') continue;
+    if (hasUnsupportedTextChars(field.value)) {
+      return {
+        valid: false,
+        message: `${field.label} can only include letters, numbers, emojis, spaces, and basic punctuation.`
+      };
+    }
+  }
+  return { valid: true };
+}
+
 /**
  * Create a new job posting
  * @param {Object} jobData - Job data to create
@@ -22,6 +48,13 @@
  */
 async function createJob(jobData) {
   const db = getFirestore();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Job title', value: jobData?.title || jobData?.jobTitle || '' },
+    { label: 'Job description', value: jobData?.description || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!db) {
     // Offline mode - use localStorage
@@ -479,6 +512,13 @@ function getUserJobListingsOffline(userId, statuses) {
  */
 async function updateJob(jobId, jobData) {
   const db = getFirestore();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Job title', value: jobData?.title || '' },
+    { label: 'Job description', value: jobData?.description || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!db) {
     return updateJobOffline(jobId, jobData);
@@ -834,6 +874,12 @@ function deleteJobOffline(jobId) {
 async function applyForJob(jobId, applicationData) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Application message', value: applicationData?.message || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!currentUser) {
     return { success: false, message: 'You must be logged in to apply' };
@@ -858,6 +904,15 @@ async function applyForJob(jobId, applicationData) {
       return { 
         success: false, 
         message: 'You cannot apply to your own gig' 
+      };
+    }
+    
+    // Block applications to jobs that are already hired/accepted/completed
+    if (['hired', 'accepted', 'completed'].includes(job.status)) {
+      console.warn('⚠️ User attempted to apply to a job that is no longer accepting applications');
+      return {
+        success: false,
+        message: 'This gig is no longer accepting applications.'
       };
     }
     
@@ -943,6 +998,30 @@ async function applyForJob(jobId, applicationData) {
     
     console.log('✅ Application validation check passed');
     
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-PAUSE CHECK: Count total pending applications for this gig
+    // ═══════════════════════════════════════════════════════════════
+    console.log('🔍 Checking total application count for auto-pause logic...');
+    
+    const allApplicationsSnapshot = await db.collection('applications')
+      .where('jobId', '==', jobId)
+      .where('status', '==', 'pending')
+      .get();
+    
+    const totalPendingApplications = allApplicationsSnapshot.size;
+    console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
+    
+    // Block if gig already has 10+ applications (paused)
+    if (totalPendingApplications >= 10) {
+      console.warn('🛑 Gig has reached maximum applications (10) - currently paused');
+      return {
+        success: false,
+        message: 'This gig is currently paused due to high interest. The poster is reviewing applications.'
+      };
+    }
+    
+    console.log('✅ Auto-pause check passed - gig still accepting applications');
+    
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';
     let applicantThumbnail = currentUser.photoURL || '';
@@ -987,6 +1066,73 @@ async function applyForJob(jobId, applicationData) {
     });
     
     console.log('✅ Application submitted:', appRef.id);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // NOTIFICATION SYSTEM: Application received (with auto-pause)
+    // ═══════════════════════════════════════════════════════════════
+    const newTotalApplications = totalPendingApplications + 1;
+    console.log(`📊 New total pending applications: ${newTotalApplications}`);
+    
+    try {
+      // Check if notification already exists for this gig
+      const existingNotifSnapshot = await db.collection('notifications')
+        .where('recipientId', '==', job.posterId)
+        .where('jobId', '==', jobId)
+        .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused'])
+        .get();
+      
+      if (newTotalApplications === 1) {
+        // First application - create new notification
+        await createNotification(job.posterId, {
+          type: 'application_received',
+          jobId: jobId,
+          jobTitle: job.title || 'Your Gig',
+          message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
+          actionRequired: false
+        });
+        console.log('📬 Created first application notification');
+        
+      } else if (newTotalApplications === 5) {
+        // 5th application - update notification to milestone (attention theme)
+        if (existingNotifSnapshot.size > 0) {
+          const notifId = existingNotifSnapshot.docs[0].id;
+          await db.collection('notifications').doc(notifId).update({
+            type: 'application_milestone',
+            message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          console.log('📬 Updated to 5+ milestone notification');
+        }
+        
+      } else if (newTotalApplications === 10) {
+        // 10th application - pause gig and create red alert notification
+        await db.collection('jobs').doc(jobId).update({
+          status: 'paused',
+          pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          pauseReason: 'auto_paused_max_applications'
+        });
+        
+        // Delete old application notifications
+        const deletePromises = existingNotifSnapshot.docs.map(doc => 
+          db.collection('notifications').doc(doc.id).delete()
+        );
+        await Promise.all(deletePromises);
+        
+        // Create red alert notification
+        await createNotification(job.posterId, {
+          type: 'gig_auto_paused',
+          jobId: jobId,
+          jobTitle: job.title || 'Your Gig',
+          message: `🛑 Your gig "${job.title}" has been paused. You've received 10 applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
+          actionRequired: true
+        });
+        console.log('🛑 Paused gig and created auto-pause notification');
+      }
+      
+    } catch (notifError) {
+      console.error('❌ Error creating application notification:', notifError);
+      // Don't fail the application if notification fails
+    }
     
     return {
       success: true,
@@ -1118,25 +1264,53 @@ async function hireWorker(jobId, applicationId) {
       hiredWorkerThumbnail: appData.applicantThumbnail,
       agreedPrice: agreedPrice, // Store the agreed price
       hiredAt: firebase.firestore.FieldValue.serverTimestamp(),
-      applicationCount: 0 // Reset to 0 since all applications are now processed
+      applicationCount: 0 // Visually zeroed while waiting; restored if worker rejects
     });
     
-    // Update application status
+    // Update application status of the chosen applicant to 'accepted' (offer extended)
     await db.collection('applications').doc(applicationId).update({
       status: 'accepted'
     });
     
-    // Reject other applications
-    const otherApps = await db.collection('applications')
-      .where('jobId', '==', jobId)
-      .where('status', '==', 'pending')
-      .get();
+    // DO NOT reject other applications yet - keep them pending.
+    // They will only be rejected after the hired worker confirms acceptance.
+    // If the worker rejects the offer, other applicants remain available.
+    console.log('📋 Other applications kept pending until worker accepts offer');
     
-    const batch = db.batch();
-    otherApps.docs.forEach(doc => {
-      batch.update(doc.ref, { status: 'rejected' });
-    });
-    await batch.commit();
+    console.log('🔔 About to create offer notification for worker:', appData.applicantId);
+    
+    // Create notification for worker about the gig offer (delete old ones first to prevent duplicates)
+    try {
+      if (typeof createNotification === 'function') {
+        // Delete ALL existing offer_sent notifications for this worker (any job) to avoid stale ones
+        const existingNotifs = await db.collection('notifications')
+          .where('recipientId', '==', appData.applicantId)
+          .where('jobId', '==', jobId)
+          .where('type', '==', 'offer_sent')
+          .get();
+        
+        if (!existingNotifs.empty) {
+          const deletePromises = existingNotifs.docs.map(doc => doc.ref.delete());
+          await Promise.all(deletePromises);
+          console.log(`🗑️ Deleted ${existingNotifs.size} old offer notification(s) for this job`);
+        }
+        
+        // Create fresh notification
+        const result = await createNotification(appData.applicantId, {
+          type: 'offer_sent',
+          jobId: jobId,
+          jobTitle: jobData.title || 'Gig',
+          message: `You've been offered the gig "${jobData.title}"! Check Gigs Manager > Offered tab to accept or decline.`,
+          actionRequired: true
+        });
+        console.log('✅ Offer notification result:', result);
+      } else {
+        console.error('❌ createNotification function not found');
+      }
+    } catch (notifError) {
+      console.error('❌ Error creating offer notification:', notifError);
+      // Don't fail the hiring if notification fails
+    }
     
     console.log('✅ Worker hired successfully with agreed price:', agreedPrice);
     return { success: true, message: 'Worker hired successfully!' };
@@ -1449,6 +1623,12 @@ function getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, current
 async function sendMessage(threadId, content) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Message', value: content || '' }
+  ]);
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
   
   if (!currentUser) {
     return { success: false, message: 'You must be logged in to send messages' };
@@ -1738,6 +1918,140 @@ async function markNotificationRead(notificationId) {
 }
 
 // ============================================================================
+// REAL-TIME LISTENERS
+// ============================================================================
+
+/**
+ * Subscribe to user's notifications with real-time updates
+ * @param {Object} currentUser - Firebase auth user object
+ * @param {Function} callback - Function to call with updated notifications
+ * @returns {Function} - Unsubscribe function
+ */
+function subscribeToUserNotifications(currentUser, callback) {
+  const db = getFirestore();
+  
+  if (!db || !currentUser) {
+    console.warn('⚠️ Firebase not available or user not logged in for notifications listener');
+    return null;
+  }
+  
+  console.log('👂 Starting real-time listener for notifications');
+  
+  try {
+    const unsubscribe = db.collection('notifications')
+      .where('recipientId', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .onSnapshot(
+        (snapshot) => {
+          const notifications = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log(`🔔 Notifications updated: ${notifications.length} items`);
+          callback(notifications);
+        },
+        (error) => {
+          console.error('❌ Notifications listener error:', error);
+          callback([]);
+        }
+      );
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up notifications listener:', error);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to user's chat threads with real-time updates
+ * @param {Object} currentUser - Firebase auth user object
+ * @param {Function} callback - Function to call with updated threads
+ * @returns {Function} - Unsubscribe function
+ */
+function subscribeToUserThreads(currentUser, callback) {
+  const db = getFirestore();
+  
+  if (!db || !currentUser) {
+    console.warn('⚠️ Firebase not available or user not logged in for threads listener');
+    return null;
+  }
+  
+  console.log('👂 Starting real-time listener for chat threads');
+  
+  try {
+    const unsubscribe = db.collection('chat_threads')
+      .where('participantIds', 'array-contains', currentUser.uid)
+      .where('isActive', '==', true)
+      .orderBy('lastMessageTime', 'desc')
+      .limit(50)
+      .onSnapshot(
+        (snapshot) => {
+          const threads = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log(`💬 Threads updated: ${threads.length} items`);
+          callback(threads);
+        },
+        (error) => {
+          console.error('❌ Threads listener error:', error);
+          callback([]);
+        }
+      );
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up threads listener:', error);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to messages in a specific thread with real-time updates
+ * @param {string} threadId - Thread document ID
+ * @param {Function} callback - Function to call with updated messages
+ * @returns {Function} - Unsubscribe function
+ */
+function subscribeToThreadMessages(threadId, callback) {
+  const db = getFirestore();
+  
+  if (!db) {
+    console.warn('⚠️ Firebase not available for messages listener');
+    return null;
+  }
+  
+  console.log(`👂 Starting real-time listener for thread: ${threadId}`);
+  
+  try {
+    const unsubscribe = db.collection('chat_messages')
+      .where('threadId', '==', threadId)
+      .orderBy('timestamp', 'asc')
+      .limit(100)
+      .onSnapshot(
+        (snapshot) => {
+          const messages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          console.log(`📨 Messages updated in thread ${threadId}: ${messages.length} items`);
+          callback(messages);
+        },
+        (error) => {
+          console.error(`❌ Messages listener error for thread ${threadId}:`, error);
+          callback([]);
+        }
+      );
+    
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up messages listener:', error);
+    return null;
+  }
+}
+
+// ============================================================================
 // ADMIN ANALYTICS
 // ============================================================================
 
@@ -1878,6 +2192,11 @@ window.createNotification = createNotification;
 window.getUserNotifications = getUserNotifications;
 window.markNotificationRead = markNotificationRead;
 
+// Real-time Listeners
+window.subscribeToUserNotifications = subscribeToUserNotifications;
+window.subscribeToUserThreads = subscribeToUserThreads;
+window.subscribeToThreadMessages = subscribeToThreadMessages;
+
 // Admin
 window.getAdminAnalytics = getAdminAnalytics;
 
@@ -1935,7 +2254,7 @@ async function sendOfferRejectedNotification(customerId, customerName, jobId, jo
       type: 'offer_rejected',
       jobId: jobId,
       jobTitle: jobTitle,
-      message: `${workerName} has rejected your job offer for "${jobTitle}". You can now consider other applicants.`,
+      message: `${workerName} has rejected your job offer for "${jobTitle}". The job is now available for applications.`,
       actionRequired: false,
       // Additional data for future use
       workerName: workerName

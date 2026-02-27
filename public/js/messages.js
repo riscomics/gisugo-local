@@ -146,6 +146,13 @@ const CLEANUP_REGISTRY = {
     cleanupFunctions: new Set() // Track custom cleanup functions
 };
 
+// Global registry for Firebase real-time listeners
+const ACTIVE_LISTENERS = {
+    notifications: null,
+    threads: null,
+    activeThreadMessages: null
+};
+
 // MEMORY LEAK FIX: Enhanced cleanup utility
 function registerCleanup(type, key, cleanupFn) {
     if (type === 'function') {
@@ -161,6 +168,23 @@ function registerCleanup(type, key, cleanupFn) {
 // MEMORY LEAK FIX: Execute all registered cleanup functions
 function executeAllCleanups() {
     console.log('🧹 EXECUTING COMPREHENSIVE CLEANUP...');
+    
+    // Clean up Firebase real-time listeners
+    if (ACTIVE_LISTENERS.notifications) {
+        console.log('🧹 Cleaning up notifications listener');
+        ACTIVE_LISTENERS.notifications();
+        ACTIVE_LISTENERS.notifications = null;
+    }
+    if (ACTIVE_LISTENERS.threads) {
+        console.log('🧹 Cleaning up threads listener');
+        ACTIVE_LISTENERS.threads();
+        ACTIVE_LISTENERS.threads = null;
+    }
+    if (ACTIVE_LISTENERS.activeThreadMessages) {
+        console.log('🧹 Cleaning up active thread messages listener');
+        ACTIVE_LISTENERS.activeThreadMessages();
+        ACTIVE_LISTENERS.activeThreadMessages = null;
+    }
     
     // Clean up document listeners
     CLEANUP_REGISTRY.documentListeners.forEach((listener, key) => {
@@ -245,6 +269,112 @@ function clearTrackedInterval(intervalId) {
     CLEANUP_REGISTRY.intervals.delete(intervalId);
 }
 
+// ===== INPUT SECURITY GUARDRAILS (MESSAGES) =====
+function isAllowedTextCharacter(char) {
+    if (!char) return true;
+    if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+    if (/[.,!?'"()\/-]/.test(char)) return true;
+    if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+    return false;
+}
+
+function sanitizeTextInput(value) {
+    return Array.from(String(value || ''))
+        .filter(isAllowedTextCharacter)
+        .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+    return Array.from(String(value || ''))
+        .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+    let hint = document.getElementById('messages-input-guide');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'messages-input-guide';
+        hint.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(88vw, 360px);
+            padding: 8px;
+            border-radius: 16px;
+            background: repeating-linear-gradient(135deg, #facc15 0 10px, #111827 10px 20px);
+            color: #fee2e2;
+            text-align: center;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+            z-index: 11000;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            overflow: hidden;
+        `;
+        document.body.appendChild(hint);
+    }
+
+    hint.innerHTML = `
+        <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+            <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+            <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+            <div style="font-size:14px; font-weight:600; line-height:1.38;">${message}</div>
+        </div>
+    `;
+    hint.style.opacity = '1';
+    hint.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(window.__messagesInputGuideTimer);
+    window.__messagesInputGuideTimer = setTimeout(() => {
+        hint.style.opacity = '0';
+        hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+    }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+    if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+    inputEl.dataset.markupCharsBlocked = 'true';
+
+    const showGuide = () => {
+        const now = Date.now();
+        const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+        if (now - lastShownAt < 1500) return;
+        inputEl.dataset.inputGuideShownAt = String(now);
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    };
+
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+            e.preventDefault();
+            showGuide();
+        }
+    });
+
+    inputEl.addEventListener('paste', function(e) {
+        const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+        if (!hasUnsupportedTextChars(pastedText)) return;
+        e.preventDefault();
+        showGuide();
+        const cleaned = sanitizeTextInput(pastedText);
+        const start = inputEl.selectionStart ?? inputEl.value.length;
+        const end = inputEl.selectionEnd ?? inputEl.value.length;
+        inputEl.setRangeText(cleaned, start, end, 'end');
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    inputEl.addEventListener('input', function() {
+        const sanitized = sanitizeTextInput(inputEl.value);
+        if (sanitized !== inputEl.value) {
+            inputEl.value = sanitized;
+            showGuide();
+        }
+    });
+}
+
+function isAllowedImageFile(file) {
+    return !!(file && typeof file.type === 'string' && file.type.toLowerCase().startsWith('image/'));
+}
+
 // Role-specific tab initialization functions
 async function initializeWorkerAlertsTab() {
     console.log('📋 Initializing worker alerts tab');
@@ -312,51 +442,205 @@ async function initializeCustomerMessagesTab() {
 }
 
 // Load segregated notifications based on role
-function loadWorkerNotifications() {
+async function loadWorkerNotifications() {
     const container = document.querySelector('#worker-alerts-content .notifications-container');
-    if (container) {
-        // Filter notifications for worker role
+    if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    
+    // Check if Firebase available
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
+        ? APP_CONFIG.useFirebaseData() 
+        : true;
+    
+    if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
+        // Fallback to mock data
+        console.log('🎮 Dev Mode: Loading mock worker notifications');
         const workerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
             notif.notificationType === 'interview_request'
         );
-        
-        const content = workerNotifications.map(notification => generateNotificationHTML(notification)).join('');
-        container.innerHTML = content;
-        
-        // Initialize event handlers
+        container.innerHTML = workerNotifications.map(generateNotificationHTML).join('');
         initializeNotifications();
         
         // Update count
         const countElement = document.querySelector('#workerAlertsTab .notification-count');
         if (countElement) {
-            countElement.textContent = workerNotifications.length;
+            countElement.textContent = workerNotifications.filter(n => !n.read).length;
+        }
+        return;
+    }
+    
+    try {
+        // Wait for Firebase auth state to be ready
+        const currentUser = await new Promise((resolve) => {
+            const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+        
+        if (!currentUser) {
+            // Not logged in - show empty state with login prompt
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            return;
         }
         
-        console.log('Worker notifications loaded:', workerNotifications.length);
+        console.log('✅ Worker alerts: User authenticated as', currentUser.uid);
+        
+        // Clean up existing listener
+        if (ACTIVE_LISTENERS.notifications) {
+            ACTIVE_LISTENERS.notifications();
+            ACTIVE_LISTENERS.notifications = null;
+        }
+        
+        // Subscribe to real-time notifications
+        ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
+            console.log('🔔 Worker alerts updated:', notifications.length);
+            
+            // Filter for worker role - INCLUDE only worker-specific notifications
+            // Worker notifications: offer_sent, interview_request, job_completed, feedback_received, contract_voided (relisted)
+            const workerNotifications = notifications.filter(notif => {
+                const type = notif.type || notif.notificationType || '';
+                const workerTypes = ['offer_sent', 'interview_request', 'job_completed', 'feedback_received', 'contract_voided'];
+                return workerTypes.includes(type);
+            });
+            
+            if (workerNotifications.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">🎯</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                        <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                            Interview requests will appear here when<br>customers want to chat about your applications.
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Deduplicate notifications by ID before rendering
+                const uniqueNotifications = Array.from(
+                    new Map(workerNotifications.map(n => [n.notificationId || n.id, n])).values()
+                );
+                container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
+                initializeNotifications();
+            }
+            
+            // Update badge count (unread only)
+            const unreadCount = workerNotifications.filter(n => !n.read).length;
+            const countElement = document.querySelector('#workerAlertsTab .notification-count');
+            if (countElement) {
+                countElement.textContent = unreadCount;
+                countElement.style.display = unreadCount > 0 ? 'block' : 'none';
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error loading worker alerts:', error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
     }
 }
 
-function loadCustomerNotifications() {
+async function loadCustomerNotifications() {
     const container = document.querySelector('#customer-alerts-content .notifications-container');
-    if (container) {
-        // Filter notifications for customer role
+    if (!container) return;
+    
+    // Show loading state
+    container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    
+    // Check if Firebase available
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
+        ? APP_CONFIG.useFirebaseData() 
+        : true;
+    
+    if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
+        // Fallback to mock data
+        console.log('🎮 Dev Mode: Loading mock customer notifications');
         const customerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
             notif.notificationType !== 'interview_request'
         );
-        
-        const content = customerNotifications.map(notification => generateNotificationHTML(notification)).join('');
-        container.innerHTML = content;
-        
-        // Initialize event handlers
+        container.innerHTML = customerNotifications.map(generateNotificationHTML).join('');
         initializeNotifications();
         
         // Update count
         const countElement = document.querySelector('#customerAlertsTab .notification-count');
         if (countElement) {
-            countElement.textContent = customerNotifications.length;
+            countElement.textContent = customerNotifications.filter(n => !n.read).length;
+        }
+        return;
+    }
+    
+    try {
+        // Wait for Firebase auth state to be ready
+        const currentUser = await new Promise((resolve) => {
+            const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                unsubscribe();
+                resolve(user);
+            });
+        });
+        
+        if (!currentUser) {
+            // Not logged in - show empty state with login prompt
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            return;
         }
         
-        console.log('Customer notifications loaded:', customerNotifications.length);
+        console.log('✅ Customer alerts: User authenticated as', currentUser.uid);
+        
+        // Helper function to update customer UI
+        const updateCustomerUI = (notifications) => {
+            // Filter for customer role - ONLY customer-specific notifications
+            // Customer notifications: offer_accepted, application_received, application_milestone, gig_auto_paused, offer_rejected, worker_resigned, worker_feedback_received
+            const customerNotifications = notifications.filter(notif => {
+                const type = notif.type || notif.notificationType || '';
+                const customerTypes = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
+                return customerTypes.includes(type);
+            });
+            
+            if (customerNotifications.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">✨</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                        <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                            Alerts about applications, hires, and completions<br>will show up here when they arrive.
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Deduplicate notifications by ID before rendering
+                const uniqueNotifications = Array.from(
+                    new Map(customerNotifications.map(n => [n.notificationId || n.id, n])).values()
+                );
+                container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
+                initializeNotifications();
+            }
+            
+            // Update badge count (unread only)
+            const unreadCount = customerNotifications.filter(n => !n.read).length;
+            const countElement = document.querySelector('#customerAlertsTab .notification-count');
+            if (countElement) {
+                countElement.textContent = unreadCount;
+                countElement.style.display = unreadCount > 0 ? 'block' : 'none';
+            }
+        };
+        
+        // If listener already active (from Worker tab), get current notifications and update UI
+        if (ACTIVE_LISTENERS.notifications) {
+            console.log('🔔 Reusing existing notifications listener for customer view');
+            // We need to manually fetch current state since listener is already active
+            const notifications = await getUserNotifications(false);
+            updateCustomerUI(notifications);
+        } else {
+            // Subscribe to real-time notifications
+            ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
+                console.log('🔔 Customer alerts updated:', notifications.length);
+                updateCustomerUI(notifications);
+            });
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading customer alerts:', error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
     }
 }
 
@@ -1502,7 +1786,7 @@ function updateNotificationCount(count) {
 } 
 
 // Mark notification as read functionality
-function markNotificationAsRead(notificationItem) {
+async function markNotificationAsRead(notificationItem) {
     if (!notificationItem.classList.contains('read')) {
         notificationItem.classList.add('read');
         
@@ -1515,11 +1799,23 @@ function markNotificationAsRead(notificationItem) {
             notificationItem.appendChild(readIndicator);
         }
         
+        // Update Firebase
+        const notificationId = notificationItem.dataset.notificationId;
+        if (notificationId && typeof markNotificationRead === 'function') {
+            try {
+                await markNotificationRead(notificationId);
+                // Update data attribute to reflect persisted state
+                notificationItem.dataset.read = 'true';
+                console.log('✅ Notification marked as read in Firebase:', notificationId);
+            } catch (error) {
+                console.error('❌ Error marking notification as read:', error);
+            }
+        }
+        
         // Update the notifications count
         updateNotificationsCount();
         
-        // Here you would send read status to backend
-        const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
+        const notificationTitle = notificationItem.querySelector('.notification-title')?.textContent || 'Unknown';
         console.log('Notification marked as read:', notificationTitle);
     }
 }
@@ -2215,26 +2511,32 @@ const MOCK_NOTIFICATIONS = [
 
 // Generate Notification HTML
 function generateNotificationHTML(notification) {
+    // Transform Firebase notification into display format
+    const transformed = transformFirebaseNotification(notification);
+    
+    // Use the actual read status from Firebase
+    const isRead = transformed.read === true || transformed.read === 'true';
+    
     const dataAttributes = [
-        `data-notification-id="${notification.id}"`,
-        `data-notification-type="${notification.notificationType}"`,
-        `data-read="${notification.read}"`,
-        `data-timestamp="${notification.timestamp}"`
+        `data-notification-id="${transformed.id}"`,
+        `data-notification-type="${transformed.notificationType}"`,
+        `data-read="${isRead}"`,
+        `data-timestamp="${transformed.timestamp}"`
     ];
 
     // Add conditional data attributes - check both top-level and relatedDocuments
-    const jobId = notification.jobId || notification.relatedDocuments?.jobId;
+    const jobId = transformed.jobId || transformed.relatedDocuments?.jobId;
     // REMOVED: applicationId - applications moved to jobs.html
-    const threadId = notification.threadId || notification.relatedDocuments?.threadId;
+    const threadId = transformed.threadId || transformed.relatedDocuments?.threadId;
     
     if (jobId) dataAttributes.push(`data-job-id="${jobId}"`);
-    if (notification.jobTitle) dataAttributes.push(`data-job-title="${notification.jobTitle}"`);
+    if (transformed.jobTitle) dataAttributes.push(`data-job-title="${transformed.jobTitle}"`);
     // REMOVED: applicationId data attribute - applications moved to jobs.html
     if (threadId) dataAttributes.push(`data-thread-id="${threadId}"`);
-    if (notification.userId) dataAttributes.push(`data-user-id="${notification.userId}"`);
-    if (notification.userName) dataAttributes.push(`data-user-name="${notification.userName}"`);
+    if (transformed.userId) dataAttributes.push(`data-user-id="${transformed.userId}"`);
+    if (transformed.userName) dataAttributes.push(`data-user-name="${transformed.userName}"`);
 
-    const actionsHTML = notification.actions.map(action => {
+    const actionsHTML = (transformed.actions || []).map(action => {
         const actionDataAttrs = [`data-action="${action.action}"`];
         // Use actionData for button-specific attributes
         if (action.actionData?.jobId) actionDataAttrs.push(`data-job-id="${action.actionData.jobId}"`);
@@ -2244,20 +2546,154 @@ function generateNotificationHTML(notification) {
         return `<button class="notification-action-btn ${action.type}" ${actionDataAttrs.join(' ')}>${action.text}</button>`;
     }).join('');
 
+    // Add theme class based on notification type
+    let themeClass = '';
+    const notifType = transformed.type || '';
+    if (notifType === 'application_milestone') {
+        themeClass = 'theme-attention'; // Yellow/orange for 5+ applications
+    } else if (notifType === 'gig_auto_paused') {
+        themeClass = 'theme-alert'; // Red for auto-paused gigs
+    }
+    
+    // Add 'read' class if notification has been read
+    const readClass = isRead ? 'read' : '';
+
     return `
-        <div class="notification-item ${notification.type}" ${dataAttributes.join(' ')}>
-            <div class="notification-icon ${notification.iconClass}">${notification.icon}</div>
+        <div class="notification-item ${transformed.type} ${themeClass} ${readClass}" ${dataAttributes.join(' ')}>
+            <div class="notification-icon ${transformed.iconClass}">${transformed.icon}</div>
             <div class="notification-content">
-                <div class="notification-title">${notification.title}</div>
-                <div class="notification-message">${notification.message}</div>
+                <div class="notification-title">${transformed.title}</div>
+                <div class="notification-message">${transformed.message}</div>
                 <div class="notification-meta">
-                    <span class="notification-time">${notification.timeDisplay}</span>
-                    <span class="notification-date">${notification.dateDisplay}</span>
+                    <span class="notification-time">${transformed.timeDisplay}</span>
+                    <span class="notification-date">${transformed.dateDisplay}</span>
                 </div>
                 ${actionsHTML ? `<div class="notification-actions">${actionsHTML}</div>` : ''}
             </div>
+            ${isRead ? '<div class="read-indicator">✓ Read</div>' : ''}
         </div>
     `;
+}
+
+// Transform Firebase notification into display format with icon, title, timestamps
+function transformFirebaseNotification(notif) {
+    const type = notif.type || '';
+    let icon = '🔔';
+    let iconClass = 'system-icon';
+    let title = 'Notification';
+    
+    // Map notification types to icons and titles
+    switch(type) {
+        case 'offer_sent':
+            icon = '💼';
+            iconClass = 'job-icon';
+            title = 'Gig Offer Received';
+            break;
+        case 'offer_accepted':
+            icon = '🎉';
+            iconClass = 'success-icon';
+            title = 'Offer Accepted';
+            break;
+        case 'interview_request':
+            icon = '💬';
+            iconClass = 'message-icon';
+            title = 'Interview Request';
+            break;
+        case 'job_completed':
+            icon = '✅';
+            iconClass = 'success-icon';
+            title = 'Gig Completed';
+            break;
+        case 'feedback_received':
+            icon = '⭐';
+            iconClass = 'rating-icon';
+            title = 'Feedback Received';
+            break;
+        case 'contract_voided':
+            icon = '🔄';
+            iconClass = 'warning-icon';
+            title = 'Contract Voided - Gig Relisted';
+            break;
+        case 'application_received':
+            icon = '📝';
+            iconClass = 'application-icon';
+            title = 'New Application';
+            break;
+        case 'application_milestone':
+            icon = '📊';
+            iconClass = 'milestone-icon';
+            title = 'Applications Update';
+            break;
+        case 'gig_auto_paused':
+            icon = '🛑';
+            iconClass = 'alert-icon';
+            title = 'Gig Auto-Paused';
+            break;
+        case 'offer_rejected':
+            icon = '❌';
+            iconClass = 'reject-icon';
+            title = 'Offer Declined';
+            break;
+        case 'worker_resigned':
+            icon = '🚪';
+            iconClass = 'resign-icon';
+            title = 'Worker Resigned';
+            break;
+        case 'worker_feedback_received':
+            icon = '⭐';
+            iconClass = 'rating-icon';
+            title = 'Worker Feedback Received';
+            break;
+    }
+    
+    // Format timestamp using user's local timezone
+    let timeDisplay = 'Just now';
+    let dateDisplay = 'Today';
+    
+    if (notif.createdAt) {
+        // Convert Firestore timestamp to local Date object
+        const createdDate = notif.createdAt.toDate ? notif.createdAt.toDate() : new Date(notif.createdAt);
+        const now = new Date();
+        
+        // Calculate difference in user's local time
+        const diffMs = now - createdDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) {
+            timeDisplay = 'Just now';
+        } else if (diffMins < 60) {
+            timeDisplay = `${diffMins}m ago`;
+        } else if (diffHours < 24) {
+            timeDisplay = `${diffHours}h ago`;
+        } else if (diffDays === 1) {
+            timeDisplay = 'Yesterday';
+        } else if (diffDays < 7) {
+            timeDisplay = `${diffDays} days ago`;
+        } else {
+            // Use user's locale for longer periods
+            timeDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+        
+        // Format date in user's local timezone
+        dateDisplay = createdDate.toLocaleDateString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric'
+        });
+    }
+    
+    return {
+        ...notif,
+        icon,
+        iconClass,
+        title,
+        timeDisplay,
+        dateDisplay,
+        notificationType: type,
+        timestamp: notif.createdAt
+    };
 }
 
 // Generate All Notifications Content
@@ -3454,11 +3890,17 @@ function initializeContactMessageOverlay() {
     
     // Send button
     if (sendBtn && messageInput) {
+        blockUnsupportedCharsForInput(messageInput);
         sendBtn.addEventListener('click', function() {
             const message = messageInput.value.trim();
             const userId = messageInput.getAttribute('data-user-id');
             const userName = messageInput.getAttribute('data-user-name');
             const applicationId = messageInput.getAttribute('data-application-id');
+
+            if (hasUnsupportedTextChars(message)) {
+                showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+                return;
+            }
             
             if (message && userId && userName) {
                 // Here you would send the message to backend
@@ -5697,6 +6139,8 @@ function initializeChatInputFunctionality(modalOverlay) {
         console.error('❌ Chat input elements not found');
         return;
     }
+
+    blockUnsupportedCharsForInput(inputField);
     
     // Track listeners for cleanup
     const listeners = [];
@@ -5753,6 +6197,12 @@ function initializeChatInputFunctionality(modalOverlay) {
     const sendMessage = () => {
         const message = inputField.value.trim();
         if (message) {
+            if (hasUnsupportedTextChars(message)) {
+                showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+                return;
+            }
+
+            const safeMessage = sanitizeTextInput(message);
             console.log('📤 Sending message:', message);
             
             // Get thread data from modal
@@ -5764,7 +6214,7 @@ function initializeChatInputFunctionality(modalOverlay) {
                 threadId: threadId,
                 senderId: getCurrentUserId(),
                 receiverId: participantId,
-                content: message,
+                content: safeMessage,
                 timestamp: new Date().toISOString(),
                 type: 'text'
             };
@@ -5784,7 +6234,7 @@ function initializeChatInputFunctionality(modalOverlay) {
                     </div>
                 </div>
                 <div class="message-bubble outgoing">
-                    ${message}
+                    ${safeMessage}
                 </div>
             `;
             
@@ -5875,7 +6325,7 @@ function initializeChatInputFunctionality(modalOverlay) {
             }
             
             // Update the original thread's last message
-            updateThreadLastMessage(threadId, message);
+            updateThreadLastMessage(threadId, safeMessage);
         }
     };
     
@@ -5899,8 +6349,10 @@ function initializeChatInputFunctionality(modalOverlay) {
 
     photoInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
+        if (isAllowedImageFile(file)) {
             handlePhotoUpload(file, modalOverlay);
+        } else if (file) {
+            showToast('Only image files are allowed for attachments.');
         }
         // Reset input so same file can be selected again
         photoInput.value = '';
@@ -7246,7 +7698,7 @@ window.forceResetAvatarOverlay = function() {
  * @param {Function} callback - Callback with processed image data
  */
 function processChatImage(file, callback, errorCallback) {
-    if (!file || !file.type.startsWith('image/')) {
+    if (!isAllowedImageFile(file)) {
         console.error('❌ Invalid file type for chat image');
         if (errorCallback) errorCallback('Invalid file type');
         return;
@@ -9707,6 +10159,11 @@ function sendReply() {
         showToast('Please enter a reply message');
         return;
     }
+
+    if (hasUnsupportedTextChars(replyText)) {
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+        return;
+    }
     
     // Use customer data for unified messages
     const actualRole = currentReplyRole === 'unified' ? 'customer' : currentReplyRole;
@@ -9946,6 +10403,7 @@ function initializeReplyModal() {
     const closeBtn = document.getElementById('closeReplyModal');
     const cancelBtn = document.getElementById('cancelReplyBtn');
     const sendBtn = document.getElementById('sendFloatingReplyBtn');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
     const photoInput = document.getElementById('floatingReplyAttachment');
     
     if (closeBtn) {
@@ -9959,6 +10417,8 @@ function initializeReplyModal() {
     if (sendBtn) {
         sendBtn.addEventListener('click', sendReply);
     }
+
+    blockUnsupportedCharsForInput(replyTextarea);
     
     // Initialize photo upload functionality
     if (photoInput) {
@@ -9985,7 +10445,7 @@ function handleReplyPhotoUpload(event) {
     if (!file) return;
     
     // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!isAllowedImageFile(file)) {
         showToast('Please select a valid image file');
         return;
     }

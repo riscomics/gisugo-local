@@ -221,7 +221,14 @@ body::-webkit-scrollbar {
   z-index: var(--header-borderline-z-index);
   box-shadow: 0 2px 12px rgba(14, 165, 233, 0.4),
               0 0 20px rgba(14, 165, 233, 0.25);
-  animation: borderPulse 2s ease-in-out infinite;
+  /* Animation disabled on mobile to prevent Firefox flickering */
+}
+
+/* Enable animation only on desktop (min-width: 769px) */
+@media (min-width: 769px) {
+  .uniform-header-borderline {
+    animation: borderPulse 2s ease-in-out infinite;
+  }
 }
 
 @keyframes borderPulse {
@@ -265,97 +272,59 @@ body::-webkit-scrollbar {
   }
 }
 
-/* ===== UNIVERSAL MENU OVERLAY SYSTEM - jobcat-menu style ===== */
+/* ===== UNIVERSAL MENU OVERLAY SYSTEM - Right-panel card-grid ===== */
+
+/* Full-screen dark backdrop — clicking outside the popup closes the menu */
 .uniform-menu-overlay {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  z-index: 999999;
+  display: none;
+  pointer-events: none;
   background: transparent;
-  z-index: var(--header-menu-z-index);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  box-sizing: border-box;
-  border: none;
-  transform: translateX(100%);
-  transition: transform 0.35s cubic-bezier(.77,0,.18,1);
 }
 
 .uniform-menu-overlay.show {
-  transform: translateX(0);
+  display: block;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.55);
 }
 
+/* Floating card popup — top set by JS to borderline.getBoundingClientRect().bottom */
 .uniform-menu-items {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  justify-content: space-around;
-  align-items: center;
-  height: 100px;
-  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-  border-bottom: 3px solid #10b981;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  position: absolute;
+  top: 80px; /* JS overrides this on every open */
+  right: 10px;
+  width: 290px;
+  max-width: calc(100% - 20px);
+  height: auto;
+  max-height: calc(100vh - 120px);
+  background: linear-gradient(160deg, #1e2533 0%, #151c28 100%);
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  border-radius: 16px;
+  box-shadow:
+    0 20px 70px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(16, 185, 129, 0.3),
+    0 0 40px rgba(16, 185, 129, 0.15);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(6px, 2vw, 10px);
+  padding: clamp(10px, 3vw, 16px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+  backdrop-filter: blur(12px);
+  animation: unifSlideDown 0.4s cubic-bezier(.77,0,.18,1);
 }
 
-.uniform-menu-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  color: #9ca3af;
-  font-size: 18px;
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: 600;
-  width: 90px;
-  cursor: pointer;
-  user-select: none;
-  text-decoration: none;
-  padding: 10px;
-  border-radius: 12px;
-  transition: all 0.2s ease;
+@keyframes unifSlideDown {
+  from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.uniform-menu-item:hover {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  transform: translateY(-2px);
-}
-
-.uniform-menu-item img {
-  width: 40px;
-  height: 40px;
-  margin-bottom: 4px;
-  object-fit: contain;
-  filter: brightness(0.9);
-  transition: all 0.2s ease;
-}
-
-.uniform-menu-item:hover img {
-  filter: brightness(1.2) drop-shadow(0 2px 8px rgba(16, 185, 129, 0.4));
-  transform: scale(1.1);
-}
-
-/* Emoji icon styling for menu items */
-.uniform-menu-item .menu-emoji {
-  font-size: 32px;
-  line-height: 1;
-  margin-bottom: 4px;
-  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.3));
-  transition: all 0.2s ease;
-}
-
-.uniform-menu-item:hover .menu-emoji {
-  transform: scale(1.15);
-  filter: drop-shadow(0 4px 12px rgba(16, 185, 129, 0.6));
-}
-
-/* Make profile emoji (👤) lighter/brighter */
-.uniform-menu-item.profile-menu-item .menu-emoji {
-  filter: drop-shadow(0 2px 8px rgba(16, 185, 129, 0.3)) brightness(1.8) contrast(0.9);
-}
+/* Legacy selector */
+.uniform-menu-item { display: none; }
 
 /* ===== BASIC BODY STYLES ONLY ===== */
 /* Keep only essential body styles - NO RIGID PADDING */
@@ -396,24 +365,11 @@ html body:has(.uniform-header) {
     height: 20px !important;
   }
 
-  /* Ultra Small Menu Adjustments */
+  /* Match homepage menu width behavior */
   .uniform-menu-items {
-    height: 68px;
-  }
-  
-  .uniform-menu-item {
-    font-size: 11px;
-    width: 42px;
-    padding: 5px;
-  }
-  
-  .uniform-menu-item .menu-emoji {
-    font-size: 22px;
-  }
-  
-  .uniform-menu-item img {
-    width: clamp(24px, 6vw, 28px);
-    height: clamp(24px, 6vw, 28px);
+    width: 160px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
 }
 
@@ -440,24 +396,11 @@ html body:has(.uniform-header) {
     height: 22px !important;
   }
 
-  /* Small Mobile Menu Adjustments */
+  /* Match homepage menu width behavior */
   .uniform-menu-items {
-    height: 68px;
-  }
-  
-  .uniform-menu-item {
-    font-size: 12px;
-    width: 45px;
-    padding: 6px;
-  }
-  
-  .uniform-menu-item .menu-emoji {
-    font-size: 24px;
-  }
-  
-  .uniform-menu-item img {
-    width: clamp(26px, 7vw, 30px);
-    height: clamp(26px, 7vw, 30px);
+    width: 200px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
 }
 
@@ -498,24 +441,15 @@ html body:has(.uniform-header) {
     height: 26px !important;
   }
 
-  /* Mobile Menu Adjustments */
+  /* Match homepage menu width behavior */
+  .uniform-menu-items { width: 220px; max-width: calc(100% - 20px); right: 10px; }
+}
+
+@media (max-width: 375px) {
   .uniform-menu-items {
-    height: 68px;
-  }
-  
-  .uniform-menu-item {
-    font-size: 12px;
-    width: 45px;
-    padding: 6px;
-  }
-  
-  .uniform-menu-item .menu-emoji {
-    font-size: 24px;
-  }
-  
-  .uniform-menu-item img {
-    width: clamp(28px, 6vw, 32px);
-    height: clamp(28px, 6vw, 32px);
+    width: 180px;
+    max-width: calc(100% - 20px);
+    right: 10px;
   }
 }
 
@@ -526,11 +460,6 @@ html body:has(.uniform-header) {
     --header-title-font-size: 2.5rem !important; /* Increased size for tablet */
     --header-borderline-height: 6px !important;
     --header-borderline-position: var(--header-height); /* Directly adjacent to header */
-  }
-
-  /* Tablet Menu Adjustments */
-  .uniform-menu-items {
-    height: 100px;
   }
 
   /* NO TOP MARGIN - Header starts at top: 0 to prevent gaps */
@@ -544,11 +473,6 @@ html body:has(.uniform-header) {
     --header-title-font-size: clamp(1.3rem, 4vw, 2.8rem); /* Increased size for desktop */
     --header-borderline-height: 4px !important; /* Thinner for desktop */
     --header-borderline-position: var(--header-height); /* Directly adjacent to header */
-  }
-
-  /* Desktop Menu Adjustments */
-  .uniform-menu-items {
-    height: 100px;
   }
 
   /* NO TOP MARGIN - Header starts at top: 0 to prevent gaps */
