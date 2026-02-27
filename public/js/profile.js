@@ -16,7 +16,7 @@ const accountCloseBtn = document.getElementById('accountCloseBtn');
 function isAllowedTextCharacter(char) {
   if (!char) return true;
   if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
-  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[.,!?'"()\/$&@₱-]/.test(char)) return true;
   if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
   return false;
 }
@@ -3412,8 +3412,9 @@ async function waitForAuthAndLoadProfile() {
   // Show loading state only for slower loads (avoid full-screen flash on fast/cache paths)
   const PROFILE_LOADING_DELAY_MS = 220;
   let profileLoadingVisible = false;
+  const loadingCopy = getProfileLoadingCopy();
   const profileLoadingTimer = setTimeout(() => {
-    showProfileLoadingState();
+    showProfileLoadingState(loadingCopy);
     profileLoadingVisible = true;
   }, PROFILE_LOADING_DELAY_MS);
   const finishProfileLoading = () => {
@@ -3564,7 +3565,26 @@ function showProfileError(message) {
 /**
  * Show loading state while profile is being fetched - CLEAN SLATE
  */
-function showProfileLoadingState() {
+function getProfileLoadingCopy() {
+  // If profile is opened with a userId param, it is likely another user's profile.
+  const requestedProfileUserId = new URLSearchParams(window.location.search).get('userId');
+  if (requestedProfileUserId) {
+    return {
+      title: 'Loading Profile',
+      subtitle: 'Getting this profile ready... ✨'
+    };
+  }
+
+  return {
+    title: 'Loading Your Profile',
+    subtitle: 'Getting everything ready for you... ✨'
+  };
+}
+
+function showProfileLoadingState(copy = {}) {
+  const title = copy.title || 'Loading Your Profile';
+  const subtitle = copy.subtitle || 'Getting everything ready for you... ✨';
+
   // Completely hide all profile shell content
   setProfileShellVisibility(false);
   
@@ -3599,10 +3619,10 @@ function showProfileLoadingState() {
         
         <div style="color: #10b981; font-size: 24px; font-weight: 700; margin-bottom: 10px;
                     text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);">
-          Loading Your Profile
+          ${title}
         </div>
         <div style="color: #6b7280; font-size: 15px; animation: fadeInOut 2s ease-in-out infinite;">
-          Getting everything ready for you... ✨
+          ${subtitle}
         </div>
         
         <!-- Animated dots -->

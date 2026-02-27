@@ -48,7 +48,7 @@ window.addEventListener('beforeunload', function() {
 function isAllowedTextCharacter(char) {
   if (!char) return true;
   if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
-  if (/[.,!?'"()\/-]/.test(char)) return true;
+  if (/[.,!?'"()\/$&@₱-]/.test(char)) return true;
   if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
   return false;
 }
