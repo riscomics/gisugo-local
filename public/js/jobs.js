@@ -3483,8 +3483,8 @@ function refreshDisclaimerGate(modalId) {
     const { overlay, reminderCard } = getVerificationGateElements(modalId);
     const hasSelectedLanguage = !!tabContainer.querySelector('.lang-tab.active');
     const requiresDecision = !!(reminderCard && reminderCard.style.display !== 'none');
-    const hasDecision = !!(overlay && overlay.dataset.verificationDecision);
-    const canProceed = hasSelectedLanguage && (!requiresDecision || hasDecision);
+    const hasProceedDecision = !!(overlay && overlay.dataset.verificationDecision === 'proceed');
+    const canProceed = hasSelectedLanguage && (!requiresDecision || hasProceedDecision);
 
     confirmBtn.disabled = !canProceed;
 
@@ -3495,11 +3495,11 @@ function refreshDisclaimerGate(modalId) {
     if (!hasSelectedLanguage) {
         iconEl.textContent = '📖';
         textEl.textContent = 'Please read the disclaimer above to continue';
-    } else if (requiresDecision && !hasDecision) {
+    } else if (requiresDecision && !hasProceedDecision) {
         iconEl.textContent = '⚠️';
         textEl.textContent = modalId === 'confirmHire'
-            ? 'Choose Request Verification or Send Offer Anyway first.'
-            : 'Choose Request Verification or Accept Offer Anyway first.';
+            ? 'To proceed now, choose Send Offer Anyway.'
+            : 'To proceed now, choose Accept Offer Anyway.';
     } else {
         iconEl.textContent = '✅';
         textEl.textContent = getDisclaimerEnabledMessage(modalId);
@@ -3515,6 +3515,107 @@ function setVerificationDecision(modalId, decision) {
         delete overlay.dataset.verificationDecision;
     }
     refreshDisclaimerGate(modalId);
+}
+
+const VERIFICATION_REMINDER_LIMITS = {
+    windowMs: 24 * 60 * 60 * 1000,   // 24 hours
+    maxPerWindow: 3,                 // Max reminders per counterpart per day
+    minIntervalMs: 5 * 60 * 1000     // 5-minute cooldown between reminders
+};
+
+function getCurrentReminderActorId() {
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            return firebase.auth().currentUser?.uid || 'anonymous';
+        }
+    } catch (_) {
+        // fall through
+    }
+    return 'anonymous';
+}
+
+function getVerificationReminderKey(counterpartId) {
+    const actorId = getCurrentReminderActorId();
+    return `verificationReminder:${actorId}:${counterpartId || 'unknown'}`;
+}
+
+function getVerificationReminderState(counterpartId) {
+    const key = getVerificationReminderKey(counterpartId);
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+            return {
+                key,
+                state: { windowStart: Date.now(), count: 0, lastSentAt: 0 }
+            };
+        }
+        const parsed = JSON.parse(raw);
+        return {
+            key,
+            state: {
+                windowStart: Number(parsed.windowStart || Date.now()),
+                count: Number(parsed.count || 0),
+                lastSentAt: Number(parsed.lastSentAt || 0)
+            }
+        };
+    } catch (_) {
+        return {
+            key,
+            state: { windowStart: Date.now(), count: 0, lastSentAt: 0 }
+        };
+    }
+}
+
+function canSendVerificationReminder(counterpartId) {
+    const now = Date.now();
+    const { state } = getVerificationReminderState(counterpartId);
+    let { windowStart, count, lastSentAt } = state;
+
+    if (now - windowStart >= VERIFICATION_REMINDER_LIMITS.windowMs) {
+        windowStart = now;
+        count = 0;
+        lastSentAt = 0;
+    }
+
+    if (now - lastSentAt < VERIFICATION_REMINDER_LIMITS.minIntervalMs) {
+        const waitMs = VERIFICATION_REMINDER_LIMITS.minIntervalMs - (now - lastSentAt);
+        return { allowed: false, reason: 'cooldown', waitMs };
+    }
+
+    if (count >= VERIFICATION_REMINDER_LIMITS.maxPerWindow) {
+        const waitMs = VERIFICATION_REMINDER_LIMITS.windowMs - (now - windowStart);
+        return { allowed: false, reason: 'daily_limit', waitMs };
+    }
+
+    return { allowed: true };
+}
+
+function recordVerificationReminderSent(counterpartId) {
+    const now = Date.now();
+    const { key, state } = getVerificationReminderState(counterpartId);
+    let { windowStart, count } = state;
+
+    if (now - windowStart >= VERIFICATION_REMINDER_LIMITS.windowMs) {
+        windowStart = now;
+        count = 0;
+    }
+
+    const nextState = {
+        windowStart,
+        count: count + 1,
+        lastSentAt: now
+    };
+
+    try {
+        localStorage.setItem(key, JSON.stringify(nextState));
+    } catch (_) {
+        // Non-fatal in private mode/full storage.
+    }
+}
+
+function formatWaitMinutes(waitMs) {
+    const mins = Math.max(1, Math.ceil(waitMs / 60000));
+    return `${mins} minute${mins === 1 ? '' : 's'}`;
 }
 
 // ===== DISCLAIMER LANGUAGE TABS =====
@@ -3639,17 +3740,30 @@ function initializeConfirmAcceptGigHandlers() {
     if (requestBtn) {
         requestBtn.addEventListener('click', function() {
             const counterpartName = overlay.dataset.posterName || 'this customer';
+            const counterpartId = overlay.dataset.posterId || counterpartName;
+            const check = canSendVerificationReminder(counterpartId);
+            if (!check.allowed) {
+                const waitText = formatWaitMinutes(check.waitMs || 0);
+                const limitMessage = check.reason === 'cooldown'
+                    ? `Please wait ${waitText} before sending another reminder to ${counterpartName}.`
+                    : `Reminder limit reached for ${counterpartName}. Try again in ${waitText}.`;
+                showConfirmationWithCallback('⏳', 'Reminder Limited', limitMessage, null);
+                return;
+            }
+
+            recordVerificationReminderSent(counterpartId);
             requestBtn.classList.add('selected');
             requestBtn.textContent = '✓ Requested';
             if (proceedBtn) {
                 proceedBtn.classList.remove('selected');
                 proceedBtn.textContent = 'Accept Offer Anyway';
             }
-            setVerificationDecision('acceptGig', 'request');
+            setVerificationDecision('acceptGig', null);
+            hideConfirmAcceptGigOverlay();
             showConfirmationWithCallback(
                 '📨',
                 'Verification Reminder Sent',
-                `A Face Verification reminder has been sent to ${counterpartName}. You can still accept the offer anytime.`,
+                `A Face Verification reminder has been sent to ${counterpartName}. Reopen this offer when you are ready to proceed.`,
                 null
             );
         });
@@ -8540,17 +8654,30 @@ function initializeHireConfirmationHandlers() {
     if (requestBtn) {
         requestBtn.addEventListener('click', function() {
             const counterpartName = overlay.dataset.userName || 'this worker';
+            const counterpartId = overlay.dataset.userId || counterpartName;
+            const check = canSendVerificationReminder(counterpartId);
+            if (!check.allowed) {
+                const waitText = formatWaitMinutes(check.waitMs || 0);
+                const limitMessage = check.reason === 'cooldown'
+                    ? `Please wait ${waitText} before sending another reminder to ${counterpartName}.`
+                    : `Reminder limit reached for ${counterpartName}. Try again in ${waitText}.`;
+                showConfirmationWithCallback('⏳', 'Reminder Limited', limitMessage, null);
+                return;
+            }
+
+            recordVerificationReminderSent(counterpartId);
             requestBtn.classList.add('selected');
             requestBtn.textContent = '✓ Requested';
             if (proceedBtn) {
                 proceedBtn.classList.remove('selected');
                 proceedBtn.textContent = 'Send Offer Anyway';
             }
-            setVerificationDecision('confirmHire', 'request');
+            setVerificationDecision('confirmHire', null);
+            hideHireConfirmationOverlay();
             showConfirmationWithCallback(
                 '📨',
                 'Verification Reminder Sent',
-                `A Face Verification reminder has been sent to ${counterpartName}. You can still send the offer anytime.`,
+                `A Face Verification reminder has been sent to ${counterpartName}. Reopen this applicant when you are ready to proceed.`,
                 null
             );
         });
