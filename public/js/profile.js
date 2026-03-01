@@ -3,10 +3,19 @@
 const DEMO_CONFIG = {
   // Set verification state for testing (only one should be true):
   businessVerified: false,  // Shows Business Verified badge → Business overlay
-  proVerified: false,       // Shows Pro Verified badge → Pro overlay  
-  newMember: false          // Shows New Member badge → Not Verified overlay (auto when both false)
-  // Priority: Business > Pro > New Member
+  proVerified: false,       // Shows Pro Verified badge → Pro overlay
+  faceVerified: false,      // Shows Face Verified badge
+  newMember: false          // Shows Unverified badge → Not Verified overlay (auto when others are false)
+  // Priority: Business > Pro > Face > Unverified
 };
+
+// Temporary preview mode for testing Face Verified flows before real users exist.
+const previewParams = new URLSearchParams(window.location.search);
+if (previewParams.get('previewFaceVerified') === '1') {
+  DEMO_CONFIG.businessVerified = false;
+  DEMO_CONFIG.proVerified = false;
+  DEMO_CONFIG.faceVerified = true;
+}
 
 // Account Button and Overlay functionality
 const accountBtn = document.getElementById('accountBtn');
@@ -226,6 +235,12 @@ if (businessVerifiedBadgeGrid) {
 const proPrestigeOverlay = document.getElementById('proPrestigeOverlay');
 const proPrestigeClose = document.getElementById('proPrestigeClose');
 const proPrestigeUnderstandBtn = document.getElementById('proPrestigeUnderstandBtn');
+const facePrestigeOverlay = document.getElementById('facePrestigeOverlay');
+const facePrestigeClose = document.getElementById('facePrestigeClose');
+const facePrestigeUnderstandBtn = document.getElementById('facePrestigeUnderstandBtn');
+const facePrestigeLangTabs = document.getElementById('facePrestigeLangTabs');
+const facePreviewImage = document.getElementById('facePreviewImage');
+const facePreviewEmpty = document.getElementById('facePreviewEmpty');
 
 // Open pro prestige overlay
 function openProPrestigeOverlay() {
@@ -275,12 +290,105 @@ if (proPrestigeOverlay) {
   });
 }
 
+// ===== FACE VERIFIED OVERLAY FUNCTIONALITY =====
+
+function openFacePrestigeOverlay() {
+  if (facePrestigeOverlay) {
+    facePrestigeOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    activateFacePrestigeLanguage('english');
+    populateFacePrestigePreview();
+    console.log('🎥 Face prestige overlay opened');
+  }
+}
+
+function closeFacePrestigeOverlay() {
+  if (facePrestigeOverlay) {
+    facePrestigeOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    console.log('🎥 Face prestige overlay closed');
+  }
+}
+
+const faceVerifiedBadgeGrid = document.getElementById('faceVerifiedBadgeGrid');
+if (faceVerifiedBadgeGrid) {
+  faceVerifiedBadgeGrid.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openFacePrestigeOverlay();
+  });
+  faceVerifiedBadgeGrid.style.cursor = 'pointer';
+}
+
+if (facePrestigeClose) {
+  facePrestigeClose.addEventListener('click', closeFacePrestigeOverlay);
+}
+
+if (facePrestigeUnderstandBtn) {
+  facePrestigeUnderstandBtn.addEventListener('click', closeFacePrestigeOverlay);
+}
+
+if (facePrestigeOverlay) {
+  facePrestigeOverlay.addEventListener('click', function(e) {
+    if (e.target === facePrestigeOverlay) {
+      closeFacePrestigeOverlay();
+    }
+  });
+}
+
+function activateFacePrestigeLanguage(lang) {
+  if (!facePrestigeLangTabs) return;
+  const tabs = facePrestigeLangTabs.querySelectorAll('.face-lang-tab');
+  const contents = (facePrestigeOverlay || document).querySelectorAll('.face-lang-content');
+
+  tabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.lang === lang);
+  });
+
+  contents.forEach((content) => {
+    const isActive = content.dataset.langContent === lang;
+    content.classList.toggle('active', isActive);
+    content.style.display = isActive ? 'block' : 'none';
+  });
+}
+
+if (facePrestigeLangTabs) {
+  facePrestigeLangTabs.addEventListener('click', function(e) {
+    const tab = e.target.closest('.face-lang-tab');
+    if (!tab) return;
+    activateFacePrestigeLanguage(tab.dataset.lang || 'english');
+  });
+}
+
+function getFacePosterUrl(userProfile) {
+  const verification = userProfile?.verification || {};
+  return verification.facePosterUrl || verification.facePreviewUrl || verification.faceThumbnailUrl || null;
+}
+
+function populateFacePrestigePreview() {
+  if (!facePreviewImage || !facePreviewEmpty) return;
+
+  const posterUrl = getFacePosterUrl(window.currentUserProfile);
+  if (posterUrl) {
+    facePreviewImage.src = posterUrl;
+    facePreviewImage.style.display = 'block';
+    facePreviewEmpty.style.display = 'none';
+    return;
+  }
+
+  facePreviewImage.removeAttribute('src');
+  facePreviewImage.style.display = 'none';
+  facePreviewEmpty.style.display = 'block';
+}
+
 // ===== NOT VERIFIED YET OVERLAY FUNCTIONALITY =====
 
 // Get not verified overlay elements
 const notVerifiedOverlay = document.getElementById('notVerifiedOverlay');
 const notVerifiedClose = document.getElementById('notVerifiedClose');
 const notVerifiedUnderstandBtn = document.getElementById('notVerifiedUnderstandBtn');
+const getFaceVerifiedBtn = document.getElementById('getFaceVerifiedBtn');
+const notVerifiedCloseOnlyBtn = document.getElementById('notVerifiedCloseOnlyBtn');
+const notVerifiedLangTabs = document.getElementById('notVerifiedLangTabs');
 const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
 
 // Open not verified overlay
@@ -288,6 +396,8 @@ function openNotVerifiedOverlay() {
   if (notVerifiedOverlay) {
     notVerifiedOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
+    activateNotVerifiedLanguage('english');
+    updateNotVerifiedFooterActions();
     console.log('🌱 Not verified overlay opened');
   }
 }
@@ -321,6 +431,71 @@ if (notVerifiedUnderstandBtn) {
   notVerifiedUnderstandBtn.addEventListener('click', closeNotVerifiedOverlay);
 }
 
+if (notVerifiedCloseOnlyBtn) {
+  notVerifiedCloseOnlyBtn.addEventListener('click', closeNotVerifiedOverlay);
+}
+
+function openFaceVerificationEntryPoint() {
+  closeNotVerifiedOverlay();
+  if (typeof openAccountSettingsIfOwner === 'function') {
+    openAccountSettingsIfOwner();
+    document.body.style.overflow = 'hidden';
+  }
+  const upgradeStatusOption = document.getElementById('upgradeStatusOption');
+  if (upgradeStatusOption) {
+    upgradeStatusOption.classList.add('pulsating-glow');
+    upgradeStatusOption.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+if (getFaceVerifiedBtn) {
+  getFaceVerifiedBtn.addEventListener('click', openFaceVerificationEntryPoint);
+}
+
+const NOT_VERIFIED_LABELS = {
+  english: { primary: 'Get Face Verified', secondary: 'Maybe Later' },
+  bisaya: { primary: 'Pa Face Verify', secondary: 'Sa Sunod Nalang' },
+  tagalog: { primary: 'Magpa Face Verify', secondary: 'Mamaya Na' }
+};
+
+function activateNotVerifiedLanguage(lang) {
+  if (!notVerifiedLangTabs) return;
+
+  const tabs = notVerifiedLangTabs.querySelectorAll('.not-verified-lang-tab');
+  const contents = (notVerifiedOverlay || document).querySelectorAll('.not-verified-lang-content');
+
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.lang === lang;
+    tab.classList.toggle('active', isActive);
+  });
+
+  contents.forEach((content) => {
+    const isActive = content.dataset.langContent === lang;
+    content.classList.toggle('active', isActive);
+    // Inline fallback so language content always switches correctly.
+    content.style.display = isActive ? 'block' : 'none';
+  });
+
+  const labels = NOT_VERIFIED_LABELS[lang] || NOT_VERIFIED_LABELS.english;
+  if (getFaceVerifiedBtn) getFaceVerifiedBtn.textContent = labels.primary;
+  if (notVerifiedUnderstandBtn) notVerifiedUnderstandBtn.textContent = labels.secondary;
+}
+
+function updateNotVerifiedFooterActions() {
+  const isOwner = isOwnProfile();
+  if (getFaceVerifiedBtn) getFaceVerifiedBtn.style.display = isOwner ? '' : 'none';
+  if (notVerifiedUnderstandBtn) notVerifiedUnderstandBtn.style.display = isOwner ? '' : 'none';
+  if (notVerifiedCloseOnlyBtn) notVerifiedCloseOnlyBtn.style.display = isOwner ? 'none' : '';
+}
+
+if (notVerifiedLangTabs) {
+  notVerifiedLangTabs.addEventListener('click', function(e) {
+    const button = e.target.closest('.not-verified-lang-tab');
+    if (!button) return;
+    activateNotVerifiedLanguage(button.dataset.lang || 'english');
+  });
+}
+
 // Background click to close
 if (notVerifiedOverlay) {
   notVerifiedOverlay.addEventListener('click', function(e) {
@@ -337,6 +512,8 @@ document.addEventListener('keydown', function(e) {
       closeBusinessPrestigeOverlay();
     } else if (proPrestigeOverlay && proPrestigeOverlay.classList.contains('active')) {
       closeProPrestigeOverlay();
+    } else if (facePrestigeOverlay && facePrestigeOverlay.classList.contains('active')) {
+      closeFacePrestigeOverlay();
     } else if (notVerifiedOverlay && notVerifiedOverlay.classList.contains('active')) {
       closeNotVerifiedOverlay();
     }
@@ -998,7 +1175,7 @@ function hasVerificationStatus(userProfile) {
     return false;
   }
   
-  return userProfile.verification.businessVerified || userProfile.verification.proVerified;
+  return userProfile.verification.businessVerified || userProfile.verification.proVerified || userProfile.verification.faceVerified;
 }
 
 // Get current user ID (enhanced from existing logic)
@@ -1666,6 +1843,7 @@ window.updateLoginMethodsUI = updateLoginMethodsUI;
 function updateBadgeVisibility(userProfile) {
   const businessVerifiedBadgeGrid = document.getElementById('businessVerifiedBadgeGrid');
   const proVerifiedBadgeGrid = document.getElementById('proVerifiedBadgeGrid');
+  const faceVerifiedBadgeGrid = document.getElementById('faceVerifiedBadgeGrid');
   const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
   const accountBtn = document.getElementById('accountBtn');
   const profilePhotoContainer = document.getElementById('profilePhotoContainer');
@@ -1712,23 +1890,32 @@ function updateBadgeVisibility(userProfile) {
   const hasVerification = hasVerificationStatus(userProfile);
   
   // Badge visibility logic: Show only one badge in grid
-  if (businessVerifiedBadgeGrid && proVerifiedBadgeGrid && newUserBadgeGrid && userProfile?.verification) {
-    // Priority: Business > Pro > New User
+  if (businessVerifiedBadgeGrid && proVerifiedBadgeGrid && faceVerifiedBadgeGrid && newUserBadgeGrid && userProfile?.verification) {
+    // Priority: Business > Pro > Face > Unverified
     if (userProfile.verification.businessVerified) {
       businessVerifiedBadgeGrid.style.display = 'inline-flex';
       proVerifiedBadgeGrid.style.display = 'none';
+      faceVerifiedBadgeGrid.style.display = 'none';
       newUserBadgeGrid.style.display = 'none';
       console.log('Showing: Business Verified badge (grid)');
     } else if (userProfile.verification.proVerified) {
       businessVerifiedBadgeGrid.style.display = 'none';
       proVerifiedBadgeGrid.style.display = 'inline-flex';
+      faceVerifiedBadgeGrid.style.display = 'none';
       newUserBadgeGrid.style.display = 'none';
       console.log('Showing: Pro Verified badge (grid)');
+    } else if (userProfile.verification.faceVerified) {
+      businessVerifiedBadgeGrid.style.display = 'none';
+      proVerifiedBadgeGrid.style.display = 'none';
+      faceVerifiedBadgeGrid.style.display = 'inline-flex';
+      newUserBadgeGrid.style.display = 'none';
+      console.log('Showing: Face Verified badge (grid)');
     } else {
       businessVerifiedBadgeGrid.style.display = 'none';
       proVerifiedBadgeGrid.style.display = 'none';
+      faceVerifiedBadgeGrid.style.display = 'none';
       newUserBadgeGrid.style.display = 'inline-flex';
-      console.log('Showing: New Member badge (grid)');
+      console.log('Showing: Unverified badge (grid)');
     }
   }
   
@@ -1765,14 +1952,22 @@ function updateAccountOverlayVerificationStatus(userProfile) {
       verificationStatusBadge.textContent = 'Active';
       verificationStatusBadge.className = 'account-option-status active';
       console.log('⭐ Account overlay showing: Pro Verified');
+    } else if (userProfile.verification.faceVerified) {
+      // Face Verified
+      verificationStatusIcon.textContent = '🎥';
+      verificationStatusName.textContent = 'Face Verified';
+      verificationStatusDesc.textContent = 'Your face verification is active';
+      verificationStatusBadge.textContent = 'Active';
+      verificationStatusBadge.className = 'account-option-status active';
+      console.log('🎥 Account overlay showing: Face Verified');
     } else {
-      // New Member (Not Verified)
+      // Unverified
       verificationStatusIcon.textContent = '🌱';
-      verificationStatusName.textContent = 'New Member';
+      verificationStatusName.textContent = 'Unverified';
       verificationStatusDesc.textContent = 'Not verified yet';
       verificationStatusBadge.textContent = 'Not Verified';
       verificationStatusBadge.className = 'account-option-status inactive';
-      console.log('🌱 Account overlay showing: New Member');
+      console.log('🌱 Account overlay showing: Unverified');
     }
   }
   
@@ -2693,6 +2888,7 @@ const sampleUserProfile = {
   verification: {
     businessVerified: true, // DEMO: Set to true for Business Verified badge
     proVerified: false, // DEMO: Set to false (businessVerified takes priority)
+    faceVerified: false,
     verificationDate: "2025-04-20T14:30:00Z", // When verification was completed
     idSubmitted: false, // Whether user has uploaded ID documents (for mock: false = can still submit)
     eligibleForSubmission: false // Whether user purchased P250/P500 but hasn't submitted ID yet
@@ -2826,7 +3022,8 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
   if (userProfile.verification) {
     userProfile.verification.businessVerified = DEMO_CONFIG.businessVerified;
     userProfile.verification.proVerified = DEMO_CONFIG.proVerified;
-    // newMember is just the absence of both business and pro verification
+    userProfile.verification.faceVerified = DEMO_CONFIG.faceVerified;
+    // newMember is just the absence of business/pro/face verification
   }
   
   // Store reference for G-Coins purchase system
@@ -3721,10 +3918,11 @@ const sampleNewUserProfile_UNUSED = {
     linkedin: "public/icons/IN.png"
   },
   
-  // No verification status - will show "New User" badge
+  // No verification status - will show Unverified badge
   verification: {
     businessVerified: false,
     proVerified: false,
+    faceVerified: false,
     verificationDate: null
   },
   
@@ -3764,7 +3962,8 @@ function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with
   if (userProfile.verification) {
     userProfile.verification.businessVerified = DEMO_CONFIG.businessVerified;
     userProfile.verification.proVerified = DEMO_CONFIG.proVerified;
-    // newMember is just the absence of both business and pro verification
+    userProfile.verification.faceVerified = DEMO_CONFIG.faceVerified;
+    // newMember is just the absence of business/pro/face verification
   }
   
   // Store reference for G-Coins purchase system
@@ -4196,11 +4395,12 @@ async function checkVerificationStatus(userId) {
         status: userData.verification?.status || 'none',
         businessVerified: userData.verification?.businessVerified || false,
         proVerified: userData.verification?.proVerified || false,
+        faceVerified: userData.verification?.faceVerified || false,
         pendingRequestId: userData.verification?.pendingRequestId || null
       };
     }
     
-    return { status: 'none', businessVerified: false, proVerified: false };
+    return { status: 'none', businessVerified: false, proVerified: false, faceVerified: false };
   } catch (error) {
     console.error('Error checking verification status:', error);
     throw error;
@@ -4223,7 +4423,7 @@ function cleanupProfilePage() {
   document.body.style.overflow = '';
   
   // Close any active overlays (using 'active' class)
-  const activeOverlays = ['accountOverlay', 'gCoinsOverlay', 'purchaseSuccessOverlay', 'verificationOverlay', 'businessPrestigeOverlay', 'proPrestigeOverlay', 'notVerifiedOverlay', 'explanationOverlay'];
+  const activeOverlays = ['accountOverlay', 'gCoinsOverlay', 'purchaseSuccessOverlay', 'verificationOverlay', 'businessPrestigeOverlay', 'proPrestigeOverlay', 'facePrestigeOverlay', 'notVerifiedOverlay', 'explanationOverlay'];
   activeOverlays.forEach(overlayId => {
     const overlay = document.getElementById(overlayId);
     if (overlay && overlay.classList.contains('active')) {

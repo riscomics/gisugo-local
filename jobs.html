@@ -736,10 +736,19 @@
                     <div id="workerStatusInfo" class="worker-status-info">
                         <div class="status-info-header">
                             <span id="statusFriendlyIcon" class="friendly-icon">🌱</span>
-                            <span id="statusInfoTitle" class="info-title">New Community Member</span>
+                            <span id="statusInfoTitle" class="info-title">Unverified Member</span>
                         </div>
                         <div id="statusInfoContent" class="status-info-content">
-                            This user is new to our platform and hasn't completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.
+                            This user has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.
+                        </div>
+                    </div>
+                    <div class="verification-reminder-actions" id="hireUnverifiedReminder" style="display: none;">
+                        <div class="verification-reminder-text" id="hireReminderText">
+                            This worker is currently unverified. You can request Face Verification or continue sending the offer.
+                        </div>
+                        <div class="verification-reminder-buttons">
+                            <button type="button" class="verification-reminder-btn request" id="hireRequestVerificationBtn">Request Verification</button>
+                            <button type="button" class="verification-reminder-btn proceed" id="hireProceedAnywayBtn">Send Offer Anyway</button>
                         </div>
                     </div>
                 </div>
@@ -1183,10 +1192,19 @@
                     <div id="customerStatusInfo" class="worker-status-info">
                         <div class="status-info-header">
                             <span id="customerStatusFriendlyIcon" class="friendly-icon">🌱</span>
-                            <span id="customerStatusInfoTitle" class="info-title">New Community Member</span>
+                            <span id="customerStatusInfoTitle" class="info-title">Unverified Member</span>
                         </div>
                         <div id="customerStatusInfoContent" class="status-info-content">
-                            This customer is new to our platform and hasn't completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.
+                            This customer has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.
+                        </div>
+                    </div>
+                    <div class="verification-reminder-actions" id="acceptUnverifiedReminder" style="display: none;">
+                        <div class="verification-reminder-text" id="acceptReminderText">
+                            This customer is currently unverified. You can request Face Verification or continue accepting the offer.
+                        </div>
+                        <div class="verification-reminder-buttons">
+                            <button type="button" class="verification-reminder-btn request" id="acceptRequestVerificationBtn">Request Verification</button>
+                            <button type="button" class="verification-reminder-btn proceed" id="acceptProceedAnywayBtn">Accept Offer Anyway</button>
                         </div>
                     </div>
                 </div>

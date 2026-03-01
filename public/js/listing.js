@@ -1389,6 +1389,12 @@ function getNextAdConfig(slotKey = '') {
   return ad;
 }
 
+function getAdConfigById(adId) {
+  if (!adId) return null;
+  const activeAds = getActiveAdPool();
+  return activeAds.find((ad) => ad && ad.id === adId) || null;
+}
+
 function renderInlineAdsByGigPositions(container) {
   if (!container) return;
 
@@ -1456,7 +1462,8 @@ function syncEmptyStateAdPlacement(isVisible, emptyState) {
   if (!isVisible || !emptyState) return;
   if (!shouldRenderAdsInCurrentListing() || !AD_TRIAL_CONFIG.allowEmptyStateAd) return;
 
-  const nextAd = getNextAdConfig('empty');
+  const preferredEmptyAd = getAdConfigById('offer-share-gisugo');
+  const nextAd = preferredEmptyAd || getNextAdConfig('empty');
   if (!nextAd) return;
 
   const adCard = createAdPlaceholderCard(nextAd, { zone: 'empty' });

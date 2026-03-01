@@ -93,8 +93,11 @@
             <div class="verification-badge pro-verified" id="proVerifiedBadgeGrid" style="display: none;">
               <span class="verification-badge-text">PRO VERIFIED</span>
             </div>
+            <div class="verification-badge face-verified" id="faceVerifiedBadgeGrid" style="display: none;">
+              <span class="verification-badge-text">FACE VERIFIED</span>
+            </div>
             <div class="verification-badge new-user" id="newUserBadgeGrid" style="display: none;">
-              <span class="verification-badge-text">NEW MEMBER</span>
+              <span class="verification-badge-text">UNVERIFIED</span>
             </div>
           </div>
           
@@ -363,6 +366,117 @@
     </div>
   </div>
 
+  <!-- Face Verified Overlay -->
+  <div class="face-prestige-overlay" id="facePrestigeOverlay">
+    <div class="face-prestige-container">
+      <div class="face-prestige-header">
+        <div class="face-badge-large">
+          <div class="face-icon">🎥</div>
+          <div class="face-title">FACE VERIFIED</div>
+          <div class="face-subtitle">Real Face, Real Member</div>
+          <div class="face-preview-card" id="facePreviewCard" aria-label="Face verification preview">
+            <img id="facePreviewImage" class="face-preview-image" alt="Face verification thumbnail preview" style="display: none;">
+            <div id="facePreviewEmpty" class="face-preview-empty">Selfie thumbnail will appear here</div>
+          </div>
+        </div>
+        <button class="face-prestige-close" id="facePrestigeClose" aria-label="Close">×</button>
+      </div>
+
+      <div class="face-prestige-content">
+        <div class="face-lang-tabs" id="facePrestigeLangTabs">
+          <button type="button" class="face-lang-tab active" data-lang="english">English</button>
+          <button type="button" class="face-lang-tab" data-lang="bisaya">Bisaya</button>
+          <button type="button" class="face-lang-tab" data-lang="tagalog">Tagalog</button>
+        </div>
+
+        <div class="face-lang-content active" data-lang-content="english">
+          <div class="face-message">
+            This member completed Face Verification with a short selfie video saying their name.
+          </div>
+          <div class="face-features">
+            <div class="face-feature-item">
+              <span class="face-feature-icon">✅</span>
+              <span class="face-feature-text">Adds transparency in profile and gig interactions</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">🤝</span>
+              <span class="face-feature-text">Helps people make more informed trust decisions</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">🔒</span>
+              <span class="face-feature-text">Selfie video is not public by default</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">📍</span>
+              <span class="face-feature-text">You ONLY see this video when deciding to hire someone or accept a job offer</span>
+            </div>
+          </div>
+          <div class="face-disclaimer">
+            You can see this video in two places only: (1) on a member's profile trust section, and (2) when hiring or accepting a job offer. It is not public to everyone by default.
+          </div>
+        </div>
+
+        <div class="face-lang-content" data-lang-content="bisaya">
+          <div class="face-message">
+            Kining member nakakompleto ug Face Verification pinaagi sa mubo nga selfie video nga misulti sa ngalan.
+          </div>
+          <div class="face-features">
+            <div class="face-feature-item">
+              <span class="face-feature-icon">✅</span>
+              <span class="face-feature-text">Nagadugang og transparency sa profile ug gig interactions</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">🤝</span>
+              <span class="face-feature-text">Makatabang para mas informed ang trust decisions</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">🔒</span>
+              <span class="face-feature-text">Dili public ang selfie video by default</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">📍</span>
+              <span class="face-feature-text">Kasagaran nimo kini makita kung magdesisyon ka mo-hire ug tawo o mo-accept ug job offer</span>
+            </div>
+          </div>
+          <div class="face-disclaimer">
+            Asa nimo kini makita: sa profile trust info ug sa dili pa ka mo-final sa hire/accept. Dili kini public sa tanan by default.
+          </div>
+        </div>
+
+        <div class="face-lang-content" data-lang-content="tagalog">
+          <div class="face-message">
+            Nakumpleto ng member na ito ang Face Verification gamit ang maikling selfie video habang sinasabi ang pangalan.
+          </div>
+          <div class="face-features">
+            <div class="face-feature-item">
+              <span class="face-feature-icon">✅</span>
+              <span class="face-feature-text">Nagdaragdag ng transparency sa profile at gig interactions</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">🤝</span>
+              <span class="face-feature-text">Tumutulong para mas informed ang trust decisions</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">🔒</span>
+              <span class="face-feature-text">Hindi public ang selfie video by default</span>
+            </div>
+            <div class="face-feature-item">
+              <span class="face-feature-icon">📍</span>
+              <span class="face-feature-text">Kadalasan mo itong makikita kapag magdedesisyon kang mag-hire ng tao o tumanggap ng job offer</span>
+            </div>
+          </div>
+          <div class="face-disclaimer">
+            Saan ito puwedeng makita: sa profile trust info at bago ka mag-final sa hire/accept. Hindi ito public sa lahat by default.
+          </div>
+        </div>
+      </div>
+
+      <div class="face-prestige-footer">
+        <button class="face-prestige-understand-btn" id="facePrestigeUnderstandBtn">I Understand</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Not Verified Yet Overlay -->
   <div class="not-verified-overlay" id="notVerifiedOverlay">
     <div class="not-verified-container">
@@ -370,52 +484,136 @@
         <div class="not-verified-badge-large">
           <div class="not-verified-icon">🌱</div>
           <div class="not-verified-title">NOT VERIFIED YET</div>
-          <div class="not-verified-subtitle">New Community Member</div>
+          <div class="not-verified-subtitle">Unverified Member</div>
         </div>
         <button class="not-verified-close" id="notVerifiedClose" aria-label="Close">×</button>
       </div>
       
       <div class="not-verified-content">
-        <div class="not-verified-message">
-          <div class="message-text">
-            This user is new to our platform and hasn't completed the verification process yet. They may be just starting their journey with GISUGO!
+        <div class="not-verified-lang-tabs" id="notVerifiedLangTabs">
+          <button type="button" class="not-verified-lang-tab active" data-lang="english">English</button>
+          <button type="button" class="not-verified-lang-tab" data-lang="bisaya">Bisaya</button>
+          <button type="button" class="not-verified-lang-tab" data-lang="tagalog">Tagalog</button>
+        </div>
+
+        <div class="not-verified-lang-content active" data-lang-content="english">
+          <div class="not-verified-message">
+            <div class="message-text">
+              This member is not Face Verified yet.
+            </div>
+          </div>
+
+          <div class="new-user-features">
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🎥</span>
+              <span class="new-feature-text">Face Verification is a short selfie video saying your name</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🤝</span>
+              <span class="new-feature-text">It helps people trust who they are talking to</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">✅</span>
+              <span class="new-feature-text">People can still use GISUGO even if they are unverified</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🔒</span>
+              <span class="new-feature-text">Selfie videos are not public by default</span>
+            </div>
+          </div>
+
+          <div class="not-verified-disclaimer">
+            <div class="new-disclaimer-header">
+              <span class="new-disclaimer-icon">ℹ️</span>
+              <span class="new-disclaimer-title">Simple reminder</span>
+            </div>
+            <div class="new-disclaimer-content">
+              You may continue with this member. If you want more peace of mind, ask them to get Face Verified first.
+            </div>
           </div>
         </div>
-        
-        <div class="new-user-features">
-          <div class="new-feature-item">
-            <span class="new-feature-icon">🆕</span>
-            <span class="new-feature-text">New to the GISUGO community</span>
+
+        <div class="not-verified-lang-content" data-lang-content="bisaya">
+          <div class="not-verified-message">
+            <div class="message-text">
+              Kining member wala pa ma Face Verified.
+            </div>
           </div>
-          <div class="new-feature-item">
-            <span class="new-feature-icon">📝</span>
-            <span class="new-feature-text">No verification documents submitted yet</span>
+
+          <div class="new-user-features">
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🎥</span>
+              <span class="new-feature-text">Ang Face Verification kay mubo nga selfie video nga mosulti sa imong ngalan</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🤝</span>
+              <span class="new-feature-text">Makatabang ni para mas kasaligan ang ka-transact nimo</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">✅</span>
+              <span class="new-feature-text">Pwede gihapon mogamit sa GISUGO bisan unverified pa</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🔒</span>
+              <span class="new-feature-text">Dili public ang selfie video by default</span>
+            </div>
           </div>
-          <div class="new-feature-item">
-            <span class="new-feature-icon">⏰</span>
-            <span class="new-feature-text">Building their reputation on the platform</span>
-          </div>
-          <div class="new-feature-item">
-            <span class="new-feature-icon">🤝</span>
-            <span class="new-feature-text">Looking to connect and work with others</span>
+
+          <div class="not-verified-disclaimer">
+            <div class="new-disclaimer-header">
+              <span class="new-disclaimer-icon">ℹ️</span>
+              <span class="new-disclaimer-title">Yano nga pahimangno</span>
+            </div>
+            <div class="new-disclaimer-content">
+              Pwede ra ka mopadayon. Kung gusto kag dugang kasiguruhan, pwede nimo sila hangyuon nga magpa Face Verified una.
+            </div>
           </div>
         </div>
-        
-        <div class="not-verified-disclaimer">
-          <div class="new-disclaimer-header">
-            <span class="new-disclaimer-icon">⚠️</span>
-            <span class="new-disclaimer-title">Extra Safety Precautions Recommended</span>
+
+        <div class="not-verified-lang-content" data-lang-content="tagalog">
+          <div class="not-verified-message">
+            <div class="message-text">
+              Hindi pa Face Verified ang member na ito.
+            </div>
           </div>
-          <div class="new-disclaimer-content">
-            Since this user hasn't completed verification yet, <strong>please exercise additional caution</strong> when considering any business arrangements. New users may be genuine and eager to work, but verification helps establish trust.
-            <br><br>
-            <strong>We strongly recommend:</strong> Start with smaller projects, meet in public places, verify work samples, ask for references, and use secure payment methods. Consider their profile completeness, reviews from others, and communication quality when making decisions.
+
+          <div class="new-user-features">
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🎥</span>
+              <span class="new-feature-text">Ang Face Verification ay maikling selfie video habang sinasabi ang pangalan</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🤝</span>
+              <span class="new-feature-text">Nakakatulong ito para mas mapagkatiwalaan ang kausap mo</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">✅</span>
+              <span class="new-feature-text">Pwede pa ring gumamit ng GISUGO kahit unverified</span>
+            </div>
+            <div class="new-feature-item">
+              <span class="new-feature-icon">🔒</span>
+              <span class="new-feature-text">Hindi public ang selfie video by default</span>
+            </div>
+          </div>
+
+          <div class="not-verified-disclaimer">
+            <div class="new-disclaimer-header">
+              <span class="new-disclaimer-icon">ℹ️</span>
+              <span class="new-disclaimer-title">Simpleng paalala</span>
+            </div>
+            <div class="new-disclaimer-content">
+              Pwede ka pa ring magpatuloy. Kung gusto mo ng dagdag na confidence, puwede mong hilingin na magpa Face Verified muna sila.
+            </div>
           </div>
         </div>
       </div>
       
       <div class="not-verified-footer">
-        <button class="not-verified-understand-btn" id="notVerifiedUnderstandBtn">I Understand</button>
+        <div class="not-verified-actions">
+          <button class="not-verified-understand-btn primary" id="getFaceVerifiedBtn">Get Face Verified</button>
+          <button class="not-verified-understand-btn" id="notVerifiedUnderstandBtn">Maybe Later</button>
+          <button class="not-verified-understand-btn" id="notVerifiedCloseOnlyBtn" style="display: none;">Close</button>
+        </div>
       </div>
     </div>
   </div>

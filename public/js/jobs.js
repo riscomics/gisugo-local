@@ -3386,7 +3386,10 @@ function showConfirmAcceptGigOverlay(jobData) {
     overlay.dataset.category = jobData.category;
     
     // Update customer status (simulate based on poster data)
-    updateCustomerStatusDisplay(jobData);
+    const customerStatus = updateCustomerStatusDisplay(jobData);
+    updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName);
+    setVerificationDecision('acceptGig', null);
+    resetVerificationProceedButton('accept');
     
     // Initialize handlers
     initializeConfirmAcceptGigHandlers();
@@ -3413,29 +3416,105 @@ function updateCustomerStatusDisplay(jobData) {
         statusTitle.textContent = customerStatus.title;
         statusContent.textContent = customerStatus.description;
     }
+    return customerStatus;
 }
 
 function determineCustomerStatus(customerName) {
     // Simulate different customer statuses (in real app, this would be from backend data)
     const statuses = {
         'Maria Santos': {
+            type: 'business',
             icon: '👑',
             title: 'Business Verified',
             description: 'This customer has successfully completed our comprehensive business verification process and is recognized as a Premium Community Member. Government-issued business documents verified with enhanced profile visibility and priority listing.'
         },
         'Ana Reyes': {
+            type: 'pro',
             icon: '⭐',
             title: 'Pro Verified',
             description: 'This customer has successfully verified their identity and is recognized as a Trusted Community Member. Government-issued ID verified with enhanced profile credibility and priority in search results.'
         },
+        'Luis Mendoza': {
+            type: 'face',
+            icon: '🎥',
+            title: 'Face Verified',
+            description: 'This customer completed Face Verification with a short selfie introduction. It adds transparency and accountability during gig interactions.'
+        },
         'Carlos Rivera': {
+            type: 'unverified',
             icon: '🌱',
-            title: 'New Member',
-            description: 'This customer is new to our platform and hasn\'t completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.'
+            title: 'Unverified',
+            description: 'This customer has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.'
         }
     };
     
-    return statuses[customerName] || statuses['Carlos Rivera']; // Default to new member
+    return statuses[customerName] || statuses['Carlos Rivera']; // Default to unverified
+}
+
+function getDisclaimerEnabledMessage(modalId) {
+    if (modalId === 'acceptGig') return 'This will confirm your commitment to complete the gig.';
+    if (modalId === 'confirmHire') return 'All other applicants will be rejected.';
+    return 'You may now proceed.';
+}
+
+function getVerificationGateElements(modalId) {
+    if (modalId === 'acceptGig') {
+        return {
+            overlay: document.getElementById('confirmAcceptGigOverlay'),
+            reminderCard: document.getElementById('acceptUnverifiedReminder')
+        };
+    }
+    if (modalId === 'confirmHire') {
+        return {
+            overlay: document.getElementById('hireConfirmationOverlay'),
+            reminderCard: document.getElementById('hireUnverifiedReminder')
+        };
+    }
+    return { overlay: null, reminderCard: null };
+}
+
+function refreshDisclaimerGate(modalId) {
+    const tabContainer = document.getElementById(`${modalId}LangTabs`);
+    const warningEl = document.getElementById(`${modalId}Warning`);
+    const buttonIdMap = { acceptGig: 'confirmAcceptGigBtn', confirmHire: 'confirmHireBtn' };
+    const confirmBtn = document.getElementById(buttonIdMap[modalId] || `${modalId}Btn`);
+    if (!tabContainer || !confirmBtn || !warningEl) return;
+
+    const { overlay, reminderCard } = getVerificationGateElements(modalId);
+    const hasSelectedLanguage = !!tabContainer.querySelector('.lang-tab.active');
+    const requiresDecision = !!(reminderCard && reminderCard.style.display !== 'none');
+    const hasDecision = !!(overlay && overlay.dataset.verificationDecision);
+    const canProceed = hasSelectedLanguage && (!requiresDecision || hasDecision);
+
+    confirmBtn.disabled = !canProceed;
+
+    const iconEl = warningEl.querySelector('.final-warning-icon');
+    const textEl = warningEl.querySelector('.final-warning-text');
+    if (!iconEl || !textEl) return;
+
+    if (!hasSelectedLanguage) {
+        iconEl.textContent = '📖';
+        textEl.textContent = 'Please read the disclaimer above to continue';
+    } else if (requiresDecision && !hasDecision) {
+        iconEl.textContent = '⚠️';
+        textEl.textContent = modalId === 'confirmHire'
+            ? 'Choose Request Verification or Send Offer Anyway first.'
+            : 'Choose Request Verification or Accept Offer Anyway first.';
+    } else {
+        iconEl.textContent = '✅';
+        textEl.textContent = getDisclaimerEnabledMessage(modalId);
+    }
+}
+
+function setVerificationDecision(modalId, decision) {
+    const { overlay } = getVerificationGateElements(modalId);
+    if (!overlay) return;
+    if (decision) {
+        overlay.dataset.verificationDecision = decision;
+    } else {
+        delete overlay.dataset.verificationDecision;
+    }
+    refreshDisclaimerGate(modalId);
 }
 
 // ===== DISCLAIMER LANGUAGE TABS =====
@@ -3455,18 +3534,6 @@ function initializeDisclaimerLanguageTabs(modalId) {
     
     if (!tabContainer) return;
     
-    // Modal-specific messages
-    const modalMessages = {
-        acceptGig: {
-            enabled: 'This will confirm your commitment to complete the gig.'
-        },
-        confirmHire: {
-            enabled: 'All other applicants will be rejected.'
-        }
-    };
-    
-    const enabledMessage = modalMessages[modalId]?.enabled || 'You may now proceed.';
-    
     const tabs = tabContainer.querySelectorAll('.lang-tab');
     const contentMap = {
         english: englishContent,
@@ -3484,13 +3551,13 @@ function initializeDisclaimerLanguageTabs(modalId) {
         placeholder.style.display = 'flex';
     }
     
-    // Disable confirm button and update warning
-    if (confirmBtn) {
-        confirmBtn.disabled = true;
-    }
+    // Disable confirm button and set warning baseline
+    if (confirmBtn) confirmBtn.disabled = true;
     if (warningEl) {
-        warningEl.querySelector('.final-warning-icon').textContent = '📖';
-        warningEl.querySelector('.final-warning-text').textContent = 'Please read the disclaimer above to continue';
+        const iconEl = warningEl.querySelector('.final-warning-icon');
+        const textEl = warningEl.querySelector('.final-warning-text');
+        if (iconEl) iconEl.textContent = '📖';
+        if (textEl) textEl.textContent = 'Please read the disclaimer above to continue';
     }
     
     // Add click handlers to tabs
@@ -3519,14 +3586,8 @@ function initializeDisclaimerLanguageTabs(modalId) {
                 }
             });
             
-            // Enable confirm button and update warning
-            if (confirmBtn) {
-                confirmBtn.disabled = false;
-            }
-            if (warningEl) {
-                warningEl.querySelector('.final-warning-icon').textContent = '✅';
-                warningEl.querySelector('.final-warning-text').textContent = enabledMessage;
-            }
+            // Gate confirm button by language + verification choice (when required).
+            refreshDisclaimerGate(modalId);
             
             console.log(`📖 Disclaimer language selected: ${lang}`);
         });
@@ -3542,6 +3603,8 @@ function initializeConfirmAcceptGigHandlers() {
     const closeBtn = document.getElementById('confirmAcceptGigCloseBtn');
     const cancelBtn = document.getElementById('cancelAcceptGigBtn');
     const confirmBtn = document.getElementById('confirmAcceptGigBtn');
+    const requestBtn = document.getElementById('acceptRequestVerificationBtn');
+    const proceedBtn = document.getElementById('acceptProceedAnywayBtn');
     
     console.log('🔧 Initializing confirm accept gig handlers');
     
@@ -3572,6 +3635,46 @@ function initializeConfirmAcceptGigHandlers() {
             processAcceptGigConfirmation(jobData);
         });
     }
+
+    if (requestBtn) {
+        requestBtn.addEventListener('click', function() {
+            const counterpartName = overlay.dataset.posterName || 'this customer';
+            requestBtn.classList.add('selected');
+            requestBtn.textContent = '✓ Requested';
+            if (proceedBtn) {
+                proceedBtn.classList.remove('selected');
+                proceedBtn.textContent = 'Accept Offer Anyway';
+            }
+            setVerificationDecision('acceptGig', 'request');
+            showConfirmationWithCallback(
+                '📨',
+                'Verification Reminder Sent',
+                `A Face Verification reminder has been sent to ${counterpartName}. You can still accept the offer anytime.`,
+                null
+            );
+        });
+    }
+
+    if (proceedBtn) {
+        proceedBtn.addEventListener('click', function() {
+            const isSelected = proceedBtn.classList.toggle('selected');
+            proceedBtn.textContent = isSelected ? '✓ Accept Offer Anyway' : 'Accept Offer Anyway';
+            if (isSelected && requestBtn) {
+                requestBtn.classList.remove('selected');
+                requestBtn.textContent = 'Request Verification';
+            }
+            const warningEl = document.getElementById('acceptGigWarning');
+            if (warningEl) {
+                const icon = warningEl.querySelector('.final-warning-icon');
+                const text = warningEl.querySelector('.final-warning-text');
+                if (icon) icon.textContent = '📖';
+                if (text) text.textContent = isSelected
+                    ? 'Offer choice saved. Please read one disclaimer tab to continue.'
+                    : 'Please read the disclaimer above to continue';
+            }
+            setVerificationDecision('acceptGig', isSelected ? 'proceed' : null);
+        });
+    }
     
     // Backdrop click
     overlay.addEventListener('click', function(e) {
@@ -3595,9 +3698,6 @@ function hideConfirmAcceptGigOverlay() {
     if (!overlay) return;
     
     overlay.classList.remove('show');
-    
-    // Clean up event handlers
-    delete overlay.dataset.handlersInitialized;
     
     console.log('🤝 Confirm accept gig overlay hidden and handlers cleaned up');
 }
@@ -8108,12 +8208,14 @@ function showConfirmationWithCallback(icon, title, message, callback, animationT
     
     overlay.classList.add('show');
     
-    // Store the callback for this specific confirmation
-    overlay.dataset.confirmationCallback = 'pending';
-    
-    // Clear any existing handlers
-    if (overlay.dataset.confirmationHandlersInitialized) {
-        delete overlay.dataset.confirmationHandlersInitialized;
+    // Remove any prior callback handlers to prevent stacking.
+    if (overlay.__okHandler && okBtn) {
+        okBtn.removeEventListener('click', overlay.__okHandler);
+        overlay.__okHandler = null;
+    }
+    if (overlay.__backdropHandler) {
+        overlay.removeEventListener('click', overlay.__backdropHandler);
+        overlay.__backdropHandler = null;
     }
     
     // Set up new handlers with callback
@@ -8136,12 +8238,14 @@ function showConfirmationWithCallback(icon, title, message, callback, animationT
         }
     };
     
+    overlay.__okHandler = handleOkClick;
+    overlay.__backdropHandler = handleBackdropClick;
+
     if (okBtn) {
-        okBtn.addEventListener('click', handleOkClick);
+        okBtn.addEventListener('click', overlay.__okHandler);
     }
     
-    overlay.addEventListener('click', handleBackdropClick);
-    
+    overlay.addEventListener('click', overlay.__backdropHandler);
     overlay.dataset.confirmationHandlersInitialized = 'true';
 }
 
@@ -8153,6 +8257,16 @@ function hideConfirmationOverlay() {
     if (!overlay) return;
     
     overlay.classList.remove('show');
+
+    const okBtn = document.getElementById('confirmationBtn');
+    if (overlay.__okHandler && okBtn) {
+        okBtn.removeEventListener('click', overlay.__okHandler);
+        overlay.__okHandler = null;
+    }
+    if (overlay.__backdropHandler) {
+        overlay.removeEventListener('click', overlay.__backdropHandler);
+        overlay.__backdropHandler = null;
+    }
     
     // Clear animation classes
     if (modalElement) {
@@ -8246,6 +8360,9 @@ function showHireConfirmationOverlay(workerData) {
     // Update worker status based on rating (simulate account status determination)
     const workerStatus = determineWorkerStatus(workerData.userRating);
     updateWorkerStatusDisplay(workerStatus);
+    updateVerificationReminderActions('hire', workerStatus?.type, workerData.userName);
+    setVerificationDecision('confirmHire', null);
+    resetVerificationProceedButton('hire');
 
     // Store worker data for confirmation action
     overlay.dataset.applicationId = workerData.applicationId;
@@ -8288,14 +8405,23 @@ function determineWorkerStatus(rating) {
             infoTitle: 'Pro Verified Member',
             infoContent: 'This user has achieved Pro verification status through our verification process. They have demonstrated good service quality and reliability. Pro members undergo additional verification steps for enhanced trust.'
         };
+    } else if (rating >= 2.5) {
+        return {
+            type: 'face',
+            text: 'Face Verified',
+            icon: '🎥',
+            friendlyIcon: '🎥',
+            infoTitle: 'Face Verified Member',
+            infoContent: 'This user completed Face Verification using a short selfie introduction. Face Verification improves transparency and accountability during gig interactions.'
+        };
     } else {
         return {
-            type: 'new-member',
-            text: 'New Member',
+            type: 'unverified',
+            text: 'Unverified',
             icon: '🌱',
             friendlyIcon: '🌱',
-            infoTitle: 'New Community Member',
-            infoContent: 'This user is new to our platform and hasn\'t completed the verification process yet. They may be just starting their journey with GISUGO! Please exercise additional caution when considering any business arrangements.'
+            infoTitle: 'Unverified Member',
+            infoContent: 'This user has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.'
         };
     }
 }
@@ -8320,10 +8446,52 @@ function updateWorkerStatusDisplay(status) {
         info.style.background = 'rgba(16, 185, 129, 0.08)';
         info.style.borderColor = 'rgba(16, 185, 129, 0.2)';
         infoTitle.style.color = '#10b981';
+    } else if (status.type === 'face') {
+        info.style.background = 'rgba(59, 130, 246, 0.08)';
+        info.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+        infoTitle.style.color = '#60a5fa';
     } else {
         info.style.background = 'rgba(230, 214, 174, 0.08)';
         info.style.borderColor = 'rgba(230, 214, 174, 0.2)';
         infoTitle.style.color = '#e6d6ae';
+    }
+}
+
+function updateVerificationReminderActions(context, statusType, counterpartName = 'this member') {
+    const isUnverified = statusType === 'unverified' || statusType === 'new-member';
+    const isHire = context === 'hire';
+
+    const reminderCard = document.getElementById(isHire ? 'hireUnverifiedReminder' : 'acceptUnverifiedReminder');
+    const reminderText = document.getElementById(isHire ? 'hireReminderText' : 'acceptReminderText');
+
+    if (!reminderCard) return;
+
+    if (!isUnverified) {
+        reminderCard.style.display = 'none';
+        resetVerificationProceedButton(context);
+        setVerificationDecision(context === 'hire' ? 'confirmHire' : 'acceptGig', null);
+        return;
+    }
+
+    reminderCard.style.display = 'block';
+    if (reminderText) {
+        reminderText.textContent = isHire
+            ? `${counterpartName} is currently unverified. You can request Face Verification or continue sending the offer.`
+            : `${counterpartName} is currently unverified. You can request Face Verification or continue accepting the offer.`;
+    }
+    refreshDisclaimerGate(isHire ? 'confirmHire' : 'acceptGig');
+}
+
+function resetVerificationProceedButton(context) {
+    const isHire = context === 'hire';
+    const proceedBtn = document.getElementById(isHire ? 'hireProceedAnywayBtn' : 'acceptProceedAnywayBtn');
+    const requestBtn = document.getElementById(isHire ? 'hireRequestVerificationBtn' : 'acceptRequestVerificationBtn');
+    if (!proceedBtn) return;
+    proceedBtn.classList.remove('selected');
+    proceedBtn.textContent = isHire ? 'Send Offer Anyway' : 'Accept Offer Anyway';
+    if (requestBtn) {
+        requestBtn.classList.remove('selected');
+        requestBtn.textContent = 'Request Verification';
     }
 }
 
@@ -8334,6 +8502,8 @@ function initializeHireConfirmationHandlers() {
     const closeBtn = document.getElementById('hireConfirmationCloseBtn');
     const cancelBtn = document.getElementById('cancelHireBtn');
     const confirmBtn = document.getElementById('confirmHireBtn');
+    const requestBtn = document.getElementById('hireRequestVerificationBtn');
+    const proceedBtn = document.getElementById('hireProceedAnywayBtn');
 
     console.log('🔧 Initializing hire confirmation handlers');
 
@@ -8367,6 +8537,46 @@ function initializeHireConfirmationHandlers() {
         });
     }
 
+    if (requestBtn) {
+        requestBtn.addEventListener('click', function() {
+            const counterpartName = overlay.dataset.userName || 'this worker';
+            requestBtn.classList.add('selected');
+            requestBtn.textContent = '✓ Requested';
+            if (proceedBtn) {
+                proceedBtn.classList.remove('selected');
+                proceedBtn.textContent = 'Send Offer Anyway';
+            }
+            setVerificationDecision('confirmHire', 'request');
+            showConfirmationWithCallback(
+                '📨',
+                'Verification Reminder Sent',
+                `A Face Verification reminder has been sent to ${counterpartName}. You can still send the offer anytime.`,
+                null
+            );
+        });
+    }
+
+    if (proceedBtn) {
+        proceedBtn.addEventListener('click', function() {
+            const isSelected = proceedBtn.classList.toggle('selected');
+            proceedBtn.textContent = isSelected ? '✓ Send Offer Anyway' : 'Send Offer Anyway';
+            if (isSelected && requestBtn) {
+                requestBtn.classList.remove('selected');
+                requestBtn.textContent = 'Request Verification';
+            }
+            const warningEl = document.getElementById('confirmHireWarning');
+            if (warningEl) {
+                const icon = warningEl.querySelector('.final-warning-icon');
+                const text = warningEl.querySelector('.final-warning-text');
+                if (icon) icon.textContent = '📖';
+                if (text) text.textContent = isSelected
+                    ? 'Offer choice saved. Please read one disclaimer tab to continue.'
+                    : 'Please read the disclaimer above to continue';
+            }
+            setVerificationDecision('confirmHire', isSelected ? 'proceed' : null);
+        });
+    }
+
     // Backdrop click
     overlay.addEventListener('click', function(e) {
         if (e.target === overlay) {
@@ -8389,9 +8599,6 @@ function hideHireConfirmationOverlay() {
     if (!overlay) return;
     
     overlay.classList.remove('show');
-    
-    // Clean up event handlers to prevent memory leaks
-    delete overlay.dataset.hireHandlersInitialized;
     
     // Close all parent modals for cleaner UX (no stacking)
     const applicationsOverlay = document.getElementById('applicationsOverlay');
