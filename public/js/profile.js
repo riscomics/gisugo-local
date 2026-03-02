@@ -390,6 +390,34 @@ const getFaceVerifiedBtn = document.getElementById('getFaceVerifiedBtn');
 const notVerifiedCloseOnlyBtn = document.getElementById('notVerifiedCloseOnlyBtn');
 const notVerifiedLangTabs = document.getElementById('notVerifiedLangTabs');
 const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
+const faceCaptureOverlay = document.getElementById('faceCaptureOverlay');
+const faceCaptureCloseBtn = document.getElementById('faceCaptureCloseBtn');
+const faceCaptureCancelBtn = document.getElementById('faceCaptureCancelBtn');
+const faceCaptureStartBtn = document.getElementById('faceCaptureStartBtn');
+const faceCaptureRetakeBtn = document.getElementById('faceCaptureRetakeBtn');
+const faceCaptureUseBtn = document.getElementById('faceCaptureUseBtn');
+const faceCaptureVideo = document.getElementById('faceCaptureVideo');
+const faceCaptureCountdown = document.getElementById('faceCaptureCountdown');
+const faceCaptureLiveCaption = document.getElementById('faceCaptureLiveCaption');
+const faceCaptureStatus = document.getElementById('faceCaptureStatus');
+const faceCaptureFeedback = document.getElementById('faceCaptureFeedback');
+
+const FACE_CAPTURE_DURATION_MS = 3000;
+const faceCaptureState = {
+  stream: null,
+  mediaRecorder: null,
+  chunks: [],
+  countdownTimer: null,
+  recordStopTimer: null,
+  audioMonitorTimer: null,
+  audioContext: null,
+  audioSource: null,
+  analyser: null,
+  hasVoiceActivity: false,
+  recordedBlob: null,
+  recordedObjectUrl: '',
+  posterDataUrl: ''
+};
 
 // Open not verified overlay
 function openNotVerifiedOverlay() {
@@ -436,20 +464,442 @@ if (notVerifiedCloseOnlyBtn) {
 }
 
 function openFaceVerificationEntryPoint() {
+  if (!isOwnProfile()) {
+    closeNotVerifiedOverlay();
+    return;
+  }
+  openFaceCaptureOverlay();
+}
+
+function setFaceCaptureFeedback(message, tone = 'info') {
+  if (!faceCaptureFeedback) return;
+  faceCaptureFeedback.textContent = message;
+  if (tone === 'error') {
+    faceCaptureFeedback.style.color = '#fca5a5';
+  } else if (tone === 'success') {
+    faceCaptureFeedback.style.color = '#86efac';
+  } else if (tone === 'warning') {
+    faceCaptureFeedback.style.color = '#fde68a';
+  } else {
+    faceCaptureFeedback.style.color = '#bfdbfe';
+  }
+}
+
+function updateFaceCaptureStatus(status) {
+  if (faceCaptureStatus) {
+    faceCaptureStatus.textContent = status;
+  }
+}
+
+function clearFaceCaptureTimers() {
+  if (faceCaptureState.countdownTimer) {
+    clearInterval(faceCaptureState.countdownTimer);
+    faceCaptureState.countdownTimer = null;
+  }
+  if (faceCaptureState.recordStopTimer) {
+    clearTimeout(faceCaptureState.recordStopTimer);
+    faceCaptureState.recordStopTimer = null;
+  }
+  if (faceCaptureState.audioMonitorTimer) {
+    clearInterval(faceCaptureState.audioMonitorTimer);
+    faceCaptureState.audioMonitorTimer = null;
+  }
+}
+
+function stopFaceCaptureAudioMonitor() {
+  clearFaceCaptureTimers();
+  if (faceCaptureState.audioSource) {
+    try { faceCaptureState.audioSource.disconnect(); } catch (_) {}
+    faceCaptureState.audioSource = null;
+  }
+  if (faceCaptureState.audioContext) {
+    faceCaptureState.audioContext.close().catch(() => {});
+    faceCaptureState.audioContext = null;
+  }
+  faceCaptureState.analyser = null;
+}
+
+function stopFaceCaptureStream() {
+  if (faceCaptureState.stream) {
+    faceCaptureState.stream.getTracks().forEach(track => track.stop());
+    faceCaptureState.stream = null;
+  }
+  if (faceCaptureVideo) {
+    faceCaptureVideo.pause();
+    faceCaptureVideo.srcObject = null;
+  }
+}
+
+function resetFaceCaptureDraft() {
+  faceCaptureState.chunks = [];
+  faceCaptureState.recordedBlob = null;
+  faceCaptureState.posterDataUrl = '';
+  faceCaptureState.hasVoiceActivity = false;
+  if (faceCaptureState.recordedObjectUrl) {
+    URL.revokeObjectURL(faceCaptureState.recordedObjectUrl);
+    faceCaptureState.recordedObjectUrl = '';
+  }
+  if (faceCaptureVideo) {
+    faceCaptureVideo.removeAttribute('src');
+    faceCaptureVideo.muted = true;
+    faceCaptureVideo.controls = false;
+  }
+}
+
+async function startFaceCapturePreview() {
+  if (!faceCaptureVideo || !navigator.mediaDevices?.getUserMedia) {
+    setFaceCaptureFeedback('Camera is not available on this device. Please try on a phone with camera + microphone.', 'error');
+    if (faceCaptureStartBtn) faceCaptureStartBtn.disabled = true;
+    return false;
+  }
+
+  try {
+    stopFaceCaptureStream();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: 720 },
+        height: { ideal: 1280 }
+      },
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    faceCaptureState.stream = stream;
+    faceCaptureVideo.srcObject = stream;
+    faceCaptureVideo.muted = true;
+    faceCaptureVideo.controls = false;
+    await faceCaptureVideo.play();
+    if (faceCaptureStartBtn) faceCaptureStartBtn.disabled = false;
+    updateFaceCaptureStatus('Ready');
+    setFaceCaptureFeedback('Camera preview is ready. When you are ready, press Start Recording.');
+    return true;
+  } catch (error) {
+    console.error('Face capture camera init failed:', error);
+    setFaceCaptureFeedback('Cannot access camera or microphone. Please allow permission, then retry.', 'error');
+    if (faceCaptureStartBtn) faceCaptureStartBtn.disabled = true;
+    return false;
+  }
+}
+
+function openFaceCaptureOverlay() {
+  if (!faceCaptureOverlay) return;
   closeNotVerifiedOverlay();
-  if (typeof openAccountSettingsIfOwner === 'function') {
-    openAccountSettingsIfOwner();
-    document.body.style.overflow = 'hidden';
+  faceCaptureOverlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  clearFaceCaptureTimers();
+  stopFaceCaptureAudioMonitor();
+  resetFaceCaptureDraft();
+
+  if (faceCaptureCountdown) faceCaptureCountdown.style.display = 'none';
+  if (faceCaptureLiveCaption) faceCaptureLiveCaption.style.display = 'none';
+  if (faceCaptureStartBtn) {
+    faceCaptureStartBtn.style.display = '';
+    faceCaptureStartBtn.disabled = true;
   }
-  const upgradeStatusOption = document.getElementById('upgradeStatusOption');
-  if (upgradeStatusOption) {
-    upgradeStatusOption.classList.add('pulsating-glow');
-    upgradeStatusOption.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (faceCaptureRetakeBtn) faceCaptureRetakeBtn.style.display = 'none';
+  if (faceCaptureUseBtn) faceCaptureUseBtn.style.display = 'none';
+
+  startFaceCapturePreview();
+}
+
+function closeFaceCaptureOverlay() {
+  if (!faceCaptureOverlay) return;
+  faceCaptureOverlay.classList.remove('active');
+  if (faceCaptureState.mediaRecorder && faceCaptureState.mediaRecorder.state === 'recording') {
+    try {
+      faceCaptureState.mediaRecorder.onstop = null;
+      faceCaptureState.mediaRecorder.stop();
+    } catch (_) {}
   }
+  faceCaptureState.mediaRecorder = null;
+  clearFaceCaptureTimers();
+  stopFaceCaptureAudioMonitor();
+  stopFaceCaptureStream();
+  resetFaceCaptureDraft();
+  document.body.style.overflow = '';
+}
+
+function startFaceCaptureAudioMonitor(stream) {
+  faceCaptureState.hasVoiceActivity = false;
+  if (!stream || !stream.getAudioTracks().length) return;
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+
+  try {
+    const audioContext = new AudioCtx();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    source.connect(analyser);
+
+    faceCaptureState.audioContext = audioContext;
+    faceCaptureState.audioSource = source;
+    faceCaptureState.analyser = analyser;
+
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    faceCaptureState.audioMonitorTimer = setInterval(() => {
+      analyser.getByteTimeDomainData(data);
+      let energy = 0;
+      for (let i = 0; i < data.length; i += 1) {
+        energy += Math.abs(data[i] - 128);
+      }
+      const avgEnergy = energy / data.length;
+      if (avgEnergy > 2.5) {
+        faceCaptureState.hasVoiceActivity = true;
+      }
+    }, 90);
+  } catch (error) {
+    console.warn('Audio monitor fallback:', error);
+  }
+}
+
+function generateFacePoster(videoEl) {
+  const sourceWidth = videoEl.videoWidth || 480;
+  const sourceHeight = videoEl.videoHeight || 640;
+  const targetWidth = 360;
+  const targetHeight = 480;
+  const sourceRatio = sourceWidth / sourceHeight;
+  const targetRatio = targetWidth / targetHeight;
+
+  let sx = 0;
+  let sy = 0;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (sourceRatio > targetRatio) {
+    sw = sourceHeight * targetRatio;
+    sx = (sourceWidth - sw) / 2;
+  } else if (sourceRatio < targetRatio) {
+    sh = sourceWidth / targetRatio;
+    sy = (sourceHeight - sh) / 2;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+function runFaceCaptureQualityChecks(videoEl) {
+  const warnings = [];
+  const hardStops = [];
+
+  if (!faceCaptureState.hasVoiceActivity) {
+    hardStops.push('No clear voice detected. Please say your Full Name clearly.');
+  }
+
+  if (videoEl && videoEl.videoWidth && videoEl.videoHeight) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 90;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return { warnings, hardStops };
+
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    let brightness = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      brightness += 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2];
+    }
+    brightness /= (pixels.length / 4);
+
+    let contrast = 0;
+    for (let y = 1; y < canvas.height; y += 1) {
+      for (let x = 1; x < canvas.width; x += 1) {
+        const idx = (y * canvas.width + x) * 4;
+        const prevIdx = (y * canvas.width + (x - 1)) * 4;
+        contrast += Math.abs(pixels[idx] - pixels[prevIdx]);
+      }
+    }
+    contrast /= (canvas.width * canvas.height);
+
+    if (brightness < 26) hardStops.push('Video is too dark. Please move to better lighting.');
+    else if (brightness < 40) warnings.push('Lighting is low. Better lighting improves trust visibility.');
+
+    if (contrast < 4) hardStops.push('Video looks too blurry. Hold your phone steady and try again.');
+    else if (contrast < 8) warnings.push('Slight blur detected. Try staying more still while recording.');
+  }
+
+  return { warnings, hardStops };
+}
+
+async function finalizeFaceCaptureRecording() {
+  clearFaceCaptureTimers();
+  stopFaceCaptureAudioMonitor();
+  faceCaptureState.mediaRecorder = null;
+
+  if (!faceCaptureState.chunks.length || !faceCaptureVideo) {
+    setFaceCaptureFeedback('Recording failed. Please try again.', 'error');
+    if (faceCaptureRetakeBtn) faceCaptureRetakeBtn.style.display = '';
+    return;
+  }
+
+  const blob = new Blob(faceCaptureState.chunks, { type: faceCaptureState.chunks[0]?.type || 'video/webm' });
+  faceCaptureState.recordedBlob = blob;
+
+  if (faceCaptureState.recordedObjectUrl) {
+    URL.revokeObjectURL(faceCaptureState.recordedObjectUrl);
+  }
+  faceCaptureState.recordedObjectUrl = URL.createObjectURL(blob);
+
+  faceCaptureVideo.srcObject = null;
+  faceCaptureVideo.src = faceCaptureState.recordedObjectUrl;
+  faceCaptureVideo.muted = false;
+  faceCaptureVideo.controls = true;
+
+  try {
+    await faceCaptureVideo.play();
+  } catch (_) {
+    // Some browsers block autoplay after source switch. User can press play manually.
+  }
+
+  faceCaptureState.posterDataUrl = generateFacePoster(faceCaptureVideo) || '';
+  const checks = runFaceCaptureQualityChecks(faceCaptureVideo);
+
+  if (faceCaptureStartBtn) faceCaptureStartBtn.style.display = 'none';
+  if (faceCaptureRetakeBtn) faceCaptureRetakeBtn.style.display = '';
+
+  if (checks.hardStops.length > 0) {
+    if (faceCaptureUseBtn) faceCaptureUseBtn.style.display = 'none';
+    updateFaceCaptureStatus('Retake Required');
+    setFaceCaptureFeedback(checks.hardStops.join(' '), 'error');
+    return;
+  }
+
+  if (faceCaptureUseBtn) faceCaptureUseBtn.style.display = '';
+  updateFaceCaptureStatus('Review');
+  if (checks.warnings.length > 0) {
+    setFaceCaptureFeedback(checks.warnings.join(' '), 'warning');
+  } else {
+    setFaceCaptureFeedback('Looks good. You can use this video or record again.', 'success');
+  }
+}
+
+function startFaceCaptureRecording() {
+  if (!faceCaptureState.stream || !faceCaptureVideo) return;
+
+  if (!window.MediaRecorder) {
+    setFaceCaptureFeedback('Recording is not supported on this browser. Please use a modern browser or mobile device.', 'error');
+    return;
+  }
+
+  const mimeTypes = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  const mimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+
+  faceCaptureState.chunks = [];
+  faceCaptureState.mediaRecorder = new MediaRecorder(
+    faceCaptureState.stream,
+    mimeType ? { mimeType } : undefined
+  );
+
+  faceCaptureState.mediaRecorder.ondataavailable = (event) => {
+    if (event.data && event.data.size > 0) {
+      faceCaptureState.chunks.push(event.data);
+    }
+  };
+  faceCaptureState.mediaRecorder.onstop = finalizeFaceCaptureRecording;
+
+  startFaceCaptureAudioMonitor(faceCaptureState.stream);
+  faceCaptureState.mediaRecorder.start(200);
+
+  if (faceCaptureLiveCaption) faceCaptureLiveCaption.style.display = 'block';
+  updateFaceCaptureStatus('Recording');
+  setFaceCaptureFeedback('Recording now. Say your Full Name clearly.');
+
+  faceCaptureState.recordStopTimer = setTimeout(() => {
+    if (faceCaptureState.mediaRecorder && faceCaptureState.mediaRecorder.state === 'recording') {
+      faceCaptureState.mediaRecorder.stop();
+    }
+    if (faceCaptureLiveCaption) faceCaptureLiveCaption.style.display = 'none';
+  }, FACE_CAPTURE_DURATION_MS);
+}
+
+function beginFaceCaptureCountdown() {
+  if (!faceCaptureCountdown || !faceCaptureStartBtn) return;
+  faceCaptureStartBtn.disabled = true;
+  faceCaptureCountdown.style.display = 'flex';
+  updateFaceCaptureStatus('Get Ready');
+  setFaceCaptureFeedback('Get ready. Recording starts in 3...');
+
+  let count = 3;
+  faceCaptureCountdown.textContent = String(count);
+  faceCaptureState.countdownTimer = setInterval(() => {
+    count -= 1;
+    if (count <= 0) {
+      clearInterval(faceCaptureState.countdownTimer);
+      faceCaptureState.countdownTimer = null;
+      faceCaptureCountdown.style.display = 'none';
+      startFaceCaptureRecording();
+      return;
+    }
+    faceCaptureCountdown.textContent = String(count);
+  }, 1000);
+}
+
+function useFaceCaptureResult() {
+  if (!window.currentUserProfile || !faceCaptureState.posterDataUrl) {
+    setFaceCaptureFeedback('No verified preview found. Please record again.', 'error');
+    return;
+  }
+
+  if (!window.currentUserProfile.verification) {
+    window.currentUserProfile.verification = {};
+  }
+
+  window.currentUserProfile.verification.faceVerified = true;
+  window.currentUserProfile.verification.facePosterUrl = faceCaptureState.posterDataUrl;
+  window.currentUserProfile.verification.verificationDate = new Date().toISOString();
+
+  updateBadgeVisibility(window.currentUserProfile);
+  updateAccountOverlayVerificationStatus(window.currentUserProfile);
+  populateFacePrestigePreview();
+  closeFaceCaptureOverlay();
+  openFacePrestigeOverlay();
 }
 
 if (getFaceVerifiedBtn) {
   getFaceVerifiedBtn.addEventListener('click', openFaceVerificationEntryPoint);
+}
+
+if (faceCaptureCloseBtn) {
+  faceCaptureCloseBtn.addEventListener('click', closeFaceCaptureOverlay);
+}
+
+if (faceCaptureCancelBtn) {
+  faceCaptureCancelBtn.addEventListener('click', closeFaceCaptureOverlay);
+}
+
+if (faceCaptureStartBtn) {
+  faceCaptureStartBtn.addEventListener('click', beginFaceCaptureCountdown);
+}
+
+if (faceCaptureRetakeBtn) {
+  faceCaptureRetakeBtn.addEventListener('click', openFaceCaptureOverlay);
+}
+
+if (faceCaptureUseBtn) {
+  faceCaptureUseBtn.addEventListener('click', useFaceCaptureResult);
+}
+
+if (faceCaptureOverlay) {
+  faceCaptureOverlay.addEventListener('click', function(e) {
+    if (e.target === faceCaptureOverlay) {
+      closeFaceCaptureOverlay();
+    }
+  });
 }
 
 const NOT_VERIFIED_LABELS = {
@@ -508,7 +958,9 @@ if (notVerifiedOverlay) {
 // Keyboard escape to close (updated to include all verification overlays)
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    if (businessPrestigeOverlay && businessPrestigeOverlay.classList.contains('active')) {
+    if (faceCaptureOverlay && faceCaptureOverlay.classList.contains('active')) {
+      closeFaceCaptureOverlay();
+    } else if (businessPrestigeOverlay && businessPrestigeOverlay.classList.contains('active')) {
       closeBusinessPrestigeOverlay();
     } else if (proPrestigeOverlay && proPrestigeOverlay.classList.contains('active')) {
       closeProPrestigeOverlay();

@@ -3387,9 +3387,9 @@ function showConfirmAcceptGigOverlay(jobData) {
     
     // Update customer status (simulate based on poster data)
     const customerStatus = updateCustomerStatusDisplay(jobData);
-    updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName);
+    overlay.dataset.verificationStatusType = customerStatus?.type || '';
+    updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName, jobData.posterId);
     setVerificationDecision('acceptGig', null);
-    resetVerificationProceedButton('accept');
     
     // Initialize handlers
     initializeConfirmAcceptGigHandlers();
@@ -3399,6 +3399,8 @@ function showConfirmAcceptGigOverlay(jobData) {
     
     // Show overlay
     overlay.classList.add('show');
+    startVerificationReminderTicker('accept');
+    attachConfirmAcceptGigEscHandler();
     
     console.log('🤝 Confirm accept gig overlay shown');
 }
@@ -3517,12 +3519,6 @@ function setVerificationDecision(modalId, decision) {
     refreshDisclaimerGate(modalId);
 }
 
-const VERIFICATION_REMINDER_LIMITS = {
-    windowMs: 24 * 60 * 60 * 1000,   // 24 hours
-    maxPerWindow: 3,                 // Max reminders per counterpart per day
-    minIntervalMs: 5 * 60 * 1000     // 5-minute cooldown between reminders
-};
-
 function getCurrentReminderActorId() {
     try {
         if (typeof firebase !== 'undefined' && firebase.auth) {
@@ -3544,78 +3540,122 @@ function getVerificationReminderState(counterpartId) {
     try {
         const raw = localStorage.getItem(key);
         if (!raw) {
-            return {
-                key,
-                state: { windowStart: Date.now(), count: 0, lastSentAt: 0 }
-            };
+            return { key, state: { status: 'none', requestedAt: 0 } };
         }
         const parsed = JSON.parse(raw);
         return {
             key,
             state: {
-                windowStart: Number(parsed.windowStart || Date.now()),
-                count: Number(parsed.count || 0),
-                lastSentAt: Number(parsed.lastSentAt || 0)
+                status: parsed.status || 'none',
+                requestedAt: Number(parsed.requestedAt || 0)
             }
         };
     } catch (_) {
-        return {
-            key,
-            state: { windowStart: Date.now(), count: 0, lastSentAt: 0 }
-        };
+        return { key, state: { status: 'none', requestedAt: 0 } };
     }
 }
 
-function canSendVerificationReminder(counterpartId) {
-    const now = Date.now();
-    const { state } = getVerificationReminderState(counterpartId);
-    let { windowStart, count, lastSentAt } = state;
-
-    if (now - windowStart >= VERIFICATION_REMINDER_LIMITS.windowMs) {
-        windowStart = now;
-        count = 0;
-        lastSentAt = 0;
-    }
-
-    if (now - lastSentAt < VERIFICATION_REMINDER_LIMITS.minIntervalMs) {
-        const waitMs = VERIFICATION_REMINDER_LIMITS.minIntervalMs - (now - lastSentAt);
-        return { allowed: false, reason: 'cooldown', waitMs };
-    }
-
-    if (count >= VERIFICATION_REMINDER_LIMITS.maxPerWindow) {
-        const waitMs = VERIFICATION_REMINDER_LIMITS.windowMs - (now - windowStart);
-        return { allowed: false, reason: 'daily_limit', waitMs };
-    }
-
-    return { allowed: true };
-}
-
-function recordVerificationReminderSent(counterpartId) {
-    const now = Date.now();
-    const { key, state } = getVerificationReminderState(counterpartId);
-    let { windowStart, count } = state;
-
-    if (now - windowStart >= VERIFICATION_REMINDER_LIMITS.windowMs) {
-        windowStart = now;
-        count = 0;
-    }
-
-    const nextState = {
-        windowStart,
-        count: count + 1,
-        lastSentAt: now
-    };
-
+function setVerificationReminderPending(counterpartId) {
+    const { key } = getVerificationReminderState(counterpartId);
     try {
-        localStorage.setItem(key, JSON.stringify(nextState));
+        localStorage.setItem(
+            key,
+            JSON.stringify({ status: 'pending', requestedAt: Date.now() })
+        );
     } catch (_) {
         // Non-fatal in private mode/full storage.
     }
 }
 
-function formatWaitMinutes(waitMs) {
-    const mins = Math.max(1, Math.ceil(waitMs / 60000));
-    return `${mins} minute${mins === 1 ? '' : 's'}`;
+function formatRelativeReminderTime(requestedAt) {
+    if (!requestedAt) return 'Requested just now';
+    const elapsedMs = Date.now() - requestedAt;
+    const minutes = Math.max(1, Math.floor(elapsedMs / 60000));
+    if (minutes < 60) {
+        return `Requested ${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+        return `Requested ${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
+    const days = Math.floor(hours / 24);
+    return `Requested ${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+function clearVerificationReminderTicker(context) {
+    const overlay = document.getElementById(
+        context === 'hire' ? 'hireConfirmationOverlay' : 'confirmAcceptGigOverlay'
+    );
+    if (!overlay) return;
+    if (overlay.__verificationReminderTicker) {
+        clearInterval(overlay.__verificationReminderTicker);
+        overlay.__verificationReminderTicker = null;
+    }
+}
+
+function startVerificationReminderTicker(context) {
+    const overlay = document.getElementById(
+        context === 'hire' ? 'hireConfirmationOverlay' : 'confirmAcceptGigOverlay'
+    );
+    if (!overlay) return;
+
+    clearVerificationReminderTicker(context);
+    overlay.__verificationReminderTicker = setInterval(() => {
+        if (!overlay.classList.contains('show')) {
+            clearVerificationReminderTicker(context);
+            return;
+        }
+        const counterpartName = context === 'hire'
+            ? (overlay.dataset.userName || 'this worker')
+            : (overlay.dataset.posterName || 'this customer');
+        const counterpartId = context === 'hire'
+            ? (overlay.dataset.userId || counterpartName)
+            : (overlay.dataset.posterId || counterpartName);
+        const statusType = overlay.dataset.verificationStatusType || '';
+        updateVerificationReminderActions(context, statusType, counterpartName, counterpartId);
+    }, 60000);
+}
+
+function attachConfirmAcceptGigEscHandler() {
+    const overlay = document.getElementById('confirmAcceptGigOverlay');
+    if (!overlay || overlay.__escHandlerAttached) return;
+    if (!overlay.__escHandler) {
+        overlay.__escHandler = function(e) {
+            if (e.key === 'Escape' && overlay.classList.contains('show')) {
+                hideConfirmAcceptGigOverlay();
+            }
+        };
+    }
+    document.addEventListener('keydown', overlay.__escHandler);
+    overlay.__escHandlerAttached = true;
+}
+
+function detachConfirmAcceptGigEscHandler() {
+    const overlay = document.getElementById('confirmAcceptGigOverlay');
+    if (!overlay || !overlay.__escHandlerAttached || !overlay.__escHandler) return;
+    document.removeEventListener('keydown', overlay.__escHandler);
+    overlay.__escHandlerAttached = false;
+}
+
+function attachHireConfirmationEscHandler() {
+    const overlay = document.getElementById('hireConfirmationOverlay');
+    if (!overlay || overlay.__escHandlerAttached) return;
+    if (!overlay.__escHandler) {
+        overlay.__escHandler = function(e) {
+            if (e.key === 'Escape' && overlay.classList.contains('show')) {
+                hideHireConfirmationOverlay();
+            }
+        };
+    }
+    document.addEventListener('keydown', overlay.__escHandler);
+    overlay.__escHandlerAttached = true;
+}
+
+function detachHireConfirmationEscHandler() {
+    const overlay = document.getElementById('hireConfirmationOverlay');
+    if (!overlay || !overlay.__escHandlerAttached || !overlay.__escHandler) return;
+    document.removeEventListener('keydown', overlay.__escHandler);
+    overlay.__escHandlerAttached = false;
 }
 
 // ===== DISCLAIMER LANGUAGE TABS =====
@@ -3741,19 +3781,7 @@ function initializeConfirmAcceptGigHandlers() {
         requestBtn.addEventListener('click', function() {
             const counterpartName = overlay.dataset.posterName || 'this customer';
             const counterpartId = overlay.dataset.posterId || counterpartName;
-            const check = canSendVerificationReminder(counterpartId);
-            if (!check.allowed) {
-                const waitText = formatWaitMinutes(check.waitMs || 0);
-                const limitMessage = check.reason === 'cooldown'
-                    ? `Please wait ${waitText} before sending another reminder to ${counterpartName}.`
-                    : `Reminder limit reached for ${counterpartName}. Try again in ${waitText}.`;
-                showConfirmationWithCallback('⏳', 'Reminder Limited', limitMessage, null);
-                return;
-            }
-
-            recordVerificationReminderSent(counterpartId);
-            requestBtn.classList.add('selected');
-            requestBtn.textContent = '✓ Requested';
+            setVerificationReminderPending(counterpartId);
             if (proceedBtn) {
                 proceedBtn.classList.remove('selected');
                 proceedBtn.textContent = 'Accept Offer Anyway';
@@ -3773,7 +3801,7 @@ function initializeConfirmAcceptGigHandlers() {
         proceedBtn.addEventListener('click', function() {
             const isSelected = proceedBtn.classList.toggle('selected');
             proceedBtn.textContent = isSelected ? '✓ Accept Offer Anyway' : 'Accept Offer Anyway';
-            if (isSelected && requestBtn) {
+            if (isSelected && requestBtn && !requestBtn.disabled) {
                 requestBtn.classList.remove('selected');
                 requestBtn.textContent = 'Request Verification';
             }
@@ -3797,13 +3825,6 @@ function initializeConfirmAcceptGigHandlers() {
         }
     });
     
-    // Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && overlay.classList.contains('show')) {
-            hideConfirmAcceptGigOverlay();
-        }
-    });
-    
     overlay.dataset.handlersInitialized = 'true';
 }
 
@@ -3811,6 +3832,8 @@ function hideConfirmAcceptGigOverlay() {
     const overlay = document.getElementById('confirmAcceptGigOverlay');
     if (!overlay) return;
     
+    clearVerificationReminderTicker('accept');
+    detachConfirmAcceptGigEscHandler();
     overlay.classList.remove('show');
     
     console.log('🤝 Confirm accept gig overlay hidden and handlers cleaned up');
@@ -8474,9 +8497,9 @@ function showHireConfirmationOverlay(workerData) {
     // Update worker status based on rating (simulate account status determination)
     const workerStatus = determineWorkerStatus(workerData.userRating);
     updateWorkerStatusDisplay(workerStatus);
-    updateVerificationReminderActions('hire', workerStatus?.type, workerData.userName);
+    overlay.dataset.verificationStatusType = workerStatus?.type || '';
+    updateVerificationReminderActions('hire', workerStatus?.type, workerData.userName, workerData.userId);
     setVerificationDecision('confirmHire', null);
-    resetVerificationProceedButton('hire');
 
     // Store worker data for confirmation action
     overlay.dataset.applicationId = workerData.applicationId;
@@ -8494,6 +8517,8 @@ function showHireConfirmationOverlay(workerData) {
     
     // Show overlay
     overlay.classList.add('show');
+    startVerificationReminderTicker('hire');
+    attachHireConfirmationEscHandler();
     
     // Initialize event handlers
     initializeHireConfirmationHandlers();
@@ -8571,27 +8596,64 @@ function updateWorkerStatusDisplay(status) {
     }
 }
 
-function updateVerificationReminderActions(context, statusType, counterpartName = 'this member') {
+function updateVerificationReminderActions(context, statusType, counterpartName = 'this member', counterpartId = '') {
     const isUnverified = statusType === 'unverified' || statusType === 'new-member';
     const isHire = context === 'hire';
 
     const reminderCard = document.getElementById(isHire ? 'hireUnverifiedReminder' : 'acceptUnverifiedReminder');
     const reminderText = document.getElementById(isHire ? 'hireReminderText' : 'acceptReminderText');
+    const reminderMeta = document.getElementById(isHire ? 'hireReminderMeta' : 'acceptReminderMeta');
+    const requestBtn = document.getElementById(isHire ? 'hireRequestVerificationBtn' : 'acceptRequestVerificationBtn');
+    const safeCounterpartId = counterpartId || counterpartName;
+    const firstName = (counterpartName || 'This member').split(' ')[0];
 
     if (!reminderCard) return;
 
     if (!isUnverified) {
         reminderCard.style.display = 'none';
+        if (reminderMeta) {
+            reminderMeta.style.display = 'none';
+            reminderMeta.textContent = '';
+        }
         resetVerificationProceedButton(context);
         setVerificationDecision(context === 'hire' ? 'confirmHire' : 'acceptGig', null);
         return;
     }
 
     reminderCard.style.display = 'block';
+    const { state } = getVerificationReminderState(safeCounterpartId);
+    const isPending = state.status === 'pending' && state.requestedAt > 0;
+
     if (reminderText) {
-        reminderText.textContent = isHire
-            ? `${counterpartName} is currently unverified. You can request Face Verification or continue sending the offer.`
-            : `${counterpartName} is currently unverified. You can request Face Verification or continue accepting the offer.`;
+        reminderText.textContent = isPending
+            ? (isHire
+                ? `${counterpartName} is still unverified. You already requested Face Verification.`
+                : `${counterpartName} is still unverified. You already requested Face Verification.`)
+            : (isHire
+                ? `${counterpartName} is currently unverified. You can request Face Verification or continue sending the offer.`
+                : `${counterpartName} is currently unverified. You can request Face Verification or continue accepting the offer.`);
+    }
+
+    if (requestBtn) {
+        if (isPending) {
+            requestBtn.disabled = true;
+            requestBtn.classList.add('selected');
+            requestBtn.textContent = `Waiting for ${firstName} to Face Verify`;
+        } else {
+            requestBtn.disabled = false;
+            requestBtn.classList.remove('selected');
+            requestBtn.textContent = 'Request Verification';
+        }
+    }
+
+    if (reminderMeta) {
+        if (isPending) {
+            reminderMeta.style.display = 'block';
+            reminderMeta.textContent = formatRelativeReminderTime(state.requestedAt);
+        } else {
+            reminderMeta.style.display = 'none';
+            reminderMeta.textContent = '';
+        }
     }
     refreshDisclaimerGate(isHire ? 'confirmHire' : 'acceptGig');
 }
@@ -8604,6 +8666,7 @@ function resetVerificationProceedButton(context) {
     proceedBtn.classList.remove('selected');
     proceedBtn.textContent = isHire ? 'Send Offer Anyway' : 'Accept Offer Anyway';
     if (requestBtn) {
+        requestBtn.disabled = false;
         requestBtn.classList.remove('selected');
         requestBtn.textContent = 'Request Verification';
     }
@@ -8655,19 +8718,7 @@ function initializeHireConfirmationHandlers() {
         requestBtn.addEventListener('click', function() {
             const counterpartName = overlay.dataset.userName || 'this worker';
             const counterpartId = overlay.dataset.userId || counterpartName;
-            const check = canSendVerificationReminder(counterpartId);
-            if (!check.allowed) {
-                const waitText = formatWaitMinutes(check.waitMs || 0);
-                const limitMessage = check.reason === 'cooldown'
-                    ? `Please wait ${waitText} before sending another reminder to ${counterpartName}.`
-                    : `Reminder limit reached for ${counterpartName}. Try again in ${waitText}.`;
-                showConfirmationWithCallback('⏳', 'Reminder Limited', limitMessage, null);
-                return;
-            }
-
-            recordVerificationReminderSent(counterpartId);
-            requestBtn.classList.add('selected');
-            requestBtn.textContent = '✓ Requested';
+            setVerificationReminderPending(counterpartId);
             if (proceedBtn) {
                 proceedBtn.classList.remove('selected');
                 proceedBtn.textContent = 'Send Offer Anyway';
@@ -8687,7 +8738,7 @@ function initializeHireConfirmationHandlers() {
         proceedBtn.addEventListener('click', function() {
             const isSelected = proceedBtn.classList.toggle('selected');
             proceedBtn.textContent = isSelected ? '✓ Send Offer Anyway' : 'Send Offer Anyway';
-            if (isSelected && requestBtn) {
+            if (isSelected && requestBtn && !requestBtn.disabled) {
                 requestBtn.classList.remove('selected');
                 requestBtn.textContent = 'Request Verification';
             }
@@ -8711,13 +8762,6 @@ function initializeHireConfirmationHandlers() {
         }
     });
 
-    // Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && overlay.classList.contains('show')) {
-            hideHireConfirmationOverlay();
-        }
-    });
-
     overlay.dataset.hireHandlersInitialized = 'true';
 }
 
@@ -8725,6 +8769,8 @@ function hideHireConfirmationOverlay() {
     const overlay = document.getElementById('hireConfirmationOverlay');
     if (!overlay) return;
     
+    clearVerificationReminderTicker('hire');
+    detachHireConfirmationEscHandler();
     overlay.classList.remove('show');
     
     // Close all parent modals for cleaner UX (no stacking)

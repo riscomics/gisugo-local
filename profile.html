@@ -477,6 +477,50 @@
     </div>
   </div>
 
+  <!-- Face Verification Capture Overlay -->
+  <div class="face-capture-overlay" id="faceCaptureOverlay">
+    <div class="face-capture-container">
+      <div class="face-capture-header">
+        <div class="face-capture-title-wrap">
+          <div class="face-capture-title">Face Verification</div>
+          <div class="face-capture-subtitle">Record a 3-second selfie video</div>
+        </div>
+        <button class="face-capture-close" id="faceCaptureCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <div class="face-capture-content">
+        <div class="face-capture-intro" id="faceCaptureIntro">
+          <div class="face-capture-instruction">You will have 3 seconds to record for Face Verification.</div>
+          <div class="face-capture-instruction strong">Say your Full Name in the recording.</div>
+          <div class="face-capture-guidance-list">
+            <div class="face-capture-guidance-item">Use good lighting.</div>
+            <div class="face-capture-guidance-item">Keep your face inside the oval guide.</div>
+            <div class="face-capture-guidance-item">Speak clearly so voice can be detected.</div>
+          </div>
+        </div>
+
+        <div class="face-capture-stage" id="faceCaptureStage">
+          <video id="faceCaptureVideo" class="face-capture-video" autoplay muted playsinline></video>
+          <div class="face-capture-oval-guide" aria-hidden="true"></div>
+          <div class="face-capture-countdown" id="faceCaptureCountdown" style="display: none;">3</div>
+          <div class="face-capture-live-caption" id="faceCaptureLiveCaption" style="display: none;">Say your Full Name clearly.</div>
+          <div class="face-capture-status" id="faceCaptureStatus">Ready</div>
+        </div>
+
+        <div class="face-capture-feedback" id="faceCaptureFeedback">
+          Camera preview is ready. When you are ready, press Start Recording.
+        </div>
+      </div>
+
+      <div class="face-capture-footer">
+        <button class="face-capture-btn secondary" id="faceCaptureCancelBtn">Cancel</button>
+        <button class="face-capture-btn primary" id="faceCaptureStartBtn">Start 3-Second Recording</button>
+        <button class="face-capture-btn secondary" id="faceCaptureRetakeBtn" style="display: none;">Record Again</button>
+        <button class="face-capture-btn primary" id="faceCaptureUseBtn" style="display: none;">Use This Video</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Not Verified Yet Overlay -->
   <div class="not-verified-overlay" id="notVerifiedOverlay">
     <div class="not-verified-container">
