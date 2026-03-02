@@ -205,6 +205,16 @@ service cloud.firestore {
       // Only the owner or admin can delete
       allow delete: if isOwner(userId) || isAdmin();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // USER_PRIVATE COLLECTION (Owner-only sensitive profile metadata)
+    // ═══════════════════════════════════════════════════════════════
+    match /user_private/{userId} {
+      // Only owner (or admin) can read/write private profile metadata.
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // JOBS COLLECTION

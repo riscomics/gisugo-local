@@ -342,7 +342,12 @@ if (facePrestigeLangTabs) {
 
 function getFacePosterUrl(userProfile) {
   const verification = userProfile?.verification || {};
-  return verification.facePosterUrl || verification.facePreviewUrl || verification.faceThumbnailUrl || null;
+  const privateVerification = window.currentUserPrivateProfile?.verification || {};
+  return privateVerification.facePosterUrl
+    || verification.facePosterUrl
+    || verification.facePreviewUrl
+    || verification.faceThumbnailUrl
+    || null;
 }
 
 function populateFacePrestigePreview() {
@@ -994,7 +999,7 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
         const response = await fetch(posterDataUrl);
         const blob = await response.blob();
         const storageRef = firebase.storage().ref();
-        const facePosterRef = storageRef.child(`face_verification/${userId}/poster.jpg`);
+        const facePosterRef = storageRef.child(`face_verification/${userId}/face_poster.jpg`);
         const snapshot = await facePosterRef.put(blob, { contentType: 'image/jpeg' });
         resolvedPosterUrl = await snapshot.ref.getDownloadURL();
       } else {
@@ -1002,14 +1007,23 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
       }
     } catch (error) {
       console.error('❌ Face poster upload error:', error);
-      return { success: false, message: 'Could not upload face thumbnail. Please try again.' };
+      const errorCode = error?.code ? ` (${error.code})` : '';
+      return { success: false, message: `Could not upload face thumbnail${errorCode}. Please try again.` };
     }
   }
 
   const updateData = {
     'verification.faceVerified': true,
-    'verification.facePosterUrl': resolvedPosterUrl,
     'verification.verificationDate': (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue)
+      ? firebase.firestore.FieldValue.serverTimestamp()
+      : new Date().toISOString()
+  };
+
+  const privateUpdateData = {
+    verification: {
+      facePosterUrl: resolvedPosterUrl
+    },
+    lastModified: (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue)
       ? firebase.firestore.FieldValue.serverTimestamp()
       : new Date().toISOString()
   };
@@ -1017,14 +1031,18 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
   try {
     if (typeof updateUserProfile === 'function') {
       const result = await updateUserProfile(userId, updateData);
-      if (result?.success) {
+      if (result?.success && typeof firebase !== 'undefined' && firebase.firestore) {
+        await firebase.firestore().collection('user_private').doc(userId).set(privateUpdateData, { merge: true });
         return { success: true, posterUrl: resolvedPosterUrl };
       }
       return { success: false, message: result?.message || 'Failed to save Face Verification.' };
     }
 
     if (typeof firebase !== 'undefined' && firebase.firestore) {
-      await firebase.firestore().collection('users').doc(userId).update(updateData);
+      const batch = firebase.firestore().batch();
+      batch.update(firebase.firestore().collection('users').doc(userId), updateData);
+      batch.set(firebase.firestore().collection('user_private').doc(userId), privateUpdateData, { merge: true });
+      await batch.commit();
       return { success: true, posterUrl: resolvedPosterUrl };
     }
 
@@ -1062,10 +1080,16 @@ async function useFaceCaptureResult() {
   if (!window.currentUserProfile.verification) {
     window.currentUserProfile.verification = {};
   }
+  if (!window.currentUserPrivateProfile) {
+    window.currentUserPrivateProfile = {};
+  }
+  if (!window.currentUserPrivateProfile.verification) {
+    window.currentUserPrivateProfile.verification = {};
+  }
 
   window.currentUserProfile.verification.faceVerified = true;
-  window.currentUserProfile.verification.facePosterUrl = saveResult.posterUrl || faceCaptureState.posterDataUrl;
   window.currentUserProfile.verification.verificationDate = new Date().toISOString();
+  window.currentUserPrivateProfile.verification.facePosterUrl = saveResult.posterUrl || faceCaptureState.posterDataUrl;
 
   updateBadgeVisibility(window.currentUserProfile);
   updateAccountOverlayVerificationStatus(window.currentUserProfile);
@@ -1884,12 +1908,11 @@ function getCurrentUserId() {
       }
     }
   } catch (e) {
-    // Firebase not initialized - use fallback
-    console.log('📋 Using mock user ID (Firebase not connected)');
+    // Firebase not initialized yet.
+    return null;
   }
   
-  // Fallback to mock user for development
-  return 'peter-j-ang-001';
+  return null;
 }
 
 // ===== ACCOUNT SETTINGS ACCESS CONTROL =====
@@ -4204,6 +4227,17 @@ async function waitForAuthAndLoadProfile() {
         
         if (firebaseProfile) {
           console.log('✅ Profile loaded from Firebase:', firebaseProfile.fullName);
+          window.currentUserPrivateProfile = null;
+          if (isViewingOwnProfile && typeof firebase !== 'undefined' && firebase.firestore) {
+            try {
+              const privateDoc = await firebase.firestore().collection('user_private').doc(profileUserId).get();
+              if (privateDoc.exists) {
+                window.currentUserPrivateProfile = privateDoc.data() || null;
+              }
+            } catch (privateErr) {
+              console.warn('⚠️ Private profile metadata load skipped:', privateErr);
+            }
+          }
           window.currentUserProfile = firebaseProfile;
           finishProfileLoading();
           loadUserProfile(firebaseProfile);

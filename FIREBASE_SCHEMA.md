@@ -2,6 +2,44 @@
 
 ## **FIRESTORE COLLECTIONS**
 
+### **0. `users` + `user_private` Split (Face Verification Architecture)**
+Public/private boundary for profile data to improve privacy, read efficiency, and long-term scale.
+
+```javascript
+// users/{uid}  (public-safe, lightweight profile)
+{
+  "userId": "uid",
+  "fullName": "String",
+  "profilePhoto": "String (optional)",
+  "profilePicture": "String (optional)",
+  "location": "String (optional)",
+  "statistics": {
+    "jobsCompleted": 0,
+    "responseRate": 0
+  },
+  "verification": {
+    "faceVerified": true|false,
+    "proVerified": true|false,
+    "businessVerified": true|false,
+    "verificationDate": timestamp
+  },
+  "lastModified": timestamp
+}
+
+// user_private/{uid}  (owner/admin only sensitive metadata)
+{
+  "verification": {
+    "facePosterUrl": "https://firebasestorage.googleapis.com/..."
+  },
+  "lastModified": timestamp
+}
+```
+
+**Design notes**
+- Keep `users` readable for marketplace UX (badges/status).
+- Keep media pointers and sensitive verification metadata in `user_private`.
+- Only owner/admin reads/writes `user_private` in Firestore rules.
+
 ### **1. `jobs` Collection**
 Primary job postings with comprehensive data structure.
 

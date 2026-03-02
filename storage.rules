@@ -1,0 +1,48 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // Public profile photos (marketplace-facing avatars)
+    match /profile_photos/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Public job photos (listing thumbnails and gig images)
+    match /job_photos/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Sensitive ID docs (owner/admin only)
+    match /verification_ids/{userId}/{allPaths=**} {
+      allow read, write, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Dedicated Face Verification media namespace (owner/admin only)
+    match /face_verification/{userId}/{allPaths=**} {
+      allow read, write, delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Contact attachments (authenticated users)
+    match /contacts/{allPaths=**} {
+      allow read, write, delete: if isAuthenticated();
+    }
+
+    // Deny everything else by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
