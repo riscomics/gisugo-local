@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-  <link rel="stylesheet" href="public/css/profile.css?v=29.1">
+  <link rel="stylesheet" href="public/css/profile.css?v=29.4">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -411,9 +411,6 @@
               <span class="face-feature-text">You ONLY see this video when deciding to hire someone or accept a job offer</span>
             </div>
           </div>
-          <div class="face-disclaimer">
-            You can see this video in two places only: (1) on a member's profile trust section, and (2) when hiring or accepting a job offer. It is not public to everyone by default.
-          </div>
         </div>
 
         <div class="face-lang-content" data-lang-content="bisaya">
@@ -437,9 +434,6 @@
               <span class="face-feature-icon">📍</span>
               <span class="face-feature-text">Kasagaran nimo kini makita kung magdesisyon ka mo-hire ug tawo o mo-accept ug job offer</span>
             </div>
-          </div>
-          <div class="face-disclaimer">
-            Asa nimo kini makita: sa profile trust info ug sa dili pa ka mo-final sa hire/accept. Dili kini public sa tanan by default.
           </div>
         </div>
 
@@ -465,9 +459,6 @@
               <span class="face-feature-text">Kadalasan mo itong makikita kapag magdedesisyon kang mag-hire ng tao o tumanggap ng job offer</span>
             </div>
           </div>
-          <div class="face-disclaimer">
-            Saan ito puwedeng makita: sa profile trust info at bago ka mag-final sa hire/accept. Hindi ito public sa lahat by default.
-          </div>
         </div>
       </div>
 
@@ -489,31 +480,18 @@
       </div>
 
       <div class="face-capture-content">
-        <div class="face-capture-intro" id="faceCaptureIntro">
-          <div class="face-capture-instruction">You will have 3 seconds to record for Face Verification.</div>
-          <div class="face-capture-instruction strong">Say your Full Name in the recording.</div>
-          <div class="face-capture-guidance-list">
-            <div class="face-capture-guidance-item">Use good lighting.</div>
-            <div class="face-capture-guidance-item">Keep your face inside the oval guide.</div>
-            <div class="face-capture-guidance-item">Speak clearly so voice can be detected.</div>
-          </div>
-        </div>
-
         <div class="face-capture-stage" id="faceCaptureStage">
           <video id="faceCaptureVideo" class="face-capture-video" autoplay muted playsinline></video>
           <div class="face-capture-oval-guide" aria-hidden="true"></div>
+          <div class="face-capture-prompt" id="faceCapturePrompt">Say Your Full Name in the Recording.</div>
           <div class="face-capture-countdown" id="faceCaptureCountdown" style="display: none;">3</div>
-          <div class="face-capture-live-caption" id="faceCaptureLiveCaption" style="display: none;">Say your Full Name clearly.</div>
-          <div class="face-capture-status" id="faceCaptureStatus">Ready</div>
+          <div class="face-capture-lighting-hint">USE GOOD LIGHTING</div>
         </div>
 
-        <div class="face-capture-feedback" id="faceCaptureFeedback">
-          Camera preview is ready. When you are ready, press Start Recording.
-        </div>
+        <div class="face-capture-feedback" id="faceCaptureFeedback" style="display: none;"></div>
       </div>
 
       <div class="face-capture-footer">
-        <button class="face-capture-btn secondary" id="faceCaptureCancelBtn">Cancel</button>
         <button class="face-capture-btn primary" id="faceCaptureStartBtn">Start 3-Second Recording</button>
         <button class="face-capture-btn secondary" id="faceCaptureRetakeBtn" style="display: none;">Record Again</button>
         <button class="face-capture-btn primary" id="faceCaptureUseBtn" style="display: none;">Use This Video</button>
@@ -1411,7 +1389,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
-  <script src="public/js/profile.js?v=31"></script>
+  <script src="public/js/profile.js?v=44"></script>
 
 </body>
 </html> 

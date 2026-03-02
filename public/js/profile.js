@@ -1,22 +1,3 @@
-// ===== DEMO VERIFICATION STATE SWITCHER =====
-// Change these values to test different verification states:
-const DEMO_CONFIG = {
-  // Set verification state for testing (only one should be true):
-  businessVerified: false,  // Shows Business Verified badge → Business overlay
-  proVerified: false,       // Shows Pro Verified badge → Pro overlay
-  faceVerified: false,      // Shows Face Verified badge
-  newMember: false          // Shows Unverified badge → Not Verified overlay (auto when others are false)
-  // Priority: Business > Pro > Face > Unverified
-};
-
-// Temporary preview mode for testing Face Verified flows before real users exist.
-const previewParams = new URLSearchParams(window.location.search);
-if (previewParams.get('previewFaceVerified') === '1') {
-  DEMO_CONFIG.businessVerified = false;
-  DEMO_CONFIG.proVerified = false;
-  DEMO_CONFIG.faceVerified = true;
-}
-
 // Account Button and Overlay functionality
 const accountBtn = document.getElementById('accountBtn');
 const accountOverlay = document.getElementById('accountOverlay');
@@ -392,17 +373,15 @@ const notVerifiedLangTabs = document.getElementById('notVerifiedLangTabs');
 const newUserBadgeGrid = document.getElementById('newUserBadgeGrid');
 const faceCaptureOverlay = document.getElementById('faceCaptureOverlay');
 const faceCaptureCloseBtn = document.getElementById('faceCaptureCloseBtn');
-const faceCaptureCancelBtn = document.getElementById('faceCaptureCancelBtn');
 const faceCaptureStartBtn = document.getElementById('faceCaptureStartBtn');
 const faceCaptureRetakeBtn = document.getElementById('faceCaptureRetakeBtn');
 const faceCaptureUseBtn = document.getElementById('faceCaptureUseBtn');
 const faceCaptureVideo = document.getElementById('faceCaptureVideo');
 const faceCaptureCountdown = document.getElementById('faceCaptureCountdown');
-const faceCaptureLiveCaption = document.getElementById('faceCaptureLiveCaption');
-const faceCaptureStatus = document.getElementById('faceCaptureStatus');
+const faceCapturePrompt = document.getElementById('faceCapturePrompt');
 const faceCaptureFeedback = document.getElementById('faceCaptureFeedback');
 
-const FACE_CAPTURE_DURATION_MS = 3000;
+const FACE_CAPTURE_DURATION_MS = 3400;
 const faceCaptureState = {
   stream: null,
   mediaRecorder: null,
@@ -473,6 +452,12 @@ function openFaceVerificationEntryPoint() {
 
 function setFaceCaptureFeedback(message, tone = 'info') {
   if (!faceCaptureFeedback) return;
+  if (!message) {
+    faceCaptureFeedback.style.display = 'none';
+    faceCaptureFeedback.textContent = '';
+    return;
+  }
+  faceCaptureFeedback.style.display = 'block';
   faceCaptureFeedback.textContent = message;
   if (tone === 'error') {
     faceCaptureFeedback.style.color = '#fca5a5';
@@ -485,9 +470,15 @@ function setFaceCaptureFeedback(message, tone = 'info') {
   }
 }
 
-function updateFaceCaptureStatus(status) {
-  if (faceCaptureStatus) {
-    faceCaptureStatus.textContent = status;
+function setFaceCapturePrompt(message, tone = 'default') {
+  if (!faceCapturePrompt) return;
+  faceCapturePrompt.textContent = message;
+  if (tone === 'warning') {
+    faceCapturePrompt.style.color = '#fde68a';
+  } else if (tone === 'danger') {
+    faceCapturePrompt.style.color = '#fecaca';
+  } else {
+    faceCapturePrompt.style.color = '#fef08a';
   }
 }
 
@@ -571,10 +562,11 @@ async function startFaceCapturePreview() {
     faceCaptureVideo.srcObject = stream;
     faceCaptureVideo.muted = true;
     faceCaptureVideo.controls = false;
+    faceCaptureVideo.style.transform = 'scaleX(-1)';
     await faceCaptureVideo.play();
     if (faceCaptureStartBtn) faceCaptureStartBtn.disabled = false;
-    updateFaceCaptureStatus('Ready');
-    setFaceCaptureFeedback('Camera preview is ready. When you are ready, press Start Recording.');
+    setFaceCapturePrompt('Say your FULL NAME\nwhen Recording.');
+    setFaceCaptureFeedback('');
     return true;
   } catch (error) {
     console.error('Face capture camera init failed:', error);
@@ -595,13 +587,18 @@ function openFaceCaptureOverlay() {
   resetFaceCaptureDraft();
 
   if (faceCaptureCountdown) faceCaptureCountdown.style.display = 'none';
-  if (faceCaptureLiveCaption) faceCaptureLiveCaption.style.display = 'none';
+  setFaceCapturePrompt('Say your FULL NAME\nwhen Recording.');
+  setFaceCaptureFeedback('');
   if (faceCaptureStartBtn) {
     faceCaptureStartBtn.style.display = '';
     faceCaptureStartBtn.disabled = true;
   }
   if (faceCaptureRetakeBtn) faceCaptureRetakeBtn.style.display = 'none';
-  if (faceCaptureUseBtn) faceCaptureUseBtn.style.display = 'none';
+  if (faceCaptureUseBtn) {
+    faceCaptureUseBtn.style.display = 'none';
+    faceCaptureUseBtn.disabled = false;
+    faceCaptureUseBtn.textContent = 'Use This Video';
+  }
 
   startFaceCapturePreview();
 }
@@ -688,6 +685,64 @@ function generateFacePoster(videoEl) {
   return canvas.toDataURL('image/jpeg', 0.82);
 }
 
+function hasLikelyFaceInFrame(pixels, width, height) {
+  let totalOvalPixels = 0;
+  let skinLikePixels = 0;
+
+  const centerX = width * 0.5;
+  const centerY = height * 0.48;
+  const radiusX = width * 0.24;
+  const radiusY = height * 0.34;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const normX = (x - centerX) / radiusX;
+      const normY = (y - centerY) / radiusY;
+      if ((normX * normX) + (normY * normY) > 1) continue;
+
+      totalOvalPixels += 1;
+      const idx = (y * width + x) * 4;
+      const r = pixels[idx];
+      const g = pixels[idx + 1];
+      const b = pixels[idx + 2];
+
+      // Broad YCbCr-based skin-tone range for lightweight on-device checks.
+      const cb = 128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b);
+      const cr = 128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b);
+      const yLuma = (0.299 * r) + (0.587 * g) + (0.114 * b);
+
+      const isSkinLike = cb >= 73 && cb <= 135 && cr >= 125 && cr <= 180 && yLuma >= 26;
+      if (isSkinLike) skinLikePixels += 1;
+    }
+  }
+
+  if (totalOvalPixels === 0) return false;
+  const skinRatio = skinLikePixels / totalOvalPixels;
+
+  // Tolerant threshold: enough skin-like content in the face-guide oval.
+  return skinRatio >= 0.07;
+}
+
+function getFrameMetrics(pixels, width, height) {
+  let brightness = 0;
+  for (let i = 0; i < pixels.length; i += 4) {
+    brightness += 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2];
+  }
+  brightness /= (pixels.length / 4);
+
+  let contrast = 0;
+  for (let y = 1; y < height; y += 1) {
+    for (let x = 1; x < width; x += 1) {
+      const idx = (y * width + x) * 4;
+      const prevIdx = (y * width + (x - 1)) * 4;
+      contrast += Math.abs(pixels[idx] - pixels[prevIdx]);
+    }
+  }
+  contrast /= (width * height);
+
+  return { brightness, contrast };
+}
+
 function runFaceCaptureQualityChecks(videoEl) {
   const warnings = [];
   const hardStops = [];
@@ -705,22 +760,12 @@ function runFaceCaptureQualityChecks(videoEl) {
 
     ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-    let brightness = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      brightness += 0.2126 * pixels[i] + 0.7152 * pixels[i + 1] + 0.0722 * pixels[i + 2];
+    const hasLikelyFace = hasLikelyFaceInFrame(pixels, canvas.width, canvas.height);
+    if (!hasLikelyFace) {
+      hardStops.push('Face not detected inside the oval guide. Center your face and try again.');
     }
-    brightness /= (pixels.length / 4);
 
-    let contrast = 0;
-    for (let y = 1; y < canvas.height; y += 1) {
-      for (let x = 1; x < canvas.width; x += 1) {
-        const idx = (y * canvas.width + x) * 4;
-        const prevIdx = (y * canvas.width + (x - 1)) * 4;
-        contrast += Math.abs(pixels[idx] - pixels[prevIdx]);
-      }
-    }
-    contrast /= (canvas.width * canvas.height);
+    const { brightness, contrast } = getFrameMetrics(pixels, canvas.width, canvas.height);
 
     if (brightness < 26) hardStops.push('Video is too dark. Please move to better lighting.');
     else if (brightness < 40) warnings.push('Lighting is low. Better lighting improves trust visibility.');
@@ -732,6 +777,80 @@ function runFaceCaptureQualityChecks(videoEl) {
   return { warnings, hardStops };
 }
 
+function waitForVideoEvent(video, eventName) {
+  return new Promise((resolve, reject) => {
+    const onEvent = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error(`Video event failed: ${eventName}`));
+    };
+    const cleanup = () => {
+      video.removeEventListener(eventName, onEvent);
+      video.removeEventListener('error', onError);
+    };
+    video.addEventListener(eventName, onEvent, { once: true });
+    video.addEventListener('error', onError, { once: true });
+  });
+}
+
+async function analyzeRecordedFaceContinuity(blob) {
+  const tempVideo = document.createElement('video');
+  tempVideo.muted = true;
+  tempVideo.playsInline = true;
+  tempVideo.preload = 'auto';
+  const url = URL.createObjectURL(blob);
+  tempVideo.src = url;
+
+  try {
+    await waitForVideoEvent(tempVideo, 'loadedmetadata');
+    const duration = Math.max(0.8, Number(tempVideo.duration || (FACE_CAPTURE_DURATION_MS / 1000)));
+    const sampleTimes = [
+      Math.min(0.35, Math.max(0.1, duration * 0.15)),
+      Math.min(duration - 0.2, Math.max(0.25, duration * 0.55)),
+      Math.max(0.35, duration - 0.25)
+    ];
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 90;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return { checked: false, faceFrames: 0, totalFrames: 0, lastFrameHasFace: false };
+
+    let faceFrames = 0;
+    let lastFrameHasFace = false;
+
+    for (let i = 0; i < sampleTimes.length; i += 1) {
+      const target = Math.min(duration - 0.05, Math.max(0.05, sampleTimes[i]));
+      tempVideo.currentTime = target;
+      await waitForVideoEvent(tempVideo, 'seeked');
+
+      ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const hasFace = hasLikelyFaceInFrame(pixels, canvas.width, canvas.height);
+      if (hasFace) faceFrames += 1;
+      if (i === sampleTimes.length - 1) {
+        lastFrameHasFace = hasFace;
+      }
+    }
+
+    return {
+      checked: true,
+      faceFrames,
+      totalFrames: sampleTimes.length,
+      lastFrameHasFace
+    };
+  } catch (_) {
+    return { checked: false, faceFrames: 0, totalFrames: 0, lastFrameHasFace: false };
+  } finally {
+    URL.revokeObjectURL(url);
+    tempVideo.removeAttribute('src');
+    tempVideo.load();
+  }
+}
+
 async function finalizeFaceCaptureRecording() {
   clearFaceCaptureTimers();
   stopFaceCaptureAudioMonitor();
@@ -739,6 +858,7 @@ async function finalizeFaceCaptureRecording() {
 
   if (!faceCaptureState.chunks.length || !faceCaptureVideo) {
     setFaceCaptureFeedback('Recording failed. Please try again.', 'error');
+    setFaceCapturePrompt('Please record again.', 'danger');
     if (faceCaptureRetakeBtn) faceCaptureRetakeBtn.style.display = '';
     return;
   }
@@ -755,6 +875,7 @@ async function finalizeFaceCaptureRecording() {
   faceCaptureVideo.src = faceCaptureState.recordedObjectUrl;
   faceCaptureVideo.muted = false;
   faceCaptureVideo.controls = true;
+  faceCaptureVideo.style.transform = 'none';
 
   try {
     await faceCaptureVideo.play();
@@ -764,23 +885,36 @@ async function finalizeFaceCaptureRecording() {
 
   faceCaptureState.posterDataUrl = generateFacePoster(faceCaptureVideo) || '';
   const checks = runFaceCaptureQualityChecks(faceCaptureVideo);
+  const continuity = await analyzeRecordedFaceContinuity(blob);
+  if (continuity.checked) {
+    const enoughFaceFrames = continuity.faceFrames >= continuity.totalFrames;
+    if (!enoughFaceFrames || !continuity.lastFrameHasFace) {
+      checks.hardStops.push('Keep your face inside the oval for the whole recording.');
+    }
+  }
 
   if (faceCaptureStartBtn) faceCaptureStartBtn.style.display = 'none';
   if (faceCaptureRetakeBtn) faceCaptureRetakeBtn.style.display = '';
+  if (faceCaptureUseBtn) {
+    faceCaptureUseBtn.style.display = 'none';
+    faceCaptureUseBtn.disabled = true;
+  }
 
   if (checks.hardStops.length > 0) {
-    if (faceCaptureUseBtn) faceCaptureUseBtn.style.display = 'none';
-    updateFaceCaptureStatus('Retake Required');
+    setFaceCapturePrompt('Retake Required', 'danger');
     setFaceCaptureFeedback(checks.hardStops.join(' '), 'error');
     return;
   }
 
-  if (faceCaptureUseBtn) faceCaptureUseBtn.style.display = '';
-  updateFaceCaptureStatus('Review');
+  if (faceCaptureUseBtn) {
+    faceCaptureUseBtn.style.display = '';
+    faceCaptureUseBtn.disabled = false;
+  }
+  setFaceCapturePrompt('Review your recording.');
   if (checks.warnings.length > 0) {
     setFaceCaptureFeedback(checks.warnings.join(' '), 'warning');
   } else {
-    setFaceCaptureFeedback('Looks good. You can use this video or record again.', 'success');
+    setFaceCaptureFeedback('');
   }
 }
 
@@ -815,15 +949,13 @@ function startFaceCaptureRecording() {
   startFaceCaptureAudioMonitor(faceCaptureState.stream);
   faceCaptureState.mediaRecorder.start(200);
 
-  if (faceCaptureLiveCaption) faceCaptureLiveCaption.style.display = 'block';
-  updateFaceCaptureStatus('Recording');
-  setFaceCaptureFeedback('Recording now. Say your Full Name clearly.');
+  setFaceCapturePrompt('Say Your Full Name Clearly.', 'warning');
+  setFaceCaptureFeedback('');
 
   faceCaptureState.recordStopTimer = setTimeout(() => {
     if (faceCaptureState.mediaRecorder && faceCaptureState.mediaRecorder.state === 'recording') {
       faceCaptureState.mediaRecorder.stop();
     }
-    if (faceCaptureLiveCaption) faceCaptureLiveCaption.style.display = 'none';
   }, FACE_CAPTURE_DURATION_MS);
 }
 
@@ -831,8 +963,7 @@ function beginFaceCaptureCountdown() {
   if (!faceCaptureCountdown || !faceCaptureStartBtn) return;
   faceCaptureStartBtn.disabled = true;
   faceCaptureCountdown.style.display = 'flex';
-  updateFaceCaptureStatus('Get Ready');
-  setFaceCaptureFeedback('Get ready. Recording starts in 3...');
+  setFaceCaptureFeedback('Face check runs while recording (start, middle, and end).');
 
   let count = 3;
   faceCaptureCountdown.textContent = String(count);
@@ -849,9 +980,82 @@ function beginFaceCaptureCountdown() {
   }, 1000);
 }
 
-function useFaceCaptureResult() {
+async function persistFaceVerificationToBackend(posterDataUrl) {
+  const userId = typeof getCurrentUserId === 'function' ? getCurrentUserId() : null;
+  if (!userId) {
+    return { success: false, message: 'No logged-in user found. Please log in again.' };
+  }
+
+  let resolvedPosterUrl = posterDataUrl;
+
+  if (typeof posterDataUrl === 'string' && posterDataUrl.startsWith('data:image/')) {
+    try {
+      if (typeof firebase !== 'undefined' && firebase.storage) {
+        const response = await fetch(posterDataUrl);
+        const blob = await response.blob();
+        const storageRef = firebase.storage().ref();
+        const facePosterRef = storageRef.child(`face_verification/${userId}/poster.jpg`);
+        const snapshot = await facePosterRef.put(blob, { contentType: 'image/jpeg' });
+        resolvedPosterUrl = await snapshot.ref.getDownloadURL();
+      } else {
+        return { success: false, message: 'Storage service unavailable. Please try again shortly.' };
+      }
+    } catch (error) {
+      console.error('❌ Face poster upload error:', error);
+      return { success: false, message: 'Could not upload face thumbnail. Please try again.' };
+    }
+  }
+
+  const updateData = {
+    'verification.faceVerified': true,
+    'verification.facePosterUrl': resolvedPosterUrl,
+    'verification.verificationDate': (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue)
+      ? firebase.firestore.FieldValue.serverTimestamp()
+      : new Date().toISOString()
+  };
+
+  try {
+    if (typeof updateUserProfile === 'function') {
+      const result = await updateUserProfile(userId, updateData);
+      if (result?.success) {
+        return { success: true, posterUrl: resolvedPosterUrl };
+      }
+      return { success: false, message: result?.message || 'Failed to save Face Verification.' };
+    }
+
+    if (typeof firebase !== 'undefined' && firebase.firestore) {
+      await firebase.firestore().collection('users').doc(userId).update(updateData);
+      return { success: true, posterUrl: resolvedPosterUrl };
+    }
+
+    return { success: false, message: 'Profile update service is unavailable right now.' };
+  } catch (error) {
+    console.error('❌ Face verification save error:', error);
+    return { success: false, message: 'Could not save Face Verification. Please try again.' };
+  }
+}
+
+async function useFaceCaptureResult() {
   if (!window.currentUserProfile || !faceCaptureState.posterDataUrl) {
     setFaceCaptureFeedback('No verified preview found. Please record again.', 'error');
+    return;
+  }
+
+  if (faceCaptureUseBtn) {
+    faceCaptureUseBtn.disabled = true;
+    faceCaptureUseBtn.textContent = 'Saving...';
+  }
+  setFaceCapturePrompt('Saving Face Verification...');
+  setFaceCaptureFeedback('');
+
+  const saveResult = await persistFaceVerificationToBackend(faceCaptureState.posterDataUrl);
+  if (!saveResult.success) {
+    setFaceCapturePrompt('Save Failed', 'danger');
+    setFaceCaptureFeedback(saveResult.message || 'Could not save Face Verification. Please try again.', 'error');
+    if (faceCaptureUseBtn) {
+      faceCaptureUseBtn.disabled = false;
+      faceCaptureUseBtn.textContent = 'Use This Video';
+    }
     return;
   }
 
@@ -860,12 +1064,15 @@ function useFaceCaptureResult() {
   }
 
   window.currentUserProfile.verification.faceVerified = true;
-  window.currentUserProfile.verification.facePosterUrl = faceCaptureState.posterDataUrl;
+  window.currentUserProfile.verification.facePosterUrl = saveResult.posterUrl || faceCaptureState.posterDataUrl;
   window.currentUserProfile.verification.verificationDate = new Date().toISOString();
 
   updateBadgeVisibility(window.currentUserProfile);
   updateAccountOverlayVerificationStatus(window.currentUserProfile);
   populateFacePrestigePreview();
+  if (faceCaptureUseBtn) {
+    faceCaptureUseBtn.textContent = 'Use This Video';
+  }
   closeFaceCaptureOverlay();
   openFacePrestigeOverlay();
 }
@@ -876,10 +1083,6 @@ if (getFaceVerifiedBtn) {
 
 if (faceCaptureCloseBtn) {
   faceCaptureCloseBtn.addEventListener('click', closeFaceCaptureOverlay);
-}
-
-if (faceCaptureCancelBtn) {
-  faceCaptureCancelBtn.addEventListener('click', closeFaceCaptureOverlay);
 }
 
 if (faceCaptureStartBtn) {
@@ -908,6 +1111,45 @@ const NOT_VERIFIED_LABELS = {
   tagalog: { primary: 'Magpa Face Verify', secondary: 'Mamaya Na' }
 };
 
+const NOT_VERIFIED_COPY = {
+  english: {
+    visitorMessage: 'This member is not Face Verified yet.',
+    visitorDisclaimer: 'You may continue with this member. If you want more peace of mind, ask them to get Face Verified first.',
+    ownerMessage: 'You are not Face Verified yet.',
+    ownerDisclaimer: 'You can continue using GISUGO while unverified. Get Face Verified anytime when you are ready.'
+  },
+  bisaya: {
+    visitorMessage: 'Kining member wala pa ma Face Verified.',
+    visitorDisclaimer: 'Pwede ra ka mopadayon. Kung gusto kag dugang kasiguruhan, pwede nimo sila hangyuon nga magpa Face Verified una.',
+    ownerMessage: 'Wala pa ka ma Face Verified.',
+    ownerDisclaimer: 'Pwede gihapon ka mogamit sa GISUGO bisan unverified pa. Pa Face Verify kung ready na ka.'
+  },
+  tagalog: {
+    visitorMessage: 'Hindi pa Face Verified ang member na ito.',
+    visitorDisclaimer: 'Pwede ka pa ring magpatuloy. Kung gusto mo ng dagdag na confidence, puwede mong hilingin na magpa Face Verified muna sila.',
+    ownerMessage: 'Hindi ka pa Face Verified.',
+    ownerDisclaimer: 'Pwede ka pa ring gumamit ng GISUGO kahit unverified pa. Magpa Face Verify kapag handa ka na.'
+  }
+};
+
+function updateNotVerifiedCopyForContext(lang) {
+  const activeLang = lang || 'english';
+  const content = (notVerifiedOverlay || document).querySelector(`.not-verified-lang-content[data-lang-content="${activeLang}"]`);
+  if (!content) return;
+
+  const copy = NOT_VERIFIED_COPY[activeLang] || NOT_VERIFIED_COPY.english;
+  const isOwner = isOwnProfile();
+  const messageEl = content.querySelector('.message-text');
+  const disclaimerEl = content.querySelector('.new-disclaimer-content');
+
+  if (messageEl) {
+    messageEl.textContent = isOwner ? copy.ownerMessage : copy.visitorMessage;
+  }
+  if (disclaimerEl) {
+    disclaimerEl.textContent = isOwner ? copy.ownerDisclaimer : copy.visitorDisclaimer;
+  }
+}
+
 function activateNotVerifiedLanguage(lang) {
   if (!notVerifiedLangTabs) return;
 
@@ -929,6 +1171,7 @@ function activateNotVerifiedLanguage(lang) {
   const labels = NOT_VERIFIED_LABELS[lang] || NOT_VERIFIED_LABELS.english;
   if (getFaceVerifiedBtn) getFaceVerifiedBtn.textContent = labels.primary;
   if (notVerifiedUnderstandBtn) notVerifiedUnderstandBtn.textContent = labels.secondary;
+  updateNotVerifiedCopyForContext(lang);
 }
 
 function updateNotVerifiedFooterActions() {
@@ -3313,67 +3556,8 @@ function handleProfileTabChange(tabValue) {
 // Track if user just completed an eligible purchase (for Submit ID visibility)
 let justCompletedEligiblePurchase = false;
 
-// Sample user profile data (in the future this will come from Firebase)
-// These field names match the create account form structure for backend integration
-const sampleUserProfile = {
-  // Basic Profile Information (from create account form)
-  fullName: "Peter J. Ang",
-      profilePhoto: "public/users/Peter-J-Ang-User-01.jpg",
-  dateOfBirth: "1988-04-15", // Will calculate age from this
-  educationLevel: "College", // Options: "No-High-School", "High School", "College", "Masters", "Doctorate"
-  userSummary: "Hello! I'm Peter, a reliable and hardworking individual with over 3 years of experience in various service jobs. I take great pride in delivering quality work and building lasting relationships with my clients. Whether it's cleaning, maintenance, or assistance tasks, you can count on me to get the job done right and on time. I'm punctual, detail-oriented, and always ready to go the extra mile to ensure customer satisfaction.",
-  
-  // System Generated Fields (from Firebase)
-  userId: "peter-j-ang-001",
-  accountCreated: "2025-04-12T10:30:00Z", // ISO format for Firebase
-  rating: 4.7,
-  reviewCount: 28,
-  
-  // Social Media (optional from create account form)
-  socialMedia: {
-    facebook: "public/icons/FB.png",
-    instagram: "public/icons/IG.png", 
-    linkedin: "public/icons/IN.png"
-  },
-  
-  // Verification Status (from backend verification system)
-  verification: {
-    businessVerified: true, // DEMO: Set to true for Business Verified badge
-    proVerified: false, // DEMO: Set to false (businessVerified takes priority)
-    faceVerified: false,
-    verificationDate: "2025-04-20T14:30:00Z", // When verification was completed
-    idSubmitted: false, // Whether user has uploaded ID documents (for mock: false = can still submit)
-    eligibleForSubmission: false // Whether user purchased P250/P500 but hasn't submitted ID yet
-  },
-  
-  // G-Coins Wallet System (from backend wallet service)
-  wallet: {
-    gCoinsBalance: 15, // Current G-Coins balance (realistic for new pricing)
-    lastTopUp: "2025-09-10T16:45:00Z", // Last top-up timestamp
-    totalSpent: 35, // Total G-Coins spent (lifetime)
-    totalPurchased: 50 // Total G-Coins purchased (lifetime)
-  },
-  
-  // Referral System (from backend referral tracking service)
-  referral: {
-    referralCode: "GISUGO-PETER001-REFER", // Auto-generated unique referral code
-    signupCount: 3, // Current number of successful signups from referrals
-    proEligible: false, // Will be true when signupCount >= 10
-    businessEligible: false, // Will be true when signupCount >= 20
-    totalEarned: 0, // Total PHP value earned from referrals (only at milestones)
-    gCoinsEarned: 0, // Total G-Coins earned from referrals (25 at 10 signups, 50 at 20 signups)
-    lastReferralDate: "2025-09-15T12:20:00Z", // Most recent successful referral
-    referralHistory: [
-      { date: "2025-09-15T12:20:00Z", userId: "ref-user-003", verified: true },
-      { date: "2025-09-10T08:15:00Z", userId: "ref-user-002", verified: true },
-      { date: "2025-09-05T16:30:00Z", userId: "ref-user-001", verified: true }
-    ]
-  }
-};
-
 // ===== CLEAN SINGLE-PROFILE SYSTEM =====
-// All verification states controlled by DEMO_CONFIG above
-// Single profile with dynamic verification - no duplicate objects
+// Single profile model for production Firebase-backed data.
 
 // ===== HELPER FUNCTIONS =====
 
@@ -3447,125 +3631,7 @@ function updateSocialLinks(userProfile) {
   });
 }
 
-// Helper function to calculate age from date of birth
-function calculateAge(dateOfBirth) {
-  const today = new Date();
-  const birthDate = new Date(dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDifference = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-}
-
-// Helper function to format account creation date for display
-function formatRegistrationDate(accountCreated) {
-  const date = new Date(accountCreated);
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return date.toLocaleDateString('en-US', options);
-}
-
-// Load user profile data (backend ready)
-function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with dynamic verification states
-  // Apply demo configuration to override verification state
-  if (userProfile.verification) {
-    userProfile.verification.businessVerified = DEMO_CONFIG.businessVerified;
-    userProfile.verification.proVerified = DEMO_CONFIG.proVerified;
-    userProfile.verification.faceVerified = DEMO_CONFIG.faceVerified;
-    // newMember is just the absence of business/pro/face verification
-  }
-  
-  // Store reference for G-Coins purchase system
-  window.currentUserProfile = userProfile;
-  // Update user name (updated field name)
-  const nameElement = document.querySelector('.full-name');
-  if (nameElement && userProfile.fullName) {
-    nameElement.textContent = userProfile.fullName;
-  }
-  
-  // Update user photo (updated field name - check both profilePhoto and profileImage)
-  const photoElement = document.getElementById('profilePhoto');
-  if (photoElement && (userProfile.profilePhoto || userProfile.profileImage)) {
-    // Reset loaded state before changing src (for fade-in effect)
-    photoElement.classList.remove('loaded');
-    photoElement.src = userProfile.profilePhoto || userProfile.profileImage;
-    photoElement.alt = userProfile.fullName || 'User Profile';
-  }
-  
-  // Update star rating and review count
-  const starsContainer = document.getElementById('profileStars');
-  const reviewsCountElement = document.getElementById('reviewsCount');
-  
-  // Get rating value from Firebase fields (averageRating) or fallback to old format
-  const ratingValue = userProfile.averageRating !== undefined 
-    ? userProfile.averageRating 
-    : (typeof userProfile.rating === 'number' ? userProfile.rating : userProfile.rating?.average);
-  
-  // Get review count from Firebase fields (totalReviews) or fallback to old format
-  const reviewCount = userProfile.totalReviews !== undefined
-    ? userProfile.totalReviews
-    : (userProfile.reviewCount || userProfile.rating?.totalReviews || 0);
-  
-  if (starsContainer && ratingValue !== undefined) {
-    starsContainer.setAttribute('data-rating', ratingValue);
-    renderStars(starsContainer, ratingValue);
-    starsContainer.setAttribute('data-count', reviewCount);
-    console.log(`⭐ Profile rating updated: ${ratingValue} stars with ${reviewCount} reviews`);
-  }
-  
-  if (reviewsCountElement) {
-    reviewsCountElement.textContent = reviewCount;
-  }
-  
-  // Update social media links (make icons clickable if URLs provided)
-  updateSocialLinks(userProfile);
-  
-  // Update badge visibility based on verification status
-  updateBadgeVisibility(userProfile);
-  
-  // Update age if date of birth is provided
-  const ageElement = document.getElementById('userAge');
-  if (ageElement && userProfile.dateOfBirth) {
-    ageElement.textContent = calculateAge(userProfile.dateOfBirth);
-  }
-  
-  // Update registered since (from accountCreated timestamp)
-  const registeredSinceElement = document.getElementById('registeredSince');
-  if (registeredSinceElement && userProfile.accountCreated) {
-    registeredSinceElement.textContent = formatRegistrationDate(userProfile.accountCreated);
-  }
-
-  // Update education level
-  const educationLevelElement = document.getElementById('educationLevel');
-  if (educationLevelElement && userProfile.educationLevel) {
-    educationLevelElement.textContent = userProfile.educationLevel;
-  }
-  
-  // Update user summary (About Me)
-  const userSummaryElement = document.getElementById('userSummary');
-  if (userSummaryElement && userProfile.userSummary) {
-    userSummaryElement.textContent = userProfile.userSummary;
-  }
-
-  // Display activity statistics
-  displayActivityStatistics(userProfile);
-
-  // Load reviews for this user profile (TODO: implement when reviews system is ready)
-  // loadUserReviews();
-  
-  console.log('Profile loaded successfully with verification state:', {
-    business: userProfile.verification?.businessVerified,
-    pro: userProfile.verification?.proVerified,
-    education: userProfile.educationLevel,
-    summary: userProfile.userSummary ? 'loaded' : 'missing'
-  });
-}
-
-// ===== DEMO TESTING =====
-// To test different verification states, change DEMO_CONFIG at top of file
+// Verification state should come from stored user profile data.
 
 const PROFILE_AD_ZONE_CONFIG = {
   enabled: true,
@@ -4171,17 +4237,10 @@ async function waitForAuthAndLoadProfile() {
     }
     
   } else {
-    // ══════════════════════════════════════════════════════════════
-    // MOCK MODE - Load ONLY from mock data
-    // ══════════════════════════════════════════════════════════════
-    console.log('🧪 MOCK MODE: Loading sample profile data...');
-    
-    // Small delay to simulate network request (optional, for testing)
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    window.currentUserProfile = sampleUserProfile;
+    console.error('❌ Firebase mode is disabled. Mock profile mode is removed.');
     finishProfileLoading();
-    loadUserProfile(sampleUserProfile);
+    showProfileError('Profile service is unavailable. Firebase mode must be enabled.');
+    return;
   }
 }
 
@@ -4330,63 +4389,6 @@ function hideProfileLoadingState() {
   }
 }
 
-// ===== VERIFICATION SYSTEM BACKEND MAPPING =====
-
-/*
- * COMPREHENSIVE VERIFICATION OVERLAY SYSTEM:
-    signupCount: 7,
-    proEligible: false, // Already Pro verified
-    businessEligible: false, // Not enough referrals yet (needs 20)
-    totalEarned: 175, // 7 * P25 = P175
-    gCoinsEarned: 35, // 7 * 5 G-coins = 35 G-coins
-    lastReferralDate: "2025-09-20T09:30:00Z",
-    referralHistory: [
-      { date: "2025-09-20T09:30:00Z", userName: "Juan Dela Cruz", earnings: 25 },
-      { date: "2025-09-18T16:45:00Z", userName: "Ana Rodriguez", earnings: 25 },
-      { date: "2025-09-15T13:20:00Z", userName: "Carlos Manila", earnings: 25 },
-      { date: "2025-09-12T10:15:00Z", userName: "Rosa Guerrero", earnings: 25 },
-      { date: "2025-09-08T14:30:00Z", userName: "Miguel Torres", earnings: 25 },
-      { date: "2025-09-05T11:45:00Z", userName: "Lisa Fernandez", earnings: 25 },
-      { date: "2025-09-02T16:20:00Z", userName: "David Reyes", earnings: 25 }
-    ]
-  }
-};
-
-const sampleNewUserProfile_UNUSED = {
-  fullName: "Maria Santos",
-  profilePhoto: "public/users/Peter-J-Ang-User-01.jpg", // Using same photo for demo
-  dateOfBirth: "1995-08-22",
-  educationLevel: "High School",
-  userSummary: "Hi there! I'm Maria, new to the platform and excited to start providing quality services. I'm reliable, hardworking, and ready to build great relationships with clients.",
-  
-  userId: "maria-santos-002",
-  accountCreated: "2025-09-15T09:00:00Z", // Recent account
-  rating: 0, // No ratings yet
-  reviewCount: 0, // No reviews yet
-  
-  socialMedia: {
-    facebook: "public/icons/FB.png",
-    instagram: "public/icons/IG.png", 
-    linkedin: "public/icons/IN.png"
-  },
-  
-  // No verification status - will show Unverified badge
-  verification: {
-    businessVerified: false,
-    proVerified: false,
-    faceVerified: false,
-    verificationDate: null
-  },
-  
-  // G-Coins Wallet System - New user with low balance
-  wallet: {
-    gCoinsBalance: 1, // Very low balance for new user (realistic with new pricing)
-    lastTopUp: "2025-09-16T11:20:00Z", // Recent first top-up
-    totalSpent: 4, // Minimal spending
-    totalPurchased: 5 // Small initial purchase (1 P100 package)
-  }
-};
-
 // Helper function to calculate age from date of birth
 function calculateAge(dateOfBirth) {
   const today = new Date();
@@ -4409,15 +4411,8 @@ function formatRegistrationDate(accountCreated) {
 }
 
 // Load user profile data (backend ready)
-function loadUserProfile(userProfile = sampleUserProfile) { // Main profile with dynamic verification states
-  // Apply demo configuration to override verification state
-  if (userProfile.verification) {
-    userProfile.verification.businessVerified = DEMO_CONFIG.businessVerified;
-    userProfile.verification.proVerified = DEMO_CONFIG.proVerified;
-    userProfile.verification.faceVerified = DEMO_CONFIG.faceVerified;
-    // newMember is just the absence of business/pro/face verification
-  }
-  
+function loadUserProfile(userProfile) { // Main profile with dynamic verification states
+  if (!userProfile) return;
   // Store reference for G-Coins purchase system
   window.currentUserProfile = userProfile;
   // Update user name (updated field name)
