@@ -5472,6 +5472,29 @@ body.page-profile.profile-preload .tab-content-wrapper {
   max-width: 32ch;
 }
 
+.metric-info-footer-btn {
+  margin-top: 1rem;
+  width: min(100%, 200px);
+  padding: 0.58rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.08));
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.metric-info-footer-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.12));
+  border-color: rgba(16, 185, 129, 0.65);
+  transform: translateY(-1px);
+}
+
 /* Logout Button Section */
 .profile-logout-section {
   display: flex;

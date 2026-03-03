@@ -5544,6 +5544,7 @@ function closeMetricInfoOverlay(options = {}) {
 function initializeMetricInfoCards() {
   const overlay = document.getElementById('metricInfoOverlay');
   const closeBtn = document.getElementById('metricInfoCloseBtn');
+  const closeFooterBtn = document.getElementById('metricInfoCloseFooterBtn');
   const modal = overlay ? overlay.querySelector('.metric-info-modal') : null;
   if (!overlay) return;
 
@@ -5556,15 +5557,20 @@ function initializeMetricInfoCards() {
       closeMetricInfoOverlay({ blockOpenMs: 320 });
     };
 
-    if (closeBtn) {
-      closeBtn.addEventListener('pointerdown', closeHandler);
-      closeBtn.addEventListener('click', closeHandler);
-      closeBtn.addEventListener('keydown', (event) => {
+    const bindCloseControl = (button) => {
+      if (!button) return;
+
+      button.addEventListener('pointerdown', closeHandler);
+      button.addEventListener('click', closeHandler);
+      button.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           closeHandler(event);
         }
       });
-    }
+    };
+
+    bindCloseControl(closeBtn);
+    bindCloseControl(closeFooterBtn);
 
     if (modal) {
       modal.addEventListener('click', (event) => {
