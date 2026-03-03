@@ -4121,6 +4121,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   // Phase 2 ad zone: profile logout slot
   initializeProfileAdSlot();
+
+  // Activity cards: icon animation + tap-for-description overlay
+  initializeMetricInfoCards();
   
   console.log('Profile page initialization complete');
 });
@@ -5496,6 +5499,82 @@ function displayActivityStatistics(userProfile) {
   }
   
   console.log('✅ Activity statistics displayed');
+}
+
+function openMetricInfoOverlay(title, description, emoji) {
+  const overlay = document.getElementById('metricInfoOverlay');
+  const titleEl = document.getElementById('metricInfoTitle');
+  const descEl = document.getElementById('metricInfoDescription');
+  const iconEl = document.getElementById('metricInfoIcon');
+
+  if (!overlay || !titleEl || !descEl || !iconEl) return;
+
+  titleEl.textContent = title || 'Metric Info';
+  descEl.textContent = description || 'This metric shows related activity on your profile.';
+  iconEl.textContent = emoji || 'ℹ️';
+
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMetricInfoOverlay() {
+  const overlay = document.getElementById('metricInfoOverlay');
+  if (!overlay) return;
+
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function initializeMetricInfoCards() {
+  const overlay = document.getElementById('metricInfoOverlay');
+  const closeBtn = document.getElementById('metricInfoCloseBtn');
+  if (!overlay) return;
+
+  if (!overlay.dataset.metricInfoBound) {
+    if (closeBtn) closeBtn.addEventListener('click', closeMetricInfoOverlay);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        closeMetricInfoOverlay();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && overlay.classList.contains('active')) {
+        closeMetricInfoOverlay();
+      }
+    });
+
+    overlay.dataset.metricInfoBound = 'true';
+  }
+
+  const metricItems = document.querySelectorAll('.stat-item[data-metric-title][data-metric-description]');
+  metricItems.forEach((item) => {
+    if (item.dataset.metricCardBound === 'true') return;
+
+    const title = item.getAttribute('data-metric-title') || 'Metric Info';
+    const description = item.getAttribute('data-metric-description') || '';
+    const emoji = item.getAttribute('data-metric-emoji') || 'ℹ️';
+
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', `${title}. Tap for description.`);
+
+    item.addEventListener('click', () => {
+      openMetricInfoOverlay(title, description, emoji);
+    });
+
+    item.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openMetricInfoOverlay(title, description, emoji);
+      }
+    });
+
+    item.dataset.metricCardBound = 'true';
+  });
 }
 
 /**
