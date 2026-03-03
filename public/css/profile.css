@@ -5417,6 +5417,7 @@ body.page-profile.profile-preload .tab-content-wrapper {
   right: 0;
   height: 3px;
   background: linear-gradient(90deg, #00b894, #00d4a0);
+  pointer-events: none;
 }
 
 .metric-info-close {
@@ -5432,6 +5433,9 @@ body.page-profile.profile-preload .tab-content-wrapper {
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
+  z-index: 2;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .metric-info-close:hover {
@@ -5444,6 +5448,10 @@ body.page-profile.profile-preload .tab-content-wrapper {
   margin: 0.1rem 0 0.65rem;
   animation: stat-emoji-float 2.8s ease-in-out infinite;
   text-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+}
+
+.metric-info-icon.hidden {
+  display: none;
 }
 
 .metric-info-title {

@@ -5511,7 +5511,13 @@ function openMetricInfoOverlay(title, description, emoji) {
 
   titleEl.textContent = title || 'Metric Info';
   descEl.textContent = description || 'This metric shows related activity on your profile.';
-  iconEl.textContent = emoji || 'ℹ️';
+  if (emoji) {
+    iconEl.textContent = emoji;
+    iconEl.classList.remove('hidden');
+  } else {
+    iconEl.textContent = '';
+    iconEl.classList.add('hidden');
+  }
 
   overlay.classList.add('active');
   overlay.setAttribute('aria-hidden', 'false');
@@ -5533,7 +5539,13 @@ function initializeMetricInfoCards() {
   if (!overlay) return;
 
   if (!overlay.dataset.metricInfoBound) {
-    if (closeBtn) closeBtn.addEventListener('click', closeMetricInfoOverlay);
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeMetricInfoOverlay();
+      });
+    }
 
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) {
@@ -5556,7 +5568,7 @@ function initializeMetricInfoCards() {
 
     const title = item.getAttribute('data-metric-title') || 'Metric Info';
     const description = item.getAttribute('data-metric-description') || '';
-    const emoji = item.getAttribute('data-metric-emoji') || 'ℹ️';
+    const emoji = item.getAttribute('data-metric-emoji') || '';
 
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
@@ -5606,10 +5618,10 @@ function populateYearDropdown(role, yearlyStats) {
     dropdown.appendChild(option);
   });
   
-  // Add change handler
-  dropdown.addEventListener('change', function() {
+  // Assign a single change handler to avoid repeated listener accumulation.
+  dropdown.onchange = function() {
     displayYearlyBreakdown(role, this.value, yearlyStats);
-  });
+  };
   
   console.log(`📅 Populated ${role} year dropdown with years:`, years);
 }
