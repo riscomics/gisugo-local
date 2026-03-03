@@ -5524,6 +5524,8 @@ function openMetricInfoOverlay(title, description, emoji) {
     iconEl.classList.add('hidden');
   }
 
+  overlay.hidden = false;
+  overlay.style.display = 'flex';
   overlay.classList.add('active');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
@@ -5537,6 +5539,8 @@ function closeMetricInfoOverlay(options = {}) {
   if (!overlay) return;
 
   overlay.classList.remove('active');
+  overlay.hidden = true;
+  overlay.style.display = 'none';
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
 }
