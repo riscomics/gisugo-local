@@ -5502,6 +5502,11 @@ function displayActivityStatistics(userProfile) {
 }
 
 function openMetricInfoOverlay(title, description, emoji) {
+  const reopenBlockedUntil = window.__metricInfoReopenBlockedUntil || 0;
+  if (Date.now() < reopenBlockedUntil) {
+    return;
+  }
+
   const overlay = document.getElementById('metricInfoOverlay');
   const titleEl = document.getElementById('metricInfoTitle');
   const descEl = document.getElementById('metricInfoDescription');
@@ -5524,7 +5529,10 @@ function openMetricInfoOverlay(title, description, emoji) {
   document.body.style.overflow = 'hidden';
 }
 
-function closeMetricInfoOverlay() {
+function closeMetricInfoOverlay(options = {}) {
+  const blockOpenMs = typeof options.blockOpenMs === 'number' ? options.blockOpenMs : 260;
+  window.__metricInfoReopenBlockedUntil = Date.now() + blockOpenMs;
+
   const overlay = document.getElementById('metricInfoOverlay');
   if (!overlay) return;
 
@@ -5536,26 +5544,46 @@ function closeMetricInfoOverlay() {
 function initializeMetricInfoCards() {
   const overlay = document.getElementById('metricInfoOverlay');
   const closeBtn = document.getElementById('metricInfoCloseBtn');
+  const modal = overlay ? overlay.querySelector('.metric-info-modal') : null;
   if (!overlay) return;
 
   if (!overlay.dataset.metricInfoBound) {
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (event) => {
+    const closeHandler = (event) => {
+      if (event) {
         event.preventDefault();
         event.stopPropagation();
-        closeMetricInfoOverlay();
+      }
+      closeMetricInfoOverlay({ blockOpenMs: 320 });
+    };
+
+    if (closeBtn) {
+      closeBtn.addEventListener('pointerdown', closeHandler);
+      closeBtn.addEventListener('click', closeHandler);
+      closeBtn.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          closeHandler(event);
+        }
+      });
+    }
+
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+      modal.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
       });
     }
 
     overlay.addEventListener('click', (event) => {
       if (event.target === overlay) {
-        closeMetricInfoOverlay();
+        closeMetricInfoOverlay({ blockOpenMs: 220 });
       }
     });
 
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && overlay.classList.contains('active')) {
-        closeMetricInfoOverlay();
+        closeMetricInfoOverlay({ blockOpenMs: 180 });
       }
     });
 
@@ -5575,6 +5603,7 @@ function initializeMetricInfoCards() {
     item.setAttribute('aria-label', `${title}. Tap for description.`);
 
     item.addEventListener('click', () => {
+      if (overlay.classList.contains('active')) return;
       openMetricInfoOverlay(title, description, emoji);
     });
 
