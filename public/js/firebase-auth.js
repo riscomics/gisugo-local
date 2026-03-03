@@ -921,12 +921,18 @@ async function createUserProfile(userId, profileData) {
       // Financial Statistics (for tax reporting)
       statistics: {
         worker: {
+          totalGigsAccepted: 0,
           totalGigsCompleted: 0,
+          totalGigsResigned: 0,
+          totalGigsRemoved: 0,
           totalEarned: 0,
           yearlyStats: {}  // Will be populated as { "2025": { gigsCompleted: 0, earned: 0 }, ... }
         },
         customer: {
+          totalGigsPosted: 0,
           totalGigsCompleted: 0,
+          totalWorkersFired: 0,
+          totalWorkersQuit: 0,
           totalSpent: 0,
           yearlyStats: {}  // Will be populated as { "2025": { gigsCompleted: 0, spent: 0 }, ... }
         }
@@ -940,7 +946,18 @@ async function createUserProfile(userId, profileData) {
       verification: { ...defaultProfile.verification, ...(profileData.verification || {}) },
       wallet: { ...defaultProfile.wallet, ...(profileData.wallet || {}) },
       referral: { ...defaultProfile.referral, ...(profileData.referral || {}) },
-      statistics: { ...defaultProfile.statistics, ...(profileData.statistics || {}) }
+      statistics: {
+        ...defaultProfile.statistics,
+        ...(profileData.statistics || {}),
+        worker: {
+          ...defaultProfile.statistics.worker,
+          ...(profileData.statistics?.worker || {})
+        },
+        customer: {
+          ...defaultProfile.statistics.customer,
+          ...(profileData.statistics?.customer || {})
+        }
+      }
     };
     
     await db.collection('users').doc(userId).set(finalProfile);

@@ -7,7 +7,11 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
+<<<<<<< HEAD
   <link rel="stylesheet" href="public/css/profile.css?v=29.11">
+=======
+  <link rel="stylesheet" href="public/css/profile.css?v=29.6">
+>>>>>>> e5a63832f89932825c6b6ba876ea8a442da7b0a5
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -134,11 +138,24 @@
             </div>
             <div class="stats-card-content">
               <div class="stats-row">
-                <div class="stat-item">
+                <div class="stat-item" data-metric-title="Number of Gigs Accepted" data-metric-description="Total gigs where you accepted a customer's offer.">
+                  <div class="stat-value" id="workerGigsAccepted">0</div>
+                  <div class="stat-label">Gigs Accepted</div>
+                </div>
+                <div class="stat-item" data-metric-title="Number of Gigs Completed" data-metric-description="Total gigs finished and marked as completed.">
                   <div class="stat-value" id="workerGigsCompleted">0</div>
                   <div class="stat-label">Gigs Completed</div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item" data-metric-title="Number of Gigs Resigned from" data-metric-description="Total accepted gigs you resigned from before completion.">
+                  <div class="stat-value" id="workerGigsResigned">0</div>
+                  <div class="stat-label">Gigs Resigned From</div>
+                </div>
+                <div class="stat-item" data-metric-title="Number of Gigs Removed from" data-metric-description="Total accepted gigs where the customer removed or voided your contract.">
+                  <div class="stat-value" id="workerGigsRemoved">0</div>
+                  <div class="stat-label">Gigs Removed From</div>
+                </div>
+                <div class="stat-item" data-metric-title="Total Earned" data-metric-description="Combined earnings from your completed gigs." data-metric-emoji="💰">
+                  <div class="stat-emoji" aria-hidden="true">💰</div>
                   <div class="stat-value stat-value-money" id="workerTotalEarned">₱0</div>
                   <div class="stat-label">Total Earned</div>
                 </div>
@@ -165,11 +182,24 @@
             </div>
             <div class="stats-card-content">
               <div class="stats-row">
-                <div class="stat-item">
-                  <div class="stat-value" id="customerGigsCompleted">0</div>
-                  <div class="stat-label">Gigs Hired</div>
+                <div class="stat-item" data-metric-title="Number of Gigs Posted" data-metric-description="Total gigs you have posted as a customer.">
+                  <div class="stat-value" id="customerGigsPosted">0</div>
+                  <div class="stat-label">Gigs Posted</div>
                 </div>
-                <div class="stat-item">
+                <div class="stat-item" data-metric-title="Number of Gigs Completed" data-metric-description="Total posted gigs that reached completed status.">
+                  <div class="stat-value" id="customerGigsCompleted">0</div>
+                  <div class="stat-label">Gigs Completed</div>
+                </div>
+                <div class="stat-item" data-metric-title="Number of Gigs Worker Fired" data-metric-description="Total gigs where you removed or fired the hired worker.">
+                  <div class="stat-value" id="customerWorkersFired">0</div>
+                  <div class="stat-label">Gigs Worker Fired</div>
+                </div>
+                <div class="stat-item" data-metric-title="Number of Gigs Worker Quit" data-metric-description="Total gigs where the hired worker resigned from the job.">
+                  <div class="stat-value" id="customerWorkersQuit">0</div>
+                  <div class="stat-label">Gigs Worker Quit</div>
+                </div>
+                <div class="stat-item" data-metric-title="Total Spent" data-metric-description="Combined amount you paid for completed gigs." data-metric-emoji="💸">
+                  <div class="stat-emoji" aria-hidden="true">💸</div>
                   <div class="stat-value stat-value-money" id="customerTotalSpent">₱0</div>
                   <div class="stat-label">Total Spent</div>
                 </div>
@@ -191,6 +221,16 @@
             <div class="no-activity-icon">📊</div>
             <div class="no-activity-text">No completed gigs yet</div>
             <div class="no-activity-subtext">Statistics will appear here after completing your first gig</div>
+          </div>
+        </div>
+
+        <!-- Metric Info Overlay -->
+        <div class="metric-info-overlay" id="metricInfoOverlay" aria-hidden="true">
+          <div class="metric-info-modal" role="dialog" aria-modal="true" aria-labelledby="metricInfoTitle">
+            <div class="metric-info-icon" id="metricInfoIcon">ℹ️</div>
+            <div class="metric-info-title" id="metricInfoTitle">Metric Info</div>
+            <div class="metric-info-description" id="metricInfoDescription">Description goes here.</div>
+            <button type="button" class="metric-info-footer-btn" id="metricInfoCloseFooterBtn">Close</button>
           </div>
         </div>
 
@@ -1386,7 +1426,11 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
+<<<<<<< HEAD
   <script src="public/js/profile.js?v=49"></script>
+=======
+  <script src="public/js/profile.js?v=50"></script>
+>>>>>>> e5a63832f89932825c6b6ba876ea8a442da7b0a5
 
 </body>
 </html> 

@@ -4147,6 +4147,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   // Phase 2 ad zone: profile logout slot
   initializeProfileAdSlot();
+
+  // Activity cards: icon animation + tap-for-description overlay
+  initializeMetricInfoCards();
   
   console.log('Profile page initialization complete');
 });
@@ -5410,25 +5413,66 @@ function displayActivityStatistics(userProfile) {
   
   // Get stats from profile (with fallback for users without stats field)
   const stats = userProfile.statistics || {
-    worker: { totalGigsCompleted: 0, totalEarned: 0, yearlyStats: {} },
-    customer: { totalGigsCompleted: 0, totalSpent: 0, yearlyStats: {} }
+    worker: {
+      totalGigsAccepted: 0,
+      totalGigsCompleted: 0,
+      totalGigsResigned: 0,
+      totalGigsRemoved: 0,
+      totalEarned: 0
+    },
+    customer: {
+      totalGigsPosted: 0,
+      totalGigsCompleted: 0,
+      totalWorkersFired: 0,
+      totalWorkersQuit: 0,
+      totalSpent: 0
+    }
   };
-  
+
+  const workerStats = stats.worker || {};
+  const customerStats = stats.customer || {};
+
   // Worker stats
+  const workerAcceptedEl = document.getElementById('workerGigsAccepted');
   const workerGigsEl = document.getElementById('workerGigsCompleted');
+  const workerResignedEl = document.getElementById('workerGigsResigned');
+  const workerRemovedEl = document.getElementById('workerGigsRemoved');
   const workerEarnedEl = document.getElementById('workerTotalEarned');
-  if (workerGigsEl) workerGigsEl.textContent = stats.worker.totalGigsCompleted || 0;
-  if (workerEarnedEl) workerEarnedEl.textContent = `₱${(stats.worker.totalEarned || 0).toLocaleString()}`;
+
+  if (workerAcceptedEl) workerAcceptedEl.textContent = workerStats.totalGigsAccepted || 0;
+  if (workerGigsEl) workerGigsEl.textContent = workerStats.totalGigsCompleted || 0;
+  if (workerResignedEl) workerResignedEl.textContent = workerStats.totalGigsResigned || 0;
+  if (workerRemovedEl) workerRemovedEl.textContent = workerStats.totalGigsRemoved || 0;
+  if (workerEarnedEl) workerEarnedEl.textContent = `₱${(workerStats.totalEarned || 0).toLocaleString()}`;
   
   // Customer stats
+  const customerPostedEl = document.getElementById('customerGigsPosted');
   const customerGigsEl = document.getElementById('customerGigsCompleted');
+  const customerFiredEl = document.getElementById('customerWorkersFired');
+  const customerQuitEl = document.getElementById('customerWorkersQuit');
   const customerSpentEl = document.getElementById('customerTotalSpent');
-  if (customerGigsEl) customerGigsEl.textContent = stats.customer.totalGigsCompleted || 0;
-  if (customerSpentEl) customerSpentEl.textContent = `₱${(stats.customer.totalSpent || 0).toLocaleString()}`;
+
+  if (customerPostedEl) customerPostedEl.textContent = customerStats.totalGigsPosted || 0;
+  if (customerGigsEl) customerGigsEl.textContent = customerStats.totalGigsCompleted || 0;
+  if (customerFiredEl) customerFiredEl.textContent = customerStats.totalWorkersFired || 0;
+  if (customerQuitEl) customerQuitEl.textContent = customerStats.totalWorkersQuit || 0;
+  if (customerSpentEl) customerSpentEl.textContent = `₱${(customerStats.totalSpent || 0).toLocaleString()}`;
   
   // Check if there's any activity
-  const hasWorkerActivity = (stats.worker.totalGigsCompleted || 0) > 0;
-  const hasCustomerActivity = (stats.customer.totalGigsCompleted || 0) > 0;
+  const hasWorkerActivity =
+    (workerStats.totalGigsAccepted || 0) > 0 ||
+    (workerStats.totalGigsCompleted || 0) > 0 ||
+    (workerStats.totalGigsResigned || 0) > 0 ||
+    (workerStats.totalGigsRemoved || 0) > 0 ||
+    (workerStats.totalEarned || 0) > 0;
+
+  const hasCustomerActivity =
+    (customerStats.totalGigsPosted || 0) > 0 ||
+    (customerStats.totalGigsCompleted || 0) > 0 ||
+    (customerStats.totalWorkersFired || 0) > 0 ||
+    (customerStats.totalWorkersQuit || 0) > 0 ||
+    (customerStats.totalSpent || 0) > 0;
+
   const hasAnyActivity = hasWorkerActivity || hasCustomerActivity;
   
   // Show/hide cards and no-activity message
@@ -5437,26 +5481,145 @@ function displayActivityStatistics(userProfile) {
   const noActivityMsg = document.getElementById('noActivityMessage');
   
   if (hasAnyActivity) {
-    // Show cards with activity
     if (workerCard) workerCard.style.display = hasWorkerActivity ? 'block' : 'none';
     if (customerCard) customerCard.style.display = hasCustomerActivity ? 'block' : 'none';
     if (noActivityMsg) noActivityMsg.style.display = 'none';
-    
+
     // Populate year dropdowns if yearly data exists
-    if (hasWorkerActivity && stats.worker.yearlyStats) {
-      populateYearDropdown('worker', stats.worker.yearlyStats);
+    if (hasWorkerActivity && workerStats.yearlyStats) {
+      populateYearDropdown('worker', workerStats.yearlyStats);
     }
-    if (hasCustomerActivity && stats.customer.yearlyStats) {
-      populateYearDropdown('customer', stats.customer.yearlyStats);
+    if (hasCustomerActivity && customerStats.yearlyStats) {
+      populateYearDropdown('customer', customerStats.yearlyStats);
     }
   } else {
-    // No activity - show message, hide cards
     if (workerCard) workerCard.style.display = 'none';
     if (customerCard) customerCard.style.display = 'none';
     if (noActivityMsg) noActivityMsg.style.display = 'block';
   }
   
   console.log('✅ Activity statistics displayed');
+}
+
+function openMetricInfoOverlay(title, description, emoji) {
+  const reopenBlockedUntil = window.__metricInfoReopenBlockedUntil || 0;
+  if (Date.now() < reopenBlockedUntil) {
+    return;
+  }
+
+  const overlay = document.getElementById('metricInfoOverlay');
+  const titleEl = document.getElementById('metricInfoTitle');
+  const descEl = document.getElementById('metricInfoDescription');
+  const iconEl = document.getElementById('metricInfoIcon');
+
+  if (!overlay || !titleEl || !descEl || !iconEl) return;
+
+  titleEl.textContent = title || 'Metric Info';
+  descEl.textContent = description || 'This metric shows related activity on your profile.';
+  if (emoji) {
+    iconEl.textContent = emoji;
+    iconEl.classList.remove('hidden');
+  } else {
+    iconEl.textContent = '';
+    iconEl.classList.add('hidden');
+  }
+
+  overlay.classList.add('active');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMetricInfoOverlay(options = {}) {
+  const blockOpenMs = typeof options.blockOpenMs === 'number' ? options.blockOpenMs : 260;
+  window.__metricInfoReopenBlockedUntil = Date.now() + blockOpenMs;
+
+  const overlay = document.getElementById('metricInfoOverlay');
+  if (!overlay) return;
+
+  overlay.classList.remove('active');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function initializeMetricInfoCards() {
+  const overlay = document.getElementById('metricInfoOverlay');
+  const closeFooterBtn = document.getElementById('metricInfoCloseFooterBtn');
+  const modal = overlay ? overlay.querySelector('.metric-info-modal') : null;
+  if (!overlay) return;
+
+  if (!overlay.dataset.metricInfoBound) {
+    const closeHandler = (event) => {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      closeMetricInfoOverlay({ blockOpenMs: 320 });
+    };
+
+    const bindCloseControl = (button) => {
+      if (!button) return;
+
+      button.addEventListener('pointerdown', closeHandler);
+      button.addEventListener('click', closeHandler);
+      button.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          closeHandler(event);
+        }
+      });
+    };
+
+    bindCloseControl(closeFooterBtn);
+
+    if (modal) {
+      modal.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+      modal.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+      });
+    }
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        closeMetricInfoOverlay({ blockOpenMs: 220 });
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && overlay.classList.contains('active')) {
+        closeMetricInfoOverlay({ blockOpenMs: 180 });
+      }
+    });
+
+    overlay.dataset.metricInfoBound = 'true';
+  }
+
+  const metricItems = document.querySelectorAll('.stat-item[data-metric-title][data-metric-description]');
+  metricItems.forEach((item) => {
+    if (item.dataset.metricCardBound === 'true') return;
+
+    const title = item.getAttribute('data-metric-title') || 'Metric Info';
+    const description = item.getAttribute('data-metric-description') || '';
+    const emoji = item.getAttribute('data-metric-emoji') || '';
+
+    item.setAttribute('role', 'button');
+    item.setAttribute('tabindex', '0');
+    item.setAttribute('aria-label', `${title}. Tap for description.`);
+
+    item.addEventListener('click', () => {
+      if (overlay.classList.contains('active')) return;
+      openMetricInfoOverlay(title, description, emoji);
+    });
+
+    item.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openMetricInfoOverlay(title, description, emoji);
+      }
+    });
+
+    item.dataset.metricCardBound = 'true';
+  });
 }
 
 /**
@@ -5488,10 +5651,10 @@ function populateYearDropdown(role, yearlyStats) {
     dropdown.appendChild(option);
   });
   
-  // Add change handler
-  dropdown.addEventListener('change', function() {
+  // Assign a single change handler to avoid repeated listener accumulation.
+  dropdown.onchange = function() {
     displayYearlyBreakdown(role, this.value, yearlyStats);
-  });
+  };
   
   console.log(`📅 Populated ${role} year dropdown with years:`, years);
 }
