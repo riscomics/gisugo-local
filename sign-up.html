@@ -465,6 +465,17 @@
     .success-btn {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     }
+
+    .success-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .success-btn.secondary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    }
     
     /* Terms of Service & Privacy Policy Modals */
     .terms-modal-overlay {
@@ -828,14 +839,14 @@
 
         <!-- Date of Birth -->
         <div class="form-group">
-          <label for="dateOfBirth" class="form-label">Date of Birth *</label>
+          <label for="dateOfBirth" class="form-label">Date of Birth * (Private Only - Not Visible To Public)</label>
           <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" autocomplete="off" required>
           <div class="form-error" id="dateOfBirthError"></div>
         </div>
 
         <!-- Education Level -->
         <div class="form-group">
-          <label for="educationLevel" class="form-label">Education Level *</label>
+          <label for="educationLevel" class="form-label">Education Level * (Private Only - Not Visible To Public)</label>
           <select id="educationLevel" name="educationLevel" class="form-select" autocomplete="off" required>
             <option value="">Select your education level</option>
             <option value="No-High-School">No High School</option>
@@ -930,8 +941,11 @@
     <div class="success-modal">
       <div class="success-icon">✓</div>
       <div class="success-title">Account Created!</div>
-      <div class="success-message">Welcome to GISUGO! You can now start browsing and applying for jobs.</div>
-      <button class="success-btn" onclick="window.location.href='index.html'">GO TO HOME</button>
+      <div class="success-message">Welcome to GISUGO! Face Verification is optional but recommended for higher trust.</div>
+      <div class="success-actions">
+        <button class="success-btn secondary" onclick="window.location.href='profile.html?startFaceVerify=1'">GET FACE VERIFIED</button>
+        <button class="success-btn" onclick="window.location.href='index.html'">MAYBE LATER</button>
+      </div>
     </div>
   </div>
 

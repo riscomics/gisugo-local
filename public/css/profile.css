@@ -916,6 +916,57 @@ body.page-profile.profile-preload .tab-content-wrapper {
   margin-bottom: clamp(1rem, 2.5vw, 1.25rem);
 }
 
+.edit-profile-face-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.edit-profile-face-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: clamp(0.72rem, 2vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.12);
+  color: #e5e7eb;
+}
+
+.edit-profile-face-status.verified {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.18);
+  color: #dbeafe;
+}
+
+.edit-profile-face-status.unverified {
+  border-color: rgba(107, 114, 128, 0.5);
+  background: rgba(107, 114, 128, 0.16);
+  color: #e5e7eb;
+}
+
+.edit-profile-face-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: clamp(0.8rem, 2vw, 0.9rem);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-profile-face-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+}
+
 /* Login Methods List */
 .login-methods-list {
   display: flex;
@@ -4978,14 +5029,36 @@ body.page-profile.profile-preload .tab-content-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: auto;
 }
 
 /* Enlarge badges in status box */
 .user-info-status .verification-badge {
-  padding: clamp(10px, 2vw, 14px) clamp(20px, 4vw, 28px); /* Larger padding */
-  font-size: clamp(0.75rem, 3vw, 1rem); /* Larger font */
-  border-radius: clamp(20px, 5vw, 28px); /* Larger border radius */
+  padding: clamp(8px, 1.6vw, 11px) clamp(16px, 3.2vw, 22px);
+  font-size: clamp(0.72rem, 2.6vw, 0.92rem);
+  border-radius: clamp(18px, 4vw, 24px);
   letter-spacing: 0.15rem;
+  width: auto !important;
+  max-width: max-content;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.user-info-registered {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Keep top cards compact without affecting About Me block sizing. */
+.user-info-item.user-info-status,
+.user-info-item.user-info-registered {
+  padding: clamp(0.65rem, 2.2vw, 0.8rem);
+}
+
+.user-info-registered .user-info-value {
+  color: #f9fafb;
+  font-weight: 700;
 }
 
 /* Pulsating animation for status badge */
@@ -5656,7 +5729,6 @@ body.page-profile.profile-preload .tab-content-wrapper {
     font-size: clamp(0.7rem, 3vw, 0.85rem); /* Larger font size */
     border-radius: clamp(16px, 4vw, 20px); /* Larger border radius */
     letter-spacing: 0.05rem;
-    width: 100%; /* Full width in column layout */
     justify-content: center;
   }
   
@@ -5666,7 +5738,6 @@ body.page-profile.profile-preload .tab-content-wrapper {
     font-size: clamp(0.7rem, 3vw, 0.85rem);
     border-radius: clamp(16px, 4vw, 20px);
     letter-spacing: 0.05rem;
-    width: 100%;
     justify-content: center;
   }
   

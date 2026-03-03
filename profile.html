@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-  <link rel="stylesheet" href="public/css/profile.css?v=29.4">
+  <link rel="stylesheet" href="public/css/profile.css?v=29.11">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -100,23 +100,11 @@
               <span class="verification-badge-text">UNVERIFIED</span>
             </div>
           </div>
-          
-          <!-- Education Level -->
-          <div class="user-info-item">
-            <div class="user-info-label">EDUCATION:</div>
-            <div class="user-info-value" id="educationLevel">Loading...</div>
-          </div>
-          
+
           <!-- Registered Since -->
-          <div class="user-info-item">
+          <div class="user-info-item user-info-registered">
             <div class="user-info-label">REGISTERED SINCE:</div>
             <div class="user-info-value" id="registeredSince">Loading...</div>
-          </div>
-          
-          <!-- Age -->
-          <div class="user-info-item">
-            <div class="user-info-label">AGE:</div>
-            <div class="user-info-value" id="userAge">Loading...</div>
           </div>
         </div>
 
@@ -776,11 +764,11 @@
               <div class="form-hint" style="color: #fbbf24; font-size: 0.85rem; margin-top: 4px;">⚠️ Name changes require admin approval</div>
             </div>
             <div class="edit-profile-field">
-              <label class="edit-profile-label" for="editDateOfBirth">Date of Birth</label>
+              <label class="edit-profile-label" for="editDateOfBirth">Date of Birth (Private Only - Not Visible To Public)</label>
               <input type="date" class="edit-profile-input" id="editDateOfBirth" required>
             </div>
             <div class="edit-profile-field">
-              <label class="edit-profile-label" for="editEducation">Education Level</label>
+              <label class="edit-profile-label" for="editEducation">Education Level (Private Only - Not Visible To Public)</label>
               <select class="edit-profile-select" id="editEducation">
                 <option value="No-High-School">No High School</option>
                 <option value="High School">High School</option>
@@ -788,6 +776,15 @@
                 <option value="Masters">Masters</option>
                 <option value="Doctorate">Doctorate</option>
               </select>
+            </div>
+          </div>
+
+          <div class="edit-profile-section">
+            <div class="edit-profile-section-title">Face Verification</div>
+            <div class="edit-profile-section-desc">Recommended for higher trust. This does not block account usage.</div>
+            <div class="edit-profile-face-row">
+              <div class="edit-profile-face-status" id="editFaceVerificationStatus">UNVERIFIED</div>
+              <button type="button" class="edit-profile-face-btn" id="editFaceVerificationBtn">Verify Now</button>
             </div>
           </div>
 
@@ -1389,7 +1386,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
-  <script src="public/js/profile.js?v=47"></script>
+  <script src="public/js/profile.js?v=49"></script>
 
 </body>
 </html> 

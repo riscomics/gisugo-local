@@ -455,6 +455,26 @@ function openFaceVerificationEntryPoint() {
   openFaceCaptureOverlay();
 }
 
+function maybeStartFaceVerificationAfterSignup(userProfile, isViewingOwnProfile) {
+  const params = new URLSearchParams(window.location.search);
+  const shouldStartFaceVerify = params.get('startFaceVerify') === '1' || params.get('faceVerify') === '1';
+  if (!shouldStartFaceVerify) return;
+
+  // Clear one-time query flag so refreshes do not keep reopening capture.
+  params.delete('startFaceVerify');
+  params.delete('faceVerify');
+  const nextQuery = params.toString();
+  const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash || ''}`;
+  window.history.replaceState({}, '', nextUrl);
+
+  const isAlreadyFaceVerified = !!(userProfile?.verification?.faceVerified);
+  if (!isViewingOwnProfile || isAlreadyFaceVerified) return;
+
+  setTimeout(() => {
+    openFaceVerificationEntryPoint();
+  }, 260);
+}
+
 function setFaceCaptureFeedback(message, tone = 'info') {
   if (!faceCaptureFeedback) return;
   if (!message) {
@@ -1093,6 +1113,7 @@ async function useFaceCaptureResult() {
 
   updateBadgeVisibility(window.currentUserProfile);
   updateAccountOverlayVerificationStatus(window.currentUserProfile);
+  updateEditProfileFaceVerificationControls(window.currentUserProfile);
   populateFacePrestigePreview();
   if (faceCaptureUseBtn) {
     faceCaptureUseBtn.textContent = 'Use This Video';
@@ -1389,6 +1410,8 @@ function populateEditProfileForm() {
     }
   }
 
+  updateEditProfileFaceVerificationControls(profile);
+
   // Social Media usernames (extracted from URLs)
   const facebookInput = document.getElementById('editFacebook');
   const instagramInput = document.getElementById('editInstagram');
@@ -1431,6 +1454,26 @@ function populateEditProfileForm() {
     const liUrl = profile.socialUrls?.linkedin || profile.socialMedia?.linkedin;
     linkedinInput.value = extractUsername(liUrl, 'linkedin');
   }
+}
+
+function updateEditProfileFaceVerificationControls(profile) {
+  const statusElement = document.getElementById('editFaceVerificationStatus');
+  const actionButton = document.getElementById('editFaceVerificationBtn');
+  if (!statusElement || !actionButton) return;
+
+  const isFaceVerified = !!(profile?.verification?.faceVerified);
+  statusElement.textContent = isFaceVerified ? 'FACE VERIFIED' : 'UNVERIFIED';
+  statusElement.classList.toggle('verified', isFaceVerified);
+  statusElement.classList.toggle('unverified', !isFaceVerified);
+  actionButton.textContent = isFaceVerified ? 'Re-record Video' : 'Verify Now';
+}
+
+const editFaceVerificationBtn = document.getElementById('editFaceVerificationBtn');
+if (editFaceVerificationBtn) {
+  editFaceVerificationBtn.addEventListener('click', function() {
+    closeEditProfileOverlay();
+    setTimeout(() => openFaceVerificationEntryPoint(), 140);
+  });
 }
 
 function updateCharCount() {
@@ -1714,23 +1757,6 @@ async function saveProfileChanges() {
   if (userSummaryElement) {
     userSummaryElement.innerHTML = (aboutMe || '').replace(/\n/g, '<br>');
     console.log('✅ Updated user summary');
-  }
-
-  // Update Education Level
-  const educationElement = document.getElementById('educationLevel');
-  if (educationElement) {
-    educationElement.innerHTML = education || 'Not specified';
-    console.log('✅ Updated education to:', education);
-  }
-
-  // Update Age if DOB changed
-  if (dob) {
-    const userAgeElement = document.getElementById('userAge');
-    if (userAgeElement) {
-      const newAge = calculateAge(dob);
-      userAgeElement.textContent = `${newAge} years old`;
-      console.log('✅ Updated age to:', newAge);
-    }
   }
 
   // Update profile photo if changed
@@ -4241,6 +4267,7 @@ async function waitForAuthAndLoadProfile() {
           window.currentUserProfile = firebaseProfile;
           finishProfileLoading();
           loadUserProfile(firebaseProfile);
+          maybeStartFaceVerificationAfterSignup(firebaseProfile, isViewingOwnProfile);
           // Warm both review tabs in the background for faster tab switching.
           setTimeout(() => prefetchProfileReviews(profileUserId), 0);
         } else {
@@ -4423,20 +4450,6 @@ function hideProfileLoadingState() {
   }
 }
 
-// Helper function to calculate age from date of birth
-function calculateAge(dateOfBirth) {
-  const today = new Date();
-  const birthDate = new Date(dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  
-  return age;
-}
-
 // Helper function to format account creation date for display
 function formatRegistrationDate(accountCreated) {
   const date = new Date(accountCreated);
@@ -4507,19 +4520,6 @@ function populateUserInformation(userProfile) {
   const registeredSinceElement = document.getElementById('registeredSince');
   if (registeredSinceElement && userProfile.accountCreated) {
     registeredSinceElement.textContent = formatRegistrationDate(userProfile.accountCreated);
-  }
-  
-  // Update age (calculated from dateOfBirth)
-  const userAgeElement = document.getElementById('userAge');
-  if (userAgeElement && userProfile.dateOfBirth) {
-    const age = calculateAge(userProfile.dateOfBirth);
-    userAgeElement.textContent = `${age} years old`;
-  }
-  
-  // Update education level (same field name)
-  const educationLevelElement = document.getElementById('educationLevel');
-  if (educationLevelElement && userProfile.educationLevel) {
-    educationLevelElement.textContent = userProfile.educationLevel;
   }
   
   // Update user summary (updated field name)
