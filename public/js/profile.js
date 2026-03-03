@@ -5543,7 +5543,6 @@ function closeMetricInfoOverlay(options = {}) {
 
 function initializeMetricInfoCards() {
   const overlay = document.getElementById('metricInfoOverlay');
-  const closeBtn = document.getElementById('metricInfoCloseBtn');
   const closeFooterBtn = document.getElementById('metricInfoCloseFooterBtn');
   const modal = overlay ? overlay.querySelector('.metric-info-modal') : null;
   if (!overlay) return;
@@ -5569,7 +5568,6 @@ function initializeMetricInfoCards() {
       });
     };
 
-    bindCloseControl(closeBtn);
     bindCloseControl(closeFooterBtn);
 
     if (modal) {
