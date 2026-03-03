@@ -32,7 +32,8 @@ service firebase.storage {
 
     // Dedicated Face Verification media namespace (owner/admin only)
     match /face_verification/{userId}/{allPaths=**} {
-      allow read, write, delete: if isOwner(userId) || isAdmin();
+      allow read: if isAuthenticated();
+      allow write, delete: if isOwner(userId) || isAdmin();
     }
 
     // Contact attachments (authenticated users)

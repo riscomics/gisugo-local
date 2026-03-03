@@ -3,6 +3,95 @@ const accountBtn = document.getElementById('accountBtn');
 const accountOverlay = document.getElementById('accountOverlay');
 const accountCloseBtn = document.getElementById('accountCloseBtn');
 
+function closeProfileAdVideoPopupIfVisible() {
+  const popup = document.getElementById('profileAdVideoPopup');
+  if (!popup || !popup.classList.contains('is-visible')) return false;
+
+  const player = popup.querySelector('.profile-ad-video-player');
+  const iframe = popup.querySelector('.profile-ad-video-iframe');
+  if (player) {
+    player.pause();
+    player.removeAttribute('src');
+    player.load();
+    player.style.display = 'none';
+  }
+  if (iframe) {
+    iframe.removeAttribute('src');
+    iframe.style.display = 'none';
+  }
+  popup.style.removeProperty('--ad-video-aspect');
+  popup.classList.remove('is-visible');
+  return true;
+}
+
+function handleGlobalProfileEscape(event) {
+  if (event.key !== 'Escape') return;
+
+  const metricOverlay = document.getElementById('metricInfoOverlay');
+  if (metricOverlay && metricOverlay.classList.contains('active') && typeof closeMetricInfoOverlay === 'function') {
+    closeMetricInfoOverlay({ blockOpenMs: 180 });
+    return;
+  }
+
+  if (typeof closeFaceCaptureOverlay === 'function' && faceCaptureOverlay && faceCaptureOverlay.classList.contains('active')) {
+    closeFaceCaptureOverlay();
+    return;
+  }
+  if (typeof closeBusinessPrestigeOverlay === 'function' && businessPrestigeOverlay && businessPrestigeOverlay.classList.contains('active')) {
+    closeBusinessPrestigeOverlay();
+    return;
+  }
+  if (typeof closeProPrestigeOverlay === 'function' && proPrestigeOverlay && proPrestigeOverlay.classList.contains('active')) {
+    closeProPrestigeOverlay();
+    return;
+  }
+  if (typeof closeFacePrestigeOverlay === 'function' && facePrestigeOverlay && facePrestigeOverlay.classList.contains('active')) {
+    closeFacePrestigeOverlay();
+    return;
+  }
+  if (typeof closeNotVerifiedOverlay === 'function' && notVerifiedOverlay && notVerifiedOverlay.classList.contains('active')) {
+    closeNotVerifiedOverlay();
+    return;
+  }
+  if (typeof closeVerificationOverlay === 'function' && verificationOverlay && verificationOverlay.classList.contains('active')) {
+    closeVerificationOverlay();
+    return;
+  }
+  if (typeof closeExplanationOverlay === 'function' && explanationOverlay && explanationOverlay.classList.contains('active')) {
+    closeExplanationOverlay();
+    return;
+  }
+  if (typeof closeGCoinsOverlay === 'function' && gCoinsOverlay && gCoinsOverlay.classList.contains('active')) {
+    closeGCoinsOverlay();
+    return;
+  }
+
+  const editOverlay = document.getElementById('editProfileOverlay');
+  if (editOverlay && editOverlay.classList.contains('show') && typeof closeEditProfileOverlay === 'function') {
+    closeEditProfileOverlay();
+    return;
+  }
+
+  if (accountOverlay && accountOverlay.classList.contains('active')) {
+    accountOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    justCompletedEligiblePurchase = false;
+    return;
+  }
+
+  if (profileMenuOverlay && profileMenuOverlay.classList.contains('show')) {
+    profileMenuOverlay.classList.remove('show');
+    return;
+  }
+
+  closeProfileAdVideoPopupIfVisible();
+}
+
+if (!window.__profileEscapeHandlerBound) {
+  document.addEventListener('keydown', handleGlobalProfileEscape);
+  window.__profileEscapeHandlerBound = true;
+}
+
 function isAllowedTextCharacter(char) {
   if (!char) return true;
   if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
@@ -139,15 +228,6 @@ if (accountBtn && accountOverlay && accountCloseBtn) {
   // Close account overlay via background click
   accountOverlay.addEventListener('click', function(e) {
     if (e.target === accountOverlay) {
-      accountOverlay.classList.remove('active');
-      document.body.style.overflow = ''; // Restore scrolling
-      justCompletedEligiblePurchase = false; // Reset flag when closing
-    }
-  });
-
-  // Close account overlay via Escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && accountOverlay.classList.contains('active')) {
       accountOverlay.classList.remove('active');
       document.body.style.overflow = ''; // Restore scrolling
       justCompletedEligiblePurchase = false; // Reset flag when closing
@@ -345,8 +425,6 @@ function getFacePosterUrl(userProfile) {
   const privateVerification = window.currentUserPrivateProfile?.verification || {};
   return privateVerification.facePosterUrl
     || verification.facePosterUrl
-    || verification.facePreviewUrl
-    || verification.faceThumbnailUrl
     || null;
 }
 
@@ -1005,23 +1083,29 @@ function beginFaceCaptureCountdown() {
   }, 1000);
 }
 
-async function persistFaceVerificationToBackend(posterDataUrl) {
+async function persistFaceVerificationToBackend(posterDataUrl, recordedBlob) {
   const userId = typeof getCurrentUserId === 'function' ? getCurrentUserId() : null;
   if (!userId) {
     return { success: false, message: 'No logged-in user found. Please log in again.' };
   }
 
   let resolvedPosterUrl = posterDataUrl;
+  let resolvedVideoUrl = '';
+  let resolvedPosterPath = '';
+  let resolvedVideoPath = '';
 
   if (typeof posterDataUrl === 'string' && posterDataUrl.startsWith('data:image/')) {
     try {
+      console.info('[FV_SAVE_STAGE]', { stage: 'poster_upload_start', userId });
       if (typeof firebase !== 'undefined' && firebase.storage) {
         const response = await fetch(posterDataUrl);
         const blob = await response.blob();
         const storageRef = firebase.storage().ref();
-        const facePosterRef = storageRef.child(`face_verification/${userId}/face_poster.jpg`);
+        resolvedPosterPath = `face_verification/${userId}/face_poster.jpg`;
+        const facePosterRef = storageRef.child(resolvedPosterPath);
         const snapshot = await facePosterRef.put(blob, { contentType: 'image/jpeg' });
         resolvedPosterUrl = await snapshot.ref.getDownloadURL();
+        console.info('[FV_SAVE_STAGE]', { stage: 'poster_upload_success', userId, hasPosterUrl: !!resolvedPosterUrl });
       } else {
         return { success: false, message: 'Storage service unavailable. Please try again shortly.' };
       }
@@ -1032,8 +1116,37 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
     }
   }
 
+  if (recordedBlob instanceof Blob) {
+    try {
+      console.info('[FV_SAVE_STAGE]', { stage: 'video_upload_start', userId });
+      if (typeof firebase !== 'undefined' && firebase.storage) {
+        const storageRef = firebase.storage().ref();
+        const extension = (recordedBlob.type || '').includes('webm') ? 'webm' : 'mp4';
+        const contentType = recordedBlob.type || (extension === 'webm' ? 'video/webm' : 'video/mp4');
+        resolvedVideoPath = `face_verification/${userId}/face_intro.${extension}`;
+        const faceVideoRef = storageRef.child(resolvedVideoPath);
+        const videoSnapshot = await faceVideoRef.put(recordedBlob, { contentType });
+        resolvedVideoUrl = await videoSnapshot.ref.getDownloadURL();
+        console.info('[FV_SAVE_STAGE]', { stage: 'video_upload_success', userId, hasVideoUrl: !!resolvedVideoUrl });
+      } else {
+        return { success: false, message: 'Storage service unavailable. Please try again shortly.' };
+      }
+    } catch (error) {
+      console.error('❌ Face video upload error:', error);
+      const errorCode = error?.code ? ` (${error.code})` : '';
+      return { success: false, message: `Could not upload face video${errorCode}. Please try again.` };
+    }
+  } else {
+    return { success: false, message: 'Face video data missing. Please re-record and try again.' };
+  }
+
   const updateData = {
     'verification.faceVerified': true,
+    'verification.status': 'face_verified',
+    'verification.facePosterUrl': resolvedPosterUrl,
+    'verification.facePosterPath': resolvedPosterPath,
+    'verification.faceVideoUrl': resolvedVideoUrl,
+    'verification.faceVideoPath': resolvedVideoPath,
     'verification.verificationDate': (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue)
       ? firebase.firestore.FieldValue.serverTimestamp()
       : new Date().toISOString()
@@ -1041,7 +1154,10 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
 
   const privateUpdateData = {
     verification: {
-      facePosterUrl: resolvedPosterUrl
+      facePosterUrl: resolvedPosterUrl,
+      facePosterPath: resolvedPosterPath,
+      faceVideoPath: resolvedVideoPath,
+      faceVideoUrl: resolvedVideoUrl
     },
     lastModified: (typeof firebase !== 'undefined' && firebase.firestore?.FieldValue)
       ? firebase.firestore.FieldValue.serverTimestamp()
@@ -1049,11 +1165,19 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
   };
 
   try {
+    console.info('[FV_SAVE_STAGE]', { stage: 'firestore_write_start', userId });
     if (typeof updateUserProfile === 'function') {
       const result = await updateUserProfile(userId, updateData);
       if (result?.success && typeof firebase !== 'undefined' && firebase.firestore) {
         await firebase.firestore().collection('user_private').doc(userId).set(privateUpdateData, { merge: true });
-        return { success: true, posterUrl: resolvedPosterUrl };
+        console.info('[FV_SAVE_STAGE]', { stage: 'firestore_write_success', userId });
+        return {
+          success: true,
+          posterUrl: resolvedPosterUrl,
+          videoUrl: resolvedVideoUrl,
+          posterPath: resolvedPosterPath,
+          videoPath: resolvedVideoPath
+        };
       }
       return { success: false, message: result?.message || 'Failed to save Face Verification.' };
     }
@@ -1063,7 +1187,14 @@ async function persistFaceVerificationToBackend(posterDataUrl) {
       batch.update(firebase.firestore().collection('users').doc(userId), updateData);
       batch.set(firebase.firestore().collection('user_private').doc(userId), privateUpdateData, { merge: true });
       await batch.commit();
-      return { success: true, posterUrl: resolvedPosterUrl };
+      console.info('[FV_SAVE_STAGE]', { stage: 'firestore_write_success', userId });
+      return {
+        success: true,
+        posterUrl: resolvedPosterUrl,
+        videoUrl: resolvedVideoUrl,
+        posterPath: resolvedPosterPath,
+        videoPath: resolvedVideoPath
+      };
     }
 
     return { success: false, message: 'Profile update service is unavailable right now.' };
@@ -1086,7 +1217,7 @@ async function useFaceCaptureResult() {
   setFaceCapturePrompt('Saving Face Verification...');
   setFaceCaptureFeedback('');
 
-  const saveResult = await persistFaceVerificationToBackend(faceCaptureState.posterDataUrl);
+  const saveResult = await persistFaceVerificationToBackend(faceCaptureState.posterDataUrl, faceCaptureState.recordedBlob);
   if (!saveResult.success) {
     setFaceCapturePrompt('Save Failed', 'danger');
     setFaceCaptureFeedback(saveResult.message || 'Could not save Face Verification. Please try again.', 'error');
@@ -1108,8 +1239,16 @@ async function useFaceCaptureResult() {
   }
 
   window.currentUserProfile.verification.faceVerified = true;
+  window.currentUserProfile.verification.status = 'face_verified';
+  window.currentUserProfile.verification.facePosterUrl = saveResult.posterUrl || faceCaptureState.posterDataUrl;
+  window.currentUserProfile.verification.facePosterPath = saveResult.posterPath || '';
+  window.currentUserProfile.verification.faceVideoUrl = saveResult.videoUrl || '';
+  window.currentUserProfile.verification.faceVideoPath = saveResult.videoPath || '';
   window.currentUserProfile.verification.verificationDate = new Date().toISOString();
   window.currentUserPrivateProfile.verification.facePosterUrl = saveResult.posterUrl || faceCaptureState.posterDataUrl;
+  window.currentUserPrivateProfile.verification.facePosterPath = saveResult.posterPath || '';
+  window.currentUserPrivateProfile.verification.faceVideoPath = saveResult.videoPath || '';
+  window.currentUserPrivateProfile.verification.faceVideoUrl = saveResult.videoUrl || '';
 
   updateBadgeVisibility(window.currentUserProfile);
   updateAccountOverlayVerificationStatus(window.currentUserProfile);
@@ -1243,23 +1382,6 @@ if (notVerifiedOverlay) {
   });
 }
 
-// Keyboard escape to close (updated to include all verification overlays)
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    if (faceCaptureOverlay && faceCaptureOverlay.classList.contains('active')) {
-      closeFaceCaptureOverlay();
-    } else if (businessPrestigeOverlay && businessPrestigeOverlay.classList.contains('active')) {
-      closeBusinessPrestigeOverlay();
-    } else if (proPrestigeOverlay && proPrestigeOverlay.classList.contains('active')) {
-      closeProPrestigeOverlay();
-    } else if (facePrestigeOverlay && facePrestigeOverlay.classList.contains('active')) {
-      closeFacePrestigeOverlay();
-    } else if (notVerifiedOverlay && notVerifiedOverlay.classList.contains('active')) {
-      closeNotVerifiedOverlay();
-    }
-  }
-});
-
 // Close button handlers
 if (businessPrestigeClose) {
   businessPrestigeClose.addEventListener('click', closeBusinessPrestigeOverlay);
@@ -1277,13 +1399,6 @@ if (businessPrestigeOverlay) {
     }
   });
 }
-
-// Keyboard escape to close
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && businessPrestigeOverlay && businessPrestigeOverlay.classList.contains('active')) {
-    closeBusinessPrestigeOverlay();
-  }
-});
 
 function handleAccountAction(action) {
   switch(action) {
@@ -2803,12 +2918,6 @@ if (gCoinsTopUpBtn && gCoinsOverlay) {
     }
   });
 
-  // Close via Escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && gCoinsOverlay.classList.contains('active')) {
-      closeGCoinsOverlay();
-    }
-  });
 }
 
 // Package selection functionality
@@ -3215,13 +3324,6 @@ if (explanationOverlay) {
   });
 }
 
-// Escape key to close
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && explanationOverlay && explanationOverlay.classList.contains('active')) {
-    closeExplanationOverlay();
-  }
-});
-
 // ===== REFERRAL SYSTEM FUNCTIONALITY =====
 
 // Generate user referral code
@@ -3544,11 +3646,6 @@ if (profileMenuBtn && profileMenuOverlay) {
     }
   });
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      profileMenuOverlay.classList.remove('show');
-    }
-  });
 }
 
 // Profile Tab functionality
@@ -3756,7 +3853,6 @@ const PROFILE_AD_ZONE_CONFIG = {
   ]
 };
 
-let profileAdVideoEscHandler = null;
 const PROFILE_AD_RENDER_STATE = {
   rotationIndex: 0,
   lastRandomAdId: null,
@@ -3876,12 +3972,6 @@ function ensureProfileAdVideoPopup() {
   const backdrop = popup.querySelector('.profile-ad-video-backdrop');
   if (closeButton) closeButton.addEventListener('click', closePopup);
   if (backdrop) backdrop.addEventListener('click', closePopup);
-  if (!profileAdVideoEscHandler) {
-    profileAdVideoEscHandler = (event) => {
-      if (event.key === 'Escape') closePopup();
-    };
-    document.addEventListener('keydown', profileAdVideoEscHandler);
-  }
 
   return popup;
 }
@@ -4117,19 +4207,33 @@ function createProfileSlotAdCard(adConfig) {
 }
 
 function initializeProfileAdSlot() {
-  const logoutSection = document.getElementById('profileAdSlot') || document.querySelector('.profile-logout-section');
-  if (!logoutSection) return;
+  const slots = [
+    document.getElementById('profileAdSlot'),
+    document.getElementById('profileBottomAdSlot')
+  ].filter(Boolean);
 
-  const existingAd = logoutSection.querySelector('.profile-slot-ad-card');
-  if (existingAd) existingAd.remove();
+  if (slots.length === 0) {
+    const fallback = document.querySelector('.profile-logout-section');
+    if (!fallback) return;
+    slots.push(fallback);
+  }
 
-  // Always remove duplicate logout CTA from profile body.
-  logoutSection.innerHTML = '';
+  let previousAdId = null;
+  slots.forEach((slot) => {
+    slot.innerHTML = '';
 
-  const adConfig = getProfileSlotAd();
-  if (!adConfig) return;
+    let adConfig = getProfileSlotAd();
+    if (!adConfig) return;
 
-  logoutSection.appendChild(createProfileSlotAdCard(adConfig));
+    // Prefer a different card for consecutive slots when possible.
+    if (previousAdId && adConfig.id === previousAdId) {
+      const retry = getProfileSlotAd();
+      if (retry) adConfig = retry;
+    }
+
+    slot.appendChild(createProfileSlotAdCard(adConfig));
+    previousAdId = adConfig.id || null;
+  });
 }
 
 // Initialize when page loads
@@ -4170,6 +4274,79 @@ function setProfileShellVisibility(isVisible) {
       section.style.transition = 'opacity 0.3s ease';
     }
   });
+}
+
+async function syncPublicFaceVerificationMediaIfNeeded(userId, publicProfile, privateProfile) {
+  const publicVerification = publicProfile?.verification || {};
+  const privateVerification = privateProfile?.verification || {};
+  if (!publicVerification.faceVerified) return;
+
+  const missingPoster = !publicVerification.facePosterUrl && !!privateVerification.facePosterUrl;
+  const missingPosterPath = !publicVerification.facePosterPath && !!privateVerification.facePosterPath;
+  const privateVideoPath = privateVerification.faceVideoPath || extractStoragePathFromDownloadUrl(privateVerification.faceVideoUrl || '');
+  const missingVideoPath = !publicVerification.faceVideoPath && !!privateVideoPath;
+  const missingVideoUrl = !publicVerification.faceVideoUrl && !!privateVerification.faceVideoUrl;
+  if (!missingPoster && !missingPosterPath && !missingVideoPath && !missingVideoUrl) return;
+
+  const patch = {};
+  if (missingPoster) patch['verification.facePosterUrl'] = privateVerification.facePosterUrl;
+  if (missingPosterPath) patch['verification.facePosterPath'] = privateVerification.facePosterPath;
+  if (missingVideoUrl) patch['verification.faceVideoUrl'] = privateVerification.faceVideoUrl;
+  if (missingVideoPath) patch['verification.faceVideoPath'] = privateVideoPath;
+
+  try {
+    if (typeof updateUserProfile === 'function') {
+      await updateUserProfile(userId, patch);
+    } else if (typeof firebase !== 'undefined' && firebase.firestore) {
+      await firebase.firestore().collection('users').doc(userId).update(patch);
+    }
+    if (missingPoster) publicProfile.verification.facePosterUrl = privateVerification.facePosterUrl;
+    if (missingPosterPath) publicProfile.verification.facePosterPath = privateVerification.facePosterPath;
+    if (missingVideoUrl) publicProfile.verification.faceVideoUrl = privateVerification.faceVideoUrl;
+    if (missingVideoPath) publicProfile.verification.faceVideoPath = privateVideoPath;
+  } catch (error) {
+    console.warn('⚠️ Public FV media sync skipped:', error);
+  }
+}
+
+async function enforceFaceVerificationIntegrity(userId, publicProfile, privateProfile) {
+  const verification = publicProfile?.verification || {};
+  if (!verification.faceVerified) return;
+
+  const hasPoster = !!(verification.facePosterUrl || verification.facePosterPath || privateProfile?.verification?.facePosterUrl);
+  const hasVideo = !!(verification.faceVideoUrl || verification.faceVideoPath || privateProfile?.verification?.faceVideoUrl);
+  if (hasPoster && hasVideo) return;
+
+  // Prevent false-verified state: if required media is missing, revert verification.
+  const patch = {
+    'verification.faceVerified': false,
+    'verification.status': 'needs_reverify'
+  };
+  try {
+    if (typeof updateUserProfile === 'function') {
+      await updateUserProfile(userId, patch);
+    } else if (typeof firebase !== 'undefined' && firebase.firestore) {
+      await firebase.firestore().collection('users').doc(userId).update(patch);
+    }
+    publicProfile.verification.faceVerified = false;
+    publicProfile.verification.status = 'needs_reverify';
+  } catch (error) {
+    console.warn('⚠️ FV integrity enforcement skipped:', error);
+  }
+}
+
+function extractStoragePathFromDownloadUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  try {
+    const parsed = new URL(url);
+    const marker = '/o/';
+    const index = parsed.pathname.indexOf(marker);
+    if (index === -1) return '';
+    const encodedPath = parsed.pathname.slice(index + marker.length);
+    return decodeURIComponent(encodedPath);
+  } catch (_) {
+    return '';
+  }
 }
 
 async function waitForAuthAndLoadProfile() {
@@ -4267,7 +4444,12 @@ async function waitForAuthAndLoadProfile() {
               console.warn('⚠️ Private profile metadata load skipped:', privateErr);
             }
           }
+          if (isViewingOwnProfile) {
+            await syncPublicFaceVerificationMediaIfNeeded(profileUserId, firebaseProfile, window.currentUserPrivateProfile);
+            await enforceFaceVerificationIntegrity(profileUserId, firebaseProfile, window.currentUserPrivateProfile);
+          }
           window.currentUserProfile = firebaseProfile;
+          await reconcileProfileStatisticsIfNeeded(profileUserId, firebaseProfile, isViewingOwnProfile);
           finishProfileLoading();
           loadUserProfile(firebaseProfile);
           maybeStartFaceVerificationAfterSignup(firebaseProfile, isViewingOwnProfile);
@@ -4515,6 +4697,82 @@ function loadUserProfile(userProfile) { // Main profile with dynamic verificatio
   updateBadgeVisibility(userProfile);
   
   console.log(`Profile loaded for: ${userProfile.fullName}`);
+}
+
+const PROFILE_STATS_DEFAULTS = {
+  worker: {
+    totalGigsAccepted: 0,
+    totalGigsCompleted: 0,
+    totalGigsResigned: 0,
+    totalGigsRemoved: 0,
+    totalEarned: 0,
+    yearlyStats: {}
+  },
+  customer: {
+    totalGigsPosted: 0,
+    totalGigsCompleted: 0,
+    totalWorkersFired: 0,
+    totalWorkersQuit: 0,
+    totalSpent: 0,
+    yearlyStats: {}
+  }
+};
+
+function getNestedValue(source, path) {
+  return path.split('.').reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), source);
+}
+
+async function reconcileProfileStatisticsIfNeeded(userId, userProfile, isViewingOwnProfile) {
+  if (!isViewingOwnProfile || !userId || !userProfile) return;
+  if (typeof firebase === 'undefined' || !firebase.firestore) return;
+
+  const checks = [
+    { path: 'worker.totalGigsAccepted', type: 'number' },
+    { path: 'worker.totalGigsCompleted', type: 'number' },
+    { path: 'worker.totalGigsResigned', type: 'number' },
+    { path: 'worker.totalGigsRemoved', type: 'number' },
+    { path: 'worker.totalEarned', type: 'number' },
+    { path: 'worker.yearlyStats', type: 'object' },
+    { path: 'customer.totalGigsPosted', type: 'number' },
+    { path: 'customer.totalGigsCompleted', type: 'number' },
+    { path: 'customer.totalWorkersFired', type: 'number' },
+    { path: 'customer.totalWorkersQuit', type: 'number' },
+    { path: 'customer.totalSpent', type: 'number' },
+    { path: 'customer.yearlyStats', type: 'object' }
+  ];
+
+  const updateData = {};
+  const localStats = userProfile.statistics || {};
+
+  checks.forEach(({ path, type }) => {
+    const currentValue = getNestedValue(localStats, path);
+    const defaultValue = getNestedValue(PROFILE_STATS_DEFAULTS, path);
+    const isValid = type === 'number'
+      ? Number.isFinite(currentValue)
+      : (currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue));
+    if (!isValid) {
+      updateData[`statistics.${path}`] = defaultValue;
+    }
+  });
+
+  if (Object.keys(updateData).length === 0) return;
+
+  try {
+    await firebase.firestore().collection('users').doc(userId).update(updateData);
+    console.log('✅ Reconciled missing profile statistics fields');
+    userProfile.statistics = {
+      worker: {
+        ...PROFILE_STATS_DEFAULTS.worker,
+        ...(userProfile.statistics?.worker || {})
+      },
+      customer: {
+        ...PROFILE_STATS_DEFAULTS.customer,
+        ...(userProfile.statistics?.customer || {})
+      }
+    };
+  } catch (error) {
+    console.warn('⚠️ Profile statistics reconciliation skipped:', error);
+  }
 }
 
 // Populate user information section (backend ready)
@@ -4919,11 +5177,6 @@ function cleanupProfilePage() {
   const editProfileOverlay = document.getElementById('editProfileOverlay');
   if (editProfileOverlay && editProfileOverlay.classList.contains('show')) {
     editProfileOverlay.classList.remove('show');
-  }
-
-  if (profileAdVideoEscHandler) {
-    document.removeEventListener('keydown', profileAdVideoEscHandler);
-    profileAdVideoEscHandler = null;
   }
 
   // Clear review caches to avoid long-session accumulation.
@@ -5432,31 +5685,8 @@ function displayActivityStatistics(userProfile) {
   const workerStats = stats.worker || {};
   const customerStats = stats.customer || {};
 
-  // Worker stats
-  const workerAcceptedEl = document.getElementById('workerGigsAccepted');
-  const workerGigsEl = document.getElementById('workerGigsCompleted');
-  const workerResignedEl = document.getElementById('workerGigsResigned');
-  const workerRemovedEl = document.getElementById('workerGigsRemoved');
-  const workerEarnedEl = document.getElementById('workerTotalEarned');
-
-  if (workerAcceptedEl) workerAcceptedEl.textContent = workerStats.totalGigsAccepted || 0;
-  if (workerGigsEl) workerGigsEl.textContent = workerStats.totalGigsCompleted || 0;
-  if (workerResignedEl) workerResignedEl.textContent = workerStats.totalGigsResigned || 0;
-  if (workerRemovedEl) workerRemovedEl.textContent = workerStats.totalGigsRemoved || 0;
-  if (workerEarnedEl) workerEarnedEl.textContent = `₱${(workerStats.totalEarned || 0).toLocaleString()}`;
-  
-  // Customer stats
-  const customerPostedEl = document.getElementById('customerGigsPosted');
-  const customerGigsEl = document.getElementById('customerGigsCompleted');
-  const customerFiredEl = document.getElementById('customerWorkersFired');
-  const customerQuitEl = document.getElementById('customerWorkersQuit');
-  const customerSpentEl = document.getElementById('customerTotalSpent');
-
-  if (customerPostedEl) customerPostedEl.textContent = customerStats.totalGigsPosted || 0;
-  if (customerGigsEl) customerGigsEl.textContent = customerStats.totalGigsCompleted || 0;
-  if (customerFiredEl) customerFiredEl.textContent = customerStats.totalWorkersFired || 0;
-  if (customerQuitEl) customerQuitEl.textContent = customerStats.totalWorkersQuit || 0;
-  if (customerSpentEl) customerSpentEl.textContent = `₱${(customerStats.totalSpent || 0).toLocaleString()}`;
+  applyRoleYearView('worker', 'all', workerStats);
+  applyRoleYearView('customer', 'all', customerStats);
   
   // Check if there's any activity
   const hasWorkerActivity =
@@ -5485,13 +5715,8 @@ function displayActivityStatistics(userProfile) {
     if (customerCard) customerCard.style.display = hasCustomerActivity ? 'block' : 'none';
     if (noActivityMsg) noActivityMsg.style.display = 'none';
 
-    // Populate year dropdowns if yearly data exists
-    if (hasWorkerActivity && workerStats.yearlyStats) {
-      populateYearDropdown('worker', workerStats.yearlyStats);
-    }
-    if (hasCustomerActivity && customerStats.yearlyStats) {
-      populateYearDropdown('customer', customerStats.yearlyStats);
-    }
+    if (hasWorkerActivity) populateYearDropdown('worker', workerStats);
+    if (hasCustomerActivity) populateYearDropdown('customer', customerStats);
   } else {
     if (workerCard) workerCard.style.display = 'none';
     if (customerCard) customerCard.style.display = 'none';
@@ -5589,12 +5814,6 @@ function initializeMetricInfoCards() {
       }
     });
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && overlay.classList.contains('active')) {
-        closeMetricInfoOverlay({ blockOpenMs: 180 });
-      }
-    });
-
     overlay.dataset.metricInfoBound = 'true';
   }
 
@@ -5605,12 +5824,20 @@ function initializeMetricInfoCards() {
     const title = item.getAttribute('data-metric-title') || 'Metric Info';
     const description = item.getAttribute('data-metric-description') || '';
     const emoji = item.getAttribute('data-metric-emoji') || '';
+    const nestedYearDropdown = item.querySelector('.year-dropdown');
 
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
     item.setAttribute('aria-label', `${title}. Tap for description.`);
 
-    item.addEventListener('click', () => {
+    if (nestedYearDropdown) {
+      nestedYearDropdown.addEventListener('pointerdown', (event) => event.stopPropagation());
+      nestedYearDropdown.addEventListener('click', (event) => event.stopPropagation());
+      nestedYearDropdown.addEventListener('keydown', (event) => event.stopPropagation());
+    }
+
+    item.addEventListener('click', (event) => {
+      if (event.target && event.target.closest && event.target.closest('.stats-year-selector')) return;
       if (overlay.classList.contains('active')) return;
       openMetricInfoOverlay(title, description, emoji);
     });
@@ -5629,25 +5856,19 @@ function initializeMetricInfoCards() {
 /**
  * Populate year dropdown for worker or customer
  * @param {string} role - 'worker' or 'customer'
- * @param {Object} yearlyStats - Object with year keys (e.g., {"2025": {gigsCompleted: 5, earned: 1000}})
+ * @param {Object} roleStats - Role stats object
  */
-function populateYearDropdown(role, yearlyStats) {
-  const years = Object.keys(yearlyStats || {}).sort((a, b) => b - a); // Descending order
-  
-  if (years.length === 0) return; // No yearly data
-  
+function populateYearDropdown(role, roleStats) {
+  const years = Object.keys(roleStats?.yearlyStats || {}).sort((a, b) => b - a);
   const dropdown = document.getElementById(`${role}YearDropdown`);
   const selector = document.getElementById(`${role}YearSelector`);
   
   if (!dropdown || !selector) return;
   
-  // Show the selector
   selector.style.display = 'flex';
   
-  // Clear existing options except "All Time"
   dropdown.innerHTML = '<option value="all">All Time</option>';
   
-  // Add year options
   years.forEach(year => {
     const option = document.createElement('option');
     option.value = year;
@@ -5655,54 +5876,70 @@ function populateYearDropdown(role, yearlyStats) {
     dropdown.appendChild(option);
   });
   
-  // Assign a single change handler to avoid repeated listener accumulation.
+  dropdown.disabled = years.length === 0;
+  dropdown.value = 'all';
+
   dropdown.onchange = function() {
-    displayYearlyBreakdown(role, this.value, yearlyStats);
+    applyRoleYearView(role, this.value, roleStats);
   };
   
   console.log(`📅 Populated ${role} year dropdown with years:`, years);
 }
 
-/**
- * Display yearly breakdown when user selects a specific year
- * @param {string} role - 'worker' or 'customer'
- * @param {string} year - Selected year or 'all'
- * @param {Object} yearlyStats - Yearly statistics object
- */
-function displayYearlyBreakdown(role, year, yearlyStats) {
-  const breakdownEl = document.getElementById(`${role}YearlyStats`);
-  if (!breakdownEl) return;
-  
-  if (year === 'all') {
-    breakdownEl.style.display = 'none';
+function applyRoleYearView(role, year, roleStats) {
+  const stats = roleStats || {};
+  const yearlyData = stats.yearlyStats || {};
+  const selectedYearData = year !== 'all' ? (yearlyData[year] || {}) : null;
+  const scopeText = year === 'all' ? 'ALL-TIME' : `${year} ONLY`;
+
+  if (role === 'worker') {
+    const workerAcceptedEl = document.getElementById('workerGigsAccepted');
+    const workerGigsEl = document.getElementById('workerGigsCompleted');
+    const workerResignedEl = document.getElementById('workerGigsResigned');
+    const workerRemovedEl = document.getElementById('workerGigsRemoved');
+    const workerEarnedEl = document.getElementById('workerTotalEarned');
+    const workerCompletedScopeEl = document.getElementById('workerGigsCompletedScope');
+    const workerTotalScopeEl = document.getElementById('workerTotalScope');
+
+    if (workerAcceptedEl) workerAcceptedEl.textContent = stats.totalGigsAccepted || 0;
+    if (workerResignedEl) workerResignedEl.textContent = stats.totalGigsResigned || 0;
+    if (workerRemovedEl) workerRemovedEl.textContent = stats.totalGigsRemoved || 0;
+
+    const gigsCompletedValue = year === 'all'
+      ? (stats.totalGigsCompleted || 0)
+      : (selectedYearData.gigsCompleted || 0);
+    const earnedValue = year === 'all'
+      ? (stats.totalEarned || 0)
+      : (selectedYearData.earned || 0);
+
+    if (workerGigsEl) workerGigsEl.textContent = gigsCompletedValue;
+    if (workerEarnedEl) workerEarnedEl.textContent = `₱${earnedValue.toLocaleString()}`;
+    if (workerCompletedScopeEl) workerCompletedScopeEl.textContent = scopeText;
+    if (workerTotalScopeEl) workerTotalScopeEl.textContent = scopeText;
     return;
   }
-  
-  const yearData = yearlyStats[year];
-  if (!yearData) {
-    breakdownEl.style.display = 'none';
-    return;
-  }
-  
-  // Show breakdown
-  breakdownEl.style.display = 'block';
-  
-  const isWorker = role === 'worker';
-  const gigsLabel = isWorker ? 'Gigs Completed' : 'Gigs Hired';
-  const moneyLabel = isWorker ? 'Total Earned' : 'Total Spent';
-  const gigsValue = yearData.gigsCompleted || 0;
-  const moneyValue = isWorker ? (yearData.earned || 0) : (yearData.spent || 0);
-  
-  breakdownEl.innerHTML = `
-    <div class="yearly-stat-row">
-      <span class="yearly-stat-label">${gigsLabel}:</span>
-      <span class="yearly-stat-value">${gigsValue}</span>
-    </div>
-    <div class="yearly-stat-row">
-      <span class="yearly-stat-label">${moneyLabel}:</span>
-      <span class="yearly-stat-value">₱${moneyValue.toLocaleString()}</span>
-    </div>
-  `;
-  
-  console.log(`📊 Displayed ${year} breakdown for ${role}:`, yearData);
+
+  const customerPostedEl = document.getElementById('customerGigsPosted');
+  const customerGigsEl = document.getElementById('customerGigsCompleted');
+  const customerFiredEl = document.getElementById('customerWorkersFired');
+  const customerQuitEl = document.getElementById('customerWorkersQuit');
+  const customerSpentEl = document.getElementById('customerTotalSpent');
+  const customerCompletedScopeEl = document.getElementById('customerGigsCompletedScope');
+  const customerTotalScopeEl = document.getElementById('customerTotalScope');
+
+  if (customerPostedEl) customerPostedEl.textContent = stats.totalGigsPosted || 0;
+  if (customerFiredEl) customerFiredEl.textContent = stats.totalWorkersFired || 0;
+  if (customerQuitEl) customerQuitEl.textContent = stats.totalWorkersQuit || 0;
+
+  const gigsCompletedValue = year === 'all'
+    ? (stats.totalGigsCompleted || 0)
+    : (selectedYearData.gigsCompleted || 0);
+  const spentValue = year === 'all'
+    ? (stats.totalSpent || 0)
+    : (selectedYearData.spent || 0);
+
+  if (customerGigsEl) customerGigsEl.textContent = gigsCompletedValue;
+  if (customerSpentEl) customerSpentEl.textContent = `₱${spentValue.toLocaleString()}`;
+  if (customerCompletedScopeEl) customerCompletedScopeEl.textContent = scopeText;
+  if (customerTotalScopeEl) customerTotalScopeEl.textContent = scopeText;
 }

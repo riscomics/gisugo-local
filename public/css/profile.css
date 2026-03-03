@@ -5273,6 +5273,10 @@ body.page-profile.profile-preload .tab-content-wrapper {
   user-select: none;
 }
 
+.stat-priority-wide {
+  grid-column: span 2;
+}
+
 .stat-item::before {
   content: '';
   position: absolute;
@@ -5351,15 +5355,40 @@ body.page-profile.profile-preload .tab-content-wrapper {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.stat-sublabel {
+  margin-top: clamp(0.15rem, 0.8vw, 0.28rem);
+  font-size: clamp(0.58rem, 1.8vw, 0.68rem);
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
 .stats-year-selector {
   display: flex;
   align-items: center;
   gap: clamp(0.5rem, 1.5vw, 0.75rem);
-  margin-top: clamp(0.75rem, 2vw, 1rem);
+  margin-top: clamp(0.55rem, 1.4vw, 0.75rem);
   padding: clamp(0.5rem, 1.5vw, 0.75rem);
   background: rgba(0, 0, 0, 0.2);
   border-radius: clamp(4px, 1vw, 6px);
   border: 1px solid rgba(16, 185, 129, 0.1);
+  justify-content: center;
+}
+
+.stat-priority-wide {
+  cursor: default;
+}
+
+.stat-priority-wide::before {
+  display: none;
+}
+
+.stat-priority-wide:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
 }
 
 .year-label {
@@ -5369,7 +5398,10 @@ body.page-profile.profile-preload .tab-content-wrapper {
 }
 
 .year-dropdown {
-  flex: 1;
+  flex: 0 0 auto;
+  width: min(100%, 170px);
+  min-width: 130px;
+  margin: 0 auto;
   padding: clamp(0.4rem, 1.5vw, 0.6rem);
   background: #1f2937;
   border: 1px solid rgba(16, 185, 129, 0.3);
@@ -5549,6 +5581,10 @@ body.page-profile.profile-preload .tab-content-wrapper {
   align-items: center;
   margin-top: clamp(0.75rem, 2vw, 1rem);
   padding: 0;
+}
+
+.profile-bottom-ad-section {
+  margin-top: clamp(1rem, 2.6vw, 1.4rem);
 }
 
 .profile-slot-ad-card {

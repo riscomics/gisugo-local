@@ -889,8 +889,14 @@ async function createUserProfile(userId, profileData) {
       
       // Verification Status
       verification: {
+        status: 'none',
         businessVerified: false,
         proVerified: false,
+        faceVerified: false,
+        facePosterUrl: '',
+        facePosterPath: '',
+        faceVideoUrl: '',
+        faceVideoPath: '',
         verificationDate: null,
         idSubmitted: false,
         eligibleForSubmission: false

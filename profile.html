@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-  <link rel="stylesheet" href="public/css/profile.css?v=29.12">
+  <link rel="stylesheet" href="public/css/profile.css?v=29.17">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -134,37 +134,38 @@
             </div>
             <div class="stats-card-content">
               <div class="stats-row">
+                <div class="stat-item stat-priority-wide" data-metric-title="Total Earned" data-metric-description="Combined earnings from your completed gigs." data-metric-emoji="💰">
+                  <div class="stat-emoji" aria-hidden="true">💰</div>
+                  <div class="stat-value stat-value-money" id="workerTotalEarned">₱0</div>
+                  <div class="stat-label">Total Earned</div>
+                  <div class="stat-sublabel" id="workerTotalScope">ALL-TIME</div>
+                  <div class="stats-year-selector" id="workerYearSelector">
+                    <select class="year-dropdown" id="workerYearDropdown">
+                      <option value="all">All Time</option>
+                    </select>
+                  </div>
+                </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Accepted" data-metric-description="Total gigs where you accepted a customer's offer.">
                   <div class="stat-value" id="workerGigsAccepted">0</div>
                   <div class="stat-label">Gigs Accepted</div>
+                  <div class="stat-sublabel">ALL-TIME</div>
                 </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Completed" data-metric-description="Total gigs finished and marked as completed.">
                   <div class="stat-value" id="workerGigsCompleted">0</div>
                   <div class="stat-label">Gigs Completed</div>
+                  <div class="stat-sublabel" id="workerGigsCompletedScope">ALL-TIME</div>
                 </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Resigned from" data-metric-description="Total accepted gigs you resigned from before completion.">
                   <div class="stat-value" id="workerGigsResigned">0</div>
                   <div class="stat-label">Gigs Resigned From</div>
+                  <div class="stat-sublabel">ALL-TIME</div>
                 </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Removed from" data-metric-description="Total accepted gigs where the customer removed or voided your contract.">
                   <div class="stat-value" id="workerGigsRemoved">0</div>
                   <div class="stat-label">Gigs Removed From</div>
-                </div>
-                <div class="stat-item" data-metric-title="Total Earned" data-metric-description="Combined earnings from your completed gigs." data-metric-emoji="💰">
-                  <div class="stat-emoji" aria-hidden="true">💰</div>
-                  <div class="stat-value stat-value-money" id="workerTotalEarned">₱0</div>
-                  <div class="stat-label">Total Earned</div>
+                  <div class="stat-sublabel">ALL-TIME</div>
                 </div>
               </div>
-              <!-- Year selector (shown only when data exists) -->
-              <div class="stats-year-selector" id="workerYearSelector" style="display: none;">
-                <label class="year-label">View by year:</label>
-                <select class="year-dropdown" id="workerYearDropdown">
-                  <option value="all">All Time</option>
-                </select>
-              </div>
-              <!-- Yearly breakdown -->
-              <div class="stats-yearly-breakdown" id="workerYearlyStats" style="display: none;"></div>
             </div>
           </div>
 
@@ -178,37 +179,38 @@
             </div>
             <div class="stats-card-content">
               <div class="stats-row">
+                <div class="stat-item stat-priority-wide" data-metric-title="Total Spent" data-metric-description="Combined amount you paid for completed gigs." data-metric-emoji="💸">
+                  <div class="stat-emoji" aria-hidden="true">💸</div>
+                  <div class="stat-value stat-value-money" id="customerTotalSpent">₱0</div>
+                  <div class="stat-label">Total Spent</div>
+                  <div class="stat-sublabel" id="customerTotalScope">ALL-TIME</div>
+                  <div class="stats-year-selector" id="customerYearSelector">
+                    <select class="year-dropdown" id="customerYearDropdown">
+                      <option value="all">All Time</option>
+                    </select>
+                  </div>
+                </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Posted" data-metric-description="Total gigs you have posted as a customer.">
                   <div class="stat-value" id="customerGigsPosted">0</div>
                   <div class="stat-label">Gigs Posted</div>
+                  <div class="stat-sublabel">ALL-TIME</div>
                 </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Completed" data-metric-description="Total posted gigs that reached completed status.">
                   <div class="stat-value" id="customerGigsCompleted">0</div>
                   <div class="stat-label">Gigs Completed</div>
+                  <div class="stat-sublabel" id="customerGigsCompletedScope">ALL-TIME</div>
                 </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Worker Fired" data-metric-description="Total gigs where you removed or fired the hired worker.">
                   <div class="stat-value" id="customerWorkersFired">0</div>
                   <div class="stat-label">Gigs Worker Fired</div>
+                  <div class="stat-sublabel">ALL-TIME</div>
                 </div>
                 <div class="stat-item" data-metric-title="Number of Gigs Worker Quit" data-metric-description="Total gigs where the hired worker resigned from the job.">
                   <div class="stat-value" id="customerWorkersQuit">0</div>
                   <div class="stat-label">Gigs Worker Quit</div>
-                </div>
-                <div class="stat-item" data-metric-title="Total Spent" data-metric-description="Combined amount you paid for completed gigs." data-metric-emoji="💸">
-                  <div class="stat-emoji" aria-hidden="true">💸</div>
-                  <div class="stat-value stat-value-money" id="customerTotalSpent">₱0</div>
-                  <div class="stat-label">Total Spent</div>
+                  <div class="stat-sublabel">ALL-TIME</div>
                 </div>
               </div>
-              <!-- Year selector (shown only when data exists) -->
-              <div class="stats-year-selector" id="customerYearSelector" style="display: none;">
-                <label class="year-label">View by year:</label>
-                <select class="year-dropdown" id="customerYearDropdown">
-                  <option value="all">All Time</option>
-                </select>
-              </div>
-              <!-- Yearly breakdown -->
-              <div class="stats-yearly-breakdown" id="customerYearlyStats" style="display: none;"></div>
             </div>
           </div>
 
@@ -219,6 +221,9 @@
             <div class="no-activity-subtext">Statistics will appear here after completing your first gig</div>
           </div>
         </div>
+
+        <!-- Secondary profile ad slot (below activity metrics) -->
+        <div class="profile-logout-section profile-bottom-ad-section" id="profileBottomAdSlot"></div>
 
         <!-- Metric Info Overlay -->
         <div class="metric-info-overlay" id="metricInfoOverlay" aria-hidden="true" hidden style="display: none;">
@@ -1422,7 +1427,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
-  <script src="public/js/profile.js?v=51"></script>
+  <script src="public/js/profile.js?v=61"></script>
 
 </body>
 </html> 

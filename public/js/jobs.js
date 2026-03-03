@@ -87,6 +87,35 @@ function sanitizeUrl(url, fallback = '') {
     return fallback;
 }
 
+const TAB_RENDER_GUARDS = {
+    tokens: new Map(),
+    activeRole: 'customer',
+    activeCustomerTab: 'listings',
+    activeWorkerTab: 'offered'
+};
+let faceViewerEscapeListenerKey = null;
+
+function beginTabRender(scope) {
+    const token = `${scope}:${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
+    TAB_RENDER_GUARDS.tokens.set(scope, token);
+    return token;
+}
+
+function isTabRenderCurrent(scope, token) {
+    return TAB_RENDER_GUARDS.tokens.get(scope) === token;
+}
+
+function shouldApplyTabRender(scope, token) {
+    if (!isTabRenderCurrent(scope, token)) return false;
+    if (scope === 'listings' || scope === 'hiring' || scope === 'previous') {
+        return TAB_RENDER_GUARDS.activeRole === 'customer' && TAB_RENDER_GUARDS.activeCustomerTab === scope;
+    }
+    if (scope === 'offered' || scope === 'accepted' || scope === 'worker-completed') {
+        return TAB_RENDER_GUARDS.activeRole === 'worker' && TAB_RENDER_GUARDS.activeWorkerTab === scope;
+    }
+    return true;
+}
+
 function isAllowedTextCharacter(char) {
     if (!char) return true;
     if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
@@ -1512,6 +1541,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Only initialize if we're on the actual jobs page
     if (jobsTabsContainer && uniformHeader && isJobsPage) {
+        try {
         console.log('🎯 Jobs page detected - initializing jobs functionality');
         
         // Check for refresh parameter from MODIFY/RELIST success overlays
@@ -1556,6 +1586,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         
     // Update tab counts based on actual data
     await updateTabCounts();
+        } catch (error) {
+            console.error('❌ Jobs page initialization failed:', error);
+            // Keep shell responsive even when one async loader fails.
+            const listings = document.getElementById('listings-content');
+            const offered = document.getElementById('offered-content');
+            if (listings && listings.style.display !== 'none') {
+                const container = listings.querySelector('.listings-container');
+                if (container) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Unable to load tabs</div><div class="empty-state-message">Please refresh and try again.</div></div>`;
+                }
+            } else if (offered) {
+                const container = offered.querySelector('.offered-container');
+                if (container) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">Unable to load tabs</div><div class="empty-state-message">Please refresh and try again.</div></div>`;
+                }
+            }
+        }
     } else {
         console.log('📋 Non-jobs page detected - skipping jobs initialization (DataService still available)');
     }
@@ -1602,6 +1649,8 @@ function initializeRoleTabs() {
 }
 
 async function switchToRole(roleType) {
+    closeFaceVerificationViewerIfOpen();
+
     // Track role switch timestamp for contamination detection
     window.lastRoleSwitch = Date.now();
     
@@ -1621,9 +1670,11 @@ async function switchToRole(roleType) {
     }
     
     console.log(`🔄 Switched to ${roleType} role`);
+    TAB_RENDER_GUARDS.activeRole = roleType;
     
     // Show/hide appropriate tab sets and content
     if (roleType === 'customer') {
+        TAB_RENDER_GUARDS.activeCustomerTab = 'listings';
         // Show customer tabs and content
         document.querySelector('.customer-tabs').style.display = 'flex';
         document.querySelector('.worker-tabs').style.display = 'none';
@@ -1651,6 +1702,7 @@ async function switchToRole(roleType) {
         console.log('✅ Customer role activated - showing Listings/Hiring/Completed tabs');
         
     } else if (roleType === 'worker') {
+        TAB_RENDER_GUARDS.activeWorkerTab = 'offered';
         // Show worker tabs and content
         document.querySelector('.customer-tabs').style.display = 'none';
         document.querySelector('.worker-tabs').style.display = 'flex';
@@ -1701,6 +1753,10 @@ function initializeTabs() {
 }
 
 async function switchToCustomerTab(tabType) {
+    closeFaceVerificationViewerIfOpen();
+
+    TAB_RENDER_GUARDS.activeRole = 'customer';
+    TAB_RENDER_GUARDS.activeCustomerTab = tabType;
     // Update customer tab states
     document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -1741,6 +1797,10 @@ async function switchToCustomerTab(tabType) {
 }
 
 async function switchToWorkerTab(tabType) {
+    closeFaceVerificationViewerIfOpen();
+
+    TAB_RENDER_GUARDS.activeRole = 'worker';
+    TAB_RENDER_GUARDS.activeWorkerTab = tabType;
     // Update worker tab states
     document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -1808,6 +1868,7 @@ async function initializeOfferedTab() {
 async function loadOfferedContent() {
     const container = document.querySelector('.offered-container');
     if (!container) return;
+    const renderToken = beginTabRender('offered');
     
     // Show loading state
     container.innerHTML = `
@@ -1821,17 +1882,19 @@ async function loadOfferedContent() {
         // Get all offered jobs for current user (worker perspective)
         console.log('🔄 Calling JobsDataService.getOfferedJobs()...');
         const offeredJobs = await JobsDataService.getOfferedJobs();
+        if (!shouldApplyTabRender('offered', renderToken)) return;
         
         console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
         console.log('📋 Offered jobs data:', offeredJobs);
         
         if (offeredJobs.length === 0) {
-            showEmptyOfferedState();
+            if (shouldApplyTabRender('offered', renderToken)) showEmptyOfferedState();
             return;
         }
         
         // Generate HTML for offered gigs cards using the same design as accepted cards
         const cardsHTML = await generateMockOfferedJobs(offeredJobs);
+        if (!shouldApplyTabRender('offered', renderToken)) return;
         container.innerHTML = cardsHTML;
         
         // Attach event listeners for offered gig cards
@@ -1839,7 +1902,7 @@ async function loadOfferedContent() {
         
     } catch (error) {
         console.error('❌ Error loading offered content:', error);
-        showEmptyOfferedState();
+        if (shouldApplyTabRender('offered', renderToken)) showEmptyOfferedState();
     }
 }
 
@@ -1863,7 +1926,8 @@ async function generateMockOfferedJobs(offeredJobs) {
 
 function generateOfferedJobCard(job) {
     // Use same card design as accepted gigs but with "OFFERED BY" caption
-    const roleCaption = `OFFERED BY ${job.posterName.toUpperCase()}`;
+    const safePosterNameRaw = job.posterName || 'Customer';
+    const roleCaption = `OFFERED BY ${safePosterNameRaw.toUpperCase()}`;
     const userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
     const userName = job.posterName;
     
@@ -2018,6 +2082,7 @@ async function initializeAcceptedTab() {
 async function loadAcceptedContent() {
     const container = document.querySelector('.accepted-container');
     if (!container) return;
+    const renderToken = beginTabRender('accepted');
     
     // Show loading state
     container.innerHTML = `
@@ -2030,6 +2095,7 @@ async function loadAcceptedContent() {
     try {
         // Get all hired/accepted jobs and filter for worker perspective (where current user is the worker)
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
+        if (!shouldApplyTabRender('accepted', renderToken)) return;
         // Worker's Working tab shows only 'accepted' status (offers they've accepted)
         const workerJobs = allHiredJobs.filter(job => 
             job.role === 'worker' && job.status === 'accepted'
@@ -2038,12 +2104,13 @@ async function loadAcceptedContent() {
         console.log(`🎯 Found ${workerJobs.length} accepted worker jobs for Working tab`);
         
         if (workerJobs.length === 0) {
-            showEmptyAcceptedState();
+            if (shouldApplyTabRender('accepted', renderToken)) showEmptyAcceptedState();
             return;
         }
         
         // Generate HTML for worker perspective cards using the existing hiring card template
         const cardsHTML = await generateMockAcceptedJobs(workerJobs);
+        if (!shouldApplyTabRender('accepted', renderToken)) return;
         container.innerHTML = cardsHTML;
         
         // Attach event listeners for worker perspective cards
@@ -2053,7 +2120,7 @@ async function loadAcceptedContent() {
         
     } catch (error) {
         console.error('❌ Error loading accepted gigs content:', error);
-        showEmptyAcceptedState();
+        if (shouldApplyTabRender('accepted', renderToken)) showEmptyAcceptedState();
     }
 }
 
@@ -2154,21 +2221,24 @@ async function initializeWorkerCompletedTab() {
 async function loadWorkerCompletedContent() {
     const container = document.querySelector('.worker-completed-container');
     if (!container) return;
+    const renderToken = beginTabRender('worker-completed');
     
     try {
         // Get all completed jobs and filter for worker perspective (where current user was the worker)
         const allCompletedJobs = await JobsDataService.getCompletedJobs();
+        if (!shouldApplyTabRender('worker-completed', renderToken)) return;
         const workerCompletedJobs = allCompletedJobs.filter(job => job.role === 'worker');
         
         console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
         
         if (workerCompletedJobs.length === 0) {
-            showEmptyWorkerCompletedState();
+            if (shouldApplyTabRender('worker-completed', renderToken)) showEmptyWorkerCompletedState();
             return;
         }
         
         // Generate HTML for worker perspective completed cards using the existing completed card template
         const cardsHTML = await generateMockWorkerCompletedJobs(workerCompletedJobs);
+        if (!shouldApplyTabRender('worker-completed', renderToken)) return;
         container.innerHTML = cardsHTML;
         
         // Attach event listeners for worker perspective completed cards
@@ -2178,7 +2248,7 @@ async function loadWorkerCompletedContent() {
         
     } catch (error) {
         console.error('❌ Error loading worker completed gigs content:', error);
-        showEmptyWorkerCompletedState();
+        if (shouldApplyTabRender('worker-completed', renderToken)) showEmptyWorkerCompletedState();
     }
 }
 
@@ -2381,6 +2451,7 @@ async function initializeListingsTab() {
 async function loadListingsContent() {
     const container = document.querySelector('.listings-container');
     if (!container) return;
+    const renderToken = beginTabRender('listings');
     
     // Show loading state
     container.innerHTML = `
@@ -2392,8 +2463,10 @@ async function loadListingsContent() {
     
     // Generate mock listings data
     const mockListings = await generateMockListings();
+    if (!shouldApplyTabRender('listings', renderToken)) return;
     
     if (mockListings.length === 0) {
+        if (!shouldApplyTabRender('listings', renderToken)) return;
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📋</div>
@@ -2420,6 +2493,7 @@ async function loadListingsContent() {
         console.log(`   Card ${index+1}: ID=${listing.jobId}, price=${listing.price}, paymentType=${listing.paymentType}, status=${listing.status}`);
     });
     const listingsHTML = sortedListings.map(listing => generateListingCardHTML(listing)).join('');
+    if (!shouldApplyTabRender('listings', renderToken)) return;
     container.innerHTML = listingsHTML;
     
     // Initialize card click handlers
@@ -2808,6 +2882,7 @@ async function initializeHiringTab() {
 async function loadHiringContent() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
+    const renderToken = beginTabRender('hiring');
     
     // Show loading state
     container.innerHTML = `
@@ -2820,6 +2895,7 @@ async function loadHiringContent() {
     try {
         // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
         const allHiredJobs = await JobsDataService.getAllHiredJobs();
+        if (!shouldApplyTabRender('hiring', renderToken)) return;
         // Customer's Hiring tab shows only 'hired' status (pending worker acceptance) and 'accepted' status (worker accepted)
         const customerJobs = allHiredJobs.filter(job => 
             job.role === 'customer' && (job.status === 'hired' || job.status === 'accepted')
@@ -2828,11 +2904,12 @@ async function loadHiringContent() {
         console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
         
         if (customerJobs.length === 0) {
-            showEmptyHiringState();
+            if (shouldApplyTabRender('hiring', renderToken)) showEmptyHiringState();
             return;
         }
         
         const hiringHTML = await generateMockHiredJobs(customerJobs);
+        if (!shouldApplyTabRender('hiring', renderToken)) return;
         container.innerHTML = hiringHTML;
         
         // Initialize event handlers for hiring cards
@@ -2842,6 +2919,7 @@ async function loadHiringContent() {
         
     } catch (error) {
         console.error('❌ Error loading hiring content:', error);
+        if (!shouldApplyTabRender('hiring', renderToken)) return;
         container.innerHTML = `
             <div class="content-placeholder">
                 ❌ Error loading hired jobs.<br>
@@ -2860,30 +2938,33 @@ function generateHiringCardHTML(job) {
     
     // Determine role caption and user info based on perspective
     let roleCaption, userThumbnail, userName, statusClass = '';
+    const safeWorkerNameRaw = (job.hiredWorkerName || 'Worker');
+    const safePosterNameRaw = (job.posterName || 'Customer');
     if (job.role === 'customer') {
         // Customer perspective: Distinguish between pending offer and accepted
         if (job.status === 'hired') {
             // Job offered but worker hasn't accepted yet
-            roleCaption = `YOU OFFERED ${job.hiredWorkerName.toUpperCase()}`;
+            roleCaption = `YOU OFFERED ${safeWorkerNameRaw.toUpperCase()}`;
             statusClass = ' pending-offer';
         } else {
             // Worker has accepted (status === 'accepted')
-            roleCaption = `YOU HIRED ${job.hiredWorkerName.toUpperCase()}`;
+            roleCaption = `YOU HIRED ${safeWorkerNameRaw.toUpperCase()}`;
         }
         userThumbnail = job.hiredWorkerThumbnail;
-        userName = job.hiredWorkerName;
+        userName = safeWorkerNameRaw;
     } else {
         // Worker perspective: I'm working for someone, show the customer's thumbnail
-        roleCaption = `WORKING FOR ${job.posterName.toUpperCase()}`;
+        roleCaption = `WORKING FOR ${safePosterNameRaw.toUpperCase()}`;
         // For worker cards, we need the poster's thumbnail (customer who posted the job)
         userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
-        userName = job.posterName;
+        userName = safePosterNameRaw;
     }
     
     // Add highlighting class for newly hired jobs
     const highlightClass = job.isNewlyHired ? ' newly-hired-highlight' : '';
     const safeJobId = escapeHtml(job.jobId || '');
     const safePosterId = escapeHtml(job.posterId || '');
+    const safePosterName = escapeHtml(job.posterName || '');
     const safeCategory = escapeHtml(job.category || '');
     const safeRole = escapeHtml(job.role || '');
     const safeHiredWorkerId = escapeHtml(job.hiredWorkerId || '');
@@ -2902,6 +2983,7 @@ function generateHiringCardHTML(job) {
         <div class="hiring-card ${roleClass}${statusClass}${highlightClass}" 
              data-job-id="${safeJobId}"
              data-poster-id="${safePosterId}"
+             data-poster-name="${safePosterName}"
              data-category="${safeCategory}"
              data-role="${safeRole}"
              data-hired-worker-id="${safeHiredWorkerId}"
@@ -2971,6 +3053,7 @@ function initializeHiringCardHandlers() {
 function extractHiringJobDataFromCard(cardElement) {
     const jobId = cardElement.getAttribute('data-job-id');
     const posterId = cardElement.getAttribute('data-poster-id');
+    const posterName = cardElement.getAttribute('data-poster-name');
     const category = cardElement.getAttribute('data-category');
     const role = cardElement.getAttribute('data-role');
     const hiredWorkerId = cardElement.getAttribute('data-hired-worker-id');
@@ -2983,6 +3066,7 @@ function extractHiringJobDataFromCard(cardElement) {
     return {
         jobId,
         posterId,
+        posterName,
         category,
         role,
         hiredWorkerId,
@@ -3009,6 +3093,26 @@ async function showHiringOptionsOverlay(jobData) {
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-role', jobData.role);
     overlay.setAttribute('data-title', jobData.title);
+
+    const counterpartUserId = jobData.role === 'customer' ? jobData.hiredWorkerId : jobData.posterId;
+    const counterpartName = jobData.role === 'customer' ? (jobData.hiredWorkerName || 'Worker') : (jobData.posterName || 'Customer');
+    const counterpartRole = jobData.role === 'customer' ? 'worker' : 'customer';
+    const counterpartStatus = await resolveUserAccountStatus(counterpartUserId, {
+        role: counterpartRole,
+        fallbackName: counterpartName
+    });
+    const counterpartPoster = sanitizeUrl(counterpartStatus?.media?.posterUrl || '', '');
+    const counterpartVideo = sanitizeUrl(counterpartStatus?.media?.videoUrl || '', '');
+    const counterpartPosterPath = counterpartStatus?.media?.posterPath || '';
+    const counterpartVideoPath = counterpartStatus?.media?.videoPath || '';
+    const canWatchFaceVerification = counterpartStatus?.type !== 'unverified' && !!counterpartVideo;
+
+    overlay.setAttribute('data-counterpart-user-id', counterpartUserId || '');
+    overlay.setAttribute('data-counterpart-name', counterpartName);
+    overlay.setAttribute('data-counterpart-face-poster-url', counterpartPoster);
+    overlay.setAttribute('data-counterpart-face-video-url', counterpartVideo);
+    overlay.setAttribute('data-counterpart-face-poster-path', counterpartPosterPath);
+    overlay.setAttribute('data-counterpart-face-video-path', counterpartVideoPath);
     
     // Update title and subtitle
     title.textContent = 'Manage Hiring';
@@ -3036,6 +3140,9 @@ async function showHiringOptionsOverlay(jobData) {
                 <button class="listing-option-btn modify" id="completeJobBtn">
                     MARK AS COMPLETED
                 </button>
+                ${canWatchFaceVerification ? `<button class="listing-option-btn view" id="watchFaceVerificationBtn">
+                    WATCH ${escapeHtml(counterpartName).toUpperCase()} FACE VERIFICATION VIDEO
+                </button>` : ''}
                 <button class="listing-option-btn pause" id="relistJobBtn">
                     RELIST GIG (Void Current Hire)
                 </button>
@@ -3047,6 +3154,9 @@ async function showHiringOptionsOverlay(jobData) {
     } else if (jobData.role === 'worker') {
         // Worker perspective: You were hired
         buttonsHTML = `
+            ${canWatchFaceVerification ? `<button class="listing-option-btn view" id="watchFaceVerificationBtn">
+                WATCH ${escapeHtml(counterpartName).toUpperCase()} FACE VERIFICATION VIDEO
+            </button>` : ''}
             <button class="listing-option-btn delete" id="resignJobBtn">
                 RESIGN FROM GIG
             </button>
@@ -3096,12 +3206,14 @@ function initializeHiringOverlayHandlers() {
     
     const completeBtn = document.getElementById('completeJobBtn');
     const relistBtn = document.getElementById('relistJobBtn');
+    const watchFaceBtn = document.getElementById('watchFaceVerificationBtn');
     const resignBtn = document.getElementById('resignJobBtn');
     const cancelBtn = document.getElementById('cancelHiringBtn');
     
     console.log('🔍 Button elements found:', {
         completeBtn: !!completeBtn,
         relistBtn: !!relistBtn, 
+        watchFaceBtn: !!watchFaceBtn,
         resignBtn: !!resignBtn,
         cancelBtn: !!cancelBtn
     });
@@ -3154,6 +3266,27 @@ function initializeHiringOverlayHandlers() {
             resignBtn.removeEventListener('click', resignHandler);
         });
     }
+
+    // Watch face verification media (customer/worker once job is in hiring/working).
+    if (watchFaceBtn) {
+        watchFaceBtn.onclick = null;
+        const watchHandler = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const jobData = getHiringJobDataFromOverlay();
+            openFaceVerificationViewer(jobData.counterpartName, {
+                targetUserId: jobData.counterpartUserId,
+                posterUrl: jobData.counterpartFacePosterUrl,
+                videoUrl: jobData.counterpartFaceVideoUrl,
+                posterPath: jobData.counterpartFacePosterPath,
+                videoPath: jobData.counterpartFaceVideoPath
+            });
+        };
+        watchFaceBtn.addEventListener('click', watchHandler);
+        registerCleanup(cleanupType, 'watchFaceBtn', () => {
+            watchFaceBtn.removeEventListener('click', watchHandler);
+        });
+    }
     
     // Cancel handler
     if (cancelBtn) {
@@ -3187,7 +3320,10 @@ function initializeHiringOverlayHandlers() {
             hideHiringOptionsOverlay();
         }
     };
-    addDocumentListener('overlayEscape', escapeHandler);
+    const escapeListenerKey = addDocumentListener('keydown', escapeHandler);
+    registerCleanup(cleanupType, 'overlayEscape', () => {
+        removeDocumentListener(escapeListenerKey);
+    });
     
     overlay.dataset.handlersInitialized = 'true';
     console.log('👥 Hiring overlay handlers initialized with cleanup');
@@ -3198,7 +3334,114 @@ function getHiringJobDataFromOverlay() {
     return {
         jobId: overlay.getAttribute('data-job-id'),
         role: overlay.getAttribute('data-role'),
-        title: overlay.getAttribute('data-title')
+        title: overlay.getAttribute('data-title'),
+        counterpartUserId: overlay.getAttribute('data-counterpart-user-id'),
+        counterpartName: overlay.getAttribute('data-counterpart-name'),
+        counterpartFacePosterUrl: overlay.getAttribute('data-counterpart-face-poster-url'),
+        counterpartFaceVideoUrl: overlay.getAttribute('data-counterpart-face-video-url'),
+        counterpartFacePosterPath: overlay.getAttribute('data-counterpart-face-poster-path'),
+        counterpartFaceVideoPath: overlay.getAttribute('data-counterpart-face-video-path')
+    };
+}
+
+function closeFaceVerificationViewerIfOpen() {
+    const overlay = document.getElementById('faceVerificationViewerOverlay');
+    const videoEl = document.getElementById('faceVerificationViewerVideo');
+    const imageEl = document.getElementById('faceVerificationViewerImage');
+    const closeBtn = document.getElementById('faceVerificationViewerCloseBtn');
+    if (!overlay || !videoEl || !imageEl || !closeBtn) return;
+    if (overlay.style.display === 'none' || !overlay.style.display) return;
+
+    overlay.style.display = 'none';
+    closeBtn.onclick = null;
+    overlay.onclick = null;
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.style.display = 'none';
+    videoEl.load();
+    imageEl.removeAttribute('src');
+    imageEl.style.display = 'none';
+    if (faceViewerEscapeListenerKey) {
+        removeDocumentListener(faceViewerEscapeListenerKey);
+        faceViewerEscapeListenerKey = null;
+    }
+}
+
+async function openFaceVerificationViewer(memberName, media = {}) {
+    const overlay = document.getElementById('faceVerificationViewerOverlay');
+    const title = document.getElementById('faceVerificationViewerTitle');
+    const message = document.getElementById('faceVerificationViewerMessage');
+    const videoEl = document.getElementById('faceVerificationViewerVideo');
+    const imageEl = document.getElementById('faceVerificationViewerImage');
+    const closeBtn = document.getElementById('faceVerificationViewerCloseBtn');
+    if (!overlay || !title || !message || !videoEl || !imageEl || !closeBtn) return;
+    closeFaceVerificationViewerIfOpen();
+
+    const safeName = memberName || 'Member';
+    const videoUrl = sanitizeUrl(media.videoUrl || '', '');
+    const posterUrl = sanitizeUrl(media.posterUrl || '', '');
+    console.info('[FV_MODAL_MEDIA_RESOLVE]', {
+        surface: 'watch_viewer',
+        memberName: safeName,
+        hasVideoUrl: !!videoUrl,
+        hasPosterUrl: !!posterUrl
+    });
+
+    title.textContent = `${safeName} Face Verification`;
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.style.display = 'none';
+    imageEl.removeAttribute('src');
+    imageEl.style.display = 'none';
+
+    overlay.style.display = 'flex';
+    if (videoUrl) {
+        videoEl.src = videoUrl;
+        videoEl.style.display = 'block';
+        message.textContent = 'Face Verification video shared for hiring trust review.';
+    } else if (posterUrl) {
+        imageEl.src = posterUrl;
+        imageEl.style.display = 'block';
+        message.textContent = 'Face Verification thumbnail is available, but video metadata is missing.';
+    } else {
+        message.textContent = 'Face Verification video is unavailable for this account.';
+    }
+
+    const closeViewer = () => {
+        overlay.style.display = 'none';
+        closeBtn.onclick = null;
+        overlay.onclick = null;
+        if (videoEl.style.display !== 'none') {
+            videoEl.pause();
+            videoEl.removeAttribute('src');
+            videoEl.load();
+        }
+        imageEl.removeAttribute('src');
+        imageEl.style.display = 'none';
+    };
+
+    closeBtn.onclick = closeViewer;
+    overlay.onclick = (event) => {
+        if (event.target === overlay) closeViewer();
+    };
+
+    const viewerEscapeHandler = (event) => {
+        if (event.key === 'Escape' && overlay.style.display !== 'none') {
+            closeViewer();
+        }
+    };
+    faceViewerEscapeListenerKey = addDocumentListener('keydown', viewerEscapeHandler);
+    const previousClose = closeViewer;
+    const closeWithEscapeCleanup = () => {
+        if (faceViewerEscapeListenerKey) {
+            removeDocumentListener(faceViewerEscapeListenerKey);
+            faceViewerEscapeListenerKey = null;
+        }
+        previousClose();
+    };
+    closeBtn.onclick = closeWithEscapeCleanup;
+    overlay.onclick = (event) => {
+        if (event.target === overlay) closeWithEscapeCleanup();
     };
 }
 
@@ -3367,7 +3610,7 @@ function hideGigOfferOptionsOverlay() {
 }
 
 // ===== CONFIRM ACCEPT GIG OVERLAY FUNCTIONS =====
-function showConfirmAcceptGigOverlay(jobData) {
+async function showConfirmAcceptGigOverlay(jobData) {
     console.log('🤝 Show confirm accept gig overlay for:', jobData);
     
     const overlay = document.getElementById('confirmAcceptGigOverlay');
@@ -3385,8 +3628,13 @@ function showConfirmAcceptGigOverlay(jobData) {
     overlay.dataset.priceOffer = jobData.priceOffer;
     overlay.dataset.category = jobData.category;
     
-    // Update customer status (simulate based on poster data)
-    const customerStatus = updateCustomerStatusDisplay(jobData);
+    // Update customer status using real profile verification when available.
+    const customerStatus = await resolveUserAccountStatus(jobData.posterId, {
+        role: 'customer',
+        fallbackName: jobData.posterName
+    });
+    applyCustomerStatusDisplay(customerStatus);
+    updateStatusFacePreview('acceptFacePreviewBlock', 'acceptFacePreviewImage', customerStatus);
     overlay.dataset.verificationStatusType = customerStatus?.type || '';
     updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName, jobData.posterId);
     setVerificationDecision('acceptGig', null);
@@ -3405,10 +3653,7 @@ function showConfirmAcceptGigOverlay(jobData) {
     console.log('🤝 Confirm accept gig overlay shown');
 }
 
-function updateCustomerStatusDisplay(jobData) {
-    // Simulate customer status determination (in real app, this would come from backend)
-    const customerStatus = determineCustomerStatus(jobData.posterName);
-    
+function applyCustomerStatusDisplay(customerStatus) {
     const statusIcon = document.getElementById('customerStatusFriendlyIcon');
     const statusTitle = document.getElementById('customerStatusInfoTitle');
     const statusContent = document.getElementById('customerStatusInfoContent');
@@ -3418,39 +3663,95 @@ function updateCustomerStatusDisplay(jobData) {
         statusTitle.textContent = customerStatus.title;
         statusContent.textContent = customerStatus.description;
     }
-    return customerStatus;
 }
 
-function determineCustomerStatus(customerName) {
-    // Simulate different customer statuses (in real app, this would be from backend data)
-    const statuses = {
-        'Maria Santos': {
+function extractVerificationMedia(verification) {
+    if (!verification) return { posterUrl: '', videoUrl: '', posterPath: '', videoPath: '' };
+    const posterUrl = verification.facePosterUrl || '';
+    const videoUrl = verification.faceVideoUrl || '';
+    const posterPath = verification.facePosterPath || '';
+    const videoPath = verification.faceVideoPath || '';
+    return {
+        posterUrl,
+        videoUrl,
+        posterPath,
+        videoPath
+    };
+}
+
+function buildAccountStatusFromVerification(verification, roleLabel) {
+    const role = roleLabel || 'member';
+    const media = extractVerificationMedia(verification);
+    if (verification?.businessVerified || verification?.status === 'business_verified') {
+        return {
             type: 'business',
             icon: '👑',
             title: 'Business Verified',
-            description: 'This customer has successfully completed our comprehensive business verification process and is recognized as a Premium Community Member. Government-issued business documents verified with enhanced profile visibility and priority listing.'
-        },
-        'Ana Reyes': {
+            description: `This ${role} completed Business verification and has enhanced trust status on GISUGO.`,
+            media
+        };
+    }
+    if (verification?.proVerified || verification?.status === 'pro_verified') {
+        return {
             type: 'pro',
             icon: '⭐',
             title: 'Pro Verified',
-            description: 'This customer has successfully verified their identity and is recognized as a Trusted Community Member. Government-issued ID verified with enhanced profile credibility and priority in search results.'
-        },
-        'Luis Mendoza': {
+            description: `This ${role} completed Pro verification with added identity checks for trust and credibility.`,
+            media
+        };
+    }
+    if (verification?.faceVerified || verification?.status === 'face_verified') {
+        return {
             type: 'face',
             icon: '🎥',
             title: 'Face Verified',
-            description: 'This customer completed Face Verification with a short selfie introduction. It adds transparency and accountability during gig interactions.'
-        },
-        'Carlos Rivera': {
-            type: 'unverified',
-            icon: '🌱',
-            title: 'Unverified',
-            description: 'This customer has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.'
-        }
+            description: `This ${role} completed Face Verification with a short selfie introduction.`,
+            media
+        };
+    }
+    return {
+        type: 'unverified',
+        icon: '🌱',
+        title: 'Unverified',
+        description: `This ${role} has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.`,
+        media
     };
-    
-    return statuses[customerName] || statuses['Carlos Rivera']; // Default to unverified
+}
+
+async function resolveUserAccountStatus(userId, options = {}) {
+    const role = options.role || 'member';
+
+    try {
+        if (typeof getUserProfile === 'function' && userId) {
+            const profile = await getUserProfile(userId);
+            if (profile && profile.verification) {
+                return buildAccountStatusFromVerification(profile.verification, role);
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Could not load counterpart verification profile:', error);
+    }
+
+    return buildAccountStatusFromVerification(null, role);
+}
+
+function updateStatusFacePreview(previewBlockId, previewImageId, status) {
+    const previewBlock = document.getElementById(previewBlockId);
+    const previewImage = document.getElementById(previewImageId);
+    if (!previewBlock || !previewImage) return;
+
+    const posterUrl = sanitizeUrl(status?.media?.posterUrl || '', '');
+    console.info('[FV_MODAL_MEDIA_RESOLVE]', {
+        surface: previewBlockId,
+        hasPosterUrl: !!posterUrl
+    });
+    if (posterUrl) {
+        previewImage.src = posterUrl;
+        previewBlock.style.display = 'flex';
+    } else {
+        previewImage.removeAttribute('src');
+        previewBlock.style.display = 'none';
+    }
 }
 
 function getDisclaimerEnabledMessage(modalId) {
@@ -5878,6 +6179,7 @@ async function initializePreviousTab() {
 async function loadPreviousContent() {
     const container = document.querySelector('.previous-container');
     if (!container) return;
+    const renderToken = beginTabRender('previous');
     
     // Show loading state
     container.innerHTML = `
@@ -5890,14 +6192,16 @@ async function loadPreviousContent() {
     try {
         // Get all completed jobs and filter for customer perspective only (where current user was the customer)
         const allCompletedJobs = await JobsDataService.getCompletedJobs();
+        if (!shouldApplyTabRender('previous', renderToken)) return;
         const customerCompletedJobs = allCompletedJobs.filter(job => job.role === 'customer');
         
         console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
         
         if (customerCompletedJobs.length === 0) {
-            showEmptyPreviousState();
+            if (shouldApplyTabRender('previous', renderToken)) showEmptyPreviousState();
         } else {
             await generateMockCompletedJobs(customerCompletedJobs);
+            if (!shouldApplyTabRender('previous', renderToken)) return;
             initializeCompletedCardHandlers();
             checkTruncatedFeedback();
             
@@ -5909,6 +6213,7 @@ async function loadPreviousContent() {
         
     } catch (error) {
         console.error('❌ Error loading previous jobs:', error);
+    if (!shouldApplyTabRender('previous', renderToken)) return;
     container.innerHTML = `
         <div class="content-placeholder">
                 ❌ Error loading completed jobs.<br>
@@ -6091,17 +6396,19 @@ function generateCompletedCardHTML(job) {
     
     // Determine role caption and user info based on perspective
     let roleCaption, userThumbnail, userName, userLabel;
+    const safeCompletedWorkerName = job.hiredWorkerName || 'Worker';
+    const safeCompletedPosterName = job.posterName || 'Customer';
     if (job.role === 'customer') {
         // Customer perspective: I hired someone and completed the job
-        roleCaption = `YOU HIRED ${job.hiredWorkerName.toUpperCase()}`;
+        roleCaption = `YOU HIRED ${safeCompletedWorkerName.toUpperCase()}`;
         userThumbnail = job.hiredWorkerThumbnail;
-        userName = job.hiredWorkerName;
+        userName = safeCompletedWorkerName;
         userLabel = 'WORKER';
     } else {
         // Worker perspective: I worked for someone who completed the job
-        roleCaption = `WORKED FOR ${job.posterName.toUpperCase()}`;
+        roleCaption = `WORKED FOR ${safeCompletedPosterName.toUpperCase()}`;
         userThumbnail = job.posterThumbnail;
-        userName = job.posterName;
+        userName = safeCompletedPosterName;
         userLabel = 'CUSTOMER';
     }
     
@@ -6893,7 +7200,10 @@ function initializePreviousOverlayHandlers() {
             hidePreviousOptionsOverlay();
         }
     };
-    addDocumentListener('previousOverlayEscape', escapeHandler);
+    const escapeListenerKey = addDocumentListener('keydown', escapeHandler);
+    registerCleanup(cleanupType, 'previousOverlayEscape', () => {
+        removeDocumentListener(escapeListenerKey);
+    });
 
     overlay.dataset.handlersInitialized = 'true';
     console.log('🔧 Previous overlay handlers initialized');
@@ -7173,7 +7483,10 @@ function initializeOptionsOverlayHandlers() {
             hideListingOptionsOverlay();
         }
     };
-    addDocumentListener('overlayEscape', escapeHandler);
+    const escapeListenerKey = addDocumentListener('keydown', escapeHandler);
+    registerCleanup('listings-overlay', 'overlayEscape', () => {
+        removeDocumentListener(escapeListenerKey);
+    });
 
     overlay.dataset.handlersInitialized = 'true';
     console.log('🔧 Options overlay handlers initialized');
@@ -8533,7 +8846,7 @@ function hideApplicationsOverlay() {
 }
 
 // Hire Confirmation Overlay Functions
-function showHireConfirmationOverlay(workerData) {
+async function showHireConfirmationOverlay(workerData) {
     console.log('🚀 showHireConfirmationOverlay called with:', workerData);
     
     const overlay = document.getElementById('hireConfirmationOverlay');
@@ -8542,9 +8855,13 @@ function showHireConfirmationOverlay(workerData) {
         return;
     }
 
-    // Update worker status based on rating (simulate account status determination)
-    const workerStatus = determineWorkerStatus(workerData.userRating);
+    // Update worker status using real profile verification when available.
+    const workerStatus = await resolveUserAccountStatus(workerData.userId, {
+        role: 'worker',
+        fallbackRating: workerData.userRating
+    });
     updateWorkerStatusDisplay(workerStatus);
+    updateStatusFacePreview('hireFacePreviewBlock', 'hireFacePreviewImage', workerStatus);
     overlay.dataset.verificationStatusType = workerStatus?.type || '';
     updateVerificationReminderActions('hire', workerStatus?.type, workerData.userName, workerData.userId);
     setVerificationDecision('confirmHire', null);
@@ -8572,57 +8889,16 @@ function showHireConfirmationOverlay(workerData) {
     initializeHireConfirmationHandlers();
 }
 
-function determineWorkerStatus(rating) {
-    // Simulate account status determination based on rating
-    if (rating >= 4.5) {
-        return {
-            type: 'business',
-            text: 'Business Account',
-            icon: '🏢',
-            friendlyIcon: '💼',
-            infoTitle: 'Verified Business Account',
-            infoContent: 'This user has achieved Business verification status through our comprehensive verification process. They have demonstrated exceptional service quality and maintain professional business standards on GISUGO.'
-        };
-    } else if (rating >= 3.5) {
-        return {
-            type: 'pro',
-            text: 'Pro Member',
-            icon: '⭐',
-            friendlyIcon: '✨',
-            infoTitle: 'Pro Verified Member',
-            infoContent: 'This user has achieved Pro verification status through our verification process. They have demonstrated good service quality and reliability. Pro members undergo additional verification steps for enhanced trust.'
-        };
-    } else if (rating >= 2.5) {
-        return {
-            type: 'face',
-            text: 'Face Verified',
-            icon: '🎥',
-            friendlyIcon: '🎥',
-            infoTitle: 'Face Verified Member',
-            infoContent: 'This user completed Face Verification using a short selfie introduction. Face Verification improves transparency and accountability during gig interactions.'
-        };
-    } else {
-        return {
-            type: 'unverified',
-            text: 'Unverified',
-            icon: '🌱',
-            friendlyIcon: '🌱',
-            infoTitle: 'Unverified Member',
-            infoContent: 'This user has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.'
-        };
-    }
-}
-
 function updateWorkerStatusDisplay(status) {
     const info = document.getElementById('workerStatusInfo');
     const friendlyIcon = document.getElementById('statusFriendlyIcon');
     const infoTitle = document.getElementById('statusInfoTitle');
     const infoContent = document.getElementById('statusInfoContent');
 
-    // Update info section
-    friendlyIcon.textContent = status.friendlyIcon;
-    infoTitle.textContent = status.infoTitle;
-    infoContent.textContent = status.infoContent;
+    // Support both new status shape and any legacy fields.
+    friendlyIcon.textContent = status.icon || status.friendlyIcon || '🌱';
+    infoTitle.textContent = status.title || status.infoTitle || 'Unverified';
+    infoContent.textContent = status.description || status.infoContent || 'This member has not completed Face Verification yet.';
 
     // Style info section based on type
     if (status.type === 'business') {
@@ -9972,7 +10248,10 @@ function initializeCustomerFeedbackHandlers() {
             hideCustomerFeedbackOverlay();
         }
     };
-    addDocumentListener('customerFeedbackEscape', escapeHandler);
+    const escapeListenerKey = addDocumentListener('keydown', escapeHandler);
+    registerCleanup('customerFeedback', 'customerFeedbackEscape', () => {
+        removeDocumentListener(escapeListenerKey);
+    });
 
     overlay.dataset.feedbackHandlersInitialized = 'true';
     console.log('🔧 Customer feedback handlers initialized');
@@ -10420,7 +10699,10 @@ function initializeDisputeHandlers() {
             hideDisputeOverlay();
         }
     };
-    addDocumentListener('disputeEscape', escapeHandler);
+    const escapeListenerKey = addDocumentListener('keydown', escapeHandler);
+    registerCleanup('dispute', 'disputeEscape', () => {
+        removeDocumentListener(escapeListenerKey);
+    });
 
     overlay.dataset.disputeHandlersInitialized = 'true';
     console.log('🔧 Dispute handlers initialized');
