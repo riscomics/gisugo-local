@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
   <!-- UNIFORM HEADER SYSTEM -->
   <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-  <link rel="stylesheet" href="public/css/profile.css?v=29.4">
+  <link rel="stylesheet" href="public/css/profile.css?v=29.5">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-profile profile-preload">
@@ -141,29 +141,28 @@
             <div class="stats-card-header">
               <div class="stats-card-title">
                 <span class="stats-icon">💼</span>
-                <span>As Worker</span>
+                <span>As A Worker</span>
               </div>
             </div>
             <div class="stats-card-content">
               <div class="stats-row">
                 <div class="stat-item">
+                  <div class="stat-value" id="workerGigsAccepted">0</div>
+                  <div class="stat-label">Gigs Accepted</div>
+                </div>
+                <div class="stat-item">
                   <div class="stat-value" id="workerGigsCompleted">0</div>
                   <div class="stat-label">Gigs Completed</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-value stat-value-money" id="workerTotalEarned">₱0</div>
-                  <div class="stat-label">Total Earned</div>
+                  <div class="stat-value" id="workerGigsResigned">0</div>
+                  <div class="stat-label">Gigs Resigned From</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value" id="workerGigsRemoved">0</div>
+                  <div class="stat-label">Gigs Removed From</div>
                 </div>
               </div>
-              <!-- Year selector (shown only when data exists) -->
-              <div class="stats-year-selector" id="workerYearSelector" style="display: none;">
-                <label class="year-label">View by year:</label>
-                <select class="year-dropdown" id="workerYearDropdown">
-                  <option value="all">All Time</option>
-                </select>
-              </div>
-              <!-- Yearly breakdown -->
-              <div class="stats-yearly-breakdown" id="workerYearlyStats" style="display: none;"></div>
             </div>
           </div>
 
@@ -172,37 +171,36 @@
             <div class="stats-card-header">
               <div class="stats-card-title">
                 <span class="stats-icon">👔</span>
-                <span>As Customer</span>
+                <span>As A Customer</span>
               </div>
             </div>
             <div class="stats-card-content">
               <div class="stats-row">
                 <div class="stat-item">
-                  <div class="stat-value" id="customerGigsCompleted">0</div>
-                  <div class="stat-label">Gigs Hired</div>
+                  <div class="stat-value" id="customerGigsPosted">0</div>
+                  <div class="stat-label">Gigs Posted</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-value stat-value-money" id="customerTotalSpent">₱0</div>
-                  <div class="stat-label">Total Spent</div>
+                  <div class="stat-value" id="customerGigsCompleted">0</div>
+                  <div class="stat-label">Gigs Completed</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value" id="customerWorkersFired">0</div>
+                  <div class="stat-label">Gigs Worker Fired</div>
+                </div>
+                <div class="stat-item">
+                  <div class="stat-value" id="customerWorkersQuit">0</div>
+                  <div class="stat-label">Gigs Worker Quit</div>
                 </div>
               </div>
-              <!-- Year selector (shown only when data exists) -->
-              <div class="stats-year-selector" id="customerYearSelector" style="display: none;">
-                <label class="year-label">View by year:</label>
-                <select class="year-dropdown" id="customerYearDropdown">
-                  <option value="all">All Time</option>
-                </select>
-              </div>
-              <!-- Yearly breakdown -->
-              <div class="stats-yearly-breakdown" id="customerYearlyStats" style="display: none;"></div>
             </div>
           </div>
 
           <!-- No Activity Message -->
           <div class="no-activity-message" id="noActivityMessage">
             <div class="no-activity-icon">📊</div>
-            <div class="no-activity-text">No completed gigs yet</div>
-            <div class="no-activity-subtext">Statistics will appear here after completing your first gig</div>
+            <div class="no-activity-text">No gig activity yet</div>
+            <div class="no-activity-subtext">Statistics will appear here after your first gig activity</div>
           </div>
         </div>
 
@@ -1389,7 +1387,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
-  <script src="public/js/profile.js?v=47"></script>
+  <script src="public/js/profile.js?v=48"></script>
 
 </body>
 </html> 

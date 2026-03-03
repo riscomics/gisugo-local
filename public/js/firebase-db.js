@@ -162,6 +162,17 @@ async function createJob(jobData) {
     await docRef.update({
       jobPageUrl: `dynamic-job.html?category=${jobData.category}&jobNumber=${docRef.id}`
     });
+
+    // Track customer posting activity (non-blocking).
+    try {
+      await db.collection('users').doc(currentUser.uid).update({
+        'statistics.customer.totalGigsPosted': firebase.firestore.FieldValue.increment(1)
+      });
+      console.log('✅ Customer posting statistics updated');
+    } catch (statsError) {
+      // Keep job creation successful even if activity stats update fails.
+      console.warn('⚠️ Could not update customer posting statistics:', statsError);
+    }
     
     console.log('✅ Job created with ID:', docRef.id);
     

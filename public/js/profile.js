@@ -5405,30 +5405,50 @@ async function populateWorkerReviews(workerReviews = null, userName = null) {
  * Display user activity statistics (worker & customer)
  * @param {Object} userProfile - User profile data with statistics field
  */
-function displayActivityStatistics(userProfile) {
-  console.log('📊 Displaying activity statistics...', userProfile.statistics);
-  
-  // Get stats from profile (with fallback for users without stats field)
-  const stats = userProfile.statistics || {
-    worker: { totalGigsCompleted: 0, totalEarned: 0, yearlyStats: {} },
-    customer: { totalGigsCompleted: 0, totalSpent: 0, yearlyStats: {} }
-  };
-  
+function isValidCount(value) {
+  return typeof value === 'number' && !Number.isNaN(value);
+}
+
+function toCount(value) {
+  return isValidCount(value) ? value : 0;
+}
+
+function applyActivityStatisticsToUI(workerStats, customerStats) {
   // Worker stats
+  const workerAcceptedEl = document.getElementById('workerGigsAccepted');
   const workerGigsEl = document.getElementById('workerGigsCompleted');
-  const workerEarnedEl = document.getElementById('workerTotalEarned');
-  if (workerGigsEl) workerGigsEl.textContent = stats.worker.totalGigsCompleted || 0;
-  if (workerEarnedEl) workerEarnedEl.textContent = `₱${(stats.worker.totalEarned || 0).toLocaleString()}`;
+  const workerResignedEl = document.getElementById('workerGigsResigned');
+  const workerRemovedEl = document.getElementById('workerGigsRemoved');
+
+  if (workerAcceptedEl) workerAcceptedEl.textContent = toCount(workerStats.totalGigsAccepted);
+  if (workerGigsEl) workerGigsEl.textContent = toCount(workerStats.totalGigsCompleted);
+  if (workerResignedEl) workerResignedEl.textContent = toCount(workerStats.totalGigsResigned);
+  if (workerRemovedEl) workerRemovedEl.textContent = toCount(workerStats.totalGigsRemoved);
   
   // Customer stats
+  const customerPostedEl = document.getElementById('customerGigsPosted');
   const customerGigsEl = document.getElementById('customerGigsCompleted');
-  const customerSpentEl = document.getElementById('customerTotalSpent');
-  if (customerGigsEl) customerGigsEl.textContent = stats.customer.totalGigsCompleted || 0;
-  if (customerSpentEl) customerSpentEl.textContent = `₱${(stats.customer.totalSpent || 0).toLocaleString()}`;
+  const customerFiredEl = document.getElementById('customerWorkersFired');
+  const customerQuitEl = document.getElementById('customerWorkersQuit');
+
+  if (customerPostedEl) customerPostedEl.textContent = toCount(customerStats.totalGigsPosted);
+  if (customerGigsEl) customerGigsEl.textContent = toCount(customerStats.totalGigsCompleted);
+  if (customerFiredEl) customerFiredEl.textContent = toCount(customerStats.totalWorkersFired);
+  if (customerQuitEl) customerQuitEl.textContent = toCount(customerStats.totalWorkersQuit);
   
   // Check if there's any activity
-  const hasWorkerActivity = (stats.worker.totalGigsCompleted || 0) > 0;
-  const hasCustomerActivity = (stats.customer.totalGigsCompleted || 0) > 0;
+  const hasWorkerActivity =
+    toCount(workerStats.totalGigsAccepted) > 0 ||
+    toCount(workerStats.totalGigsCompleted) > 0 ||
+    toCount(workerStats.totalGigsResigned) > 0 ||
+    toCount(workerStats.totalGigsRemoved) > 0;
+
+  const hasCustomerActivity =
+    toCount(customerStats.totalGigsPosted) > 0 ||
+    toCount(customerStats.totalGigsCompleted) > 0 ||
+    toCount(customerStats.totalWorkersFired) > 0 ||
+    toCount(customerStats.totalWorkersQuit) > 0;
+
   const hasAnyActivity = hasWorkerActivity || hasCustomerActivity;
   
   // Show/hide cards and no-activity message
@@ -5437,23 +5457,164 @@ function displayActivityStatistics(userProfile) {
   const noActivityMsg = document.getElementById('noActivityMessage');
   
   if (hasAnyActivity) {
-    // Show cards with activity
     if (workerCard) workerCard.style.display = hasWorkerActivity ? 'block' : 'none';
     if (customerCard) customerCard.style.display = hasCustomerActivity ? 'block' : 'none';
     if (noActivityMsg) noActivityMsg.style.display = 'none';
-    
-    // Populate year dropdowns if yearly data exists
-    if (hasWorkerActivity && stats.worker.yearlyStats) {
-      populateYearDropdown('worker', stats.worker.yearlyStats);
-    }
-    if (hasCustomerActivity && stats.customer.yearlyStats) {
-      populateYearDropdown('customer', stats.customer.yearlyStats);
-    }
   } else {
-    // No activity - show message, hide cards
     if (workerCard) workerCard.style.display = 'none';
     if (customerCard) customerCard.style.display = 'none';
     if (noActivityMsg) noActivityMsg.style.display = 'block';
+  }
+}
+
+async function fetchLegacyActivityStatistics(userId) {
+  if (!userId || typeof firebase === 'undefined' || typeof firebase.firestore !== 'function') {
+    return null;
+  }
+
+  try {
+    const db = firebase.firestore();
+    const [customerJobsSnap, workerJobsSnap, workerResignedSnap, workerRemovedSnap] = await Promise.all([
+      db.collection('jobs').where('posterId', '==', userId).get(),
+      db.collection('jobs').where('hiredWorkerId', '==', userId).get(),
+      db.collection('jobs').where('resignedWorkerId', '==', userId).get(),
+      db.collection('jobs').where('voidedWorkerId', '==', userId).get()
+    ]);
+
+    let customerCompleted = 0;
+    let customerWorkersFired = 0;
+    let customerWorkersQuit = 0;
+
+    customerJobsSnap.docs.forEach((doc) => {
+      const job = doc.data() || {};
+      if (job.status === 'completed') customerCompleted += 1;
+      if (job.voidedWorkerId) customerWorkersFired += 1;
+      if (job.resignedWorkerId) customerWorkersQuit += 1;
+    });
+
+    let workerCompleted = 0;
+    const workerAcceptedSet = new Set();
+
+    workerJobsSnap.docs.forEach((doc) => {
+      const job = doc.data() || {};
+      if (job.status === 'completed') workerCompleted += 1;
+      if (job.status === 'accepted' || job.status === 'completed' || job.acceptedAt) {
+        workerAcceptedSet.add(doc.id);
+      }
+    });
+
+    workerResignedSnap.docs.forEach((doc) => {
+      workerAcceptedSet.add(doc.id);
+    });
+
+    workerRemovedSnap.docs.forEach((doc) => {
+      workerAcceptedSet.add(doc.id);
+    });
+
+    return {
+      worker: {
+        totalGigsAccepted: workerAcceptedSet.size,
+        totalGigsCompleted: workerCompleted,
+        totalGigsResigned: workerResignedSnap.size,
+        totalGigsRemoved: workerRemovedSnap.size
+      },
+      customer: {
+        totalGigsPosted: customerJobsSnap.size,
+        totalGigsCompleted: customerCompleted,
+        totalWorkersFired: customerWorkersFired,
+        totalWorkersQuit: customerWorkersQuit
+      }
+    };
+  } catch (error) {
+    console.warn('⚠️ Could not backfill legacy activity statistics:', error);
+    return null;
+  }
+}
+
+function displayActivityStatistics(userProfile) {
+  console.log('📊 Displaying activity statistics...', userProfile.statistics);
+  
+  // Get stats from profile (with fallback for users without stats field)
+  const stats = userProfile.statistics || {
+    worker: {
+      totalGigsAccepted: 0,
+      totalGigsCompleted: 0,
+      totalGigsResigned: 0,
+      totalGigsRemoved: 0
+    },
+    customer: {
+      totalGigsPosted: 0,
+      totalGigsCompleted: 0,
+      totalWorkersFired: 0,
+      totalWorkersQuit: 0
+    }
+  };
+
+  const rawWorkerStats = stats.worker || {};
+  const rawCustomerStats = stats.customer || {};
+
+  const workerStats = {
+    totalGigsAccepted: toCount(rawWorkerStats.totalGigsAccepted),
+    totalGigsCompleted: toCount(rawWorkerStats.totalGigsCompleted),
+    totalGigsResigned: toCount(rawWorkerStats.totalGigsResigned),
+    totalGigsRemoved: toCount(rawWorkerStats.totalGigsRemoved)
+  };
+
+  const customerStats = {
+    totalGigsPosted: toCount(rawCustomerStats.totalGigsPosted),
+    totalGigsCompleted: toCount(rawCustomerStats.totalGigsCompleted),
+    totalWorkersFired: toCount(rawCustomerStats.totalWorkersFired),
+    totalWorkersQuit: toCount(rawCustomerStats.totalWorkersQuit)
+  };
+
+  applyActivityStatisticsToUI(workerStats, customerStats);
+
+  // Existing profiles may not have the newer counters yet.
+  // Backfill missing counters from jobs data so values still appear.
+  const needsBackfill =
+    !isValidCount(rawWorkerStats.totalGigsAccepted) ||
+    !isValidCount(rawWorkerStats.totalGigsResigned) ||
+    !isValidCount(rawWorkerStats.totalGigsRemoved) ||
+    !isValidCount(rawCustomerStats.totalGigsPosted) ||
+    !isValidCount(rawCustomerStats.totalWorkersFired) ||
+    !isValidCount(rawCustomerStats.totalWorkersQuit);
+
+  if (needsBackfill) {
+    const profileUserId = userProfile.userId || getUserIdFromProfile();
+    fetchLegacyActivityStatistics(profileUserId).then((legacyStats) => {
+      if (!legacyStats) return;
+
+      const mergedWorkerStats = { ...workerStats };
+      const mergedCustomerStats = { ...customerStats };
+
+      if (!isValidCount(rawWorkerStats.totalGigsAccepted)) {
+        mergedWorkerStats.totalGigsAccepted = toCount(legacyStats.worker.totalGigsAccepted);
+      }
+      if (!isValidCount(rawWorkerStats.totalGigsResigned)) {
+        mergedWorkerStats.totalGigsResigned = toCount(legacyStats.worker.totalGigsResigned);
+      }
+      if (!isValidCount(rawWorkerStats.totalGigsRemoved)) {
+        mergedWorkerStats.totalGigsRemoved = toCount(legacyStats.worker.totalGigsRemoved);
+      }
+      if (!isValidCount(rawWorkerStats.totalGigsCompleted)) {
+        mergedWorkerStats.totalGigsCompleted = toCount(legacyStats.worker.totalGigsCompleted);
+      }
+
+      if (!isValidCount(rawCustomerStats.totalGigsPosted)) {
+        mergedCustomerStats.totalGigsPosted = toCount(legacyStats.customer.totalGigsPosted);
+      }
+      if (!isValidCount(rawCustomerStats.totalWorkersFired)) {
+        mergedCustomerStats.totalWorkersFired = toCount(legacyStats.customer.totalWorkersFired);
+      }
+      if (!isValidCount(rawCustomerStats.totalWorkersQuit)) {
+        mergedCustomerStats.totalWorkersQuit = toCount(legacyStats.customer.totalWorkersQuit);
+      }
+      if (!isValidCount(rawCustomerStats.totalGigsCompleted)) {
+        mergedCustomerStats.totalGigsCompleted = toCount(legacyStats.customer.totalGigsCompleted);
+      }
+
+      applyActivityStatisticsToUI(mergedWorkerStats, mergedCustomerStats);
+    });
   }
   
   console.log('✅ Activity statistics displayed');

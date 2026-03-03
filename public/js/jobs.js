@@ -4063,6 +4063,19 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 workerAccepted: true // Flag to indicate worker has accepted
             });
+
+            // Track worker acceptance activity.
+            try {
+                const acceptedWorker = firebase.auth().currentUser;
+                if (acceptedWorker?.uid) {
+                    await db.collection('users').doc(acceptedWorker.uid).update({
+                        'statistics.worker.totalGigsAccepted': firebase.firestore.FieldValue.increment(1)
+                    });
+                    console.log('✅ Worker acceptance statistics updated');
+                }
+            } catch (statsError) {
+                console.warn('⚠️ Could not update worker acceptance statistics:', statsError);
+            }
             
             // Get job data for notification
             const jobDoc = await db.collection('jobs').doc(jobId).get();
@@ -4774,6 +4787,24 @@ function initializeRelistJobConfirmationHandlers() {
                         });
                         
                         console.log('✅ Job relisted in Firebase, restored to active status');
+
+                        // Track firing/removal activity for customer and worker.
+                        try {
+                            const actingCustomerId = firebase.auth().currentUser?.uid;
+                            if (actingCustomerId) {
+                                await db.collection('users').doc(actingCustomerId).update({
+                                    'statistics.customer.totalWorkersFired': firebase.firestore.FieldValue.increment(1)
+                                });
+                            }
+                            if (hiredWorkerId) {
+                                await db.collection('users').doc(hiredWorkerId).update({
+                                    'statistics.worker.totalGigsRemoved': firebase.firestore.FieldValue.increment(1)
+                                });
+                            }
+                            console.log('✅ Relist activity statistics updated');
+                        } catch (statsError) {
+                            console.warn('⚠️ Could not update relist activity statistics:', statsError);
+                        }
                         
                         // Verify the update by reading the document back
                         const verifyDoc = await db.collection('jobs').doc(jobId).get();
@@ -5073,6 +5104,23 @@ function initializeResignJobConfirmationHandlers() {
                     });
                     
                     console.log('✅ Job resigned in Firebase, restored to active status');
+
+                    // Track worker quit and customer worker-quit activity.
+                    try {
+                        if (currentUserId) {
+                            await db.collection('users').doc(currentUserId).update({
+                                'statistics.worker.totalGigsResigned': firebase.firestore.FieldValue.increment(1)
+                            });
+                        }
+                        if (customerId) {
+                            await db.collection('users').doc(customerId).update({
+                                'statistics.customer.totalWorkersQuit': firebase.firestore.FieldValue.increment(1)
+                            });
+                        }
+                        console.log('✅ Resignation activity statistics updated');
+                    } catch (statsError) {
+                        console.warn('⚠️ Could not update resignation activity statistics:', statsError);
+                    }
                     
                     // Verify the update
                     const verifyDoc = await db.collection('jobs').doc(jobId).get();
