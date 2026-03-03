@@ -162,7 +162,20 @@
                   <div class="stat-value" id="workerGigsRemoved">0</div>
                   <div class="stat-label">Gigs Removed From</div>
                 </div>
+                <div class="stat-item">
+                  <div class="stat-value stat-value-money" id="workerTotalEarned">₱0</div>
+                  <div class="stat-label">Total Earned</div>
+                </div>
               </div>
+              <!-- Year selector (shown only when data exists) -->
+              <div class="stats-year-selector" id="workerYearSelector" style="display: none;">
+                <label class="year-label">View by year:</label>
+                <select class="year-dropdown" id="workerYearDropdown">
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <!-- Yearly breakdown -->
+              <div class="stats-yearly-breakdown" id="workerYearlyStats" style="display: none;"></div>
             </div>
           </div>
 
@@ -192,7 +205,20 @@
                   <div class="stat-value" id="customerWorkersQuit">0</div>
                   <div class="stat-label">Gigs Worker Quit</div>
                 </div>
+                <div class="stat-item">
+                  <div class="stat-value stat-value-money" id="customerTotalSpent">₱0</div>
+                  <div class="stat-label">Total Spent</div>
+                </div>
               </div>
+              <!-- Year selector (shown only when data exists) -->
+              <div class="stats-year-selector" id="customerYearSelector" style="display: none;">
+                <label class="year-label">View by year:</label>
+                <select class="year-dropdown" id="customerYearDropdown">
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+              <!-- Yearly breakdown -->
+              <div class="stats-yearly-breakdown" id="customerYearlyStats" style="display: none;"></div>
             </div>
           </div>
 
@@ -1387,7 +1413,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
-  <script src="public/js/profile.js?v=48"></script>
+  <script src="public/js/profile.js?v=49"></script>
 
 </body>
 </html> 
