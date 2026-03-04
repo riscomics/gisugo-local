@@ -11,6 +11,182 @@ let selectedPhotoDataUrl = null;
 // Track authenticated user (from OAuth or login redirect)
 let authenticatedUser = null;
 let isSigningUp = false; // Flag to prevent race conditions during signup
+let currentSignupLang = 'english';
+const LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG = 'legacyProfilePhoneMigrationDoneV1';
+
+const SIGNUP_I18N = {
+  english: {
+    profilePhoto: 'Profile Photo',
+    tapSelfie: 'Tap to Take a Clear Selfie',
+    signupWith: 'Sign Up With',
+    or: 'OR',
+    signupPhone: 'Sign up with Phone Number',
+    phoneVerification: '📱 Phone Verification',
+    enterPhone: 'Enter Your Phone Number',
+    sendCode: 'Send Verification Code',
+    enterOtp: 'Enter 6-Digit Code',
+    codeSentHint: 'Code sent to your phone',
+    verifyContinue: 'Verify & Continue',
+    resendCode: 'Resend Code',
+    signupEmail: '📧 Sign up with Email',
+    emailSignup: 'Email Sign Up',
+    basicInfo: 'Basic Information',
+    fullNameLabel: 'Full Name *',
+    aboutMe: 'About Me',
+    summaryLabel: 'Introduction & Summary *',
+    aboutHint: 'Tell potential customers about yourself, your experience, and why they can trust you.',
+    backgroundOptional: 'User Background (Optional)',
+    dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
+    educationLabel: 'Education Level (Private Only - Not Visible To Public)',
+    socialOptional: 'Social Media (Optional)',
+    socialHint: 'Link your social media to build trust with customers',
+    agreePrefix: 'I agree to the',
+    termsLink: 'Terms of Service',
+    agreeAnd: 'and',
+    privacyLink: 'Privacy Policy',
+    createAccount: 'CREATE ACCOUNT',
+    authSignedInWith: '✅ Signed in with {provider}',
+    authCompleteProfile: 'Complete your profile below to continue'
+  },
+  bisaya: {
+    profilePhoto: 'Profile Photo',
+    tapSelfie: 'Pislita para mokuha ug klaro nga selfie',
+    signupWith: 'PAAGI SA PAG-SIGN UP',
+    or: 'O',
+    signupPhone: 'Sign up gamit ang Phone Number',
+    phoneVerification: '📱 Pag-verify sa Phone',
+    enterPhone: 'Ibutang ang Imong Phone Number',
+    sendCode: 'Ipadala ang Verification Code',
+    enterOtp: 'Ibutang ang 6-Digit Code',
+    codeSentHint: 'Na-send ang code sa imong phone',
+    verifyContinue: 'Verify ug Padayon',
+    resendCode: 'I-resend ang Code',
+    signupEmail: '📧 Sign up gamit ang Email',
+    emailSignup: 'Email Sign Up',
+    basicInfo: 'Basic Information',
+    fullNameLabel: 'Full Name *',
+    aboutMe: 'About Me',
+    summaryLabel: 'Introduction & Summary *',
+    aboutHint: 'Isulti sa potential customers ang imong background, experience, ug ngano kasaligan ka.',
+    backgroundOptional: 'User Background (Optional)',
+    dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
+    educationLabel: 'Education Level (Private Only - Not Visible To Public)',
+    socialOptional: 'Social Media (Optional)',
+    socialHint: 'I-link imong social media para mas mudako ang trust sa customers',
+    agreePrefix: 'Mouyon ko sa',
+    termsLink: 'Terms of Service',
+    agreeAnd: 'ug',
+    privacyLink: 'Privacy Policy',
+    createAccount: 'CREATE ACCOUNT',
+    authSignedInWith: '✅ Signed in with {provider}',
+    authCompleteProfile: 'Kompletoha ang imong profile sa ubos aron makapadayon'
+  },
+  tagalog: {
+    profilePhoto: 'Profile Photo',
+    tapSelfie: 'Pindutin para kumuha ng malinaw na selfie',
+    signupWith: 'SIGN UP GAMIT',
+    or: 'O',
+    signupPhone: 'Mag-sign up gamit ang Phone Number',
+    phoneVerification: '📱 Phone Verification',
+    enterPhone: 'Ilagay ang Iyong Phone Number',
+    sendCode: 'Ipadala ang Verification Code',
+    enterOtp: 'Ilagay ang 6-Digit Code',
+    codeSentHint: 'Naipadala na ang code sa phone mo',
+    verifyContinue: 'I-verify at Magpatuloy',
+    resendCode: 'Ipadala Muli ang Code',
+    signupEmail: '📧 Mag-sign up gamit ang Email',
+    emailSignup: 'Email Sign Up',
+    basicInfo: 'Basic Information',
+    fullNameLabel: 'Full Name *',
+    aboutMe: 'About Me',
+    summaryLabel: 'Introduction & Summary *',
+    aboutHint: 'Sabihin sa potential customers ang tungkol sa iyo, experience mo, at bakit ka mapagkakatiwalaan.',
+    backgroundOptional: 'User Background (Optional)',
+    dobLabel: 'Date of Birth (Private Only - Not Visible To Public)',
+    educationLabel: 'Education Level (Private Only - Not Visible To Public)',
+    socialOptional: 'Social Media (Optional)',
+    socialHint: 'I-link ang social media mo para mas tumaas ang trust ng customers',
+    agreePrefix: 'Sumasang-ayon ako sa',
+    termsLink: 'Terms of Service',
+    agreeAnd: 'at',
+    privacyLink: 'Privacy Policy',
+    createAccount: 'CREATE ACCOUNT',
+    authSignedInWith: '✅ Signed in with {provider}',
+    authCompleteProfile: 'Kumpletuhin ang profile mo sa ibaba para magpatuloy'
+  }
+};
+
+function buildSignupDeviceFingerprint() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  const parts = [
+    navigator.userAgent || '',
+    navigator.platform || '',
+    navigator.language || '',
+    `${screen.width || 0}x${screen.height || 0}`,
+    tz
+  ];
+  return btoa(unescape(encodeURIComponent(parts.join('|')))).slice(0, 160);
+}
+
+async function checkSignupRateLimitGuard() {
+  if (typeof firebase === 'undefined' || !firebase.functions) {
+    return { allowed: true };
+  }
+  try {
+    const callable = firebase.functions().httpsCallable('checkSignupRateLimit');
+    const result = await callable({
+      deviceFingerprint: buildSignupDeviceFingerprint(),
+      action: 'create_account'
+    });
+    return result?.data || { allowed: true };
+  } catch (error) {
+    console.warn('⚠️ Signup rate check skipped:', error?.message || error);
+    return { allowed: true };
+  }
+}
+
+function tSignup(key) {
+  return SIGNUP_I18N[currentSignupLang]?.[key] || SIGNUP_I18N.english[key] || key;
+}
+
+function updateAuthStatusCopy() {
+  const status = document.getElementById('authStatusMessage');
+  if (!status) return;
+  const provider = status.dataset.providerLabel || 'phone';
+  const signedInEl = status.querySelector('.auth-status-title');
+  const subtitleEl = status.querySelector('.auth-status-subtitle');
+  if (signedInEl) {
+    signedInEl.textContent = tSignup('authSignedInWith').replace('{provider}', provider);
+  }
+  if (subtitleEl) {
+    subtitleEl.textContent = tSignup('authCompleteProfile');
+  }
+}
+
+function applySignupLanguage(lang) {
+  if (!SIGNUP_I18N[lang]) return;
+  currentSignupLang = lang;
+  document.querySelectorAll('#signupLangTabs .face-lang-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.lang === lang);
+  });
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    const value = tSignup(key);
+    el.textContent = value;
+  });
+  updateAuthStatusCopy();
+}
+
+function initializeSignupLanguageTabs() {
+  const tabs = document.getElementById('signupLangTabs');
+  if (!tabs) return;
+  tabs.addEventListener('click', (event) => {
+    const tab = event.target.closest('.face-lang-tab');
+    if (!tab) return;
+    applySignupLanguage(tab.dataset.lang || 'english');
+  });
+  applySignupLanguage('english');
+}
 
 function isAllowedTextCharacter(char) {
   if (!char) return true;
@@ -121,11 +297,13 @@ function blockUnsupportedCharsForInput(inputEl) {
 
 // Initialize form when DOM loads
 document.addEventListener('DOMContentLoaded', function() {
+  initializeSignupLanguageTabs();
   initializeForm();
   initializePhotoUpload();
   initializeCharacterCounter();
   initializeTextInputProtection();
   initializeValidation();
+  initializeCollapsibleSections();
   initializeGoogleSignIn();
   initializeFacebookSignIn();
   checkPendingAuth(); // Check if redirected from login with pending auth
@@ -188,6 +366,20 @@ async function checkExistingAuthUser() {
   }
   
   try {
+    const runLegacyProfilePhoneMigrationIfNeeded = async () => {
+      if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
+      if (window.localStorage.getItem(LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG) === '1') return;
+      if (typeof firebase === 'undefined' || !firebase.functions) return;
+      try {
+        const migrateLegacyProfilePhones = firebase.functions().httpsCallable('migrateLegacyProfilePhones');
+        await migrateLegacyProfilePhones({});
+        window.localStorage.setItem(LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG, '1');
+      } catch (migrationError) {
+        // Non-blocking: account creation flow should proceed even if migration call is unavailable.
+        console.warn('⚠️ Legacy profile phone migration skipped on sign-up page:', migrationError?.message || migrationError);
+      }
+    };
+
     // Wait for Firebase auth to initialize
     firebase.auth().onAuthStateChanged(async (user) => {
       // Skip checks during active signup to prevent race conditions
@@ -198,6 +390,7 @@ async function checkExistingAuthUser() {
       
       if (user && !authenticatedUser) {
         console.log('🔍 Found existing Firebase Auth user:', user.uid);
+        await runLegacyProfilePhoneMigrationIfNeeded();
         
         // Check if they already have a complete profile
         if (typeof checkUserHasProfile === 'function') {
@@ -258,19 +451,6 @@ function prefillFromAuth(authData) {
     }
   }
   
-  // Pre-fill phone if available
-  if (authData.phoneNumber) {
-    const phoneInput = document.getElementById('phoneNumber');
-    if (phoneInput && !phoneInput.value) {
-      // Remove country code prefix if present
-      let phone = authData.phoneNumber;
-      if (phone.startsWith('+63')) phone = phone.substring(3);
-      else if (phone.startsWith('+1')) phone = phone.substring(2);
-      else if (phone.startsWith('+')) phone = phone.substring(phone.indexOf(' ') + 1);
-      phoneInput.value = phone;
-    }
-  }
-  
   // Pre-fill profile photo if available
   if (authData.photoURL) {
     const previewImg = document.getElementById('photoPreviewImg');
@@ -279,7 +459,6 @@ function prefillFromAuth(authData) {
     if (previewImg) {
       previewImg.src = authData.photoURL;
       previewImg.style.display = 'block'; // Show the image
-      selectedPhotoDataUrl = authData.photoURL;
     }
     
     // Hide the emoji when photo is loaded
@@ -295,8 +474,8 @@ function prefillFromAuth(authData) {
  * Update UI to show user is already authenticated
  */
 function showAuthenticatedState(provider) {
-  // Hide social login buttons since user is already authenticated
-  const socialSection = document.querySelector('.form-section:has(#googleSignInBtn)');
+  // Hide auth-method selection area once the user is already authenticated.
+  const signupMethodsSection = document.getElementById('signupMethodsSection');
   const googleBtn = document.getElementById('googleSignInBtn');
   const facebookBtn = document.getElementById('facebookSignInBtn');
   const phoneSignUpBtn = document.getElementById('phoneSignUpBtn');
@@ -307,6 +486,7 @@ function showAuthenticatedState(provider) {
   if (facebookBtn) facebookBtn.style.display = 'none';
   if (phoneSignUpBtn) phoneSignUpBtn.style.display = 'none';
   if (emailToggleBtn) emailToggleBtn.style.display = 'none';
+  if (signupMethodsSection) signupMethodsSection.style.display = 'none';
   
   // Hide email/password section since OAuth handled auth
   const emailSection = document.getElementById('emailSignupSection');
@@ -320,25 +500,33 @@ function showAuthenticatedState(provider) {
   const emailDivider = document.getElementById('emailDivider');
   if (emailDivider) emailDivider.style.display = 'none';
   
-  // Add a message showing they're authenticated
-  const authMessage = document.createElement('div');
-  authMessage.className = 'auth-status-message';
-  authMessage.innerHTML = `
-    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); 
-                border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; text-align: center;">
-      <span style="color: #10b981; font-weight: 600;">
-        ✅ Signed in with ${provider === 'google.com' ? 'Google' : provider === 'facebook.com' ? 'Facebook' : provider}
-      </span>
-      <br>
-      <span style="color: #9ca3af; font-size: 0.85rem;">Complete your profile below to continue</span>
-    </div>
-  `;
+  let providerLabel = provider;
+  if (provider === 'google.com') providerLabel = 'Google';
+  else if (provider === 'facebook.com') providerLabel = 'Facebook';
+  else if (provider === 'phone') providerLabel = 'phone';
+  
+  // Add/update message showing they're authenticated
+  let authMessage = document.getElementById('authStatusMessage');
+  if (!authMessage) {
+    authMessage = document.createElement('div');
+    authMessage.id = 'authStatusMessage';
+    authMessage.className = 'auth-status-message';
+    authMessage.innerHTML = `
+      <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; text-align: center;">
+        <span class="auth-status-title" style="color: #10b981; font-weight: 600;"></span>
+        <br>
+        <span class="auth-status-subtitle" style="color: #9ca3af; font-size: 0.85rem;"></span>
+      </div>
+    `;
+  }
+  authMessage.dataset.providerLabel = providerLabel;
   
   // Insert after photo section
   const photoSection = document.querySelector('.form-section:has(#photoPreview)');
   if (photoSection && photoSection.nextSibling) {
     photoSection.parentNode.insertBefore(authMessage, photoSection.nextSibling);
   }
+  updateAuthStatusCopy();
 }
 
 // Initialize form elements and event listeners
@@ -585,6 +773,60 @@ function initializeValidation() {
   });
 }
 
+const SIGNUP_COLLAPSIBLE_FLOW = [
+  'signupSectionBasic',
+  'signupSectionAbout',
+  'signupSectionBackground',
+  'signupSectionSocial',
+  'signupSectionTerms'
+];
+
+function setSectionCollapsed(sectionId, collapsed) {
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  section.classList.toggle('is-collapsed', !!collapsed);
+}
+
+function isSectionComplete(sectionId) {
+  const section = document.getElementById(sectionId);
+  if (!section) return true;
+  const requiredInputs = section.querySelectorAll('input[required], select[required], textarea[required]');
+  if (!requiredInputs.length) return true;
+  for (const input of requiredInputs) {
+    if (!validateField(input)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function autoAdvanceSignupSections() {
+  for (let i = 0; i < SIGNUP_COLLAPSIBLE_FLOW.length - 1; i += 1) {
+    const currentId = SIGNUP_COLLAPSIBLE_FLOW[i];
+    const nextId = SIGNUP_COLLAPSIBLE_FLOW[i + 1];
+    if (isSectionComplete(currentId)) {
+      setSectionCollapsed(nextId, false);
+    } else {
+      break;
+    }
+  }
+}
+
+function initializeCollapsibleSections() {
+  SIGNUP_COLLAPSIBLE_FLOW.forEach((sectionId, index) => {
+    setSectionCollapsed(sectionId, index !== 0);
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const header = section.querySelector('.collapsible-header');
+    if (!header) return;
+    header.addEventListener('click', () => {
+      section.classList.toggle('is-collapsed');
+    });
+  });
+  form.addEventListener('input', autoAdvanceSignupSections);
+  form.addEventListener('change', autoAdvanceSignupSections);
+}
+
 // Validate individual field
 function validateField(field) {
   const fieldId = field.id;
@@ -601,6 +843,10 @@ function validateField(field) {
       }
       if (!isValidEmail(value)) {
         showError(fieldId, 'Please enter a valid email address');
+        return false;
+      }
+      if (isDisposableEmail(value)) {
+        showError(fieldId, 'Disposable email addresses are not allowed. Please use your real email.');
         return false;
       }
       break;
@@ -648,10 +894,7 @@ function validateField(field) {
       break;
       
     case 'dateOfBirth':
-      if (!value) {
-        showError(fieldId, 'Date of birth is required');
-        return false;
-      }
+      if (!value) break;
       
       const birthDate = new Date(value);
       const today = new Date();
@@ -668,10 +911,7 @@ function validateField(field) {
       break;
       
     case 'educationLevel':
-      if (!value) {
-        showError(fieldId, 'Please select your education level');
-        return false;
-      }
+      if (!value) break;
       break;
       
     case 'userSummary':
@@ -729,15 +969,80 @@ function isValidEmail(email) {
   return emailRegex.test(email);
 }
 
+const DISPOSABLE_EMAIL_DOMAINS = new Set([
+  '10minutemail.com',
+  'guerrillamail.com',
+  'mailinator.com',
+  'tempmail.com',
+  'temp-mail.org',
+  'yopmail.com',
+  'sharklasers.com',
+  'getnada.com',
+  'dispostable.com',
+  'maildrop.cc',
+  'throwawaymail.com',
+  'mailnesia.com',
+  'trashmail.com',
+  'tempmailo.com',
+  'emailondeck.com',
+  'moakt.com',
+  'mintemail.com',
+  'mytemp.email',
+  'fakemail.net',
+  '33mail.com'
+]);
+
+function getEmailDomain(email) {
+  const value = String(email || '').trim().toLowerCase();
+  const atIndex = value.lastIndexOf('@');
+  if (atIndex < 0) return '';
+  return value.slice(atIndex + 1);
+}
+
+function isDisposableEmail(email) {
+  const domain = getEmailDomain(email);
+  return domain ? DISPOSABLE_EMAIL_DOMAINS.has(domain) : false;
+}
+
+function resolveErrorElementId(fieldId) {
+  if (fieldId === 'termsAccepted') return 'termsError';
+  return `${fieldId}Error`;
+}
+
+function setSubmitError(messages) {
+  const submitError = document.getElementById('signupSubmitError');
+  if (!submitError) return;
+  const normalized = Array.isArray(messages) ? messages.filter(Boolean) : [messages].filter(Boolean);
+  if (!normalized.length) {
+    submitError.textContent = '';
+    submitError.classList.remove('show');
+    return;
+  }
+  submitError.textContent = normalized.join(' • ');
+  submitError.classList.add('show');
+}
+
+function refreshSubmitErrorFromVisibleErrors() {
+  const formEl = document.getElementById('signupForm');
+  if (!formEl) return;
+  const messages = Array.from(formEl.querySelectorAll('.form-error.show'))
+    .filter((el) => el.id !== 'signupSubmitError')
+    .map((el) => (el.textContent || '').trim())
+    .filter(Boolean);
+  const uniqueMessages = Array.from(new Set(messages));
+  setSubmitError(uniqueMessages);
+}
+
 // Show error message
 function showError(fieldId, message) {
-  const errorElement = document.getElementById(fieldId + 'Error');
+  const errorElement = document.getElementById(resolveErrorElementId(fieldId));
   const inputElement = document.getElementById(fieldId);
   
-  if (errorElement) {
+  if (errorElement && fieldId !== 'termsAccepted') {
     errorElement.textContent = message;
     errorElement.classList.add('show');
   }
+  setSubmitError(message);
   
   if (inputElement) {
     inputElement.classList.add('error');
@@ -750,14 +1055,15 @@ function showError(fieldId, message) {
       photoPreview.style.border = '3px solid #ef4444';
     }
   }
+  refreshSubmitErrorFromVisibleErrors();
 }
 
 // Clear error message
 function clearError(fieldId) {
-  const errorElement = document.getElementById(fieldId + 'Error');
+  const errorElement = document.getElementById(resolveErrorElementId(fieldId));
   const inputElement = document.getElementById(fieldId);
   
-  if (errorElement) {
+  if (errorElement && fieldId !== 'termsAccepted') {
     errorElement.classList.remove('show');
   }
   
@@ -772,16 +1078,18 @@ function clearError(fieldId) {
       photoPreview.style.border = '';
     }
   }
+  refreshSubmitErrorFromVisibleErrors();
 }
 
 // Handle form submission
 async function handleFormSubmission(event) {
   event.preventDefault();
+  setSubmitError('');
   
   // Validate all fields
   if (!validateForm()) {
     // Scroll to first error
-    const firstError = form.querySelector('.error-message.show');
+    const firstError = form.querySelector('.form-error.show');
     if (firstError) {
       firstError.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -793,6 +1101,16 @@ async function handleFormSubmission(event) {
   
   // Show loading overlay
   showLoadingOverlay();
+
+  const rateLimit = await checkSignupRateLimitGuard();
+  if (!rateLimit.allowed) {
+    hideLoadingOverlay();
+    const retryMessage = rateLimit.retryAfterSec
+      ? `${rateLimit.message || 'Too many attempts.'} Try again in about ${Math.ceil(rateLimit.retryAfterSec / 60)} minute(s).`
+      : (rateLimit.message || 'Too many attempts. Please try again later.');
+    showError('email', retryMessage);
+    return;
+  }
   
   try {
     // Collect profile data
@@ -834,6 +1152,13 @@ async function handleFormSubmission(event) {
         hideLoadingOverlay();
         showError('email', result.message);
         console.error('❌ Account creation failed:', result.message);
+        return;
+      }
+
+      if (result.requiresEmailVerification) {
+        hideLoadingOverlay();
+        clearError('email');
+        setSubmitError(result.message || 'Account created. Please verify your email before continuing.');
         return;
       }
       
@@ -943,7 +1268,7 @@ async function handleFormSubmission(event) {
             console.error('⚠️ Failed to delete Auth user during rollback:', authDeleteError);
           }
         }
-        
+
         hideLoadingOverlay();
         showError('email', 'Failed to save profile. Please try again.');
         return;
@@ -968,6 +1293,7 @@ async function handleFormSubmission(event) {
 
 // Validate entire form
 function validateForm() {
+  setSubmitError('');
   const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
   let isValid = true;
   
@@ -977,8 +1303,8 @@ function validateForm() {
     }
   });
   
-  // Validate profile photo is uploaded (unless user came from OAuth with photo)
-  if (!selectedPhoto && !authenticatedUser?.photoURL) {
+  // Validate profile photo is uploaded/taken in this form flow.
+  if (!selectedPhoto && !selectedPhotoDataUrl) {
     showError('profilePhoto', 'Please upload a profile photo');
     isValid = false;
     
@@ -988,26 +1314,30 @@ function validateForm() {
       photoPreview.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
+
+  if (!isValid) {
+    const messages = Array.from(form.querySelectorAll('.form-error.show'))
+      .map(el => (el.textContent || '').trim())
+      .filter(Boolean);
+    const termsInput = document.getElementById('termsAccepted');
+    if (termsInput && !termsInput.checked) {
+      messages.push('You must agree to the terms and conditions');
+    }
+    const uniqueMessages = Array.from(new Set(messages));
+    setSubmitError(uniqueMessages);
+  }
   
   return isValid;
 }
 
 // Collect form data in Firebase-ready format
 function collectFormData() {
-  // Get phone number with country code
-  const phoneInput = document.getElementById('phoneNumber')?.value.trim() || '';
-  const countryCode = document.getElementById('countryCode')?.value || '+63';
-  const fullPhoneNumber = phoneInput ? countryCode + phoneInput.replace(/\D/g, '') : '';
-  
   const formData = {
     // Basic Profile Information (matches profile.js structure)
     fullName: document.getElementById('fullName').value.trim(),
     dateOfBirth: document.getElementById('dateOfBirth').value,
     educationLevel: document.getElementById('educationLevel').value,
     userSummary: document.getElementById('userSummary').value.trim(),
-    
-    // Contact Information
-    phoneNumber: fullPhoneNumber,
     
     // Social Media (optional)
     socialMedia: {

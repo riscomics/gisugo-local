@@ -642,24 +642,29 @@
   </div>
 
   <div class="signup-container">
-    <form class="signup-form" id="signupForm" autocomplete="off">
+    <div class="face-lang-tabs" id="signupLangTabs">
+      <button type="button" class="face-lang-tab active" data-lang="english">ENGLISH</button>
+      <button type="button" class="face-lang-tab" data-lang="bisaya">BISAYA</button>
+      <button type="button" class="face-lang-tab" data-lang="tagalog">TAGALOG</button>
+    </div>
+    <form class="signup-form" id="signupForm" autocomplete="off" novalidate>
       <!-- Profile Photo Section (TOP) -->
       <div class="form-section"> 
-        <div class="form-section-header">Profile Photo</div>
+        <div class="form-section-header" data-i18n="profilePhoto">Profile Photo</div>
         <div class="photo-upload-container">
           <div class="photo-preview" id="photoPreview">
             <span class="photo-emoji" id="photoEmoji">🤳</span>
             <img id="photoPreviewImg" style="display: none; width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
           </div>
-          <div class="photo-upload-caption">Tap to Take a Clear Selfie</div>
+          <div class="photo-upload-caption" data-i18n="tapSelfie">Tap to Take a Clear Selfie</div>
           <div class="form-error" id="profilePhotoError"></div>
           <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*" capture="user" style="display: none;">
         </div>
       </div>
       
       <!-- Quick Sign Up Section (OAuth - FREE, no SMS cost) -->
-      <div class="form-section oauth-section">
-        <div class="form-section-header">Sign Up With</div>
+      <div class="form-section oauth-section" id="signupMethodsSection">
+        <div class="form-section-header" data-i18n="signupWith">Sign Up With</div>
         
         <!-- Facebook & Google - Square buttons in row -->
         <div class="oauth-row">
@@ -684,23 +689,23 @@
         <!-- OR divider -->
         <div class="or-divider">
           <span class="or-line"></span>
-          <span class="or-text">OR</span>
+          <span class="or-text" data-i18n="or">OR</span>
           <span class="or-line"></span>
         </div>
         
         <!-- Phone Sign-Up Button (horizontal rectangle) -->
         <button type="button" class="oauth-btn phone-signup-btn" id="phoneSignUpBtn">
           <span class="phone-icon">📱</span>
-          <span>Sign up with Phone Number</span>
+          <span data-i18n="signupPhone">Sign up with Phone Number</span>
         </button>
       </div>
       
       <!-- Phone OTP Section (hidden until phone signup clicked) -->
       <div class="form-section phone-otp-section" id="phoneOtpSection" style="display: none;">
-        <div class="form-section-header">📱 Phone Verification</div>
+        <div class="form-section-header" data-i18n="phoneVerification">📱 Phone Verification</div>
         
         <div class="form-group">
-          <label for="phoneAuth" class="form-label">Enter Your Phone Number</label>
+          <label for="phoneAuth" class="form-label" data-i18n="enterPhone">Enter Your Phone Number</label>
           <div class="phone-input-wrapper">
             <select id="countryCodeAuth" class="country-code-select" aria-label="Country Code">
               <option value="+63">🇵🇭 +63</option>
@@ -726,21 +731,21 @@
         </div>
         
         <button type="button" class="signup-submit-btn" id="sendOtpBtn">
-          <span>Send Verification Code</span>
+          <span data-i18n="sendCode">Send Verification Code</span>
         </button>
         
         <!-- OTP Input (hidden until code sent) -->
         <div class="otp-verify-section" id="otpVerifySection" style="display: none;">
           <div class="form-group">
-            <label for="otpCode" class="form-label">Enter 6-Digit Code</label>
+            <label for="otpCode" class="form-label" data-i18n="enterOtp">Enter 6-Digit Code</label>
             <input type="text" id="otpCode" name="otpCode" class="form-input otp-input" placeholder="000000" maxlength="6">
-            <div class="form-hint">Code sent to your phone</div>
+            <div class="form-hint" data-i18n="codeSentHint">Code sent to your phone</div>
             <div class="form-error" id="otpCodeError"></div>
           </div>
           <button type="button" class="signup-submit-btn verify-btn" id="verifyOtpBtn">
-            <span>Verify & Continue</span>
+            <span data-i18n="verifyContinue">Verify & Continue</span>
           </button>
-          <button type="button" class="resend-btn" id="resendOtpBtn">Resend Code</button>
+          <button type="button" class="resend-btn" id="resendOtpBtn" data-i18n="resendCode">Resend Code</button>
         </div>
       </div>
 
@@ -748,18 +753,18 @@
       <div class="form-section or-section" id="emailDivider">
         <div class="or-divider">
           <span class="or-line"></span>
-          <span class="or-text">OR</span>
+          <span class="or-text" data-i18n="or">OR</span>
           <span class="or-line"></span>
         </div>
         <button type="button" class="email-toggle-btn" id="emailToggleBtn">
-          <span class="toggle-text">📧 Sign up with Email</span>
+          <span class="toggle-text" data-i18n="signupEmail">📧 Sign up with Email</span>
           <span class="toggle-arrow">▼</span>
         </button>
       </div>
       
       <!-- Email Sign Up Section (collapsed by default) -->
       <div class="form-section email-signup-section" id="emailSignupSection" style="display: none;">
-        <div class="form-section-header">Email Sign Up</div>
+        <div class="form-section-header" data-i18n="emailSignup">Email Sign Up</div>
         
         <!-- Email -->
         <div class="form-group">
@@ -784,70 +789,52 @@
         </div>
       </div>
 
-      <!-- Contact Information -->
-      <div class="form-section">
-        <div class="form-section-header">Contact Information</div>
-        
-        <!-- Phone Number (for contact, not auth) -->
-        <div class="form-group">
-          <label for="phoneNumber" class="form-label">Phone Number *</label>
-          <div class="phone-input-wrapper">
-            <select id="countryCode" class="country-code-select" aria-label="Country Code">
-              <option value="+63">🇵🇭 +63</option>
-              <option value="+1">🇺🇸 +1</option>
-              <option value="+44">🇬🇧 +44</option>
-              <option value="+61">🇦🇺 +61</option>
-              <option value="+81">🇯🇵 +81</option>
-              <option value="+82">🇰🇷 +82</option>
-              <option value="+65">🇸🇬 +65</option>
-              <option value="+60">🇲🇾 +60</option>
-              <option value="+66">🇹🇭 +66</option>
-              <option value="+84">🇻🇳 +84</option>
-              <option value="+62">🇮🇩 +62</option>
-              <option value="+971">🇦🇪 +971</option>
-              <option value="+966">🇸🇦 +966</option>
-              <option value="+49">🇩🇪 +49</option>
-              <option value="+33">🇫🇷 +33</option>
-              <option value="+39">🇮🇹 +39</option>
-              <option value="+34">🇪🇸 +34</option>
-              <option value="+86">🇨🇳 +86</option>
-              <option value="+91">🇮🇳 +91</option>
-              <option value="+55">🇧🇷 +55</option>
-              <option value="+52">🇲🇽 +52</option>
-              <option value="+7">🇷🇺 +7</option>
-            </select>
-            <input type="tel" id="phoneNumber" name="phoneNumber" class="form-input phone-input" placeholder="9123456789" maxlength="15" autocomplete="tel" required>
-          </div>
-          <div class="form-hint">Customers will use this to contact you about gigs</div>
-          <div class="form-error" id="phoneError"></div>
-        </div>
-      </div>
-
       <!-- Basic Information Section -->
-      <div class="form-section">
-        <div class="form-section-header">Basic Information</div>
+      <div class="form-section form-collapsible-section" id="signupSectionBasic">
+        <div class="form-section-header collapsible-header"><span data-i18n="basicInfo">Basic Information</span><span class="collapse-indicator">▼</span></div>
         
         <!-- Full Name -->
         <div class="form-group">
-          <label for="fullName" class="form-label">Full Name *</label>
+          <label for="fullName" class="form-label" data-i18n="fullNameLabel">Full Name *</label>
           <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="50" autocomplete="off" required>
           <div class="character-counter">
             <span id="fullNameCounter">0</span>/50 characters
           </div>
           <div class="form-error" id="fullNameError"></div>
         </div>
+      </div>
+
+      <!-- About Me Section -->
+      <div class="form-section form-collapsible-section" id="signupSectionAbout">
+        <div class="form-section-header collapsible-header"><span data-i18n="aboutMe">About Me</span><span class="collapse-indicator">▼</span></div>
+        
+        <!-- User Summary -->
+        <div class="form-group">
+          <label for="userSummary" class="form-label" data-i18n="summaryLabel">Introduction & Summary *</label>
+          <div class="form-hint" data-i18n="aboutHint">Tell potential customers about yourself, your experience, and why they can trust you.</div>
+          <textarea id="userSummary" name="userSummary" class="form-textarea" placeholder="Hello! I'm... (minimum 50 characters)" rows="5" autocomplete="off" required></textarea>
+          <div class="character-counter">
+            <span id="summaryCounter">0</span>/500 characters
+          </div>
+          <div class="form-error" id="userSummaryError"></div>
+        </div>
+      </div>
+
+      <!-- User Background Section -->
+      <div class="form-section form-collapsible-section" id="signupSectionBackground">
+        <div class="form-section-header collapsible-header"><span data-i18n="backgroundOptional">User Background (Optional)</span><span class="collapse-indicator">▼</span></div>
 
         <!-- Date of Birth -->
         <div class="form-group">
-          <label for="dateOfBirth" class="form-label">Date of Birth * (Private Only - Not Visible To Public)</label>
-          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" autocomplete="off" required>
+          <label for="dateOfBirth" class="form-label" data-i18n="dobLabel">Date of Birth (Private Only - Not Visible To Public)</label>
+          <input type="date" id="dateOfBirth" name="dateOfBirth" class="form-input" autocomplete="off">
           <div class="form-error" id="dateOfBirthError"></div>
         </div>
 
         <!-- Education Level -->
         <div class="form-group">
-          <label for="educationLevel" class="form-label">Education Level * (Private Only - Not Visible To Public)</label>
-          <select id="educationLevel" name="educationLevel" class="form-select" autocomplete="off" required>
+          <label for="educationLevel" class="form-label" data-i18n="educationLabel">Education Level (Private Only - Not Visible To Public)</label>
+          <select id="educationLevel" name="educationLevel" class="form-select" autocomplete="off">
             <option value="">Select your education level</option>
             <option value="No-High-School">No High School</option>
             <option value="High School">High School</option>
@@ -859,26 +846,10 @@
         </div>
       </div>
 
-      <!-- About Me Section -->
-      <div class="form-section">
-        <div class="form-section-header">About Me</div>
-        
-        <!-- User Summary -->
-        <div class="form-group">
-          <label for="userSummary" class="form-label">Introduction & Summary *</label>
-          <div class="form-hint">Tell potential customers about yourself, your experience, and why they can trust you.</div>
-          <textarea id="userSummary" name="userSummary" class="form-textarea" placeholder="Hello! I'm... (minimum 50 characters)" rows="5" autocomplete="off" required></textarea>
-          <div class="character-counter">
-            <span id="summaryCounter">0</span>/500 characters
-          </div>
-          <div class="form-error" id="userSummaryError"></div>
-        </div>
-      </div>
-
       <!-- Social Media Section -->
-      <div class="form-section">
-        <div class="form-section-header">Social Media (Optional)</div>
-        <div class="form-hint">Link your social media to build trust with customers</div>
+      <div class="form-section form-collapsible-section" id="signupSectionSocial">
+        <div class="form-section-header collapsible-header"><span data-i18n="socialOptional">Social Media (Optional)</span><span class="collapse-indicator">▼</span></div>
+        <div class="form-hint" data-i18n="socialHint">Link your social media to build trust with customers</div>
         
         <!-- Facebook -->
         <div class="form-group">
@@ -909,18 +880,19 @@
       </div>
 
       <!-- Terms and Submit -->
-      <div class="form-section">
+      <div class="form-section form-collapsible-section" id="signupSectionTerms">
         <div class="form-group">
           <label class="checkbox-container">
             <input type="checkbox" id="termsAccepted" name="termsAccepted" required>
             <span class="checkmark"></span>
-            I agree to the <a href="#" class="terms-link" id="termsOfServiceLink">Terms of Service</a> and <a href="#" class="terms-link" id="privacyPolicyLink">Privacy Policy</a>
+            <span data-i18n="agreePrefix">I agree to the</span> <a href="#" class="terms-link" id="termsOfServiceLink" data-i18n="termsLink">Terms of Service</a> <span data-i18n="agreeAnd">and</span> <a href="#" class="terms-link" id="privacyPolicyLink" data-i18n="privacyLink">Privacy Policy</a>
           </label>
           <div class="form-error" id="termsError"></div>
         </div>
+        <div class="form-error" id="signupSubmitError"></div>
 
         <button type="submit" class="signup-submit-btn" id="submitBtn">
-          <span>CREATE ACCOUNT</span>
+          <span data-i18n="createAccount">CREATE ACCOUNT</span>
         </button>
       </div>
     </form>
@@ -1063,14 +1035,15 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js"></script>
-  <script src="public/js/firebase-auth.js"></script>
+  <script src="public/js/firebase-auth.js?v=4"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
-  <script src="public/js/sign-up.js?v=3.2"></script>
+  <script src="public/js/sign-up.js?v=4.2"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====
@@ -1189,12 +1162,6 @@
                 sendOtpBtn.style.display = 'none';
                 document.getElementById('otpCode').focus();
                 
-                // Auto-fill contact phone field with same number
-                const contactPhone = document.getElementById('phoneNumber');
-                const contactCountry = document.getElementById('countryCode');
-                if (contactPhone) contactPhone.value = phoneInput;
-                if (contactCountry) contactCountry.value = countryCode;
-                
                 startResendCountdown();
               } else {
                 document.getElementById('phoneAuthError').textContent = result.message || 'Failed to send code';
@@ -1207,12 +1174,6 @@
               console.log('📱 Mock OTP sent to:', fullPhoneNumber);
               otpVerifySection.style.display = 'block';
               sendOtpBtn.style.display = 'none';
-              
-              // Auto-fill contact phone field
-              const contactPhone = document.getElementById('phoneNumber');
-              const contactCountry = document.getElementById('countryCode');
-              if (contactPhone) contactPhone.value = phoneInput;
-              if (contactCountry) contactCountry.value = countryCode;
               
               startResendCountdown();
             }
@@ -1255,6 +1216,9 @@
                     provider: result.user.providerData?.[0]?.providerId || 'phone'
                   };
                   console.log('📱 Authenticated user captured:', authenticatedUser.uid);
+                }
+                if (typeof showAuthenticatedState === 'function') {
+                  showAuthenticatedState('phone');
                 }
                 
                 // Mark section as complete

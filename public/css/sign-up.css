@@ -263,6 +263,49 @@ body::-webkit-scrollbar {
   background: #363f4f;
 }
 
+/* Reuse profile language tab styling pattern */
+.face-lang-tabs {
+  display: flex;
+  gap: clamp(6px, 1.5vw, 8px);
+  margin-bottom: clamp(1rem, 3vw, 1.25rem);
+  padding: clamp(6px, 1.5vw, 8px);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: clamp(10px, 2.5vw, 14px);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.face-lang-tab {
+  flex: 1;
+  min-width: 0;
+  padding: clamp(12px, 3vw, 16px) clamp(8px, 2vw, 12px);
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: clamp(8px, 2vw, 10px);
+  color: #94a3b8;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(0.8rem, 2.3vw, 0.9rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.face-lang-tab:hover {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.face-lang-tab.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.15));
+  border-color: rgba(59, 130, 246, 0.55);
+  color: #93c5fd;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+}
+
 /* Form Section Styles */
 .form-section {
   margin-bottom: 2rem;
@@ -276,6 +319,29 @@ body::-webkit-scrollbar {
   font-family: Arial, Helvetica, sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.collapse-indicator {
+  font-size: 0.9rem;
+  color: #9fb6d1;
+  transition: transform 0.2s ease;
+}
+
+.form-collapsible-section.is-collapsed .collapse-indicator {
+  transform: rotate(-90deg);
+}
+
+.form-collapsible-section.is-collapsed .form-group,
+.form-collapsible-section.is-collapsed .form-hint {
+  display: none;
 }
 
 .form-hint {

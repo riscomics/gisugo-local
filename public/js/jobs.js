@@ -3349,7 +3349,8 @@ function closeFaceVerificationViewerIfOpen() {
     const videoEl = document.getElementById('faceVerificationViewerVideo');
     const imageEl = document.getElementById('faceVerificationViewerImage');
     const closeBtn = document.getElementById('faceVerificationViewerCloseBtn');
-    if (!overlay || !videoEl || !imageEl || !closeBtn) return;
+    const playPauseBtn = document.getElementById('faceVerificationViewerPlayPauseBtn');
+    if (!overlay || !videoEl || !imageEl || !closeBtn || !playPauseBtn) return;
     if (overlay.style.display === 'none' || !overlay.style.display) return;
 
     overlay.style.display = 'none';
@@ -3358,9 +3359,18 @@ function closeFaceVerificationViewerIfOpen() {
     videoEl.pause();
     videoEl.removeAttribute('src');
     videoEl.style.display = 'none';
+    videoEl.onclick = null;
+    videoEl.onplay = null;
+    videoEl.onpause = null;
+    videoEl.onended = null;
+    videoEl.oncontextmenu = null;
     videoEl.load();
     imageEl.removeAttribute('src');
     imageEl.style.display = 'none';
+    playPauseBtn.onclick = null;
+    playPauseBtn.style.display = 'none';
+    playPauseBtn.textContent = 'PLAY VIDEO';
+    playPauseBtn.setAttribute('aria-label', 'Play verification video');
     if (faceViewerEscapeListenerKey) {
         removeDocumentListener(faceViewerEscapeListenerKey);
         faceViewerEscapeListenerKey = null;
@@ -3374,7 +3384,8 @@ async function openFaceVerificationViewer(memberName, media = {}) {
     const videoEl = document.getElementById('faceVerificationViewerVideo');
     const imageEl = document.getElementById('faceVerificationViewerImage');
     const closeBtn = document.getElementById('faceVerificationViewerCloseBtn');
-    if (!overlay || !title || !message || !videoEl || !imageEl || !closeBtn) return;
+    const playPauseBtn = document.getElementById('faceVerificationViewerPlayPauseBtn');
+    if (!overlay || !title || !message || !videoEl || !imageEl || !closeBtn || !playPauseBtn) return;
     closeFaceVerificationViewerIfOpen();
 
     const safeName = memberName || 'Member';
@@ -3391,13 +3402,51 @@ async function openFaceVerificationViewer(memberName, media = {}) {
     videoEl.pause();
     videoEl.removeAttribute('src');
     videoEl.style.display = 'none';
+    videoEl.removeAttribute('controls');
+    videoEl.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback noplaybackrate');
+    videoEl.setAttribute('disablePictureInPicture', '');
+    videoEl.setAttribute('disableRemotePlayback', '');
+    videoEl.setAttribute('x-webkit-airplay', 'deny');
+    videoEl.onclick = null;
+    videoEl.onplay = null;
+    videoEl.onpause = null;
+    videoEl.onended = null;
+    videoEl.oncontextmenu = null;
     imageEl.removeAttribute('src');
     imageEl.style.display = 'none';
+    playPauseBtn.style.display = 'none';
+    playPauseBtn.textContent = 'PLAY VIDEO';
+    playPauseBtn.setAttribute('aria-label', 'Play verification video');
+    playPauseBtn.onclick = null;
 
     overlay.style.display = 'flex';
     if (videoUrl) {
         videoEl.src = videoUrl;
         videoEl.style.display = 'block';
+        playPauseBtn.style.display = 'inline-flex';
+        videoEl.oncontextmenu = (event) => event.preventDefault();
+        const syncPlayState = () => {
+            if (videoEl.paused || videoEl.ended) {
+                playPauseBtn.textContent = 'PLAY VIDEO';
+                playPauseBtn.setAttribute('aria-label', 'Play verification video');
+            } else {
+                playPauseBtn.textContent = 'Pause';
+                playPauseBtn.setAttribute('aria-label', 'Pause verification video');
+            }
+        };
+        const togglePlayback = () => {
+            if (videoEl.paused || videoEl.ended) {
+                void videoEl.play().catch(() => {});
+            } else {
+                videoEl.pause();
+            }
+        };
+        playPauseBtn.onclick = togglePlayback;
+        videoEl.onclick = togglePlayback;
+        videoEl.onplay = syncPlayState;
+        videoEl.onpause = syncPlayState;
+        videoEl.onended = syncPlayState;
+        syncPlayState();
         message.textContent = 'Face Verification video shared for hiring trust review.';
     } else if (posterUrl) {
         imageEl.src = posterUrl;
@@ -3414,10 +3463,19 @@ async function openFaceVerificationViewer(memberName, media = {}) {
         if (videoEl.style.display !== 'none') {
             videoEl.pause();
             videoEl.removeAttribute('src');
+            videoEl.onclick = null;
+            videoEl.onplay = null;
+            videoEl.onpause = null;
+            videoEl.onended = null;
+            videoEl.oncontextmenu = null;
             videoEl.load();
         }
         imageEl.removeAttribute('src');
         imageEl.style.display = 'none';
+        playPauseBtn.onclick = null;
+        playPauseBtn.style.display = 'none';
+        playPauseBtn.textContent = 'PLAY VIDEO';
+        playPauseBtn.setAttribute('aria-label', 'Play verification video');
     };
 
     closeBtn.onclick = closeViewer;

@@ -1,7 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
-const { randomUUID } = require("crypto");
+const { randomUUID, createHash } = require("crypto");
 
 admin.initializeApp();
 
@@ -13,6 +13,10 @@ const ADMIN_EMAIL_ALLOWLIST = new Set([
   "riscomics@gmail.com"
 ]);
 const VIDEO_FILE_REGEX = /\.(webm|mp4|mov|m4v)$/i;
+const SIGNUP_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const SIGNUP_RATE_BLOCK_MS = 15 * 60 * 1000; // 15 minutes
+const SIGNUP_RATE_MAX_PER_IP = 25;
+const SIGNUP_RATE_MAX_PER_IP_DEVICE = 8;
 
 function hasJobCounterpartyAccess(job, requesterUid, targetUserId) {
   if (!job || !requesterUid || !targetUserId) return false;
@@ -121,6 +125,184 @@ function assertAuditAccess(request) {
     throw new HttpsError("permission-denied", "Admin audit access required.");
   }
 }
+
+function hashForRateKey(input) {
+  return createHash("sha256").update(String(input || "")).digest("hex").slice(0, 24);
+}
+
+function getCallerIp(request) {
+  const forwarded = String(request.rawRequest?.headers?.["x-forwarded-for"] || "");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  return String(request.rawRequest?.ip || "unknown");
+}
+
+function normalizeFingerprint(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "unknown-device";
+  return raw.slice(0, 160);
+}
+
+exports.checkSignupRateLimit = onCall(
+  { region: "us-central1", cors: true },
+  async (request) => {
+    const now = Date.now();
+    const ip = getCallerIp(request);
+    const deviceFingerprint = normalizeFingerprint(request.data?.deviceFingerprint);
+
+    const ipKey = `signup_rate_limits/ip_${hashForRateKey(ip)}`;
+    const comboKey = `signup_rate_limits/combo_${hashForRateKey(`${ip}|${deviceFingerprint}`)}`;
+    const ipRef = db.doc(ipKey);
+    const comboRef = db.doc(comboKey);
+
+    const evaluateEntry = (entry, limit) => {
+      const data = entry || {};
+      const blockUntilMs = Number(data.blockUntilMs || 0);
+      if (blockUntilMs > now) {
+        return {
+          allowed: false,
+          retryAfterMs: blockUntilMs - now,
+          next: data
+        };
+      }
+
+      const windowStartMs = Number(data.windowStartMs || now);
+      const withinWindow = (now - windowStartMs) < SIGNUP_RATE_WINDOW_MS;
+      const count = withinWindow ? Number(data.count || 0) : 0;
+      const nextCount = count + 1;
+      const next = {
+        windowStartMs: withinWindow ? windowStartMs : now,
+        count: nextCount,
+        lastAttemptMs: now,
+        blockUntilMs: 0
+      };
+
+      if (nextCount > limit) {
+        next.blockUntilMs = now + SIGNUP_RATE_BLOCK_MS;
+        return {
+          allowed: false,
+          retryAfterMs: SIGNUP_RATE_BLOCK_MS,
+          next
+        };
+      }
+
+      return {
+        allowed: true,
+        retryAfterMs: 0,
+        next
+      };
+    };
+
+    const result = await db.runTransaction(async (tx) => {
+      const [ipSnap, comboSnap] = await Promise.all([tx.get(ipRef), tx.get(comboRef)]);
+      const ipEval = evaluateEntry(ipSnap.exists ? ipSnap.data() : null, SIGNUP_RATE_MAX_PER_IP);
+      const comboEval = evaluateEntry(comboSnap.exists ? comboSnap.data() : null, SIGNUP_RATE_MAX_PER_IP_DEVICE);
+
+      tx.set(ipRef, ipEval.next, { merge: true });
+      tx.set(comboRef, comboEval.next, { merge: true });
+
+      const allowed = ipEval.allowed && comboEval.allowed;
+      const retryAfterMs = Math.max(ipEval.retryAfterMs, comboEval.retryAfterMs);
+      return { allowed, retryAfterMs };
+    });
+
+    if (!result.allowed) {
+      return {
+        allowed: false,
+        retryAfterSec: Math.ceil(result.retryAfterMs / 1000),
+        message: "Too many sign-up attempts. Please wait a few minutes, then try again."
+      };
+    }
+
+    return {
+      allowed: true,
+      retryAfterSec: 0
+    };
+  }
+);
+
+exports.migrateLegacyProfilePhones = onCall(
+  { region: "us-central1", cors: true },
+  async (request) => {
+    const requesterUid = request.auth?.uid || "";
+    if (!requesterUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const migrationRef = db.collection("system_migrations").doc("legacy_profile_phone_v1");
+    const migrationSnap = await migrationRef.get();
+    const migrationData = migrationSnap.exists ? (migrationSnap.data() || {}) : {};
+    if (migrationData.status === "done") {
+      return {
+        ok: true,
+        alreadyDone: true,
+        scannedUsers: Number(migrationData.scannedUsers || 0),
+        updatedUsers: Number(migrationData.updatedUsers || 0)
+      };
+    }
+
+    await migrationRef.set({
+      status: "running",
+      startedBy: requesterUid,
+      startedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    const usersRef = db.collection("users");
+    const deleteValue = admin.firestore.FieldValue.delete();
+    const docIdField = admin.firestore.FieldPath.documentId();
+    let lastDoc = null;
+    let scannedUsers = 0;
+    let updatedUsers = 0;
+
+    while (true) {
+      let query = usersRef.orderBy(docIdField).limit(250);
+      if (lastDoc) query = query.startAfter(lastDoc);
+
+      // eslint-disable-next-line no-await-in-loop
+      const snapshot = await query.get();
+      if (snapshot.empty) break;
+
+      const batch = db.batch();
+      snapshot.docs.forEach((docSnap) => {
+        scannedUsers += 1;
+        const data = docSnap.data() || {};
+        if (!Object.prototype.hasOwnProperty.call(data, "phoneNumber")) return;
+
+        batch.update(docSnap.ref, {
+          phoneNumber: deleteValue,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        updatedUsers += 1;
+      });
+
+      // eslint-disable-next-line no-await-in-loop
+      await batch.commit();
+      lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    }
+
+    logger.info("Legacy profile phone migration completed", {
+      scannedUsers,
+      updatedUsers
+    });
+
+    await migrationRef.set({
+      status: "done",
+      completedBy: requesterUid,
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      scannedUsers,
+      updatedUsers,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    return {
+      ok: true,
+      scannedUsers,
+      updatedUsers
+    };
+  }
+);
 
 exports.getFaceVerificationMediaAccess = onCall(
   { region: "us-central1", cors: true },

@@ -400,12 +400,13 @@
     <div class="face-prestige-container">
       <div class="face-prestige-header">
         <div class="face-badge-large">
-          <div class="face-icon">🎥</div>
           <div class="face-title">FACE VERIFIED</div>
           <div class="face-subtitle">Real Face, Real Member</div>
-          <div class="face-preview-card" id="facePreviewCard" aria-label="Face verification preview">
+          <div class="face-preview-card" id="facePreviewCard" aria-label="Face verification intro media">
+            <video id="facePreviewVideo" class="face-preview-video" playsinline preload="metadata" controlsList="nodownload noplaybackrate noremoteplayback nofullscreen" disablePictureInPicture disableRemotePlayback x-webkit-airplay="deny" style="display: none;"></video>
             <img id="facePreviewImage" class="face-preview-image" alt="Face verification thumbnail preview" style="display: none;">
-            <div id="facePreviewEmpty" class="face-preview-empty">Selfie thumbnail will appear here</div>
+            <button type="button" id="facePreviewPlayBtn" class="face-preview-play-btn" style="display: none;" aria-label="Play face intro">PLAY VIDEO</button>
+            <div id="facePreviewEmpty" class="face-preview-empty">Face intro will appear here</div>
           </div>
         </div>
         <button class="face-prestige-close" id="facePrestigeClose" aria-label="Close">×</button>
@@ -420,72 +421,72 @@
 
         <div class="face-lang-content active" data-lang-content="english">
           <div class="face-message">
-            This member completed Face Verification with a short selfie video saying their name.
+            <span class="face-prestige-name">This member</span> shared a Selfie Video greeting!
           </div>
           <div class="face-features">
             <div class="face-feature-item">
               <span class="face-feature-icon">✅</span>
-              <span class="face-feature-text">Adds transparency in profile and gig interactions</span>
+              <span class="face-feature-text">As a FRIENDLY introduction to the Community.</span>
             </div>
             <div class="face-feature-item">
               <span class="face-feature-icon">🤝</span>
-              <span class="face-feature-text">Helps people make more informed trust decisions</span>
+              <span class="face-feature-text">So people can see what you look like before meeting you.</span>
             </div>
             <div class="face-feature-item">
-              <span class="face-feature-icon">🔒</span>
-              <span class="face-feature-text">Selfie video is not public by default</span>
+              <span class="face-feature-icon">🌱</span>
+              <span class="face-feature-text">And help other users to take a chance with you.</span>
             </div>
             <div class="face-feature-item">
-              <span class="face-feature-icon">📍</span>
-              <span class="face-feature-text">You ONLY see this video when deciding to hire someone or accept a job offer</span>
+              <span class="face-feature-icon">🙌</span>
+              <span class="face-feature-text">Optional only - you can still use GISUGO without it.</span>
             </div>
           </div>
         </div>
 
         <div class="face-lang-content" data-lang-content="bisaya">
           <div class="face-message">
-            Kining member nakakompleto ug Face Verification pinaagi sa mubo nga selfie video nga misulti sa ngalan.
+            <span class="face-prestige-name">Kining member</span> ni-share ug Selfie Video greeting!
           </div>
           <div class="face-features">
             <div class="face-feature-item">
               <span class="face-feature-icon">✅</span>
-              <span class="face-feature-text">Nagadugang og transparency sa profile ug gig interactions</span>
+              <span class="face-feature-text">Isip usa ka FRIENDLY nga introduction sa Community.</span>
             </div>
             <div class="face-feature-item">
               <span class="face-feature-icon">🤝</span>
-              <span class="face-feature-text">Makatabang para mas informed ang trust decisions</span>
+              <span class="face-feature-text">Aron makita sa mga tawo ang imong nawong sa dili pa mo magkita.</span>
             </div>
             <div class="face-feature-item">
-              <span class="face-feature-icon">🔒</span>
-              <span class="face-feature-text">Dili public ang selfie video by default</span>
+              <span class="face-feature-icon">🌱</span>
+              <span class="face-feature-text">Ug makatabang sa ubang users nga mo-take ug chance nimo.</span>
             </div>
             <div class="face-feature-item">
-              <span class="face-feature-icon">📍</span>
-              <span class="face-feature-text">Kasagaran nimo kini makita kung magdesisyon ka mo-hire ug tawo o mo-accept ug job offer</span>
+              <span class="face-feature-icon">🙌</span>
+              <span class="face-feature-text">Optional only - makagamit gihapon ka sa GISUGO bisan wala ani.</span>
             </div>
           </div>
         </div>
 
         <div class="face-lang-content" data-lang-content="tagalog">
           <div class="face-message">
-            Nakumpleto ng member na ito ang Face Verification gamit ang maikling selfie video habang sinasabi ang pangalan.
+            <span class="face-prestige-name">Ang member na ito</span> nag-share ng Selfie Video greeting!
           </div>
           <div class="face-features">
             <div class="face-feature-item">
               <span class="face-feature-icon">✅</span>
-              <span class="face-feature-text">Nagdaragdag ng transparency sa profile at gig interactions</span>
+              <span class="face-feature-text">Bilang isang FRIENDLY na introduction sa Community.</span>
             </div>
             <div class="face-feature-item">
               <span class="face-feature-icon">🤝</span>
-              <span class="face-feature-text">Tumutulong para mas informed ang trust decisions</span>
+              <span class="face-feature-text">Para makita ng mga tao ang itsura mo bago kayo magkita.</span>
             </div>
             <div class="face-feature-item">
-              <span class="face-feature-icon">🔒</span>
-              <span class="face-feature-text">Hindi public ang selfie video by default</span>
+              <span class="face-feature-icon">🌱</span>
+              <span class="face-feature-text">At makatulong sa ibang users na sumubok at magtiwala sa iyo.</span>
             </div>
             <div class="face-feature-item">
-              <span class="face-feature-icon">📍</span>
-              <span class="face-feature-text">Kadalasan mo itong makikita kapag magdedesisyon kang mag-hire ng tao o tumanggap ng job offer</span>
+              <span class="face-feature-icon">🙌</span>
+              <span class="face-feature-text">Optional only - magagamit mo pa rin ang GISUGO kahit wala nito.</span>
             </div>
           </div>
         </div>
@@ -1415,6 +1416,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-functions-compat.js"></script>
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js"></script>
@@ -1427,7 +1429,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.0"></script>
   <script src="public/js/shared-menu.js?v=3.0"></script>
-  <script src="public/js/profile.js?v=61"></script>
+  <script src="public/js/profile.js?v=67"></script>
 
 </body>
 </html> 

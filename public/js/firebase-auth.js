@@ -19,6 +19,18 @@
 let currentUser = null;
 let authStateListeners = [];
 
+function getEmailVerificationActionSettings() {
+  try {
+    const origin = window?.location?.origin;
+    if (!origin) return undefined;
+    return {
+      url: `${origin}/login.html?emailVerified=1`
+    };
+  } catch (_) {
+    return undefined;
+  }
+}
+
 // Subscribe to auth state changes
 function onAuthStateChange(callback) {
   authStateListeners.push(callback);
@@ -126,11 +138,24 @@ async function signUpWithEmail(email, password, profileData = {}) {
     // DO NOT create Firestore profile here - let sign-up.js handle it with complete data
     // This prevents double profile creation and ensures photo upload happens first
     console.log('⏸️ Skipping profile creation - will be handled by sign-up.js');
+    try {
+      const actionSettings = getEmailVerificationActionSettings();
+      if (actionSettings) {
+        await user.sendEmailVerification(actionSettings);
+      } else {
+        await user.sendEmailVerification();
+      }
+      console.log('📧 Verification email sent to:', email);
+    } catch (verificationError) {
+      console.warn('⚠️ Could not send verification email immediately:', verificationError);
+    }
+    await auth.signOut();
     
     return {
       success: true,
       user: user,
-      message: 'Account created successfully!'
+      requiresEmailVerification: true,
+      message: 'Account created. Please verify your email before continuing.'
     };
     
   } catch (error) {
@@ -231,15 +256,39 @@ async function loginWithEmail(email, password) {
     
     const userCredential = await auth.signInWithEmailAndPassword(email, password);
     const user = userCredential.user;
+
+    if (!user.emailVerified) {
+      try {
+        const actionSettings = getEmailVerificationActionSettings();
+        if (actionSettings) {
+          await user.sendEmailVerification(actionSettings);
+        } else {
+          await user.sendEmailVerification();
+        }
+        console.log('📧 Re-sent verification email to:', email);
+      } catch (verificationError) {
+        console.warn('⚠️ Could not resend verification email:', verificationError);
+      }
+      await auth.signOut();
+      return {
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email first. We sent a verification link to your inbox.'
+      };
+    }
     
     console.log('✅ Login successful:', user.uid);
     
-    // Update last login timestamp in Firestore
+    // Update last login timestamp in Firestore (non-blocking)
     const db = getFirestore();
     if (db) {
-      await db.collection('users').doc(user.uid).update({
-        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      try {
+        await db.collection('users').doc(user.uid).update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (dbError) {
+        console.warn('⚠️ Could not update lastLogin, continuing login:', dbError?.code || dbError);
+      }
     }
     
     return {
@@ -965,7 +1014,7 @@ async function createUserProfile(userId, profileData) {
         }
       }
     };
-    
+
     await db.collection('users').doc(userId).set(finalProfile);
     console.log('✅ User profile created in Firestore');
     
@@ -1091,7 +1140,7 @@ async function checkUserHasProfile(userId) {
  * @returns {Array} - List of missing field names
  */
 function getMissingProfileFields(profile) {
-  const requiredFields = ['fullName', 'phoneNumber', 'dateOfBirth'];
+  const requiredFields = ['fullName'];
   
   if (!profile) {
     return requiredFields;

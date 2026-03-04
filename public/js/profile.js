@@ -300,8 +300,11 @@ const facePrestigeOverlay = document.getElementById('facePrestigeOverlay');
 const facePrestigeClose = document.getElementById('facePrestigeClose');
 const facePrestigeUnderstandBtn = document.getElementById('facePrestigeUnderstandBtn');
 const facePrestigeLangTabs = document.getElementById('facePrestigeLangTabs');
+const facePreviewVideo = document.getElementById('facePreviewVideo');
+const facePreviewPlayBtn = document.getElementById('facePreviewPlayBtn');
 const facePreviewImage = document.getElementById('facePreviewImage');
 const facePreviewEmpty = document.getElementById('facePreviewEmpty');
+const facePrestigeNameEls = document.querySelectorAll('.face-prestige-name');
 
 // Open pro prestige overlay
 function openProPrestigeOverlay() {
@@ -358,6 +361,7 @@ function openFacePrestigeOverlay() {
     facePrestigeOverlay.classList.add('active');
     document.body.style.overflow = 'hidden';
     activateFacePrestigeLanguage('english');
+    populateFacePrestigeName();
     populateFacePrestigePreview();
     console.log('🎥 Face prestige overlay opened');
   }
@@ -366,6 +370,20 @@ function openFacePrestigeOverlay() {
 function closeFacePrestigeOverlay() {
   if (facePrestigeOverlay) {
     facePrestigeOverlay.classList.remove('active');
+    if (facePreviewVideo) {
+      facePreviewVideo.pause();
+      facePreviewVideo.onplay = null;
+      facePreviewVideo.onpause = null;
+      facePreviewVideo.onended = null;
+      facePreviewVideo.onclick = null;
+      facePreviewVideo.oncontextmenu = null;
+    }
+    if (facePreviewPlayBtn) {
+      facePreviewPlayBtn.onclick = null;
+      facePreviewPlayBtn.textContent = 'PLAY VIDEO';
+      facePreviewPlayBtn.setAttribute('aria-label', 'Play face intro');
+      facePreviewPlayBtn.style.display = 'none';
+    }
     document.body.style.overflow = '';
     console.log('🎥 Face prestige overlay closed');
   }
@@ -428,10 +446,82 @@ function getFacePosterUrl(userProfile) {
     || null;
 }
 
-function populateFacePrestigePreview() {
-  if (!facePreviewImage || !facePreviewEmpty) return;
+function getFaceVideoUrl(userProfile) {
+  const verification = userProfile?.verification || {};
+  const privateVerification = window.currentUserPrivateProfile?.verification || {};
+  return privateVerification.faceVideoUrl
+    || verification.faceVideoUrl
+    || null;
+}
 
+function populateFacePrestigeName() {
+  if (!facePrestigeNameEls || !facePrestigeNameEls.length) return;
+  const fullName = String(window.currentUserProfile?.fullName || '').trim();
+  if (!fullName) return;
+  facePrestigeNameEls.forEach((el) => {
+    el.textContent = fullName;
+  });
+}
+
+function populateFacePrestigePreview() {
+  if (!facePreviewVideo || !facePreviewPlayBtn || !facePreviewImage || !facePreviewEmpty) return;
+
+  const videoUrl = getFaceVideoUrl(window.currentUserProfile);
   const posterUrl = getFacePosterUrl(window.currentUserProfile);
+  if (videoUrl) {
+    if (facePreviewVideo.src !== videoUrl) {
+      facePreviewVideo.src = videoUrl;
+    }
+    facePreviewVideo.removeAttribute('controls');
+    facePreviewVideo.style.display = 'block';
+    facePreviewPlayBtn.style.display = 'inline-flex';
+    const syncPlayState = () => {
+      if (facePreviewVideo.paused || facePreviewVideo.ended) {
+        facePreviewPlayBtn.textContent = 'PLAY VIDEO';
+        facePreviewPlayBtn.setAttribute('aria-label', 'Play face intro');
+      } else {
+        facePreviewPlayBtn.textContent = 'PAUSE';
+        facePreviewPlayBtn.setAttribute('aria-label', 'Pause face intro');
+      }
+    };
+    const togglePlayback = () => {
+      if (facePreviewVideo.paused || facePreviewVideo.ended) {
+        void facePreviewVideo.play().catch(() => {});
+      } else {
+        facePreviewVideo.pause();
+      }
+    };
+    facePreviewPlayBtn.onclick = togglePlayback;
+    facePreviewVideo.onclick = togglePlayback;
+    facePreviewVideo.onplay = syncPlayState;
+    facePreviewVideo.onpause = syncPlayState;
+    facePreviewVideo.onended = syncPlayState;
+    facePreviewVideo.oncontextmenu = (event) => event.preventDefault();
+    facePreviewImage.removeAttribute('src');
+    facePreviewImage.style.display = 'none';
+    facePreviewEmpty.style.display = 'none';
+    if (posterUrl) {
+      facePreviewVideo.setAttribute('poster', posterUrl);
+    } else {
+      facePreviewVideo.removeAttribute('poster');
+    }
+    syncPlayState();
+    return;
+  }
+
+  facePreviewVideo.pause();
+  facePreviewVideo.removeAttribute('poster');
+  facePreviewVideo.removeAttribute('src');
+  facePreviewVideo.style.display = 'none';
+  facePreviewVideo.onplay = null;
+  facePreviewVideo.onpause = null;
+  facePreviewVideo.onended = null;
+  facePreviewVideo.onclick = null;
+  facePreviewVideo.oncontextmenu = null;
+  facePreviewPlayBtn.onclick = null;
+  facePreviewPlayBtn.textContent = 'PLAY VIDEO';
+  facePreviewPlayBtn.setAttribute('aria-label', 'Play face intro');
+  facePreviewPlayBtn.style.display = 'none';
   if (posterUrl) {
     facePreviewImage.src = posterUrl;
     facePreviewImage.style.display = 'block';
@@ -465,6 +555,15 @@ const faceCapturePrompt = document.getElementById('faceCapturePrompt');
 const faceCaptureFeedback = document.getElementById('faceCaptureFeedback');
 
 const FACE_CAPTURE_DURATION_MS = 3400;
+const FACE_CAPTURE_VIDEO_WIDTH = 360;
+const FACE_CAPTURE_VIDEO_HEIGHT = 640;
+const FACE_CAPTURE_VIDEO_FPS_IDEAL = 20;
+const FACE_CAPTURE_VIDEO_FPS_MAX = 24;
+const FACE_CAPTURE_VIDEO_BITRATE = 220000;
+const FACE_CAPTURE_AUDIO_BITRATE = 24000;
+const FACE_POSTER_WIDTH = 180;
+const FACE_POSTER_HEIGHT = 240;
+const FACE_POSTER_JPEG_QUALITY = 0.62;
 const faceCaptureState = {
   stream: null,
   mediaRecorder: null,
@@ -652,8 +751,9 @@ async function startFaceCapturePreview() {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'user',
-        width: { ideal: 720 },
-        height: { ideal: 1280 }
+        width: { ideal: FACE_CAPTURE_VIDEO_WIDTH, max: 480 },
+        height: { ideal: FACE_CAPTURE_VIDEO_HEIGHT, max: 854 },
+        frameRate: { ideal: FACE_CAPTURE_VIDEO_FPS_IDEAL, max: FACE_CAPTURE_VIDEO_FPS_MAX }
       },
       audio: {
         echoCancellation: true,
@@ -761,8 +861,8 @@ function startFaceCaptureAudioMonitor(stream) {
 function generateFacePoster(videoEl) {
   const sourceWidth = videoEl.videoWidth || 480;
   const sourceHeight = videoEl.videoHeight || 640;
-  const targetWidth = 360;
-  const targetHeight = 480;
+  const targetWidth = FACE_POSTER_WIDTH;
+  const targetHeight = FACE_POSTER_HEIGHT;
   const sourceRatio = sourceWidth / sourceHeight;
   const targetRatio = targetWidth / targetHeight;
 
@@ -785,7 +885,7 @@ function generateFacePoster(videoEl) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
   ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, targetWidth, targetHeight);
-  return canvas.toDataURL('image/jpeg', 0.82);
+  return canvas.toDataURL('image/jpeg', FACE_POSTER_JPEG_QUALITY);
 }
 
 function hasLikelyFaceInFrame(pixels, width, height) {
@@ -968,6 +1068,11 @@ async function finalizeFaceCaptureRecording() {
 
   const blob = new Blob(faceCaptureState.chunks, { type: faceCaptureState.chunks[0]?.type || 'video/webm' });
   faceCaptureState.recordedBlob = blob;
+  console.info('[FV_CAPTURE_STATS]', {
+    blobSizeBytes: blob.size,
+    durationMs: FACE_CAPTURE_DURATION_MS,
+    approxKbps: Math.round((blob.size * 8) / (FACE_CAPTURE_DURATION_MS / 1000) / 1000)
+  });
 
   if (faceCaptureState.recordedObjectUrl) {
     URL.revokeObjectURL(faceCaptureState.recordedObjectUrl);
@@ -1037,10 +1142,14 @@ function startFaceCaptureRecording() {
   const mimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
 
   faceCaptureState.chunks = [];
-  faceCaptureState.mediaRecorder = new MediaRecorder(
-    faceCaptureState.stream,
-    mimeType ? { mimeType } : undefined
-  );
+  const recorderOptions = {
+    videoBitsPerSecond: FACE_CAPTURE_VIDEO_BITRATE,
+    audioBitsPerSecond: FACE_CAPTURE_AUDIO_BITRATE
+  };
+  if (mimeType) {
+    recorderOptions.mimeType = mimeType;
+  }
+  faceCaptureState.mediaRecorder = new MediaRecorder(faceCaptureState.stream, recorderOptions);
 
   faceCaptureState.mediaRecorder.ondataavailable = (event) => {
     if (event.data && event.data.size > 0) {
@@ -1103,7 +1212,10 @@ async function persistFaceVerificationToBackend(posterDataUrl, recordedBlob) {
         const storageRef = firebase.storage().ref();
         resolvedPosterPath = `face_verification/${userId}/face_poster.jpg`;
         const facePosterRef = storageRef.child(resolvedPosterPath);
-        const snapshot = await facePosterRef.put(blob, { contentType: 'image/jpeg' });
+        const snapshot = await facePosterRef.put(blob, {
+          contentType: 'image/jpeg',
+          cacheControl: 'public,max-age=86400'
+        });
         resolvedPosterUrl = await snapshot.ref.getDownloadURL();
         console.info('[FV_SAVE_STAGE]', { stage: 'poster_upload_success', userId, hasPosterUrl: !!resolvedPosterUrl });
       } else {
@@ -1125,7 +1237,10 @@ async function persistFaceVerificationToBackend(posterDataUrl, recordedBlob) {
         const contentType = recordedBlob.type || (extension === 'webm' ? 'video/webm' : 'video/mp4');
         resolvedVideoPath = `face_verification/${userId}/face_intro.${extension}`;
         const faceVideoRef = storageRef.child(resolvedVideoPath);
-        const videoSnapshot = await faceVideoRef.put(recordedBlob, { contentType });
+        const videoSnapshot = await faceVideoRef.put(recordedBlob, {
+          contentType,
+          cacheControl: 'public,max-age=86400'
+        });
         resolvedVideoUrl = await videoSnapshot.ref.getDownloadURL();
         console.info('[FV_SAVE_STAGE]', { stage: 'video_upload_success', userId, hasVideoUrl: !!resolvedVideoUrl });
       } else {
@@ -2060,24 +2175,26 @@ function getCurrentUserId() {
 // FIREBASE TODO: This function guards all entry points to Account Settings
 // Only the profile owner (logged-in user viewing their own profile) can access Account Settings
 function openAccountSettingsIfOwner() {
-  if (!isUserLoggedIn()) {
-    console.log('⚠️ Account Settings blocked: User not logged in');
-    // FIREBASE TODO: Redirect to login or show login prompt
+  const viewingOwnProfile = isUserLoggedIn() && isOwnProfile();
+  if (viewingOwnProfile) {
+    const accountOverlay = document.getElementById('accountOverlay');
+    if (accountOverlay) {
+      accountOverlay.classList.add('active');
+      console.log('✅ Account Settings opened for profile owner');
+    }
     return;
   }
-  
-  if (!isOwnProfile()) {
-    console.log('⚠️ Account Settings blocked: Not viewing own profile');
-    // User is viewing someone else's profile - do nothing
+
+  // Visitor behavior: open profile trust modal from avatar click.
+  const isFaceVerified = !!(window.currentUserProfile?.verification?.faceVerified);
+  if (isFaceVerified) {
+    openFacePrestigeOverlay();
+    console.log('🎥 Opened Face Verified modal from visitor avatar click');
     return;
   }
-  
-  // User is logged in AND viewing their own profile - allow access
-  const accountOverlay = document.getElementById('accountOverlay');
-  if (accountOverlay) {
-    accountOverlay.classList.add('active');
-    console.log('✅ Account Settings opened for profile owner');
-  }
+
+  openNotVerifiedOverlay();
+  console.log('🌱 Opened Not Verified modal from visitor avatar click');
 }
 
 // Make globally accessible for onclick handlers
@@ -2143,7 +2260,7 @@ function updateLoginMethodsUI() {
     // Update Email/Password
     const emailLinked = providerIds.includes('password');
     updateMethodUI('Email', emailLinked, user.email);
-    
+
   } catch (error) {
     console.error('Error updating login methods UI:', error);
   }
@@ -2728,21 +2845,24 @@ function updateBadgeVisibility(userProfile) {
     console.log('Logout button visibility:', canAccessAccountSettings ? 'visible' : 'hidden');
   }
   
-  // Profile photo click-to-open: Only enable for profile owner
-  // FIREBASE TODO: In production, this controls whether clicking the photo opens Account Settings
+  // Profile photo click behavior:
+  // - Owner: opens Account Settings
+  // - Visitor: opens Face Verified / Not Verified modal for the viewed profile
   if (profilePhotoContainer) {
-    profilePhotoContainer.style.cursor = canAccessAccountSettings ? 'pointer' : 'default';
-    // Remove interactive attributes if not owner
+    profilePhotoContainer.style.cursor = 'pointer';
     if (canAccessAccountSettings) {
       profilePhotoContainer.setAttribute('role', 'button');
       profilePhotoContainer.setAttribute('tabindex', '0');
       profilePhotoContainer.setAttribute('aria-label', 'Open Account Settings');
     } else {
-      profilePhotoContainer.removeAttribute('role');
-      profilePhotoContainer.removeAttribute('tabindex');
-      profilePhotoContainer.removeAttribute('aria-label');
+      const visitorLabel = userProfile?.verification?.faceVerified
+        ? 'Open Face Verified details'
+        : 'Open verification details';
+      profilePhotoContainer.setAttribute('role', 'button');
+      profilePhotoContainer.setAttribute('tabindex', '0');
+      profilePhotoContainer.setAttribute('aria-label', visitorLabel);
     }
-    console.log('Profile photo clickable:', canAccessAccountSettings ? 'yes' : 'no');
+    console.log('Profile photo clickable: yes');
   }
   
   // Badge visibility logic
@@ -4349,6 +4469,26 @@ function extractStoragePathFromDownloadUrl(url) {
   }
 }
 
+const LEGACY_PROFILE_PHONE_MIGRATION_FLAG = 'legacyProfilePhoneMigrationDoneV1';
+
+async function runLegacyProfilePhoneMigrationIfAdmin(user) {
+  if (!user || !user.uid) return;
+  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
+  if (window.localStorage.getItem(LEGACY_PROFILE_PHONE_MIGRATION_FLAG) === '1') return;
+  if (typeof firebase === 'undefined' || !firebase.functions) return;
+
+  try {
+    const migrateLegacyProfilePhones = firebase.functions().httpsCallable('migrateLegacyProfilePhones');
+    const result = await migrateLegacyProfilePhones({});
+    const payload = result?.data || {};
+    window.localStorage.setItem(LEGACY_PROFILE_PHONE_MIGRATION_FLAG, '1');
+    console.log('✅ Legacy profile phone migration completed:', payload);
+  } catch (error) {
+    // Non-blocking: profile loading should continue even if migration is unavailable.
+    console.warn('⚠️ Legacy profile phone migration skipped:', error?.message || error);
+  }
+}
+
 async function waitForAuthAndLoadProfile() {
   // Hide profile content immediately to avoid template flash before loader decision.
   setProfileShellVisibility(false);
@@ -4397,6 +4537,7 @@ async function waitForAuthAndLoadProfile() {
       }
       
       console.log('🔥 User authenticated:', user.uid);
+      await runLegacyProfilePhoneMigrationIfAdmin(user);
       
       // ══════════════════════════════════════════════════════════════
       // INITIAL PROVIDER STATE LOGGING
