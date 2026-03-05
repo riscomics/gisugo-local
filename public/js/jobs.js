@@ -3692,7 +3692,15 @@ async function showConfirmAcceptGigOverlay(jobData) {
         fallbackName: jobData.posterName
     });
     applyCustomerStatusDisplay(customerStatus);
-    updateStatusFacePreview('acceptFacePreviewBlock', 'acceptFacePreviewImage', customerStatus);
+    updateStatusFacePreview({
+        previewBlockId: 'acceptFacePreviewBlock',
+        previewImageId: 'acceptFacePreviewImage',
+        previewVideoId: 'acceptFacePreviewVideo',
+        previewPlayBtnId: 'acceptFacePreviewPlayBtn',
+        previewCaptionId: 'acceptFacePreviewCaption',
+        displayName: jobData.posterName || 'Customer',
+        status: customerStatus
+    });
     overlay.dataset.verificationStatusType = customerStatus?.type || '';
     updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName, jobData.posterId);
     setVerificationDecision('acceptGig', null);
@@ -3720,6 +3728,7 @@ function applyCustomerStatusDisplay(customerStatus) {
         statusIcon.textContent = customerStatus.icon;
         statusTitle.textContent = customerStatus.title;
         statusContent.textContent = customerStatus.description;
+        statusContent.style.textAlign = customerStatus?.type === 'face' ? 'center' : '';
     }
 }
 
@@ -3763,7 +3772,7 @@ function buildAccountStatusFromVerification(verification, roleLabel) {
             type: 'face',
             icon: '🎥',
             title: 'Face Verified',
-            description: `This ${role} completed Face Verification with a short selfie introduction.`,
+            description: `Watch this ${role}'s Selfie Video intro!`,
             media
         };
     }
@@ -3793,22 +3802,90 @@ async function resolveUserAccountStatus(userId, options = {}) {
     return buildAccountStatusFromVerification(null, role);
 }
 
-function updateStatusFacePreview(previewBlockId, previewImageId, status) {
-    const previewBlock = document.getElementById(previewBlockId);
-    const previewImage = document.getElementById(previewImageId);
+function updateStatusFacePreview(options = {}) {
+    const previewBlock = document.getElementById(options.previewBlockId || '');
+    const previewImage = document.getElementById(options.previewImageId || '');
+    const previewVideo = document.getElementById(options.previewVideoId || '');
+    const previewPlayBtn = document.getElementById(options.previewPlayBtnId || '');
+    const previewCaption = document.getElementById(options.previewCaptionId || '');
+    const status = options.status || null;
     if (!previewBlock || !previewImage) return;
+    const displayName = String(options.displayName || 'Member').trim() || 'Member';
 
     const posterUrl = sanitizeUrl(status?.media?.posterUrl || '', '');
+    const videoUrl = sanitizeUrl(status?.media?.videoUrl || '', '');
     console.info('[FV_MODAL_MEDIA_RESOLVE]', {
-        surface: previewBlockId,
-        hasPosterUrl: !!posterUrl
+        surface: options.previewBlockId,
+        hasPosterUrl: !!posterUrl,
+        hasVideoUrl: !!videoUrl
     });
+
+    previewImage.removeAttribute('src');
+    previewImage.style.display = 'none';
+    previewBlock.style.display = 'none';
+    if (previewCaption) previewCaption.textContent = displayName;
+
+    if (previewVideo) {
+        previewVideo.pause();
+        previewVideo.removeAttribute('src');
+        previewVideo.removeAttribute('poster');
+        previewVideo.style.display = 'none';
+        previewVideo.onclick = null;
+        previewVideo.onplay = null;
+        previewVideo.onpause = null;
+        previewVideo.onended = null;
+        previewVideo.oncontextmenu = null;
+        previewVideo.load();
+    }
+
+    if (previewPlayBtn) {
+        previewPlayBtn.style.display = 'none';
+        previewPlayBtn.textContent = 'PLAY VIDEO';
+        previewPlayBtn.setAttribute('aria-label', 'Play face verification video');
+        previewPlayBtn.onclick = null;
+    }
+
+    if (videoUrl && previewVideo) {
+        previewVideo.src = videoUrl;
+        if (posterUrl) previewVideo.setAttribute('poster', posterUrl);
+        previewVideo.style.display = 'block';
+        previewBlock.style.display = 'flex';
+        previewVideo.oncontextmenu = (event) => event.preventDefault();
+
+        const syncPlayBtn = () => {
+            if (!previewPlayBtn) return;
+            if (previewVideo.paused) {
+                previewPlayBtn.textContent = 'PLAY VIDEO';
+                previewPlayBtn.setAttribute('aria-label', 'Play face verification video');
+            } else {
+                previewPlayBtn.textContent = 'PAUSE';
+                previewPlayBtn.setAttribute('aria-label', 'Pause face verification video');
+            }
+        };
+
+        if (previewPlayBtn) {
+            previewPlayBtn.style.display = 'inline-flex';
+            previewPlayBtn.onclick = async () => {
+                try {
+                    if (previewVideo.paused) await previewVideo.play();
+                    else previewVideo.pause();
+                } catch (error) {
+                    console.warn('⚠️ Could not toggle FV preview video playback:', error);
+                }
+                syncPlayBtn();
+            };
+            previewVideo.onplay = syncPlayBtn;
+            previewVideo.onpause = syncPlayBtn;
+            previewVideo.onended = syncPlayBtn;
+            syncPlayBtn();
+        }
+        return;
+    }
+
     if (posterUrl) {
         previewImage.src = posterUrl;
+        previewImage.style.display = 'block';
         previewBlock.style.display = 'flex';
-    } else {
-        previewImage.removeAttribute('src');
-        previewBlock.style.display = 'none';
     }
 }
 
@@ -4194,6 +4271,13 @@ function hideConfirmAcceptGigOverlay() {
     clearVerificationReminderTicker('accept');
     detachConfirmAcceptGigEscHandler();
     overlay.classList.remove('show');
+    updateStatusFacePreview({
+        previewBlockId: 'acceptFacePreviewBlock',
+        previewImageId: 'acceptFacePreviewImage',
+        previewVideoId: 'acceptFacePreviewVideo',
+        previewPlayBtnId: 'acceptFacePreviewPlayBtn',
+        status: null
+    });
     
     console.log('🤝 Confirm accept gig overlay hidden and handlers cleaned up');
 }
@@ -8919,7 +9003,15 @@ async function showHireConfirmationOverlay(workerData) {
         fallbackRating: workerData.userRating
     });
     updateWorkerStatusDisplay(workerStatus);
-    updateStatusFacePreview('hireFacePreviewBlock', 'hireFacePreviewImage', workerStatus);
+    updateStatusFacePreview({
+        previewBlockId: 'hireFacePreviewBlock',
+        previewImageId: 'hireFacePreviewImage',
+        previewVideoId: 'hireFacePreviewVideo',
+        previewPlayBtnId: 'hireFacePreviewPlayBtn',
+        previewCaptionId: 'hireFacePreviewCaption',
+        displayName: workerData.userName || 'Worker',
+        status: workerStatus
+    });
     overlay.dataset.verificationStatusType = workerStatus?.type || '';
     updateVerificationReminderActions('hire', workerStatus?.type, workerData.userName, workerData.userId);
     setVerificationDecision('confirmHire', null);
@@ -8957,6 +9049,7 @@ function updateWorkerStatusDisplay(status) {
     friendlyIcon.textContent = status.icon || status.friendlyIcon || '🌱';
     infoTitle.textContent = status.title || status.infoTitle || 'Unverified';
     infoContent.textContent = status.description || status.infoContent || 'This member has not completed Face Verification yet.';
+    infoContent.style.textAlign = status?.type === 'face' ? 'center' : '';
 
     // Style info section based on type
     if (status.type === 'business') {
@@ -8988,6 +9081,7 @@ function updateVerificationReminderActions(context, statusType, counterpartName 
     const requestBtn = document.getElementById(isHire ? 'hireRequestVerificationBtn' : 'acceptRequestVerificationBtn');
     const safeCounterpartId = counterpartId || counterpartName;
     const firstName = (counterpartName || 'This member').split(' ')[0];
+    const highlightedName = `<span class="verification-reminder-user">${escapeHtml(counterpartName || 'This member')}</span>`;
 
     if (!reminderCard) return;
 
@@ -9007,13 +9101,13 @@ function updateVerificationReminderActions(context, statusType, counterpartName 
     const isPending = state.status === 'pending' && state.requestedAt > 0;
 
     if (reminderText) {
-        reminderText.textContent = isPending
+        reminderText.innerHTML = isPending
             ? (isHire
-                ? `${counterpartName} is still unverified. You already requested Face Verification.`
-                : `${counterpartName} is still unverified. You already requested Face Verification.`)
+                ? `${highlightedName} is still unverified. You already requested Face Verification.`
+                : `${highlightedName} is still unverified. You already requested Face Verification.`)
             : (isHire
-                ? `${counterpartName} is currently unverified. You can request Face Verification or continue sending the offer.`
-                : `${counterpartName} is currently unverified. You can request Face Verification or continue accepting the offer.`);
+                ? `You can request ${highlightedName} to complete Face Verification first or continue sending the offer.`
+                : `You can request ${highlightedName} to complete Face Verification first or continue accepting the offer.`);
     }
 
     if (requestBtn) {
@@ -9154,6 +9248,13 @@ function hideHireConfirmationOverlay() {
     clearVerificationReminderTicker('hire');
     detachHireConfirmationEscHandler();
     overlay.classList.remove('show');
+    updateStatusFacePreview({
+        previewBlockId: 'hireFacePreviewBlock',
+        previewImageId: 'hireFacePreviewImage',
+        previewVideoId: 'hireFacePreviewVideo',
+        previewPlayBtnId: 'hireFacePreviewPlayBtn',
+        status: null
+    });
     
     // Close all parent modals for cleaner UX (no stacking)
     const applicationsOverlay = document.getElementById('applicationsOverlay');

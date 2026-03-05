@@ -1928,6 +1928,49 @@ body:has(.jobs-header) {
   background: rgba(15, 23, 42, 0.55);
 }
 
+.fv-status-preview-media-frame {
+  position: relative;
+  width: min(170px, 100%);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.fv-status-preview-video {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+  display: block;
+}
+
+.fv-status-preview-play-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(15, 23, 42, 0.84);
+  color: #f8fafc;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fv-status-preview-media-frame .fv-status-preview-image {
+  width: 100%;
+  border-radius: 10px;
+}
+
 .fv-status-preview-caption {
   font-size: clamp(0.7rem, 1.9vw, 0.78rem);
   color: #cbd5e1;
@@ -1950,6 +1993,12 @@ body:has(.jobs-header) {
   color: #fde68a;
   margin-bottom: clamp(0.65rem, 2vw, 0.85rem);
   font-family: Arial, Helvetica, sans-serif;
+  text-align: center;
+}
+
+.verification-reminder-user {
+  font-weight: 800;
+  color: #93c5fd;
 }
 
 .verification-reminder-meta {

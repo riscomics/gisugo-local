@@ -742,8 +742,12 @@
                             This user has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.
                         </div>
                         <div id="hireFacePreviewBlock" class="fv-status-preview" style="display: none;">
-                            <img id="hireFacePreviewImage" class="fv-status-preview-image" src="" alt="Face verification thumbnail">
-                            <div class="fv-status-preview-caption">Face Verification Thumbnail</div>
+                            <div class="fv-status-preview-media-frame">
+                                <video id="hireFacePreviewVideo" class="fv-status-preview-video" playsinline preload="metadata" controlsList="nodownload nofullscreen noremoteplayback noplaybackrate" disablePictureInPicture disableRemotePlayback x-webkit-airplay="deny" style="display: none;"></video>
+                                <img id="hireFacePreviewImage" class="fv-status-preview-image" src="" alt="Face verification thumbnail" style="display: none;">
+                                <button type="button" id="hireFacePreviewPlayBtn" class="fv-status-preview-play-btn" style="display: none;" aria-label="Play face verification video">PLAY VIDEO</button>
+                            </div>
+                            <div id="hireFacePreviewCaption" class="fv-status-preview-caption">Face Verification Video</div>
                         </div>
                     </div>
                     <div class="verification-reminder-actions" id="hireUnverifiedReminder" style="display: none;">
@@ -1203,8 +1207,12 @@
                             This customer has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.
                         </div>
                         <div id="acceptFacePreviewBlock" class="fv-status-preview" style="display: none;">
-                            <img id="acceptFacePreviewImage" class="fv-status-preview-image" src="" alt="Face verification thumbnail">
-                            <div class="fv-status-preview-caption">Face Verification Thumbnail</div>
+                            <div class="fv-status-preview-media-frame">
+                                <video id="acceptFacePreviewVideo" class="fv-status-preview-video" playsinline preload="metadata" controlsList="nodownload nofullscreen noremoteplayback noplaybackrate" disablePictureInPicture disableRemotePlayback x-webkit-airplay="deny" style="display: none;"></video>
+                                <img id="acceptFacePreviewImage" class="fv-status-preview-image" src="" alt="Face verification thumbnail" style="display: none;">
+                                <button type="button" id="acceptFacePreviewPlayBtn" class="fv-status-preview-play-btn" style="display: none;" aria-label="Play face verification video">PLAY VIDEO</button>
+                            </div>
+                            <div id="acceptFacePreviewCaption" class="fv-status-preview-caption">Face Verification Video</div>
                         </div>
                     </div>
                     <div class="verification-reminder-actions" id="acceptUnverifiedReminder" style="display: none;">
@@ -1307,6 +1315,6 @@
     <script src="public/js/data-service.js"></script>
     <script src="public/js/header-uniform.js?v=1.0"></script>
     <script src="public/js/shared-menu.js?v=3.0"></script>
-    <script src="public/js/jobs.js?v=106"></script>
+    <script src="public/js/jobs.js?v=111"></script>
 </body>
 </html> 
