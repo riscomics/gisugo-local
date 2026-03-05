@@ -445,38 +445,272 @@
     }
     
     /* Success overlay */
+    .success-overlay {
+      backdrop-filter: blur(6px);
+      background: radial-gradient(circle at 20% 15%, rgba(16, 185, 129, 0.25), transparent 42%),
+                  radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.22), transparent 38%),
+                  rgba(8, 15, 30, 0.86);
+    }
+
     .success-modal {
       background: linear-gradient(160deg, #2d3748 0%, #1f2937 100%) !important;
-      border: 1px solid rgba(16, 185, 129, 0.3) !important;
+      border: 1px solid rgba(16, 185, 129, 0.36) !important;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(16, 185, 129, 0.14) inset;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .success-modal::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -80px;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.45) 0%, rgba(16, 185, 129, 0) 70%);
+      pointer-events: none;
     }
     
     .success-icon {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      width: 88px;
+      height: 88px;
+      margin: 6px auto 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      background: radial-gradient(circle at 35% 30%, #fde68a 0%, #f59e0b 45%, #b45309 100%) !important;
+      box-shadow: 0 10px 24px rgba(245, 158, 11, 0.35), 0 0 22px rgba(250, 204, 21, 0.4);
+      animation: successFloatGlow 2.2s ease-in-out infinite;
+      transform-origin: center;
+    }
+
+    @keyframes successFloatGlow {
+      0%, 100% {
+        transform: translateY(0);
+        box-shadow: 0 10px 24px rgba(245, 158, 11, 0.35), 0 0 20px rgba(250, 204, 21, 0.35);
+      }
+      50% {
+        transform: translateY(-7px);
+        box-shadow: 0 18px 28px rgba(245, 158, 11, 0.45), 0 0 28px rgba(250, 204, 21, 0.52);
+      }
     }
     
     .success-title {
       color: #10b981 !important;
+      letter-spacing: 0.2px;
+      font-size: 2rem;
+      font-weight: 900;
+      margin-bottom: 6px;
     }
     
     .success-message {
-      color: #9ca3af !important;
+      color: #cfe4ff !important;
+      max-width: 380px;
+      margin: 0 auto;
+      line-height: 1.5;
+      background: linear-gradient(145deg, rgba(30, 64, 175, 0.24), rgba(16, 185, 129, 0.16));
+      border: 1px solid rgba(110, 231, 183, 0.4);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2) inset, 0 8px 22px rgba(15, 23, 42, 0.25);
+    }
+
+    .success-fv-image {
+      display: block;
+      width: 100%;
+      max-width: 340px;
+      margin: 0 auto;
+      border-radius: 10px;
+      border: 1px solid rgba(110, 231, 183, 0.35);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.32);
+    }
+
+    .success-kicker {
+      color: #93c5fd;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin: 8px 0 12px;
+    }
+
+    .success-headline {
+      display: inline-block;
+      font-size: 1.22rem;
+      font-weight: 900;
+      letter-spacing: 0.2px;
+      color: #6ee7b7;
+      text-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+      margin-bottom: 4px;
+    }
+
+    .success-headline-emoji {
+      font-size: 1rem;
+      margin-right: 6px;
+      vertical-align: baseline;
+      filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.35));
+    }
+
+    .success-benefits {
+      margin-top: 10px;
+      color: #d1d5db;
+      font-size: 0.93rem;
+      font-weight: 600;
+      display: grid;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .success-benefit-item {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.64), rgba(30, 64, 175, 0.28));
+      border: 1px solid rgba(96, 165, 250, 0.38);
+      border-radius: 10px;
+      padding: 8px 10px;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.22);
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.84rem;
+    }
+
+    .success-benefit-item.theme-teal {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.34), rgba(15, 23, 42, 0.74));
+      border-color: rgba(52, 211, 153, 0.42);
+      color: #d1fae5;
+    }
+
+    .success-benefit-item.theme-blue {
+      background: linear-gradient(135deg, rgba(30, 64, 175, 0.34), rgba(15, 23, 42, 0.74));
+      border-color: rgba(96, 165, 250, 0.42);
+      color: #dbeafe;
+    }
+
+    .success-benefit-item.theme-amber {
+      background: linear-gradient(135deg, rgba(120, 53, 15, 0.34), rgba(15, 23, 42, 0.74));
+      border-color: rgba(251, 191, 36, 0.4);
+      color: #fef3c7;
+    }
+
+    .success-lang-tabs {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 12px;
+      margin-bottom: 6px;
+    }
+
+    .success-lang-tab {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.45);
+      color: #cbd5e1;
+      font-size: 0.73rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .success-lang-tab.active {
+      color: #ecfeff;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.26), rgba(37, 99, 235, 0.26));
+      border-color: rgba(110, 231, 183, 0.55);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
     }
     
     .success-btn {
       background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+      border-radius: 12px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
     }
 
     .success-actions {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      margin-top: 12px;
+      margin-top: 14px;
     }
 
     .success-btn.secondary {
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
     }
-    
+
+    .success-btn.secondary.shiny-metal {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(226, 232, 240, 0.45);
+      background: linear-gradient(
+        120deg,
+        #0f172a 0%,
+        #334155 16%,
+        #cbd5e1 34%,
+        #475569 50%,
+        #e2e8f0 66%,
+        #334155 82%,
+        #0f172a 100%
+      ) !important;
+      background-size: 220% 220% !important;
+      color: #f8fafc !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+      animation: metallicShift 3.4s linear infinite;
+      box-shadow: 0 8px 20px rgba(148, 163, 184, 0.28);
+    }
+
+    .success-btn.secondary.shiny-metal::before {
+      content: '';
+      position: absolute;
+      top: -130%;
+      left: -38%;
+      width: 42%;
+      height: 320%;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.7) 50%, transparent 100%);
+      transform: rotate(18deg);
+      animation: metallicSweep 2.6s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes metallicShift {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 180% 50%; }
+    }
+
+    @keyframes metallicSweep {
+      0% { left: -46%; opacity: 0; }
+      16% { opacity: 0.95; }
+      42% { left: 120%; opacity: 0; }
+      100% { left: 120%; opacity: 0; }
+    }
+
+    .success-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(148, 163, 184, 0.38);
+      background: rgba(15, 23, 42, 0.78);
+      color: #cbd5e1;
+      font-size: 1.2rem;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .success-close-btn:hover {
+      color: #fff;
+      border-color: rgba(148, 163, 184, 0.68);
+      transform: translateY(-1px);
+    }
+
     /* Terms of Service & Privacy Policy Modals */
     .terms-modal-overlay {
       position: fixed;
@@ -911,11 +1145,24 @@
     <canvas id="confettiCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9998;"></canvas>
     
     <div class="success-modal">
-      <div class="success-icon">✓</div>
       <div class="success-title">Account Created!</div>
-      <div class="success-message">Welcome to GISUGO! Face Verification is optional but recommended for higher trust.</div>
+      <div class="success-icon">🏆</div>
+      <div class="success-kicker">ACHIEVEMENT UNLOCKED</div>
+      <div class="success-message">
+        <img src="public/images/face-verification.png" alt="Face Verification" class="success-fv-image">
+      </div>
+      <div class="success-lang-tabs" id="successLangTabs">
+        <button type="button" class="success-lang-tab active" data-success-lang="english">ENGLISH</button>
+        <button type="button" class="success-lang-tab" data-success-lang="bisaya">BISAYA</button>
+        <button type="button" class="success-lang-tab" data-success-lang="tagalog">TAGALOG</button>
+      </div>
+      <div class="success-benefits">
+        <div class="success-benefit-item theme-teal" id="successBenefit1">Record a Quick Friendly Selfie video intro.</div>
+        <div class="success-benefit-item theme-blue" id="successBenefit2">Help build Trust in the GISUGO Community.</div>
+        <div class="success-benefit-item theme-amber" id="successBenefit3">Customers &amp; Workers feel Safer to meet you.</div>
+      </div>
       <div class="success-actions">
-        <button class="success-btn secondary" onclick="window.location.href='profile.html?startFaceVerify=1'">GET FACE VERIFIED</button>
+        <button class="success-btn secondary shiny-metal" onclick="window.location.href='profile.html?startFaceVerify=1'">GET FACE VERIFIED NOW</button>
         <button class="success-btn" onclick="window.location.href='index.html'">MAYBE LATER</button>
       </div>
     </div>
@@ -1043,7 +1290,7 @@
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
-  <script src="public/js/sign-up.js?v=4.2"></script>
+  <script src="public/js/sign-up.js?v=4.7"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====

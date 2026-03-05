@@ -783,6 +783,14 @@
       
       function handleLogout() {
         console.log('🚪 Logout requested - showing confirmation...');
+        if (typeof window.closeHomeMenu === 'function') {
+          window.closeHomeMenu();
+        } else {
+          const menuOverlay = document.getElementById('homeMenuOverlay');
+          const menuBackdrop = document.getElementById('menuBackdrop');
+          if (menuOverlay) menuOverlay.classList.remove('active');
+          if (menuBackdrop) menuBackdrop.classList.remove('active');
+        }
         
         // Show confirmation modal
         const confirmOverlay = document.getElementById('logoutConfirmOverlay');

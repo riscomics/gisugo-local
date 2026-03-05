@@ -13,6 +13,23 @@ let authenticatedUser = null;
 let isSigningUp = false; // Flag to prevent race conditions during signup
 let currentSignupLang = 'english';
 const LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG = 'legacyProfilePhoneMigrationDoneV1';
+const SUCCESS_MODAL_I18N = {
+  english: [
+    'Record a quick friendly selfie intro.',
+    'Build trust in the GISUGO Community.',
+    'Customers & workers feel safer meeting you.'
+  ],
+  bisaya: [
+    'Pag-record ug friendly selfie intro.',
+    'Magpalig-on ug trust sa GISUGO.',
+    'Mas luwas ang customers ug workers.'
+  ],
+  tagalog: [
+    'Mag-record ng friendly selfie intro.',
+    'Mag-build ng trust sa GISUGO.',
+    'Mas safe ang customers at workers.'
+  ]
+};
 
 const SIGNUP_I18N = {
   english: {
@@ -175,6 +192,7 @@ function applySignupLanguage(lang) {
     el.textContent = value;
   });
   updateAuthStatusCopy();
+  applySuccessModalLanguage(lang);
 }
 
 function initializeSignupLanguageTabs() {
@@ -535,9 +553,26 @@ function initializeForm() {
   submitBtn = document.getElementById('submitBtn');
   loadingOverlay = document.getElementById('loadingOverlay');
   successOverlay = document.getElementById('successOverlay');
+  const successLangTabs = document.getElementById('successLangTabs');
   
   if (form) {
     form.addEventListener('submit', handleFormSubmission);
+  }
+
+  if (successOverlay) {
+    successOverlay.addEventListener('click', (event) => {
+      if (event.target === successOverlay) {
+        window.location.href = 'index.html';
+      }
+    });
+  }
+
+  if (successLangTabs) {
+    successLangTabs.addEventListener('click', (event) => {
+      const tab = event.target.closest('.success-lang-tab');
+      if (!tab) return;
+      applySuccessModalLanguage(tab.dataset.successLang || 'english');
+    });
   }
   
   // Set maximum date for date of birth (18 years ago)
@@ -1528,8 +1563,30 @@ function hideLoadingOverlay() {
 function showSuccessOverlay() {
   if (successOverlay) {
     successOverlay.classList.add('show');
+    applySuccessModalLanguage(currentSignupLang);
     // Launch confetti animation
     launchConfetti();
+  }
+}
+
+function applySuccessModalLanguage(lang) {
+  const resolvedLang = SUCCESS_MODAL_I18N[lang] ? lang : 'english';
+  const lines = SUCCESS_MODAL_I18N[resolvedLang];
+  const benefit1 = document.getElementById('successBenefit1');
+  const benefit2 = document.getElementById('successBenefit2');
+  const benefit3 = document.getElementById('successBenefit3');
+  if (benefit1) benefit1.textContent = lines[0];
+  if (benefit2) benefit2.textContent = lines[1];
+  if (benefit3) benefit3.textContent = lines[2];
+
+  document.querySelectorAll('#successLangTabs .success-lang-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.successLang === resolvedLang);
+  });
+}
+
+function hideSuccessOverlay() {
+  if (successOverlay) {
+    successOverlay.classList.remove('show');
   }
 }
 
