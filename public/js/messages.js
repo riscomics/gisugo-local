@@ -174,6 +174,9 @@ function executeAllCleanups() {
         console.log('🧹 Cleaning up notifications listener');
         ACTIVE_LISTENERS.notifications();
         ACTIVE_LISTENERS.notifications = null;
+        ALERTS_STREAM_STATE.uid = '';
+        ALERTS_STREAM_STATE.notifications = [];
+        ALERTS_STREAM_STATE.started = false;
     }
     if (ACTIVE_LISTENERS.threads) {
         console.log('🧹 Cleaning up threads listener');
@@ -441,6 +444,230 @@ async function initializeCustomerMessagesTab() {
     }, 100);
 }
 
+const WORKER_ALERT_TYPES = ['offer_sent', 'interview_request', 'job_completed', 'feedback_received', 'contract_voided', 'application_not_selected_batch', 'application_rejected_batch'];
+const CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
+let currentAlertsLang = 'english';
+
+function tAlertLang(key) {
+    const copy = {
+        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined' },
+        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application' },
+        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application' }
+    };
+    return copy[currentAlertsLang]?.[key] || copy.english[key] || key;
+}
+
+function getLocalizedAlertMessage(notif, type) {
+    const jobTitle = notif.jobTitle || 'Gig';
+    const workerName = notif.workerName || 'Worker';
+    const closureCount = Math.max(1, Number(notif.closureCount || 1));
+    const plural = closureCount === 1 ? '' : 's';
+    const localeMap = {
+        english: {
+            offer_sent: `You've been offered the gig "${jobTitle}"! Check Gigs Manager > Offered tab to accept or decline.`,
+            offer_accepted: `${workerName} has accepted your gig offer for "${jobTitle}"!`,
+            job_completed: `Gig "${jobTitle}" has been marked completed.`,
+            feedback_received: 'You received new feedback from a customer.',
+            contract_voided: `Your contract for "${jobTitle}" has been voided.`,
+            application_received: `Your gig "${jobTitle}" has received an application. Review it in Gigs Manager.`,
+            application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
+            gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
+            offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
+            worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
+            worker_feedback_received: 'You received feedback from your worker.',
+            application_not_selected_batch: `Application update: Your application${plural} to ${closureCount} gig${plural} were not selected this round. If a selected worker cannot continue, some gigs may reopen.`,
+            application_rejected_batch: `Application update: ${closureCount} of your application${plural} were declined by customers. Keep applying to other gigs-new matches open regularly.`
+        },
+        bisaya: {
+            offer_sent: `Na-offeran ka sa gig "${jobTitle}"! Tan-awa sa Gigs Manager > Offered para modawat o modili.`,
+            offer_accepted: `${workerName} nidawat sa imong gig offer para sa "${jobTitle}"!`,
+            job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
+            feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer.',
+            contract_voided: `Ang imong kontrata para sa "${jobTitle}" gi-void.`,
+            application_received: `Ang imong gig "${jobTitle}" nakadawat ug application. I-review sa Gigs Manager.`,
+            application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
+            gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
+            offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
+            worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
+            worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker.',
+            application_not_selected_batch: `Update sa application: Ang imong application${plural} sa ${closureCount} ka gig${plural} wala mapili karong round. Basin ma-reopen kung dili makapadayon ang napili.`,
+            application_rejected_batch: `Update sa application: ${closureCount} sa imong application${plural} gi-decline sa customers. Padayon lang ug apply sa ubang gigs.`
+        },
+        tagalog: {
+            offer_sent: `May offer ka sa gig na "${jobTitle}"! Tingnan sa Gigs Manager > Offered para tanggapin o tanggihan.`,
+            offer_accepted: `${workerName} ay tinanggap ang gig offer mo para sa "${jobTitle}"!`,
+            job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
+            feedback_received: 'May bago kang feedback mula sa customer.',
+            contract_voided: `Na-void ang kontrata mo para sa "${jobTitle}".`,
+            application_received: `Ang gig mo na "${jobTitle}" ay may natanggap na application. I-review sa Gigs Manager.`,
+            application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
+            gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
+            offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
+            worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
+            worker_feedback_received: 'May natanggap kang feedback mula sa worker mo.',
+            application_not_selected_batch: `Update sa application: Ang application${plural} mo sa ${closureCount} gig${plural} ay hindi napili sa round na ito. Maaaring mag-reopen kung hindi makatuloy ang napili.`,
+            application_rejected_batch: `Update sa application: ${closureCount} sa application${plural} mo ay dinecline ng customers. Tuloy lang sa pag-apply sa ibang gigs.`
+        }
+    };
+    return localeMap[currentAlertsLang]?.[type] || localeMap.english[type] || notif.message || '';
+}
+
+function setTabNotificationCount(tabSelector, count) {
+    const countElement = document.querySelector(`${tabSelector} .notification-count`);
+    if (!countElement) return;
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    countElement.textContent = safeCount;
+    countElement.style.display = safeCount > 0 ? 'block' : 'none';
+}
+
+function filterNotificationsForAlertRole(notifications, role) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    const allowedTypes = role === 'worker' ? WORKER_ALERT_TYPES : CUSTOMER_ALERT_TYPES;
+    return source.filter((notif) => {
+        const type = notif.type || notif.notificationType || '';
+        return allowedTypes.includes(type);
+    });
+}
+
+function updateAlertTabBadgeCounts(notifications) {
+    const workerNotifications = filterNotificationsForAlertRole(notifications, 'worker');
+    const customerNotifications = filterNotificationsForAlertRole(notifications, 'customer');
+    const workerUnread = workerNotifications.filter((n) => !n.read).length;
+    const customerUnread = customerNotifications.filter((n) => !n.read).length;
+    setTabNotificationCount('#workerAlertsTab', workerUnread);
+    setTabNotificationCount('#customerAlertsTab', customerUnread);
+}
+
+function resetTabBadgeCounts() {
+    setTabNotificationCount('#workerAlertsTab', 0);
+    setTabNotificationCount('#customerAlertsTab', 0);
+    setTabNotificationCount('#workerChatsTab', 0);
+    setTabNotificationCount('#customerInterviewsTab', 0);
+    setTabNotificationCount('#unifiedMessagesTab', 0);
+    setTabNotificationCount('#unifiedMessagesTabWorker', 0);
+}
+
+const ALERTS_STREAM_STATE = {
+    uid: '',
+    notifications: [],
+    started: false
+};
+
+function dedupeNotificationsById(notifications) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    return Array.from(new Map(source.map((n) => [n.notificationId || n.id, n])).values());
+}
+
+function renderWorkerAlertsUI(container, notifications) {
+    if (!container) return;
+    const workerNotifications = filterNotificationsForAlertRole(notifications, 'worker');
+    const uniqueNotifications = dedupeNotificationsById(workerNotifications);
+
+    if (uniqueNotifications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">🎯</div>
+                <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                    Interview requests will appear here when<br>customers want to chat about your applications.
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
+}
+
+function renderCustomerAlertsUI(container, notifications) {
+    if (!container) return;
+    const customerNotifications = filterNotificationsForAlertRole(notifications, 'customer');
+    const uniqueNotifications = dedupeNotificationsById(customerNotifications);
+
+    if (uniqueNotifications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">✨</div>
+                <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                    Alerts about applications, hires, and completions<br>will show up here when they arrive.
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
+}
+
+function renderAllAlertsViews(notifications) {
+    const workerContainer = document.querySelector('#worker-alerts-content .notifications-container');
+    const customerContainer = document.querySelector('#customer-alerts-content .notifications-container');
+    renderWorkerAlertsUI(workerContainer, notifications);
+    renderCustomerAlertsUI(customerContainer, notifications);
+    initializeNotifications();
+    updateAlertTabBadgeCounts(notifications);
+}
+
+function updateAlertsLanguageTabsVisibility() {
+    const tabs = document.getElementById('alertsLangTabs');
+    if (!tabs) return;
+    const isVisible = (el) => !!el && window.getComputedStyle(el).display !== 'none';
+    const workerAlertsContent = document.getElementById('worker-alerts-content');
+    const customerAlertsContent = document.getElementById('customer-alerts-content');
+    const workerAlertsActive = !!workerAlertsContent?.classList.contains('active') && isVisible(workerAlertsContent);
+    const customerAlertsActive = !!customerAlertsContent?.classList.contains('active') && isVisible(customerAlertsContent);
+    const shouldShow = workerAlertsActive || customerAlertsActive;
+    tabs.style.display = shouldShow ? 'flex' : 'none';
+    document.body.classList.toggle('alerts-lang-visible', shouldShow);
+}
+
+function applyAlertsLanguage(lang) {
+    if (!['english', 'bisaya', 'tagalog'].includes(lang)) return;
+    currentAlertsLang = lang;
+    document.querySelectorAll('#alertsLangTabs .alerts-lang-tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.alertsLang === lang);
+    });
+    if (ALERTS_STREAM_STATE.notifications.length > 0) {
+        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+    }
+}
+
+function initializeAlertsLanguageTabs() {
+    const tabs = document.getElementById('alertsLangTabs');
+    if (!tabs) return;
+    tabs.addEventListener('click', (event) => {
+        const tab = event.target.closest('.alerts-lang-tab');
+        if (!tab) return;
+        applyAlertsLanguage(tab.dataset.alertsLang || 'english');
+    });
+    applyAlertsLanguage('english');
+    updateAlertsLanguageTabsVisibility();
+}
+
+async function ensureAlertsRealtimeStream(currentUser) {
+    if (!currentUser || !currentUser.uid || typeof subscribeToUserNotifications !== 'function') {
+        return;
+    }
+
+    if (ALERTS_STREAM_STATE.started && ALERTS_STREAM_STATE.uid === currentUser.uid) {
+        return;
+    }
+
+    if (ACTIVE_LISTENERS.notifications) {
+        ACTIVE_LISTENERS.notifications();
+        ACTIVE_LISTENERS.notifications = null;
+    }
+
+    ALERTS_STREAM_STATE.uid = currentUser.uid;
+    ALERTS_STREAM_STATE.started = true;
+
+    ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
+        ALERTS_STREAM_STATE.notifications = Array.isArray(notifications) ? notifications : [];
+        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+    });
+}
+
 // Load segregated notifications based on role
 async function loadWorkerNotifications() {
     const container = document.querySelector('#worker-alerts-content .notifications-container');
@@ -457,17 +684,9 @@ async function loadWorkerNotifications() {
     if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
         // Fallback to mock data
         console.log('🎮 Dev Mode: Loading mock worker notifications');
-        const workerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
-            notif.notificationType === 'interview_request'
-        );
-        container.innerHTML = workerNotifications.map(generateNotificationHTML).join('');
-        initializeNotifications();
-        
-        // Update count
-        const countElement = document.querySelector('#workerAlertsTab .notification-count');
-        if (countElement) {
-            countElement.textContent = workerNotifications.filter(n => !n.read).length;
-        }
+        ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
+        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+        updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
         return;
     }
     
@@ -482,57 +701,32 @@ async function loadWorkerNotifications() {
         
         if (!currentUser) {
             // Not logged in - show empty state with login prompt
+            if (ACTIVE_LISTENERS.notifications) {
+                ACTIVE_LISTENERS.notifications();
+                ACTIVE_LISTENERS.notifications = null;
+            }
+            ALERTS_STREAM_STATE.uid = '';
+            ALERTS_STREAM_STATE.notifications = [];
+            ALERTS_STREAM_STATE.started = false;
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            updateAlertTabBadgeCounts([]);
             return;
         }
         
         console.log('✅ Worker alerts: User authenticated as', currentUser.uid);
-        
-        // Clean up existing listener
-        if (ACTIVE_LISTENERS.notifications) {
-            ACTIVE_LISTENERS.notifications();
-            ACTIVE_LISTENERS.notifications = null;
+
+        await ensureAlertsRealtimeStream(currentUser);
+        if (ALERTS_STREAM_STATE.notifications.length > 0) {
+            renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+        } else {
+            try {
+                const current = await getUserNotifications(false);
+                ALERTS_STREAM_STATE.notifications = Array.isArray(current) ? current : [];
+                renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+            } catch (fetchError) {
+                console.warn('⚠️ Could not preload notifications snapshot:', fetchError);
+            }
         }
-        
-        // Subscribe to real-time notifications
-        ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
-            console.log('🔔 Worker alerts updated:', notifications.length);
-            
-            // Filter for worker role - INCLUDE only worker-specific notifications
-            // Worker notifications: offer_sent, interview_request, job_completed, feedback_received, contract_voided (relisted)
-            const workerNotifications = notifications.filter(notif => {
-                const type = notif.type || notif.notificationType || '';
-                const workerTypes = ['offer_sent', 'interview_request', 'job_completed', 'feedback_received', 'contract_voided'];
-                return workerTypes.includes(type);
-            });
-            
-            if (workerNotifications.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">🎯</div>
-                        <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
-                        <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
-                            Interview requests will appear here when<br>customers want to chat about your applications.
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Deduplicate notifications by ID before rendering
-                const uniqueNotifications = Array.from(
-                    new Map(workerNotifications.map(n => [n.notificationId || n.id, n])).values()
-                );
-                container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
-                initializeNotifications();
-            }
-            
-            // Update badge count (unread only)
-            const unreadCount = workerNotifications.filter(n => !n.read).length;
-            const countElement = document.querySelector('#workerAlertsTab .notification-count');
-            if (countElement) {
-                countElement.textContent = unreadCount;
-                countElement.style.display = unreadCount > 0 ? 'block' : 'none';
-            }
-        });
         
     } catch (error) {
         console.error('❌ Error loading worker alerts:', error);
@@ -555,17 +749,9 @@ async function loadCustomerNotifications() {
     if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
         // Fallback to mock data
         console.log('🎮 Dev Mode: Loading mock customer notifications');
-        const customerNotifications = MOCK_NOTIFICATIONS.filter(notif => 
-            notif.notificationType !== 'interview_request'
-        );
-        container.innerHTML = customerNotifications.map(generateNotificationHTML).join('');
-        initializeNotifications();
-        
-        // Update count
-        const countElement = document.querySelector('#customerAlertsTab .notification-count');
-        if (countElement) {
-            countElement.textContent = customerNotifications.filter(n => !n.read).length;
-        }
+        ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
+        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+        updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
         return;
     }
     
@@ -580,62 +766,31 @@ async function loadCustomerNotifications() {
         
         if (!currentUser) {
             // Not logged in - show empty state with login prompt
+            if (ACTIVE_LISTENERS.notifications) {
+                ACTIVE_LISTENERS.notifications();
+                ACTIVE_LISTENERS.notifications = null;
+            }
+            ALERTS_STREAM_STATE.uid = '';
+            ALERTS_STREAM_STATE.notifications = [];
+            ALERTS_STREAM_STATE.started = false;
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            updateAlertTabBadgeCounts([]);
             return;
         }
         
         console.log('✅ Customer alerts: User authenticated as', currentUser.uid);
-        
-        // Helper function to update customer UI
-        const updateCustomerUI = (notifications) => {
-            // Filter for customer role - ONLY customer-specific notifications
-            // Customer notifications: offer_accepted, application_received, application_milestone, gig_auto_paused, offer_rejected, worker_resigned, worker_feedback_received
-            const customerNotifications = notifications.filter(notif => {
-                const type = notif.type || notif.notificationType || '';
-                const customerTypes = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
-                return customerTypes.includes(type);
-            });
-            
-            if (customerNotifications.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">✨</div>
-                        <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
-                        <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
-                            Alerts about applications, hires, and completions<br>will show up here when they arrive.
-                        </div>
-                    </div>
-                `;
-            } else {
-                // Deduplicate notifications by ID before rendering
-                const uniqueNotifications = Array.from(
-                    new Map(customerNotifications.map(n => [n.notificationId || n.id, n])).values()
-                );
-                container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
-                initializeNotifications();
-            }
-            
-            // Update badge count (unread only)
-            const unreadCount = customerNotifications.filter(n => !n.read).length;
-            const countElement = document.querySelector('#customerAlertsTab .notification-count');
-            if (countElement) {
-                countElement.textContent = unreadCount;
-                countElement.style.display = unreadCount > 0 ? 'block' : 'none';
-            }
-        };
-        
-        // If listener already active (from Worker tab), get current notifications and update UI
-        if (ACTIVE_LISTENERS.notifications) {
-            console.log('🔔 Reusing existing notifications listener for customer view');
-            // We need to manually fetch current state since listener is already active
-            const notifications = await getUserNotifications(false);
-            updateCustomerUI(notifications);
+
+        await ensureAlertsRealtimeStream(currentUser);
+        if (ALERTS_STREAM_STATE.notifications.length > 0) {
+            renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
         } else {
-            // Subscribe to real-time notifications
-            ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
-                console.log('🔔 Customer alerts updated:', notifications.length);
-                updateCustomerUI(notifications);
-            });
+            try {
+                const current = await getUserNotifications(false);
+                ALERTS_STREAM_STATE.notifications = Array.isArray(current) ? current : [];
+                renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+            } catch (fetchError) {
+                console.warn('⚠️ Could not preload notifications snapshot:', fetchError);
+            }
         }
         
     } catch (error) {
@@ -664,6 +819,7 @@ function loadWorkerChats() {
         if (countElement) {
             const newCount = workerChats.filter(thread => thread.isNew).length;
             countElement.textContent = newCount;
+            countElement.style.display = newCount > 0 ? 'block' : 'none';
         }
         
         console.log('Worker chats loaded:', workerChats.length);
@@ -689,6 +845,7 @@ function loadCustomerInterviews() {
         if (countElement) {
             const newCount = customerChats.filter(thread => thread.isNew).length;
             countElement.textContent = newCount;
+            countElement.style.display = newCount > 0 ? 'block' : 'none';
         }
         
         console.log('Customer interviews loaded:', customerChats.length);
@@ -705,6 +862,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeMenu(); 
     initializeConfirmationOverlay();
     initializeContactMessageOverlay();
+    resetTabBadgeCounts();
+    initializeAlertsLanguageTabs();
     
     // Initialize default role (worker) and tab (worker-alerts)
     initializeWorkerAlertsTab();
@@ -824,6 +983,7 @@ async function switchToRole(roleType) {
         
         // Initialize the default customer alerts tab content
         await initializeCustomerAlertsTab();
+        updateAlertsLanguageTabsVisibility();
         
     } else if (roleType === 'worker') {
         // Show worker tabs and content
@@ -849,6 +1009,7 @@ async function switchToRole(roleType) {
         
         // Initialize the default worker alerts tab content
         await initializeWorkerAlertsTab();
+        updateAlertsLanguageTabsVisibility();
     }
 }
 
@@ -909,6 +1070,7 @@ async function switchToUnifiedMessages() {
     
     // Initialize unified messages tab content
     await initializeUnifiedMessagesTab();
+    updateAlertsLanguageTabsVisibility();
 }
 
 async function switchToCustomerTab(tabType) {
@@ -964,6 +1126,7 @@ async function switchToCustomerTab(tabType) {
     } else if (tabType === 'customer-messages') {
         await initializeCustomerMessagesTab();
     }
+    updateAlertsLanguageTabsVisibility();
 }
 
 async function switchToWorkerTab(tabType) {
@@ -1019,6 +1182,7 @@ async function switchToWorkerTab(tabType) {
     } else if (tabType === 'worker-messages') {
         await initializeWorkerMessagesTab();
     }
+    updateAlertsLanguageTabsVisibility();
 }
 
 // Title management removed - header always shows "COMMUNICATIONS"
@@ -2592,7 +2756,7 @@ function transformFirebaseNotification(notif) {
         case 'offer_accepted':
             icon = '🎉';
             iconClass = 'success-icon';
-            title = 'Offer Accepted';
+            title = tAlertLang('offerAccepted');
             break;
         case 'interview_request':
             icon = '💬';
@@ -2632,7 +2796,7 @@ function transformFirebaseNotification(notif) {
         case 'offer_rejected':
             icon = '❌';
             iconClass = 'reject-icon';
-            title = 'Offer Declined';
+            title = tAlertLang('offerDeclined');
             break;
         case 'worker_resigned':
             icon = '🚪';
@@ -2643,6 +2807,16 @@ function transformFirebaseNotification(notif) {
             icon = '⭐';
             iconClass = 'rating-icon';
             title = 'Worker Feedback Received';
+            break;
+        case 'application_not_selected_batch':
+            icon = '📌';
+            iconClass = 'system-icon';
+            title = tAlertLang('appUpdate');
+            break;
+        case 'application_rejected_batch':
+            icon = '📭';
+            iconClass = 'warning-icon';
+            title = tAlertLang('appDeclined');
             break;
     }
     
@@ -2689,6 +2863,7 @@ function transformFirebaseNotification(notif) {
         icon,
         iconClass,
         title,
+        message: getLocalizedAlertMessage(notif, type),
         timeDisplay,
         dateDisplay,
         notificationType: type,

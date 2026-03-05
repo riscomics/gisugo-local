@@ -4585,7 +4585,14 @@ async function moveJobFromOfferedToAccepted(jobId) {
                     .get();
                 if (!otherApps.empty) {
                     const batch = db.batch();
+                    const rejectedApplicants = [];
                     otherApps.docs.forEach(doc => {
+                        const app = doc.data() || {};
+                        rejectedApplicants.push({
+                            applicantId: app.applicantId || '',
+                            jobId: app.jobId || jobId,
+                            jobTitle: app.jobTitle || jobData?.title || 'Gig'
+                        });
                         batch.update(doc.ref, {
                             status: 'rejected',
                             rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -4593,6 +4600,19 @@ async function moveJobFromOfferedToAccepted(jobId) {
                     });
                     await batch.commit();
                     console.log(`✅ Rejected ${otherApps.size} other pending application(s) after worker accepted`);
+
+                    if (typeof createGroupedApplicationClosureNotification === 'function') {
+                        const notifyPromises = rejectedApplicants
+                            .filter((entry) => !!entry.applicantId)
+                            .map((entry) => createGroupedApplicationClosureNotification(entry.applicantId, {
+                                outcomeType: 'not_selected',
+                                jobId: entry.jobId,
+                                jobTitle: entry.jobTitle
+                            }).catch((error) => {
+                                console.warn('⚠️ Could not queue grouped not-selected notification:', error);
+                            }));
+                        await Promise.all(notifyPromises);
+                    }
                 }
             } catch (rejectError) {
                 console.warn('⚠️ Could not reject other applications:', rejectError);

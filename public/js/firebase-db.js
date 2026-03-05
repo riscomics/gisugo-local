@@ -1482,6 +1482,17 @@ async function rejectApplication(applicationId) {
     await db.collection('jobs').doc(appData.jobId).update({
       applicationCount: firebase.firestore.FieldValue.increment(-1)
     });
+
+    // Send grouped courtesy closure notification to applicant (6-hour batch window).
+    try {
+      await createGroupedApplicationClosureNotification(appData.applicantId, {
+        outcomeType: 'manual_reject',
+        jobId: appData.jobId,
+        jobTitle: jobData.title || appData.jobTitle || 'Gig'
+      });
+    } catch (notifyError) {
+      console.warn('⚠️ Manual reject grouped notification skipped:', notifyError);
+    }
     
     console.log('✅ Application rejected successfully:', applicationId);
     console.log('✅ Job application count decremented');
@@ -1796,6 +1807,125 @@ async function getUserChatThreads() {
 // ============================================================================
 // NOTIFICATIONS COLLECTION
 // ============================================================================
+const APPLICATION_CLOSURE_BATCH_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+function buildGroupedApplicationClosureMessage(type, count) {
+  const safeCount = Math.max(1, Number(count) || 1);
+  const plural = safeCount === 1 ? '' : 's';
+  if (type === 'application_not_selected_batch') {
+    return `Application update: Your application${plural} to ${safeCount} gig${plural} were not selected this round. If a selected worker cannot continue, some gigs may reopen.`;
+  }
+  return `Application update: ${safeCount} of your application${plural} were declined by customers. Keep applying to other gigs-new matches open regularly.`;
+}
+
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value === 'number') return value;
+  if (value.toMillis) return value.toMillis();
+  if (value.toDate) return value.toDate().getTime();
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function createGroupedApplicationClosureNotification(recipientId, options = {}) {
+  const db = getFirestore();
+  const outcomeType = options.outcomeType === 'manual_reject' ? 'application_rejected_batch' : 'application_not_selected_batch';
+  const nowMs = Date.now();
+  const windowEndsAt = new Date(nowMs + APPLICATION_CLOSURE_BATCH_WINDOW_MS);
+  const jobId = String(options.jobId || '').trim();
+  const jobTitle = String(options.jobTitle || '').trim() || 'Gig';
+
+  if (!db) {
+    const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
+    const activeBatch = notifications.find((notif) => (
+      notif.recipientId === recipientId &&
+      notif.type === outcomeType &&
+      notif.read !== true &&
+      toMillis(notif.batchWindowEndsAt) > nowMs
+    ));
+
+    if (activeBatch) {
+      const existingTitles = Array.isArray(activeBatch.jobTitles) ? activeBatch.jobTitles : [];
+      const existingIds = Array.isArray(activeBatch.jobIds) ? activeBatch.jobIds : [];
+      if (jobId && !existingIds.includes(jobId)) existingIds.push(jobId);
+      if (jobTitle && !existingTitles.includes(jobTitle)) existingTitles.push(jobTitle);
+      activeBatch.jobIds = existingIds.slice(0, 25);
+      activeBatch.jobTitles = existingTitles.slice(0, 25);
+      activeBatch.closureCount = Math.max(1, Number(activeBatch.closureCount || 0) + 1);
+      activeBatch.batchWindowEndsAt = windowEndsAt.toISOString();
+      activeBatch.message = buildGroupedApplicationClosureMessage(outcomeType, activeBatch.closureCount);
+      localStorage.setItem('gisugo_notifications', JSON.stringify(notifications));
+      return { success: true, notificationId: activeBatch.notificationId, grouped: true };
+    }
+
+    return createNotificationOffline(recipientId, {
+      type: outcomeType,
+      message: buildGroupedApplicationClosureMessage(outcomeType, 1),
+      actionRequired: false,
+      closureCount: 1,
+      batchWindowEndsAt: windowEndsAt.toISOString(),
+      jobIds: jobId ? [jobId] : [],
+      jobTitles: jobTitle ? [jobTitle] : [],
+      jobTitle: jobTitle
+    });
+  }
+
+  try {
+    const batchSnapshot = await db.collection('notifications')
+      .where('recipientId', '==', recipientId)
+      .where('type', '==', outcomeType)
+      .where('read', '==', false)
+      .get();
+
+    const activeBatchDoc = batchSnapshot.docs.find((doc) => {
+      const data = doc.data() || {};
+      return toMillis(data.batchWindowEndsAt) > nowMs;
+    });
+
+    if (activeBatchDoc) {
+      const data = activeBatchDoc.data() || {};
+      const existingTitles = Array.isArray(data.jobTitles) ? data.jobTitles : [];
+      const existingIds = Array.isArray(data.jobIds) ? data.jobIds : [];
+      if (jobId && !existingIds.includes(jobId)) existingIds.push(jobId);
+      if (jobTitle && !existingTitles.includes(jobTitle)) existingTitles.push(jobTitle);
+      const closureCount = Math.max(1, Number(data.closureCount || 0) + 1);
+
+      await activeBatchDoc.ref.update({
+        closureCount,
+        message: buildGroupedApplicationClosureMessage(outcomeType, closureCount),
+        jobId: jobId || data.jobId || '',
+        jobTitle: jobTitle || data.jobTitle || '',
+        jobIds: existingIds.slice(0, 25),
+        jobTitles: existingTitles.slice(0, 25),
+        batchWindowEndsAt: firebase.firestore.Timestamp.fromDate(windowEndsAt),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      return { success: true, notificationId: activeBatchDoc.id, grouped: true };
+    }
+
+    const notification = {
+      recipientId: recipientId,
+      type: outcomeType,
+      jobId: jobId,
+      jobTitle: jobTitle,
+      message: buildGroupedApplicationClosureMessage(outcomeType, 1),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      batchWindowEndsAt: firebase.firestore.Timestamp.fromDate(windowEndsAt),
+      read: false,
+      actionRequired: false,
+      closureCount: 1,
+      jobIds: jobId ? [jobId] : [],
+      jobTitles: jobTitle ? [jobTitle] : []
+    };
+
+    const notifRef = await db.collection('notifications').add(notification);
+    return { success: true, notificationId: notifRef.id, grouped: false };
+  } catch (error) {
+    console.error('❌ Error creating grouped application closure notification:', error);
+    return { success: false, message: error.message };
+  }
+}
 
 /**
  * Create a notification
@@ -2250,6 +2380,7 @@ async function sendContractVoidedNotification(workerId, workerName, jobId, jobTi
 }
 
 window.sendContractVoidedNotification = sendContractVoidedNotification;
+window.createGroupedApplicationClosureNotification = createGroupedApplicationClosureNotification;
 
 /**
  * Send notification to customer when worker rejects offer
