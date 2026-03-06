@@ -631,7 +631,7 @@ function getCategoryDisplayName(category) {
     tindera: 'Tindera Jobs',
     bantay: 'Bantay Jobs',
     trainer: 'Trainer Jobs',
-    staff: 'Staff Jobs',
+    staff: 'Assistant Jobs',
     reception: 'Reception Jobs',
     driver: 'Driver Jobs',
     security: 'Security Jobs',
