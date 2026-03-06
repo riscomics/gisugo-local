@@ -447,6 +447,7 @@ async function initializeCustomerMessagesTab() {
 const WORKER_ALERT_TYPES = ['offer_sent', 'interview_request', 'job_completed', 'feedback_received', 'contract_voided', 'application_not_selected_batch', 'application_rejected_batch'];
 const CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
 let currentAlertsLang = 'english';
+const ALERT_READ_HIDE_AFTER_DAYS = 50;
 
 function tAlertLang(key) {
     const copy = {
@@ -553,9 +554,198 @@ const ALERTS_STREAM_STATE = {
     started: false
 };
 
+const ALERTS_PAGINATION_STATE = {
+    olderNotifications: [],
+    nextCursor: null,
+    loading: false,
+    exhausted: false
+};
+
 function dedupeNotificationsById(notifications) {
     const source = Array.isArray(notifications) ? notifications : [];
     return Array.from(new Map(source.map((n) => [n.notificationId || n.id, n])).values());
+}
+
+function toMillisSafe(value) {
+    if (!value) return 0;
+    if (typeof value?.toMillis === 'function') return Number(value.toMillis()) || 0;
+    if (typeof value?.toDate === 'function') return Number(value.toDate().getTime()) || 0;
+    const parsed = Number(new Date(value).getTime());
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function applyAlertsRetentionFilter(notifications) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    const cutoffMs = Date.now() - (ALERT_READ_HIDE_AFTER_DAYS * 24 * 60 * 60 * 1000);
+    return source.filter((notif) => {
+        const read = notif?.read === true || notif?.read === 'true';
+        if (!read) return true;
+        const createdMs = toMillisSafe(notif?.createdAt || notif?.timestamp);
+        return !createdMs || createdMs >= cutoffMs;
+    });
+}
+
+function getOldestCreatedAt(notifications) {
+    const list = Array.isArray(notifications) ? notifications : [];
+    if (!list.length) return null;
+    return list[list.length - 1]?.createdAt || null;
+}
+
+function resetAlertsPaginationState() {
+    ALERTS_PAGINATION_STATE.olderNotifications = [];
+    ALERTS_PAGINATION_STATE.nextCursor = null;
+    ALERTS_PAGINATION_STATE.loading = false;
+    ALERTS_PAGINATION_STATE.exhausted = false;
+}
+
+function getCombinedAlertsNotifications() {
+    return applyAlertsRetentionFilter(dedupeNotificationsById([
+        ...(Array.isArray(ALERTS_STREAM_STATE.notifications) ? ALERTS_STREAM_STATE.notifications : []),
+        ...(Array.isArray(ALERTS_PAGINATION_STATE.olderNotifications) ? ALERTS_PAGINATION_STATE.olderNotifications : [])
+    ]));
+}
+
+function openJobsManager(role, tab, jobId = '') {
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (tab) params.set('tab', tab);
+    if (jobId) params.set('jobId', jobId);
+    params.set('from', 'messages');
+    window.location.href = `jobs.html?${params.toString()}`;
+}
+
+async function resolveWorkerOfferRouteByCurrentStatus(jobId) {
+    const safeJobId = String(jobId || '').trim();
+    const fallback = { role: 'worker', tab: 'offered', jobId: safeJobId };
+    if (!safeJobId || typeof getJobById !== 'function') return fallback;
+
+    try {
+        const job = await getJobById(safeJobId);
+        const status = String(job?.status || '').toLowerCase();
+        if (status === 'accepted') {
+            return { role: 'worker', tab: 'accepted', jobId: safeJobId };
+        }
+        if (status === 'completed') {
+            return { role: 'worker', tab: 'worker-completed', jobId: safeJobId };
+        }
+        // Includes "hired" and unknown transitional states.
+        return fallback;
+    } catch (error) {
+        console.warn('⚠️ Offer route status lookup failed, using fallback:', error);
+        return fallback;
+    }
+}
+
+async function getCurrentJobStatus(jobId) {
+    const safeJobId = String(jobId || '').trim();
+    if (!safeJobId || typeof getJobById !== 'function') return '';
+    try {
+        const job = await getJobById(safeJobId);
+        return String(job?.status || '').toLowerCase();
+    } catch (error) {
+        console.warn('⚠️ Job status lookup failed:', error);
+        return '';
+    }
+}
+
+async function resolveWorkerCompletedRouteByCurrentStatus(jobId, fallbackTab = 'worker-completed') {
+    const safeJobId = String(jobId || '').trim();
+    const fallback = { role: 'worker', tab: fallbackTab, jobId: safeJobId };
+    if (!safeJobId) return fallback;
+    const status = await getCurrentJobStatus(safeJobId);
+    if (status === 'completed') return { role: 'worker', tab: 'worker-completed', jobId: safeJobId };
+    if (status === 'accepted') return { role: 'worker', tab: 'accepted', jobId: safeJobId };
+    if (status === 'hired') return { role: 'worker', tab: 'offered', jobId: safeJobId };
+    return fallback;
+}
+
+async function resolveCustomerRouteByCurrentStatus(jobId, fallbackTab = 'listings') {
+    const safeJobId = String(jobId || '').trim();
+    const fallback = { role: 'customer', tab: fallbackTab, jobId: safeJobId };
+    if (!safeJobId) return fallback;
+    const status = await getCurrentJobStatus(safeJobId);
+    if (status === 'completed') return { role: 'customer', tab: 'previous', jobId: safeJobId };
+    if (status === 'hired' || status === 'accepted') return { role: 'customer', tab: 'hiring', jobId: safeJobId };
+    if (status === 'active' || status === 'paused' || status === 'expired') {
+        return { role: 'customer', tab: 'listings', jobId: safeJobId };
+    }
+    return fallback;
+}
+
+async function handleNotificationTypeNavigation(notificationItem) {
+    if (!notificationItem) return false;
+    const type = String(notificationItem.dataset.notificationType || '').trim();
+    const jobId = String(notificationItem.dataset.jobId || '').trim();
+    if (!type) return false;
+
+    switch (type) {
+        case 'feedback_received':
+            {
+                const route = await resolveWorkerCompletedRouteByCurrentStatus(jobId, 'worker-completed');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'worker_feedback_received':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'previous');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'offer_sent':
+            {
+                const route = await resolveWorkerOfferRouteByCurrentStatus(jobId);
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'job_completed':
+            {
+                const route = await resolveWorkerCompletedRouteByCurrentStatus(jobId, 'worker-completed');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'offer_accepted':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'hiring');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'offer_rejected':
+        case 'worker_resigned':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'contract_voided':
+            // Worker equivalent of "active hiring/working" is the accepted tab.
+            {
+                const route = await resolveWorkerCompletedRouteByCurrentStatus(jobId, 'accepted');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'application_received':
+        case 'application_milestone':
+        case 'gig_auto_paused':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        default:
+            return false;
+    }
+}
+
+function isElementActiveAndVisible(el) {
+    return !!el && el.classList.contains('active') && window.getComputedStyle(el).display !== 'none';
+}
+
+function getActiveAlertsRole() {
+    const workerAlertsContent = document.getElementById('worker-alerts-content');
+    const customerAlertsContent = document.getElementById('customer-alerts-content');
+    if (isElementActiveAndVisible(workerAlertsContent)) return 'worker';
+    if (isElementActiveAndVisible(customerAlertsContent)) return 'customer';
+    return null;
 }
 
 function renderWorkerAlertsUI(container, notifications) {
@@ -600,23 +790,86 @@ function renderCustomerAlertsUI(container, notifications) {
     container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
 }
 
-function renderAllAlertsViews(notifications) {
+function renderAllAlertsViews(notifications, options = {}) {
     const workerContainer = document.querySelector('#worker-alerts-content .notifications-container');
     const customerContainer = document.querySelector('#customer-alerts-content .notifications-container');
-    renderWorkerAlertsUI(workerContainer, notifications);
-    renderCustomerAlertsUI(customerContainer, notifications);
-    initializeNotifications();
+    const activeRole = options.forceRole || getActiveAlertsRole();
+
+    // Optimization: only render the alerts pane currently visible to the user.
+    if (activeRole === 'worker') {
+        renderWorkerAlertsUI(workerContainer, notifications);
+        initializeNotifications();
+    } else if (activeRole === 'customer') {
+        renderCustomerAlertsUI(customerContainer, notifications);
+        initializeNotifications();
+    }
+
     updateAlertTabBadgeCounts(notifications);
+}
+
+async function loadMoreAlertsIfNeeded() {
+    if (ALERTS_PAGINATION_STATE.loading || ALERTS_PAGINATION_STATE.exhausted) return;
+    if (typeof getUserNotificationsPage !== 'function') return;
+    if (!ALERTS_PAGINATION_STATE.nextCursor) return;
+    const activeRole = getActiveAlertsRole();
+    if (!activeRole) return;
+
+    ALERTS_PAGINATION_STATE.loading = true;
+    try {
+        const result = await getUserNotificationsPage({
+            unreadOnly: false,
+            limit: 25,
+            startAfterCreatedAt: ALERTS_PAGINATION_STATE.nextCursor
+        });
+
+        const page = Array.isArray(result?.notifications) ? result.notifications : [];
+        if (page.length === 0) {
+            ALERTS_PAGINATION_STATE.exhausted = true;
+            return;
+        }
+
+        ALERTS_PAGINATION_STATE.olderNotifications = dedupeNotificationsById(
+            ALERTS_PAGINATION_STATE.olderNotifications.concat(page)
+        );
+        ALERTS_PAGINATION_STATE.nextCursor = result?.nextCursor || getOldestCreatedAt(page);
+        if (result?.hasMore === false || page.length < 25) {
+            ALERTS_PAGINATION_STATE.exhausted = true;
+        }
+
+        renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: activeRole });
+    } catch (error) {
+        console.warn('⚠️ Failed loading more alerts:', error);
+    } finally {
+        ALERTS_PAGINATION_STATE.loading = false;
+    }
+}
+
+function initializeAlertsInfiniteScroll() {
+    const containers = [
+        document.querySelector('#worker-alerts-content .tab-scroll-container'),
+        document.querySelector('#customer-alerts-content .tab-scroll-container')
+    ];
+
+    containers.forEach((container) => {
+        if (!container || container.dataset.alertsInfiniteBound === '1') return;
+        container.dataset.alertsInfiniteBound = '1';
+        container.addEventListener('scroll', () => {
+            if (ALERTS_PAGINATION_STATE.loading || ALERTS_PAGINATION_STATE.exhausted) return;
+            const remaining = container.scrollHeight - (container.scrollTop + container.clientHeight);
+            if (remaining <= 280) {
+                loadMoreAlertsIfNeeded();
+            }
+        }, { passive: true });
+    });
 }
 
 function updateAlertsLanguageTabsVisibility() {
     const tabs = document.getElementById('alertsLangTabs');
     if (!tabs) return;
-    const isVisible = (el) => !!el && window.getComputedStyle(el).display !== 'none';
     const workerAlertsContent = document.getElementById('worker-alerts-content');
     const customerAlertsContent = document.getElementById('customer-alerts-content');
-    const workerAlertsActive = !!workerAlertsContent?.classList.contains('active') && isVisible(workerAlertsContent);
-    const customerAlertsActive = !!customerAlertsContent?.classList.contains('active') && isVisible(customerAlertsContent);
+    const workerAlertsActive = isElementActiveAndVisible(workerAlertsContent);
+    const customerAlertsActive = isElementActiveAndVisible(customerAlertsContent);
     const shouldShow = workerAlertsActive || customerAlertsActive;
     tabs.style.display = shouldShow ? 'flex' : 'none';
     document.body.classList.toggle('alerts-lang-visible', shouldShow);
@@ -628,8 +881,8 @@ function applyAlertsLanguage(lang) {
     document.querySelectorAll('#alertsLangTabs .alerts-lang-tab').forEach((tab) => {
         tab.classList.toggle('active', tab.dataset.alertsLang === lang);
     });
-    if (ALERTS_STREAM_STATE.notifications.length > 0) {
-        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+    if (ALERTS_STREAM_STATE.notifications.length > 0 && getActiveAlertsRole()) {
+        renderAllAlertsViews(getCombinedAlertsNotifications());
     }
 }
 
@@ -661,10 +914,15 @@ async function ensureAlertsRealtimeStream(currentUser) {
 
     ALERTS_STREAM_STATE.uid = currentUser.uid;
     ALERTS_STREAM_STATE.started = true;
+    resetAlertsPaginationState();
 
     ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
         ALERTS_STREAM_STATE.notifications = Array.isArray(notifications) ? notifications : [];
-        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+        if (!ALERTS_PAGINATION_STATE.olderNotifications.length) {
+            ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
+            ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
+        }
+        renderAllAlertsViews(getCombinedAlertsNotifications());
     });
 }
 
@@ -684,8 +942,10 @@ async function loadWorkerNotifications() {
     if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
         // Fallback to mock data
         console.log('🎮 Dev Mode: Loading mock worker notifications');
+        resetAlertsPaginationState();
         ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
-        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+        ALERTS_PAGINATION_STATE.exhausted = true;
+        renderAllAlertsViews(getCombinedAlertsNotifications());
         updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
         return;
     }
@@ -708,6 +968,7 @@ async function loadWorkerNotifications() {
             ALERTS_STREAM_STATE.uid = '';
             ALERTS_STREAM_STATE.notifications = [];
             ALERTS_STREAM_STATE.started = false;
+            resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
             updateAlertTabBadgeCounts([]);
             return;
@@ -717,12 +978,14 @@ async function loadWorkerNotifications() {
 
         await ensureAlertsRealtimeStream(currentUser);
         if (ALERTS_STREAM_STATE.notifications.length > 0) {
-            renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+            renderAllAlertsViews(getCombinedAlertsNotifications());
         } else {
             try {
                 const current = await getUserNotifications(false);
                 ALERTS_STREAM_STATE.notifications = Array.isArray(current) ? current : [];
-                renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+                ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
+                ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
+                renderAllAlertsViews(getCombinedAlertsNotifications());
             } catch (fetchError) {
                 console.warn('⚠️ Could not preload notifications snapshot:', fetchError);
             }
@@ -749,8 +1012,10 @@ async function loadCustomerNotifications() {
     if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
         // Fallback to mock data
         console.log('🎮 Dev Mode: Loading mock customer notifications');
+        resetAlertsPaginationState();
         ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
-        renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+        ALERTS_PAGINATION_STATE.exhausted = true;
+        renderAllAlertsViews(getCombinedAlertsNotifications());
         updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
         return;
     }
@@ -773,6 +1038,7 @@ async function loadCustomerNotifications() {
             ALERTS_STREAM_STATE.uid = '';
             ALERTS_STREAM_STATE.notifications = [];
             ALERTS_STREAM_STATE.started = false;
+            resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
             updateAlertTabBadgeCounts([]);
             return;
@@ -782,12 +1048,14 @@ async function loadCustomerNotifications() {
 
         await ensureAlertsRealtimeStream(currentUser);
         if (ALERTS_STREAM_STATE.notifications.length > 0) {
-            renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+            renderAllAlertsViews(getCombinedAlertsNotifications());
         } else {
             try {
                 const current = await getUserNotifications(false);
                 ALERTS_STREAM_STATE.notifications = Array.isArray(current) ? current : [];
-                renderAllAlertsViews(ALERTS_STREAM_STATE.notifications);
+                ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
+                ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
+                renderAllAlertsViews(getCombinedAlertsNotifications());
             } catch (fetchError) {
                 console.warn('⚠️ Could not preload notifications snapshot:', fetchError);
             }
@@ -864,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeContactMessageOverlay();
     resetTabBadgeCounts();
     initializeAlertsLanguageTabs();
+    initializeAlertsInfiniteScroll();
     
     // Initialize default role (worker) and tab (worker-alerts)
     initializeWorkerAlertsTab();
@@ -1813,6 +2082,7 @@ function initializeNotifications() {
             } else {
                 // Normal click - mark as read only if not in selection mode
                 markNotificationAsRead(this);
+                void handleNotificationTypeNavigation(this);
             }
         };
         

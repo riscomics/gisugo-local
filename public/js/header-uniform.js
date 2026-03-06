@@ -267,6 +267,17 @@ function initializeUniformBackButton() {
     backBtn.parentNode.replaceChild(newBackBtn, backBtn);
     
     const cleanBackBtn = document.querySelector('.uniform-header-btn.back');
+    const safeReferrerPath = (() => {
+        try {
+            if (!document.referrer) return "";
+            const refUrl = new URL(document.referrer);
+            if (refUrl.origin !== window.location.origin) return "";
+            return `${refUrl.pathname}${refUrl.search || ""}${refUrl.hash || ""}`;
+        } catch (_) {
+            return "";
+        }
+    })();
+    const fromParam = new URLSearchParams(window.location.search).get('from') || "";
 
     if (cleanBackBtn) {
         cleanBackBtn.addEventListener('click', function(e) {
@@ -279,13 +290,22 @@ function initializeUniformBackButton() {
                 navigator.vibrate(30);
             }
             
-            // Go back in history
-            if (window.history.length > 1) {
-                window.history.back();
-            } else {
-                // Fallback to home page if no history
-                window.location.href = 'index.html';
+            // Deterministic return path for alert-driven deep links.
+            if (fromParam === 'messages') {
+                window.location.href = 'messages.html';
+                return;
             }
+
+            const fallbackPath = safeReferrerPath || 'index.html';
+            const currentUrl = window.location.href;
+            window.history.back();
+
+            // Some browsers/webviews report short history stacks; apply deterministic fallback.
+            setTimeout(() => {
+                if (window.location.href === currentUrl) {
+                    window.location.href = fallbackPath;
+                }
+            }, 180);
         });
 
         console.log('✅ Back button initialized');

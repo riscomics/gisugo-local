@@ -1,4 +1,5 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -17,6 +18,7 @@ const SIGNUP_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const SIGNUP_RATE_BLOCK_MS = 15 * 60 * 1000; // 15 minutes
 const SIGNUP_RATE_MAX_PER_IP = 25;
 const SIGNUP_RATE_MAX_PER_IP_DEVICE = 8;
+const ALERT_RETENTION_DAYS = 50;
 
 function hasJobCounterpartyAccess(job, requesterUid, targetUserId) {
   if (!job || !requesterUid || !targetUserId) return false;
@@ -540,5 +542,46 @@ exports.auditAndRepairFaceVerification = onCall(
       healthy,
       samples
     };
+  }
+);
+
+exports.cleanupOldReadNotifications = onSchedule(
+  { schedule: "every 24 hours", region: "us-central1", timeZone: "Asia/Manila" },
+  async () => {
+    const cutoffMs = Date.now() - (ALERT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    const cutoff = admin.firestore.Timestamp.fromMillis(cutoffMs);
+    const batchSize = 400;
+    let totalDeleted = 0;
+    let lastDoc = null;
+
+    while (true) {
+      let query = db
+        .collection("notifications")
+        .where("read", "==", true)
+        .where("createdAt", "<", cutoff)
+        .orderBy("createdAt", "asc")
+        .limit(batchSize);
+
+      if (lastDoc) {
+        query = query.startAfter(lastDoc);
+      }
+
+      const snap = await query.get();
+      if (snap.empty) break;
+
+      const batch = db.batch();
+      snap.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+
+      totalDeleted += snap.size;
+      lastDoc = snap.docs[snap.docs.length - 1];
+
+      if (snap.size < batchSize) break;
+    }
+
+    logger.info("cleanupOldReadNotifications complete", {
+      retentionDays: ALERT_RETENTION_DAYS,
+      deleted: totalDeleted
+    });
   }
 );

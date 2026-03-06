@@ -116,6 +116,40 @@ function shouldApplyTabRender(scope, token) {
     return true;
 }
 
+function focusJobCardByJobId(jobId, options = {}) {
+    const safeJobId = String(jobId || '').trim();
+    if (!safeJobId) return false;
+    const activeWrapper = document.querySelector('.tab-content-wrapper.active');
+    if (!activeWrapper) return false;
+    const targetCard = activeWrapper.querySelector(`.listing-card[data-job-id="${safeJobId}"], .hiring-card[data-job-id="${safeJobId}"], .completed-card[data-job-id="${safeJobId}"]`);
+    if (!targetCard) return false;
+    targetCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    targetCard.classList.add('notification-target-highlight');
+    const durationMs = Number(options.durationMs || 2600);
+    window.setTimeout(() => targetCard.classList.remove('notification-target-highlight'), durationMs);
+    return true;
+}
+
+async function focusListingFromUrlParams(preferredRole, preferredTab, targetJobId) {
+    const safeJobId = String(targetJobId || '').trim();
+    if (!safeJobId) return;
+
+    // Retry for a short window to allow async listings render completion.
+    let focused = false;
+    for (let attempt = 0; attempt < 7; attempt++) {
+        if (attempt > 0) {
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+        focused = focusJobCardByJobId(safeJobId);
+        if (focused) break;
+    }
+
+    if (!focused) {
+        console.warn(`⚠️ Could not locate listing card for jobId: ${safeJobId}`);
+    }
+}
+
 function isAllowedTextCharacter(char) {
     if (!char) return true;
     if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
@@ -1548,6 +1582,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         const urlParams = new URLSearchParams(window.location.search);
         const shouldRefresh = urlParams.get('refresh');
         const preferredTab = urlParams.get('tab') || 'listings';
+        const focusJobId = urlParams.get('jobId') || '';
+        const preferredRoleParam = String(urlParams.get('role') || '').toLowerCase();
         
         if (shouldRefresh) {
             console.log('🔄 Refresh parameter detected - clearing cached job data');
@@ -1569,20 +1605,26 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Initialize the default role properly based on HTML state
         const defaultActiveRole = document.querySelector('.role-tab-btn.active')?.getAttribute('data-role') || 'customer';
+        const preferredRole = preferredRoleParam === 'worker' || preferredRoleParam === 'customer'
+            ? preferredRoleParam
+            : defaultActiveRole;
         console.log(`🎯 Default active role detected: ${defaultActiveRole}`);
-        
-        if (defaultActiveRole === 'worker') {
-            // Worker role is default - activate worker role and its default tab
+
+        if (preferredRole === 'worker') {
             await switchToRole('worker');
+            const workerTabs = new Set(['offered', 'accepted', 'worker-completed']);
+            if (workerTabs.has(preferredTab) && preferredTab !== 'offered') {
+                await switchToWorkerTab(preferredTab);
+            }
         } else {
-            // Customer role is default - initialize customer tabs normally
-            await initializeActiveTab(preferredTab);
-            
-            // If preferred tab is not listings, switch to it
-            if (preferredTab !== 'listings') {
-                await switchToTab(preferredTab);
+            await switchToRole('customer');
+            const customerTabs = new Set(['listings', 'hiring', 'previous']);
+            if (customerTabs.has(preferredTab) && preferredTab !== 'listings') {
+                await switchToCustomerTab(preferredTab);
             }
         }
+
+        await focusListingFromUrlParams(preferredRole, preferredTab, focusJobId);
         
     // Update tab counts based on actual data
     await updateTabCounts();

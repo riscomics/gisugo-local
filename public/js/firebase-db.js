@@ -2028,6 +2028,84 @@ async function getUserNotifications(unreadOnly = false) {
 }
 
 /**
+ * Get a page of user notifications for infinite scroll loading.
+ * @param {Object} options
+ * @param {boolean} options.unreadOnly - Only return unread notifications
+ * @param {number} options.limit - Page size
+ * @param {*} options.startAfterCreatedAt - Cursor (createdAt of last loaded item)
+ * @returns {Promise<{notifications:Array,nextCursor:*,hasMore:boolean}>}
+ */
+async function getUserNotificationsPage(options = {}) {
+  const {
+    unreadOnly = false,
+    limit = 25,
+    startAfterCreatedAt = null
+  } = options || {};
+  const safeLimit = Math.max(1, Math.min(100, Number(limit) || 25));
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+
+  if (!currentUser) {
+    return { notifications: [], nextCursor: null, hasMore: false };
+  }
+
+  if (!db) {
+    const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
+    let filtered = notifications
+      .filter((n) => n.recipientId === currentUser.uid)
+      .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
+
+    if (unreadOnly) {
+      filtered = filtered.filter((n) => !n.read);
+    }
+
+    if (startAfterCreatedAt) {
+      const cursorMillis = toMillis(startAfterCreatedAt);
+      filtered = filtered.filter((n) => toMillis(n.createdAt) < cursorMillis);
+    }
+
+    const page = filtered.slice(0, safeLimit);
+    const nextCursor = page.length ? (page[page.length - 1].createdAt || null) : null;
+    return {
+      notifications: page,
+      nextCursor,
+      hasMore: filtered.length > safeLimit
+    };
+  }
+
+  try {
+    let query = db.collection('notifications')
+      .where('recipientId', '==', currentUser.uid);
+
+    if (unreadOnly) {
+      query = query.where('read', '==', false);
+    }
+
+    query = query.orderBy('createdAt', 'desc').limit(safeLimit);
+
+    if (startAfterCreatedAt) {
+      query = query.startAfter(startAfterCreatedAt);
+    }
+
+    const snapshot = await query.get();
+    const page = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    const nextCursor = page.length ? (page[page.length - 1].createdAt || null) : null;
+
+    return {
+      notifications: page,
+      nextCursor,
+      hasMore: page.length === safeLimit
+    };
+  } catch (error) {
+    console.error('❌ Error getting notifications page:', error);
+    return { notifications: [], nextCursor: null, hasMore: false };
+  }
+}
+
+/**
  * Mark notification as read
  * @param {string} notificationId - Notification document ID
  * @returns {Promise<Object>} - Result object
@@ -2331,6 +2409,7 @@ window.getUserChatThreads = getUserChatThreads;
 // Notifications
 window.createNotification = createNotification;
 window.getUserNotifications = getUserNotifications;
+window.getUserNotificationsPage = getUserNotificationsPage;
 window.markNotificationRead = markNotificationRead;
 
 // Real-time Listeners
