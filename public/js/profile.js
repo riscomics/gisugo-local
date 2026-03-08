@@ -305,6 +305,7 @@ const facePreviewPlayBtn = document.getElementById('facePreviewPlayBtn');
 const facePreviewImage = document.getElementById('facePreviewImage');
 const facePreviewEmpty = document.getElementById('facePreviewEmpty');
 const facePrestigeNameEls = document.querySelectorAll('.face-prestige-name');
+const ENABLE_FV_MEDIA_CALLABLE = false;
 
 // Open pro prestige overlay
 function openProPrestigeOverlay() {
@@ -370,6 +371,7 @@ function openFacePrestigeOverlay() {
 function closeFacePrestigeOverlay() {
   if (facePrestigeOverlay) {
     facePrestigeOverlay.classList.remove('active');
+    delete facePrestigeOverlay.dataset.previewRenderToken;
     if (facePreviewVideo) {
       facePreviewVideo.pause();
       facePreviewVideo.onplay = null;
@@ -377,12 +379,18 @@ function closeFacePrestigeOverlay() {
       facePreviewVideo.onended = null;
       facePreviewVideo.onclick = null;
       facePreviewVideo.oncontextmenu = null;
+      facePreviewVideo.onerror = null;
+      facePreviewVideo.onloadedmetadata = null;
+      facePreviewVideo.oncanplay = null;
+      facePreviewVideo.onstalled = null;
+      facePreviewVideo.onwaiting = null;
     }
     if (facePreviewPlayBtn) {
       facePreviewPlayBtn.onclick = null;
       facePreviewPlayBtn.textContent = 'PLAY VIDEO';
       facePreviewPlayBtn.setAttribute('aria-label', 'Play face intro');
       facePreviewPlayBtn.style.display = 'none';
+      delete facePreviewPlayBtn.dataset.fallbackOpen;
     }
     document.body.style.overflow = '';
     console.log('🎥 Face prestige overlay closed');
@@ -454,6 +462,218 @@ function getFaceVideoUrl(userProfile) {
     || null;
 }
 
+async function resolveFacePosterUrl(userProfile) {
+  const verification = userProfile?.verification || {};
+  const directPosterUrl = sanitizeUrl(getFacePosterUrl(userProfile), '');
+  if (directPosterUrl) return directPosterUrl;
+
+  const profileUserId = String(userProfile?.userId || getProfileUserId() || '').trim();
+  const candidatePosterPaths = [];
+  if (verification.facePosterPath) candidatePosterPaths.push(verification.facePosterPath);
+  if (profileUserId) candidatePosterPaths.push(`face_verification/${profileUserId}/face_poster.jpg`);
+  if (candidatePosterPaths.length === 0 || typeof firebase === 'undefined' || !firebase.storage) return '';
+  const storageRef = firebase.storage().ref();
+  for (const posterPath of candidatePosterPaths) {
+    if (!posterPath) continue;
+    try {
+      const refreshedPosterUrl = await storageRef.child(posterPath).getDownloadURL();
+      if (refreshedPosterUrl) {
+        verification.facePosterUrl = refreshedPosterUrl;
+        verification.facePosterPath = posterPath;
+        return refreshedPosterUrl;
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not resolve face poster URL from path:', { posterPath, error: error?.message || error });
+    }
+  }
+  return '';
+}
+
+async function resolveStorageDownloadUrlFromCandidates(paths = []) {
+  if (!Array.isArray(paths) || paths.length === 0 || typeof firebase === 'undefined' || !firebase.storage) {
+    return '';
+  }
+  const storageRef = firebase.storage().ref();
+  for (const rawPath of paths) {
+    const path = String(rawPath || '').trim();
+    if (!path) continue;
+    try {
+      const url = await storageRef.child(path).getDownloadURL();
+      if (url) return { url, path };
+    } catch (_) {
+      // try next candidate
+    }
+  }
+  return { url: '', path: '' };
+}
+
+async function resolveStorageDownloadUrlsFromCandidates(paths = []) {
+  if (!Array.isArray(paths) || paths.length === 0 || typeof firebase === 'undefined' || !firebase.storage) {
+    return [];
+  }
+  const storageRef = firebase.storage().ref();
+  const results = [];
+  for (const rawPath of paths) {
+    const path = String(rawPath || '').trim();
+    if (!path) continue;
+    try {
+      const url = await storageRef.child(path).getDownloadURL();
+      if (url) results.push({ url, path });
+    } catch (_) {
+      // try next candidate
+    }
+  }
+  return results;
+}
+
+async function resolveFaceVideoSources(userProfile, options = {}) {
+  const verification = userProfile?.verification || {};
+  const profileUserId = String(userProfile?.userId || getProfileUserId() || '').trim();
+  const sources = [];
+  const seen = new Set();
+  const includeDirect = options.includeDirect !== false;
+  const includeCandidateLookups = options.includeCandidateLookups !== false;
+
+  const pushUnique = (url) => {
+    const safeUrl = sanitizeUrl(url, '');
+    if (!safeUrl || seen.has(safeUrl)) return;
+    seen.add(safeUrl);
+    sources.push(safeUrl);
+  };
+
+  if (includeDirect) {
+    pushUnique(getFaceVideoUrl(userProfile));
+  }
+
+  const candidateVideoPaths = [];
+  const explicitPath = String(verification.faceVideoPath || '').trim();
+  const isWebmPath = explicitPath.endsWith('.webm');
+  const isMp4Path = explicitPath.endsWith('.mp4');
+  if (profileUserId) {
+    // Prefer MP4 first for broader mobile compatibility.
+    candidateVideoPaths.push(`face_verification/${profileUserId}/face_intro.mp4`);
+    candidateVideoPaths.push(`face_verification/${profileUserId}/face_intro.webm`);
+  }
+  if (explicitPath) {
+    if (isWebmPath && profileUserId) {
+      candidateVideoPaths.unshift(`face_verification/${profileUserId}/face_intro.mp4`);
+    } else if (isMp4Path && profileUserId) {
+      candidateVideoPaths.unshift(`face_verification/${profileUserId}/face_intro.webm`);
+    }
+    candidateVideoPaths.unshift(explicitPath);
+  }
+
+  let resolvedCandidates = [];
+  if (includeCandidateLookups && candidateVideoPaths.length > 0) {
+    resolvedCandidates = await resolveStorageDownloadUrlsFromCandidates(candidateVideoPaths);
+    resolvedCandidates.forEach((item) => {
+      if (item?.url) pushUnique(item.url);
+    });
+  }
+
+  if (sources.length > 0) {
+    verification.faceVideoUrl = sources[0];
+    const firstResolvedPath = resolvedCandidates.find((item) => item?.url === sources[0])?.path;
+    if (firstResolvedPath) verification.faceVideoPath = firstResolvedPath;
+  }
+  const videoProbe = document.createElement('video');
+  const playableSources = sources.filter((url) => {
+    try {
+      const path = decodeURIComponent(new URL(url, window.location.href).pathname || '').toLowerCase();
+      if (path.endsWith('.mp4') || path.endsWith('.m4v')) {
+        return videoProbe.canPlayType('video/mp4') !== '';
+      }
+      if (path.endsWith('.webm')) {
+        return videoProbe.canPlayType('video/webm') !== '';
+      }
+      if (path.endsWith('.mov')) {
+        return videoProbe.canPlayType('video/quicktime') !== '' || videoProbe.canPlayType('video/mp4') !== '';
+      }
+      return true;
+    } catch (_) {
+      return true;
+    }
+  });
+  if (sources.length > 0 && playableSources.length === 0) {
+    console.warn('[FV_PROFILE_UNSUPPORTED_FORMAT]', { sourceCount: sources.length });
+  }
+  return playableSources;
+}
+
+async function fetchFaceVerificationMediaAccess(targetUserId, context = {}) {
+  if (!ENABLE_FV_MEDIA_CALLABLE) return null;
+  if (!targetUserId || typeof firebase === 'undefined' || !firebase.functions) return null;
+  const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+    const timerId = setTimeout(() => resolve(null), ms);
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timerId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timerId);
+        reject(error);
+      });
+  });
+  try {
+    const callable = firebase.functions().httpsCallable('getFaceVerificationMediaAccess');
+    const payload = {
+      targetUserId,
+      scope: context.scope || 'profile'
+    };
+    if (context.jobId) payload.jobId = context.jobId;
+    if (context.applicationId) payload.applicationId = context.applicationId;
+    const result = await withTimeout(callable(payload), 1500);
+    return result?.data || null;
+  } catch (error) {
+    console.warn('⚠️ getFaceVerificationMediaAccess fallback to local URLs:', {
+      targetUserId,
+      code: error?.code || '',
+      message: error?.message || String(error)
+    });
+    return null;
+  }
+}
+
+async function requestFaceVideoNormalization(userId, sourcePath = '') {
+  if (!userId || typeof firebase === 'undefined' || !firebase.functions) {
+    return { ok: false };
+  }
+  const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+    const timerId = setTimeout(() => resolve(null), ms);
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timerId);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timerId);
+        reject(error);
+      });
+  });
+  try {
+    const callable = firebase.functions().httpsCallable('normalizeFaceVerificationVideo');
+    const result = await withTimeout(callable({
+      targetUserId: userId,
+      sourcePath
+    }), 20000);
+    return result?.data || { ok: false };
+  } catch (error) {
+    console.warn('⚠️ Face video normalization callable failed:', {
+      userId,
+      sourcePath,
+      code: error?.code || '',
+      message: error?.message || String(error)
+    });
+    return { ok: false };
+  }
+}
+
+async function resolveFaceVideoUrl(userProfile) {
+  const sources = await resolveFaceVideoSources(userProfile);
+  return sources[0] || '';
+}
+
 function populateFacePrestigeName() {
   if (!facePrestigeNameEls || !facePrestigeNameEls.length) return;
   const fullName = String(window.currentUserProfile?.fullName || '').trim();
@@ -463,19 +683,120 @@ function populateFacePrestigeName() {
   });
 }
 
-function populateFacePrestigePreview() {
+async function populateFacePrestigePreview() {
   if (!facePreviewVideo || !facePreviewPlayBtn || !facePreviewImage || !facePreviewEmpty) return;
 
-  const videoUrl = getFaceVideoUrl(window.currentUserProfile);
-  const posterUrl = getFacePosterUrl(window.currentUserProfile);
+  const renderToken = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  if (facePrestigeOverlay) {
+    facePrestigeOverlay.dataset.previewRenderToken = renderToken;
+  }
+  const targetUserId = String(getProfileUserId() || '').trim();
+  const secureMedia = await fetchFaceVerificationMediaAccess(targetUserId, { scope: 'profile' });
+  const videoSources = [];
+  let fallbackSourcesLoaded = false;
+  const pushSource = (url) => {
+    const safeUrl = sanitizeUrl(url || '', '');
+    if (!safeUrl || videoSources.includes(safeUrl)) return;
+    videoSources.push(safeUrl);
+  };
+  pushSource(secureMedia?.videoUrl || '');
+  (await resolveFaceVideoSources(window.currentUserProfile, { includeCandidateLookups: false })).forEach(pushSource);
+  const videoUrl = videoSources[0] || '';
+  const posterUrl = sanitizeUrl(secureMedia?.posterUrl || '', '') || await resolveFacePosterUrl(window.currentUserProfile);
+  if (facePrestigeOverlay && facePrestigeOverlay.dataset.previewRenderToken !== renderToken) {
+    console.warn('⚠️ Ignoring stale face prestige render (token mismatch)');
+    return;
+  }
+  console.info('[FV_PROFILE_MEDIA_RESOLVE]', {
+    profileUserId: targetUserId,
+    hasVideoUrl: !!videoUrl,
+    hasPosterUrl: !!posterUrl,
+    usedSecureMedia: !!secureMedia?.videoUrl
+  });
+
   if (videoUrl) {
+    let sourceIndex = 0;
+    const loadFallbackSources = async () => {
+      if (fallbackSourcesLoaded) return;
+      fallbackSourcesLoaded = true;
+      const fallbackSources = await resolveFaceVideoSources(window.currentUserProfile, {
+        includeDirect: false,
+        includeCandidateLookups: true
+      });
+      fallbackSources.forEach(pushSource);
+    };
+    const tryNextSource = async () => {
+      if (sourceIndex + 1 >= videoSources.length) return false;
+      sourceIndex += 1;
+      const nextUrl = videoSources[sourceIndex];
+      console.warn('[FV_PROFILE_SOURCE_SWITCH]', {
+        fromIndex: sourceIndex - 1,
+        toIndex: sourceIndex,
+        nextUrl
+      });
+      facePreviewVideo.src = nextUrl;
+      facePreviewVideo.load();
+      return true;
+    };
+    const tryNextSourceWithFallback = async () => {
+      if (await tryNextSource()) return true;
+      await loadFallbackSources();
+      return tryNextSource();
+    };
+
     if (facePreviewVideo.src !== videoUrl) {
       facePreviewVideo.src = videoUrl;
     }
+    facePreviewVideo.setAttribute('playsinline', '');
+    facePreviewVideo.load();
     facePreviewVideo.removeAttribute('controls');
     facePreviewVideo.style.display = 'block';
     facePreviewPlayBtn.style.display = 'inline-flex';
+    const playbackSessionId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    facePreviewVideo.onerror = () => {
+      const mediaError = facePreviewVideo.error;
+      console.warn('[FV_PROFILE_VIDEO_ERROR]', {
+        sessionId: playbackSessionId,
+        code: mediaError?.code || null,
+        message: mediaError?.message || 'unknown',
+        networkState: facePreviewVideo.networkState,
+        readyState: facePreviewVideo.readyState,
+        currentSrc: facePreviewVideo.currentSrc || videoUrl
+      });
+      void (async () => {
+        if (await tryNextSourceWithFallback()) {
+          void facePreviewVideo.play().catch(() => {});
+        }
+      })();
+    };
+    facePreviewVideo.onloadedmetadata = () => {
+      console.info('[FV_PROFILE_VIDEO_METADATA]', {
+        sessionId: playbackSessionId,
+        duration: Number.isFinite(facePreviewVideo.duration) ? facePreviewVideo.duration : null,
+        width: facePreviewVideo.videoWidth || 0,
+        height: facePreviewVideo.videoHeight || 0
+      });
+    };
+    facePreviewVideo.oncanplay = () => {
+      console.info('[FV_PROFILE_VIDEO_CANPLAY]', {
+        sessionId: playbackSessionId,
+        readyState: facePreviewVideo.readyState
+      });
+    };
+    facePreviewVideo.onstalled = () => {
+      console.warn('[FV_PROFILE_VIDEO_STALLED]', {
+        sessionId: playbackSessionId,
+        currentTime: facePreviewVideo.currentTime
+      });
+    };
+    facePreviewVideo.onwaiting = () => {
+      console.info('[FV_PROFILE_VIDEO_WAITING]', {
+        sessionId: playbackSessionId,
+        currentTime: facePreviewVideo.currentTime
+      });
+    };
     const syncPlayState = () => {
+      if (facePreviewPlayBtn.dataset.fallbackOpen === '1') return;
       if (facePreviewVideo.paused || facePreviewVideo.ended) {
         facePreviewPlayBtn.textContent = 'PLAY VIDEO';
         facePreviewPlayBtn.setAttribute('aria-label', 'Play face intro');
@@ -485,8 +806,31 @@ function populateFacePrestigePreview() {
       }
     };
     const togglePlayback = () => {
+      if (facePreviewPlayBtn.dataset.fallbackOpen === '1') {
+        window.open(facePreviewVideo.currentSrc || videoSources[sourceIndex] || videoUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
       if (facePreviewVideo.paused || facePreviewVideo.ended) {
-        void facePreviewVideo.play().catch(() => {});
+        if (facePreviewVideo.readyState < 2) facePreviewVideo.load();
+        void facePreviewVideo.play().catch((error) => {
+          console.warn('⚠️ Could not play profile FV video inline:', {
+            sessionId: playbackSessionId,
+            errorName: error?.name || 'unknown',
+            errorMessage: error?.message || String(error),
+            readyState: facePreviewVideo.readyState,
+            networkState: facePreviewVideo.networkState,
+            currentSrc: facePreviewVideo.currentSrc || videoUrl
+          });
+          void (async () => {
+            if (await tryNextSourceWithFallback()) {
+              void facePreviewVideo.play().catch(() => {});
+            } else {
+              facePreviewPlayBtn.dataset.fallbackOpen = '1';
+              facePreviewPlayBtn.textContent = 'OPEN VIDEO';
+              facePreviewPlayBtn.setAttribute('aria-label', 'Open face intro video in new tab');
+            }
+          })();
+        });
       } else {
         facePreviewVideo.pause();
       }
@@ -518,10 +862,16 @@ function populateFacePrestigePreview() {
   facePreviewVideo.onended = null;
   facePreviewVideo.onclick = null;
   facePreviewVideo.oncontextmenu = null;
+  facePreviewVideo.onerror = null;
+  facePreviewVideo.onloadedmetadata = null;
+  facePreviewVideo.oncanplay = null;
+  facePreviewVideo.onstalled = null;
+  facePreviewVideo.onwaiting = null;
   facePreviewPlayBtn.onclick = null;
   facePreviewPlayBtn.textContent = 'PLAY VIDEO';
   facePreviewPlayBtn.setAttribute('aria-label', 'Play face intro');
   facePreviewPlayBtn.style.display = 'none';
+  delete facePreviewPlayBtn.dataset.fallbackOpen;
   if (posterUrl) {
     facePreviewImage.src = posterUrl;
     facePreviewImage.style.display = 'block';
@@ -531,6 +881,11 @@ function populateFacePrestigePreview() {
 
   facePreviewImage.removeAttribute('src');
   facePreviewImage.style.display = 'none';
+  if (facePreviewEmpty) {
+    facePreviewEmpty.textContent = getFaceVideoUrl(window.currentUserProfile)
+      ? 'This video format is not supported on this browser'
+      : 'Face intro will appear here';
+  }
   facePreviewEmpty.style.display = 'block';
 }
 
@@ -1054,6 +1409,33 @@ async function analyzeRecordedFaceContinuity(blob) {
   }
 }
 
+async function cleanupStaleFaceIntroVariants(userId, keepPath) {
+  if (!userId || typeof firebase === 'undefined' || !firebase.storage) return;
+  const normalizedKeepPath = String(keepPath || '').trim().toLowerCase();
+  const candidatePaths = [
+    `face_verification/${userId}/face_intro.mp4`,
+    `face_verification/${userId}/face_intro.webm`,
+    `face_verification/${userId}/face_intro.mov`,
+    `face_verification/${userId}/face_intro.m4v`
+  ];
+
+  const deletions = candidatePaths
+    .filter((path) => path.toLowerCase() !== normalizedKeepPath)
+    .map(async (path) => {
+      try {
+        await firebase.storage().ref().child(path).delete();
+        console.info('[FV_SAVE_STAGE]', { stage: 'cleanup_variant_deleted', userId, path });
+      } catch (error) {
+        const code = String(error?.code || '');
+        // Ignore missing file; this means no stale variant existed at this path.
+        if (code === 'storage/object-not-found') return;
+        console.warn('⚠️ Could not delete stale FV variant:', { userId, path, code, message: error?.message || error });
+      }
+    });
+
+  await Promise.allSettled(deletions);
+}
+
 async function finalizeFaceCaptureRecording() {
   clearFaceCaptureTimers();
   stopFaceCaptureAudioMonitor();
@@ -1135,7 +1517,8 @@ function startFaceCaptureRecording() {
   }
 
   const mimeTypes = [
-    'video/webm;codecs=vp9,opus',
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4',
     'video/webm;codecs=vp8,opus',
     'video/webm'
   ];
@@ -1242,7 +1625,13 @@ async function persistFaceVerificationToBackend(posterDataUrl, recordedBlob) {
           cacheControl: 'public,max-age=86400'
         });
         resolvedVideoUrl = await videoSnapshot.ref.getDownloadURL();
+        const normalization = await requestFaceVideoNormalization(userId, resolvedVideoPath);
+        if (normalization?.ok) {
+          if (normalization.canonicalPath) resolvedVideoPath = normalization.canonicalPath;
+          if (normalization.canonicalUrl) resolvedVideoUrl = normalization.canonicalUrl;
+        }
         console.info('[FV_SAVE_STAGE]', { stage: 'video_upload_success', userId, hasVideoUrl: !!resolvedVideoUrl });
+        await cleanupStaleFaceIntroVariants(userId, resolvedVideoPath);
       } else {
         return { success: false, message: 'Storage service unavailable. Please try again shortly.' };
       }

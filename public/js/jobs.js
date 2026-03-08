@@ -87,6 +87,8 @@ function sanitizeUrl(url, fallback = '') {
     return fallback;
 }
 
+const ENABLE_FV_MEDIA_CALLABLE = false;
+
 const TAB_RENDER_GUARDS = {
     tokens: new Map(),
     activeRole: 'customer',
@@ -1442,6 +1444,12 @@ function registerCleanup(type, key, cleanupFn) {
         CLEANUP_REGISTRY.activeControllers.add(cleanupFn);
     } else if (type === 'interval') {
         CLEANUP_REGISTRY.intervals.add(cleanupFn);
+    } else if (type === 'element') {
+        // Legacy convention in this file passes scope in "key" for element cleanups.
+        // Tag by key so executeCleanupsByType('application-action-handlers') actually matches.
+        cleanupFn._type = key;
+        cleanupFn._key = key;
+        CLEANUP_REGISTRY.cleanupFunctions.add(cleanupFn);
     } else {
         // For overlay-specific cleanup (hiring, listings, confirmation, success, previous)
         cleanupFn._type = type;
@@ -3734,14 +3742,17 @@ async function showConfirmAcceptGigOverlay(jobData) {
         fallbackName: jobData.posterName
     });
     applyCustomerStatusDisplay(customerStatus);
-    updateStatusFacePreview({
+    await updateStatusFacePreview({
         previewBlockId: 'acceptFacePreviewBlock',
         previewImageId: 'acceptFacePreviewImage',
         previewVideoId: 'acceptFacePreviewVideo',
         previewPlayBtnId: 'acceptFacePreviewPlayBtn',
         previewCaptionId: 'acceptFacePreviewCaption',
         displayName: jobData.posterName || 'Customer',
-        status: customerStatus
+        status: customerStatus,
+        targetUserId: jobData.posterId,
+        jobId: jobData.jobId,
+        scope: 'jobs'
     });
     overlay.dataset.verificationStatusType = customerStatus?.type || '';
     updateVerificationReminderActions('accept', customerStatus?.type, jobData.posterName, jobData.posterId);
@@ -3788,9 +3799,179 @@ function extractVerificationMedia(verification) {
     };
 }
 
-function buildAccountStatusFromVerification(verification, roleLabel) {
+async function resolveStorageDownloadUrlFromCandidates(paths = []) {
+    if (!Array.isArray(paths) || paths.length === 0 || typeof firebase === 'undefined' || !firebase.storage) {
+        return { url: '', path: '' };
+    }
+    const storageRef = firebase.storage().ref();
+    for (const rawPath of paths) {
+        const path = String(rawPath || '').trim();
+        if (!path) continue;
+        try {
+            const url = await storageRef.child(path).getDownloadURL();
+            if (url) return { url, path };
+        } catch (_) {
+            // try next candidate
+        }
+    }
+    return { url: '', path: '' };
+}
+
+async function resolveStorageDownloadUrlsFromCandidates(paths = []) {
+    if (!Array.isArray(paths) || paths.length === 0 || typeof firebase === 'undefined' || !firebase.storage) {
+        return [];
+    }
+    const storageRef = firebase.storage().ref();
+    const results = [];
+    for (const rawPath of paths) {
+        const path = String(rawPath || '').trim();
+        if (!path) continue;
+        try {
+            const url = await storageRef.child(path).getDownloadURL();
+            if (url) results.push({ url, path });
+        } catch (_) {
+            // try next candidate
+        }
+    }
+    return results;
+}
+
+async function resolveVerificationMediaVideoSources(media = {}, options = {}) {
+    const sources = [];
+    const seen = new Set();
+    const includeDirect = options.includeDirect !== false;
+    const includeCandidateLookups = options.includeCandidateLookups !== false;
+    const pushUnique = (url) => {
+        const safeUrl = sanitizeUrl(url || '', '');
+        if (!safeUrl || seen.has(safeUrl)) return;
+        seen.add(safeUrl);
+        sources.push(safeUrl);
+    };
+
+    if (includeDirect) {
+        pushUnique(media.videoUrl || '');
+    }
+
+    const ownerId = String(media.ownerId || '').trim();
+    const candidates = [];
+    const explicitPath = String(media.videoPath || '').trim();
+    const isWebmPath = explicitPath.endsWith('.webm');
+    const isMp4Path = explicitPath.endsWith('.mp4');
+    if (ownerId) {
+        // Prefer MP4 first for broader mobile compatibility.
+        candidates.push(`face_verification/${ownerId}/face_intro.mp4`);
+        candidates.push(`face_verification/${ownerId}/face_intro.webm`);
+    }
+    if (explicitPath) {
+        if (isWebmPath && ownerId) {
+            candidates.unshift(`face_verification/${ownerId}/face_intro.mp4`);
+        } else if (isMp4Path && ownerId) {
+            candidates.unshift(`face_verification/${ownerId}/face_intro.webm`);
+        }
+        candidates.unshift(explicitPath);
+    }
+    let resolvedAll = [];
+    if (includeCandidateLookups && candidates.length > 0) {
+        resolvedAll = await resolveStorageDownloadUrlsFromCandidates(candidates);
+        resolvedAll.forEach((item) => pushUnique(item?.url || ''));
+    }
+    if (sources.length > 0) {
+        media.videoUrl = sources[0];
+        const firstResolvedPath = resolvedAll.find((item) => item?.url === sources[0])?.path;
+        if (firstResolvedPath) media.videoPath = firstResolvedPath;
+        const videoProbe = document.createElement('video');
+        const playableSources = sources.filter((url) => {
+            try {
+                const path = decodeURIComponent(new URL(url, window.location.href).pathname || '').toLowerCase();
+                if (path.endsWith('.mp4') || path.endsWith('.m4v')) {
+                    return videoProbe.canPlayType('video/mp4') !== '';
+                }
+                if (path.endsWith('.webm')) {
+                    return videoProbe.canPlayType('video/webm') !== '';
+                }
+                if (path.endsWith('.mov')) {
+                    return videoProbe.canPlayType('video/quicktime') !== '' || videoProbe.canPlayType('video/mp4') !== '';
+                }
+                return true;
+            } catch (_) {
+                return true;
+            }
+        });
+        if (sources.length > 0 && playableSources.length === 0) {
+            console.warn('[FV_MODAL_UNSUPPORTED_FORMAT]', {
+                ownerId,
+                sourceCount: sources.length
+            });
+        }
+        return playableSources;
+    }
+    console.warn('⚠️ Could not resolve verification video URL from known candidates:', {
+        ownerId,
+        candidateCount: candidates.length
+    });
+    return [];
+}
+
+async function resolveVerificationMediaVideoUrl(media = {}) {
+    const sources = await resolveVerificationMediaVideoSources(media);
+    return sources[0] || '';
+}
+
+async function fetchFaceVerificationMediaAccess(targetUserId, context = {}) {
+    if (!ENABLE_FV_MEDIA_CALLABLE) return null;
+    if (!targetUserId || typeof firebase === 'undefined' || !firebase.functions) return null;
+    const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+        const timerId = setTimeout(() => resolve(null), ms);
+        Promise.resolve(promise)
+            .then((value) => {
+                clearTimeout(timerId);
+                resolve(value);
+            })
+            .catch((error) => {
+                clearTimeout(timerId);
+                reject(error);
+            });
+    });
+    try {
+        const callable = firebase.functions().httpsCallable('getFaceVerificationMediaAccess');
+        const payload = {
+            targetUserId,
+            scope: context.scope || 'jobs'
+        };
+        if (context.jobId) payload.jobId = context.jobId;
+        if (context.applicationId) payload.applicationId = context.applicationId;
+        const result = await withTimeout(callable(payload), 1500);
+        return result?.data || null;
+    } catch (error) {
+        console.warn('⚠️ getFaceVerificationMediaAccess fallback to local URLs:', {
+            targetUserId,
+            code: error?.code || '',
+            message: error?.message || String(error)
+        });
+        return null;
+    }
+}
+
+async function resolveVerificationMediaPosterUrl(media = {}) {
+    const directPosterUrl = sanitizeUrl(media.posterUrl || '', '');
+    if (directPosterUrl) return directPosterUrl;
+    const ownerId = String(media.ownerId || '').trim();
+    const candidates = [];
+    if (media.posterPath) candidates.push(media.posterPath);
+    if (ownerId) candidates.push(`face_verification/${ownerId}/face_poster.jpg`);
+    const resolved = await resolveStorageDownloadUrlFromCandidates(candidates);
+    if (resolved.url) {
+        media.posterPath = resolved.path;
+        media.posterUrl = resolved.url;
+        return resolved.url;
+    }
+    return '';
+}
+
+function buildAccountStatusFromVerification(verification, roleLabel, userId = '') {
     const role = roleLabel || 'member';
     const media = extractVerificationMedia(verification);
+    media.ownerId = userId || '';
     if (verification?.businessVerified || verification?.status === 'business_verified') {
         return {
             type: 'business',
@@ -3834,17 +4015,17 @@ async function resolveUserAccountStatus(userId, options = {}) {
         if (typeof getUserProfile === 'function' && userId) {
             const profile = await getUserProfile(userId);
             if (profile && profile.verification) {
-                return buildAccountStatusFromVerification(profile.verification, role);
+                return buildAccountStatusFromVerification(profile.verification, role, userId);
             }
         }
     } catch (error) {
         console.warn('⚠️ Could not load counterpart verification profile:', error);
     }
 
-    return buildAccountStatusFromVerification(null, role);
+    return buildAccountStatusFromVerification(null, role, userId);
 }
 
-function updateStatusFacePreview(options = {}) {
+async function updateStatusFacePreview(options = {}) {
     const previewBlock = document.getElementById(options.previewBlockId || '');
     const previewImage = document.getElementById(options.previewImageId || '');
     const previewVideo = document.getElementById(options.previewVideoId || '');
@@ -3854,12 +4035,32 @@ function updateStatusFacePreview(options = {}) {
     if (!previewBlock || !previewImage) return;
     const displayName = String(options.displayName || 'Member').trim() || 'Member';
 
-    const posterUrl = sanitizeUrl(status?.media?.posterUrl || '', '');
-    const videoUrl = sanitizeUrl(status?.media?.videoUrl || '', '');
+    const media = status?.media || {};
+    const targetUserId = String(options.targetUserId || media.ownerId || '').trim();
+    const secureMedia = await fetchFaceVerificationMediaAccess(targetUserId, {
+        scope: options.scope || 'jobs',
+        jobId: options.jobId || '',
+        applicationId: options.applicationId || ''
+    });
+    const videoSources = [];
+    let fallbackSourcesLoaded = false;
+    const pushSource = (url) => {
+        const safeUrl = sanitizeUrl(url || '', '');
+        if (!safeUrl || videoSources.includes(safeUrl)) return;
+        videoSources.push(safeUrl);
+    };
+    pushSource(secureMedia?.videoUrl || '');
+    (await resolveVerificationMediaVideoSources(media, { includeCandidateLookups: false })).forEach(pushSource);
+    const videoUrl = videoSources[0] || '';
+    const posterUrl = sanitizeUrl(secureMedia?.posterUrl || '', '') || await resolveVerificationMediaPosterUrl(media);
     console.info('[FV_MODAL_MEDIA_RESOLVE]', {
         surface: options.previewBlockId,
         hasPosterUrl: !!posterUrl,
-        hasVideoUrl: !!videoUrl
+        hasVideoUrl: !!videoUrl,
+        hasPosterPath: !!media.posterPath,
+        hasVideoPath: !!media.videoPath,
+        usedSecureMedia: !!secureMedia?.videoUrl,
+        targetUserId
     });
 
     previewImage.removeAttribute('src');
@@ -3884,18 +4085,99 @@ function updateStatusFacePreview(options = {}) {
         previewPlayBtn.style.display = 'none';
         previewPlayBtn.textContent = 'PLAY VIDEO';
         previewPlayBtn.setAttribute('aria-label', 'Play face verification video');
+        delete previewPlayBtn.dataset.fallbackOpen;
         previewPlayBtn.onclick = null;
     }
 
     if (videoUrl && previewVideo) {
+        const playbackSessionId = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        let sourceIndex = 0;
+        const loadFallbackSources = async () => {
+            if (fallbackSourcesLoaded) return;
+            fallbackSourcesLoaded = true;
+            const fallbackSources = await resolveVerificationMediaVideoSources(media, {
+                includeDirect: false,
+                includeCandidateLookups: true
+            });
+            fallbackSources.forEach(pushSource);
+        };
+        const tryNextSource = async () => {
+            if (sourceIndex + 1 >= videoSources.length) return false;
+            sourceIndex += 1;
+            const nextUrl = videoSources[sourceIndex];
+            console.warn('[FV_MODAL_SOURCE_SWITCH]', {
+                surface: options.previewBlockId,
+                fromIndex: sourceIndex - 1,
+                toIndex: sourceIndex,
+                nextUrl
+            });
+            previewVideo.src = nextUrl;
+            previewVideo.load();
+            return true;
+        };
+        const tryNextSourceWithFallback = async () => {
+            if (await tryNextSource()) return true;
+            await loadFallbackSources();
+            return tryNextSource();
+        };
         previewVideo.src = videoUrl;
         if (posterUrl) previewVideo.setAttribute('poster', posterUrl);
+        previewVideo.setAttribute('playsinline', '');
         previewVideo.style.display = 'block';
         previewBlock.style.display = 'flex';
         previewVideo.oncontextmenu = (event) => event.preventDefault();
+        previewVideo.onerror = () => {
+            const mediaError = previewVideo.error;
+            console.warn('[FV_MODAL_VIDEO_ERROR]', {
+                surface: options.previewBlockId,
+                sessionId: playbackSessionId,
+                code: mediaError?.code || null,
+                message: mediaError?.message || 'unknown',
+                networkState: previewVideo.networkState,
+                readyState: previewVideo.readyState,
+                currentSrc: previewVideo.currentSrc || videoUrl
+            });
+            void (async () => {
+                if (await tryNextSourceWithFallback()) {
+                    void previewVideo.play().catch(() => {});
+                }
+            })();
+        };
+        previewVideo.onloadedmetadata = () => {
+            console.info('[FV_MODAL_VIDEO_METADATA]', {
+                surface: options.previewBlockId,
+                sessionId: playbackSessionId,
+                duration: Number.isFinite(previewVideo.duration) ? previewVideo.duration : null,
+                width: previewVideo.videoWidth || 0,
+                height: previewVideo.videoHeight || 0
+            });
+        };
+        previewVideo.oncanplay = () => {
+            console.info('[FV_MODAL_VIDEO_CANPLAY]', {
+                surface: options.previewBlockId,
+                sessionId: playbackSessionId,
+                readyState: previewVideo.readyState
+            });
+        };
+        previewVideo.onwaiting = () => {
+            console.info('[FV_MODAL_VIDEO_WAITING]', {
+                surface: options.previewBlockId,
+                sessionId: playbackSessionId,
+                currentTime: previewVideo.currentTime
+            });
+        };
+        previewVideo.onstalled = () => {
+            console.warn('[FV_MODAL_VIDEO_STALLED]', {
+                surface: options.previewBlockId,
+                sessionId: playbackSessionId,
+                currentTime: previewVideo.currentTime
+            });
+        };
+        previewVideo.load();
 
         const syncPlayBtn = () => {
             if (!previewPlayBtn) return;
+            if (previewPlayBtn.dataset.fallbackOpen === '1') return;
             if (previewVideo.paused) {
                 previewPlayBtn.textContent = 'PLAY VIDEO';
                 previewPlayBtn.setAttribute('aria-label', 'Play face verification video');
@@ -3909,10 +4191,37 @@ function updateStatusFacePreview(options = {}) {
             previewPlayBtn.style.display = 'inline-flex';
             previewPlayBtn.onclick = async () => {
                 try {
-                    if (previewVideo.paused) await previewVideo.play();
-                    else previewVideo.pause();
+                    if (previewPlayBtn.dataset.fallbackOpen === '1') {
+                        window.open(previewVideo.currentSrc || videoSources[sourceIndex] || videoUrl, '_blank', 'noopener,noreferrer');
+                        return;
+                    }
+                    if (previewVideo.paused) {
+                        if (previewVideo.readyState < 2) {
+                            previewVideo.load();
+                        }
+                        await previewVideo.play();
+                    } else {
+                        previewVideo.pause();
+                    }
                 } catch (error) {
-                    console.warn('⚠️ Could not toggle FV preview video playback:', error);
+                    console.warn('⚠️ Could not toggle FV preview video playback:', {
+                        surface: options.previewBlockId,
+                        sessionId: playbackSessionId,
+                        errorName: error?.name || 'unknown',
+                        errorMessage: error?.message || String(error),
+                        currentSrc: previewVideo.currentSrc || videoUrl,
+                        readyState: previewVideo.readyState,
+                        networkState: previewVideo.networkState
+                    });
+                    void (async () => {
+                        if (await tryNextSourceWithFallback()) {
+                            void previewVideo.play().catch(() => {});
+                        } else {
+                            previewPlayBtn.dataset.fallbackOpen = '1';
+                            previewPlayBtn.textContent = 'OPEN VIDEO';
+                            previewPlayBtn.setAttribute('aria-label', 'Open face verification video in new tab');
+                        }
+                    })();
                 }
                 syncPlayBtn();
             };
@@ -7734,6 +8043,19 @@ function hideListingOptionsOverlay() {
 // ========================== APPLICATIONS OVERLAY HANDLERS ==========================
 
 async function showApplicationsOverlay(jobData) {
+    const overlay = document.getElementById('applicationsOverlay');
+    if (!overlay) {
+        console.error('Applications overlay element not found');
+        return;
+    }
+    if (overlay.dataset.loadingJobId === String(jobData?.jobId || '')) {
+        console.warn('⚠️ Ignoring duplicate applications overlay open for same job while loading');
+        return;
+    }
+    const requestToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    overlay.dataset.loadingJobId = String(jobData?.jobId || '');
+    overlay.dataset.requestToken = requestToken;
+
     console.log('═══════════════════════════════════════════════════════');
     console.log('📋 OPENING APPLICATIONS OVERLAY');
     console.log('═══════════════════════════════════════════════════════');
@@ -7761,7 +8083,6 @@ async function showApplicationsOverlay(jobData) {
     console.log('Application Count:', jobData.applicationCount || 0);
     console.log('═══════════════════════════════════════════════════════');
     
-    const overlay = document.getElementById('applicationsOverlay');
     const title = document.getElementById('applicationsTitle');
     const subtitle = document.getElementById('applicationsSubtitle');
     const applicationsList = document.getElementById('applicationsList');
@@ -7789,7 +8110,25 @@ async function showApplicationsOverlay(jobData) {
     
     // Get applications for this job
     // Fetch applications (now async)
-    const jobApplications = await getApplicationsForJob(jobData.jobId);
+    let jobApplications = [];
+    try {
+        jobApplications = await getApplicationsForJob(jobData.jobId);
+    } catch (error) {
+        console.error('❌ Failed to load applications for job overlay:', error);
+        applicationsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⚠️</div>
+                <div class="empty-state-title">Could not load applications</div>
+                <div class="empty-state-message">Please close this panel and try again.</div>
+            </div>
+        `;
+        delete overlay.dataset.loadingJobId;
+        return;
+    }
+    if (overlay.dataset.requestToken !== requestToken) {
+        console.warn('⚠️ Ignoring stale applications overlay render (token mismatch)');
+        return;
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // USE ACTUAL COUNT (not stored count which might be wrong)
@@ -7844,6 +8183,7 @@ async function showApplicationsOverlay(jobData) {
     
     // Initialize close button handler
     initializeApplicationsOverlayHandlers();
+    delete overlay.dataset.loadingJobId;
 }
 
 async function getApplicationsForJob(jobId) {
@@ -8326,8 +8666,13 @@ function initializeApplicationActionHandlers() {
     }
     
     // Handle hire button click
-    const handleHireClick = function() {
+    const handleHireClick = async function() {
         console.log('✅ Hire button clicked!');
+        if (overlay.dataset.hireActionInFlight === '1') {
+            console.warn('⚠️ Ignoring duplicate hire click while action is in-flight');
+            return;
+        }
+        overlay.dataset.hireActionInFlight = '1';
         const applicationId = this.getAttribute('data-application-id');
         const userId = this.getAttribute('data-user-id');
         const userName = this.getAttribute('data-user-name');
@@ -8341,6 +8686,7 @@ function initializeApplicationActionHandlers() {
         // Validate data before proceeding
         if (!applicationId || !userId || !userName) {
             console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
+            delete overlay.dataset.hireActionInFlight;
             return;
         }
         
@@ -8368,17 +8714,21 @@ function initializeApplicationActionHandlers() {
         hideApplicationActionOverlay();
         
         // Show hire confirmation overlay with worker details
-        showHireConfirmationOverlay({
-            applicationId,
-            userId,
-            userName,
-            jobId,
-            jobTitle,
-            userRating: parseFloat(userRating) || 0,
-            userPhoto: userPhoto,
-            priceOffer: priceOffer,
-            priceType: priceType
-        });
+        try {
+            await showHireConfirmationOverlay({
+                applicationId,
+                userId,
+                userName,
+                jobId,
+                jobTitle,
+                userRating: parseFloat(userRating) || 0,
+                userPhoto: userPhoto,
+                priceOffer: priceOffer,
+                priceType: priceType
+            });
+        } finally {
+            delete overlay.dataset.hireActionInFlight;
+        }
     };
     
     if (hireBtn) {
@@ -9059,20 +9409,32 @@ async function showHireConfirmationOverlay(workerData) {
         return;
     }
 
+    // Guard against stale async renders when rapid duplicate clicks happen.
+    const renderToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    overlay.dataset.hireRenderToken = renderToken;
+
     // Update worker status using real profile verification when available.
     const workerStatus = await resolveUserAccountStatus(workerData.userId, {
         role: 'worker',
         fallbackRating: workerData.userRating
     });
+    if (overlay.dataset.hireRenderToken !== renderToken) {
+        console.warn('⚠️ Skipping stale hire confirmation render (token mismatch)');
+        return;
+    }
     updateWorkerStatusDisplay(workerStatus);
-    updateStatusFacePreview({
+    await updateStatusFacePreview({
         previewBlockId: 'hireFacePreviewBlock',
         previewImageId: 'hireFacePreviewImage',
         previewVideoId: 'hireFacePreviewVideo',
         previewPlayBtnId: 'hireFacePreviewPlayBtn',
         previewCaptionId: 'hireFacePreviewCaption',
         displayName: workerData.userName || 'Worker',
-        status: workerStatus
+        status: workerStatus,
+        targetUserId: workerData.userId,
+        jobId: workerData.jobId,
+        applicationId: workerData.applicationId,
+        scope: 'jobs'
     });
     overlay.dataset.verificationStatusType = workerStatus?.type || '';
     updateVerificationReminderActions('hire', workerStatus?.type, workerData.userName, workerData.userId);
@@ -9309,8 +9671,9 @@ function hideHireConfirmationOverlay() {
     
     clearVerificationReminderTicker('hire');
     detachHireConfirmationEscHandler();
+    delete overlay.dataset.hireRenderToken;
     overlay.classList.remove('show');
-    updateStatusFacePreview({
+    void updateStatusFacePreview({
         previewBlockId: 'hireFacePreviewBlock',
         previewImageId: 'hireFacePreviewImage',
         previewVideoId: 'hireFacePreviewVideo',

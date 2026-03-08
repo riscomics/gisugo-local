@@ -3,12 +3,20 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
+const { promises: fs } = require("fs");
+const os = require("os");
+const path = require("path");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const ffmpegPath = require("ffmpeg-static");
 
 admin.initializeApp();
 
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
+const execFileAsync = promisify(execFile);
 const FACE_MEDIA_URL_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const FV_NORMALIZER_VERSION = "fv-normalizer-v1";
 const ADMIN_EMAIL_ALLOWLIST = new Set([
   "risco@gisugo.com",
   "riscomics@gmail.com"
@@ -115,6 +123,70 @@ async function resolveFaceVideoPath(userId, seededPaths = []) {
     return VIDEO_FILE_REGEX.test(name);
   });
   return matched?.name || "";
+}
+
+function parseFaceIntroObjectPath(objectName) {
+  const match = String(objectName || "").match(/^face_verification\/([^/]+)\/face_intro\.(mp4|webm|mov|m4v)$/i);
+  if (!match) return null;
+  return {
+    userId: match[1],
+    extension: match[2].toLowerCase()
+  };
+}
+
+function getCanonicalFaceVideoPath(userId) {
+  return `face_verification/${userId}/face_intro.mp4`;
+}
+
+async function deleteStorageObjectIfExists(objectPath) {
+  if (!objectPath) return;
+  try {
+    await bucket.file(objectPath).delete();
+  } catch (error) {
+    const code = Number(error?.code || 0);
+    if (code === 404) return;
+    logger.warn("Could not delete stale FV variant", {
+      path: objectPath,
+      error: String(error)
+    });
+  }
+}
+
+async function transcodeFaceVideoToCanonicalMp4(inputPath, outputPath) {
+  if (!ffmpegPath) {
+    throw new Error("ffmpeg-static binary path unavailable.");
+  }
+  const args = [
+    "-y",
+    "-i",
+    inputPath,
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-profile:v",
+    "main",
+    "-pix_fmt",
+    "yuv420p",
+    "-b:v",
+    "420k",
+    "-maxrate",
+    "520k",
+    "-bufsize",
+    "780k",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "64k",
+    "-ac",
+    "1",
+    "-ar",
+    "44100",
+    "-movflags",
+    "+faststart",
+    outputPath
+  ];
+  await execFileAsync(ffmpegPath, args);
 }
 
 function assertAuditAccess(request) {
@@ -317,12 +389,17 @@ exports.getFaceVerificationMediaAccess = onCall(
     const targetUserId = String(request.data?.targetUserId || "").trim();
     const jobId = String(request.data?.jobId || "").trim();
     const applicationId = String(request.data?.applicationId || "").trim();
+    const scope = String(request.data?.scope || "").trim().toLowerCase();
 
     if (!targetUserId) {
       throw new HttpsError("invalid-argument", "targetUserId is required.");
     }
 
     let allowed = requesterUid === targetUserId; // Owner access
+    // Current app behavior treats Face Verified media as public to authenticated users.
+    if (!allowed && scope === "profile") {
+      allowed = true;
+    }
 
     if (!allowed && jobId) {
       const jobDoc = await db.collection("jobs").doc(jobId).get();
@@ -345,28 +422,33 @@ exports.getFaceVerificationMediaAccess = onCall(
     }
     const profile = userDoc.data() || {};
     const verification = profile.verification || {};
+    const privateDoc = await db.collection("user_private").doc(targetUserId).get();
+    const privateVerification = (privateDoc.exists ? (privateDoc.data() || {}).verification : {}) || {};
 
     if (!verification.faceVerified) {
       throw new HttpsError("failed-precondition", "Target user is not Face Verified.");
     }
 
     const fallbackPosterPath = `face_verification/${targetUserId}/face_poster.jpg`;
-    let posterPath = verification.facePosterPath || fallbackPosterPath;
-    let videoPath = verification.faceVideoPath || "";
+    let posterPath = verification.facePosterPath ||
+      privateVerification.facePosterPath ||
+      parseStoragePathFromDownloadUrl(verification.facePosterUrl) ||
+      parseStoragePathFromDownloadUrl(privateVerification.facePosterUrl) ||
+      fallbackPosterPath;
+    let videoPath = verification.faceVideoPath ||
+      privateVerification.faceVideoPath ||
+      parseStoragePathFromDownloadUrl(verification.faceVideoUrl) ||
+      parseStoragePathFromDownloadUrl(privateVerification.faceVideoUrl) ||
+      "";
 
     if (!videoPath) {
-      const candidateVideoPaths = [
+      const seededPaths = [
+        `face_verification/${targetUserId}/face_intro.mp4`,
         `face_verification/${targetUserId}/face_intro.webm`,
-        `face_verification/${targetUserId}/face_intro.mp4`
+        `face_verification/${targetUserId}/face_intro.mov`,
+        `face_verification/${targetUserId}/face_intro.m4v`
       ];
-      for (const candidate of candidateVideoPaths) {
-        // eslint-disable-next-line no-await-in-loop
-        const [exists] = await bucket.file(candidate).exists();
-        if (exists) {
-          videoPath = candidate;
-          break;
-        }
-      }
+      videoPath = await resolveFaceVideoPath(targetUserId, seededPaths);
     }
     if (!videoPath) {
       throw new HttpsError("failed-precondition", "Face Verification video path is missing.");
@@ -376,7 +458,7 @@ exports.getFaceVerificationMediaAccess = onCall(
     const expiresAt = new Date(expiresAtMs);
 
     let videoUrl = "";
-    let posterUrl = verification.facePosterUrl || "";
+    let posterUrl = verification.facePosterUrl || privateVerification.facePosterUrl || "";
     const profilePatch = {};
 
     try {
@@ -414,6 +496,9 @@ exports.getFaceVerificationMediaAccess = onCall(
     if (Object.keys(profilePatch).length > 0) {
       try {
         await db.collection("users").doc(targetUserId).set(profilePatch, { merge: true });
+        if (privateDoc.exists) {
+          await db.collection("user_private").doc(targetUserId).set(profilePatch, { merge: true });
+        }
       } catch (error) {
         logger.warn("FV profile patch skipped", { targetUserId, error: String(error) });
       }
@@ -475,8 +560,8 @@ exports.auditAndRepairFaceVerification = onCall(
 
       if (!videoPath) {
         videoPath = await resolveFaceVideoPath(userId, [
-          `face_verification/${userId}/face_intro.webm`,
-          `face_verification/${userId}/face_intro.mp4`
+          `face_verification/${userId}/face_intro.mp4`,
+          `face_verification/${userId}/face_intro.webm`
         ]);
       }
 
@@ -542,6 +627,121 @@ exports.auditAndRepairFaceVerification = onCall(
       healthy,
       samples
     };
+  }
+);
+
+exports.normalizeFaceVerificationVideo = onCall(
+  { region: "us-central1", timeoutSeconds: 180, memory: "1GiB", cors: true },
+  async (request) => {
+    const requesterUid = request.auth?.uid || "";
+    if (!requesterUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const targetUserId = String(request.data?.targetUserId || requesterUid).trim();
+    if (!targetUserId) {
+      throw new HttpsError("invalid-argument", "targetUserId is required.");
+    }
+    if (targetUserId !== requesterUid) {
+      throw new HttpsError("permission-denied", "Cannot normalize another user's Face Verification.");
+    }
+
+    const userDoc = await db.collection("users").doc(targetUserId).get();
+    if (!userDoc.exists) {
+      throw new HttpsError("not-found", "Target profile not found.");
+    }
+    const profile = userDoc.data() || {};
+    const verification = profile.verification || {};
+    if (!verification.faceVerified) {
+      throw new HttpsError("failed-precondition", "Target user is not Face Verified.");
+    }
+    const privateDoc = await db.collection("user_private").doc(targetUserId).get();
+    const privateVerification = (privateDoc.exists ? (privateDoc.data() || {}).verification : {}) || {};
+
+    let sourcePath = String(request.data?.sourcePath || "").trim();
+    if (!sourcePath) {
+      sourcePath = verification.faceVideoPath ||
+        privateVerification.faceVideoPath ||
+        parseStoragePathFromDownloadUrl(verification.faceVideoUrl) ||
+        parseStoragePathFromDownloadUrl(privateVerification.faceVideoUrl) ||
+        "";
+    }
+    if (!sourcePath) {
+      sourcePath = await resolveFaceVideoPath(targetUserId, [
+        `face_verification/${targetUserId}/face_intro.mp4`,
+        `face_verification/${targetUserId}/face_intro.webm`,
+        `face_verification/${targetUserId}/face_intro.mov`,
+        `face_verification/${targetUserId}/face_intro.m4v`
+      ]);
+    }
+    if (!sourcePath) {
+      throw new HttpsError("failed-precondition", "Face Verification source video not found.");
+    }
+
+    const canonicalPath = getCanonicalFaceVideoPath(targetUserId);
+    const unique = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const tempInputPath = path.join(os.tmpdir(), `fv-src-${unique}-${path.basename(sourcePath)}`);
+    const tempOutputPath = path.join(os.tmpdir(), `fv-out-${unique}.mp4`);
+
+    try {
+      await bucket.file(sourcePath).download({ destination: tempInputPath });
+      await transcodeFaceVideoToCanonicalMp4(tempInputPath, tempOutputPath);
+
+      await bucket.upload(tempOutputPath, {
+        destination: canonicalPath,
+        metadata: {
+          contentType: "video/mp4",
+          cacheControl: "public,max-age=86400",
+          metadata: {
+            normalizedBy: FV_NORMALIZER_VERSION,
+            normalizedAt: new Date().toISOString(),
+            sourcePath,
+            sourceContentType: "video/*"
+          }
+        }
+      });
+
+      const staleVariants = [
+        `face_verification/${targetUserId}/face_intro.webm`,
+        `face_verification/${targetUserId}/face_intro.mov`,
+        `face_verification/${targetUserId}/face_intro.m4v`
+      ];
+      await Promise.all(staleVariants.map((variantPath) => deleteStorageObjectIfExists(variantPath)));
+
+      const canonicalUrl = await ensureDownloadUrlForPath(canonicalPath);
+      const patch = {
+        "verification.faceVerified": true,
+        "verification.status": "face_verified",
+        "verification.faceVideoPath": canonicalPath,
+        "verification.faceVideoUrl": canonicalUrl
+      };
+      await db.collection("users").doc(targetUserId).set(patch, { merge: true });
+      await db.collection("user_private").doc(targetUserId).set(patch, { merge: true });
+
+      logger.info("FV normalization complete", {
+        userId: targetUserId,
+        sourcePath,
+        canonicalPath,
+        canonicalUrlSet: !!canonicalUrl
+      });
+      return {
+        ok: true,
+        canonicalPath,
+        canonicalUrl
+      };
+    } catch (error) {
+      logger.error("FV normalization failed", {
+        userId: targetUserId,
+        sourcePath,
+        error: String(error)
+      });
+      throw new HttpsError("internal", "Failed to normalize Face Verification video.");
+    } finally {
+      await Promise.allSettled([
+        fs.rm(tempInputPath, { force: true }),
+        fs.rm(tempOutputPath, { force: true })
+      ]);
+    }
   }
 );
 
