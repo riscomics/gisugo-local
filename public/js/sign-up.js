@@ -1193,7 +1193,7 @@ async function handleFormSubmission(event) {
       if (result.requiresEmailVerification) {
         hideLoadingOverlay();
         clearError('email');
-        setSubmitError(result.message || 'Account created. Please verify your email before continuing.');
+        setSubmitError(result.message || 'Account created. Please verify your email before continuing. If you do not see it, check Spam/Junk and mark it as Not Spam.');
         return;
       }
       

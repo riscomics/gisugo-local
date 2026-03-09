@@ -155,7 +155,7 @@ async function signUpWithEmail(email, password, profileData = {}) {
       success: true,
       user: user,
       requiresEmailVerification: true,
-      message: 'Account created. Please verify your email before continuing.'
+      message: 'Account created. Please verify your email before continuing. If you do not see the message, check Spam/Junk and mark it as Not Spam.'
     };
     
   } catch (error) {
@@ -273,7 +273,7 @@ async function loginWithEmail(email, password) {
       return {
         success: false,
         code: 'EMAIL_NOT_VERIFIED',
-        message: 'Please verify your email first. We sent a verification link to your inbox.'
+        message: 'Please verify your email first. We sent a verification link to your inbox. If you do not see it, check Spam/Junk and mark it as Not Spam.'
       };
     }
     
