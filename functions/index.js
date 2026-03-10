@@ -1,5 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -27,6 +28,66 @@ const SIGNUP_RATE_BLOCK_MS = 15 * 60 * 1000; // 15 minutes
 const SIGNUP_RATE_MAX_PER_IP = 25;
 const SIGNUP_RATE_MAX_PER_IP_DEVICE = 8;
 const ALERT_RETENTION_DAYS = 50;
+
+function inferNotificationRoleForCounter(notification = {}) {
+  const explicitRole = String(notification.role || notification.recipientRole || "").toLowerCase();
+  if (explicitRole === "worker" || explicitRole === "customer") return explicitRole;
+
+  const type = String(notification.type || notification.notificationType || "").toLowerCase();
+  const workerTypes = new Set([
+    "offer_sent",
+    "job_completed",
+    "feedback_received",
+    "contract_voided",
+    "application_not_selected_batch",
+    "application_rejected_batch"
+  ]);
+  const customerTypes = new Set([
+    "application_received",
+    "application_milestone",
+    "gig_auto_paused",
+    "offer_accepted",
+    "offer_rejected",
+    "worker_resigned",
+    "worker_feedback_received"
+  ]);
+
+  if (workerTypes.has(type)) return "worker";
+  if (customerTypes.has(type)) return "customer";
+  return "worker";
+}
+
+async function recomputeNotificationCountersForUser(userId) {
+  const safeUserId = String(userId || "").trim();
+  if (!safeUserId) return;
+
+  const unreadSnapshot = await db
+    .collection("notifications")
+    .where("recipientId", "==", safeUserId)
+    .where("read", "==", false)
+    .get();
+
+  const counters = {
+    workerUnread: 0,
+    customerUnread: 0,
+    totalUnread: 0
+  };
+
+  unreadSnapshot.docs.forEach((doc) => {
+    const notification = doc.data() || {};
+    const role = inferNotificationRoleForCounter(notification);
+    counters.totalUnread += 1;
+    if (role === "worker") counters.workerUnread += 1;
+    if (role === "customer") counters.customerUnread += 1;
+  });
+
+  await db.collection("users").doc(safeUserId).set({
+    notificationCounters: {
+      ...counters,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }
+  }, { merge: true });
+}
 
 function hasJobCounterpartyAccess(job, requesterUid, targetUserId) {
   if (!job || !requesterUid || !targetUserId) return false;
@@ -783,5 +844,32 @@ exports.cleanupOldReadNotifications = onSchedule(
       retentionDays: ALERT_RETENTION_DAYS,
       deleted: totalDeleted
     });
+  }
+);
+
+exports.syncNotificationCountersOnWrite = onDocumentWritten(
+  { document: "notifications/{notificationId}", region: "us-central1" },
+  async (event) => {
+    const before = event.data?.before?.exists ? (event.data.before.data() || {}) : null;
+    const after = event.data?.after?.exists ? (event.data.after.data() || {}) : null;
+
+    const recipientCandidates = new Set([
+      String(before?.recipientId || "").trim(),
+      String(after?.recipientId || "").trim()
+    ]);
+    const recipientIds = Array.from(recipientCandidates).filter(Boolean);
+    if (!recipientIds.length) return;
+
+    await Promise.all(recipientIds.map(async (userId) => {
+      try {
+        await recomputeNotificationCountersForUser(userId);
+      } catch (error) {
+        logger.error("Notification counter sync failed", {
+          userId,
+          notificationId: event.params?.notificationId || "",
+          error: String(error)
+        });
+      }
+    }));
   }
 );

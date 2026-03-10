@@ -350,6 +350,10 @@ section {
   font-size: clamp(1.6rem, 6vw, 2.4rem);
   line-height: 1;
   transition: filter 0.2s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .home-menu-card-label {
@@ -1252,6 +1256,7 @@ section {
   margin-right: clamp(8px, 2vw, 12px);
   transition: all 0.3s ease;
   animation: menuButtonPulse 2.5s ease-out infinite;
+  position: relative;
 }
 
 @keyframes menuButtonPulse {
@@ -1303,6 +1308,55 @@ section {
   color: var(--text-secondary);
   line-height: 1;
   font-weight: 500;
+}
+
+.header-menu-unread-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
+  pointer-events: none;
+  animation: menuBadgeColorPulse 2.4s ease-in-out infinite;
+}
+
+.home-menu-messages-badge {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  vertical-align: middle;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.45);
+  animation: menuBadgeColorPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes menuBadgeColorPulse {
+  0%, 100% { background: #ef4444; }
+  50% { background: #f59e0b; }
 }
 
 /* Header wrapper - Dark Theme */

@@ -28,6 +28,71 @@ const HEADER_CLEANUP_REGISTRY = {
     cleanupFunctions: new Set()
 };
 
+const HEADER_NOTIFICATION_COUNTER_STATE = {
+    workerUnread: 0,
+    customerUnread: 0,
+    totalUnread: 0
+};
+let headerCounterBridgeAttached = false;
+let headerCounterBridgeHandler = null;
+const HEADER_BADGE_PULSE_STYLE_ID = 'uniform-menu-badge-pulse-style';
+
+function ensureHeaderBadgePulseStyles() {
+    if (document.getElementById(HEADER_BADGE_PULSE_STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = HEADER_BADGE_PULSE_STYLE_ID;
+    style.textContent = `
+      .uniform-menu-unread-badge { animation: menuBadgeColorPulse 2.4s ease-in-out infinite; }
+      @keyframes menuBadgeColorPulse {
+        0%, 100% { background: #ef4444; }
+        50% { background: #f59e0b; }
+      }
+    `;
+    (document.head || document.documentElement).appendChild(style);
+}
+
+function formatHeaderUnreadCount(totalUnread) {
+    const safe = Math.max(0, Number(totalUnread) || 0);
+    return safe > 99 ? '99+' : String(safe);
+}
+
+function updateHeaderMenuBadge(totalUnread) {
+    const menuBtn = document.querySelector('.uniform-header-btn.menu');
+    if (!menuBtn) return;
+    let badge = menuBtn.querySelector('.uniform-menu-unread-badge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'uniform-menu-unread-badge';
+        menuBtn.appendChild(badge);
+    }
+    const safe = Math.max(0, Number(totalUnread) || 0);
+    badge.textContent = formatHeaderUnreadCount(safe);
+    badge.style.display = safe > 0 ? 'inline-flex' : 'none';
+}
+
+function initializeHeaderNotificationBadge() {
+    updateHeaderMenuBadge(HEADER_NOTIFICATION_COUNTER_STATE.totalUnread);
+}
+
+function initializeHeaderCounterBridge() {
+    if (headerCounterBridgeAttached && headerCounterBridgeHandler) return;
+    const handler = (event) => {
+        const detail = event?.detail || {};
+        HEADER_NOTIFICATION_COUNTER_STATE.workerUnread = Math.max(0, Number(detail.workerUnread) || 0);
+        HEADER_NOTIFICATION_COUNTER_STATE.customerUnread = Math.max(0, Number(detail.customerUnread) || 0);
+        HEADER_NOTIFICATION_COUNTER_STATE.totalUnread = Math.max(0, Number(detail.totalUnread) || 0);
+        updateHeaderMenuBadge(HEADER_NOTIFICATION_COUNTER_STATE.totalUnread);
+    };
+    headerCounterBridgeHandler = handler;
+    headerCounterBridgeAttached = true;
+    document.addEventListener('gisugo:notification-counter-update', handler);
+    registerHeaderCleanup('function', 'notificationCounterBridge', () => {
+        document.removeEventListener('gisugo:notification-counter-update', handler);
+        headerCounterBridgeAttached = false;
+        headerCounterBridgeHandler = null;
+    });
+}
+
 // Memory leak prevention: Enhanced cleanup utility
 function registerHeaderCleanup(type, key, cleanupFn) {
     if (type === 'function') {
@@ -106,6 +171,7 @@ function initializeUniformHeader(options = {}) {
     };
 
     console.log('🔧 Initializing Universal Header System...');
+    ensureHeaderBadgePulseStyles();
 
     // Set title if provided
     if (config.pageTitle) {
@@ -174,6 +240,7 @@ function initializeUniformMenu(config) {
         });
 
         console.log('✅ Menu button initialized');
+        initializeHeaderNotificationBadge();
     }
 
     // Add overlay click handler (close when clicking outside)
@@ -212,6 +279,7 @@ function initializeUniformMenu(config) {
     registerHeaderCleanup('function', 'menuEscapeHandler', () => {
         document.removeEventListener('keydown', escapeHandler);
     });
+    initializeHeaderCounterBridge();
 }
 
 // ===== MENU ITEMS INITIALIZATION =====

@@ -521,6 +521,14 @@ function setTabNotificationCount(tabSelector, count) {
     countElement.style.display = safeCount > 0 ? 'block' : 'none';
 }
 
+function setRoleNotificationCount(roleSelector, count) {
+    const countElement = document.querySelector(`${roleSelector} .role-notification-count`);
+    if (!countElement) return;
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    countElement.textContent = safeCount > 99 ? '99+' : String(safeCount);
+    countElement.style.display = safeCount > 0 ? 'inline-flex' : 'none';
+}
+
 function filterNotificationsForAlertRole(notifications, role) {
     const source = Array.isArray(notifications) ? notifications : [];
     const allowedTypes = role === 'worker' ? WORKER_ALERT_TYPES : CUSTOMER_ALERT_TYPES;
@@ -537,6 +545,8 @@ function updateAlertTabBadgeCounts(notifications) {
     const customerUnread = customerNotifications.filter((n) => !n.read).length;
     setTabNotificationCount('#workerAlertsTab', workerUnread);
     setTabNotificationCount('#customerAlertsTab', customerUnread);
+    setRoleNotificationCount('#workerRoleTab', workerUnread);
+    setRoleNotificationCount('#customerRoleTab', customerUnread);
 }
 
 function resetTabBadgeCounts() {
@@ -546,6 +556,8 @@ function resetTabBadgeCounts() {
     setTabNotificationCount('#customerInterviewsTab', 0);
     setTabNotificationCount('#unifiedMessagesTab', 0);
     setTabNotificationCount('#unifiedMessagesTabWorker', 0);
+    setRoleNotificationCount('#workerRoleTab', 0);
+    setRoleNotificationCount('#customerRoleTab', 0);
 }
 
 const ALERTS_STREAM_STATE = {
@@ -1133,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', function() {
     resetTabBadgeCounts();
     initializeAlertsLanguageTabs();
     initializeAlertsInfiniteScroll();
+    void flushPendingNotificationReads();
     
     // Initialize default role (worker) and tab (worker-alerts)
     initializeWorkerAlertsTab();
@@ -2027,7 +2040,7 @@ function initializeNotifications() {
             const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
             
             // Mark notification as read when any action button is clicked
-            markNotificationAsRead(notificationItem);
+            void markNotificationAsRead(notificationItem);
             
             // Handle different action types
             switch(btnText) {
@@ -2081,7 +2094,7 @@ function initializeNotifications() {
                 console.log('Toggled selection for notification');
             } else {
                 // Normal click - mark as read only if not in selection mode
-                markNotificationAsRead(this);
+                void markNotificationAsRead(this);
                 void handleNotificationTypeNavigation(this);
             }
         };
@@ -2219,8 +2232,60 @@ function updateNotificationCount(count) {
     }
 } 
 
+const PENDING_NOTIFICATION_READS_KEY = 'gisugo_pending_notification_reads';
+
+function getPendingNotificationReadIds() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(PENDING_NOTIFICATION_READS_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (error) {
+        console.warn('⚠️ Could not parse pending notification reads:', error);
+        return [];
+    }
+}
+
+function setPendingNotificationReadIds(ids) {
+    const unique = Array.from(new Set((Array.isArray(ids) ? ids : []).map((id) => String(id || '').trim()).filter(Boolean)));
+    localStorage.setItem(PENDING_NOTIFICATION_READS_KEY, JSON.stringify(unique));
+}
+
+function queuePendingNotificationRead(notificationId) {
+    const id = String(notificationId || '').trim();
+    if (!id) return;
+    const pending = getPendingNotificationReadIds();
+    if (pending.includes(id)) return;
+    pending.push(id);
+    setPendingNotificationReadIds(pending);
+}
+
+function dequeuePendingNotificationRead(notificationId) {
+    const id = String(notificationId || '').trim();
+    if (!id) return;
+    const pending = getPendingNotificationReadIds().filter((item) => item !== id);
+    setPendingNotificationReadIds(pending);
+}
+
+async function flushPendingNotificationReads() {
+    if (typeof markNotificationRead !== 'function') return;
+    const pending = getPendingNotificationReadIds();
+    if (!pending.length) return;
+    for (const notificationId of pending) {
+        try {
+            await markNotificationRead(notificationId);
+            dequeuePendingNotificationRead(notificationId);
+        } catch (error) {
+            console.warn('⚠️ Pending notification read flush failed:', notificationId, error);
+        }
+    }
+}
+
 // Mark notification as read functionality
-async function markNotificationAsRead(notificationItem) {
+async function markNotificationAsRead(notificationItem, options = {}) {
+    const {
+        waitForPersistence = false,
+        persistTimeoutMs = 1200
+    } = options || {};
+
     if (!notificationItem.classList.contains('read')) {
         notificationItem.classList.add('read');
         
@@ -2236,13 +2301,29 @@ async function markNotificationAsRead(notificationItem) {
         // Update Firebase
         const notificationId = notificationItem.dataset.notificationId;
         if (notificationId && typeof markNotificationRead === 'function') {
-            try {
-                await markNotificationRead(notificationId);
-                // Update data attribute to reflect persisted state
+            queuePendingNotificationRead(notificationId);
+            const persistPromise = markNotificationRead(notificationId).then(() => {
+                dequeuePendingNotificationRead(notificationId);
                 notificationItem.dataset.read = 'true';
                 console.log('✅ Notification marked as read in Firebase:', notificationId);
-            } catch (error) {
+                return true;
+            }).catch((error) => {
                 console.error('❌ Error marking notification as read:', error);
+                return false;
+            });
+            try {
+                if (waitForPersistence) {
+                    await Promise.race([
+                        persistPromise,
+                        new Promise((resolve) => {
+                            setTimeout(() => resolve(false), Math.max(300, Number(persistTimeoutMs) || 1200));
+                        })
+                    ]);
+                } else {
+                    void persistPromise;
+                }
+            } catch (_error) {
+                // no-op; optimistic UI remains and pending queue will retry on next page load
             }
         }
         

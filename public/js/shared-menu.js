@@ -13,7 +13,7 @@ const MENU_ITEMS = [
   { emoji: '📬', text: 'Contact',      link: 'contacts.html',  requiresAuth: false, color: 'pink'   },
 ];
 
-const SHARED_MENU_CSS_HREF = 'public/css/shared-menu.css?v=3.2';
+const SHARED_MENU_CSS_HREF = 'public/css/shared-menu.css?v=3.6';
 const LOGOUT_RETRY_DELAY_MS = 250;
 const LOGOUT_MAX_RETRIES = 20;
 const SHARED_MENU_DEPENDENCY_SCRIPTS = [
@@ -28,9 +28,19 @@ const SHARED_MENU_DEPENDENCY_SCRIPTS = [
     src: 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js'
   },
   {
+    key: 'firebase-firestore-compat',
+    match: 'firebase-firestore-compat.js',
+    src: 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js'
+  },
+  {
     key: 'firebase-config',
     match: 'public/js/firebase-config.js',
     src: 'public/js/firebase-config.js'
+  },
+  {
+    key: 'firebase-db',
+    match: 'public/js/firebase-db.js',
+    src: 'public/js/firebase-db.js?v=21'
   },
   {
     key: 'firebase-auth-helper',
@@ -44,6 +54,7 @@ const SHARED_MENU_DEPENDENCY_SCRIPTS = [
   }
 ];
 const _scriptLoadPromises = new Map();
+const SHARED_MENU_BADGE_PULSE_STYLE_ID = 'shared-menu-badge-pulse-style';
 
 function checkUserLoggedIn() {
   if (typeof APP_CONFIG !== 'undefined' && !APP_CONFIG.requireAuth()) return true;
@@ -52,8 +63,17 @@ function checkUserLoggedIn() {
 }
 
 function ensureSharedMenuStylesheetLoaded() {
-  const hasSharedMenuCss = !!document.querySelector('link[href*="shared-menu.css"]');
-  if (hasSharedMenuCss) return;
+  const existingLinks = Array.from(document.querySelectorAll('link[href*="shared-menu.css"]'));
+  if (existingLinks.length > 0) {
+    existingLinks.forEach((link) => {
+      const href = link.getAttribute('href') || '';
+      const baseHref = href.split('?')[0];
+      if (baseHref.includes('shared-menu.css')) {
+        link.setAttribute('href', SHARED_MENU_CSS_HREF);
+      }
+    });
+    return;
+  }
 
   const head = document.head || document.querySelector('head');
   if (!head) return;
@@ -63,6 +83,25 @@ function ensureSharedMenuStylesheetLoaded() {
   link.href = SHARED_MENU_CSS_HREF;
   head.appendChild(link);
   console.warn('Shared Menu: shared-menu.css was missing, injected dynamically');
+}
+
+function ensureSharedMenuBadgePulseStyles() {
+  if (document.getElementById(SHARED_MENU_BADGE_PULSE_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = SHARED_MENU_BADGE_PULSE_STYLE_ID;
+  style.textContent = `
+    .shared-menu-messages-badge,
+    .jobcat-menu-unread-badge,
+    .header-menu-unread-badge,
+    .uniform-menu-unread-badge {
+      animation: menuBadgeColorPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes menuBadgeColorPulse {
+      0%, 100% { background: #ef4444; }
+      50% { background: #f59e0b; }
+    }
+  `;
+  (document.head || document.documentElement).appendChild(style);
 }
 
 function isScriptPresent(match) {
@@ -188,10 +227,14 @@ function handleMenuClick(link, requiresAuth) {
 
 // Build a single card element string
 function buildCard(emoji, text, link, color, requiresAuth) {
+  const hasUnreadBadge = String(text).toLowerCase() === 'messages';
+  const badgeHtml = hasUnreadBadge
+    ? '<span class="shared-menu-messages-badge" style="display:none;">0</span>'
+    : '';
   return `<a class="home-menu-card" href="${link}"
               data-color="${color}"
               onclick="sharedMenuNavigate(event,'${link}',${requiresAuth})">
-    <span class="home-menu-card-icon">${emoji}</span>
+    <span class="home-menu-card-icon">${emoji}${badgeHtml}</span>
     <span class="home-menu-card-label">${text}</span>
   </a>`;
 }
@@ -207,6 +250,92 @@ function generateMenuHTML() {
 
 // Module-level reference so we can unsubscribe before re-subscribing
 let _logoutAuthUnsub = null;
+let _menuUnreadAuthUnsub = null;
+let _menuUnreadCounterUnsub = null;
+let _menuUnreadInitTimer = null;
+let _menuCounterState = { workerUnread: 0, customerUnread: 0, totalUnread: 0 };
+
+function formatMenuUnreadCount(totalUnread) {
+  const safe = Math.max(0, Number(totalUnread) || 0);
+  return safe > 99 ? '99+' : String(safe);
+}
+
+function applyMenuUnreadBadge(totalUnread) {
+  const safe = Math.max(0, Number(totalUnread) || 0);
+  const badges = document.querySelectorAll('.shared-menu-messages-badge');
+  badges.forEach((badge) => {
+    badge.textContent = formatMenuUnreadCount(safe);
+    badge.style.display = safe > 0 ? 'inline-flex' : 'none';
+  });
+
+  // Support listing/job-detail menu icon badges on pages without header-uniform.js.
+  const menuButtons = document.querySelectorAll('.jobcat-menu-btn');
+  menuButtons.forEach((menuBtn) => {
+    let iconBadge = menuBtn.querySelector('.jobcat-menu-unread-badge');
+    if (!iconBadge) {
+      iconBadge = document.createElement('span');
+      iconBadge.className = 'jobcat-menu-unread-badge';
+      menuBtn.appendChild(iconBadge);
+    }
+    iconBadge.textContent = formatMenuUnreadCount(safe);
+    iconBadge.style.display = safe > 0 ? 'inline-flex' : 'none';
+  });
+}
+
+function publishMenuCounterUpdate() {
+  const detail = {
+    workerUnread: Math.max(0, Number(_menuCounterState.workerUnread) || 0),
+    customerUnread: Math.max(0, Number(_menuCounterState.customerUnread) || 0),
+    totalUnread: Math.max(0, Number(_menuCounterState.totalUnread) || 0)
+  };
+  applyMenuUnreadBadge(detail.totalUnread);
+  document.dispatchEvent(new CustomEvent('gisugo:notification-counter-update', { detail }));
+}
+
+function stopMenuUnreadCounterListeners() {
+  if (_menuUnreadCounterUnsub) {
+    _menuUnreadCounterUnsub();
+    _menuUnreadCounterUnsub = null;
+  }
+  if (_menuUnreadAuthUnsub) {
+    _menuUnreadAuthUnsub();
+    _menuUnreadAuthUnsub = null;
+  }
+  if (_menuUnreadInitTimer) {
+    clearTimeout(_menuUnreadInitTimer);
+    _menuUnreadInitTimer = null;
+  }
+}
+
+function startMenuUnreadCounterListeners(retry = 0) {
+  if (typeof firebase === 'undefined' || !firebase.auth || typeof subscribeToUnreadNotificationCounters !== 'function') {
+    if (retry < 120) {
+      _menuUnreadInitTimer = setTimeout(() => startMenuUnreadCounterListeners(retry + 1), 500);
+    }
+    return;
+  }
+  if (_menuUnreadAuthUnsub) return;
+
+  _menuUnreadAuthUnsub = firebase.auth().onAuthStateChanged((user) => {
+    if (_menuUnreadCounterUnsub) {
+      _menuUnreadCounterUnsub();
+      _menuUnreadCounterUnsub = null;
+    }
+    if (!user) {
+      _menuCounterState = { workerUnread: 0, customerUnread: 0, totalUnread: 0 };
+      publishMenuCounterUpdate();
+      return;
+    }
+    _menuUnreadCounterUnsub = subscribeToUnreadNotificationCounters(user, (counters) => {
+      _menuCounterState = {
+        workerUnread: Math.max(0, Number(counters?.workerUnread) || 0),
+        customerUnread: Math.max(0, Number(counters?.customerUnread) || 0),
+        totalUnread: Math.max(0, Number(counters?.totalUnread) || 0)
+      };
+      publishMenuCounterUpdate();
+    });
+  });
+}
 
 // Append logout row for logged-in users
 function appendLogoutIfNeeded(container) {
@@ -272,6 +401,7 @@ function populateContainer(container) {
   if (!container) return;
   container.innerHTML = generateMenuHTML();
   appendLogoutWithRetry(container);
+  applyMenuUnreadBadge(_menuCounterState.totalUnread);
 }
 
 // ── Initialize: detect which page type we're on ──────────────────────────────
@@ -315,6 +445,7 @@ let sharedMenuInitInProgress = false;
 function autoInitSharedMenu() {
   if (sharedMenuInitialized || sharedMenuInitInProgress) return;
   sharedMenuInitInProgress = true;
+  ensureSharedMenuBadgePulseStyles();
   ensureSharedMenuStylesheetLoaded();
   bootstrapSharedMenuDependencies()
     .catch((error) => {
@@ -322,6 +453,7 @@ function autoInitSharedMenu() {
     })
     .finally(() => {
       initializeSharedMenu();
+      startMenuUnreadCounterListeners();
       sharedMenuInitialized = true;
       sharedMenuInitInProgress = false;
     });
@@ -342,6 +474,7 @@ window.addEventListener('pagehide', () => {
     _logoutAuthUnsub();
     _logoutAuthUnsub = null;
   }
+  stopMenuUnreadCounterListeners();
 });
 
 window.SharedMenuController = {

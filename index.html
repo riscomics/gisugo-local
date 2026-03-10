@@ -6,7 +6,7 @@
     <meta name="description" content="GISUGO - A marketplace for searching and posting jobs in your local neighborhood">
     <meta name="keywords" content="local service, gig economy, marketplace, jobs, services">
     <title>GISUGO - Local Service Marketplace</title>
-    <link rel="stylesheet" href="public/css/home.css?v=5.1">
+    <link rel="stylesheet" href="public/css/home.css?v=5.4">
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <style>
       /* Loading Animation for Menu */
@@ -647,7 +647,85 @@
       
       // Update menu visibility based on login status
       let authUnsubscribe = null; // Store unsubscribe function to prevent memory leak
+      let homeCounterAuthUnsubscribe = null;
+      let homeCounterDocUnsubscribe = null;
+      let homeUnreadCountCache = 0;
       let isNavigatingAway = false; // Track if user is navigating to another page
+
+      function formatHomeUnreadCount(totalUnread) {
+        const safe = Math.max(0, Number(totalUnread) || 0);
+        return safe > 99 ? '99+' : String(safe);
+      }
+
+      function updateHomeHeaderMenuBadge(totalUnread) {
+        const menuBtn = document.querySelector('.header__menu');
+        if (!menuBtn) return;
+        let badge = menuBtn.querySelector('.header-menu-unread-badge');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'header-menu-unread-badge';
+          badge.style.display = 'none';
+          menuBtn.appendChild(badge);
+        }
+        const safe = Math.max(0, Number(totalUnread) || 0);
+        badge.textContent = formatHomeUnreadCount(safe);
+        badge.style.display = safe > 0 ? 'inline-flex' : 'none';
+      }
+
+      function updateHomeOverlayMessagesBadge(totalUnread) {
+        const menuList = document.getElementById('homeMenuList');
+        if (!menuList) return;
+        const messagesIcon = menuList.querySelector('a[href="messages.html"] .home-menu-card-icon');
+        if (!messagesIcon) return;
+        let badge = messagesIcon.querySelector('.home-menu-messages-badge');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'home-menu-messages-badge';
+          badge.style.display = 'none';
+          messagesIcon.appendChild(badge);
+        }
+        const safe = Math.max(0, Number(totalUnread) || 0);
+        badge.textContent = formatHomeUnreadCount(safe);
+        badge.style.display = safe > 0 ? 'inline-flex' : 'none';
+      }
+
+      function applyHomeUnreadBadges(totalUnread) {
+        homeUnreadCountCache = Math.max(0, Number(totalUnread) || 0);
+        updateHomeHeaderMenuBadge(homeUnreadCountCache);
+        updateHomeOverlayMessagesBadge(homeUnreadCountCache);
+      }
+
+      function startHomeCounterListener() {
+        if (typeof firebase === 'undefined' || !firebase.auth) return;
+        if (homeCounterAuthUnsubscribe) return;
+        homeCounterAuthUnsubscribe = firebase.auth().onAuthStateChanged((user) => {
+          if (homeCounterDocUnsubscribe) {
+            homeCounterDocUnsubscribe();
+            homeCounterDocUnsubscribe = null;
+          }
+          if (!user) {
+            applyHomeUnreadBadges(0);
+            return;
+          }
+          if (typeof subscribeToUnreadNotificationCounters === 'function') {
+            homeCounterDocUnsubscribe = subscribeToUnreadNotificationCounters(user, (counters) => {
+              applyHomeUnreadBadges(counters?.totalUnread || 0);
+            });
+            return;
+          }
+          const db = firebase.firestore ? firebase.firestore() : null;
+          if (!db) {
+            applyHomeUnreadBadges(0);
+            return;
+          }
+          homeCounterDocUnsubscribe = db.collection('users').doc(user.uid).onSnapshot((snap) => {
+            const total = Number(snap.exists ? snap.data()?.notificationCounters?.totalUnread : 0) || 0;
+            applyHomeUnreadBadges(total);
+          }, () => {
+            applyHomeUnreadBadges(0);
+          });
+        });
+      }
       
       // Detect when user clicks links to navigate away
       document.addEventListener('click', function(e) {
@@ -659,6 +737,7 @@
       }, true);
       
       document.addEventListener('DOMContentLoaded', function() {
+        applyHomeUnreadBadges(homeUnreadCountCache);
 
         // ── Instant menu render from cache ──────────────────────────────
         // Firebase stores the auth token in localStorage under this key.
@@ -702,6 +781,7 @@
             // Now update menu with confirmed auth state
             updateHomeMenu(!!user);
           });
+          startHomeCounterListener();
         } else {
           // Firebase not available - show logged out state
           console.warn('⚠️ Firebase not available');
@@ -713,6 +793,12 @@
       window.addEventListener('beforeunload', function() {
         if (authUnsubscribe) {
           authUnsubscribe();
+        }
+        if (homeCounterDocUnsubscribe) {
+          homeCounterDocUnsubscribe();
+        }
+        if (homeCounterAuthUnsubscribe) {
+          homeCounterAuthUnsubscribe();
         }
       });
       
@@ -732,8 +818,12 @@
         
         // Helper to build a nav card
         function navCard(emoji, label, href, color) {
+          const hasUnreadBadge = String(label).toLowerCase() === 'messages';
+          const badgeHtml = hasUnreadBadge
+            ? '<span class="home-menu-messages-badge" style="display:none;">0</span>'
+            : '';
           return `<a class="home-menu-card" href="${href}" data-color="${color}">
-            <span class="home-menu-card-icon">${emoji}</span>
+            <span class="home-menu-card-icon">${emoji}${badgeHtml}</span>
             <span class="home-menu-card-label">${label}</span>
           </a>`;
         }
@@ -779,6 +869,7 @@
         const existingLogout = menuList.parentElement.querySelector('.home-menu-logout-row');
         if (existingLogout) existingLogout.remove();
         if (logoutHTML) menuList.insertAdjacentHTML('afterend', logoutHTML);
+        applyHomeUnreadBadges(homeUnreadCountCache);
       }
       
       function handleLogout() {

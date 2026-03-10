@@ -13,7 +13,7 @@
 // Then update filterAndSortJobs() function to async (search for "FIREBASE MIGRATION POINT" below)
 // ============================================================================
 
-const LISTING_CSS_VERSION = '20260208u';
+const LISTING_CSS_VERSION = '20260310b';
 const listingCssLinks = document.querySelectorAll('link[rel="stylesheet"][href*="public/css/listing.css"]');
 listingCssLinks.forEach(link => {
   const href = link.getAttribute('href') || '';
@@ -137,6 +137,137 @@ function attachPostButtonHandler() {
 window.handlePostButtonClick = handlePostButtonClick;
 normalizeHeaderButtons();
 attachPostButtonHandler();
+
+// Listing-wide notification badges (applies to all category pages using listing.js)
+let listingNotifAuthUnsub = null;
+let listingNotifDocUnsub = null;
+let listingNotifInitTimer = null;
+let listingNotifStarted = false;
+
+function formatListingUnreadCount(totalUnread) {
+  const safe = Math.max(0, Number(totalUnread) || 0);
+  return safe > 99 ? '99+' : String(safe);
+}
+
+function ensureListingHeaderMenuBadge() {
+  const menuBtn = document.querySelector('.jobcat-menu-btn');
+  if (!menuBtn) return null;
+  let badge = menuBtn.querySelector('.jobcat-menu-unread-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'jobcat-menu-unread-badge';
+    badge.style.display = 'none';
+    menuBtn.appendChild(badge);
+  }
+  return badge;
+}
+
+function ensureListingOverlayMessagesBadge() {
+  const cards = document.querySelectorAll('.home-menu-card');
+  let targetBadge = null;
+  cards.forEach((card) => {
+    const label = card.querySelector('.home-menu-card-label');
+    const icon = card.querySelector('.home-menu-card-icon');
+    if (!label || !icon) return;
+    const labelText = (label.textContent || '').toLowerCase();
+    if (!labelText.includes('messages')) return;
+
+    // Migrate legacy badge placement (older shared-menu versions put it under label).
+    const legacyBadges = label.querySelectorAll('.shared-menu-messages-badge');
+    legacyBadges.forEach((legacyBadge) => {
+      icon.appendChild(legacyBadge);
+    });
+
+    let badge = icon.querySelector('.shared-menu-messages-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'shared-menu-messages-badge';
+      badge.style.display = 'none';
+      icon.appendChild(badge);
+    }
+    targetBadge = badge;
+  });
+  return targetBadge;
+}
+
+function applyListingUnreadBadges(totalUnread) {
+  const safe = Math.max(0, Number(totalUnread) || 0);
+  const text = formatListingUnreadCount(safe);
+  const headerBadge = ensureListingHeaderMenuBadge();
+  const overlayBadge = ensureListingOverlayMessagesBadge();
+  if (headerBadge) {
+    headerBadge.textContent = text;
+    headerBadge.style.display = safe > 0 ? 'inline-flex' : 'none';
+  }
+  if (overlayBadge) {
+    overlayBadge.textContent = text;
+    overlayBadge.style.display = safe > 0 ? 'inline-flex' : 'none';
+  }
+}
+
+function stopListingNotificationListener() {
+  if (listingNotifDocUnsub) {
+    listingNotifDocUnsub();
+    listingNotifDocUnsub = null;
+  }
+  if (listingNotifAuthUnsub) {
+    listingNotifAuthUnsub();
+    listingNotifAuthUnsub = null;
+  }
+  if (listingNotifInitTimer) {
+    clearTimeout(listingNotifInitTimer);
+    listingNotifInitTimer = null;
+  }
+  listingNotifStarted = false;
+}
+
+function startListingNotificationListener(retry = 0) {
+  if (listingNotifStarted) return;
+  if (typeof firebase === 'undefined' || !firebase.auth) {
+    if (retry < 12) {
+      listingNotifInitTimer = setTimeout(() => startListingNotificationListener(retry + 1), 300);
+    }
+    return;
+  }
+  listingNotifStarted = true;
+  listingNotifAuthUnsub = firebase.auth().onAuthStateChanged((user) => {
+    if (listingNotifDocUnsub) {
+      listingNotifDocUnsub();
+      listingNotifDocUnsub = null;
+    }
+    if (!user) {
+      applyListingUnreadBadges(0);
+      return;
+    }
+
+    // Prefer shared counter helper if available (includes reconcile fallback).
+    if (typeof subscribeToUnreadNotificationCounters === 'function') {
+      listingNotifDocUnsub = subscribeToUnreadNotificationCounters(user, (counters) => {
+        applyListingUnreadBadges(counters?.totalUnread || 0);
+      });
+      return;
+    }
+
+    // Fallback path when helper is not available on page.
+    const db = firebase.firestore ? firebase.firestore() : null;
+    if (!db) {
+      applyListingUnreadBadges(0);
+      return;
+    }
+    listingNotifDocUnsub = db.collection('users').doc(user.uid).onSnapshot((snap) => {
+      const total = Number(snap.exists ? snap.data()?.notificationCounters?.totalUnread : 0) || 0;
+      applyListingUnreadBadges(total);
+    }, () => {
+      applyListingUnreadBadges(0);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  applyListingUnreadBadges(0);
+  startListingNotificationListener();
+});
+window.addEventListener('pagehide', stopListingNotificationListener);
 // Service Menu Overlay
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
 const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');

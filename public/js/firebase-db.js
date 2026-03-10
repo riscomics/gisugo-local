@@ -1827,6 +1827,15 @@ function toMillis(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function sanitizeNotificationCounters(rawCounters = null) {
+  const source = rawCounters && typeof rawCounters === 'object' ? rawCounters : {};
+  return {
+    workerUnread: Math.max(0, Number(source.workerUnread) || 0),
+    customerUnread: Math.max(0, Number(source.customerUnread) || 0),
+    totalUnread: Math.max(0, Number(source.totalUnread) || 0)
+  };
+}
+
 async function createGroupedApplicationClosureNotification(recipientId, options = {}) {
   const db = getFirestore();
   const outcomeType = options.outcomeType === 'manual_reject' ? 'application_rejected_batch' : 'application_not_selected_batch';
@@ -1906,6 +1915,7 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
     const notification = {
       recipientId: recipientId,
       type: outcomeType,
+      role: 'worker',
       jobId: jobId,
       jobTitle: jobTitle,
       message: buildGroupedApplicationClosureMessage(outcomeType, 1),
@@ -1944,6 +1954,7 @@ async function createNotification(recipientId, notificationData) {
     const notification = {
       recipientId: recipientId,
       type: notificationData.type,
+      role: notificationData.role || '',
       jobId: notificationData.jobId || '',
       jobTitle: notificationData.jobTitle || '',
       message: notificationData.message,
@@ -2124,10 +2135,9 @@ async function markNotificationRead(notificationId) {
   }
   
   try {
-    await db.collection('notifications').doc(notificationId).update({
-      read: true
-    });
-    
+    const notificationRef = db.collection('notifications').doc(notificationId);
+    // Use direct update so client-side offline queue can persist even if navigation happens immediately.
+    await notificationRef.set({ read: true }, { merge: true });
     return { success: true };
     
   } catch (error) {
@@ -2179,6 +2189,32 @@ function subscribeToUserNotifications(currentUser, callback) {
     return unsubscribe;
   } catch (error) {
     console.error('❌ Error setting up notifications listener:', error);
+    return null;
+  }
+}
+
+function subscribeToUnreadNotificationCounters(currentUser, callback) {
+  const db = getFirestore();
+
+  if (!db || !currentUser || !currentUser.uid) {
+    callback?.(sanitizeNotificationCounters(null));
+    return null;
+  }
+
+  try {
+    return db.collection('users').doc(currentUser.uid).onSnapshot(
+      (snap) => {
+        const counters = sanitizeNotificationCounters(snap.exists ? snap.data()?.notificationCounters : null);
+        callback?.(counters);
+      },
+      (error) => {
+        console.warn('⚠️ Notification counters listener error:', error);
+        callback?.(sanitizeNotificationCounters(null));
+      }
+    );
+  } catch (error) {
+    console.error('❌ Error setting up notification counters listener:', error);
+    callback?.(sanitizeNotificationCounters(null));
     return null;
   }
 }
@@ -2414,6 +2450,7 @@ window.markNotificationRead = markNotificationRead;
 
 // Real-time Listeners
 window.subscribeToUserNotifications = subscribeToUserNotifications;
+window.subscribeToUnreadNotificationCounters = subscribeToUnreadNotificationCounters;
 window.subscribeToUserThreads = subscribeToUserThreads;
 window.subscribeToThreadMessages = subscribeToThreadMessages;
 
