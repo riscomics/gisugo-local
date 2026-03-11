@@ -2367,14 +2367,16 @@ async function saveProfileChanges() {
   // Update full name
   const fullNameElement = document.querySelector('.full-name');
   if (fullNameElement) {
-    fullNameElement.innerHTML = fullName || 'No Name';
+    fullNameElement.textContent = fullName || 'No Name';
+    fullNameElement.title = fullName || 'No Name';
+    adjustProfileNameSize();
     console.log('✅ Updated full name to:', fullName);
   }
 
   // Update About Me / User Summary
   const userSummaryElement = document.getElementById('userSummary');
   if (userSummaryElement) {
-    userSummaryElement.innerHTML = (aboutMe || '').replace(/\n/g, '<br>');
+    userSummaryElement.textContent = aboutMe || '';
     console.log('✅ Updated user summary');
   }
 
@@ -4745,12 +4747,106 @@ function initializeProfileAdSlot() {
   });
 }
 
+function adjustProfileNameSize() {
+  const nameEl = document.querySelector('.full-name');
+  if (!nameEl) return;
+
+  const nameLength = (nameEl.textContent || '').trim().length;
+  const viewportWidth = window.innerWidth || 390;
+  let sizeRem;
+
+  if (nameLength <= 12) {
+    sizeRem = 2.05;
+  } else if (nameLength <= 18) {
+    sizeRem = 1.72;
+  } else if (nameLength <= 22) {
+    sizeRem = 1.45;
+  } else if (viewportWidth <= 360) {
+    sizeRem = 1.05;
+  } else if (viewportWidth <= 430) {
+    sizeRem = 1.2;
+  } else {
+    sizeRem = 1.34;
+  }
+
+  nameEl.style.setProperty('--profile-name-size', `${sizeRem}rem`);
+}
+
+function isEmailPasswordUnverifiedProfileUser(user) {
+  if (!user || !user.email) return false;
+  const providerIds = Array.isArray(user.providerData)
+    ? user.providerData.map((provider) => provider?.providerId).filter(Boolean)
+    : [];
+  const hasEmailPasswordProvider = providerIds.includes('password') || providerIds.includes('emailLink');
+  return hasEmailPasswordProvider && user.emailVerified === false;
+}
+
+function showFaceVerifyEntryNotice() {
+  if (document.getElementById('faceVerifyEntryNotice')) return;
+
+  const notice = document.createElement('div');
+  notice.id = 'faceVerifyEntryNotice';
+  notice.style.cssText = `
+    position: fixed;
+    top: 72px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 620px);
+    z-index: 12000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
+    color: #f8fafc;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+    font-size: 0.86rem;
+    line-height: 1.35;
+  `;
+  notice.innerHTML = `
+    <span>Face Verification is available now. Email verification is still required to unlock full access.</span>
+    <button type="button" aria-label="Dismiss notice" style="border:1px solid rgba(148,163,184,0.45);background:rgba(148,163,184,0.18);color:#f8fafc;border-radius:8px;padding:3px 8px;font-size:0.78rem;cursor:pointer;">Dismiss</button>
+  `;
+  const dismissBtn = notice.querySelector('button');
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      notice.remove();
+    });
+  }
+  document.body.appendChild(notice);
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔥 Profile page loaded with Firebase integration');
+  const urlParams = new URLSearchParams(window.location.search);
+  const allowUnverifiedForFaceVerify = urlParams.get('startFaceVerify') === '1';
+
+  if (typeof window.requireVerifiedEmailForPage === 'function') {
+    const accessAllowed = await window.requireVerifiedEmailForPage({
+      pageName: 'Profile',
+      redirectOnUnauth: 'login.html?redirect=profile.html',
+      allowUnverified: allowUnverifiedForFaceVerify
+    });
+    if (!accessAllowed) {
+      return;
+    }
+  }
+
+  if (allowUnverifiedForFaceVerify) {
+    const authUser = typeof window.getCurrentUser === 'function' ? window.getCurrentUser() : null;
+    if (isEmailPasswordUnverifiedProfileUser(authUser)) {
+      showFaceVerifyEntryNotice();
+    }
+  }
   
   // Wait for Firebase auth to be ready before loading profile
   await waitForAuthAndLoadProfile();
+  adjustProfileNameSize();
+  window.addEventListener('resize', adjustProfileNameSize, { passive: true });
   
   // Initialize star rating system
   initializeStarRating();
@@ -5181,6 +5277,8 @@ function loadUserProfile(userProfile) { // Main profile with dynamic verificatio
   const nameElement = document.querySelector('.full-name');
   if (nameElement && userProfile.fullName) {
     nameElement.textContent = userProfile.fullName;
+    nameElement.title = userProfile.fullName;
+    adjustProfileNameSize();
   }
   
   // Update user photo (updated field name - check both profilePhoto and profileImage)

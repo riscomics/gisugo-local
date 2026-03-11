@@ -149,13 +149,11 @@ async function signUpWithEmail(email, password, profileData = {}) {
     } catch (verificationError) {
       console.warn('⚠️ Could not send verification email immediately:', verificationError);
     }
-    await auth.signOut();
-    
     return {
       success: true,
       user: user,
       requiresEmailVerification: true,
-      message: 'Account created. Please verify your email before continuing. If you do not see the message, check Spam/Junk and mark it as Not Spam.'
+      message: 'Account created. Please verify your email to unlock full access. If you do not see the message, check Spam/Junk and mark it as Not Spam.'
     };
     
   } catch (error) {
@@ -1184,6 +1182,264 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
 }
 
 // ============================================================================
+// EMAIL VERIFICATION ACCESS GATE
+// ============================================================================
+
+const EMAIL_VERIFICATION_GATE_STYLE_ID = 'gisugo-email-gate-styles';
+const EMAIL_VERIFICATION_GATE_OVERLAY_ID = 'gisugoEmailVerificationGateOverlay';
+
+function ensureEmailVerificationGateStyles() {
+  if (document.getElementById(EMAIL_VERIFICATION_GATE_STYLE_ID)) return;
+
+  const style = document.createElement('style');
+  style.id = EMAIL_VERIFICATION_GATE_STYLE_ID;
+  style.textContent = `
+    #${EMAIL_VERIFICATION_GATE_OVERLAY_ID} {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(7, 12, 22, 0.68);
+      backdrop-filter: blur(4px);
+    }
+    #${EMAIL_VERIFICATION_GATE_OVERLAY_ID}.show {
+      display: flex;
+    }
+    .email-gate-modal {
+      width: min(500px, 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(130, 148, 177, 0.32);
+      background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+      color: #f8fafc;
+      box-shadow: 0 25px 55px rgba(0, 0, 0, 0.45);
+      padding: 22px 20px;
+      font-family: inherit;
+    }
+    .email-gate-title {
+      margin: 0 0 8px 0;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+    .email-gate-copy {
+      margin: 0;
+      color: #d7e1ef;
+      font-size: 0.96rem;
+      line-height: 1.45;
+    }
+    .email-gate-actions {
+      margin-top: 16px;
+      display: grid;
+      gap: 9px;
+    }
+    .email-gate-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 0.93rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.14s ease, opacity 0.14s ease;
+    }
+    .email-gate-btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .email-gate-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+    .email-gate-btn-primary {
+      background: linear-gradient(135deg, #f59e0b, #f97316);
+      color: #111827;
+    }
+    .email-gate-btn-secondary {
+      background: rgba(148, 163, 184, 0.2);
+      color: #f8fafc;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+    }
+    .email-gate-note {
+      margin-top: 10px;
+      min-height: 1.2em;
+      font-size: 0.84rem;
+      color: #fde68a;
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+function ensureEmailVerificationGateModal() {
+  let overlay = document.getElementById(EMAIL_VERIFICATION_GATE_OVERLAY_ID);
+  if (overlay) return overlay;
+
+  overlay = document.createElement('div');
+  overlay.id = EMAIL_VERIFICATION_GATE_OVERLAY_ID;
+  overlay.innerHTML = `
+    <div class="email-gate-modal" role="dialog" aria-modal="true" aria-labelledby="emailGateTitle">
+      <h2 class="email-gate-title" id="emailGateTitle">Verify your email first</h2>
+      <p class="email-gate-copy" id="emailGateCopy"></p>
+      <div class="email-gate-actions">
+        <button type="button" class="email-gate-btn email-gate-btn-primary" id="emailGateResendBtn">RESEND VERIFICATION EMAIL</button>
+        <button type="button" class="email-gate-btn email-gate-btn-secondary" id="emailGateRefreshBtn">I ALREADY VERIFIED, REFRESH</button>
+        <button type="button" class="email-gate-btn email-gate-btn-secondary" id="emailGateHomeBtn">GO TO HOME</button>
+      </div>
+      <div class="email-gate-note" id="emailGateNote"></div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+async function resolveCurrentAuthUser(timeoutMs = 4500) {
+  const auth = getFirebaseAuth();
+  if (!auth) return getCurrentUser();
+
+  if (auth.currentUser) return auth.currentUser;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let unsubscribe = null;
+    const finish = (user) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (typeof unsubscribe === 'function') {
+        try { unsubscribe(); } catch (_) {}
+      }
+      resolve(user || auth.currentUser || null);
+    };
+    unsubscribe = auth.onAuthStateChanged((user) => finish(user), () => finish(auth.currentUser || null));
+    const timer = setTimeout(() => finish(auth.currentUser || null), timeoutMs);
+  });
+}
+
+function userNeedsEmailVerification(user) {
+  if (!user) return false;
+  if (!user.email) return false;
+  const providerIds = Array.isArray(user.providerData)
+    ? user.providerData.map((provider) => provider?.providerId).filter(Boolean)
+    : [];
+  const hasEmailPasswordProvider = providerIds.includes('password') || providerIds.includes('emailLink');
+  if (!hasEmailPasswordProvider) {
+    return false;
+  }
+  return user.emailVerified === false;
+}
+
+function showEmailVerificationGateModal(user, pageName = 'this page') {
+  ensureEmailVerificationGateStyles();
+  const overlay = ensureEmailVerificationGateModal();
+  const copyEl = overlay.querySelector('#emailGateCopy');
+  const noteEl = overlay.querySelector('#emailGateNote');
+  const resendBtn = overlay.querySelector('#emailGateResendBtn');
+  const refreshBtn = overlay.querySelector('#emailGateRefreshBtn');
+  const homeBtn = overlay.querySelector('#emailGateHomeBtn');
+
+  if (copyEl) {
+    copyEl.textContent = `Your account is created, but email verification is required before opening ${pageName}. Check your inbox for ${user.email}. If you do not see it, check Spam/Junk and mark it as Not Spam.`;
+  }
+  if (noteEl) noteEl.textContent = '';
+
+  if (resendBtn && !resendBtn.dataset.bound) {
+    resendBtn.dataset.bound = '1';
+    resendBtn.addEventListener('click', async () => {
+      resendBtn.disabled = true;
+      const originalText = resendBtn.textContent;
+      resendBtn.textContent = 'SENDING...';
+      try {
+        const authUser = await resolveCurrentAuthUser(2500);
+        if (!authUser) {
+          throw new Error('No authenticated user found.');
+        }
+        const actionSettings = getEmailVerificationActionSettings();
+        if (actionSettings) {
+          await authUser.sendEmailVerification(actionSettings);
+        } else {
+          await authUser.sendEmailVerification();
+        }
+        if (noteEl) noteEl.textContent = 'Verification email sent. Please check Inbox and Spam/Junk.';
+      } catch (error) {
+        console.warn('⚠️ Failed to resend verification email:', error);
+        if (noteEl) noteEl.textContent = 'Could not send right now. Please try again in a moment.';
+      } finally {
+        setTimeout(() => {
+          resendBtn.disabled = false;
+          resendBtn.textContent = originalText;
+        }, 1400);
+      }
+    });
+  }
+
+  if (refreshBtn && !refreshBtn.dataset.bound) {
+    refreshBtn.dataset.bound = '1';
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      const originalText = refreshBtn.textContent;
+      refreshBtn.textContent = 'CHECKING...';
+      try {
+        const authUser = await resolveCurrentAuthUser(2500);
+        if (!authUser) throw new Error('No authenticated user found.');
+        await authUser.reload();
+        if (authUser.emailVerified) {
+          overlay.classList.remove('show');
+          window.__gisugoEmailVerificationBlocked = false;
+          window.location.reload();
+          return;
+        }
+        if (noteEl) noteEl.textContent = 'Email is still not verified. Open the link first, then tap refresh.';
+      } catch (error) {
+        console.warn('⚠️ Failed to refresh verification status:', error);
+        if (noteEl) noteEl.textContent = 'Could not refresh status. Please try again.';
+      } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = originalText;
+      }
+    });
+  }
+
+  if (homeBtn && !homeBtn.dataset.bound) {
+    homeBtn.dataset.bound = '1';
+    homeBtn.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+  }
+
+  overlay.classList.add('show');
+}
+
+async function requireVerifiedEmailForPage(options = {}) {
+  const pageName = options.pageName || 'this page';
+  const redirectOnUnauth = options.redirectOnUnauth || '';
+  const allowUnverified = options.allowUnverified === true;
+  window.__gisugoEmailVerificationBlocked = false;
+
+  const user = await resolveCurrentAuthUser();
+  if (!user) {
+    if (redirectOnUnauth) {
+      window.location.href = redirectOnUnauth;
+    }
+    return false;
+  }
+
+  if (!userNeedsEmailVerification(user)) {
+    return true;
+  }
+
+  if (allowUnverified) {
+    return true;
+  }
+
+  window.__gisugoEmailVerificationBlocked = true;
+  showEmailVerificationGateModal(user, pageName);
+  return false;
+}
+
+// ============================================================================
 // GLOBAL EXPORTS
 // ============================================================================
 
@@ -1206,6 +1462,7 @@ window.getUserProfile = getUserProfile;
 window.updateUserProfile = updateUserProfile;
 window.checkUserHasProfile = checkUserHasProfile;
 window.handleAuthRedirect = handleAuthRedirect;
+window.requireVerifiedEmailForPage = requireVerifiedEmailForPage;
 
 console.log('📦 Firebase auth module loaded');
 

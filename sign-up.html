@@ -9,9 +9,18 @@
   <style>
     /* ===== GISUGO SIGN-UP PAGE THEME OVERRIDE ===== */
     
+    html,
+    body {
+      background: linear-gradient(180deg, #1a202c 0%, #242936 50%, #1a202c 100%);
+    }
+
     body {
       background: linear-gradient(180deg, #1a202c 0%, #242936 50%, #1a202c 100%);
       min-height: 100vh;
+      min-height: 100svh;
+      min-height: 100dvh;
+      overscroll-behavior-y: contain;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
     }
     
     .signup-header {
@@ -594,6 +603,19 @@
       color: #fef3c7;
     }
 
+    .success-email-note {
+      margin-top: 10px;
+      margin-bottom: 2px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      background: linear-gradient(135deg, rgba(120, 53, 15, 0.34), rgba(15, 23, 42, 0.74));
+      color: #fde68a;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
     .success-lang-tabs {
       display: flex;
       gap: 8px;
@@ -1030,9 +1052,9 @@
         <!-- Full Name -->
         <div class="form-group">
           <label for="fullName" class="form-label" data-i18n="fullNameLabel">Full Name *</label>
-          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="50" autocomplete="off" required>
+          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="25" autocomplete="off" required>
           <div class="character-counter">
-            <span id="fullNameCounter">0</span>/50 characters
+            <span id="fullNameCounter">0</span>/25 characters
           </div>
           <div class="form-error" id="fullNameError"></div>
         </div>
@@ -1161,6 +1183,7 @@
         <div class="success-benefit-item theme-blue" id="successBenefit2">Help build Trust in the GISUGO Community.</div>
         <div class="success-benefit-item theme-amber" id="successBenefit3">Customers &amp; Workers feel Safer to meet you.</div>
       </div>
+      <div class="success-email-note" id="successEmailVerifyNote" style="display: none;"></div>
       <div class="success-actions">
         <button class="success-btn secondary shiny-metal" onclick="window.location.href='profile.html?startFaceVerify=1'">GET FACE VERIFIED NOW</button>
         <button class="success-btn" onclick="window.location.href='index.html'">MAYBE LATER</button>
@@ -1286,11 +1309,11 @@
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js"></script>
-  <script src="public/js/firebase-auth.js?v=5"></script>
+  <script src="public/js/firebase-auth.js?v=7"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
-  <script src="public/js/sign-up.js?v=4.8"></script>
+  <script src="public/js/sign-up.js?v=5.5"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====

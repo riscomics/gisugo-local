@@ -136,14 +136,20 @@ body.page-profile.profile-preload .tab-content-wrapper {
 
 .profile-name-row {
   display: flex;
+  width: 100%;
+  min-width: 0;
 }
 
 .full-name {
   color: #10b981;
-  font-size: clamp(2.5rem, 5vw, 3rem); /* Larger, responsive name */
+  font-size: var(--profile-name-size, clamp(1.1rem, 4.8vw, 2.05rem));
   font-weight: bold;
-  line-height: 1.1;
+  line-height: 1.15;
   font-family: Arial, sans-serif;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .profile-rating-row {

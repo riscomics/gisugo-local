@@ -1133,7 +1133,17 @@ function loadCustomerInterviews() {
 }
 
 // Initialize the Messages app when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    if (typeof window.requireVerifiedEmailForPage === 'function') {
+        const accessAllowed = await window.requireVerifiedEmailForPage({
+            pageName: 'Messages',
+            redirectOnUnauth: 'login.html?redirect=messages.html'
+        });
+        if (!accessAllowed) {
+            return;
+        }
+    }
+
     console.log('🚀 Role-based messages system initializing...');
     
     // Initialize core systems
@@ -11036,8 +11046,10 @@ window.removeReplyPhoto = function() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    if (window.__gisugoEmailVerificationBlocked) return;
     // Initialize reply modal only - messages will be initialized when their tabs are accessed
     setTimeout(() => {
+        if (window.__gisugoEmailVerificationBlocked) return;
         initializeReplyModal();
         // Initialize Messages tab counter on page load
         initializeMessagesTabCounter();

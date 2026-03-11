@@ -12,6 +12,8 @@ let selectedPhotoDataUrl = null;
 let authenticatedUser = null;
 let isSigningUp = false; // Flag to prevent race conditions during signup
 let currentSignupLang = 'english';
+let signupSuccessMode = 'default';
+const FULL_NAME_MAX_CHARS = 25;
 const LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG = 'legacyProfilePhoneMigrationDoneV1';
 const SUCCESS_MODAL_I18N = {
   english: [
@@ -451,8 +453,8 @@ function prefillFromAuth(authData) {
     if (authData.displayName) {
       const fullNameInput = document.getElementById('fullName');
       if (fullNameInput && !fullNameInput.value) {
-        // Truncate to 50 chars if needed
-        fullNameInput.value = authData.displayName.substring(0, 50);
+        // Truncate to configured max chars if needed
+        fullNameInput.value = authData.displayName.substring(0, FULL_NAME_MAX_CHARS);
         // Update character counter
         const counter = document.getElementById('fullNameCounter');
         if (counter) counter.textContent = fullNameInput.value.length;
@@ -777,15 +779,17 @@ function initializeCharacterCounter() {
   const fullNameCounter = document.getElementById('fullNameCounter');
   
   if (fullNameInput && fullNameCounter) {
+    const maxChars = Number(fullNameInput.maxLength) > 0 ? Number(fullNameInput.maxLength) : FULL_NAME_MAX_CHARS;
+    const warningChars = Math.max(1, maxChars - 5);
     fullNameInput.addEventListener('input', function() {
       const currentLength = this.value.length;
       fullNameCounter.textContent = currentLength;
       
       // Color coding for character count
-      if (currentLength >= 45) {
-        fullNameCounter.style.color = '#fbbf24'; // Warning color (yellow/orange)
-      } else if (currentLength >= 50) {
+      if (currentLength >= maxChars) {
         fullNameCounter.style.color = '#fc8181'; // Error color (red)
+      } else if (currentLength >= warningChars) {
+        fullNameCounter.style.color = '#fbbf24'; // Warning color (yellow/orange)
       } else {
         fullNameCounter.style.color = '#a0aec0'; // Default color (gray)
       }
@@ -922,8 +926,8 @@ function validateField(field) {
         showError(fieldId, 'Full name must be at least 2 characters');
         return false;
       }
-      if (value.length > 50) {
-        showError(fieldId, 'Full name must be 50 characters or less');
+      if (value.length > FULL_NAME_MAX_CHARS) {
+        showError(fieldId, `Full name must be ${FULL_NAME_MAX_CHARS} characters or less`);
         return false;
       }
       break;
@@ -1150,6 +1154,8 @@ async function handleFormSubmission(event) {
   try {
     // Collect profile data
     const profileData = collectFormData();
+    let requiresEmailVerification = false;
+    let emailVerificationMessage = '';
     
     let userId;
     
@@ -1162,6 +1168,13 @@ async function handleFormSubmission(event) {
       // Add auth provider info
       profileData.email = authenticatedUser.email || '';
       profileData.authProvider = authenticatedUser.provider || 'oauth';
+      const providerId = String(profileData.authProvider || '').toLowerCase();
+      const isPasswordProvider = providerId === 'password' || providerId === 'email' || providerId === 'emaillink';
+      const currentAuthUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+      if (isPasswordProvider && currentAuthUser?.emailVerified === false) {
+        requiresEmailVerification = true;
+        emailVerificationMessage = 'Account created. Please verify your email to unlock full access. If you do not see the message, check Spam/Junk and mark it as Not Spam.';
+      }
       
     } else {
       // New email/password signup
@@ -1191,10 +1204,8 @@ async function handleFormSubmission(event) {
       }
 
       if (result.requiresEmailVerification) {
-        hideLoadingOverlay();
-        clearError('email');
-        setSubmitError(result.message || 'Account created. Please verify your email before continuing. If you do not see it, check Spam/Junk and mark it as Not Spam.');
-        return;
+        requiresEmailVerification = true;
+        emailVerificationMessage = result.message || 'Account created. Please verify your email to unlock full access. If you do not see it, check Spam/Junk and mark it as Not Spam.';
       }
       
       userId = result.user?.uid;
@@ -1317,7 +1328,13 @@ async function handleFormSubmission(event) {
     
     // Show success overlay
     hideLoadingOverlay();
-    showSuccessOverlay();
+    clearError('email');
+    setSubmitError('');
+    if (requiresEmailVerification) {
+      showEmailVerificationSuccessOverlay(emailVerificationMessage);
+    } else {
+      showSuccessOverlay();
+    }
     
   } catch (error) {
     hideLoadingOverlay();
@@ -1562,11 +1579,72 @@ function hideLoadingOverlay() {
 
 function showSuccessOverlay() {
   if (successOverlay) {
+    signupSuccessMode = 'default';
+    applySuccessOverlayMode();
     successOverlay.classList.add('show');
     applySuccessModalLanguage(currentSignupLang);
+    const providerId = String(authenticatedUser?.provider || '').toLowerCase();
+    const successSource = providerId === 'google.com'
+      ? 'social_google'
+      : providerId === 'facebook.com'
+        ? 'social_facebook'
+        : providerId === 'phone'
+          ? 'phone'
+          : providerId === 'password' || providerId === 'email'
+            ? 'email'
+            : 'default';
+    console.log(`✅ Signup success modal opened (mode: ${successSource})`);
     // Launch confetti animation
     launchConfetti();
   }
+}
+
+function showEmailVerificationSuccessOverlay(message) {
+  if (!successOverlay) return;
+  signupSuccessMode = 'email_verification';
+  applySuccessOverlayMode(message);
+  successOverlay.classList.add('show');
+  applySuccessModalLanguage(currentSignupLang);
+  console.log('✅ Signup success modal opened (mode: email_verification)');
+  launchConfetti();
+}
+
+function applySuccessOverlayMode(verificationMessage = '') {
+  const titleEl = document.querySelector('.success-title');
+  const iconEl = document.querySelector('.success-icon');
+  const kickerEl = document.querySelector('.success-kicker');
+  const emailNoteEl = document.getElementById('successEmailVerifyNote');
+  const primaryBtn = document.querySelector('.success-btn.secondary.shiny-metal');
+  const secondaryBtn = document.querySelector('.success-actions .success-btn:not(.secondary)');
+
+  if (!titleEl || !iconEl || !kickerEl || !primaryBtn || !secondaryBtn) return;
+
+  if (signupSuccessMode === 'email_verification') {
+    titleEl.textContent = 'Account Created!';
+    iconEl.textContent = '📧';
+    kickerEl.textContent = 'VERIFY EMAIL TO UNLOCK FULL ACCESS';
+    if (emailNoteEl) {
+      emailNoteEl.textContent = verificationMessage;
+      emailNoteEl.style.display = 'block';
+    }
+    primaryBtn.textContent = 'GET FACE VERIFIED NOW';
+    primaryBtn.onclick = () => { window.location.href = 'profile.html?startFaceVerify=1'; };
+    secondaryBtn.textContent = 'GO TO HOME';
+    secondaryBtn.onclick = () => { window.location.href = 'index.html'; };
+    return;
+  }
+
+  titleEl.textContent = 'Account Created!';
+  iconEl.textContent = '🏆';
+  kickerEl.textContent = 'ACHIEVEMENT UNLOCKED';
+  if (emailNoteEl) {
+    emailNoteEl.textContent = '';
+    emailNoteEl.style.display = 'none';
+  }
+  primaryBtn.textContent = 'GET FACE VERIFIED NOW';
+  primaryBtn.onclick = () => { window.location.href = 'profile.html?startFaceVerify=1'; };
+  secondaryBtn.textContent = 'MAYBE LATER';
+  secondaryBtn.onclick = () => { window.location.href = 'index.html'; };
 }
 
 function applySuccessModalLanguage(lang) {

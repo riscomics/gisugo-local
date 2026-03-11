@@ -1576,6 +1576,16 @@ window.addEventListener('beforeunload', executeAllCleanups);
 
 // ===== JOBS PAGE INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', async function() {
+    if (typeof window.requireVerifiedEmailForPage === 'function') {
+        const accessAllowed = await window.requireVerifiedEmailForPage({
+            pageName: 'Gigs Manager',
+            redirectOnUnauth: 'login.html?redirect=jobs.html'
+        });
+        if (!accessAllowed) {
+            return;
+        }
+    }
+
     // Only run jobs page initialization on jobs.html (check for jobs-specific elements)
     const jobsTabsContainer = document.querySelector('.jobs-tabs');
     const uniformHeader = document.querySelector('.uniform-header');
