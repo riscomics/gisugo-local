@@ -813,6 +813,15 @@ async function loginWithFacebook() {
  */
 async function logout() {
   const auth = getFirebaseAuth();
+  const lastUid = auth?.currentUser?.uid || currentUser?.uid || '';
+
+  if (window.GisugoPushNotifications?.prepareForLogout) {
+    try {
+      await window.GisugoPushNotifications.prepareForLogout(lastUid);
+    } catch (pushError) {
+      console.warn('⚠️ Push logout cleanup failed (continuing logout):', pushError);
+    }
+  }
   
   if (auth) {
     try {

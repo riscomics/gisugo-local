@@ -1,6 +1,6 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const { randomUUID, createHash } = require("crypto");
@@ -28,6 +28,17 @@ const SIGNUP_RATE_BLOCK_MS = 15 * 60 * 1000; // 15 minutes
 const SIGNUP_RATE_MAX_PER_IP = 25;
 const SIGNUP_RATE_MAX_PER_IP_DEVICE = 8;
 const ALERT_RETENTION_DAYS = 50;
+const PUSH_TOKEN_SUBCOLLECTION = "notificationTokens";
+const PUSH_SEND_BATCH_SIZE = 500;
+const CRITICAL_PUSH_NOTIFICATION_TYPES = new Set([
+  "offer_sent",
+  "offer_accepted",
+  "interview_request",
+  "contract_voided",
+  "worker_resigned",
+  "job_completed",
+  "application_received"
+]);
 
 function inferNotificationRoleForCounter(notification = {}) {
   const explicitRole = String(notification.role || notification.recipientRole || "").toLowerCase();
@@ -36,6 +47,7 @@ function inferNotificationRoleForCounter(notification = {}) {
   const type = String(notification.type || notification.notificationType || "").toLowerCase();
   const workerTypes = new Set([
     "offer_sent",
+    "interview_request",
     "job_completed",
     "feedback_received",
     "contract_voided",
@@ -87,6 +99,183 @@ async function recomputeNotificationCountersForUser(userId) {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }
   }, { merge: true });
+}
+
+function chunkArray(items, size) {
+  const output = [];
+  const safeSize = Math.max(1, Number(size) || 1);
+  for (let i = 0; i < items.length; i += safeSize) {
+    output.push(items.slice(i, i + safeSize));
+  }
+  return output;
+}
+
+function shouldPrunePushToken(errorCode = "") {
+  const code = String(errorCode || "");
+  return (
+    code === "messaging/registration-token-not-registered" ||
+    code === "messaging/invalid-registration-token" ||
+    code === "messaging/invalid-argument"
+  );
+}
+
+function buildPushPayloadFromNotification(notification = {}) {
+  const type = String(notification.type || notification.notificationType || "general").trim();
+  const rawMessage = String(notification.message || "").trim();
+  const message = rawMessage || "You have a new GISUGO alert.";
+  const fallbackTitleMap = {
+    offer_sent: "Gig Offer Received",
+    offer_accepted: "Offer Accepted",
+    offer_rejected: "Offer Declined",
+    application_received: "New Application",
+    application_milestone: "Application Update",
+    gig_auto_paused: "Gig Auto-Paused",
+    worker_resigned: "Worker Resigned",
+    contract_voided: "Contract Voided",
+    job_completed: "Gig Completed",
+    feedback_received: "Feedback Received",
+    worker_feedback_received: "Feedback Received",
+    application_not_selected_batch: "Application Update",
+    application_rejected_batch: "Application Update",
+    interview_request: "Interview Request"
+  };
+  const title = String(notification.title || fallbackTitleMap[type] || "GISUGO Alert");
+
+  return {
+    notification: {
+      title,
+      body: message
+    },
+    data: {
+      notificationId: String(notification.id || ""),
+      type,
+      recipientId: String(notification.recipientId || ""),
+      jobId: String(notification.jobId || "")
+    },
+    webpush: {
+      fcmOptions: {
+        link: "/messages.html"
+      }
+    }
+  };
+}
+
+function normalizePushTypeList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item || "").trim().toLowerCase()).filter(Boolean);
+}
+
+function readUserPushPolicy(userData = {}) {
+  const settings = userData.notificationSettings || userData.notifications || {};
+  const pushEnabled = !(
+    settings.pushEnabled === false ||
+    settings.pushNotifications === false ||
+    settings.notificationsEnabled === false ||
+    settings.allowPush === false
+  );
+  const criticalEnabled = !(
+    settings.pushCriticalEnabled === false ||
+    settings.criticalPushEnabled === false ||
+    settings.allowCriticalPush === false
+  );
+  return {
+    pushEnabled,
+    criticalEnabled,
+    disabledTypes: normalizePushTypeList(settings.disabledPushTypes || settings.pushDisabledTypes),
+    enabledTypes: normalizePushTypeList(settings.enabledPushTypes || settings.pushEnabledTypes)
+  };
+}
+
+function isPushAllowedByPolicy(policy, type) {
+  if (!policy?.pushEnabled || !policy?.criticalEnabled) return false;
+  const safeType = String(type || "").trim().toLowerCase();
+  if (safeType && policy.disabledTypes.includes(safeType)) return false;
+  if (policy.enabledTypes.length && safeType && !policy.enabledTypes.includes(safeType)) return false;
+  return true;
+}
+
+async function sendPushForNotificationDoc(notificationId, notification = {}) {
+  const recipientId = String(notification.recipientId || "").trim();
+  if (!recipientId) return { sent: 0, failed: 0, tokens: 0 };
+  const type = String(notification.type || notification.notificationType || "").toLowerCase().trim();
+  if (!CRITICAL_PUSH_NOTIFICATION_TYPES.has(type)) {
+    logger.info("Push skipped: non-critical notification type", {
+      notificationId,
+      recipientId,
+      type
+    });
+    return { sent: 0, failed: 0, tokens: 0, skipped: true, reason: "non_critical_type" };
+  }
+
+  const userDoc = await db.collection("users").doc(recipientId).get();
+  const userPolicy = readUserPushPolicy(userDoc.exists ? (userDoc.data() || {}) : {});
+  if (!isPushAllowedByPolicy(userPolicy, type)) {
+    logger.info("Push skipped: disabled by user settings", {
+      notificationId,
+      recipientId,
+      type
+    });
+    return { sent: 0, failed: 0, tokens: 0, skipped: true, reason: "disabled_by_user_settings" };
+  }
+
+  const tokenDocs = await db
+    .collection("users")
+    .doc(recipientId)
+    .collection(PUSH_TOKEN_SUBCOLLECTION)
+    .where("revoked", "==", false)
+    .get();
+
+  if (tokenDocs.empty) {
+    logger.info("Push skipped: no active tokens", { notificationId, recipientId });
+    return { sent: 0, failed: 0, tokens: 0 };
+  }
+
+  const tokenRows = tokenDocs.docs
+    .map((doc) => ({ ref: doc.ref, ...doc.data() }))
+    .filter((row) => !!String(row.token || "").trim());
+  if (!tokenRows.length) return { sent: 0, failed: 0, tokens: 0 };
+
+  let sent = 0;
+  let failed = 0;
+  const staleRefs = [];
+  const payloadTemplate = buildPushPayloadFromNotification(notification);
+
+  const batches = chunkArray(tokenRows, PUSH_SEND_BATCH_SIZE);
+  for (const batch of batches) {
+    const tokens = batch.map((row) => String(row.token || "").trim()).filter(Boolean);
+    if (!tokens.length) continue;
+
+    const response = await admin.messaging().sendEachForMulticast({
+      ...payloadTemplate,
+      tokens
+    });
+
+    sent += response.successCount || 0;
+    failed += response.failureCount || 0;
+
+    response.responses.forEach((item, index) => {
+      if (item.success) return;
+      const code = item.error?.code || "";
+      if (shouldPrunePushToken(code) && batch[index]?.ref) {
+        staleRefs.push(batch[index].ref);
+      }
+    });
+  }
+
+  if (staleRefs.length) {
+    await Promise.allSettled(staleRefs.map((ref) => ref.delete()));
+  }
+
+  logger.info("Push send complete", {
+    notificationId,
+    recipientId,
+    attempted: tokenRows.length,
+    sent,
+    failed,
+    stalePruned: staleRefs.length
+  });
+
+  return { sent, failed, tokens: tokenRows.length };
 }
 
 function hasJobCounterpartyAccess(job, requesterUid, targetUserId) {
@@ -871,5 +1060,22 @@ exports.syncNotificationCountersOnWrite = onDocumentWritten(
         });
       }
     }));
+  }
+);
+
+exports.sendPushOnNotificationCreate = onDocumentCreated(
+  { document: "notifications/{notificationId}", region: "us-central1" },
+  async (event) => {
+    const notification = event.data?.data() || {};
+    const notificationId = String(event.params?.notificationId || "");
+    try {
+      await sendPushForNotificationDoc(notificationId, notification);
+    } catch (error) {
+      logger.error("Push send failed", {
+        notificationId,
+        recipientId: String(notification.recipientId || ""),
+        error: String(error)
+      });
+    }
   }
 );

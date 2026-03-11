@@ -22,6 +22,10 @@ const firebaseConfig = {
   appId: "1:380568649178:web:725c745becbb89412094e3"
 };
 
+// Optional: Firebase Web Push certificate key (Project Settings -> Cloud Messaging)
+// Keep empty to let SDK fall back to project defaults.
+const GISUGO_PUSH_VAPID_KEY = "";
+
 // ============================================================================
 // FIREBASE INITIALIZATION
 // ============================================================================
@@ -202,6 +206,7 @@ window.getDataSourceMode = getDataSourceMode;
 window.getFirebaseAuth = getFirebaseAuth;
 window.getFirestore = getFirestore;
 window.getFirebaseStorage = getFirebaseStorage;
+window.GISUGO_PUSH_VAPID_KEY = GISUGO_PUSH_VAPID_KEY;
 
 // Auto-initialize when script loads
 document.addEventListener('DOMContentLoaded', function() {

@@ -261,12 +261,7 @@ function blockUnsupportedCharsForInput(inputEl) {
 
 // Debug function to check data status
 function debugDataStatus() {
-    console.log('🔍 DEBUG: Current data status:', {
-        MOCK_LISTINGS_DATA: MOCK_LISTINGS_DATA ? MOCK_LISTINGS_DATA.length : 'null',
-        MOCK_HIRING_DATA: MOCK_HIRING_DATA ? MOCK_HIRING_DATA.length : 'null',
-        MOCK_COMPLETED_DATA: MOCK_COMPLETED_DATA ? MOCK_COMPLETED_DATA.length : 'null',
-        MOCK_OFFERED_DATA: MOCK_OFFERED_DATA ? MOCK_OFFERED_DATA.length : 'null'
-    });
+    // Intentionally quiet in production flows.
 }
 
 // Applications Data - Moved from messages.js for integration
@@ -578,10 +573,8 @@ window.JobsDataService = {
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
                     const rawJobs = await getUserJobListings(user.uid, ['active', 'paused']);
-                    console.log('🔍 DEBUG - Raw Firebase job sample (FULL):', JSON.stringify(rawJobs[0], null, 2)); // Full debug
                     // Normalize Firebase data to match expected field names
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
-                    console.log('🔍 DEBUG - Normalized job sample (FULL):', JSON.stringify(jobs[0], null, 2)); // Full debug
                     console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
                     return jobs;
                 } else {
@@ -1204,18 +1197,16 @@ window.JobsDataService = {
                 const db = firebase.firestore();
                 
                 // Query for completed jobs where user is the poster
-                // Force server read to avoid stale cache after feedback submission
                 const posterSnapshot = await db.collection('jobs')
                     .where('status', '==', 'completed')
                     .where('posterId', '==', currentUserId)
-                    .get({ source: 'server' });
+                    .get();
                 
                 // Query for completed jobs where user is the hired worker
-                // Force server read to avoid stale cache after feedback submission
                 const workerSnapshot = await db.collection('jobs')
                     .where('status', '==', 'completed')
                     .where('hiredWorkerId', '==', currentUserId)
-                    .get({ source: 'server' });
+                    .get();
                 
                 console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
                 
@@ -1509,6 +1500,24 @@ function executeAllCleanups() {
 
 function executeCleanupsByType(type) {
     console.log(`🧹 Executing cleanup functions for type: ${type}`);
+
+    // Drop listeners tied to detached DOM nodes to avoid retaining stale card elements.
+    const detachedElements = [];
+    CLEANUP_REGISTRY.elementListeners.forEach((listeners, element) => {
+        if (!element || !element.isConnected) {
+            listeners.forEach(([event, handler]) => {
+                try {
+                    element?.removeEventListener?.(event, handler);
+                } catch (_) {
+                    // Ignore cleanup errors for detached nodes.
+                }
+            });
+            detachedElements.push(element);
+        }
+    });
+    detachedElements.forEach((element) => {
+        CLEANUP_REGISTRY.elementListeners.delete(element);
+    });
     
     // Clean up element listeners for specific type
     const elementsToClean = [];
@@ -1905,24 +1914,8 @@ async function initializeOfferedTab() {
     const container = document.querySelector('.offered-container');
     if (!container) return;
     
-    // Only force reload if we detect potential contamination from role switching
-    if (container.hasAttribute('data-loaded')) {
-        // Check if we need to force reload due to potential contamination
-        const lastRoleSwitch = window.lastRoleSwitch || 0;
-        const tabLastLoaded = parseInt(container.getAttribute('data-loaded-time') || '0');
-        
-        if (lastRoleSwitch > tabLastLoaded) {
-            console.log('🔄 Force reloading offered tab due to role switch contamination');
-            container.removeAttribute('data-loaded');
-        } else {
-            console.log('✅ Offered gigs tab already loaded and clean');
-            return;
-        }
-    }
-    
+    // Always refresh when switching to this tab so data stays current.
     await loadOfferedContent();
-    container.setAttribute('data-loaded', 'true');
-    container.setAttribute('data-loaded-time', Date.now().toString());
 }
 
 async function loadOfferedContent() {
@@ -1945,7 +1938,6 @@ async function loadOfferedContent() {
         if (!shouldApplyTabRender('offered', renderToken)) return;
         
         console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
-        console.log('📋 Offered jobs data:', offeredJobs);
         
         if (offeredJobs.length === 0) {
             if (shouldApplyTabRender('offered', renderToken)) showEmptyOfferedState();
@@ -2081,6 +2073,8 @@ function attachOfferedCardHandlers() {
                 showGigOfferOptionsOverlay(jobData);
             }
         };
+        cardClickHandler._type = 'offered-cards';
+        cardClickHandler._key = `offered-card-${index}`;
         
         card.addEventListener('click', cardClickHandler);
         
@@ -2119,24 +2113,8 @@ async function initializeAcceptedTab() {
     const container = document.querySelector('.accepted-container');
     if (!container) return;
     
-    // Only force reload if we detect potential contamination from role switching
-    if (container.hasAttribute('data-loaded')) {
-        // Check if we need to force reload due to potential contamination
-        const lastRoleSwitch = window.lastRoleSwitch || 0;
-        const tabLastLoaded = parseInt(container.getAttribute('data-loaded-time') || '0');
-        
-        if (lastRoleSwitch > tabLastLoaded) {
-            console.log('🔄 Force reloading accepted tab due to role switch contamination');
-            container.removeAttribute('data-loaded');
-        } else {
-            console.log('✅ Accepted gigs tab already loaded and clean');
-            return;
-        }
-    }
-    
+    // Always refresh when switching to this tab so data stays current.
     await loadAcceptedContent();
-    container.setAttribute('data-loaded', 'true');
-    container.setAttribute('data-loaded-time', Date.now().toString());
 }
 
 async function loadAcceptedContent() {
@@ -2250,6 +2228,8 @@ function attachAcceptedCardHandlers() {
             // Show hiring options overlay with worker-specific options
             showHiringOptionsOverlay(jobData);
         };
+        clickHandler._type = 'accepted-cards';
+        clickHandler._key = `accepted-card-${Array.from(cleanAcceptedCards).indexOf(card)}`;
         
         card.addEventListener('click', clickHandler);
         
@@ -2267,15 +2247,8 @@ async function initializeWorkerCompletedTab() {
     console.log('📋 Initializing worker completed gigs tab');
     const container = document.querySelector('.worker-completed-container');
     if (!container) return;
-    
-    // Check if already loaded
-    if (container.hasAttribute('data-loaded')) {
-        console.log('✅ Worker completed gigs tab already loaded');
-        return;
-    }
-    
+    // Always refresh when switching to this tab so data stays current.
     await loadWorkerCompletedContent();
-    container.setAttribute('data-loaded', 'true');
 }
 
 async function loadWorkerCompletedContent() {
@@ -2371,6 +2344,8 @@ function attachWorkerCompletedCardHandlers() {
             // Show previous options overlay with worker-specific options
             showPreviousOptionsOverlay(jobData);
         };
+        clickHandler._type = 'worker-completed-cards';
+        clickHandler._key = `worker-completed-card-${Array.from(workerCompletedCards).indexOf(card)}`;
         
         card.addEventListener('click', clickHandler);
         
@@ -2495,14 +2470,7 @@ async function initializeActiveTab(tabType) {
 async function initializeListingsTab() {
     const container = document.querySelector('.listings-container');
     if (!container) return;
-    
-    // Check if already loaded
-    if (container.children.length > 0) {
-        console.log('📋 Listings tab already loaded');
-        return;
-    }
-    
-    // Load listings content
+    // Always refresh when switching to this tab so data stays current.
     await loadListingsContent();
     
     console.log('📋 Listings tab initialized');
@@ -2548,10 +2516,6 @@ async function loadListingsContent() {
     });
     
     // Generate listings HTML
-    console.log('🔍 DEBUG - Generating cards for', sortedListings.length, 'listings');
-    sortedListings.forEach((listing, index) => {
-        console.log(`   Card ${index+1}: ID=${listing.jobId}, price=${listing.price}, paymentType=${listing.paymentType}, status=${listing.status}`);
-    });
     const listingsHTML = sortedListings.map(listing => generateListingCardHTML(listing)).join('');
     if (!shouldApplyTabRender('listings', renderToken)) return;
     container.innerHTML = listingsHTML;
@@ -2901,41 +2865,10 @@ function getApplicationsByJobId(jobId) {
 async function initializeHiringTab() {
     const container = document.querySelector('.hiring-container');
     if (!container) return;
-    
-    // Clean up any existing listener
-    executeCleanupsByType('hiring-listener');
-    
-    console.log('👥 Loading hiring tab with real-time updates...');
+
+    console.log('👥 Loading hiring tab...');
     await loadHiringContent();
-    
-    // Set up real-time listener so status changes (e.g., hired → accepted) refresh automatically
-    if (typeof firebase !== 'undefined') {
-        const user = firebase.auth().currentUser;
-        if (user && firebase.firestore) {
-            const db = firebase.firestore();
-            let isFirstSnapshot = true;
-            
-            const unsubscribe = db.collection('jobs')
-                .where('posterId', '==', user.uid)
-                .where('status', 'in', ['hired', 'accepted'])
-                .onSnapshot(snapshot => {
-                    if (isFirstSnapshot) {
-                        isFirstSnapshot = false;
-                        return; // Skip initial snapshot since loadHiringContent already rendered
-                    }
-                    console.log('🔄 Hiring tab: job status change detected, refreshing...');
-                    loadHiringContent();
-                }, err => {
-                    console.warn('⚠️ Hiring tab listener error:', err);
-                });
-            
-            registerCleanup('hiring-listener', 'jobs-snapshot', () => {
-                unsubscribe();
-                console.log('🧹 Hiring tab real-time listener unsubscribed');
-            });
-        }
-    }
-    
+
     console.log('👥 Hiring tab loaded');
 }
 
@@ -3090,13 +3023,16 @@ function generateHiringCardHTML(job) {
 
 function initializeHiringCardHandlers() {
     const hiringCards = document.querySelectorAll('.hiring-card');
+    executeCleanupsByType('hiring-cards');
     
-    hiringCards.forEach(card => {
+    hiringCards.forEach((card, index) => {
         const clickHandler = function(e) {
             e.preventDefault();
             const jobData = extractHiringJobDataFromCard(card);
             showHiringOptionsOverlay(jobData);
         };
+        clickHandler._type = 'hiring-cards';
+        clickHandler._key = `hiring-card-${index}`;
         
         card.addEventListener('click', clickHandler);
         
@@ -3105,6 +3041,9 @@ function initializeHiringCardHandlers() {
             CLEANUP_REGISTRY.elementListeners.set(card, []);
         }
         CLEANUP_REGISTRY.elementListeners.get(card).push(['click', clickHandler]);
+        registerCleanup('hiring-cards', `card-${index}`, () => {
+            card.removeEventListener('click', clickHandler);
+        });
     });
     
     console.log(`🔧 Initialized ${hiringCards.length} hiring card handlers`);
@@ -3187,6 +3126,9 @@ async function showHiringOptionsOverlay(jobData) {
             // Offer pending - worker hasn't accepted yet
             // Only show RELIST with "Retract Offer" text
             buttonsHTML = `
+                <button class="listing-option-btn view" id="viewHiringGigPostBtn">
+                    VIEW GIG POST
+                </button>
                 <button class="listing-option-btn pause" id="relistJobBtn">
                     RELIST GIG (Retract Offer)
                 </button>
@@ -3197,6 +3139,9 @@ async function showHiringOptionsOverlay(jobData) {
         } else {
             // Worker has accepted - show both options
             buttonsHTML = `
+                <button class="listing-option-btn view" id="viewHiringGigPostBtn">
+                    VIEW GIG POST
+                </button>
                 <button class="listing-option-btn modify" id="completeJobBtn">
                     MARK AS COMPLETED
                 </button>
@@ -3214,6 +3159,9 @@ async function showHiringOptionsOverlay(jobData) {
     } else if (jobData.role === 'worker') {
         // Worker perspective: You were hired
         buttonsHTML = `
+            <button class="listing-option-btn view" id="viewHiringGigPostBtn">
+                VIEW GIG POST
+            </button>
             ${canWatchFaceVerification ? `<button class="listing-option-btn view" id="watchFaceVerificationBtn">
                 WATCH ${escapeHtml(counterpartName).toUpperCase()} FACE VERIFICATION VIDEO
             </button>` : ''}
@@ -3266,6 +3214,7 @@ function initializeHiringOverlayHandlers() {
     
     const completeBtn = document.getElementById('completeJobBtn');
     const relistBtn = document.getElementById('relistJobBtn');
+    const viewGigPostBtn = document.getElementById('viewHiringGigPostBtn');
     const watchFaceBtn = document.getElementById('watchFaceVerificationBtn');
     const resignBtn = document.getElementById('resignJobBtn');
     const cancelBtn = document.getElementById('cancelHiringBtn');
@@ -3273,10 +3222,24 @@ function initializeHiringOverlayHandlers() {
     console.log('🔍 Button elements found:', {
         completeBtn: !!completeBtn,
         relistBtn: !!relistBtn, 
+        viewGigPostBtn: !!viewGigPostBtn,
         watchFaceBtn: !!watchFaceBtn,
         resignBtn: !!resignBtn,
         cancelBtn: !!cancelBtn
     });
+
+    // View gig post handler (customer/worker)
+    if (viewGigPostBtn) {
+        const viewGigPostHandler = function(e) {
+            e.preventDefault();
+            const jobData = getHiringJobDataFromOverlay();
+            handleViewJob(jobData);
+        };
+        viewGigPostBtn.addEventListener('click', viewGigPostHandler);
+        registerCleanup(cleanupType, 'viewHiringGigPostBtn', () => {
+            viewGigPostBtn.removeEventListener('click', viewGigPostHandler);
+        });
+    }
     
     // Complete job handler (customer)
     if (completeBtn) {
@@ -4655,9 +4618,10 @@ function processAcceptGigConfirmation(jobData) {
         'Gig Offer Accepted!',
         `You have accepted the gig offer from ${jobData.posterName}. The gig will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
         async () => {
+            showLoadingOverlay('Finalizing acceptance and moving to Working tab...');
             try {
                 // Move job from offered to accepted status
-                await moveJobFromOfferedToAccepted(jobData.jobId);
+                await moveJobFromOfferedToAccepted(jobData.jobId, { skipLoading: true });
                 
                 // Refresh both offered and accepted tabs
                 await loadOfferedContent();
@@ -4669,6 +4633,8 @@ function processAcceptGigConfirmation(jobData) {
                 console.log('✅ Job successfully moved from offered to accepted');
             } catch (error) {
                 console.error('❌ Error in accept gig process:', error);
+            } finally {
+                hideLoadingOverlay();
             }
         },
         'celebration'
@@ -4846,8 +4812,9 @@ function showContactCustomerOverlay(jobData) {
 }
 
 // ===== DATA MANIPULATION FUNCTIONS =====
-async function moveJobFromOfferedToAccepted(jobId) {
+async function moveJobFromOfferedToAccepted(jobId, options = {}) {
     console.log(`🔄 Moving job ${jobId} from offered to accepted status`);
+    const shouldManageLoading = !options?.skipLoading;
     
     // Check if Firebase mode is active
     const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
@@ -4887,8 +4854,10 @@ async function moveJobFromOfferedToAccepted(jobId) {
             
             console.log('🔔 About to create acceptance notification for customer:', jobData?.posterId);
             
-            // Show loading state during acceptance
-            showLoadingOverlay('Processing acceptance...');
+            // Show loading state during acceptance when called directly (not from flow wrapper)
+            if (shouldManageLoading) {
+                showLoadingOverlay('Processing acceptance...');
+            }
             
             // Create notification for customer about offer acceptance
             try {
@@ -4913,9 +4882,6 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 console.error('❌ Error creating acceptance notification:', notifError);
                 // Don't fail the acceptance if notification fails
             }
-            
-            // Hide loading state
-            hideLoadingOverlay();
             
             console.log('✅ Job offer accepted in Firebase - status changed to accepted');
             
@@ -4979,8 +4945,15 @@ async function moveJobFromOfferedToAccepted(jobId) {
                 console.warn('⚠️ Could not reject other applications:', rejectError);
             }
             
+            if (shouldManageLoading) {
+                hideLoadingOverlay();
+            }
+
             return;
         } catch (error) {
+            if (shouldManageLoading) {
+                hideLoadingOverlay();
+            }
             console.error('❌ Error accepting offer in Firebase:', error);
             throw error;
         }
@@ -9748,13 +9721,16 @@ async function processHireConfirmation(workerData) {
                         
                         // Close all overlays
                         closeAllOverlaysAfterHire();
-                        
-                        // Reload the listings tab to reflect changes
-                        setTimeout(async () => {
+
+                        // Block UI while cards/tabs are being refreshed after success confirmation.
+                        showLoadingOverlay('Moving gig to Hiring tab...');
+                        try {
                             await loadListingsContent();
                             await loadHiringContent();
                             await updateTabCounts();
-                        }, 500);
+                        } finally {
+                            hideLoadingOverlay();
+                        }
                     },
                     'celebration'
                 );

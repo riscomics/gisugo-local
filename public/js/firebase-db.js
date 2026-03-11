@@ -41,6 +41,14 @@ function validateAllowedTextChars(fields) {
   return { valid: true };
 }
 
+function triggerPushMilestonePrompt(milestoneType) {
+  try {
+    window.GisugoPushNotifications?.onEngagementMilestone?.(milestoneType);
+  } catch (error) {
+    console.warn('⚠️ Push milestone trigger failed:', error);
+  }
+}
+
 /**
  * Create a new job posting
  * @param {Object} jobData - Job data to create
@@ -176,6 +184,7 @@ async function createJob(jobData) {
     
     console.log('✅ Job created with ID:', docRef.id);
     
+    triggerPushMilestonePrompt('post');
     return {
       success: true,
       jobId: docRef.id,
@@ -263,6 +272,7 @@ function createJobOffline(jobData) {
   
   console.log('✅ Job created offline:', jobId);
   
+  triggerPushMilestonePrompt('post');
   return {
     success: true,
     jobId: jobId,
@@ -444,16 +454,14 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   
   try {
     // Query for jobs where user is the poster
-    // Force server fetch to avoid stale cache
     const posterSnapshot = await db.collection('jobs')
       .where('posterId', '==', userId)
-      .get({ source: 'server' });
+      .get();
     
     // Query for jobs where user is the hired worker
-    // Force server fetch to avoid stale cache
     const workerSnapshot = await db.collection('jobs')
       .where('hiredWorkerId', '==', userId)
-      .get({ source: 'server' });
+      .get();
     
     console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
     
@@ -1145,6 +1153,7 @@ async function applyForJob(jobId, applicationData) {
       // Don't fail the application if notification fails
     }
     
+    triggerPushMilestonePrompt('apply');
     return {
       success: true,
       applicationId: appRef.id,
@@ -1175,6 +1184,7 @@ function applyForJobOffline(jobId, applicationData, currentUser) {
   applications.push(application);
   localStorage.setItem('gisugo_applications', JSON.stringify(applications));
   
+  triggerPushMilestonePrompt('apply');
   return {
     success: true,
     applicationId: applicationId,
@@ -1349,11 +1359,10 @@ async function getOfferedJobsForWorker(workerId) {
     console.log(`🔍 Fetching offered jobs for worker: ${workerId}`);
     
     // Get jobs where status is 'hired' and worker is the hired worker
-    // Force server fetch to avoid stale cache when customer relists
     const offeredJobsSnapshot = await db.collection('jobs')
       .where('status', '==', 'hired')
       .where('hiredWorkerId', '==', workerId)
-      .get({ source: 'server' });
+      .get();
     
     console.log(`📊 Raw Firestore results: ${offeredJobsSnapshot.size} documents`);
     
