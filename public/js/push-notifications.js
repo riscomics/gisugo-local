@@ -8,6 +8,7 @@
   const PUSH_PROMPT_TS_KEY = 'gisugo_push_prompt_ts';
   const PUSH_PROMPT_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
   const PUSH_MODAL_ID = 'gisugo-push-optin-modal';
+  const PUSH_TEST_STATUS_ID = 'gisugo-push-test-status';
 
   let messagingInstance = null;
   let swRegistration = null;
@@ -102,11 +103,99 @@
     if (existing) existing.remove();
   }
 
+  function ensurePushModalSpinnerStyles() {
+    if (document.getElementById('gisugo-push-spinner-style')) return;
+    const style = document.createElement('style');
+    style.id = 'gisugo-push-spinner-style';
+    style.textContent = `
+      @keyframes gisugoPushSpin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function setPromptBusyState(modal, busy, busyText = 'Working...') {
+    if (!modal) return;
+    ensurePushModalSpinnerStyles();
+    const actionButtons = modal.querySelectorAll('button[data-action]');
+    actionButtons.forEach((btn) => {
+      btn.disabled = !!busy;
+      btn.style.opacity = busy ? '0.7' : '1';
+      btn.style.cursor = busy ? 'wait' : 'pointer';
+    });
+    const primaryButton = modal.querySelector('button[data-action="enable"], button[data-action="added"]');
+    if (primaryButton) {
+      if (busy) {
+        primaryButton.dataset.originalLabel = primaryButton.textContent || '';
+        primaryButton.textContent = busyText;
+      } else if (primaryButton.dataset.originalLabel) {
+        primaryButton.textContent = primaryButton.dataset.originalLabel;
+        delete primaryButton.dataset.originalLabel;
+      }
+    }
+    const spinnerOverlay = modal.querySelector('#gisugo-push-loading-overlay');
+    if (spinnerOverlay) {
+      spinnerOverlay.style.display = busy ? 'flex' : 'none';
+    }
+  }
+
+  function showPushTestStatus(message, type = 'info') {
+    if (!message) return;
+    const palette = {
+      info: { bg: '#1f2937', fg: '#f3f4f6', border: '#4b5563' },
+      success: { bg: '#064e3b', fg: '#d1fae5', border: '#059669' },
+      warn: { bg: '#78350f', fg: '#fef3c7', border: '#f59e0b' },
+      error: { bg: '#7f1d1d', fg: '#fecaca', border: '#ef4444' }
+    };
+    const tone = palette[type] || palette.info;
+    let node = document.getElementById(PUSH_TEST_STATUS_ID);
+    if (!node) {
+      node = document.createElement('div');
+      node.id = PUSH_TEST_STATUS_ID;
+      node.style.position = 'fixed';
+      node.style.left = '50%';
+      node.style.bottom = '14px';
+      node.style.transform = 'translateX(-50%)';
+      node.style.maxWidth = 'min(92vw, 560px)';
+      node.style.width = 'fit-content';
+      node.style.padding = '10px 12px';
+      node.style.borderRadius = '10px';
+      node.style.fontSize = '13px';
+      node.style.lineHeight = '1.35';
+      node.style.fontWeight = '600';
+      node.style.zIndex = '100002';
+      node.style.boxShadow = '0 10px 24px rgba(0,0,0,0.3)';
+      node.style.textAlign = 'center';
+      node.style.pointerEvents = 'none';
+      document.body.appendChild(node);
+    }
+    node.textContent = String(message);
+    node.style.background = tone.bg;
+    node.style.color = tone.fg;
+    node.style.border = `1px solid ${tone.border}`;
+    clearTimeout(node._hideTimer);
+    node._hideTimer = setTimeout(() => {
+      if (node && node.parentNode) node.parentNode.removeChild(node);
+    }, 5200);
+  }
+
   async function requestPermissionAndSync(user) {
     markPermissionPrompted();
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-      await syncUserToken(user, { prompt: false });
+      try {
+        await syncUserToken(user, { prompt: false });
+        showPushTestStatus('Notifications enabled. This device is now linked for alerts.', 'success');
+      } catch (error) {
+        showPushTestStatus('Permission allowed, but device registration failed. Retrying next milestone.', 'error');
+        throw error;
+      }
+    } else if (permission === 'denied') {
+      showPushTestStatus('Notifications blocked in browser settings. Re-enable site notifications to receive alerts.', 'warn');
+    } else {
+      showPushTestStatus('Notification request dismissed. You can enable on the next milestone.', 'info');
     }
     return permission;
   }
@@ -185,7 +274,7 @@
     backdrop.id = PUSH_MODAL_ID;
     backdrop.innerHTML = `
       <div style="position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;">
-        <div style="width:min(460px,100%);background:#141414;color:#fff;border-radius:14px;padding:18px 16px;border:1px solid rgba(255,255,255,0.14);box-shadow:0 14px 50px rgba(0,0,0,0.45);">
+        <div style="position:relative;width:min(460px,100%);background:#141414;color:#fff;border-radius:14px;padding:18px 16px;border:1px solid rgba(255,255,255,0.14);box-shadow:0 14px 50px rgba(0,0,0,0.45);">
           <div id="gisugo-push-modal-title" style="font-size:22px;font-weight:700;line-height:1.2;margin-bottom:6px;"></div>
           <div id="gisugo-push-modal-subtitle" style="font-size:14px;line-height:1.45;opacity:0.9;margin-bottom:12px;"></div>
           <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
@@ -195,6 +284,12 @@
           </div>
           <div id="gisugo-push-modal-copy" style="font-size:14px;line-height:1.5;opacity:0.95;margin-bottom:14px;"></div>
           <div id="gisugo-push-modal-actions" style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;"></div>
+          <div id="gisugo-push-loading-overlay" style="display:none;position:absolute;inset:0;background:rgba(10,10,10,0.6);align-items:center;justify-content:center;border-radius:14px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+              <div style="width:42px;height:42px;border:4px solid rgba(255,255,255,0.25);border-top-color:#f59e0b;border-radius:50%;animation:gisugoPushSpin 0.85s linear infinite;"></div>
+              <div style="font-size:13px;font-weight:700;letter-spacing:0.2px;color:#fff;">Setting up notifications...</div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -248,7 +343,12 @@
 
   async function ensureServiceWorker() {
     if (swRegistration) return swRegistration;
-    swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { updateViaCache: 'none' });
+    try {
+      await swRegistration.update();
+    } catch (_) {
+      // Non-blocking: registration already succeeded.
+    }
     return swRegistration;
   }
 
@@ -418,13 +518,10 @@
 
   function attachForegroundHandler() {
     if (!messagingInstance) return;
-    messagingInstance.onMessage((payload) => {
+    messagingInstance.onMessage(async (payload) => {
       try {
-        const title = payload?.notification?.title || 'GISUGO Alert';
-        const body = payload?.notification?.body || 'You have a new notification.';
-        if (Notification.permission === 'granted') {
-          new Notification(title, { body });
-        }
+        // Foreground policy: do not create OS tray notifications while user
+        // is actively using GISUGO. In-app alerts counters are updated instead.
         window.dispatchEvent(new CustomEvent('gisugo:push-foreground-message', { detail: payload || {} }));
       } catch (error) {
         console.warn('⚠️ Foreground push handling error:', error);
@@ -507,17 +604,26 @@
       }
       const prefs = await getUserPushPreference(user.uid);
       if (!prefs.pushEnabled || !prefs.criticalEnabled) {
+        showPushTestStatus('Push is disabled in your account notification settings.', 'warn');
         return { prompted: false, reason: 'disabled_by_account_settings' };
       }
       const mode = getAdaptivePromptMode();
       if (mode === 'unsupported') {
+        showPushTestStatus('Push is not supported in this browser context.', 'warn');
         return { prompted: false, reason: 'unsupported_environment' };
       }
       if (mode === 'already_granted') {
-        await syncUserToken(user, { prompt: false });
-        return { prompted: false, reason: 'already_granted' };
+        try {
+          await syncUserToken(user, { prompt: false });
+          showPushTestStatus('Notifications are already enabled on this browser.', 'success');
+          return { prompted: false, reason: 'already_granted' };
+        } catch (error) {
+          showPushTestStatus('Notifications allowed, but token sync failed. Retrying next milestone.', 'error');
+          return { prompted: false, reason: 'already_granted_sync_failed', error: String(error) };
+        }
       }
       if (mode === 'blocked') {
+        showPushTestStatus('Notifications are blocked for this site. Please allow them in browser settings.', 'warn');
         return { prompted: false, reason: 'permission_blocked' };
       }
 
@@ -541,14 +647,36 @@
             return;
           }
           if (action === 'enable') {
-            const permission = await requestPermissionAndSync(user);
-            finish({ prompted: true, permission });
+            setPromptBusyState(modal, true, 'Enabling...');
+            try {
+              const permission = await requestPermissionAndSync(user);
+              finish({ prompted: true, permission });
+            } catch (error) {
+              console.warn('⚠️ Push enable flow failed:', error);
+              setPromptBusyState(modal, false);
+              finish({
+                prompted: true,
+                permission: Notification.permission || 'default',
+                tokenSyncFailed: true
+              });
+            }
             return;
           }
           if (action === 'added') {
+            setPromptBusyState(modal, true, 'Checking...');
             if (isStandalonePwa() && Notification.permission === 'default') {
-              const permission = await requestPermissionAndSync(user);
-              finish({ prompted: true, permission });
+              try {
+                const permission = await requestPermissionAndSync(user);
+                finish({ prompted: true, permission });
+              } catch (error) {
+                console.warn('⚠️ iOS add-to-home enable flow failed:', error);
+                setPromptBusyState(modal, false);
+                finish({
+                  prompted: true,
+                  permission: Notification.permission || 'default',
+                  tokenSyncFailed: true
+                });
+              }
               return;
             }
             finish({ prompted: true, permission: Notification.permission || 'default' });

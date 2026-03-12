@@ -468,14 +468,14 @@ function getLocalizedAlertMessage(notif, type) {
             offer_sent: `You've been offered the gig "${jobTitle}"! Check Gigs Manager > Offered tab to accept or decline.`,
             offer_accepted: `${workerName} has accepted your gig offer for "${jobTitle}"!`,
             job_completed: `Gig "${jobTitle}" has been marked completed.`,
-            feedback_received: 'You received new feedback from a customer.',
+            feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
             contract_voided: `Your contract for "${jobTitle}" has been voided.`,
             application_received: `Your gig "${jobTitle}" has received an application. Review it in Gigs Manager.`,
             application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
             gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
             offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
             worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
-            worker_feedback_received: 'You received feedback from your worker.',
+            worker_feedback_received: `You received feedback from your worker. Open Profile > Customer Reviews to read it.`,
             application_not_selected_batch: `Application update: Your application${plural} to ${closureCount} gig${plural} were not selected this round. If a selected worker cannot continue, some gigs may reopen.`,
             application_rejected_batch: `Application update: ${closureCount} of your application${plural} were declined by customers. Keep applying to other gigs-new matches open regularly.`
         },
@@ -483,14 +483,14 @@ function getLocalizedAlertMessage(notif, type) {
             offer_sent: `Na-offeran ka sa gig "${jobTitle}"! Tan-awa sa Gigs Manager > Offered para modawat o modili.`,
             offer_accepted: `${workerName} nidawat sa imong gig offer para sa "${jobTitle}"!`,
             job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
-            feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer.',
+            feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
             contract_voided: `Ang imong kontrata para sa "${jobTitle}" gi-void.`,
             application_received: `Ang imong gig "${jobTitle}" nakadawat ug application. I-review sa Gigs Manager.`,
             application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
             gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
             offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
-            worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker.',
+            worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker. Tan-awa sa Profile > Customer Reviews.',
             application_not_selected_batch: `Update sa application: Ang imong application${plural} sa ${closureCount} ka gig${plural} wala mapili karong round. Basin ma-reopen kung dili makapadayon ang napili.`,
             application_rejected_batch: `Update sa application: ${closureCount} sa imong application${plural} gi-decline sa customers. Padayon lang ug apply sa ubang gigs.`
         },
@@ -498,14 +498,14 @@ function getLocalizedAlertMessage(notif, type) {
             offer_sent: `May offer ka sa gig na "${jobTitle}"! Tingnan sa Gigs Manager > Offered para tanggapin o tanggihan.`,
             offer_accepted: `${workerName} ay tinanggap ang gig offer mo para sa "${jobTitle}"!`,
             job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
-            feedback_received: 'May bago kang feedback mula sa customer.',
+            feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',
             contract_voided: `Na-void ang kontrata mo para sa "${jobTitle}".`,
             application_received: `Ang gig mo na "${jobTitle}" ay may natanggap na application. I-review sa Gigs Manager.`,
             application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
             gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
             offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
-            worker_feedback_received: 'May natanggap kang feedback mula sa worker mo.',
+            worker_feedback_received: 'May natanggap kang feedback mula sa worker mo. Buksan ang Profile > Customer Reviews para makita ito.',
             application_not_selected_batch: `Update sa application: Ang application${plural} mo sa ${closureCount} gig${plural} ay hindi napili sa round na ito. Maaaring mag-reopen kung hindi makatuloy ang napili.`,
             application_rejected_batch: `Update sa application: ${closureCount} sa application${plural} mo ay dinecline ng customers. Tuloy lang sa pag-apply sa ibang gigs.`
         }
@@ -626,6 +626,13 @@ function openJobsManager(role, tab, jobId = '') {
     window.location.href = `jobs.html?${params.toString()}`;
 }
 
+function openProfileFeedbackTab(tab = '') {
+    const params = new URLSearchParams();
+    if (tab) params.set('tab', tab);
+    params.set('from', 'messages');
+    window.location.href = `profile.html?${params.toString()}`;
+}
+
 async function resolveWorkerOfferRouteByCurrentStatus(jobId) {
     const safeJobId = String(jobId || '').trim();
     const fallback = { role: 'worker', tab: 'offered', jobId: safeJobId };
@@ -692,16 +699,10 @@ async function handleNotificationTypeNavigation(notificationItem) {
 
     switch (type) {
         case 'feedback_received':
-            {
-                const route = await resolveWorkerCompletedRouteByCurrentStatus(jobId, 'worker-completed');
-                openJobsManager(route.role, route.tab, route.jobId);
-            }
+            openProfileFeedbackTab('reviews-worker');
             return true;
         case 'worker_feedback_received':
-            {
-                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'previous');
-                openJobsManager(route.role, route.tab, route.jobId);
-            }
+            openProfileFeedbackTab('reviews-customer');
             return true;
         case 'offer_sent':
             {

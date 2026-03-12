@@ -204,6 +204,11 @@ service cloud.firestore {
       
       // Only the owner or admin can delete
       allow delete: if isOwner(userId) || isAdmin();
+
+      // Per-device push registration tokens for this user.
+      match /notificationTokens/{tokenId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
     }
 
     // ═══════════════════════════════════════════════════════════════

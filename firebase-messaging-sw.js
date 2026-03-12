@@ -15,6 +15,11 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
+  // If FCM already includes a notification payload, browsers may auto-display it.
+  // Avoid double tray entries by only showing manually for data-only payloads.
+  if (payload?.notification) {
+    return;
+  }
   const title = payload?.notification?.title || 'GISUGO Alert';
   const body = payload?.notification?.body || 'You have a new notification.';
   const link = payload?.fcmOptions?.link || payload?.data?.click_action || '/messages.html';

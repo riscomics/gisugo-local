@@ -4210,6 +4210,27 @@ function handleProfileTabChange(tabValue) {
   }
 }
 
+function applyRequestedProfileTabFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedTab = String(params.get('tab') || '').trim();
+  if (!requestedTab) return;
+
+  const allowedTabs = new Set(['user-info', 'reviews-customer', 'reviews-worker']);
+  if (!allowedTabs.has(requestedTab)) return;
+
+  const requestedBtn = document.querySelector(`.profile-tabs .tab-btn[data-tab="${requestedTab}"]`);
+  const requestedContent = document.getElementById(`${requestedTab}-content`);
+  if (!requestedBtn || !requestedContent) return;
+
+  document.querySelectorAll('.profile-tabs .tab-btn').forEach((btn) => btn.classList.remove('active'));
+  requestedBtn.classList.add('active');
+
+  document.querySelectorAll('.tab-content').forEach((content) => content.classList.remove('active'));
+  requestedContent.classList.add('active');
+
+  handleProfileTabChange(requestedTab);
+}
+
 // Track if user just completed an eligible purchase (for Submit ID visibility)
 let justCompletedEligiblePurchase = false;
 
@@ -4845,6 +4866,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Wait for Firebase auth to be ready before loading profile
   await waitForAuthAndLoadProfile();
+  applyRequestedProfileTabFromQuery();
   adjustProfileNameSize();
   window.addEventListener('resize', adjustProfileNameSize, { passive: true });
   

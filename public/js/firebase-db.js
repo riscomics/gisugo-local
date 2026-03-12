@@ -1960,19 +1960,39 @@ async function createNotification(recipientId, notificationData) {
   }
   
   try {
+    const type = String(notificationData.type || '').trim();
+    const jobId = String(notificationData.jobId || '').trim();
+    const dedupeKey = String(notificationData.dedupeKey || '').trim();
     const notification = {
       recipientId: recipientId,
-      type: notificationData.type,
+      type: type,
       role: notificationData.role || '',
-      jobId: notificationData.jobId || '',
+      jobId: jobId,
       jobTitle: notificationData.jobTitle || '',
       message: notificationData.message,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       read: false,
-      actionRequired: notificationData.actionRequired || false
+      actionRequired: notificationData.actionRequired || false,
+      dedupeKey: dedupeKey || null
     };
-    
-    const notifRef = await db.collection('notifications').add(notification);
+
+    let notifRef;
+    if (dedupeKey) {
+      const rawKey = `${recipientId}::${type}::${jobId}::${dedupeKey}`;
+      const safeKey = encodeURIComponent(rawKey).slice(0, 1400);
+      notifRef = db.collection('notifications').doc(`dedupe_${safeKey}`);
+      const existing = await notifRef.get();
+      if (existing.exists) {
+        return {
+          success: true,
+          notificationId: existing.id,
+          deduped: true
+        };
+      }
+      await notifRef.set(notification, { merge: false });
+    } else {
+      notifRef = await db.collection('notifications').add(notification);
+    }
     
     return {
       success: true,
@@ -1987,6 +2007,20 @@ async function createNotification(recipientId, notificationData) {
 
 function createNotificationOffline(recipientId, notificationData) {
   const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
+  const dedupeKey = String(notificationData?.dedupeKey || '').trim();
+  const type = String(notificationData?.type || '').trim();
+  const jobId = String(notificationData?.jobId || '').trim();
+  if (dedupeKey) {
+    const existing = notifications.find((n) =>
+      String(n.recipientId || '') === String(recipientId || '') &&
+      String(n.type || '') === type &&
+      String(n.jobId || '') === jobId &&
+      String(n.dedupeKey || '') === dedupeKey
+    );
+    if (existing) {
+      return { success: true, notificationId: existing.notificationId || existing.id || 'offline_deduped' };
+    }
+  }
   
   const notifId = `notif_${Date.now()}`;
   notifications.push({

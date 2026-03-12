@@ -5241,6 +5241,9 @@ async function handleRelistJob(jobData) {
     
     overlay.classList.add('show');
     console.log('📋 Relist confirmation overlay shown');
+
+    // Reset + apply relist language tabs each time it opens.
+    initializeRelistLanguageTabs();
     
     // Initialize confirmation handlers
     initializeRelistJobConfirmationHandlers();
@@ -5251,6 +5254,101 @@ async function handleRelistJob(jobData) {
     } finally {
         // Hide loading animation
         hideLoadingOverlay();
+    }
+}
+
+const RELIST_MODAL_TRANSLATIONS = {
+    english: {
+        title: 'Relist Job',
+        subtitle: 'This will void the contract with {workerName}',
+        warning: `WARNING: Relisting this job will:<br>
+• Void the current contract with {workerName}<br>
+• Remove them from this job<br>
+• Make the job available for new applications<br>
+• Move it back to your active listings<br><br>
+Please make sure you have notified {workerName} that you are removing them from this job before proceeding.`,
+        reasonLabel: 'For records, please provide reason why you are firing {workerName}:',
+        reasonPlaceholder: 'Enter reason for termination (minimum 2 characters)',
+        cancel: 'NO, KEEP CONTRACT',
+        confirm: 'YES, VOID & RELIST'
+    },
+    bisaya: {
+        title: 'I-Relist ang Trabaho',
+        subtitle: 'Ma-void ang kontrata kang {workerName}',
+        warning: `PASIDAAN: Kung i-relist nimo ni nga trabaho:<br>
+• Ma-void ang kasamtangang kontrata kang {workerName}<br>
+• Matangtang siya ani nga trabaho<br>
+• Mahimong available usab ang trabaho para sa bag-ong applicants<br>
+• Mobalik kini sa imong active listings<br><br>
+Palihug siguroa nga imong napahibaloan si {workerName} nga tangtangon siya ani nga trabaho sa dili pa mopadayon.`,
+        reasonLabel: 'Para sa record, palihug butangi og rason nganong imong tangtangon si {workerName}:',
+        reasonPlaceholder: 'Ibutang ang rason sa termination (minimum 2 ka karakter)',
+        cancel: 'DILI, ITIPIG ANG KONTRATA',
+        confirm: 'OO, I-VOID UG RELIST'
+    },
+    tagalog: {
+        title: 'I-Relist ang Gig',
+        subtitle: 'Mavo-void ang kontrata kay {workerName}',
+        warning: `BABALA: Kapag ni-relist mo ang gig na ito:<br>
+• Mavo-void ang kasalukuyang kontrata kay {workerName}<br>
+• Maaalis siya sa gig na ito<br>
+• Magiging available ulit ang gig para sa bagong applicants<br>
+• Babalik ito sa active listings mo<br><br>
+Siguraduhing nasabihan mo si {workerName} na aalisin mo siya sa gig na ito bago magpatuloy.`,
+        reasonLabel: 'Para sa records, ilagay ang dahilan kung bakit mo tatanggalin si {workerName}:',
+        reasonPlaceholder: 'Ilagay ang dahilan ng termination (minimum 2 characters)',
+        cancel: 'HINDI, ITULOY ANG KONTRATA',
+        confirm: 'OO, I-VOID AT RELIST'
+    }
+};
+
+function applyRelistLanguage(lang) {
+    const key = RELIST_MODAL_TRANSLATIONS[lang] ? lang : 'english';
+    const t = RELIST_MODAL_TRANSLATIONS[key];
+    const workerName = document.getElementById('relistWorkerName')?.textContent?.trim() || 'the worker';
+    const replaceWorker = (value) => String(value || '').replaceAll('{workerName}', workerName);
+
+    const titleEl = document.getElementById('relistJobTitle');
+    const subtitleEl = document.getElementById('relistJobSubtitle');
+    const warningEl = document.getElementById('relistWarningText');
+    const reasonLabelEl = document.getElementById('relistReasonLabel');
+    const reasonInputEl = document.getElementById('relistReasonInput');
+    const cancelBtn = document.getElementById('relistJobNoBtn');
+    const confirmBtn = document.getElementById('relistJobYesBtn');
+
+    if (titleEl) titleEl.textContent = replaceWorker(t.title);
+    if (subtitleEl) subtitleEl.textContent = replaceWorker(t.subtitle);
+    if (warningEl) warningEl.innerHTML = replaceWorker(t.warning);
+    if (reasonLabelEl) reasonLabelEl.textContent = replaceWorker(t.reasonLabel);
+    if (reasonInputEl) reasonInputEl.placeholder = replaceWorker(t.reasonPlaceholder);
+    if (cancelBtn) cancelBtn.textContent = replaceWorker(t.cancel);
+    if (confirmBtn) confirmBtn.textContent = replaceWorker(t.confirm);
+}
+
+function initializeRelistLanguageTabs() {
+    const tabContainer = document.getElementById('relistLangTabs');
+    if (!tabContainer) return;
+
+    tabContainer.querySelectorAll('.lang-tab').forEach((tab) => {
+        const cloned = tab.cloneNode(true);
+        tab.parentNode.replaceChild(cloned, tab);
+    });
+
+    const tabs = tabContainer.querySelectorAll('.lang-tab');
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const lang = tab.dataset.lang || 'english';
+            tabContainer.querySelectorAll('.lang-tab').forEach((t) => t.classList.remove('active'));
+            tab.classList.add('active');
+            applyRelistLanguage(lang);
+        });
+    });
+
+    const defaultTab = tabContainer.querySelector('.lang-tab[data-lang="english"]') || tabs[0];
+    if (defaultTab) {
+        tabContainer.querySelectorAll('.lang-tab').forEach((t) => t.classList.remove('active'));
+        defaultTab.classList.add('active');
+        applyRelistLanguage(defaultTab.dataset.lang || 'english');
     }
 }
 
@@ -5291,8 +5389,102 @@ async function handleResignJob(jobData) {
     overlay.classList.add('show');
     console.log('📋 Resign confirmation overlay shown');
     
+    // Reset + apply resign modal language tabs each time it opens.
+    initializeResignLanguageTabs();
+
     // Initialize confirmation handlers
     initializeResignJobConfirmationHandlers();
+}
+
+const RESIGN_MODAL_TRANSLATIONS = {
+    english: {
+        title: 'Resign from Job',
+        subtitle: 'This will void your contract with {customerName}',
+        warning: `WARNING: Resigning from this job will:<br>
+• Void your contract with {customerName}<br>
+• Remove you from this job<br>
+• Make the job available for new applications<br><br>
+Please ensure you have contacted the customer about quitting before proceeding.`,
+        reasonLabel: 'For records, please provide reason why you are quitting before the job is complete:',
+        reasonPlaceholder: 'Enter reason for resignation (minimum 2 characters)',
+        cancel: 'NO, CONTINUE WORKING',
+        confirm: 'YES, RESIGN'
+    },
+    bisaya: {
+        title: 'Muhawa sa Trabaho',
+        subtitle: 'Ma-void ang imong kontrata kang {customerName}',
+        warning: `PASIDAAN: Kung muhawa ka ani nga trabaho:<br>
+• Ma-void ang imong kontrata kang {customerName}<br>
+• Matangtang ka ani nga trabaho<br>
+• Mahimong available usab ang trabaho para sa bag-ong applicants<br><br>
+Palihug siguroa nga nakaistorya na nimo ang customer sa dili pa mopadayon.`,
+        reasonLabel: 'Para sa record, palihug butangi og rason nganong muhawa ka sa dili pa mahuman ang trabaho:',
+        reasonPlaceholder: 'Ibutang ang rason sa pag-resign (minimum 2 ka karakter)',
+        cancel: 'DILI, PADAYON TRABAHO',
+        confirm: 'OO, MUHAWA'
+    },
+    tagalog: {
+        title: 'Mag-Resign sa Gig',
+        subtitle: 'Mavo-void ang kontrata mo ni {customerName}',
+        warning: `BABALA: Kapag nag-resign ka sa gig na ito:<br>
+• Mavo-void ang kontrata mo ni {customerName}<br>
+• Aalis ka sa gig na ito<br>
+• Magiging available ulit ang gig para sa bagong applicants<br><br>
+Siguraduhing nakausap mo na ang customer bago magpatuloy.`,
+        reasonLabel: 'Para sa records, ilagay ang dahilan kung bakit ka magre-resign bago matapos ang gig:',
+        reasonPlaceholder: 'Ilagay ang dahilan ng resignation (minimum 2 characters)',
+        cancel: 'HINDI, TUTULOY AKO',
+        confirm: 'OO, MAG-RESIGN'
+    }
+};
+
+function applyResignLanguage(lang) {
+    const key = RESIGN_MODAL_TRANSLATIONS[lang] ? lang : 'english';
+    const t = RESIGN_MODAL_TRANSLATIONS[key];
+    const customerName = document.getElementById('resignCustomerName')?.textContent?.trim() || 'the customer';
+    const replaceCustomer = (value) => String(value || '').replaceAll('{customerName}', customerName);
+
+    const titleEl = document.getElementById('resignJobTitle');
+    const subtitleEl = document.getElementById('resignJobSubtitle');
+    const warningEl = document.getElementById('resignWarningText');
+    const reasonLabelEl = document.getElementById('resignReasonLabel');
+    const reasonInputEl = document.getElementById('resignReasonInput');
+    const cancelBtn = document.getElementById('resignJobNoBtn');
+    const confirmBtn = document.getElementById('resignJobYesBtn');
+
+    if (titleEl) titleEl.textContent = replaceCustomer(t.title);
+    if (subtitleEl) subtitleEl.textContent = replaceCustomer(t.subtitle);
+    if (warningEl) warningEl.innerHTML = replaceCustomer(t.warning);
+    if (reasonLabelEl) reasonLabelEl.textContent = replaceCustomer(t.reasonLabel);
+    if (reasonInputEl) reasonInputEl.placeholder = replaceCustomer(t.reasonPlaceholder);
+    if (cancelBtn) cancelBtn.textContent = replaceCustomer(t.cancel);
+    if (confirmBtn) confirmBtn.textContent = replaceCustomer(t.confirm);
+}
+
+function initializeResignLanguageTabs() {
+    const tabContainer = document.getElementById('resignLangTabs');
+    if (!tabContainer) return;
+
+    tabContainer.querySelectorAll('.lang-tab').forEach((tab) => {
+        const cloned = tab.cloneNode(true);
+        tab.parentNode.replaceChild(cloned, tab);
+    });
+    const tabs = tabContainer.querySelectorAll('.lang-tab');
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const lang = tab.dataset.lang || 'english';
+            tabContainer.querySelectorAll('.lang-tab').forEach((t) => t.classList.remove('active'));
+            tab.classList.add('active');
+            applyResignLanguage(lang);
+        });
+    });
+
+    const defaultTab = tabContainer.querySelector('.lang-tab[data-lang="english"]') || tabs[0];
+    if (defaultTab) {
+        tabContainer.querySelectorAll('.lang-tab').forEach((t) => t.classList.remove('active'));
+        defaultTab.classList.add('active');
+        applyResignLanguage(defaultTab.dataset.lang || 'english');
+    }
 }
 
 // ========================== CONFIRMATION OVERLAY HANDLERS ==========================
@@ -5306,6 +5498,12 @@ function initializeCompleteJobConfirmationHandlers() {
         yesBtn.onclick = null;
         const yesHandler = async function() {
             const overlay = document.getElementById('completeJobConfirmationOverlay');
+            if (overlay?.dataset.processing === 'true') {
+                console.log('⚠️ Completion already in progress, ignoring duplicate click');
+                return;
+            }
+            if (overlay) overlay.dataset.processing = 'true';
+            yesBtn.disabled = true;
             const jobId = overlay.getAttribute('data-job-id');
             const jobTitle = overlay.getAttribute('data-job-title');
             const workerName = overlay.getAttribute('data-worker-name');
@@ -5356,7 +5554,8 @@ function initializeCompleteJobConfirmationHandlers() {
                             jobId: jobId,
                             jobTitle: jobData.title || 'Gig',
                             message: `"${jobData.title}" has been marked as complete by ${customerName}.`,
-                            actionRequired: false
+                            actionRequired: false,
+                            dedupeKey: `job_completed_${jobId}_worker_${jobData.hiredWorkerId}`
                         });
                         console.log('✅ Completion notification sent to worker');
                     }
@@ -5391,6 +5590,8 @@ function initializeCompleteJobConfirmationHandlers() {
                 console.error('❌ Error marking job as completed:', error);
                 hideLoadingOverlay();
                 showErrorNotification('Failed to mark job as completed: ' + error.message);
+                if (overlay) overlay.dataset.processing = 'false';
+                yesBtn.disabled = false;
                 return;
             }
             // ══════════════════════════════════════════════════════════════
@@ -5401,6 +5602,8 @@ function initializeCompleteJobConfirmationHandlers() {
             
             // Show success overlay with worker name for feedback
             showJobCompletedSuccess(jobTitle, workerName);
+            if (overlay) overlay.dataset.processing = 'false';
+            yesBtn.disabled = false;
         };
         yesBtn.addEventListener('click', yesHandler);
         registerCleanup('confirmation', 'completeYes', () => {
@@ -5461,13 +5664,15 @@ function initializeRelistJobConfirmationHandlers() {
             overlay.classList.add('input-focused');
             
             // Small delay to allow keyboard to appear
-            setTimeout(() => {
+            const scrollTimeoutId = setTimeout(() => {
                 reasonInput.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center',
                     inline: 'nearest'
                 });
             }, 300);
+            if (!window._relistScrollTimeouts) window._relistScrollTimeouts = [];
+            window._relistScrollTimeouts.push(scrollTimeoutId);
         };
         
         // Blur handler to remove focused state
@@ -5483,6 +5688,10 @@ function initializeRelistJobConfirmationHandlers() {
             reasonInput.removeEventListener('input', inputHandler);
             reasonInput.removeEventListener('focus', focusHandler);
             reasonInput.removeEventListener('blur', blurHandler);
+            if (window._relistScrollTimeouts?.length) {
+                window._relistScrollTimeouts.forEach(clearTimeout);
+                window._relistScrollTimeouts = [];
+            }
         });
     }
     
@@ -6035,6 +6244,12 @@ function showJobCompletedSuccess(jobTitle, workerName) {
     // Clear any existing handler and add new one with cleanup
     submitBtn.onclick = null;
     const submitHandler = async function() {
+        if (overlay.dataset.submittingFeedback === 'true') {
+            console.log('⚠️ Completion feedback already submitting, ignoring duplicate click');
+            return;
+        }
+        overlay.dataset.submittingFeedback = 'true';
+        submitBtn.disabled = true;
         // Get feedback data
         const rating = getFeedbackRating();
         const feedbackText = document.getElementById('completionFeedback').value.trim();
@@ -6048,15 +6263,21 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         // Validate required fields
         if (rating === 0) {
             showErrorNotification('Please select a star rating before submitting');
+            overlay.dataset.submittingFeedback = 'false';
+            submitBtn.disabled = false;
             return;
         }
         
         if (feedbackText.length < 2) {
             showErrorNotification('Please provide feedback with at least 2 characters');
+            overlay.dataset.submittingFeedback = 'false';
+            submitBtn.disabled = false;
             return;
         }
         if (hasUnsupportedTextChars(feedbackText)) {
             showErrorNotification('Feedback has unsupported symbols');
+            overlay.dataset.submittingFeedback = 'false';
+            submitBtn.disabled = false;
             return;
         }
         
@@ -6098,6 +6319,8 @@ function showJobCompletedSuccess(jobTitle, workerName) {
                 delete overlay.dataset.feedbackHandlersInitialized;
                 
                 showErrorNotification('Failed to submit feedback: ' + error.message);
+                overlay.dataset.submittingFeedback = 'false';
+                submitBtn.disabled = false;
                 return; // Don't proceed with UI updates if submission failed
             }
         }
@@ -6156,6 +6379,8 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         await loadPreviousContent();
         // Update tab counts
         await updateTabCounts();
+        overlay.dataset.submittingFeedback = 'false';
+        submitBtn.disabled = false;
     };
     submitBtn.addEventListener('click', submitHandler);
     registerCleanup('success', 'jobCompletedOk', () => {
@@ -6333,8 +6558,9 @@ async function submitJobCompletionFeedback(jobId, workerUserId, customerUserId, 
           type: 'feedback_received',
           jobId: jobId,
           jobTitle: jobData.title || 'Completed Gig',
-          message: `${customerName} left ${rating}-star feedback on "${jobData.title}". Don't forget to leave your feedback in Gigs Manager > Completed tab.`,
-          actionRequired: false
+          message: `${customerName} left ${rating}-star feedback on "${jobData.title}". Leave your feedback in Gigs Manager > Completed. To view received feedback, open Profile > Feedback (Worker).`,
+          actionRequired: false,
+          dedupeKey: `feedback_received_customer_to_worker_${jobId}_${customerUserId}`
         });
         console.log('✅ Feedback notification sent to worker');
       }
@@ -7535,6 +7761,9 @@ async function showPreviousOptionsOverlay(jobData) {
         if (jobData.hasWorkerFeedback) {
             // Worker already left feedback - only show report dispute option
             buttonsHTML = `
+                <button class="listing-option-btn view" id="viewCompletedGigPostBtn">
+                    VIEW GIG POST
+                </button>
                 <button class="listing-option-btn delete" id="reportDisputeBtn">
                     REPORT DISPUTE
                 </button>
@@ -7545,6 +7774,9 @@ async function showPreviousOptionsOverlay(jobData) {
         } else {
             // Worker hasn't left feedback yet - show both options
             buttonsHTML = `
+                <button class="listing-option-btn view" id="viewCompletedGigPostBtn">
+                    VIEW GIG POST
+                </button>
                 <button class="listing-option-btn modify" id="leaveFeedbackBtn">
                     LEAVE FEEDBACK
                 </button>
@@ -7559,6 +7791,9 @@ async function showPreviousOptionsOverlay(jobData) {
     } else if (jobData.role === 'customer') {
         // Customer perspective: You hired someone and completed the job - can relist
         buttonsHTML = `
+            <button class="listing-option-btn view" id="viewCompletedGigPostBtn">
+                VIEW GIG POST
+            </button>
             <button class="listing-option-btn modify" id="relistCompletedJobBtn">
                 RELIST JOB
             </button>
@@ -7614,6 +7849,7 @@ function initializePreviousOverlayHandlers() {
     console.log(`🔧 Initializing previous overlay handlers with cleanup type: ${cleanupType}`);
 
     const relistBtn = document.getElementById('relistCompletedJobBtn');
+    const viewGigPostBtn = document.getElementById('viewCompletedGigPostBtn');
     const feedbackBtn = document.getElementById('leaveFeedbackBtn');
     const disputeBtn = document.getElementById('reportDisputeBtn');
     const cancelBtn = document.getElementById('cancelPreviousBtn');
@@ -7629,6 +7865,19 @@ function initializePreviousOverlayHandlers() {
         relistBtn.addEventListener('click', relistHandler);
         registerCleanup(cleanupType, 'relistBtn', () => {
             relistBtn.removeEventListener('click', relistHandler);
+        });
+    }
+
+    // View gig post handler (completed tab, customer + worker)
+    if (viewGigPostBtn) {
+        const viewHandler = function(e) {
+            e.preventDefault();
+            const jobData = getPreviousJobDataFromOverlay();
+            handleViewJob(jobData);
+        };
+        viewGigPostBtn.addEventListener('click', viewHandler);
+        registerCleanup(cleanupType, 'viewCompletedGigPostBtn', () => {
+            viewGigPostBtn.removeEventListener('click', viewHandler);
         });
     }
 
@@ -10984,6 +11233,13 @@ function handleCustomerFeedbackTextareaBlur(e) {
 
 async function submitCustomerFeedback() {
     const overlay = document.getElementById('leaveFeedbackOverlay');
+    if (overlay?.dataset.processing === 'true') {
+        console.log('⚠️ Feedback submission already in progress, ignoring duplicate click');
+        return;
+    }
+    if (overlay) overlay.dataset.processing = 'true';
+    const submitBtn = document.getElementById('submitCustomerFeedbackBtn');
+    if (submitBtn) submitBtn.disabled = true;
     const jobId = overlay.getAttribute('data-job-id');
     const targetName = overlay.getAttribute('data-customer-name');
     const targetUserId = overlay.getAttribute('data-target-user-id');
@@ -10993,15 +11249,21 @@ async function submitCustomerFeedback() {
     
     if (rating === 0) {
         showErrorNotification('Please select a rating before submitting');
+        if (overlay) overlay.dataset.processing = 'false';
+        if (submitBtn) submitBtn.disabled = false;
         return;
     }
     
     if (feedbackText.length < 2) {
         showErrorNotification('Feedback must be at least 2 characters long');
+        if (overlay) overlay.dataset.processing = 'false';
+        if (submitBtn) submitBtn.disabled = false;
         return;
     }
     if (hasUnsupportedTextChars(feedbackText)) {
         showErrorNotification('Feedback has unsupported symbols');
+        if (overlay) overlay.dataset.processing = 'false';
+        if (submitBtn) submitBtn.disabled = false;
         return;
     }
     
@@ -11078,8 +11340,9 @@ async function submitCustomerFeedback() {
                         type: 'worker_feedback_received',
                         jobId: jobId,
                         jobTitle: jobData.title || 'Completed Gig',
-                        message: `${workerName} left ${rating}-star feedback for you on "${jobData.title}"`,
-                        actionRequired: false
+                        message: `${workerName} left ${rating}-star feedback for you on "${jobData.title}". To read it, open Profile > Feedback (Customer).`,
+                        actionRequired: false,
+                        dedupeKey: `feedback_received_worker_to_customer_${jobId}_${currentUserId}`
                     });
                     console.log('✅ Worker feedback notification sent to customer');
                 }
@@ -11142,7 +11405,12 @@ async function submitCustomerFeedback() {
         hideLoadingOverlay();
         console.error('❌ Error submitting feedback:', error);
         showErrorNotification('Failed to submit feedback: ' + error.message);
+        if (overlay) overlay.dataset.processing = 'false';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
     }
+    if (overlay) overlay.dataset.processing = 'false';
+    if (submitBtn) submitBtn.disabled = false;
 }
 
 function resetCustomerFeedbackForm() {

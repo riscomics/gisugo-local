@@ -232,12 +232,17 @@
             <div class="delete-confirmation-header">
                 <div class="delete-confirmation-title-row">
                     <div class="delete-confirmation-icon">🔄</div>
-                    <div class="delete-confirmation-title">Relist Job</div>
+                    <div class="delete-confirmation-title" id="relistJobTitle">Relist Job</div>
                 </div>
                 <div class="delete-confirmation-subtitle" id="relistJobSubtitle">This will void the contract</div>
             </div>
+            <div class="disclaimer-lang-tabs" id="relistLangTabs" style="margin: 12px 0 8px;">
+                <button class="lang-tab active" data-lang="english">English</button>
+                <button class="lang-tab" data-lang="bisaya">Bisaya</button>
+                <button class="lang-tab" data-lang="tagalog">Tagalog</button>
+            </div>
             <div class="delete-confirmation-warning">
-                <div class="delete-warning-text">
+                <div class="delete-warning-text" id="relistWarningText">
                     WARNING: Relisting this job will:<br>
                     • Void the current contract with <span id="relistWorkerName">the worker</span><br>
                     • Remove them from this job<br>
@@ -247,7 +252,7 @@
                 </div>
             </div>
             <div class="reason-input-section">
-                <label for="relistReasonInput" class="reason-label">
+                <label for="relistReasonInput" class="reason-label" id="relistReasonLabel">
                     For records, please provide reason why you are firing <span id="relistWorkerNameInput">the worker</span>:
                 </label>
                 <textarea 
@@ -278,12 +283,17 @@
             <div class="delete-confirmation-header">
                 <div class="delete-confirmation-title-row">
                     <div class="delete-confirmation-icon">👋</div>
-                    <div class="delete-confirmation-title">Resign from Job</div>
+                    <div class="delete-confirmation-title" id="resignJobTitle">Resign from Job</div>
                 </div>
                 <div class="delete-confirmation-subtitle" id="resignJobSubtitle">This will void your contract</div>
             </div>
+            <div class="disclaimer-lang-tabs" id="resignLangTabs" style="margin: 12px 0 8px;">
+                <button class="lang-tab active" data-lang="english">English</button>
+                <button class="lang-tab" data-lang="bisaya">Bisaya</button>
+                <button class="lang-tab" data-lang="tagalog">Tagalog</button>
+            </div>
             <div class="delete-confirmation-warning">
-                <div class="delete-warning-text">
+                <div class="delete-warning-text" id="resignWarningText">
                     WARNING: Resigning from this job will:<br>
                     • Void your contract with <span id="resignCustomerName">the customer</span><br>
                     • Remove you from this job<br>
@@ -292,7 +302,7 @@
                 </div>
             </div>
             <div class="reason-input-section">
-                <label for="resignReasonInput" class="reason-label">
+                <label for="resignReasonInput" class="reason-label" id="resignReasonLabel">
                     For records, please provide reason why you are quitting before the job is complete:
                 </label>
                 <textarea 
@@ -1309,8 +1319,8 @@
     <!-- Firebase Helper Modules -->
     <script src="public/js/firebase-config.js"></script>
     <script src="public/js/firebase-auth.js?v=7"></script>
-    <script src="public/js/push-notifications.js?v=3"></script>
-    <script src="public/js/firebase-db.js?v=21"></script>
+    <script src="public/js/push-notifications.js?v=7"></script>
+    <script src="public/js/firebase-db.js?v=23"></script>
     <script src="public/js/firebase-storage.js"></script>
     
     <!-- UNIFORM HEADER SYSTEM -->
@@ -1318,6 +1328,6 @@
     <script src="public/js/data-service.js"></script>
     <script src="public/js/header-uniform.js?v=1.2"></script>
     <script src="public/js/shared-menu.js?v=3.6"></script>
-    <script src="public/js/jobs.js?v=132"></script>
+    <script src="public/js/jobs.js?v=134"></script>
 </body>
 </html> 
