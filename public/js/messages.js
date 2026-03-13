@@ -573,6 +573,48 @@ const ALERTS_PAGINATION_STATE = {
     exhausted: false
 };
 
+const MESSAGES_PAGE_LOADING_STATE = {
+    hidden: false,
+    hideTimerId: null,
+    serverSnapshotReady: false
+};
+
+function showMessagesPageLoadingOverlay() {
+    const overlay = document.getElementById('messagesPageLoadingOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.classList.remove('hidden');
+    MESSAGES_PAGE_LOADING_STATE.hidden = false;
+    MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = false;
+}
+
+function hideMessagesPageLoadingOverlay() {
+    if (MESSAGES_PAGE_LOADING_STATE.hidden) return;
+    if (MESSAGES_PAGE_LOADING_STATE.hideTimerId) {
+        clearTimeout(MESSAGES_PAGE_LOADING_STATE.hideTimerId);
+        MESSAGES_PAGE_LOADING_STATE.hideTimerId = null;
+    }
+    const overlay = document.getElementById('messagesPageLoadingOverlay');
+    if (!overlay) return;
+    MESSAGES_PAGE_LOADING_STATE.hidden = true;
+    overlay.classList.add('hidden');
+    // Remove from layout shortly after fade to avoid intercepting input.
+    setTimeout(() => {
+        if (overlay.classList.contains('hidden')) {
+            overlay.style.display = 'none';
+        }
+    }, 220);
+}
+
+function markMessagesServerSnapshotReady(meta) {
+    if (MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady) return;
+    // If metadata is unavailable, treat callback as ready to avoid blocking older flows.
+    if (!meta || meta.fromCache === false || meta.error) {
+        MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = true;
+        hideMessagesPageLoadingOverlay();
+    }
+}
+
 function dedupeNotificationsById(notifications) {
     const source = Array.isArray(notifications) ? notifications : [];
     return Array.from(new Map(source.map((n) => [n.notificationId || n.id, n])).values());
@@ -929,13 +971,14 @@ async function ensureAlertsRealtimeStream(currentUser) {
     ALERTS_STREAM_STATE.started = true;
     resetAlertsPaginationState();
 
-    ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications) => {
+    ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications, snapshotMeta) => {
         ALERTS_STREAM_STATE.notifications = Array.isArray(notifications) ? notifications : [];
         if (!ALERTS_PAGINATION_STATE.olderNotifications.length) {
             ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
             ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
         }
         renderAllAlertsViews(getCombinedAlertsNotifications());
+        markMessagesServerSnapshotReady(snapshotMeta);
     });
 }
 
@@ -960,6 +1003,7 @@ async function loadWorkerNotifications() {
         ALERTS_PAGINATION_STATE.exhausted = true;
         renderAllAlertsViews(getCombinedAlertsNotifications());
         updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
+        hideMessagesPageLoadingOverlay();
         return;
     }
     
@@ -984,6 +1028,7 @@ async function loadWorkerNotifications() {
             resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
             updateAlertTabBadgeCounts([]);
+            hideMessagesPageLoadingOverlay();
             return;
         }
         
@@ -1007,6 +1052,7 @@ async function loadWorkerNotifications() {
     } catch (error) {
         console.error('❌ Error loading worker alerts:', error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+        hideMessagesPageLoadingOverlay();
     }
 }
 
@@ -1030,6 +1076,7 @@ async function loadCustomerNotifications() {
         ALERTS_PAGINATION_STATE.exhausted = true;
         renderAllAlertsViews(getCombinedAlertsNotifications());
         updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
+        hideMessagesPageLoadingOverlay();
         return;
     }
     
@@ -1054,6 +1101,7 @@ async function loadCustomerNotifications() {
             resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
             updateAlertTabBadgeCounts([]);
+            hideMessagesPageLoadingOverlay();
             return;
         }
         
@@ -1077,6 +1125,7 @@ async function loadCustomerNotifications() {
     } catch (error) {
         console.error('❌ Error loading customer alerts:', error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+        hideMessagesPageLoadingOverlay();
     }
 }
 
@@ -1135,12 +1184,18 @@ function loadCustomerInterviews() {
 
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
+    showMessagesPageLoadingOverlay();
+    MESSAGES_PAGE_LOADING_STATE.hideTimerId = setTimeout(() => {
+        hideMessagesPageLoadingOverlay();
+    }, 6000);
+
     if (typeof window.requireVerifiedEmailForPage === 'function') {
         const accessAllowed = await window.requireVerifiedEmailForPage({
             pageName: 'Messages',
             redirectOnUnauth: 'login.html?redirect=messages.html'
         });
         if (!accessAllowed) {
+            hideMessagesPageLoadingOverlay();
             return;
         }
     }
@@ -1159,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     void flushPendingNotificationReads();
     
     // Initialize default role (worker) and tab (worker-alerts)
-    initializeWorkerAlertsTab();
+    await initializeWorkerAlertsTab();
     
     // SAFETY CLEANUP: Ensure no lingering mobile input adjustments on page load
     cleanupMobileInputVisibility();

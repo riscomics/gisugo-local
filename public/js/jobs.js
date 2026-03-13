@@ -4618,27 +4618,43 @@ function processAcceptGigConfirmation(jobData) {
         'Gig Offer Accepted!',
         `You have accepted the gig offer from ${jobData.posterName}. The gig will now appear in your "WORKING" tab. You can coordinate work details through messages.`,
         async () => {
-            showLoadingOverlay('Finalizing acceptance and moving to Working tab...');
+            showLoadingOverlay('Finalizing acceptance...');
             try {
                 // Move job from offered to accepted status
                 await moveJobFromOfferedToAccepted(jobData.jobId, { skipLoading: true });
-                
-                // Refresh both offered and accepted tabs
-                await loadOfferedContent();
-                await loadAcceptedContent();
-                
-                // Update tab counts
+
+                // Keep the visual transfer cue from Offered -> Working.
+                hideLoadingOverlay();
+                await animateOfferedCardTransferToWorking(jobData.jobId);
                 await updateTabCounts();
-                
                 console.log('✅ Job successfully moved from offered to accepted');
             } catch (error) {
                 console.error('❌ Error in accept gig process:', error);
-            } finally {
                 hideLoadingOverlay();
             }
         },
         'celebration'
     );
+}
+
+async function animateOfferedCardTransferToWorking(jobId) {
+    const safeJobId = String(jobId || '').trim();
+    const offeredCard = safeJobId ? document.querySelector(`.offered-container [data-job-id="${safeJobId}"]`) : null;
+
+    if (offeredCard) {
+        offeredCard.style.transition = 'all 0.45s ease';
+        offeredCard.style.transform = 'translateX(26px) scale(0.96)';
+        offeredCard.style.opacity = '0.32';
+        await new Promise((resolve) => setTimeout(resolve, 460));
+        if (offeredCard.isConnected) offeredCard.remove();
+    }
+
+    // Use worker-specific tab switcher so wrapper display state updates correctly.
+    await switchToWorkerTab('accepted');
+    if (safeJobId) {
+        await new Promise((resolve) => setTimeout(resolve, 160));
+        focusJobCardByJobId(safeJobId, { durationMs: 1800 });
+    }
 }
 
 // ===== REJECT GIG OFFER OVERLAY FUNCTIONS =====
@@ -4720,10 +4736,9 @@ function hideRejectGigOfferOverlay() {
     if (!overlay) return;
     
     overlay.classList.remove('show');
-    
-    // Clean up handlers
-    delete overlay.dataset.handlersInitialized;
-    
+
+    // Keep handlers initialized to avoid re-binding listeners on every open.
+    // Rebinding without removeEventListener causes duplicate handlers over time.
     console.log('❌ Reject gig offer overlay hidden');
 }
 
@@ -9970,16 +9985,9 @@ async function processHireConfirmation(workerData) {
                         
                         // Close all overlays
                         closeAllOverlaysAfterHire();
-
-                        // Block UI while cards/tabs are being refreshed after success confirmation.
-                        showLoadingOverlay('Moving gig to Hiring tab...');
-                        try {
-                            await loadListingsContent();
-                            await loadHiringContent();
-                            await updateTabCounts();
-                        } finally {
-                            hideLoadingOverlay();
-                        }
+                        // Keep card-transfer animation visible; do not block with full-screen loader.
+                        await moveJobListingToHiringWithData(workerData.jobId, workerData.userName);
+                        await updateTabCounts();
                     },
                     'celebration'
                 );
@@ -10145,17 +10153,19 @@ async function moveJobListingToHiringWithData(jobId, workerName) {
         jobCard.style.transition = 'all 0.5s ease';
         jobCard.style.transform = 'scale(0.9)';
         jobCard.style.opacity = '0.5';
-        
-        setTimeout(async () => {
-            jobCard.remove();
-            console.log(`✅ Job card removed from Listings: ${jobId}`);
-            
-            // Auto-switch to Hiring tab to show the moved job
+
+        await new Promise((resolve) => {
             setTimeout(async () => {
-                await switchToHiringTab();
+                jobCard.remove();
+                console.log(`✅ Job card removed from Listings: ${jobId}`);
+                
+                // Auto-switch to Hiring tab to show the moved job
+                setTimeout(async () => {
+                    await switchToHiringTab();
+                    resolve();
+                }, 500);
             }, 500);
-            
-        }, 500);
+        });
         
     } catch (error) {
         console.error('❌ Error moving job to hiring:', error);

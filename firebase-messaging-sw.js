@@ -34,6 +34,35 @@ messaging.onBackgroundMessage((payload) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification?.data?.link || '/messages.html';
-  event.waitUntil(clients.openWindow(targetUrl));
+  const rawLink =
+    event.notification?.data?.link ||
+    event.notification?.data?.click_action ||
+    '/messages.html';
+  const targetUrl = new URL(String(rawLink), self.location.origin).href;
+
+  event.waitUntil((async () => {
+    const windowClients = await clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+
+    // Prefer reusing an existing GISUGO tab/app window and force navigate it.
+    const sameOriginClient = windowClients.find((client) => {
+      try {
+        return new URL(client.url).origin === self.location.origin;
+      } catch (error) {
+        return false;
+      }
+    });
+
+    if (sameOriginClient) {
+      if (typeof sameOriginClient.navigate === 'function') {
+        await sameOriginClient.navigate(targetUrl);
+      }
+      await sameOriginClient.focus();
+      return;
+    }
+
+    await clients.openWindow(targetUrl);
+  })());
 });

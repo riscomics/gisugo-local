@@ -2179,11 +2179,16 @@ async function markNotificationRead(notificationId) {
   
   try {
     const notificationRef = db.collection('notifications').doc(notificationId);
-    // Use direct update so client-side offline queue can persist even if navigation happens immediately.
-    await notificationRef.set({ read: true }, { merge: true });
+    // Use update so stale IDs do not become denied "create" attempts under rules.
+    await notificationRef.update({ read: true });
     return { success: true };
     
   } catch (error) {
+    const code = String(error?.code || '');
+    if (code === 'not-found' || code.endsWith('/not-found')) {
+      // Stale pending read entry for a notification that no longer exists.
+      return { success: true, skipped: 'not-found' };
+    }
     console.error('❌ Error marking notification read:', error);
     return { success: false };
   }
@@ -2221,11 +2226,18 @@ function subscribeToUserNotifications(currentUser, callback) {
             ...doc.data()
           }));
           console.log(`🔔 Notifications updated: ${notifications.length} items`);
-          callback(notifications);
+          callback(notifications, {
+            fromCache: snapshot.metadata?.fromCache === true,
+            hasPendingWrites: snapshot.metadata?.hasPendingWrites === true
+          });
         },
         (error) => {
           console.error('❌ Notifications listener error:', error);
-          callback([]);
+          callback([], {
+            error: true,
+            fromCache: false,
+            hasPendingWrites: false
+          });
         }
       );
     

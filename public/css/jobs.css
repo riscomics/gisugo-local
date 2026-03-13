@@ -399,6 +399,18 @@ body:has(.jobs-header) {
   padding: 25px 0 40px 0;
 }
 
+/* Hiring tab: keep a healthier top gap below tab buttons */
+#hiring-content .hiring-container {
+  padding-top: 32px;
+}
+
+/* Match top spacing behavior across the same card-based tabs */
+#listings-content .listings-container,
+#previous-content .previous-container,
+#worker-completed-content .worker-completed-container {
+  padding-top: 32px;
+}
+
 /* Coming Soon Message Styles */
 .coming-soon-message {
   text-align: center;
@@ -563,6 +575,12 @@ body:has(.jobs-header) {
   border: 1px solid rgba(255,255,255,0.08);
   color: #f0e6d2;
   overflow: hidden;
+}
+
+/* Hiring tab: accepted customer cards grow only when needed (no dead space) */
+#hiring-content .hiring-card.customer:not(.pending-offer) {
+  height: auto;
+  min-height: 260px;
 }
 
 /* Worker Perspective - Working cards (Dark teal theme) */
@@ -3934,7 +3952,13 @@ body:has(.jobs-header) {
 
   /* Mobile Hiring Card Styles */
   .hiring-container {
-    padding: 25px 0 60px 0;
+    padding: 32px 0 60px 0;
+  }
+
+  #listings-content .listings-container,
+  #previous-content .previous-container,
+  #worker-completed-content .worker-completed-container {
+    padding-top: 32px;
   }
 
   /* Mobile Previous Card Styles */
@@ -3948,6 +3972,11 @@ body:has(.jobs-header) {
     height: 210px;
     margin: 0 8px 12px 8px;
     border-radius: 10px;
+  }
+
+  #hiring-content .hiring-card.customer:not(.pending-offer) {
+    height: auto;
+    min-height: 210px;
   }
 
   .hiring-card:hover {
@@ -4396,7 +4425,13 @@ body:has(.jobs-header) {
 
   /* iPhone 7 Hiring Container */
   .hiring-container {
-    padding: 25px 0 55px 0;
+    padding: 30px 0 55px 0;
+  }
+
+  #listings-content .listings-container,
+  #previous-content .previous-container,
+  #worker-completed-content .worker-completed-container {
+    padding-top: 30px;
   }
 
   /* iPhone 7 Previous Container */
@@ -4416,6 +4451,11 @@ body:has(.jobs-header) {
     height: 190px;
     margin: 0 5px 9px 5px;
     border-radius: 8px;
+  }
+
+  #hiring-content .hiring-card.customer:not(.pending-offer) {
+    height: auto;
+    min-height: 190px;
   }
 
   .hiring-title {
@@ -4726,7 +4766,13 @@ body:has(.jobs-header) {
 
   /* Smaller Mobile Hiring Card Styles */
   .hiring-container {
-    padding: 25px 0 60px 0;
+    padding: 30px 0 60px 0;
+  }
+
+  #listings-content .listings-container,
+  #previous-content .previous-container,
+  #worker-completed-content .worker-completed-container {
+    padding-top: 30px;
   }
 
   .previous-container {
@@ -4738,6 +4784,11 @@ body:has(.jobs-header) {
     height: 200px;
     margin: 0 6px 10px 6px;
     border-radius: 8px;
+  }
+
+  #hiring-content .hiring-card.customer:not(.pending-offer) {
+    height: auto;
+    min-height: 200px;
   }
 
   .hiring-title {
@@ -5343,7 +5394,13 @@ body:has(.jobs-header) {
 
   /* 320px Hiring Card Styles */
   .hiring-container {
-    padding: 15px 0 50px 0; /* Standardized to match listings container */
+    padding: 22px 0 50px 0; /* Keep breathing room below tabs on very small screens */
+  }
+
+  #listings-content .listings-container,
+  #previous-content .previous-container,
+  #worker-completed-content .worker-completed-container {
+    padding-top: 22px;
   }
 
   .previous-container {
@@ -5355,6 +5412,11 @@ body:has(.jobs-header) {
     height: 180px;
     margin: 0 4px 8px 4px;
     border-radius: 6px;
+  }
+
+  #hiring-content .hiring-card.customer:not(.pending-offer) {
+    height: auto;
+    min-height: 180px;
   }
 
   .hiring-title {
