@@ -382,7 +382,7 @@ function isAllowedImageFile(file) {
 async function initializeWorkerAlertsTab() {
     console.log('📋 Initializing worker alerts tab');
     // Load worker-specific notifications
-    loadWorkerNotifications();
+    await loadWorkerNotifications();
 }
 
 async function initializeWorkerChatsTab() {
@@ -408,7 +408,7 @@ async function initializeWorkerMessagesTab() {
 async function initializeCustomerAlertsTab() {
     console.log('📋 Initializing customer alerts tab');
     // Load customer-specific notifications
-    loadCustomerNotifications();
+    await loadCustomerNotifications();
 }
 
 async function initializeCustomerInterviewsTab() {
@@ -563,7 +563,8 @@ function resetTabBadgeCounts() {
 const ALERTS_STREAM_STATE = {
     uid: '',
     notifications: [],
-    started: false
+    started: false,
+    hasSnapshot: false
 };
 
 const ALERTS_PAGINATION_STATE = {
@@ -853,10 +854,10 @@ function renderAllAlertsViews(notifications, options = {}) {
     // Optimization: only render the alerts pane currently visible to the user.
     if (activeRole === 'worker') {
         renderWorkerAlertsUI(workerContainer, notifications);
-        initializeNotifications();
+        initializeNotifications(workerContainer);
     } else if (activeRole === 'customer') {
         renderCustomerAlertsUI(customerContainer, notifications);
-        initializeNotifications();
+        initializeNotifications(customerContainer);
     }
 
     updateAlertTabBadgeCounts(notifications);
@@ -969,16 +970,53 @@ async function ensureAlertsRealtimeStream(currentUser) {
 
     ALERTS_STREAM_STATE.uid = currentUser.uid;
     ALERTS_STREAM_STATE.started = true;
+    ALERTS_STREAM_STATE.hasSnapshot = false;
+    ALERTS_STREAM_STATE.notifications = [];
     resetAlertsPaginationState();
 
     ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications, snapshotMeta) => {
         ALERTS_STREAM_STATE.notifications = Array.isArray(notifications) ? notifications : [];
+        ALERTS_STREAM_STATE.hasSnapshot = true;
         if (!ALERTS_PAGINATION_STATE.olderNotifications.length) {
             ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
             ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
         }
         renderAllAlertsViews(getCombinedAlertsNotifications());
         markMessagesServerSnapshotReady(snapshotMeta);
+    });
+}
+
+function waitForAuthStateWithTimeout(timeoutMs = 7000) {
+    return new Promise((resolve) => {
+        let resolved = false;
+        let unsubscribe = null;
+        let timeoutId = null;
+
+        const settle = (user) => {
+            if (resolved) return;
+            resolved = true;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            if (unsubscribe) unsubscribe();
+            resolve(user || null);
+        };
+
+        try {
+            unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                settle(user);
+            });
+        } catch (error) {
+            console.warn('⚠️ Auth listener setup failed:', error);
+            settle(null);
+            return;
+        }
+
+        timeoutId = setTimeout(() => {
+            console.warn(`⚠️ Auth state wait timed out after ${timeoutMs}ms`);
+            settle(firebase.auth().currentUser || null);
+        }, timeoutMs);
     });
 }
 
@@ -1009,12 +1047,7 @@ async function loadWorkerNotifications() {
     
     try {
         // Wait for Firebase auth state to be ready
-        const currentUser = await new Promise((resolve) => {
-            const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-                unsubscribe();
-                resolve(user);
-            });
-        });
+        const currentUser = await waitForAuthStateWithTimeout();
         
         if (!currentUser) {
             // Not logged in - show empty state with login prompt
@@ -1025,33 +1058,24 @@ async function loadWorkerNotifications() {
             ALERTS_STREAM_STATE.uid = '';
             ALERTS_STREAM_STATE.notifications = [];
             ALERTS_STREAM_STATE.started = false;
+            ALERTS_STREAM_STATE.hasSnapshot = false;
             resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
             updateAlertTabBadgeCounts([]);
-            hideMessagesPageLoadingOverlay();
             return;
         }
         
         console.log('✅ Worker alerts: User authenticated as', currentUser.uid);
 
         await ensureAlertsRealtimeStream(currentUser);
-        if (ALERTS_STREAM_STATE.notifications.length > 0) {
+        if (ALERTS_STREAM_STATE.hasSnapshot) {
             renderAllAlertsViews(getCombinedAlertsNotifications());
-        } else {
-            try {
-                const current = await getUserNotifications(false);
-                ALERTS_STREAM_STATE.notifications = Array.isArray(current) ? current : [];
-                ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
-                ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
-                renderAllAlertsViews(getCombinedAlertsNotifications());
-            } catch (fetchError) {
-                console.warn('⚠️ Could not preload notifications snapshot:', fetchError);
-            }
         }
         
     } catch (error) {
         console.error('❌ Error loading worker alerts:', error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+    } finally {
         hideMessagesPageLoadingOverlay();
     }
 }
@@ -1082,12 +1106,7 @@ async function loadCustomerNotifications() {
     
     try {
         // Wait for Firebase auth state to be ready
-        const currentUser = await new Promise((resolve) => {
-            const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
-                unsubscribe();
-                resolve(user);
-            });
-        });
+        const currentUser = await waitForAuthStateWithTimeout();
         
         if (!currentUser) {
             // Not logged in - show empty state with login prompt
@@ -1098,33 +1117,24 @@ async function loadCustomerNotifications() {
             ALERTS_STREAM_STATE.uid = '';
             ALERTS_STREAM_STATE.notifications = [];
             ALERTS_STREAM_STATE.started = false;
+            ALERTS_STREAM_STATE.hasSnapshot = false;
             resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
             updateAlertTabBadgeCounts([]);
-            hideMessagesPageLoadingOverlay();
             return;
         }
         
         console.log('✅ Customer alerts: User authenticated as', currentUser.uid);
 
         await ensureAlertsRealtimeStream(currentUser);
-        if (ALERTS_STREAM_STATE.notifications.length > 0) {
+        if (ALERTS_STREAM_STATE.hasSnapshot) {
             renderAllAlertsViews(getCombinedAlertsNotifications());
-        } else {
-            try {
-                const current = await getUserNotifications(false);
-                ALERTS_STREAM_STATE.notifications = Array.isArray(current) ? current : [];
-                ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
-                ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
-                renderAllAlertsViews(getCombinedAlertsNotifications());
-            } catch (fetchError) {
-                console.warn('⚠️ Could not preload notifications snapshot:', fetchError);
-            }
         }
         
     } catch (error) {
         console.error('❌ Error loading customer alerts:', error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+    } finally {
         hideMessagesPageLoadingOverlay();
     }
 }
@@ -1247,6 +1257,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     });
     
     console.log('Modular tab system initialized - only notifications loaded on startup');
+});
+
+window.addEventListener('pagehide', executeAllCleanups);
+window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    showMessagesPageLoadingOverlay();
+    initializeWorkerAlertsTab()
+        .catch((error) => {
+            console.warn('⚠️ pageshow alerts refresh failed:', error);
+        })
+        .finally(() => {
+            hideMessagesPageLoadingOverlay();
+        });
 });
 
 // MODULAR APPROACH: Initialize only the specified tab's content
@@ -2080,9 +2103,10 @@ function initializeConfirmationOverlay() {
 }
 
 // Notifications Management
-function initializeNotifications() {
+function initializeNotifications(scopeRoot = document) {
+    const root = scopeRoot && typeof scopeRoot.querySelectorAll === 'function' ? scopeRoot : document;
     // Handle notification item clicks (mark as read, etc.) with memory leak prevention
-    const notificationItems = document.querySelectorAll('.notification-item');
+    const notificationItems = root.querySelectorAll('.notification-item');
     
     // Clear any existing event listeners first (your memory leak prevention)
     notificationItems.forEach(item => {
@@ -2092,10 +2116,10 @@ function initializeNotifications() {
     });
     
     // Re-select items after cloning (clean slate)
-    const freshNotificationItems = document.querySelectorAll('.notification-item');
+    const freshNotificationItems = root.querySelectorAll('.notification-item');
     
     // Initialize action buttons on clean elements (no duplicates)
-    const freshActionBtns = document.querySelectorAll('.notification-action-btn');
+    const freshActionBtns = root.querySelectorAll('.notification-action-btn');
     
     freshActionBtns.forEach(btn => {
         btn.addEventListener('click', function(e) {

@@ -38,6 +38,69 @@ function isFirebaseLoaded() {
 // Initialize Firebase
 let firebaseApp = null;
 let firebaseInitialized = false;
+let firestorePersistenceAttempted = false;
+
+function isIOSWebKit() {
+  try {
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    const touchMac = platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    return /iPad|iPhone|iPod/i.test(ua) || touchMac;
+  } catch (error) {
+    return false;
+  }
+}
+
+function enableFirestorePersistenceSafely() {
+  if (firestorePersistenceAttempted || !firebase.firestore) return;
+  firestorePersistenceAttempted = true;
+
+  const db = firebase.firestore();
+  const isIOS = isIOSWebKit();
+
+  // Improve Safari transport reliability. Older iOS WebKit can intermittently
+  // stall on streaming transport, so we force long-polling there.
+  try {
+    const firestoreSettings = isIOS
+      ? {
+          experimentalAutoDetectLongPolling: true,
+          experimentalForceLongPolling: true,
+          useFetchStreams: false
+        }
+      : {
+          experimentalAutoDetectLongPolling: true
+        };
+    db.settings(firestoreSettings);
+    if (isIOS) {
+      console.log('🧭 iOS Firestore transport fallback enabled (long-polling mode)');
+    }
+  } catch (settingsError) {
+    console.warn('⚠️ Firestore settings() skipped:', settingsError);
+  }
+
+  // iOS Safari is more stable with single-tab persistence mode.
+  const primaryOptions = isIOS ? { synchronizeTabs: false } : { synchronizeTabs: true };
+  db.enablePersistence(primaryOptions)
+    .then(() => {
+      console.log(`💾 Firestore offline persistence enabled (${isIOS ? 'single-tab iOS mode' : 'multi-tab mode'})`);
+    })
+    .catch((error) => {
+      const code = error && error.code ? error.code : 'unknown';
+      console.warn(`⚠️ Firestore persistence setup issue (${code})`, error);
+
+      // Retry without synchronizeTabs if multi-tab precondition fails.
+      if (!isIOS && code === 'failed-precondition') {
+        db.enablePersistence({ synchronizeTabs: false })
+          .then(() => {
+            console.log('💾 Firestore persistence enabled after single-tab fallback');
+          })
+          .catch((retryError) => {
+            console.warn('⚠️ Firestore persistence disabled after fallback:', retryError);
+          });
+      }
+      // App continues to work without persistence.
+    });
+}
 
 function initializeFirebase() {
   if (firebaseInitialized) {
@@ -109,24 +172,7 @@ function initializeFirebase() {
     // Current method works but is deprecated in future versions.
     // If you see error: "enablePersistence is not a function" - use code above
     // ═══════════════════════════════════════════════════════════════
-    if (firebase.firestore) {
-      firebase.firestore().enablePersistence({ synchronizeTabs: true })
-        .then(() => {
-          console.log('💾 Firestore offline persistence enabled');
-        })
-        .catch((error) => {
-          if (error.code === 'failed-precondition') {
-            // Multiple tabs open, persistence can only be enabled in one tab at a time
-            console.warn('⚠️ Firestore persistence failed: Multiple tabs open');
-          } else if (error.code === 'unimplemented') {
-            // Browser doesn't support persistence (e.g., Safari private mode)
-            console.warn('⚠️ Firestore persistence not supported in this browser');
-          } else {
-            console.warn('⚠️ Firestore persistence error:', error);
-          }
-          // App continues to work without persistence - just slower loads
-        });
-    }
+    enableFirestorePersistenceSafely();
     
     firebaseInitialized = true;
     console.log('✅ Firebase initialized successfully');

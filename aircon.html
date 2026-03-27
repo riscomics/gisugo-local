@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tutor Service - GISUGO</title>
+    <title>AC Cleaner Service - GISUGO</title>
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <link rel="stylesheet" href="public/css/listing.css?v=20260209a">
       <link rel="stylesheet" href="public/css/shared-menu.css">
@@ -13,59 +13,77 @@
       <div class="jobcat-listheader">
         <div class="jobcat-servicemenu" id="jobcatServiceMenuBtn">
           <div class="jobcat-servicename">
-            <div>Tutor Gigs</div>
+            <div>AC Cleaner Gigs</div>
             <div>&#9660;</div>
           </div>
         </div>
                 <!-- ✅ SHARED CATEGORY MODAL: Generated dynamically by listing.js -->
-        <!-- Update once in listing.js, applies to all 51 category pages -->
+        <!-- Update once in listing.js, applies to all category pages -->
         <div class="jobcat-servicemenu-overlay" id="jobcatServiceMenuOverlay">
           <ul>
             <!-- Categories will be replaced by listing.js with modal structure -->
           </ul>
         </div>
+
+        <!-- Region Picker Modal (Original Design) -->
+        <div class="region-picker-overlay" id="regionPickerOverlay">
+          <div class="region-picker-modal">
+            <button class="region-picker-close" id="regionPickerCloseBtn">&times;</button>
+            <div class="region-picker-title">Select Region</div>
+            <div class="region-picker-list" id="regionPickerList">
+              <!-- Region items will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- City Picker Modal (Original Design) -->
+        <div class="city-picker-overlay" id="cityPickerOverlay">
+          <div class="city-picker-modal">
+            <button class="city-picker-close" id="cityPickerCloseBtn">&times;</button>
+            <div class="city-picker-title">Select City</div>
+            <div class="city-picker-list" id="cityPickerList">
+              <!-- City items will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+
         <div class="jobcat-headerbuttons">
-          <div class="jobcat-headerbutton" id="postBtn">
-            <div><img src="public/icons/Post.png" alt="Post"></div>
+          <div class="jobcat-headerbutton" id="postBtn" onclick="handlePostButtonClick(event); return false;">
+            <img src="public/images/Post.png" alt="Post" class="jobcat-icon">
             <div class="posttext">Post</div>
           </div>
-          <div class="jobcat-headerbutton">
-            <div><img src="public/icons/search.png" alt="Search"></div>
+          <div class="jobcat-headerbutton" id="searchBtn">
+            <img src="public/images/search.png" alt="Search" class="jobcat-icon">
             <div>Search</div>
           </div>
           <div class="jobcat-headerbutton jobcat-menu-btn">
-            <div><img src="public/icons/menu.png" alt="Menu"></div>
+            <img src="public/images/menu.png" alt="Menu" class="jobcat-icon">
             <div>Menu</div>
           </div>
         </div>
       </div>
       <div class="jobcat-borderline"></div>
-    </div>
       <!-- Search bar will be dynamically inserted here by listing.js -->
+    </div>
 
     <!-- Sort Header -->
     <div class="jobcat-sort-header">
       <div class="sortmenus">
-        <!-- ?? Gaming Filter Panel (Expandable) -->
         <div class="gaming-filter-panel" id="gamingFilterPanel">
           <div class="filter-panel-header">
             <div class="filter-panel-title">FILTER Gigs</div>
           </div>
           <div class="filter-panel-body">
-            <!-- REGION Dropdown -->
-            <!-- REGION Button (opens modal) -->
             <div class="filter-section">
               <div class="filter-section-title">REGION</div>
               <button class="filter-button" id="regionButton">Cebu</button>
           </div>
-            
-            <!-- CITY Button (opens modal) -->
+
             <div class="filter-section">
               <div class="filter-section-title">CITY</div>
               <button class="filter-button" id="cityButton">CEBU CITY</button>
         </div>
-            
-            <!-- PAY TYPE Icon Selection -->
+
             <div class="filter-section">
               <div class="filter-section-title">PAY TYPE</div>
               <div class="pay-type-selector">
@@ -80,7 +98,6 @@
               </div>
           </div>
           </div>
-          <!-- Filter Display Bar (visible when collapsed) -->
           <div class="filter-panel-footer-bar" id="gamingFilterBar">
             <div class="filter-display-text" id="filterDisplay">
               <div class="filter-display-item">
@@ -100,7 +117,6 @@
           </div>
         </div>
       </div>
-      <div class="jobcat-sort-borderline"></div>
     </div>
 
     <div class="jobcat-header-spacer"></div>
@@ -146,26 +162,78 @@
       </div>
     </div>
 
-    <!-- Loading Modal -->
-    <div id="loadingOverlay" class="loading-overlay">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">Loading gigs...</div>
-    </div>
+    <script>
+      function handlePostButtonClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-    <!-- Firebase SDK -->
+        setTimeout(function() {
+          if (typeof firebase === 'undefined' || !firebase.auth) {
+            window.location.href = 'login.html';
+            return;
+          }
+
+          const auth = firebase.auth();
+          const currentUser = auth.currentUser;
+
+          if (!currentUser) {
+            window.location.href = 'login.html';
+            return;
+          }
+
+          if (typeof checkUserHasProfile === 'function') {
+            checkUserHasProfile(currentUser.uid).then(function(result) {
+              if (result.hasProfile) {
+                window.location.href = 'new-post2.html';
+              } else {
+                window.location.href = 'sign-up.html';
+              }
+            }).catch(function() {
+              window.location.href = 'login.html';
+            });
+          } else {
+            window.location.href = 'new-post2.html';
+          }
+        }, 50);
+
+        return false;
+      }
+    </script>
+
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
-    
-    <!-- Firebase Helper Modules -->
+
     <script src="public/js/firebase-config.js?v=20260313c"></script>
     <script src="public/js/firebase-auth.js"></script>
     <script src="public/js/firebase-db.js?v=26"></script>
     <script src="public/js/firebase-storage.js"></script>
 
-    <script src="public/js/app-config.js"></script>
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading gigs...</div>
+    </div>
+
+    <script src="public/js/app-config.js?v=1.0"></script>
     <script src="public/js/shared-menu.js?v=3.7"></script>
     <script src="public/js/listing.js?v=20260320c"></script>
+
+    <script>
+      const jobcatModalClose = document.getElementById('jobcatModalClose');
+      const jobcatOverlay = document.getElementById('jobcatServiceMenuOverlay');
+
+      if (jobcatModalClose && jobcatOverlay) {
+        jobcatModalClose.addEventListener('click', () => {
+          jobcatOverlay.classList.remove('show');
+        });
+
+        jobcatOverlay.addEventListener('click', (e) => {
+          if (e.target === jobcatOverlay) {
+            jobcatOverlay.classList.remove('show');
+          }
+        });
+      }
+    </script>
   </body>
-</html> 
+</html>

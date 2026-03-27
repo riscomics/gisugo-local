@@ -415,7 +415,10 @@ const extrasConfig = {
   waiter: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   chef: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
   ittech: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
-  realtor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
+  realtor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  solicitor: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } },
+  aircon: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Supplies:", menuType: "supplies" } },
+  tourguide: { field1: { label: "Location:", menuType: "location" }, field2: { label: "Position:", menuType: "position" } }
 };
 
 // ========================== HELPER FUNCTIONS ==========================
@@ -621,13 +624,13 @@ function cityHasBarangayData(city) {
 
 function getCategoryDisplayName(category) {
   const categoryMap = {
-    hatod: 'Hatod Jobs',
+    hatod: 'Delivery Jobs',
     hakot: 'Hakot Jobs',
     kompra: 'Kompra Jobs',
     luto: 'Luto Jobs',
     hugas: 'Hugas Jobs',
     laba: 'Laba Jobs',
-    limpyo: 'Limpyo Jobs',
+    limpyo: 'Janitor Jobs',
     tindera: 'Tindera Jobs',
     bantay: 'Bantay Jobs',
     trainer: 'Trainer Jobs',
@@ -661,7 +664,10 @@ function getCategoryDisplayName(category) {
     engineer: 'Engineer Jobs',
     programmer: 'Programmer Jobs',
     therapist: 'Therapist Jobs',
-    marketer: 'Marketer Jobs'
+    marketer: 'Marketer Jobs',
+    solicitor: 'Solicitor Jobs',
+    aircon: 'AC Cleaner Jobs',
+    tourguide: 'Tour Guide Jobs'
   };
   return categoryMap[category] || category;
 }
@@ -982,11 +988,114 @@ function populateDropdown(dropdownId, options, selectedValue = null) {
 
 // ========================== JOB CATEGORY ==========================
 
+function buildJobCategoryGrid(categoryDropdown) {
+  const categoryGrid = categoryDropdown ? categoryDropdown.querySelector('.np2-category-grid') : null;
+  if (!categoryGrid) return;
+
+  const sections = [
+    {
+      title: '🏢 Business Essentials',
+      items: [
+        { value: 'solicitor', icon: '📣', color: '#eab308', label: 'Solicitor' },
+        { value: 'limpyo', icon: '🧹', color: '#06b6d4', label: 'Janitor' },
+        { value: 'hatod', icon: '📦', color: '#6366f1', label: 'Delivery' },
+        { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' },
+        { value: 'painter', icon: '🖌️', color: '#f59e0b', label: 'Painter' },
+        { value: 'driver', icon: '🚗', color: '#3b82f6', label: 'Driver' },
+        { value: 'clerical', icon: '🗂️', color: '#a855f7', label: 'Clerical' },
+        { value: 'handyman', icon: '👨🏻‍🔧', color: '#f59e0b', label: 'Handyman' },
+        { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
+        { value: 'plumber', icon: '🚰', color: '#0ea5e9', label: 'Plumber' },
+        { value: 'ittech', icon: '🛜', color: '#06b6d4', label: 'IT Tech' },
+        { value: 'programmer', icon: '💻', color: '#6366f1', label: 'Programmer' }
+      ]
+    },
+    {
+      title: '🧺 Everyday Services',
+      items: [
+        { value: 'hugas', icon: '🍽️', color: '#06b6d4', label: 'Hugas' },
+        { value: 'laba', icon: '👕', color: '#8b5cf6', label: 'Laba' },
+        { value: 'luto', icon: '🍳', color: '#f97316', label: 'Luto' },
+        { value: 'kompra', icon: '🛒', color: '#22c55e', label: 'Kompra' },
+        { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Hakot' },
+        { value: 'bantay', icon: '👁️', color: '#10b981', label: 'Bantay' },
+        { value: 'waiter', icon: '💁🏻‍♂️', color: '#14b8a6', label: 'Waiter' },
+        { value: 'reception', icon: '👩🏻‍💼👨🏻‍💼', color: '#14b8a6', label: 'Reception' },
+        { value: 'tindera', icon: '🏪', color: '#ec4899', label: 'Tindera' },
+        { value: 'staff', icon: '🙋🏻', color: '#a855f7', label: 'Staff' },
+        { value: 'barber', icon: '💇🏻', color: '#3b82f6', label: 'Barber' },
+        { value: 'massage', icon: '💆🏻‍♀️', color: '#a855f7', label: 'Massager' },
+        { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' },
+        { value: 'tourguide', icon: '🧭', color: '#22c55e', label: 'Tour Guide' },
+        { value: 'social', icon: '📱', color: '#ec4899', label: 'Social' }
+      ]
+    },
+    {
+      title: '🛠️ Skilled Trades',
+      items: [
+        { value: 'builder', icon: '👷🏻', color: '#22c55e', label: 'Builder' },
+        { value: 'carpenter', icon: '🔨', color: '#8b5cf6', label: 'Carpenter' },
+        { value: 'mechanic', icon: '🛠️', color: '#ef4444', label: 'Mechanic' },
+        { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
+        { value: 'chef', icon: '👩🏻‍🍳', color: '#f97316', label: 'Chef' },
+        { value: 'tailor', icon: '✂️', color: '#8b5cf6', label: 'Tailor' },
+        { value: 'photographer', icon: '📷', color: '#8b5cf6', label: 'Photographer' },
+        { value: 'videographer', icon: '🎥', color: '#06b6d4', label: 'Videographer' },
+        { value: 'editor', icon: '🎬', color: '#a855f7', label: 'Editor' },
+        { value: 'security', icon: '👮🏻', color: '#ef4444', label: 'Security' },
+        { value: 'trainer', icon: '🏃', color: '#f59e0b', label: 'Trainer' },
+        { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' }
+      ]
+    },
+    {
+      title: '🎓 Professional Services',
+      items: [
+        { value: 'doctor', icon: '🧑🏻‍⚕️', color: '#3b82f6', label: 'Doctor' },
+        { value: 'nurse', icon: '❤️‍🩹', color: '#ec4899', label: 'Nurse' },
+        { value: 'lawyer', icon: '⚖️', color: '#6366f1', label: 'Lawyer' },
+        { value: 'accountant', icon: '💰', color: '#f59e0b', label: 'Accountant' },
+        { value: 'consultant', icon: '💼', color: '#10b981', label: 'Consultant' },
+        { value: 'researcher', icon: '🔍', color: '#0ea5e9', label: 'Researcher' },
+        { value: 'engineer', icon: '⚙️', color: '#0ea5e9', label: 'Engineer' },
+        { value: 'marketer', icon: '📊', color: '#22c55e', label: 'Marketer' },
+        { value: 'realtor', icon: '🏡', color: '#ec4899', label: 'Realtor' },
+        { value: 'therapist', icon: '🧘🏻', color: '#ec4899', label: 'Therapist' },
+        { value: 'performer', icon: '💃🏻', color: '#ec4899', label: 'Performer' },
+        { value: 'musician', icon: '🎵', color: '#a855f7', label: 'Musician' },
+        { value: 'artist', icon: '🖼️', color: '#f472b6', label: 'Artist' },
+        { value: 'creative', icon: '✨', color: '#ec4899', label: 'Creative' }
+      ]
+    }
+  ];
+
+  let html = '';
+  sections.forEach((section) => {
+    html += `
+      <div class="np2-category-section-divider">
+        <div class="np2-category-section-title">${section.title}</div>
+      </div>
+    `;
+    section.items.forEach((item) => {
+      html += `
+        <div class="np2-category-card" data-value="${item.value}" data-icon="${item.icon}" data-color="${item.color}">
+          <div class="np2-category-icon" style="filter: drop-shadow(0 0 12px ${item.color});">${item.icon}</div>
+          <div class="np2-category-label">${item.label}</div>
+        </div>
+      `;
+    });
+  });
+
+  categoryGrid.innerHTML = html;
+}
+
 function initializeJobCategory() {
   const categorySelect = document.getElementById('jobCategorySelect');
   const categoryDropdown = document.getElementById('jobCategoryDropdown');
   const categoryValue = document.getElementById('jobCategoryValue');
   const searchInput = document.getElementById('categorySearchInput');
+
+  // Keep modal arrangement synced with homepage/listing sections
+  buildJobCategoryGrid(categoryDropdown);
   
   // Handle category card clicks
   categoryDropdown.addEventListener('click', function(e) {
@@ -2559,13 +2668,13 @@ function showEditForm(jobData, category) {
   
   // Category mapping
   const categoryCards = {
-    'hatod': { label: 'Hatod (Delivery/Transport)', icon: '🏍️' },
+    'hatod': { label: 'Delivery (Transport)', icon: '📦' },
     'hakot': { label: 'Hakot (Moving/Hauling)', icon: '🚚' },
     'kompra': { label: 'Kompra (Shopping)', icon: '🛒' },
     'luto': { label: 'Luto (Cooking)', icon: '🍳' },
     'hugas': { label: 'Hugas (Dishwashing)', icon: '🍽️' },
     'laba': { label: 'Laba (Laundry)', icon: '👕' },
-    'limpyo': { label: 'Limpyo (Cleaning)', icon: '🧹' },
+    'limpyo': { label: 'Janitor (Cleaning)', icon: '🧹' },
     'tindera': { label: 'Tindera (Store Help)', icon: '🏪' },
     'bantay': { label: 'Bantay (Babysitting/Caregiving)', icon: '👶' },
     'painter': { label: 'Painter', icon: '🎨' },
@@ -2580,7 +2689,10 @@ function showEditForm(jobData, category) {
     'mechanic': { label: 'Mechanic', icon: '🔩' },
     'electrician': { label: 'Electrician', icon: '⚡' },
     'tailor': { label: 'Tailor', icon: '✂️' },
-    'accountant': { label: 'Accountant', icon: '💼' }
+    'accountant': { label: 'Accountant', icon: '💼' },
+    'solicitor': { label: 'Solicitor', icon: '📣' },
+    'aircon': { label: 'AC Cleaner', icon: '❄️' },
+    'tourguide': { label: 'Tour Guide', icon: '🧭' }
   };
   
   // Populate category (read-only)

@@ -10,7 +10,7 @@ This document outlines the complete architecture for managing job/gig categories
 ### 1. **Category Definition Source** ⭐ CENTRALIZED
 **File:** `public/js/listing.js` (Lines 1916-1964)
 
-**Purpose:** Single source of truth for all category definitions used across **42 listing pages**
+**Purpose:** Single source of truth for all category definitions used across listing pages
 
 **Structure:**
 ```javascript
@@ -21,16 +21,16 @@ const jobCategories = [
     page: 'hatod.html',    // Target HTML page
     section: 'basic'       // Section: 'basic', 'skilled', or 'professional'
   },
-  // ... 41 more categories
+  // ... more categories
 ];
 ```
 
-**Impact:** Changes here automatically propagate to all 42 listing pages (hatod.html, hakot.html, etc.) when they load `listing.js`
+**Impact:** Changes here automatically propagate to listing pages (hatod.html, hakot.html, etc.) when they load `listing.js`
 
 **Current Categories:**
-- **Basic Helper (12):** Hatod, Hakot, Kompra, Luto, Hugas, Laba, Limpyo, Tindera, Bantay, Trainer, Staff, Reception
-- **Skilled Worker (18):** Driver, Security, Plumber, Builder, Painter, Carpenter, Creative, Editor, Artist, Pet Care, Researcher, Social, Photographer, Videographer, Musician, Secretary, Tutor, Clerical
-- **Professional (12):** Nurse, Doctor, Lawyer, Mechanic, Electrician, Tailor, Accountant, Consultant, Engineer, Programmer, Therapist, Marketer
+- **Business Essentials:** Delivery (Hatod), Janitor (Limpyo), Solicitor, AC Cleaner, Painter, Driver, Assistant, Clerical, Handyman, Electrician, Plumber, Mechanic, IT Tech, Programmer
+- **Skilled Worker:** Hakot, Hugas, Luto, Laba, Kompra, Tindera, Bantay, Trainer, Receptionist, Waiter, Tour Guide, Security, Barber, Builder, Gardner, Massager, Pet Care, Social, Creative, Artist, Musician, Performer, Photographer, Videographer, Editor, Secretary, Tutor
+- **Professional:** Nurse, Doctor, Lawyer, Carpenter, Researcher, Tailor, Chef, Therapist, Realtor, Accountant, Consultant, Engineer, Marketer
 
 ---
 
@@ -93,14 +93,14 @@ const jobCategories = [
 
 ---
 
-### 3. **Individual Listing Pages** 📄 51 HTML FILES
+### 3. **Individual Listing Pages** 📄 CATEGORY HTML FILES
 
-**Files:** All 51 category-specific HTML pages
+**Files:** Category-specific HTML pages
 - `hatod.html`, `hakot.html`, `kompra.html`, `luto.html`, `hugas.html`, `laba.html`, `limpyo.html`, `tindera.html`, `bantay.html`, `trainer.html`, `staff.html`, `reception.html`
 - `driver.html`, `security.html`, `plumber.html`, `builder.html`, `painter.html`, `carpenter.html`, `creative.html`, `editor.html`, `artist.html`, `petcare.html`, `researcher.html`, `social.html`, `photographer.html`, `videographer.html`, `musician.html`, `secretary.html`, `tutor.html`, `clerical.html`
 - `gardner.html`, `performer.html`, `massage.html`, `handyman.html`, `barber.html`, `waiter.html` (NEW)
 - `nurse.html`, `doctor.html`, `lawyer.html`, `mechanic.html`, `electrician.html`, `tailor.html`, `accountant.html`, `consultant.html`, `engineer.html`, `programmer.html`, `therapist.html`, `marketer.html`
-- `chef.html`, `ittech.html`, `planner.html` (NEW)
+- `chef.html`, `ittech.html`, `solicitor.html`, `aircon.html`, `tourguide.html`
 
 **Structure:** Each page is a copy of `hatod.html` with modifications:
 - Page title: `<title>Hatod Service - GISUGO</title>`

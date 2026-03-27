@@ -1,6 +1,8 @@
 html {
   overflow-y: auto;
   height: auto;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   /* Hide scrollbar for all browsers and devices */
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;     /* Firefox */
@@ -13,7 +15,9 @@ html::-webkit-scrollbar {
 body {        
   background: #242936; /* Solid lighter color - no gradient */
   margin: 0;
-  padding: clamp(70px, 20vh, 110px) 0 0 0; /* Responsive top padding for fixed header */
+  padding: clamp(70px, 12vh, 96px) 0 0 0; /* Keep stable on legacy iOS tablet viewport math */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body::-webkit-scrollbar {
@@ -40,7 +44,7 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: row;
   width: 100%;
-  height: clamp(66px, 20vh, 106px);
+  height: clamp(64px, 12vh, 88px);
   align-items: center;
   justify-content: space-between;
   background: transparent;
@@ -79,7 +83,7 @@ body::-webkit-scrollbar {
   width: clamp(300px, 90vw, 378px);
   height: clamp(50px, 12vh, 59px);
   color: #ffffff;
-  font-size: clamp(20px, 5vw, 28px);
+  font-size: clamp(18px, 3.6vw, 24px);
   font-weight: 700;
   font-family: arial, sans-serif;
   padding-left: clamp(15px, 4vw, 20px);
@@ -293,8 +297,8 @@ body::-webkit-scrollbar {
 }
 
 /* Fix icon bubble vertical stretch at all mobile sizes */
-/* Desktop optimization (601px and up) */
-@media (min-width: 601px) {
+/* Desktop optimization (1024px and up) */
+@media (min-width: 1024px) {
   .jobcat-servicemenu {
     width: clamp(220px, 28vw, 320px) !important; /* Much wider on desktop */
   }
@@ -315,6 +319,37 @@ body::-webkit-scrollbar {
   .jobcat-headerbutton {
     padding-top: 8px !important; /* Fixed consistent top padding */
     padding-bottom: 4px !important; /* Fixed consistent bottom padding */
+  }
+}
+
+/* Tablet tuning (including iPad mini Safari) */
+@media (min-width: 601px) and (max-width: 1023px) {
+  .jobcat-listheader {
+    height: clamp(64px, 10vh, 78px);
+  }
+
+  .jobcat-servicemenu {
+    width: clamp(180px, 38vw, 260px) !important;
+    height: clamp(44px, 7vh, 54px);
+  }
+
+  .jobcat-servicename {
+    width: clamp(180px, 38vw, 260px) !important;
+    height: clamp(44px, 7vh, 54px);
+    font-size: clamp(18px, 2.9vw, 22px) !important;
+  }
+
+  .jobcat-headerbutton {
+    width: clamp(46px, 8vw, 58px);
+    min-height: clamp(52px, 8vh, 64px);
+    font-size: clamp(11px, 1.8vw, 14px);
+  }
+
+  .jobcat-icon-emoji {
+    font-size: clamp(24px, 4vw, 30px) !important;
+    height: clamp(24px, 4vw, 30px) !important;
+    width: clamp(24px, 4vw, 30px) !important;
+    margin-bottom: 4px !important;
   }
 }
 

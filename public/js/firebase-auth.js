@@ -21,7 +21,7 @@ let authStateListeners = [];
 
 function getEmailVerificationActionSettings() {
   try {
-    const origin = window?.location?.origin;
+    const origin = window && window.location ? window.location.origin : '';
     if (!origin) return undefined;
     return {
       url: `${origin}/login.html?emailVerified=1`
@@ -285,7 +285,8 @@ async function loginWithEmail(email, password) {
           lastLogin: firebase.firestore.FieldValue.serverTimestamp()
         });
       } catch (dbError) {
-        console.warn('⚠️ Could not update lastLogin, continuing login:', dbError?.code || dbError);
+        const dbErrorCode = dbError && dbError.code ? dbError.code : '';
+        console.warn('⚠️ Could not update lastLogin, continuing login:', dbErrorCode || dbError);
       }
     }
     
@@ -404,8 +405,9 @@ async function loginWithGoogle() {
     console.log('📌 User UID:', user.uid);
     console.log('📌 User Email:', user.email);
     console.log('📌 User Display Name:', user.displayName);
-    console.log('📌 Is New User (Firebase):', result.additionalUserInfo?.isNewUser);
-    console.log('📌 Provider ID:', result.additionalUserInfo?.providerId);
+    const additionalUserInfo = result && result.additionalUserInfo ? result.additionalUserInfo : {};
+    console.log('📌 Is New User (Firebase):', additionalUserInfo.isNewUser);
+    console.log('📌 Provider ID:', additionalUserInfo.providerId);
     console.log('📌 Provider Count:', user.providerData.length);
     user.providerData.forEach((p, i) => {
       console.log(`   Provider ${i + 1}:`, {
@@ -443,15 +445,15 @@ async function loginWithGoogle() {
     console.log('═══════════════════════════════════════════════════════');
     console.log('📌 UID:', user.uid);
     console.log('📌 Has Firestore Profile:', hasFirestoreProfile);
-    console.log('📌 Firebase Says New User:', result.additionalUserInfo?.isNewUser);
+    console.log('📌 Firebase Says New User:', additionalUserInfo.isNewUser);
     console.log('📌 Decision: Will redirect to', hasFirestoreProfile ? 'index.html' : 'sign-up.html');
     console.log('═══════════════════════════════════════════════════════');
     
     return {
       success: true,
       user: user,
-      isNewUser: result.additionalUserInfo?.isNewUser || false,
-      message: result.additionalUserInfo?.isNewUser ? 
+      isNewUser: additionalUserInfo.isNewUser || false,
+      message: additionalUserInfo.isNewUser ? 
         'Welcome to GISUGO!' : 'Welcome back!'
     };
     
@@ -777,8 +779,8 @@ async function loginWithFacebook() {
     return {
       success: true,
       user: user,
-      isNewUser: result.additionalUserInfo?.isNewUser || false,
-      message: result.additionalUserInfo?.isNewUser ? 
+      isNewUser: (result && result.additionalUserInfo && result.additionalUserInfo.isNewUser) || false,
+      message: (result && result.additionalUserInfo && result.additionalUserInfo.isNewUser) ? 
         'Welcome to GISUGO!' : 'Welcome back!'
     };
     
@@ -813,9 +815,10 @@ async function loginWithFacebook() {
  */
 async function logout() {
   const auth = getFirebaseAuth();
-  const lastUid = auth?.currentUser?.uid || currentUser?.uid || '';
+  const authCurrentUser = auth ? auth.currentUser : null;
+  const lastUid = (authCurrentUser && authCurrentUser.uid) || (currentUser && currentUser.uid) || '';
 
-  if (window.GisugoPushNotifications?.prepareForLogout) {
+  if (window.GisugoPushNotifications && typeof window.GisugoPushNotifications.prepareForLogout === 'function') {
     try {
       await window.GisugoPushNotifications.prepareForLogout(lastUid);
     } catch (pushError) {
@@ -1013,11 +1016,11 @@ async function createUserProfile(userId, profileData) {
         ...(profileData.statistics || {}),
         worker: {
           ...defaultProfile.statistics.worker,
-          ...(profileData.statistics?.worker || {})
+          ...(((profileData.statistics || {}).worker) || {})
         },
         customer: {
           ...defaultProfile.statistics.customer,
-          ...(profileData.statistics?.customer || {})
+          ...(((profileData.statistics || {}).customer) || {})
         }
       }
     };
@@ -1184,7 +1187,7 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
       displayName: user.displayName || '',
       photoURL: user.photoURL || '',
       phoneNumber: user.phoneNumber || '',
-      provider: user.providerData?.[0]?.providerId || 'unknown'
+      provider: (Array.isArray(user.providerData) && user.providerData[0] && user.providerData[0].providerId) || 'unknown'
     }));
     window.location.href = signupRedirect;
   }
@@ -1331,7 +1334,7 @@ function userNeedsEmailVerification(user) {
   if (!user) return false;
   if (!user.email) return false;
   const providerIds = Array.isArray(user.providerData)
-    ? user.providerData.map((provider) => provider?.providerId).filter(Boolean)
+    ? user.providerData.map((provider) => provider && provider.providerId).filter(Boolean)
     : [];
   const hasEmailPasswordProvider = providerIds.includes('password') || providerIds.includes('emailLink');
   if (!hasEmailPasswordProvider) {

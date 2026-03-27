@@ -503,6 +503,19 @@ window.JobsDataService = {
     _useFirebase() {
         return typeof DataService !== 'undefined' && DataService.useFirebase();
     },
+
+    _withTimeout(promise, label, timeoutMs = 15000) {
+        let timeoutId = null;
+        const timeoutPromise = new Promise((_, reject) => {
+            timeoutId = setTimeout(() => {
+                reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+            }, timeoutMs);
+        });
+
+        return Promise.race([promise, timeoutPromise]).finally(() => {
+            if (timeoutId) clearTimeout(timeoutId);
+        });
+    },
     
     // ===== NORMALIZE FIREBASE JOB DATA =====
     // Convert Firebase field names to expected format
@@ -572,7 +585,10 @@ window.JobsDataService = {
                 
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
-                    const rawJobs = await getUserJobListings(user.uid, ['active', 'paused']);
+                    const rawJobs = await this._withTimeout(
+                        getUserJobListings(user.uid, ['active', 'paused']),
+                        'getAllJobs:getUserJobListings'
+                    );
                     // Normalize Firebase data to match expected field names
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
                     console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
@@ -633,7 +649,10 @@ window.JobsDataService = {
                 // 'hired' = customer hired someone (appears in customer's Hiring tab)
                 // 'accepted' = worker accepted the offer (appears in worker's Working tab)
                 if (typeof getUserJobListings === 'function') {
-                    const jobs = await getUserJobListings(user.uid, ['hired', 'accepted']);
+                    const jobs = await this._withTimeout(
+                        getUserJobListings(user.uid, ['hired', 'accepted']),
+                        'getAllHiredJobs:getUserJobListings'
+                    );
                     console.log(`🔥 Loaded ${jobs.length} hired/accepted jobs from Firebase`);
                     return jobs;
                 }
@@ -1197,16 +1216,22 @@ window.JobsDataService = {
                 const db = firebase.firestore();
                 
                 // Query for completed jobs where user is the poster
-                const posterSnapshot = await db.collection('jobs')
-                    .where('status', '==', 'completed')
-                    .where('posterId', '==', currentUserId)
-                    .get();
+                const posterSnapshot = await this._withTimeout(
+                    db.collection('jobs')
+                        .where('status', '==', 'completed')
+                        .where('posterId', '==', currentUserId)
+                        .get(),
+                    'getCompletedJobs:posterSnapshot'
+                );
                 
                 // Query for completed jobs where user is the hired worker
-                const workerSnapshot = await db.collection('jobs')
-                    .where('status', '==', 'completed')
-                    .where('hiredWorkerId', '==', currentUserId)
-                    .get();
+                const workerSnapshot = await this._withTimeout(
+                    db.collection('jobs')
+                        .where('status', '==', 'completed')
+                        .where('hiredWorkerId', '==', currentUserId)
+                        .get(),
+                    'getCompletedJobs:workerSnapshot'
+                );
                 
                 console.log(`📊 Raw Firestore results: ${posterSnapshot.docs.length} as poster, ${workerSnapshot.docs.length} as worker`);
                 
@@ -1329,7 +1354,10 @@ window.JobsDataService = {
                 
                 // Use getOfferedJobsForWorker from firebase-db.js
                 if (typeof getOfferedJobsForWorker === 'function') {
-                    const rawJobs = await getOfferedJobsForWorker(user.uid);
+                    const rawJobs = await this._withTimeout(
+                        getOfferedJobsForWorker(user.uid),
+                        'getOfferedJobs:getOfferedJobsForWorker'
+                    );
                     console.log(`🔥 Loaded ${rawJobs.length} offered jobs from Firebase`);
                     // Normalize data if needed
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
@@ -1766,7 +1794,7 @@ async function switchToRole(roleType) {
         document.getElementById('listingsTab')?.classList.add('active');
         
         // Initialize the default listings tab content
-        await initializeListingsTab();
+        await initializeTabWithTimeout('listings', () => initializeListingsTab());
         
         console.log('✅ Customer role activated - showing Listings/Hiring/Completed tabs');
         
@@ -1794,7 +1822,7 @@ async function switchToRole(roleType) {
         document.getElementById('offeredTab')?.classList.add('active');
         
         // Initialize the default offered tab content
-        await initializeOfferedTab();
+        await initializeTabWithTimeout('offered', () => initializeOfferedTab());
         
         console.log('✅ Worker role activated - showing Gigs Offered/Gigs Accepted/Gigs Completed tabs');
     }
@@ -1819,6 +1847,49 @@ function initializeTabs() {
             }
         });
     });
+}
+
+const TAB_INIT_TIMEOUT_MS = 15000;
+
+function getPrimaryTabContainer(tabType) {
+    switch (tabType) {
+        case 'listings':
+            return document.querySelector('.listings-container');
+        case 'hiring':
+            return document.querySelector('.hiring-container');
+        case 'previous':
+            return document.querySelector('.previous-container');
+        case 'offered':
+            return document.querySelector('.offered-container');
+        case 'accepted':
+            return document.querySelector('.accepted-container');
+        case 'worker-completed':
+            return document.querySelector('.worker-completed-container');
+        default:
+            return null;
+    }
+}
+
+async function initializeTabWithTimeout(tabType, initializeFn) {
+    try {
+        await Promise.race([
+            initializeFn(),
+            new Promise((_, reject) => {
+                setTimeout(() => reject(new Error(`${tabType} init timed out`)), TAB_INIT_TIMEOUT_MS);
+            })
+        ]);
+    } catch (error) {
+        console.error(`❌ ${tabType} tab initialization failed:`, error);
+        const container = getPrimaryTabContainer(tabType);
+        if (container) {
+            container.innerHTML = `
+                <div class="content-placeholder">
+                    Could not load this tab right now.<br>
+                    <button class="empty-state-btn" type="button" onclick="location.reload()">Retry</button>
+                </div>
+            `;
+        }
+    }
 }
 
 async function switchToCustomerTab(tabType) {
@@ -1857,11 +1928,11 @@ async function switchToCustomerTab(tabType) {
     
     // Load content based on tab type (existing functionality)
     if (tabType === 'listings') {
-        await initializeListingsTab();
+        await initializeTabWithTimeout('listings', () => initializeListingsTab());
     } else if (tabType === 'hiring') {
-        await initializeHiringTab();
+        await initializeTabWithTimeout('hiring', () => initializeHiringTab());
     } else if (tabType === 'previous') {
-        await initializePreviousTab();
+        await initializeTabWithTimeout('previous', () => initializePreviousTab());
     }
 }
 
@@ -1896,11 +1967,11 @@ async function switchToWorkerTab(tabType) {
     
     // Load worker content
     if (tabType === 'offered') {
-        await initializeOfferedTab();
+        await initializeTabWithTimeout('offered', () => initializeOfferedTab());
     } else if (tabType === 'accepted') {
-        await initializeAcceptedTab();
+        await initializeTabWithTimeout('accepted', () => initializeAcceptedTab());
     } else if (tabType === 'worker-completed') {
-        await initializeWorkerCompletedTab();
+        await initializeTabWithTimeout('worker-completed', () => initializeWorkerCompletedTab());
     }
 }
 
@@ -2454,13 +2525,22 @@ async function initializeActiveTab(tabType) {
     
     switch (tabType) {
         case 'listings':
-            await initializeListingsTab();
+            await initializeTabWithTimeout('listings', () => initializeListingsTab());
             break;
         case 'hiring':
-            await initializeHiringTab();
+            await initializeTabWithTimeout('hiring', () => initializeHiringTab());
             break;
         case 'previous':
-            await initializePreviousTab(); // Make this async to ensure proper initialization
+            await initializeTabWithTimeout('previous', () => initializePreviousTab()); // Make this async to ensure proper initialization
+            break;
+        case 'offered':
+            await initializeTabWithTimeout('offered', () => initializeOfferedTab());
+            break;
+        case 'accepted':
+            await initializeTabWithTimeout('accepted', () => initializeAcceptedTab());
+            break;
+        case 'worker-completed':
+            await initializeTabWithTimeout('worker-completed', () => initializeWorkerCompletedTab());
             break;
         default:
             console.warn('Unknown tab type:', tabType);
@@ -2489,39 +2569,51 @@ async function loadListingsContent() {
         </div>
     `;
     
-    // Generate mock listings data
-    const mockListings = await generateMockListings();
-    if (!shouldApplyTabRender('listings', renderToken)) return;
-    
-    if (mockListings.length === 0) {
+    try {
+        // Generate mock listings data
+        const mockListings = await generateMockListings();
+        if (!shouldApplyTabRender('listings', renderToken)) return;
+        
+        if (mockListings.length === 0) {
+            if (!shouldApplyTabRender('listings', renderToken)) return;
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div class="empty-state-title">No active gig listings yet</div>
+                    <div class="empty-state-message">Ready to post your first gig? Create a listing and start finding help!</div>
+                    <button class="empty-state-btn" onclick="window.location.href='new-post2.html'">
+                        Post Your First Gig
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort by job date (earliest jobs first - most urgent at top)
+        const sortedListings = mockListings.sort((a, b) => {
+            const dateA = new Date(a.jobDate);
+            const dateB = new Date(b.jobDate);
+            return dateA - dateB;
+        });
+        
+        // Generate listings HTML
+        const listingsHTML = sortedListings.map(listing => generateListingCardHTML(listing)).join('');
+        if (!shouldApplyTabRender('listings', renderToken)) return;
+        container.innerHTML = listingsHTML;
+        
+        // Initialize card click handlers
+        initializeListingCardHandlers();
+    } catch (error) {
+        console.error('❌ Error loading listings content:', error);
         if (!shouldApplyTabRender('listings', renderToken)) return;
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
-                <div class="empty-state-title">No active gig listings yet</div>
-                <div class="empty-state-message">Ready to post your first gig? Create a listing and start finding help!</div>
-                <button class="empty-state-btn" onclick="window.location.href='new-post2.html'">
-                    Post Your First Gig
-                </button>
+                <div class="empty-state-icon">⚠️</div>
+                <div class="empty-state-title">Unable to load listings</div>
+                <div class="empty-state-message">Please refresh and try again.</div>
             </div>
         `;
-        return;
     }
-    
-    // Sort by job date (earliest jobs first - most urgent at top)
-    const sortedListings = mockListings.sort((a, b) => {
-        const dateA = new Date(a.jobDate);
-        const dateB = new Date(b.jobDate);
-        return dateA - dateB;
-    });
-    
-    // Generate listings HTML
-    const listingsHTML = sortedListings.map(listing => generateListingCardHTML(listing)).join('');
-    if (!shouldApplyTabRender('listings', renderToken)) return;
-    container.innerHTML = listingsHTML;
-    
-    // Initialize card click handlers
-    initializeListingCardHandlers();
 }
 
 async function generateMockListings() {

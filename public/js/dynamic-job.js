@@ -44,6 +44,135 @@ const DYNAMIC_JOB_CLEANUP_REGISTRY = {
 window.addEventListener('beforeunload', function() {
   DYNAMIC_JOB_CLEANUP_REGISTRY.cleanup();
 });
+window.addEventListener('pagehide', function() {
+  DYNAMIC_JOB_CLEANUP_REGISTRY.cleanup();
+});
+
+const DYNAMIC_JOB_FETCH_TIMEOUT_MS = 15000;
+let ACTIVE_JOB_LOAD_TOKEN = 0;
+const DYNAMIC_JOB_INITIAL_FETCH_TIMEOUT_MS = (() => {
+  try {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // iOS cold-start Firestore reads can take longer; avoid false "Error Loading Job".
+    return isIOS ? 32000 : 12000;
+  } catch (_) {
+    return 12000;
+  }
+})();
+
+function isIOSWebKitBrowserForDataPath() {
+  try {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (_) {
+    return false;
+  }
+}
+
+function getProjectIdForFirestoreRest() {
+  try {
+    if (window.firebaseConfig && window.firebaseConfig.projectId) {
+      return String(window.firebaseConfig.projectId).trim();
+    }
+    if (typeof firebase !== 'undefined' && firebase.app && typeof firebase.app === 'function') {
+      const app = firebase.app();
+      if (app && app.options && app.options.projectId) {
+        return String(app.options.projectId).trim();
+      }
+    }
+  } catch (_) {
+    // fall through
+  }
+  return '';
+}
+
+function decodeFirestoreValue(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (Object.prototype.hasOwnProperty.call(raw, 'stringValue')) return raw.stringValue;
+  if (Object.prototype.hasOwnProperty.call(raw, 'integerValue')) return Number(raw.integerValue);
+  if (Object.prototype.hasOwnProperty.call(raw, 'doubleValue')) return Number(raw.doubleValue);
+  if (Object.prototype.hasOwnProperty.call(raw, 'booleanValue')) return raw.booleanValue === true;
+  if (Object.prototype.hasOwnProperty.call(raw, 'timestampValue')) return raw.timestampValue;
+  if (Object.prototype.hasOwnProperty.call(raw, 'nullValue')) return null;
+  if (raw.arrayValue && Array.isArray(raw.arrayValue.values)) {
+    return raw.arrayValue.values.map((entry) => decodeFirestoreValue(entry));
+  }
+  if (raw.mapValue && raw.mapValue.fields && typeof raw.mapValue.fields === 'object') {
+    const mapped = {};
+    Object.entries(raw.mapValue.fields).forEach(([key, value]) => {
+      mapped[key] = decodeFirestoreValue(value);
+    });
+    return mapped;
+  }
+  return null;
+}
+
+function mapFirestoreRestDoc(rawDoc) {
+  if (!rawDoc || !rawDoc.name) return null;
+  const fields = rawDoc.fields || {};
+  const mapped = {
+    id: String(rawDoc.name).split('/').pop(),
+    jobId: String(rawDoc.name).split('/').pop()
+  };
+  Object.entries(fields).forEach(([key, value]) => {
+    mapped[key] = decodeFirestoreValue(value);
+  });
+  return mapped;
+}
+
+async function fetchJobByIdViaFirestoreRest(jobId) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for Firestore REST fallback');
+  const safeJobId = String(jobId || '').trim();
+  if (!safeJobId) return null;
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/jobs/${encodeURIComponent(safeJobId)}`;
+  const response = await fetch(endpoint, { method: 'GET' });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`REST job fetch failed (${response.status})`);
+  }
+  const raw = await response.json();
+  return mapFirestoreRestDoc(raw);
+}
+
+function dynamicTrace() {
+  // iOS on-screen trace removed after stabilization.
+}
+
+function setApplyButtonSyncState(applyBtn, isSyncing) {
+  if (!applyBtn) return;
+  const span = applyBtn.querySelector('span');
+  if (isSyncing) {
+    applyBtn.disabled = true;
+    applyBtn.style.opacity = '0.75';
+    applyBtn.style.cursor = 'wait';
+    if (span) span.textContent = 'SYNCING STATUS...';
+    applyBtn.title = 'Checking your latest application status...';
+  } else {
+    if (span && span.textContent === 'SYNCING STATUS...') {
+      span.textContent = 'APPLY TO JOB';
+      applyBtn.title = '';
+      applyBtn.disabled = false;
+      applyBtn.style.opacity = '1';
+      applyBtn.style.cursor = 'pointer';
+      applyBtn.style.backgroundColor = '';
+    }
+  }
+}
+
+function withDynamicJobTimeout(promise, label, timeoutMs = DYNAMIC_JOB_FETCH_TIMEOUT_MS) {
+  let timeoutId = null;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
 
 function isAllowedTextCharacter(char) {
   if (!char) return true;
@@ -137,8 +266,8 @@ function blockUnsupportedCharsForInput(inputEl) {
     e.preventDefault();
     showGuideOnce();
     const cleaned = sanitizeTextInput(pastedText);
-    const start = inputEl.selectionStart ?? inputEl.value.length;
-    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    const start = inputEl.selectionStart == null ? inputEl.value.length : inputEl.selectionStart;
+    const end = inputEl.selectionEnd == null ? inputEl.value.length : inputEl.selectionEnd;
     inputEl.setRangeText(cleaned, start, end, 'end');
     inputEl.dispatchEvent(new Event('input', { bubbles: true }));
   };
@@ -258,146 +387,228 @@ const extrasConfig = {
 
 function getUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search);
+  const rawId = urlParams.get('jobId') || urlParams.get('jobNumber');
   return {
-    category: urlParams.get('category'),
-    // Support both jobNumber (legacy) and jobId (Firebase)
-    jobNumber: urlParams.get('jobNumber') || urlParams.get('jobId')
+    category: (urlParams.get('category') || '').trim().toLowerCase(),
+    jobId: String(rawId || '').trim()
   };
 }
 
+function isActiveJobLoad(token) {
+  return token === ACTIVE_JOB_LOAD_TOKEN;
+}
+
+function resolveStrictFirestore() {
+  if (typeof getFirestore === 'function') {
+    return getFirestore();
+  }
+  if (typeof firebase !== 'undefined' && typeof firebase.firestore === 'function') {
+    try {
+      return firebase.firestore();
+    } catch (error) {
+      console.warn('⚠️ Could not access firebase.firestore():', error);
+    }
+  }
+  return null;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForFirestoreReady(maxWaitMs = 8000) {
+  const start = Date.now();
+  while ((Date.now() - start) < maxWaitMs) {
+    const db = resolveStrictFirestore();
+    if (db) return db;
+    await delay(160);
+  }
+  return resolveStrictFirestore();
+}
+
+async function fetchStrictJobById(jobId, dbInstance = null) {
+  const db = dbInstance || resolveStrictFirestore();
+  if (!db) {
+    throw new Error('Firestore is unavailable');
+  }
+  const safeJobId = String(jobId || '').trim();
+  if (!safeJobId) return null;
+  const useRestPrimary = isIOSWebKitBrowserForDataPath();
+  dynamicTrace('fetch:mode', { restPrimary: useRestPrimary });
+  if (useRestPrimary) {
+    try {
+      dynamicTrace('fetch:rest:start', { jobId: safeJobId });
+      const restDoc = await withDynamicJobTimeout(fetchJobByIdViaFirestoreRest(safeJobId), 'doc.get(rest)', 12000);
+      if (restDoc) {
+        dynamicTrace('fetch:rest:done', { exists: true });
+        return restDoc;
+      }
+      dynamicTrace('fetch:rest:done', { exists: false });
+    } catch (restError) {
+      dynamicTrace('fetch:rest:error', (restError && restError.message) ? restError.message : String(restError));
+    }
+  }
+  const docRef = db.collection('jobs').doc(safeJobId);
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  let doc = null;
+  if (isIOS) {
+    // Prefer server read first on iOS to bypass stale/empty cold cache snapshots.
+    try {
+      dynamicTrace('fetch:server:start', { jobId: safeJobId });
+      doc = await withDynamicJobTimeout(docRef.get({ source: 'server' }), 'doc.get(server)', 14000);
+      dynamicTrace('fetch:server:done', { exists: !!(doc && doc.exists) });
+    } catch (serverError) {
+      dynamicTrace('fetch:server:error', (serverError && serverError.message) ? serverError.message : String(serverError));
+      console.warn('⚠️ iOS server-first read failed, trying default read:', serverError);
+    }
+    if (!doc || !doc.exists) {
+      dynamicTrace('fetch:default:start', { jobId: safeJobId });
+      doc = await withDynamicJobTimeout(docRef.get(), 'doc.get(default)', 10000);
+      dynamicTrace('fetch:default:done', { exists: !!(doc && doc.exists) });
+    }
+  } else {
+    doc = await withDynamicJobTimeout(docRef.get(), 'doc.get(default)', 10000);
+    if (!doc || !doc.exists) {
+      try {
+        const serverDoc = await withDynamicJobTimeout(docRef.get({ source: 'server' }), 'doc.get(server)', 7000);
+        if (serverDoc && serverDoc.exists) {
+          doc = serverDoc;
+        }
+      } catch (serverError) {
+        console.warn('⚠️ server retry skipped/failed:', serverError);
+      }
+    }
+  }
+
+  if (!doc || !doc.exists) return null;
+  return {
+    id: doc.id,
+    jobId: doc.id,
+    ...doc.data()
+  };
+}
+
+function isTransientFirestoreError(error) {
+  const code = String(error?.code || '').toLowerCase();
+  if (code === 'unavailable' || code === 'deadline-exceeded' || code === 'aborted' || code === 'failed-precondition') {
+    return true;
+  }
+  const message = String(error?.message || '').toLowerCase();
+  return message.includes('network') || message.includes('offline') || message.includes('timeout');
+}
+
+async function fetchStrictJobByIdWithRetry(jobId, dbInstance = null, attempts = 4) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const job = await fetchStrictJobById(jobId, dbInstance);
+      if (job) return job;
+      if (attempt < attempts) {
+        await delay(220 * attempt);
+      }
+    } catch (error) {
+      lastError = error;
+      if (!isTransientFirestoreError(error) || attempt >= attempts) {
+        throw error;
+      }
+      console.warn(`⚠️ Strict job fetch transient failure ${attempt}/${attempts}; retrying`, error);
+      await delay(280 * attempt);
+    }
+  }
+  if (lastError) throw lastError;
+  return null;
+}
+
 async function loadJobData() {
+  const loadToken = ++ACTIVE_JOB_LOAD_TOKEN;
   // Show loading overlay
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) {
     loadingOverlay.classList.add('show');
   }
   
-  // ⚠️ CRITICAL: Wrap in try-finally to ensure loading always hides
+  let hasRenderedCore = false;
   try {
-  
-  const { category, jobNumber } = getUrlParameters();
-  
-  if (!category || !jobNumber) {
-    showErrorMessage('Invalid job URL. Missing category or job ID.');
-    return;
-  }
-  
-  console.log(`🔍 Loading job data for category: ${category}, jobId/jobNumber: ${jobNumber}`);
-  
-  // Check if we should use Firebase
-  const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
-  console.log(`📊 Data mode: ${useFirebase ? 'FIREBASE' : 'MOCK'}`);
-  
-  let job = null;
-  
-  // ══════════════════════════════════════════════════════════════
-  // FIREBASE MODE - Try to load from Firestore first
-  // ══════════════════════════════════════════════════════════════
-  if (useFirebase) {
-    console.log('🔥 FIREBASE MODE: Loading job from Firestore...');
-    
-    // jobNumber is actually the Firebase document ID
-    if (typeof getJobById === 'function') {
-      try {
-        job = await getJobById(jobNumber);
-        if (job) {
-          console.log(`✅ Found job in Firebase:`, job);
-          // Normalize Firebase data
-          job = normalizeFirebaseJob(job);
-        }
-      } catch (error) {
-        console.error('❌ Error loading from Firebase:', error);
-      }
+    const { category, jobId } = getUrlParameters();
+    dynamicTrace('load:start', { category, jobId });
+    if (!category || !jobId) {
+      dynamicTrace('load:url:error', 'missing category/jobId');
+      showErrorMessage('Invalid job URL. Missing category or job ID.');
+      return;
     }
-  }
-  
-  // ══════════════════════════════════════════════════════════════
-  // FALLBACK - Try localStorage
-  // ══════════════════════════════════════════════════════════════
-  if (!job) {
-    console.log('📦 Trying localStorage...');
-    
-    const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    const categoryJobs = jobData[category] || [];
-    
-    console.log(`📱 Found ${categoryJobs.length} jobs in localStorage for category '${category}'`);
-    
-    // Find the specific job by jobNumber OR by extracting from jobId
-    job = categoryJobs.find(j => j.jobNumber == jobNumber);
-    
-    if (!job) {
-      // Try alternative: match by jobId pattern (for RELISTED jobs that might have different jobNumber)
-      job = categoryJobs.find(j => {
-        if (j.jobId) {
-          // Extract number from jobId like "limpyo_job_2025_1751300670771"
-          const extractedNumber = j.jobId.split('_').pop();
-          return extractedNumber == jobNumber;
-        }
-        return false;
-      });
-      
-      if (job) {
-        console.log(`✅ Found job by jobId pattern match:`, job);
-      }
+    console.log(`🔍 Loading job data for category: ${category}, jobId: ${jobId}`);
+    const firestore = await waitForFirestoreReady();
+    dynamicTrace('firestore:ready', { ready: !!firestore });
+    if (!firestore) {
+      throw new Error('Firestore client not ready');
+    }
+    const jobDoc = await withDynamicJobTimeout(
+      fetchStrictJobByIdWithRetry(jobId, firestore),
+      `fetchStrictJobById(${jobId})`,
+      DYNAMIC_JOB_INITIAL_FETCH_TIMEOUT_MS
+    );
+    if (!isActiveJobLoad(loadToken)) return;
+    if (!jobDoc) {
+      dynamicTrace('fetch:result', 'not_found');
+      showErrorMessage('Job not found. This job may have been removed or does not exist.');
+      return;
+    }
+
+    const job = normalizeFirebaseJob(jobDoc);
+    dynamicTrace('fetch:result', { id: job.id || job.jobId, hasPhoto: !!(job.thumbnail || job.photo) });
+    populateJobPage(job);
+    dynamicTrace('render:core:ok');
+    hasRenderedCore = true;
+
+    const applyBtn = document.getElementById('jobApplyBtn');
+    const currentUser = firebase.auth ? firebase.auth().currentUser : null;
+    const postRenderTasks = [];
+    if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
+      applyBtn.style.display = 'none';
+    } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
+      applyBtn.disabled = true;
+      applyBtn.style.opacity = '0.5';
+      applyBtn.style.cursor = 'not-allowed';
+      applyBtn.style.backgroundColor = '';
+      const span = applyBtn.querySelector('span');
+      if (span) span.textContent = 'YOUR GIG';
+      applyBtn.title = 'This is your own gig';
     } else {
-      console.log(`✅ Found job by direct jobNumber match:`, job);
+      setApplyButtonSyncState(applyBtn, true);
+      postRenderTasks.push(
+        withDynamicJobTimeout(checkIfUserAlreadyApplied(jobId), 'checkIfUserAlreadyApplied', 4500)
+          .then(() => {
+            setApplyButtonSyncState(applyBtn, false);
+          })
+          .catch((error) => {
+            setApplyButtonSyncState(applyBtn, false);
+            dynamicTrace('post:applyCheck:timeout', (error && error.message) ? error.message : String(error));
+          })
+      );
     }
-  }
-  
-  if (!job) {
-    console.error(`❌ Job not found in Firebase or localStorage`);
-    showErrorMessage('Job not found. This job may have been removed or does not exist.');
-    return;
-  }
-  
-  console.log(`🎯 Loading job data:`, job);
-  
-  // Populate the page with job data
-  populateJobPage(job);
-  
-  // ═══════════════════════════════════════════════════════════════
-  // PARALLEL REQUESTS OPTIMIZATION
-  // ═══════════════════════════════════════════════════════════════
-  // Load customer rating in parallel with other UI setup
-  // Saves 200-300ms by not blocking on rating fetch
-  const ratingPromise = loadCustomerRating(job.posterId);
-  
-  // Check job status and poster, hide Apply button if needed
-  const applyBtn = document.getElementById('jobApplyBtn');
-  const currentUser = firebase.auth ? firebase.auth().currentUser : null;
-  
-  if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
-    console.log(`🏁 Job status is "${job.status}" - hiding Apply button`);
-    applyBtn.style.display = 'none';
-  } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
-    console.log('👤 User is viewing their own job - showing YOUR GIG button');
-    applyBtn.disabled = true;
-    applyBtn.style.opacity = '0.5';
-    applyBtn.style.cursor = 'not-allowed';
-    applyBtn.style.backgroundColor = '';
-    applyBtn.querySelector('span').textContent = 'YOUR GIG';
-    applyBtn.title = 'This is your own gig';
-  } else {
-    // Check if user has already applied to this job (only for active jobs by other posters)
-    // Run in parallel with rating fetch
-    await Promise.all([
-      ratingPromise,
-      checkIfUserAlreadyApplied(jobNumber)
-    ]);
-  }
-  
-  // Ensure rating is loaded even if we didn't enter the else block
-  if (['completed', 'hired', 'accepted'].includes(job.status) || (currentUser && job.posterId === currentUser.uid)) {
-    await ratingPromise;
-  }
-  
+
+    // Customer section enrichment should not block primary page render.
+    postRenderTasks.push(
+      withDynamicJobTimeout(loadCustomerRating(job.posterId), 'loadCustomerRating', 6000)
+        .catch((error) => {
+          dynamicTrace('post:customerRating:timeout', (error && error.message) ? error.message : String(error));
+        })
+    );
+
+    Promise.allSettled(postRenderTasks).then(() => {
+      dynamicTrace('render:complete');
+    });
+    if (!isActiveJobLoad(loadToken)) return;
   } catch (unexpectedError) {
-    // ⚠️ CRITICAL: Catch any unexpected errors
     console.error('❌ Unexpected error in loadJobData:', unexpectedError);
-    showErrorMessage('Failed to load job. Please refresh the page.');
+    dynamicTrace('load:crash', (unexpectedError && unexpectedError.message) ? unexpectedError.message : String(unexpectedError));
+    if (!hasRenderedCore && isActiveJobLoad(loadToken)) {
+      showErrorMessage('Failed to load job. Please refresh the page.');
+    }
   } finally {
-    // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
-    if (loadingOverlay) {
+    if (loadingOverlay && isActiveJobLoad(loadToken)) {
       loadingOverlay.classList.remove('show');
       console.log('✅ Loading overlay hidden');
     }
@@ -425,12 +636,45 @@ function normalizeFirebaseJob(job) {
     photo: job.thumbnail || job.photo,
     paymentAmount: job.priceOffer || job.paymentAmount,
     priceOffer: job.priceOffer,
-    extra1: job.extras?.[0] || '',
-    extra2: job.extras?.[1] || '',
+    extra1: Array.isArray(job.extras) ? (job.extras[0] || '') : '',
+    extra2: Array.isArray(job.extras) ? (job.extras[1] || '') : '',
     posterName: job.posterName || 'Customer',
     posterThumbnail: job.posterThumbnail || '',
     applicationCount: job.applicationCount || 0
   };
+}
+
+function safeSetText(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+}
+
+function formatJobDateForDisplay(value) {
+  try {
+    let date = null;
+    if (!value) return 'TBD';
+    if (typeof value?.toDate === 'function') {
+      date = value.toDate();
+    } else if (value instanceof Date) {
+      date = value;
+    } else if (typeof value === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [year, month, day] = value.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else {
+        date = new Date(value);
+      }
+    }
+    if (!date || isNaN(date.getTime())) return 'TBD';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (error) {
+    return 'TBD';
+  }
 }
 
 function populateJobPage(jobData) {
@@ -438,12 +682,12 @@ function populateJobPage(jobData) {
   window.currentJobData = jobData;
   
   // Set page title (check both jobTitle and title fields)
-  const jobTitle = jobData.jobTitle || jobData.title;
+  const jobTitle = jobData.jobTitle || jobData.title || 'Untitled Gig';
   document.title = `${jobTitle} - GISUGO`;
-  document.getElementById('pageTitle').textContent = `${jobTitle} - GISUGO`;
+  safeSetText('pageTitle', `${jobTitle} - GISUGO`);
   
   // Set job title
-  document.getElementById('jobTitle').textContent = jobTitle;
+  safeSetText('jobTitle', jobTitle);
   
   // Set job photo if available (check both photo and thumbnail fields)
   const photoSrc = jobData.photo || jobData.thumbnail;
@@ -496,52 +740,39 @@ function populateJobPage(jobData) {
   
   // Set region and city
   if (jobData.region) {
-    document.getElementById('jobRegion').textContent = jobData.region;
+    safeSetText('jobRegion', jobData.region);
   } else {
-    document.getElementById('jobRegion').textContent = 'Not specified';
+    safeSetText('jobRegion', 'Not specified');
   }
   
   if (jobData.city) {
-    document.getElementById('jobCity').textContent = jobData.city;
+    safeSetText('jobCity', jobData.city);
   } else {
-    document.getElementById('jobCity').textContent = 'Not specified';
+    safeSetText('jobCity', 'Not specified');
   }
   
-  // Set date (parse in local timezone to avoid UTC rollback)
-  if (jobData.jobDate) {
-    let date;
-    if (jobData.jobDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Parse YYYY-MM-DD in local timezone
-      const [year, month, day] = jobData.jobDate.split('-').map(Number);
-      date = new Date(year, month - 1, day);
-    } else {
-      date = new Date(jobData.jobDate);
-    }
-    const options = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    };
-    document.getElementById('jobDate').textContent = date.toLocaleDateString('en-US', options);
-  }
+  // Set date with robust parsing for string/Date/Timestamp variants.
+  safeSetText('jobDate', formatJobDateForDisplay(jobData.jobDate || jobData.scheduledDate));
   
   // Set time
   if (jobData.startTime && jobData.endTime) {
-    document.getElementById('jobTime').textContent = `${jobData.startTime} to ${jobData.endTime}`;
+    safeSetText('jobTime', `${jobData.startTime} to ${jobData.endTime}`);
+  } else {
+    safeSetText('jobTime', 'TBD');
   }
   
   // Set extras based on category
   populateExtras(jobData);
   
   // Set description
-  document.getElementById('jobDescription').textContent = jobData.description || 'No description provided.';
+  safeSetText('jobDescription', jobData.description || 'No description provided.');
   
   // Set payment (check multiple field variations)
   const paymentAmount = jobData.paymentAmount || jobData.priceOffer || '0';
   const paymentType = jobData.paymentType || 'Per Hour';
-  document.getElementById('jobPaymentAmount').textContent = `₱${paymentAmount}`;
-  document.getElementById('jobPaymentRate').textContent = paymentType;
-  document.getElementById('modalPaymentAmount').textContent = `₱${paymentAmount}`;
+  safeSetText('jobPaymentAmount', `₱${paymentAmount}`);
+  safeSetText('jobPaymentRate', paymentType);
+  safeSetText('modalPaymentAmount', `₱${paymentAmount}`);
   
   // Set customer info (poster)
   const customerNameEl = document.getElementById('customerName');
@@ -676,6 +907,7 @@ function populateExtras(jobData) {
   }
   
   const extrasRow = document.getElementById('jobExtrasRow');
+  if (!extrasRow) return;
   extrasRow.style.display = 'flex';
   
   // Populate field 1
@@ -684,8 +916,8 @@ function populateExtras(jobData) {
     const label = parts[0] ? parts[0].trim() + ':' : config.field1.label;
     const value = parts[1] ? parts[1].trim() : '';
     
-    document.getElementById('jobExtra1Label').textContent = label;
-    document.getElementById('jobExtra1Value').textContent = value || 'Not specified';
+    safeSetText('jobExtra1Label', label);
+    safeSetText('jobExtra1Value', value || 'Not specified');
   }
   
   // Populate field 2
@@ -694,18 +926,26 @@ function populateExtras(jobData) {
     const label = parts[0] ? parts[0].trim() + ':' : config.field2.label;
     const value = parts[1] ? parts[1].trim() : '';
     
-    document.getElementById('jobExtra2Label').textContent = label;
-    document.getElementById('jobExtra2Value').textContent = value || 'Not specified';
+    safeSetText('jobExtra2Label', label);
+    safeSetText('jobExtra2Value', value || 'Not specified');
   }
 }
 
 function showErrorMessage(message) {
-  document.getElementById('jobTitle').textContent = 'Error Loading Job';
-  document.getElementById('jobDate').textContent = 'N/A';
-  document.getElementById('jobTime').textContent = 'N/A';
-  document.getElementById('jobDescription').textContent = message;
-  document.getElementById('jobPaymentAmount').textContent = '₱0';
-  document.getElementById('jobPaymentRate').textContent = 'N/A';
+  safeSetText('jobTitle', 'Error Loading Job');
+  safeSetText('jobDate', 'N/A');
+  safeSetText('jobTime', 'N/A');
+  safeSetText('jobDescription', message || 'Failed to load job data.');
+  safeSetText('jobPaymentAmount', '₱0');
+  safeSetText('jobPaymentRate', 'N/A');
+  safeSetText('jobRegion', 'N/A');
+  safeSetText('jobCity', 'N/A');
+  safeSetText('jobExtra1Value', 'N/A');
+  safeSetText('jobExtra2Value', 'N/A');
+  const photoContainer = document.getElementById('jobPhotoContainer');
+  const photoBorderline = document.getElementById('jobPhotoBorderline');
+  if (photoContainer) photoContainer.style.display = 'none';
+  if (photoBorderline) photoBorderline.style.display = 'none';
 }
 
 // Initialize menu functionality
@@ -878,9 +1118,7 @@ function handleJobApplication() {
   }
   
   // Prepare application data
-  const { category, jobNumber } = getUrlParameters();
-  // jobNumber from URL IS the Firebase document ID (e.g., "job_abc123")
-  const jobId = jobNumber;
+  const { jobId } = getUrlParameters();
   
   const applicationData = {
     message: message,
@@ -899,7 +1137,7 @@ function handleJobApplication() {
   
   // Submit application to Firebase
   if (typeof applyForJob === 'function') {
-    applyForJob(jobId, applicationData)
+    withDynamicJobTimeout(applyForJob(jobId, applicationData), 'applyForJob', 15000)
       .then(result => {
         // Hide loading
         if (loadingOverlay) loadingOverlay.classList.remove('show');
@@ -927,7 +1165,11 @@ function handleJobApplication() {
         if (loadingOverlay) loadingOverlay.classList.remove('show');
         
         console.error('❌ Error submitting application:', error);
-        alert('An error occurred. Please try again.');
+        if (String(error?.message || '').includes('timed out')) {
+          alert('Application request is taking too long on this connection. Please try again.');
+        } else {
+          alert('An error occurred. Please try again.');
+        }
       });
   } else {
     // Hide loading
@@ -1181,33 +1423,7 @@ function initializePhotoLightbox() {
   function openLightbox() {
     const photoSrc = jobPhoto.src;
     if (photoSrc && photoSrc !== '') {
-      // Get current job data to check for original photo
-      const { category, jobNumber } = getUrlParameters();
-      const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-      const categoryJobs = jobData[category] || [];
-      let job = categoryJobs.find(j => j.jobNumber == jobNumber);
-      
-      // Find job by jobId pattern if not found by jobNumber
-      if (!job) {
-        job = categoryJobs.find(j => {
-          if (j.jobId) {
-            const extractedNumber = j.jobId.split('_').pop();
-            return extractedNumber == jobNumber;
-          }
-          return false;
-        });
-      }
-      
-      // Use original photo if available, otherwise fallback to cropped version
-      let lightboxSrc = photoSrc; // Default fallback
-      if (job && job.originalPhoto) {
-        lightboxSrc = job.originalPhoto;
-        console.log('📸 Using original aspect ratio photo for lightbox');
-      } else {
-        console.log('📸 Using cropped photo for lightbox (backwards compatibility)');
-      }
-      
-      lightboxImage.src = lightboxSrc;
+      lightboxImage.src = photoSrc;
       lightboxOverlay.style.display = 'flex';
       
       // Add show class with slight delay for smooth animation
@@ -1844,15 +2060,23 @@ function initializeGigDetailAdSlot() {
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 Dynamic job page loading...');
-  loadJobData();
-  initializeMenu();
-  initializeApplyJob();
-  initializeApplicationSentOverlay();
-  initializeCustomerProfileLink();
-  initializeContactDropdown();
-  initCounterOfferFormatting();
-  initializePhotoLightbox();
-  initializeGigDetailAdSlot();
+  const safeInit = (label, fn) => {
+    try {
+      fn();
+    } catch (error) {
+      console.error(`❌ Dynamic job init failed: ${label}`, error);
+    }
+  };
+
+  safeInit('loadJobData', () => { void loadJobData(); });
+  safeInit('initializeMenu', initializeMenu);
+  safeInit('initializeApplyJob', initializeApplyJob);
+  safeInit('initializeApplicationSentOverlay', initializeApplicationSentOverlay);
+  safeInit('initializeCustomerProfileLink', initializeCustomerProfileLink);
+  safeInit('initializeContactDropdown', initializeContactDropdown);
+  safeInit('initCounterOfferFormatting', initCounterOfferFormatting);
+  safeInit('initializePhotoLightbox', initializePhotoLightbox);
+  safeInit('initializeGigDetailAdSlot', initializeGigDetailAdSlot);
   
   console.log('✅ Dynamic job page initialization completed');
 }); 

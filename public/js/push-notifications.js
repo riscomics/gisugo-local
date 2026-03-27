@@ -87,7 +87,11 @@
   }
 
   function isStandalonePwa() {
-    return window.matchMedia?.('(display-mode: standalone)')?.matches || Boolean(navigator.standalone);
+    if (typeof window.matchMedia === 'function') {
+      const media = window.matchMedia('(display-mode: standalone)');
+      if (media && media.matches) return true;
+    }
+    return Boolean(navigator.standalone);
   }
 
   function getAdaptivePromptMode() {
@@ -389,7 +393,7 @@
     if (userPushPrefCache.has(uid)) {
       return userPushPrefCache.get(uid);
     }
-    const db = window.getFirestore?.();
+    const db = typeof window.getFirestore === 'function' ? window.getFirestore() : null;
     if (!db) {
       const fallback = { pushEnabled: true, criticalEnabled: true, disabledTypes: [], enabledTypes: [] };
       userPushPrefCache.set(uid, fallback);
@@ -409,7 +413,7 @@
   }
 
   async function upsertTokenForUser(uid, token) {
-    const db = window.getFirestore?.();
+    const db = typeof window.getFirestore === 'function' ? window.getFirestore() : null;
     if (!db || !uid || !token) return false;
     const now = firebase.firestore.FieldValue.serverTimestamp();
     await db
@@ -429,7 +433,7 @@
   }
 
   async function revokeTokenForUser(uid, token) {
-    const db = window.getFirestore?.();
+    const db = typeof window.getFirestore === 'function' ? window.getFirestore() : null;
     if (!db || !uid || !token) return false;
     await db
       .collection('users')
@@ -464,7 +468,7 @@
   }
 
   async function syncUserToken(user, options = {}) {
-    if (!user?.uid) return;
+    if (!user || !user.uid) return;
     const prefs = await getUserPushPreference(user.uid);
     if (!prefs.pushEnabled || !prefs.criticalEnabled) {
       console.log('🔕 Push disabled by account settings; skipping token sync');
@@ -543,7 +547,9 @@
       messagingInstance = firebase.messaging();
       await ensureServiceWorker();
       attachForegroundHandler();
-      const auth = window.getFirebaseAuth?.() || firebase.auth?.();
+      const authFromWindow = typeof window.getFirebaseAuth === 'function' ? window.getFirebaseAuth() : null;
+      const authFromFirebase = (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') ? firebase.auth() : null;
+      const auth = authFromWindow || authFromFirebase;
       if (!auth || typeof auth.onAuthStateChanged !== 'function') {
         console.warn('⚠️ Push init skipped: auth not ready');
         return false;
@@ -551,7 +557,7 @@
 
       authUnsubscribe = auth.onAuthStateChanged(async (user) => {
         try {
-          if (user?.uid) {
+          if (user && user.uid) {
             currentUid = user.uid;
             setStoredUid(user.uid);
             // N-B: do not auto-request browser permission on page load.
@@ -587,17 +593,21 @@
     init: initializePushNotifications,
     shutdown: shutdownPushNotifications,
     syncCurrentUserToken: async () => {
-      const auth = window.getFirebaseAuth?.() || firebase.auth?.();
-      const user = auth?.currentUser;
+      const authFromWindow = typeof window.getFirebaseAuth === 'function' ? window.getFirebaseAuth() : null;
+      const authFromFirebase = (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') ? firebase.auth() : null;
+      const auth = authFromWindow || authFromFirebase;
+      const user = auth ? auth.currentUser : null;
       if (!user) return false;
       await syncUserToken(user);
       return true;
     },
     prepareForLogout: async (uid) => handleLogoutCleanup(uid),
     onEngagementMilestone: async (milestoneType = '') => {
-      const auth = window.getFirebaseAuth?.() || firebase.auth?.();
-      const user = auth?.currentUser;
-      if (!user?.uid) return { prompted: false, reason: 'no_user' };
+      const authFromWindow = typeof window.getFirebaseAuth === 'function' ? window.getFirebaseAuth() : null;
+      const authFromFirebase = (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') ? firebase.auth() : null;
+      const auth = authFromWindow || authFromFirebase;
+      const user = auth ? auth.currentUser : null;
+      if (!user || !user.uid) return { prompted: false, reason: 'no_user' };
       const milestone = String(milestoneType || '').toLowerCase().trim();
       if (milestone !== 'apply' && milestone !== 'post') {
         return { prompted: false, reason: 'unsupported_milestone' };
@@ -639,7 +649,10 @@
           resolve(result);
         };
         modal.addEventListener('click', async (event) => {
-          const button = event.target?.closest?.('button[data-action]');
+          let button = null;
+          if (event && event.target && typeof event.target.closest === 'function') {
+            button = event.target.closest('button[data-action]');
+          }
           if (!button) return;
           const action = String(button.getAttribute('data-action') || '');
           if (action === 'later') {

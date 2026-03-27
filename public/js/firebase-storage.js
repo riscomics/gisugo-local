@@ -270,7 +270,7 @@ async function uploadJobPhoto(jobId, file, userId = null) {
     // Get userId if not provided
     if (!userId) {
       const currentUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-      userId = currentUser?.uid || 'unknown';
+      userId = (currentUser && currentUser.uid) ? currentUser.uid : 'unknown';
     }
     
     // Compress image

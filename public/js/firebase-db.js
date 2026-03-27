@@ -43,10 +43,239 @@ function validateAllowedTextChars(fields) {
 
 function triggerPushMilestonePrompt(milestoneType) {
   try {
-    window.GisugoPushNotifications?.onEngagementMilestone?.(milestoneType);
+    if (window.GisugoPushNotifications && typeof window.GisugoPushNotifications.onEngagementMilestone === 'function') {
+      window.GisugoPushNotifications.onEngagementMilestone(milestoneType);
+    }
   } catch (error) {
     console.warn('⚠️ Push milestone trigger failed:', error);
   }
+}
+
+function getSafeValue(source, key, fallback = '') {
+  if (!source || typeof source !== 'object') return fallback;
+  const value = source[key];
+  return value === undefined || value === null ? fallback : value;
+}
+
+function getArrayItemSafe(list, index, fallback = '') {
+  if (!Array.isArray(list)) return fallback;
+  const value = list[index];
+  return value === undefined || value === null ? fallback : value;
+}
+
+const JOB_CACHE_BY_ID_KEY = 'gisugo_job_cache_by_id_v1';
+const JOB_CACHE_BY_CATEGORY_KEY = 'gisugo_job_cache_by_category_v1';
+
+function readJsonStorageSafe(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function writeJsonStorageSafe(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (_) {
+    // Ignore storage quota/privacy mode failures.
+  }
+}
+
+function withFirestoreReadTimeout(promise, timeoutMs = 5000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Firestore read timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+    Promise.resolve(promise)
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+function isIOSWebKitBrowserForDataPath() {
+  try {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (_) {
+    return false;
+  }
+}
+
+function getProjectIdForFirestoreRest() {
+  try {
+    if (window.firebaseConfig && window.firebaseConfig.projectId) {
+      return String(window.firebaseConfig.projectId).trim();
+    }
+    if (typeof firebase !== 'undefined' && firebase.app && typeof firebase.app === 'function') {
+      const app = firebase.app();
+      if (app && app.options && app.options.projectId) {
+        return String(app.options.projectId).trim();
+      }
+    }
+  } catch (_) {
+    // fall through
+  }
+  return '';
+}
+
+function decodeFirestoreValue(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (Object.prototype.hasOwnProperty.call(raw, 'stringValue')) return raw.stringValue;
+  if (Object.prototype.hasOwnProperty.call(raw, 'integerValue')) return Number(raw.integerValue);
+  if (Object.prototype.hasOwnProperty.call(raw, 'doubleValue')) return Number(raw.doubleValue);
+  if (Object.prototype.hasOwnProperty.call(raw, 'booleanValue')) return raw.booleanValue === true;
+  if (Object.prototype.hasOwnProperty.call(raw, 'timestampValue')) return raw.timestampValue;
+  if (Object.prototype.hasOwnProperty.call(raw, 'nullValue')) return null;
+  if (raw.arrayValue && Array.isArray(raw.arrayValue.values)) {
+    return raw.arrayValue.values.map((entry) => decodeFirestoreValue(entry));
+  }
+  if (raw.mapValue && raw.mapValue.fields && typeof raw.mapValue.fields === 'object') {
+    const mapped = {};
+    Object.entries(raw.mapValue.fields).forEach(([key, value]) => {
+      mapped[key] = decodeFirestoreValue(value);
+    });
+    return mapped;
+  }
+  return null;
+}
+
+function mapFirestoreRestDoc(rawDoc) {
+  if (!rawDoc || !rawDoc.name) return null;
+  const mapped = {
+    id: String(rawDoc.name).split('/').pop()
+  };
+  const fields = rawDoc.fields || {};
+  Object.entries(fields).forEach(([key, value]) => {
+    mapped[key] = decodeFirestoreValue(value);
+  });
+  return mapped;
+}
+
+async function fetchUserProfileViaFirestoreRest(userId) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for profile REST fallback');
+  const safeUserId = String(userId || '').trim();
+  if (!safeUserId) return null;
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/users/${encodeURIComponent(safeUserId)}`;
+  const response = await fetch(endpoint, { method: 'GET' });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`REST profile fetch failed (${response.status})`);
+  }
+  const raw = await response.json();
+  return mapFirestoreRestDoc(raw);
+}
+
+async function fetchNotificationsViaFirestoreRest(recipientId, maxItems = 50) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for notifications REST fallback');
+  const safeRecipientId = String(recipientId || '').trim();
+  if (!safeRecipientId) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'notifications' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'recipientId' },
+          op: 'EQUAL',
+          value: { stringValue: safeRecipientId }
+        }
+      },
+      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+      limit: Math.max(1, Math.min(Number(maxItems) || 50, 100))
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST notifications fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function fetchJobsByFieldViaFirestoreRest(fieldPath, value) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for jobs REST fallback');
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'jobs' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath },
+          op: 'EQUAL',
+          value: { stringValue: String(value || '').trim() }
+        }
+      },
+      orderBy: [{ field: { fieldPath: 'datePosted' }, direction: 'DESCENDING' }],
+      limit: 200
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST jobs fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+function cacheJobById(job) {
+  if (!job || !job.id) return;
+  const cache = readJsonStorageSafe(JOB_CACHE_BY_ID_KEY, {});
+  cache[job.id] = {
+    ...job,
+    _cachedAt: Date.now()
+  };
+  writeJsonStorageSafe(JOB_CACHE_BY_ID_KEY, cache);
+}
+
+function getCachedJobById(jobId) {
+  if (!jobId) return null;
+  const cache = readJsonStorageSafe(JOB_CACHE_BY_ID_KEY, {});
+  return cache[jobId] || null;
+}
+
+function cacheJobsByCategory(category, jobs) {
+  if (!category || !Array.isArray(jobs)) return;
+  const cache = readJsonStorageSafe(JOB_CACHE_BY_CATEGORY_KEY, {});
+  cache[category] = {
+    jobs: jobs,
+    _cachedAt: Date.now()
+  };
+  writeJsonStorageSafe(JOB_CACHE_BY_CATEGORY_KEY, cache);
+}
+
+function getCachedJobsByCategory(category) {
+  if (!category) return [];
+  const cache = readJsonStorageSafe(JOB_CACHE_BY_CATEGORY_KEY, {});
+  const entry = cache[category];
+  if (!entry || !Array.isArray(entry.jobs)) return [];
+  return entry.jobs;
 }
 
 /**
@@ -57,8 +286,8 @@ function triggerPushMilestonePrompt(milestoneType) {
 async function createJob(jobData) {
   const db = getFirestore();
   const textValidation = validateAllowedTextChars([
-    { label: 'Job title', value: jobData?.title || jobData?.jobTitle || '' },
-    { label: 'Job description', value: jobData?.description || '' }
+    { label: 'Job title', value: getSafeValue(jobData, 'title', getSafeValue(jobData, 'jobTitle', '')) },
+    { label: 'Job description', value: getSafeValue(jobData, 'description', '') }
   ]);
   if (!textValidation.valid) {
     return { success: false, message: textValidation.message };
@@ -205,9 +434,9 @@ function createJobOffline(jobData) {
   // Get current user info from Firebase Auth
   const auth = getFirebaseAuth();
   const currentUser = auth ? auth.currentUser : null;
-  const posterId = currentUser?.uid || getCurrentUserId() || 'offline_user';
-  const posterName = currentUser?.displayName || 'Demo User';
-  const posterThumbnail = currentUser?.photoURL || '';
+  const posterId = (currentUser && currentUser.uid) || getCurrentUserId() || 'offline_user';
+  const posterName = (currentUser && currentUser.displayName) || 'Demo User';
+  const posterThumbnail = (currentUser && currentUser.photoURL) || '';
   
   const jobDoc = {
     jobId: jobId,
@@ -254,8 +483,8 @@ function createJobOffline(jobData) {
     category: category,
     title: jobDoc.title,
     photo: jobDoc.photo,
-    extra1: jobData.extras?.[0] || '',
-    extra2: jobData.extras?.[1] || '',
+    extra1: getArrayItemSafe(jobData.extras, 0, ''),
+    extra2: getArrayItemSafe(jobData.extras, 1, ''),
     price: `₱${jobDoc.priceOffer}`,
     rate: jobDoc.paymentType,
     date: formatDateForPreview(jobDoc.jobDate),
@@ -309,14 +538,27 @@ function formatDateForPreview(dateStr) {
  */
 async function getJobById(jobId) {
   const db = getFirestore();
+  const safeJobId = String(jobId || '').trim();
   
   if (!db) {
     // Offline mode - search localStorage
-    return getJobByIdOffline(jobId);
+    return getCachedJobById(safeJobId) || getJobByIdOffline(safeJobId);
   }
   
   try {
-    const doc = await db.collection('jobs').doc(jobId).get();
+    const docRef = db.collection('jobs').doc(safeJobId);
+    let doc = await withFirestoreReadTimeout(docRef.get(), 9000);
+    if (!doc.exists) {
+      try {
+        // iOS can occasionally surface an empty first read before server is ready.
+        const serverDoc = await withFirestoreReadTimeout(docRef.get({ source: 'server' }), 5000);
+        if (serverDoc && serverDoc.exists) {
+          doc = serverDoc;
+        }
+      } catch (serverReadError) {
+        console.warn('⚠️ getJobById server retry skipped/failed:', serverReadError);
+      }
+    }
     
     if (doc.exists) {
       const jobData = {
@@ -324,16 +566,17 @@ async function getJobById(jobId) {
         jobId: doc.id,
         ...doc.data()
       };
-      console.log('✅ Job found:', jobId);
+      cacheJobById(jobData);
+      console.log('✅ Job found by document ID:', safeJobId);
       return jobData;
-    } else {
-      console.log('⚠️ Job not found:', jobId);
-      return null;
     }
+
+    console.log('⚠️ Job not found in Firestore by document ID:', safeJobId);
+    return getCachedJobById(safeJobId) || null;
     
   } catch (error) {
     console.error('❌ Error getting job:', error);
-    return null;
+    return getCachedJobById(safeJobId) || getJobByIdOffline(safeJobId);
   }
 }
 
@@ -369,11 +612,15 @@ function getJobByIdOffline(jobId) {
  * @param {Object} filters - Filter options (region, city, payType)
  * @returns {Promise<Array>} - Array of jobs
  */
-async function getJobsByCategory(category, filters = {}) {
+async function getJobsByCategory(category, filters = {}, options = {}) {
   const db = getFirestore();
+  const allowFallback = options && options.allowFallback !== undefined ? options.allowFallback === true : true;
   
   if (!db) {
     // Offline mode - use localStorage
+    if (!allowFallback) return [];
+    const cachedJobs = getCachedJobsByCategory(category);
+    if (cachedJobs.length > 0) return cachedJobs;
     return getJobsByCategoryOffline(category, filters);
   }
   
@@ -383,7 +630,18 @@ async function getJobsByCategory(category, filters = {}) {
       .where('category', '==', category)
       .where('status', '==', 'active');
     
-    const snapshot = await query.get();
+    let snapshot = await query.get();
+    if (snapshot.empty) {
+      try {
+        // iOS/WebKit can report empty first reads from cold cache. Retry from server once.
+        const serverSnapshot = await withFirestoreReadTimeout(query.get({ source: 'server' }), 6000);
+        if (serverSnapshot && !serverSnapshot.empty) {
+          snapshot = serverSnapshot;
+        }
+      } catch (serverReadError) {
+        console.warn('⚠️ getJobsByCategory server retry skipped/failed:', serverReadError);
+      }
+    }
     
     let jobs = snapshot.docs.map(doc => ({
       id: doc.id,
@@ -397,15 +655,25 @@ async function getJobsByCategory(category, filters = {}) {
     
     if (filters.payType && filters.payType !== 'PAY TYPE') {
       jobs = jobs.filter(job => 
-        job.paymentType?.toUpperCase() === filters.payType.toUpperCase()
+        (((job && job.paymentType) || '').toUpperCase()) === filters.payType.toUpperCase()
       );
     }
     
     // Client-side sorting by date posted
     jobs.sort((a, b) => {
-      const dateA = a.datePosted?.toDate ? a.datePosted.toDate() : new Date(0);
-      const dateB = b.datePosted?.toDate ? b.datePosted.toDate() : new Date(0);
+      const dateA = a && a.datePosted && typeof a.datePosted.toDate === 'function' ? a.datePosted.toDate() : new Date(0);
+      const dateB = b && b.datePosted && typeof b.datePosted.toDate === 'function' ? b.datePosted.toDate() : new Date(0);
       return dateB - dateA; // Newest first
+    });
+
+    cacheJobsByCategory(category, jobs);
+    jobs.forEach((job) => {
+      if (job && job.id) {
+        cacheJobById({
+          jobId: job.id,
+          ...job
+        });
+      }
     });
     
     console.log(`📋 Found ${jobs.length} jobs in category: ${category}`);
@@ -413,7 +681,15 @@ async function getJobsByCategory(category, filters = {}) {
     
   } catch (error) {
     console.error('❌ Error getting jobs:', error);
-    return [];
+    if (!allowFallback) {
+      throw error;
+    }
+    const cachedJobs = getCachedJobsByCategory(category);
+    if (cachedJobs.length > 0) {
+      console.warn(`⚠️ Using cached jobs for category ${category}: ${cachedJobs.length}`);
+      return cachedJobs;
+    }
+    return getJobsByCategoryOffline(category, filters);
   }
 }
 
@@ -429,7 +705,7 @@ function getJobsByCategoryOffline(category, filters = {}) {
   
   if (filters.payType && filters.payType !== 'PAY TYPE') {
     jobs = jobs.filter(job => 
-      job.rate?.toUpperCase() === filters.payType.toUpperCase()
+      (((job && job.rate) || '').toUpperCase()) === filters.payType.toUpperCase()
     );
   }
   
@@ -453,6 +729,30 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   console.log(`🔍 Fetching jobs for user: ${userId}, statuses: ${statuses.join(', ')}`);
   
   try {
+    if (isIOSWebKitBrowserForDataPath()) {
+      const asPoster = await withFirestoreReadTimeout(fetchJobsByFieldViaFirestoreRest('posterId', userId), 10000);
+      const asWorker = await withFirestoreReadTimeout(fetchJobsByFieldViaFirestoreRest('hiredWorkerId', userId), 10000);
+      const allRows = [...asPoster, ...asWorker];
+      const unique = new Map();
+      allRows.forEach((job) => {
+        if (!job || !job.id || unique.has(job.id)) return;
+        unique.set(job.id, {
+          id: job.id,
+          jobId: job.id,
+          ...job,
+          role: job.posterId === userId ? 'customer' : 'worker'
+        });
+      });
+      const jobs = Array.from(unique.values())
+        .filter((job) => statuses.includes(job.status))
+        .sort((a, b) => {
+          const dateA = new Date(a.datePosted || 0).getTime();
+          const dateB = new Date(b.datePosted || 0).getTime();
+          return dateB - dateA;
+        });
+      return jobs;
+    }
+
     // Query for jobs where user is the poster
     const posterSnapshot = await db.collection('jobs')
       .where('posterId', '==', userId)
@@ -489,8 +789,8 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
       .filter(job => statuses.includes(job.status))
       .sort((a, b) => {
         // Sort by datePosted descending
-        const dateA = a.datePosted?.toDate?.() || new Date(a.datePosted) || new Date(0);
-        const dateB = b.datePosted?.toDate?.() || new Date(b.datePosted) || new Date(0);
+        const dateA = (a && a.datePosted && typeof a.datePosted.toDate === 'function') ? a.datePosted.toDate() : (new Date(a.datePosted) || new Date(0));
+        const dateB = (b && b.datePosted && typeof b.datePosted.toDate === 'function') ? b.datePosted.toDate() : (new Date(b.datePosted) || new Date(0));
         return dateB - dateA;
       });
     
@@ -532,8 +832,8 @@ function getUserJobListingsOffline(userId, statuses) {
 async function updateJob(jobId, jobData) {
   const db = getFirestore();
   const textValidation = validateAllowedTextChars([
-    { label: 'Job title', value: jobData?.title || '' },
-    { label: 'Job description', value: jobData?.description || '' }
+    { label: 'Job title', value: getSafeValue(jobData, 'title', '') },
+    { label: 'Job description', value: getSafeValue(jobData, 'description', '') }
   ]);
   if (!textValidation.valid) {
     return { success: false, message: textValidation.message };
@@ -551,10 +851,10 @@ async function updateJob(jobId, jobData) {
     // Smart category handling: never save 'unknown' or empty, preserve existing
     let finalCategory = jobData.category;
     if (!finalCategory || finalCategory === 'unknown' || finalCategory === '') {
-      finalCategory = existingData?.category;
+      finalCategory = existingData && existingData.category ? existingData.category : '';
       
       // If existing is also empty, try to infer from jobPageUrl
-      if (!finalCategory && existingData?.jobPageUrl) {
+      if (!finalCategory && existingData && existingData.jobPageUrl) {
         const match = existingData.jobPageUrl.match(/category=([^&]+)/);
         if (match) {
           finalCategory = match[1];
@@ -572,7 +872,7 @@ async function updateJob(jobId, jobData) {
       title: jobData.title || '',
       description: jobData.description || '',
       category: finalCategory,
-      thumbnail: jobData.thumbnail || jobData.photo || existingData?.thumbnail || '',
+      thumbnail: jobData.thumbnail || jobData.photo || ((existingData && existingData.thumbnail) || ''),
       region: jobData.region || 'CEBU',
       city: jobData.city || 'CEBU CITY',
       scheduledDate: jobData.jobDate ? (() => {
@@ -894,7 +1194,7 @@ async function applyForJob(jobId, applicationData) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
   const textValidation = validateAllowedTextChars([
-    { label: 'Application message', value: applicationData?.message || '' }
+    { label: 'Application message', value: getSafeValue(applicationData, 'message', '') }
   ]);
   if (!textValidation.valid) {
     return { success: false, message: textValidation.message };
@@ -944,11 +1244,14 @@ async function applyForJob(jobId, applicationData) {
     
     let existingApplications;
     try {
-      existingApplications = await db.collection('applications')
-        .where('jobId', '==', jobId)
-        .where('applicantId', '==', currentUser.uid)
-        .orderBy('appliedAt', 'desc')  // Most recent first
-        .get();
+      existingApplications = await withFirestoreReadTimeout(
+        db.collection('applications')
+          .where('jobId', '==', jobId)
+          .where('applicantId', '==', currentUser.uid)
+          .orderBy('appliedAt', 'desc')  // Most recent first
+          .get(),
+        9000
+      );
     } catch (indexError) {
       // ═══════════════════════════════════════════════════════════════
       // Firebase Index Missing - Show helpful error
@@ -1022,10 +1325,13 @@ async function applyForJob(jobId, applicationData) {
     // ═══════════════════════════════════════════════════════════════
     console.log('🔍 Checking total application count for auto-pause logic...');
     
-    const allApplicationsSnapshot = await db.collection('applications')
-      .where('jobId', '==', jobId)
-      .where('status', '==', 'pending')
-      .get();
+    const allApplicationsSnapshot = await withFirestoreReadTimeout(
+      db.collection('applications')
+        .where('jobId', '==', jobId)
+        .where('status', '==', 'pending')
+        .get(),
+      9000
+    );
     
     const totalPendingApplications = allApplicationsSnapshot.size;
     console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
@@ -1076,82 +1382,66 @@ async function applyForJob(jobId, applicationData) {
       counterOffer: applicationData.counterOffer || null
     };
     
-    const appRef = await db.collection('applications').add(application);
+    const appRef = await withFirestoreReadTimeout(db.collection('applications').add(application), 12000);
     
     // Update job application count
-    await db.collection('jobs').doc(jobId).update({
-      applicationCount: firebase.firestore.FieldValue.increment(1),
-      applicationIds: firebase.firestore.FieldValue.arrayUnion(appRef.id)
-    });
+    await withFirestoreReadTimeout(
+      db.collection('jobs').doc(jobId).update({
+        applicationCount: firebase.firestore.FieldValue.increment(1),
+        applicationIds: firebase.firestore.FieldValue.arrayUnion(appRef.id)
+      }),
+      12000
+    );
     
     console.log('✅ Application submitted:', appRef.id);
     
-    // ═══════════════════════════════════════════════════════════════
-    // NOTIFICATION SYSTEM: Application received (with auto-pause)
-    // ═══════════════════════════════════════════════════════════════
+    // Notification/update side effects run in background so apply submit does not stall on iOS.
     const newTotalApplications = totalPendingApplications + 1;
-    console.log(`📊 New total pending applications: ${newTotalApplications}`);
-    
-    try {
-      // Check if notification already exists for this gig
-      const existingNotifSnapshot = await db.collection('notifications')
-        .where('recipientId', '==', job.posterId)
-        .where('jobId', '==', jobId)
-        .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused'])
-        .get();
-      
-      if (newTotalApplications === 1) {
-        // First application - create new notification
-        await createNotification(job.posterId, {
-          type: 'application_received',
-          jobId: jobId,
-          jobTitle: job.title || 'Your Gig',
-          message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
-          actionRequired: false
-        });
-        console.log('📬 Created first application notification');
+    Promise.resolve().then(async () => {
+      try {
+        const existingNotifSnapshot = await db.collection('notifications')
+          .where('recipientId', '==', job.posterId)
+          .where('jobId', '==', jobId)
+          .where('type', 'in', ['application_received', 'application_milestone', 'gig_auto_paused'])
+          .get();
         
-      } else if (newTotalApplications === 5) {
-        // 5th application - update notification to milestone (attention theme)
-        if (existingNotifSnapshot.size > 0) {
-          const notifId = existingNotifSnapshot.docs[0].id;
-          await db.collection('notifications').doc(notifId).update({
-            type: 'application_milestone',
-            message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        if (newTotalApplications === 1) {
+          await createNotification(job.posterId, {
+            type: 'application_received',
+            jobId: jobId,
+            jobTitle: job.title || 'Your Gig',
+            message: `Your gig "${job.title}" has received an application. Review it in Gigs Manager.`,
+            actionRequired: false
           });
-          console.log('📬 Updated to 5+ milestone notification');
+        } else if (newTotalApplications === 5) {
+          if (existingNotifSnapshot.size > 0) {
+            const notifId = existingNotifSnapshot.docs[0].id;
+            await db.collection('notifications').doc(notifId).update({
+              type: 'application_milestone',
+              message: `🔥 Your gig "${job.title}" has 5+ applications pending review!`,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        } else if (newTotalApplications === 10) {
+          await db.collection('jobs').doc(jobId).update({
+            status: 'paused',
+            pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            pauseReason: 'auto_paused_max_applications'
+          });
+          const deletePromises = existingNotifSnapshot.docs.map(doc => db.collection('notifications').doc(doc.id).delete());
+          await Promise.all(deletePromises);
+          await createNotification(job.posterId, {
+            type: 'gig_auto_paused',
+            jobId: jobId,
+            jobTitle: job.title || 'Your Gig',
+            message: `🛑 Your gig "${job.title}" has been paused. You've received 10 applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
+            actionRequired: true
+          });
         }
-        
-      } else if (newTotalApplications === 10) {
-        // 10th application - pause gig and create red alert notification
-        await db.collection('jobs').doc(jobId).update({
-          status: 'paused',
-          pausedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          pauseReason: 'auto_paused_max_applications'
-        });
-        
-        // Delete old application notifications
-        const deletePromises = existingNotifSnapshot.docs.map(doc => 
-          db.collection('notifications').doc(doc.id).delete()
-        );
-        await Promise.all(deletePromises);
-        
-        // Create red alert notification
-        await createNotification(job.posterId, {
-          type: 'gig_auto_paused',
-          jobId: jobId,
-          jobTitle: job.title || 'Your Gig',
-          message: `🛑 Your gig "${job.title}" has been paused. You've received 10 applications. Please review and hire a worker or reject all applicants to reactivate your gig.`,
-          actionRequired: true
-        });
-        console.log('🛑 Paused gig and created auto-pause notification');
+      } catch (notifError) {
+        console.error('❌ Background application notification error:', notifError);
       }
-      
-    } catch (notifError) {
-      console.error('❌ Error creating application notification:', notifError);
-      // Don't fail the application if notification fails
-    }
+    });
     
     triggerPushMilestonePrompt('apply');
     return {
@@ -1357,6 +1647,17 @@ async function getOfferedJobsForWorker(workerId) {
   
   try {
     console.log(`🔍 Fetching offered jobs for worker: ${workerId}`);
+    if (isIOSWebKitBrowserForDataPath()) {
+      const rows = await withFirestoreReadTimeout(fetchJobsByFieldViaFirestoreRest('hiredWorkerId', workerId), 10000);
+      const offeredJobs = rows
+        .filter((job) => job && job.status === 'hired')
+        .map((job) => ({
+          id: job.id,
+          jobId: job.id,
+          ...job
+        }));
+      return offeredJobs;
+    }
     
     // Get jobs where status is 'hired' and worker is the hired worker
     const offeredJobsSnapshot = await db.collection('jobs')
@@ -2007,9 +2308,9 @@ async function createNotification(recipientId, notificationData) {
 
 function createNotificationOffline(recipientId, notificationData) {
   const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
-  const dedupeKey = String(notificationData?.dedupeKey || '').trim();
-  const type = String(notificationData?.type || '').trim();
-  const jobId = String(notificationData?.jobId || '').trim();
+  const dedupeKey = String(getSafeValue(notificationData, 'dedupeKey', '')).trim();
+  const type = String(getSafeValue(notificationData, 'type', '')).trim();
+  const jobId = String(getSafeValue(notificationData, 'jobId', '')).trim();
   if (dedupeKey) {
     const existing = notifications.find((n) =>
       String(n.recipientId || '') === String(recipientId || '') &&
@@ -2184,7 +2485,7 @@ async function markNotificationRead(notificationId) {
     return { success: true };
     
   } catch (error) {
-    const code = String(error?.code || '');
+    const code = String((error && error.code) || '');
     if (code === 'not-found' || code.endsWith('/not-found')) {
       // Stale pending read entry for a notification that no longer exists.
       return { success: true, skipped: 'not-found' };
@@ -2215,6 +2516,49 @@ function subscribeToUserNotifications(currentUser, callback) {
   console.log('👂 Starting real-time listener for notifications');
   
   try {
+    if (isIOSWebKitBrowserForDataPath()) {
+      let disposed = false;
+      let inFlight = false;
+      let pollTimer = null;
+
+      const pollOnce = async () => {
+        if (disposed || inFlight) return;
+        inFlight = true;
+        try {
+          const notifications = await withFirestoreReadTimeout(
+            fetchNotificationsViaFirestoreRest(currentUser.uid, 50),
+            10000
+          );
+          if (!disposed) {
+            callback(Array.isArray(notifications) ? notifications : [], {
+              fromCache: false,
+              hasPendingWrites: false,
+              source: 'rest-poll'
+            });
+          }
+        } catch (error) {
+          console.error('❌ Notifications REST poll error:', error);
+          if (!disposed) {
+            callback([], {
+              error: true,
+              fromCache: false,
+              hasPendingWrites: false,
+              source: 'rest-poll'
+            });
+          }
+        } finally {
+          inFlight = false;
+        }
+      };
+
+      pollOnce();
+      pollTimer = setInterval(pollOnce, 12000);
+      return () => {
+        disposed = true;
+        if (pollTimer) clearInterval(pollTimer);
+      };
+    }
+
     const unsubscribe = db.collection('notifications')
       .where('recipientId', '==', currentUser.uid)
       .orderBy('createdAt', 'desc')
@@ -2227,8 +2571,8 @@ function subscribeToUserNotifications(currentUser, callback) {
           }));
           console.log(`🔔 Notifications updated: ${notifications.length} items`);
           callback(notifications, {
-            fromCache: snapshot.metadata?.fromCache === true,
-            hasPendingWrites: snapshot.metadata?.hasPendingWrites === true
+            fromCache: snapshot && snapshot.metadata ? snapshot.metadata.fromCache === true : false,
+            hasPendingWrites: snapshot && snapshot.metadata ? snapshot.metadata.hasPendingWrites === true : false
           });
         },
         (error) => {
@@ -2252,24 +2596,25 @@ function subscribeToUnreadNotificationCounters(currentUser, callback) {
   const db = getFirestore();
 
   if (!db || !currentUser || !currentUser.uid) {
-    callback?.(sanitizeNotificationCounters(null));
+    if (typeof callback === 'function') callback(sanitizeNotificationCounters(null));
     return null;
   }
 
   try {
     return db.collection('users').doc(currentUser.uid).onSnapshot(
       (snap) => {
-        const counters = sanitizeNotificationCounters(snap.exists ? snap.data()?.notificationCounters : null);
-        callback?.(counters);
+        const snapData = snap && snap.exists && typeof snap.data === 'function' ? (snap.data() || {}) : {};
+        const counters = sanitizeNotificationCounters(snapData.notificationCounters || null);
+        if (typeof callback === 'function') callback(counters);
       },
       (error) => {
         console.warn('⚠️ Notification counters listener error:', error);
-        callback?.(sanitizeNotificationCounters(null));
+        if (typeof callback === 'function') callback(sanitizeNotificationCounters(null));
       }
     );
   } catch (error) {
     console.error('❌ Error setting up notification counters listener:', error);
-    callback?.(sanitizeNotificationCounters(null));
+    if (typeof callback === 'function') callback(sanitizeNotificationCounters(null));
     return null;
   }
 }
@@ -2443,6 +2788,16 @@ async function getUserProfile(userId) {
   }
   
   try {
+    if (isIOSWebKitBrowserForDataPath()) {
+      try {
+        const restProfile = await withFirestoreReadTimeout(fetchUserProfileViaFirestoreRest(userId), 9000);
+        if (restProfile) {
+          return { userId: restProfile.id, ...restProfile };
+        }
+      } catch (restError) {
+        console.warn('⚠️ Profile REST fallback failed, trying SDK:', restError);
+      }
+    }
     console.log('📡 Querying Firestore: users/' + userId);
     const userDoc = await db.collection('users').doc(userId).get();
     

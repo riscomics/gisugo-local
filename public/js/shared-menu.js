@@ -327,10 +327,11 @@ function startMenuUnreadCounterListeners(retry = 0) {
       return;
     }
     _menuUnreadCounterUnsub = subscribeToUnreadNotificationCounters(user, (counters) => {
+      const safeCounters = counters || {};
       _menuCounterState = {
-        workerUnread: Math.max(0, Number(counters?.workerUnread) || 0),
-        customerUnread: Math.max(0, Number(counters?.customerUnread) || 0),
-        totalUnread: Math.max(0, Number(counters?.totalUnread) || 0)
+        workerUnread: Math.max(0, Number(safeCounters.workerUnread) || 0),
+        customerUnread: Math.max(0, Number(safeCounters.customerUnread) || 0),
+        totalUnread: Math.max(0, Number(safeCounters.totalUnread) || 0)
       };
       publishMenuCounterUpdate();
     });

@@ -58,13 +58,181 @@ function sanitizeUrl(url, fallback = '#') {
   if (!url) return fallback;
   try {
     const parsed = new URL(url, window.location.href);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+    if (
+      parsed.protocol === 'http:' ||
+      parsed.protocol === 'https:' ||
+      parsed.protocol === 'data:' ||
+      parsed.protocol === 'blob:'
+    ) {
       return parsed.toString();
     }
   } catch (error) {
     // fall through
   }
   return fallback;
+}
+
+const LISTING_THUMBNAIL_FALLBACK = 'public/images/Gisugo-icon.png';
+
+function isGsStorageUrl(value) {
+  return /^gs:\/\//i.test(String(value || '').trim());
+}
+
+async function resolveListingThumbnailUrl(rawUrl) {
+  const source = String(rawUrl || '').trim();
+  if (!source) return LISTING_THUMBNAIL_FALLBACK;
+  if (!isGsStorageUrl(source)) {
+    return sanitizeUrl(source, LISTING_THUMBNAIL_FALLBACK);
+  }
+  try {
+    if (typeof getFirebaseStorage === 'function') {
+      const storage = getFirebaseStorage();
+      if (storage && typeof storage.refFromURL === 'function') {
+        const resolved = await storage.refFromURL(source).getDownloadURL();
+        return sanitizeUrl(resolved, LISTING_THUMBNAIL_FALLBACK);
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not resolve gs:// thumbnail URL:', error);
+  }
+  return LISTING_THUMBNAIL_FALLBACK;
+}
+
+function isSafariOnlyBrowserForDataPath() {
+  try {
+    const ua = navigator.userAgent || '';
+    const isSafari = /Safari/i.test(ua);
+    const isOtherIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS|GSA|DuckDuckGo/i.test(ua);
+    const isAndroid = /Android/i.test(ua);
+    return isSafari && !isOtherIOSBrowser && !isAndroid;
+  } catch (_) {
+    return false;
+  }
+}
+
+function isIOSWebKitBrowserForDataPath() {
+  try {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (_) {
+    return false;
+  }
+}
+
+function getProjectIdForFirestoreRest() {
+  try {
+    if (window.firebaseConfig && window.firebaseConfig.projectId) {
+      return String(window.firebaseConfig.projectId).trim();
+    }
+    if (typeof firebase !== 'undefined' && firebase.app && typeof firebase.app === 'function') {
+      const app = firebase.app();
+      if (app && app.options && app.options.projectId) {
+        return String(app.options.projectId).trim();
+      }
+    }
+  } catch (_) {
+    // fall through
+  }
+  return '';
+}
+
+function decodeFirestoreValue(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  if (Object.prototype.hasOwnProperty.call(raw, 'stringValue')) return raw.stringValue;
+  if (Object.prototype.hasOwnProperty.call(raw, 'integerValue')) return Number(raw.integerValue);
+  if (Object.prototype.hasOwnProperty.call(raw, 'doubleValue')) return Number(raw.doubleValue);
+  if (Object.prototype.hasOwnProperty.call(raw, 'booleanValue')) return raw.booleanValue === true;
+  if (Object.prototype.hasOwnProperty.call(raw, 'timestampValue')) return raw.timestampValue;
+  if (Object.prototype.hasOwnProperty.call(raw, 'nullValue')) return null;
+  if (raw.arrayValue && Array.isArray(raw.arrayValue.values)) {
+    return raw.arrayValue.values.map((entry) => decodeFirestoreValue(entry));
+  }
+  if (raw.mapValue && raw.mapValue.fields && typeof raw.mapValue.fields === 'object') {
+    const mapped = {};
+    Object.entries(raw.mapValue.fields).forEach(([key, value]) => {
+      mapped[key] = decodeFirestoreValue(value);
+    });
+    return mapped;
+  }
+  return null;
+}
+
+function mapFirestoreRestDoc(rawDoc) {
+  if (!rawDoc || !rawDoc.name) return null;
+  const fields = rawDoc.fields || {};
+  const mapped = {
+    id: String(rawDoc.name).split('/').pop()
+  };
+  Object.entries(fields).forEach(([key, value]) => {
+    mapped[key] = decodeFirestoreValue(value);
+  });
+  return mapped;
+}
+
+async function fetchCategoryJobsViaFirestoreRest(category) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for Firestore REST fallback');
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'jobs' }],
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: 'category' },
+                op: 'EQUAL',
+                value: { stringValue: String(category || '').trim() }
+              }
+            },
+            {
+              fieldFilter: {
+                field: { fieldPath: 'status' },
+                op: 'EQUAL',
+                value: { stringValue: 'active' }
+              }
+            }
+          ]
+        }
+      }
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST runQuery failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+function listingTrace() {
+  // iOS on-screen trace removed after stabilization.
+}
+
+function getExtrasValue(extras, index) {
+  if (!Array.isArray(extras)) return '';
+  return extras[index] || '';
+}
+
+function getDatePostedIso(job) {
+  if (!job || !job.datePosted) return new Date().toISOString();
+  const datePosted = job.datePosted;
+  if (typeof datePosted.toDate === 'function') {
+    const date = datePosted.toDate();
+    if (date && typeof date.toISOString === 'function') {
+      return date.toISOString();
+    }
+  }
+  return new Date().toISOString();
 }
 
 function normalizeHeaderButtons() {
@@ -205,6 +373,20 @@ function applyListingUnreadBadges(totalUnread) {
   }
 }
 
+function getListingUnreadTotal(counters) {
+  if (!counters || typeof counters !== 'object') return 0;
+  const total = Number(counters.totalUnread);
+  return Number.isFinite(total) ? total : 0;
+}
+
+function getListingUnreadFromSnapshot(snap) {
+  if (!snap || !snap.exists || typeof snap.data !== 'function') return 0;
+  const data = snap.data() || {};
+  const counters = data.notificationCounters || {};
+  const total = Number(counters.totalUnread);
+  return Number.isFinite(total) ? total : 0;
+}
+
 function stopListingNotificationListener() {
   if (listingNotifDocUnsub) {
     listingNotifDocUnsub();
@@ -243,7 +425,7 @@ function startListingNotificationListener(retry = 0) {
     // Prefer shared counter helper if available (includes reconcile fallback).
     if (typeof subscribeToUnreadNotificationCounters === 'function') {
       listingNotifDocUnsub = subscribeToUnreadNotificationCounters(user, (counters) => {
-        applyListingUnreadBadges(counters?.totalUnread || 0);
+        applyListingUnreadBadges(getListingUnreadTotal(counters));
       });
       return;
     }
@@ -255,8 +437,7 @@ function startListingNotificationListener(retry = 0) {
       return;
     }
     listingNotifDocUnsub = db.collection('users').doc(user.uid).onSnapshot((snap) => {
-      const total = Number(snap.exists ? snap.data()?.notificationCounters?.totalUnread : 0) || 0;
-      applyListingUnreadBadges(total);
+      applyListingUnreadBadges(getListingUnreadFromSnapshot(snap));
     }, () => {
       applyListingUnreadBadges(0);
     });
@@ -272,19 +453,22 @@ window.addEventListener('pagehide', stopListingNotificationListener);
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
 const serviceMenuOverlay = document.getElementById('jobcatServiceMenuOverlay');
 
-serviceMenuBtn.addEventListener('click', () => {
-  serviceMenuOverlay.classList.toggle('show');
-  
-  // Auto-resize text when overlay is shown
-  setTimeout(() => {
-    if (serviceMenuOverlay.classList.contains('show')) {
-      autoResizeJobcatOverlay();
-    }
-  }, 50);
-});
+if (serviceMenuBtn && serviceMenuOverlay) {
+  serviceMenuBtn.addEventListener('click', () => {
+    serviceMenuOverlay.classList.toggle('show');
+    
+    // Auto-resize text when overlay is shown
+    setTimeout(() => {
+      if (serviceMenuOverlay.classList.contains('show')) {
+        autoResizeJobcatOverlay();
+      }
+    }, 50);
+  });
+}
 
 // Close service menu when clicking outside
 document.addEventListener('click', (e) => {
+  if (!serviceMenuBtn || !serviceMenuOverlay) return;
   if (!serviceMenuBtn.contains(e.target) && !serviceMenuOverlay.contains(e.target)) {
     serviceMenuOverlay.classList.remove('show');
   }
@@ -294,26 +478,30 @@ document.addEventListener('click', (e) => {
 const menuBtn = document.querySelector('.jobcat-menu-btn');
 const menuOverlay = document.getElementById('jobcatMenuOverlay');
 
-menuBtn.addEventListener('click', function(e) {
-  e.stopPropagation();
-  if (window.SharedMenuController && typeof window.SharedMenuController.open === 'function') {
-    window.SharedMenuController.open(menuOverlay);
-  } else {
-    menuOverlay.classList.add('show');
-    // Position popup panel exactly below the borderline
-    if (typeof positionSharedMenuPanel === 'function') positionSharedMenuPanel();
-  }
-});
-
-menuOverlay.addEventListener('click', function(e) {
-  if (e.target === menuOverlay) {
-    if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
-      window.SharedMenuController.closeAll();
+if (menuBtn && menuOverlay) {
+  menuBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (window.SharedMenuController && typeof window.SharedMenuController.open === 'function') {
+      window.SharedMenuController.open(menuOverlay);
     } else {
-      menuOverlay.classList.remove('show');
+      menuOverlay.classList.add('show');
+      // Position popup panel exactly below the borderline
+      if (typeof positionSharedMenuPanel === 'function') positionSharedMenuPanel();
     }
-  }
-});
+  });
+}
+
+if (menuOverlay) {
+  menuOverlay.addEventListener('click', function(e) {
+    if (e.target === menuOverlay) {
+      if (window.SharedMenuController && typeof window.SharedMenuController.closeAll === 'function') {
+        window.SharedMenuController.closeAll();
+      } else {
+        menuOverlay.classList.remove('show');
+      }
+    }
+  });
+}
 
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
@@ -881,14 +1069,122 @@ function ensureListingEmptyState(headerSpacer) {
 function setListingEmptyStateVisible(isVisible, headerSpacer) {
   const emptyState = ensureListingEmptyState(headerSpacer);
   if (!emptyState) return;
+  if (isVisible && document.querySelectorAll('.job-preview-card').length > 0) {
+    // Guard against stale empty-state visibility when cards are already rendered.
+    isVisible = false;
+  }
   emptyState.classList.toggle('is-visible', isVisible);
   syncEmptyStateAdPlacement(isVisible, emptyState);
+}
+
+const LISTING_FETCH_TIMEOUT_MS = (() => {
+  try {
+    const ua = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    return isIOS ? 12000 : 14000;
+  } catch (_) {
+    return 14000;
+  }
+})();
+
+function withListingTimeout(promise, label, timeoutMs = LISTING_FETCH_TIMEOUT_MS) {
+  let timeoutId = null;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+async function fetchCategoryJobsWithRetry(category, filters, attempts = 2) {
+  let lastError = null;
+  const safeFilters = { ...(filters || {}) };
+  const strictFirebase = safeFilters.__strictFirebase === true;
+  delete safeFilters.__strictFirebase;
+  if (strictFirebase && isIOSWebKitBrowserForDataPath()) {
+    try {
+      listingTrace('firebase:rest:primary:start', { category });
+      const restJobs = await withListingTimeout(
+        fetchCategoryJobsViaFirestoreRest(category),
+        `fetchCategoryJobsViaFirestoreRest(${category})`,
+        12000
+      );
+      listingTrace('firebase:rest:primary:ok', { count: Array.isArray(restJobs) ? restJobs.length : 0 });
+      return restJobs;
+    } catch (restPrimaryError) {
+      listingTrace('firebase:rest:primary:error', (restPrimaryError && restPrimaryError.message) ? restPrimaryError.message : String(restPrimaryError));
+      lastError = restPrimaryError;
+    }
+  }
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await withListingTimeout(
+        getJobsByCategory(category, safeFilters, { allowFallback: !strictFirebase }),
+        `getJobsByCategory(${category})#${attempt}`
+      );
+    } catch (error) {
+      lastError = error;
+      if (strictFirebase && isSafariOnlyBrowserForDataPath()) {
+        try {
+          listingTrace('firebase:rest:fallback:start', { category });
+          const restJobs = await withListingTimeout(
+            fetchCategoryJobsViaFirestoreRest(category),
+            `fetchCategoryJobsViaFirestoreRest(${category})`,
+            15000
+          );
+          listingTrace('firebase:rest:fallback:ok', { count: restJobs.length });
+          return restJobs;
+        } catch (restError) {
+          listingTrace('firebase:rest:fallback:error', (restError && restError.message) ? restError.message : String(restError));
+          lastError = restError;
+        }
+      }
+      if (attempt >= attempts) break;
+      await new Promise((resolve) => setTimeout(resolve, 320 * attempt));
+    }
+  }
+  throw lastError || new Error('Failed to fetch category jobs');
+}
+
+function buildDynamicJobUrl(category, jobId) {
+  const safeCategory = encodeURIComponent(String(category || '').trim().toLowerCase());
+  const safeJobId = encodeURIComponent(String(jobId || '').trim());
+  if (!safeCategory || !safeJobId) return '#';
+  return `dynamic-job.html?djv=43&category=${safeCategory}&jobId=${safeJobId}`;
+}
+
+function getBestListingJobIdentifier(card) {
+  if (!card || typeof card !== 'object') return '';
+  const candidates = [card.id, card.jobId, card.jobNumber];
+  for (const value of candidates) {
+    const safe = String(value || '').trim();
+    if (safe) return safe;
+  }
+  return '';
+}
+
+function normalizeListingCardNavigation(card, category) {
+  const source = card && typeof card === 'object' ? card : {};
+  const bestId = getBestListingJobIdentifier(source);
+  if (!bestId) return { ...source };
+  return {
+    ...source,
+    id: source.id || bestId,
+    jobId: source.jobId || bestId,
+    jobNumber: source.jobNumber || bestId,
+    templateUrl: buildDynamicJobUrl(source.category || category, bestId)
+  };
 }
 
 // Filter and sort jobs based on selected criteria
 async function filterAndSortJobs() {
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
+  const existingCards = Array.from(document.querySelectorAll('.job-preview-card'));
   
   if (!headerSpacer) {
     console.error('Header spacer not found');
@@ -911,11 +1207,7 @@ async function filterAndSortJobs() {
   
   // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
   try {
-  
-  // Clear existing job cards
-  const existingCards = document.querySelectorAll('.job-preview-card');
-  existingCards.forEach(card => card.remove());
-  resetAdRenderState();
+  listingTrace('filter:start', { category: currentCategory, region: activeRegion, city: activeCity, pay: activePay });
   
   // ============================================================================
   // 🔥 FIREBASE INTEGRATED - DATA FETCHING
@@ -923,6 +1215,7 @@ async function filterAndSortJobs() {
   // Attempts to load from Firebase first, falls back to localStorage if offline
   
   let categoryCards = [];
+  let firebaseFetchFailed = false;
   
   // Helper function to normalize Firebase data to UI format
   function _normalizeFirebaseJob(firebaseJob) {
@@ -943,9 +1236,9 @@ async function filterAndSortJobs() {
       jobNumber: firebaseJob.id,  // Use document ID, not jobId field
       category: firebaseJob.category,
       title: firebaseJob.title,
-      photo: firebaseJob.thumbnail || 'public/images/placeholder.jpg',
-      extra1: firebaseJob.extras?.[0] || '',
-      extra2: firebaseJob.extras?.[1] || '',
+      photo: firebaseJob.thumbnail || firebaseJob.photo || LISTING_THUMBNAIL_FALLBACK,
+      extra1: getExtrasValue(firebaseJob.extras, 0),
+      extra2: getExtrasValue(firebaseJob.extras, 1),
       price: formatGigPrice(firebaseJob.priceOffer),
       rate: firebaseJob.paymentType,
       date: formattedDate,
@@ -953,8 +1246,9 @@ async function filterAndSortJobs() {
       region: firebaseJob.region,
       city: firebaseJob.city,
       status: firebaseJob.status,
-      templateUrl: firebaseJob.jobPageUrl || `dynamic-job.html?category=${firebaseJob.category}&jobNumber=${firebaseJob.id}`,  // Use document ID
-      createdAt: firebaseJob.datePosted?.toDate?.()?.toISOString() || new Date().toISOString(),
+      // Always use doc-ID URL path to avoid stale legacy jobPageUrl mismatches.
+      templateUrl: buildDynamicJobUrl(firebaseJob.category, firebaseJob.id),
+      createdAt: getDatePostedIso(firebaseJob),
       // Store full date object for sorting and expiration checking
       fullDate: date,
       scheduledTimestamp: date ? date.getTime() : 0
@@ -968,6 +1262,7 @@ async function filterAndSortJobs() {
   
   if (shouldUseFirebase && typeof getJobsByCategory === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
     try {
+      listingTrace('firebase:begin');
       console.log('🔥 Loading jobs from Firebase for category:', currentCategory);
       
       const filters = {
@@ -975,8 +1270,9 @@ async function filterAndSortJobs() {
         payType: activePay !== 'PAY TYPE' ? activePay : null
       };
       
-      const rawJobs = await getJobsByCategory(currentCategory, filters);
-      categoryCards = rawJobs.map(job => _normalizeFirebaseJob(job));
+      const rawJobs = await fetchCategoryJobsWithRetry(currentCategory, { ...filters, __strictFirebase: true });
+      listingTrace('firebase:ok', { count: Array.isArray(rawJobs) ? rawJobs.length : 0 });
+      categoryCards = rawJobs.map(job => normalizeListingCardNavigation(_normalizeFirebaseJob(job), currentCategory));
       console.log(`✅ Firebase: Found ${categoryCards.length} jobs (normalized for UI)`);
       
       // Filter out expired gigs (past end time)
@@ -996,13 +1292,20 @@ async function filterAndSortJobs() {
       console.log(`🗑️  Filtered out ${beforeFilter - categoryCards.length} expired gigs`);
       
     } catch (error) {
+      firebaseFetchFailed = true;
+      listingTrace('firebase:error', (error && error.message) ? error.message : String(error));
       console.error('❌ Firebase error, falling back to localStorage:', error);
       // Fall through to localStorage below
     }
   }
-  
-  // Fallback to localStorage if Firebase didn't return data OR dev mode is ON
-  if (categoryCards.length === 0) {
+
+  // In production Firebase mode, avoid silently showing "No Gigs Yet" for transient iOS fetch failures.
+  if (firebaseFetchFailed && shouldUseFirebase && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+    throw new Error('Server read failed. Please retry.');
+  }
+
+  if (categoryCards.length === 0 && !shouldUseFirebase) {
+    listingTrace('fallback:localStorage');
     const devMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : (localStorage.getItem('gisugo_dev_mode') === 'true');
     if (devMode) {
       console.log('🎮 Dev Mode ON - Loading mock jobs from localStorage');
@@ -1010,7 +1313,7 @@ async function filterAndSortJobs() {
       console.log('📦 Loading jobs from localStorage (Firebase returned no data)');
     }
     const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-    categoryCards = previewCards[currentCategory] || [];
+    categoryCards = (previewCards[currentCategory] || []).map((card) => normalizeListingCardNavigation(card, currentCategory));
     
     // Filter out expired gigs from localStorage too
     const now = new Date().getTime();
@@ -1059,7 +1362,7 @@ async function filterAndSortJobs() {
       return jobRate === filterRate;
     });
   }
-  
+
   // ============================================================================
   // ✅ FIREBASE-READY - SORTING LOGIC (Keep this section as-is)
   // ============================================================================
@@ -1113,14 +1416,27 @@ async function filterAndSortJobs() {
   
   // Show empty state when no gigs are available
   if (filteredJobs.length === 0) {
+    listingTrace('render:empty');
     setListingEmptyStateVisible(true, headerSpacer);
     return; // Exit early if no jobs
   }
   
   setListingEmptyStateVisible(false, headerSpacer);
+  // Clear existing cards only after we have a successful replacement payload.
+  existingCards.forEach(card => card.remove());
+  resetAdRenderState();
   
   // Render initial batch
   renderJobBatch(PAGINATION.initialBatchSize, headerSpacer);
+  const firstCard = document.querySelector('.job-preview-card');
+  listingTrace('render:cards', {
+    total: filteredJobs.length,
+    firstHref: firstCard ? firstCard.getAttribute('href') : ''
+  });
+  try {
+    const firstImg = document.querySelector('.job-preview-card .card-thumbnail img');
+    listingTrace('thumb:first', firstImg ? firstImg.getAttribute('src') : 'none');
+  } catch (_) {}
   
   // Apply truncation after cards are loaded
   const truncateTimer = setTimeout(truncateBarangayNames, 50);
@@ -1131,8 +1447,9 @@ async function filterAndSortJobs() {
   } catch (unexpectedError) {
     // ⚠️ CRITICAL: Catch any unexpected errors
     console.error('❌ Unexpected error in filterAndSortJobs:', unexpectedError);
+    listingTrace('filter:crash', (unexpectedError && unexpectedError.message) ? unexpectedError.message : String(unexpectedError));
     // Show error state to user
-    const headerSpacer = document.querySelector('.header-spacer');
+    const headerSpacer = document.querySelector('.jobcat-header-spacer');
     if (headerSpacer) {
       setListingEmptyStateVisible(true, headerSpacer);
       const emptyState = document.getElementById('listingEmptyState');
@@ -1146,7 +1463,7 @@ async function filterAndSortJobs() {
   } finally {
     // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
     clearTimeout(loadingOverlayTimer);
-    if (loadingOverlay && loadingOverlayVisible) {
+    if (loadingOverlay) {
       loadingOverlay.classList.remove('show');
       console.log('✅ Loading overlay hidden');
     }
@@ -1207,12 +1524,17 @@ function renderJobBatch(batchSize, headerSpacer) {
     
     const jobCard = createJobPreviewCard(cardData, currentPayType, consecutiveCount);
     
+    const parent = headerSpacer.parentNode;
+    const emptyState = document.getElementById('listingEmptyState');
+    const anchor = (emptyState && emptyState.parentNode === parent) ? emptyState : null;
     if (isInitialLoad) {
-      // Initial load: insert after header (so newest are at top)
-      headerSpacer.parentNode.insertBefore(jobCard, headerSpacer.nextSibling);
+      // Keep cards ordered directly after header and always before any empty placeholder.
+      parent.insertBefore(jobCard, anchor || headerSpacer.nextSibling);
+    } else if (anchor) {
+      // Never append cards after an empty placeholder, or it appears mid-list.
+      parent.insertBefore(jobCard, anchor);
     } else {
-      // Pagination: append to end of container
-      headerSpacer.parentNode.appendChild(jobCard);
+      parent.appendChild(jobCard);
     }
     
     // Add to displayed jobs
@@ -1223,6 +1545,7 @@ function renderJobBatch(batchSize, headerSpacer) {
   // Update pagination state
   PAGINATION.currentIndex += jobsToRender;
   PAGINATION.hasMore = PAGINATION.currentIndex < PAGINATION.allJobs.length;
+  setListingEmptyStateVisible(false, headerSpacer);
   renderInlineAdsByGigPositions(headerSpacer.parentNode);
 
   // Optional tail placement: show one ad after the final gig in the listing
@@ -1974,7 +2297,7 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
   const rateText = cardData.rate || payType;
   const safeTitle = escapeHtml(cardData.title || 'Untitled Job');
-  const safePhoto = escapeHtml(sanitizeUrl(cardData.photo, 'public/images/placeholder.jpg'));
+  const safePhoto = escapeHtml(sanitizeUrl(cardData.photo, LISTING_THUMBNAIL_FALLBACK));
   const safeExtra1Label = escapeHtml(extra1Label);
   const safeExtra1Value = escapeHtml(extra1Value);
   const safeExtra2Label = escapeHtml(extra2Label);
@@ -2015,6 +2338,27 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
       </div>
     </div>
   `;
+
+  const cardImage = cardElement.querySelector('.card-thumbnail img');
+  if (cardImage) {
+    cardImage.addEventListener('error', () => {
+      cardImage.src = LISTING_THUMBNAIL_FALLBACK;
+    }, { once: true });
+
+    const originalPhoto = (cardData && cardData.photo) ? String(cardData.photo).trim() : '';
+    if (isGsStorageUrl(originalPhoto)) {
+      resolveListingThumbnailUrl(originalPhoto)
+        .then((resolvedUrl) => {
+          if (resolvedUrl) {
+            cardImage.src = resolvedUrl;
+          }
+        })
+        .catch((error) => {
+          console.warn('⚠️ Failed to hydrate gs:// thumbnail:', error);
+          cardImage.src = LISTING_THUMBNAIL_FALLBACK;
+        });
+    }
+  }
   
   
   // ============================================================================
@@ -2037,7 +2381,20 @@ document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔥 Listing page loaded with Firebase integration');
   
   // Apply filtering and sorting - now async for Firebase support
-  await filterAndSortJobs();
+  try {
+    await filterAndSortJobs();
+  } catch (error) {
+    console.error('❌ Listing bootstrap failed during initial load:', error);
+    const listContainer = document.getElementById('job-listings');
+    if (listContainer) {
+      listContainer.innerHTML = `
+        <div class="content-placeholder">
+          Failed to load gigs right now.<br>
+          <button class="empty-state-btn" type="button" onclick="location.reload()">Retry</button>
+        </div>
+      `;
+    }
+  }
   
   const truncateTimer = setTimeout(() => {
     truncateBarangayNames();
@@ -2046,11 +2403,27 @@ document.addEventListener('DOMContentLoaded', async function() {
     window._listingCleanup.registerTimer(truncateTimer);
   }
   
-  // Initialize jobcat overlay auto-resize
-  initJobcatOverlayAutoResize();
-  
-  // Initialize jobcat button auto-resize
-  initJobcatButtonAutoResize();
+  // Initialize auto-resize hooks with guard so one failure does not break page scripts.
+  try {
+    initJobcatOverlayAutoResize();
+    initJobcatButtonAutoResize();
+  } catch (resizeError) {
+    console.warn('⚠️ Listing auto-resize init skipped:', resizeError);
+  }
+});
+
+// iOS Safari bfcache can restore stale in-memory state after back navigation.
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  const existingCardCount = document.querySelectorAll('.job-preview-card').length;
+  if (existingCardCount > 0) {
+    // Keep bfcache-restored cards to avoid iOS back-nav collapsing counts.
+    setListingEmptyStateVisible(false, document.querySelector('.jobcat-header-spacer'));
+    return;
+  }
+  filterAndSortJobs().catch((error) => {
+    console.warn('⚠️ pageshow reload failed:', error);
+  });
 });
 
 // Auto-fit resizing function for jobcat overlay text
@@ -2841,62 +3214,66 @@ function initJobcatButtonAutoResize() {
 
   // Job categories with emojis and page names
   const jobCategories = [
-    // BASIC HELPER SECTION
-    { emoji: '🧹', label: 'Limpyo', page: 'limpyo.html', section: 'basic' },
-    { emoji: '🚚', label: 'Hakot', page: 'hakot.html', section: 'basic' },
-    { emoji: '📦', label: 'Hatod', page: 'hatod.html', section: 'basic' },
-    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'basic' },
-    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'basic' },
-    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'basic' },
-    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'basic' },
-    { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'basic' },
-    { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'basic' },
-    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'basic' },
-    { emoji: '🙋🏻', label: 'Assistant', page: 'staff.html', section: 'basic' },
-    { emoji: '👩🏻‍💼👨🏻‍💼', label: 'Reception', page: 'reception.html', section: 'basic' },
-    
-    // SKILLED WORKER SECTION
-    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'skilled' },
-    { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'skilled' },
-    { emoji: '👮🏻', label: 'Security', page: 'security.html', section: 'skilled' },
-    { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'skilled' },
-    { emoji: '👨🏻‍🔧', label: 'Handyman', page: 'handyman.html', section: 'skilled' },
-    { emoji: '👷🏻', label: 'Builder', page: 'builder.html', section: 'skilled' },
-    { emoji: '🖌️', label: 'Painter', page: 'painter.html', section: 'skilled' },
-    { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'skilled' },
-    { emoji: '💆🏻‍♀️', label: 'Massager', page: 'massage.html', section: 'skilled' },
-    { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'skilled' },
-    { emoji: '📱', label: 'Social', page: 'social.html', section: 'skilled' },
-    { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'skilled' },
-    { emoji: '🖼️', label: 'Artist', page: 'artist.html', section: 'skilled' },
-    { emoji: '🎵', label: 'Musician', page: 'musician.html', section: 'skilled' },
-    { emoji: '💃🏻', label: 'Performer', page: 'performer.html', section: 'skilled' },
-    { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'skilled' },
-    { emoji: '🎥', label: 'Videographer', page: 'videographer.html', section: 'skilled' },
-    { emoji: '🎬', label: 'Editor', page: 'editor.html', section: 'skilled' },
-    { emoji: '📋', label: 'Secretary', page: 'secretary.html', section: 'skilled' },
-    { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'skilled' },
-    { emoji: '🗂️', label: 'Clerical', page: 'clerical.html', section: 'skilled' },
-    
-    // PROFESSIONAL SECTION
-    { emoji: '❤️‍🩹', label: 'Nurse', page: 'nurse.html', section: 'professional' },
+    // BUSINESS ESSENTIALS SECTION
+    { emoji: '📣', label: 'Solicitor', page: 'solicitor.html', section: 'basic' },
+    { emoji: '🧹', label: 'Janitor', page: 'limpyo.html', section: 'basic' },
+    { emoji: '📦', label: 'Delivery', page: 'hatod.html', section: 'basic' },
+    { emoji: '❄️', label: 'AC Cleaner', page: 'aircon.html', section: 'basic' },
+    { emoji: '🖌️', label: 'Painter', page: 'painter.html', section: 'basic' },
+    { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'basic' },
+    { emoji: '🗂️', label: 'Clerical', page: 'clerical.html', section: 'basic' },
+    { emoji: '👨🏻‍🔧', label: 'Handyman', page: 'handyman.html', section: 'basic' },
+    { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'basic' },
+    { emoji: '🚰', label: 'Plumber', page: 'plumber.html', section: 'basic' },
+    { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'basic' },
+    { emoji: '💻', label: 'Programmer', page: 'programmer.html', section: 'basic' },
+
+    // EVERYDAY SERVICES SECTION
+    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'everyday' },
+    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'everyday' },
+    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'everyday' },
+    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'everyday' },
+    { emoji: '🚚', label: 'Hakot', page: 'hakot.html', section: 'everyday' },
+    { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'everyday' },
+    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'everyday' },
+    { emoji: '👩🏻‍💼👨🏻‍💼', label: 'Reception', page: 'reception.html', section: 'everyday' },
+    { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'everyday' },
+    { emoji: '🙋🏻', label: 'Staff', page: 'staff.html', section: 'everyday' },
+    { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'everyday' },
+    { emoji: '💆🏻‍♀️', label: 'Massager', page: 'massage.html', section: 'everyday' },
+    { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'everyday' },
+    { emoji: '🧭', label: 'Tour Guide', page: 'tourguide.html', section: 'everyday' },
+    { emoji: '📱', label: 'Social', page: 'social.html', section: 'everyday' },
+
+    // SKILLED TRADES SECTION
+    { emoji: '👷🏻', label: 'Builder', page: 'builder.html', section: 'trades' },
+    { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'trades' },
+    { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'trades' },
+    { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'trades' },
+    { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'trades' },
+    { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'trades' },
+    { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'trades' },
+    { emoji: '🎥', label: 'Videographer', page: 'videographer.html', section: 'trades' },
+    { emoji: '🎬', label: 'Editor', page: 'editor.html', section: 'trades' },
+    { emoji: '👮🏻', label: 'Security', page: 'security.html', section: 'trades' },
+    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'trades' },
+    { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'trades' },
+
+    // PROFESSIONAL SERVICES SECTION
     { emoji: '🧑🏻‍⚕️', label: 'Doctor', page: 'doctor.html', section: 'professional' },
+    { emoji: '❤️‍🩹', label: 'Nurse', page: 'nurse.html', section: 'professional' },
     { emoji: '⚖️', label: 'Lawyer', page: 'lawyer.html', section: 'professional' },
-    { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'professional' },
-    { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'professional' },
-    { emoji: '🚰', label: 'Plumber', page: 'plumber.html', section: 'professional' },
-    { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'professional' },
-    { emoji: '🔍', label: 'Researcher', page: 'researcher.html', section: 'professional' },
-    { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'professional' },
-    { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'professional' },
-    { emoji: '🧘🏻', label: 'Therapist', page: 'therapist.html', section: 'professional' },
-    { emoji: '🏡', label: 'Realtor', page: 'realtor.html', section: 'professional' },
     { emoji: '🧮', label: 'Accountant', page: 'accountant.html', section: 'professional' },
     { emoji: '💼', label: 'Consultant', page: 'consultant.html', section: 'professional' },
-    { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'professional' },
-    { emoji: '💻', label: 'Programmer', page: 'programmer.html', section: 'professional' },
+    { emoji: '🔍', label: 'Researcher', page: 'researcher.html', section: 'professional' },
     { emoji: '⚙️', label: 'Engineer', page: 'engineer.html', section: 'professional' },
-    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'professional' }
+    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'professional' },
+    { emoji: '🏡', label: 'Realtor', page: 'realtor.html', section: 'professional' },
+    { emoji: '🧘🏻', label: 'Therapist', page: 'therapist.html', section: 'professional' },
+    { emoji: '💃🏻', label: 'Performer', page: 'performer.html', section: 'professional' },
+    { emoji: '🎵', label: 'Musician', page: 'musician.html', section: 'professional' },
+    { emoji: '🖼️', label: 'Artist', page: 'artist.html', section: 'professional' },
+    { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'professional' }
   ];
 
   // Get current page to mark active
@@ -2904,9 +3281,10 @@ function initJobcatButtonAutoResize() {
 
   // Group by section
   const sections = {
-    basic: { title: 'Basic Helper', items: [] },
-    skilled: { title: 'Skilled Worker', items: [] },
-    professional: { title: 'Professional', items: [] }
+    basic: { title: 'Business Essentials', items: [] },
+    everyday: { title: 'Everyday Services', items: [] },
+    trades: { title: 'Skilled Trades', items: [] },
+    professional: { title: 'Professional Services', items: [] }
   };
 
   jobCategories.forEach(cat => {
