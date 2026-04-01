@@ -97,6 +97,65 @@ const TAB_RENDER_GUARDS = {
 };
 let faceViewerEscapeListenerKey = null;
 
+const JOBS_IOS_TRACE_STATE = {
+    maxLines: 20
+};
+
+function isJobsIOSTraceEnabled() {
+    try {
+        const ua = navigator.userAgent || '';
+        return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    } catch (_) {
+        return false;
+    }
+}
+
+function ensureJobsTraceOverlay() {
+    if (!isJobsIOSTraceEnabled()) return null;
+    let panel = document.getElementById('jobsIosTracePanel');
+    if (panel) return panel;
+    panel = document.createElement('div');
+    panel.id = 'jobsIosTracePanel';
+    panel.style.cssText = [
+        'position:fixed',
+        'left:8px',
+        'right:8px',
+        'bottom:8px',
+        'max-height:34vh',
+        'overflow:auto',
+        'padding:8px',
+        'border:1px solid rgba(255,255,255,0.28)',
+        'border-radius:10px',
+        'background:rgba(5,8,20,0.90)',
+        'color:#d8f5ff',
+        'font:11px/1.35 monospace',
+        'z-index:2147483647',
+        'white-space:pre-wrap',
+        'word-break:break-word',
+        'pointer-events:none'
+    ].join(';');
+    document.body.appendChild(panel);
+    return panel;
+}
+
+function jobsTrace(event, details) {
+    if (!isJobsIOSTraceEnabled()) return;
+    const panel = ensureJobsTraceOverlay();
+    if (!panel) return;
+    const time = new Date().toISOString().slice(11, 19);
+    const detailText = details === undefined
+        ? ''
+        : (typeof details === 'string' ? details : JSON.stringify(details));
+    const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
+    const rows = panel.textContent ? panel.textContent.split('\n') : [];
+    rows.push(line);
+    if (rows.length > JOBS_IOS_TRACE_STATE.maxLines) {
+        rows.splice(0, rows.length - JOBS_IOS_TRACE_STATE.maxLines);
+    }
+    panel.textContent = rows.join('\n');
+    panel.scrollTop = panel.scrollHeight;
+}
+
 function beginTabRender(scope) {
     const token = `${scope}:${Date.now()}:${Math.random().toString(36).slice(2, 9)}`;
     TAB_RENDER_GUARDS.tokens.set(scope, token);
@@ -512,9 +571,16 @@ window.JobsDataService = {
             }, timeoutMs);
         });
 
-        return Promise.race([promise, timeoutPromise]).finally(() => {
-            if (timeoutId) clearTimeout(timeoutId);
-        });
+        return Promise.race([promise, timeoutPromise])
+            .catch((error) => {
+                const message = (error && error.message) ? error.message : String(error);
+                const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+                jobsTrace(`jobs:data:${stage}`, { label, message });
+                throw error;
+            })
+            .finally(() => {
+                if (timeoutId) clearTimeout(timeoutId);
+            });
     },
     
     // ===== NORMALIZE FIREBASE JOB DATA =====
@@ -571,6 +637,7 @@ window.JobsDataService = {
     // Get all jobs for current user (My Listings)
     async getAllJobs() {
         console.log(`📊 JobsDataService.getAllJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        jobsTrace('jobs:data:listings:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE - Load ONLY from Firestore
@@ -580,8 +647,10 @@ window.JobsDataService = {
                 const user = await DataService.waitForAuth();
                 if (!user) {
                     console.log('⚠️ Not authenticated in Firebase mode');
+                    jobsTrace('jobs:data:listings:error', 'auth_missing');
                     return [];
                 }
+                jobsTrace('route:jobs/context', { role: 'customer', userId: user.uid, tab: 'listings' });
                 
                 // Use getUserJobListings from firebase-db.js
                 if (typeof getUserJobListings === 'function') {
@@ -592,13 +661,16 @@ window.JobsDataService = {
                     // Normalize Firebase data to match expected field names
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
                     console.log(`🔥 Loaded ${jobs.length} jobs from Firebase`);
+                    jobsTrace('jobs:data:listings:done', { count: jobs.length });
                     return jobs;
                 } else {
                     console.error('❌ getUserJobListings function not available');
+                    jobsTrace('jobs:data:listings:error', 'getUserJobListings_unavailable');
                     return [];
                 }
             } catch (error) {
                 console.error('❌ Error loading jobs from Firebase:', error);
+                jobsTrace('jobs:data:listings:error', (error && error.message) ? error.message : String(error));
                 return [];
             }
         }
@@ -633,6 +705,7 @@ window.JobsDataService = {
     // Get all hired jobs (jobs in "hiring" status)
     async getAllHiredJobs() {
         console.log(`📊 JobsDataService.getAllHiredJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        jobsTrace('jobs:data:hired:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE
@@ -642,6 +715,7 @@ window.JobsDataService = {
                 const user = await DataService.waitForAuth();
                 if (!user) {
                     console.log('⚠️ Not authenticated');
+                    jobsTrace('jobs:data:hired:error', 'auth_missing');
                     return [];
                 }
                 
@@ -654,11 +728,13 @@ window.JobsDataService = {
                         'getAllHiredJobs:getUserJobListings'
                     );
                     console.log(`🔥 Loaded ${jobs.length} hired/accepted jobs from Firebase`);
+                    jobsTrace('jobs:data:hired:done', { count: jobs.length });
                     return jobs;
                 }
                 return [];
             } catch (error) {
                 console.error('❌ Error loading hired jobs:', error);
+                jobsTrace('jobs:data:hired:error', (error && error.message) ? error.message : String(error));
                 return [];
             }
         }
@@ -1198,6 +1274,7 @@ window.JobsDataService = {
     // Get completed jobs (simulates Firebase query) - FIREBASE READY
     async getCompletedJobs() {
         console.log(`📊 JobsDataService.getCompletedJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        jobsTrace('jobs:data:completed:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE - Load completed jobs from Firestore
@@ -1207,6 +1284,7 @@ window.JobsDataService = {
                 const user = await DataService.waitForAuth();
                 if (!user) {
                     console.log('⚠️ Not authenticated in Firebase mode');
+                    jobsTrace('jobs:data:completed:error', 'auth_missing');
                     return [];
                 }
                 
@@ -1320,10 +1398,12 @@ window.JobsDataService = {
                 });
                 
                 console.log(`✅ Returning ${completedJobs.length} completed jobs`);
+                jobsTrace('jobs:data:completed:done', { count: completedJobs.length });
                 return completedJobs;
                 
             } catch (error) {
                 console.error('❌ Error fetching completed jobs from Firebase:', error);
+                jobsTrace('jobs:data:completed:error', (error && error.message) ? error.message : String(error));
                 return [];
             }
         }
@@ -1340,6 +1420,7 @@ window.JobsDataService = {
     // Get offered jobs (simulates Firebase query) - NEW FOR GIGS OFFERED TAB
     async getOfferedJobs() {
         console.log(`📊 JobsDataService.getOfferedJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        jobsTrace('jobs:data:offered:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE - Load offered jobs from Firestore
@@ -1349,8 +1430,10 @@ window.JobsDataService = {
                 const user = await DataService.waitForAuth();
                 if (!user) {
                     console.log('⚠️ Not authenticated in Firebase mode');
+                    jobsTrace('jobs:data:offered:error', 'auth_missing');
                     return [];
                 }
+                jobsTrace('route:jobs/context', { role: 'worker', userId: user.uid, tab: 'offered' });
                 
                 // Use getOfferedJobsForWorker from firebase-db.js
                 if (typeof getOfferedJobsForWorker === 'function') {
@@ -1361,13 +1444,16 @@ window.JobsDataService = {
                     console.log(`🔥 Loaded ${rawJobs.length} offered jobs from Firebase`);
                     // Normalize data if needed
                     const jobs = rawJobs.map(job => this._normalizeFirebaseJob(job));
+                    jobsTrace('jobs:data:offered:done', { count: jobs.length });
                     return jobs;
                 } else {
                     console.error('❌ getOfferedJobsForWorker function not available');
+                    jobsTrace('jobs:data:offered:error', 'getOfferedJobsForWorker_unavailable');
                     return [];
                 }
             } catch (error) {
                 console.error('❌ Error loading offered jobs from Firebase:', error);
+                jobsTrace('jobs:data:offered:error', (error && error.message) ? error.message : String(error));
                 return [];
             }
         }
@@ -1613,6 +1699,13 @@ window.addEventListener('beforeunload', executeAllCleanups);
 
 // ===== JOBS PAGE INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', async function() {
+    if (isJobsIOSTraceEnabled()) {
+        window.__GISUGO_IOS_TRACE = function(payload) {
+            const route = String(payload && payload.route ? payload.route : '');
+            if (!route.startsWith('jobs:')) return;
+            jobsTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
+        };
+    }
     if (typeof window.requireVerifiedEmailForPage === 'function') {
         const accessAllowed = await window.requireVerifiedEmailForPage({
             pageName: 'Gigs Manager',
@@ -2001,6 +2094,7 @@ async function loadOfferedContent() {
             <div class="loading-text">Loading your gig offers...</div>
         </div>
     `;
+    jobsTrace('render:tab:loading', { role: 'worker', tab: 'offered' });
     
     try {
         // Get all offered jobs for current user (worker perspective)
@@ -2011,6 +2105,7 @@ async function loadOfferedContent() {
         console.log(`🎯 Found ${offeredJobs.length} offered gigs for worker`);
         
         if (offeredJobs.length === 0) {
+            jobsTrace('render:tab:success', { role: 'worker', tab: 'offered', count: 0 });
             if (shouldApplyTabRender('offered', renderToken)) showEmptyOfferedState();
             return;
         }
@@ -2022,9 +2117,11 @@ async function loadOfferedContent() {
         
         // Attach event listeners for offered gig cards
         attachOfferedCardHandlers();
+        jobsTrace('render:tab:success', { role: 'worker', tab: 'offered', count: offeredJobs.length });
         
     } catch (error) {
         console.error('❌ Error loading offered content:', error);
+        jobsTrace('render:tab:error', { role: 'worker', tab: 'offered', error: (error && error.message) ? error.message : String(error) });
         if (shouldApplyTabRender('offered', renderToken)) showEmptyOfferedState();
     }
 }
@@ -2200,6 +2297,7 @@ async function loadAcceptedContent() {
             <div class="loading-text">Loading your working jobs...</div>
         </div>
     `;
+    jobsTrace('render:tab:loading', { role: 'worker', tab: 'accepted' });
     
     try {
         // Get all hired/accepted jobs and filter for worker perspective (where current user is the worker)
@@ -2213,6 +2311,7 @@ async function loadAcceptedContent() {
         console.log(`🎯 Found ${workerJobs.length} accepted worker jobs for Working tab`);
         
         if (workerJobs.length === 0) {
+            jobsTrace('render:tab:success', { role: 'worker', tab: 'accepted', count: 0 });
             if (shouldApplyTabRender('accepted', renderToken)) showEmptyAcceptedState();
             return;
         }
@@ -2226,9 +2325,11 @@ async function loadAcceptedContent() {
         attachAcceptedCardHandlers();
         
         console.log('✅ Accepted gigs content loaded successfully');
+        jobsTrace('render:tab:success', { role: 'worker', tab: 'accepted', count: workerJobs.length });
         
     } catch (error) {
         console.error('❌ Error loading accepted gigs content:', error);
+        jobsTrace('render:tab:error', { role: 'worker', tab: 'accepted', error: (error && error.message) ? error.message : String(error) });
         if (shouldApplyTabRender('accepted', renderToken)) showEmptyAcceptedState();
     }
 }
@@ -2326,6 +2427,7 @@ async function loadWorkerCompletedContent() {
     const container = document.querySelector('.worker-completed-container');
     if (!container) return;
     const renderToken = beginTabRender('worker-completed');
+    jobsTrace('render:tab:loading', { role: 'worker', tab: 'worker-completed' });
     
     try {
         // Get all completed jobs and filter for worker perspective (where current user was the worker)
@@ -2336,6 +2438,7 @@ async function loadWorkerCompletedContent() {
         console.log(`🎯 Found ${workerCompletedJobs.length} worker perspective completed jobs`);
         
         if (workerCompletedJobs.length === 0) {
+            jobsTrace('render:tab:success', { role: 'worker', tab: 'worker-completed', count: 0 });
             if (shouldApplyTabRender('worker-completed', renderToken)) showEmptyWorkerCompletedState();
             return;
         }
@@ -2349,9 +2452,11 @@ async function loadWorkerCompletedContent() {
         attachWorkerCompletedCardHandlers();
         
         console.log('✅ Worker completed gigs content loaded successfully');
+        jobsTrace('render:tab:success', { role: 'worker', tab: 'worker-completed', count: workerCompletedJobs.length });
         
     } catch (error) {
         console.error('❌ Error loading worker completed gigs content:', error);
+        jobsTrace('render:tab:error', { role: 'worker', tab: 'worker-completed', error: (error && error.message) ? error.message : String(error) });
         if (shouldApplyTabRender('worker-completed', renderToken)) showEmptyWorkerCompletedState();
     }
 }
@@ -2568,6 +2673,7 @@ async function loadListingsContent() {
             <div class="loading-text">Loading your gig listings...</div>
         </div>
     `;
+    jobsTrace('render:tab:loading', { role: 'customer', tab: 'listings' });
     
     try {
         // Generate mock listings data
@@ -2575,6 +2681,7 @@ async function loadListingsContent() {
         if (!shouldApplyTabRender('listings', renderToken)) return;
         
         if (mockListings.length === 0) {
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: 0 });
             if (!shouldApplyTabRender('listings', renderToken)) return;
             container.innerHTML = `
                 <div class="empty-state">
@@ -2603,8 +2710,10 @@ async function loadListingsContent() {
         
         // Initialize card click handlers
         initializeListingCardHandlers();
+        jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: sortedListings.length });
     } catch (error) {
         console.error('❌ Error loading listings content:', error);
+        jobsTrace('render:tab:error', { role: 'customer', tab: 'listings', error: (error && error.message) ? error.message : String(error) });
         if (!shouldApplyTabRender('listings', renderToken)) return;
         container.innerHTML = `
             <div class="empty-state">
@@ -2976,6 +3085,7 @@ async function loadHiringContent() {
             <div class="loading-text">Loading your hired workers...</div>
         </div>
     `;
+    jobsTrace('render:tab:loading', { role: 'customer', tab: 'hiring' });
     
     try {
         // Get all hired/accepted jobs and filter for customer perspective only (where current user is the customer)
@@ -2989,6 +3099,7 @@ async function loadHiringContent() {
         console.log(`👥 Found ${customerJobs.length} customer jobs for hiring tab (filtered from ${allHiredJobs.length} total)`);
         
         if (customerJobs.length === 0) {
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: 0 });
             if (shouldApplyTabRender('hiring', renderToken)) showEmptyHiringState();
             return;
         }
@@ -3001,9 +3112,11 @@ async function loadHiringContent() {
         initializeHiringCardHandlers();
         
         console.log(`👥 Loaded ${customerJobs.length} customer hired jobs`);
+        jobsTrace('render:tab:success', { role: 'customer', tab: 'hiring', count: customerJobs.length });
         
     } catch (error) {
         console.error('❌ Error loading hiring content:', error);
+        jobsTrace('render:tab:error', { role: 'customer', tab: 'hiring', error: (error && error.message) ? error.message : String(error) });
         if (!shouldApplyTabRender('hiring', renderToken)) return;
         container.innerHTML = `
             <div class="content-placeholder">
@@ -7017,6 +7130,7 @@ async function loadPreviousContent() {
             <div class="loading-text">Loading completed jobs...</div>
         </div>
     `;
+    jobsTrace('render:tab:loading', { role: 'customer', tab: 'previous' });
     
     try {
         // Get all completed jobs and filter for customer perspective only (where current user was the customer)
@@ -7027,6 +7141,7 @@ async function loadPreviousContent() {
         console.log(`📜 Found ${customerCompletedJobs.length} customer perspective completed jobs (filtered from ${allCompletedJobs.length} total)`);
         
         if (customerCompletedJobs.length === 0) {
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: 0 });
             if (shouldApplyTabRender('previous', renderToken)) showEmptyPreviousState();
         } else {
             await generateMockCompletedJobs(customerCompletedJobs);
@@ -7036,19 +7151,21 @@ async function loadPreviousContent() {
             
             // Create overlay immediately for testing
             createFeedbackExpandedOverlay();
+            jobsTrace('render:tab:success', { role: 'customer', tab: 'previous', count: customerCompletedJobs.length });
         }
         
         console.log(`📜 Previous tab loaded with ${customerCompletedJobs.length} customer completed jobs`);
         
     } catch (error) {
         console.error('❌ Error loading previous jobs:', error);
-    if (!shouldApplyTabRender('previous', renderToken)) return;
-    container.innerHTML = `
-        <div class="content-placeholder">
-                ❌ Error loading completed jobs.<br>
-                Please try again later.
-        </div>
-    `;
+        jobsTrace('render:tab:error', { role: 'customer', tab: 'previous', error: (error && error.message) ? error.message : String(error) });
+        if (!shouldApplyTabRender('previous', renderToken)) return;
+        container.innerHTML = `
+            <div class="content-placeholder">
+                    ❌ Error loading completed jobs.<br>
+                    Please try again later.
+            </div>
+        `;
     }
 }
 

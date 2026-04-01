@@ -136,8 +136,92 @@ async function fetchJobByIdViaFirestoreRest(jobId) {
   return mapFirestoreRestDoc(raw);
 }
 
-function dynamicTrace() {
-  // iOS on-screen trace removed after stabilization.
+const DYNAMIC_JOB_TRACE_STATE = {
+  ready: false,
+  maxLines: 18,
+  collapsed: false
+};
+
+function dynamicTraceIsEnabled() {
+  return isIOSWebKitBrowserForDataPath();
+}
+
+function ensureDynamicTraceOverlay() {
+  if (!dynamicTraceIsEnabled()) return null;
+  let panel = document.getElementById('dynamicJobIosTracePanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'dynamicJobIosTracePanel';
+    panel.style.cssText = [
+      'position:fixed',
+      'left:8px',
+      'right:8px',
+      'bottom:46px',
+      'max-height:30vh',
+      'overflow:auto',
+      'padding:8px',
+      'border:1px solid rgba(255,255,255,0.28)',
+      'border-radius:10px',
+      'background:rgba(5,8,20,0.90)',
+      'color:#d8f5ff',
+      'font:11px/1.35 monospace',
+      'letter-spacing:0.1px',
+      'z-index:2147483647',
+      'white-space:pre-wrap',
+      'word-break:break-word',
+      'pointer-events:none'
+    ].join(';');
+    document.body.appendChild(panel);
+  }
+
+  let toggleBtn = document.getElementById('dynamicJobIosTraceToggle');
+  if (!toggleBtn) {
+    toggleBtn = document.createElement('button');
+    toggleBtn.id = 'dynamicJobIosTraceToggle';
+    toggleBtn.type = 'button';
+    toggleBtn.textContent = 'TRACE HIDE';
+    toggleBtn.style.cssText = [
+      'position:fixed',
+      'right:8px',
+      'bottom:8px',
+      'height:32px',
+      'padding:0 10px',
+      'border:1px solid rgba(255,255,255,0.35)',
+      'border-radius:8px',
+      'background:rgba(10,20,35,0.95)',
+      'color:#d8f5ff',
+      'font:600 11px/1 monospace',
+      'z-index:2147483647',
+      'pointer-events:auto'
+    ].join(';');
+    toggleBtn.addEventListener('click', () => {
+      DYNAMIC_JOB_TRACE_STATE.collapsed = !DYNAMIC_JOB_TRACE_STATE.collapsed;
+      panel.style.display = DYNAMIC_JOB_TRACE_STATE.collapsed ? 'none' : 'block';
+      toggleBtn.textContent = DYNAMIC_JOB_TRACE_STATE.collapsed ? 'TRACE SHOW' : 'TRACE HIDE';
+    });
+    document.body.appendChild(toggleBtn);
+  }
+
+  panel.style.display = DYNAMIC_JOB_TRACE_STATE.collapsed ? 'none' : 'block';
+  return panel;
+}
+
+function dynamicTrace(event, details) {
+  if (!dynamicTraceIsEnabled()) return;
+  const panel = ensureDynamicTraceOverlay();
+  if (!panel) return;
+  const time = new Date().toISOString().slice(11, 19);
+  const detailText = details === undefined
+    ? ''
+    : (typeof details === 'string' ? details : JSON.stringify(details));
+  const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
+  const rows = panel.textContent ? panel.textContent.split('\n') : [];
+  rows.push(line);
+  if (rows.length > DYNAMIC_JOB_TRACE_STATE.maxLines) {
+    rows.splice(0, rows.length - DYNAMIC_JOB_TRACE_STATE.maxLines);
+  }
+  panel.textContent = rows.join('\n');
+  panel.scrollTop = panel.scrollHeight;
 }
 
 function setApplyButtonSyncState(applyBtn, isSyncing) {
@@ -1095,8 +1179,14 @@ function handleJobApplication() {
   
   // Check if user is trying to apply to their own job
   const currentUser = firebase.auth ? firebase.auth().currentUser : null;
+  const { jobId } = getUrlParameters();
+  dynamicTrace('route:dynamic-job/apply', {
+    jobId: String(jobId || ''),
+    userId: currentUser && currentUser.uid ? currentUser.uid : 'guest'
+  });
   if (currentUser && window.currentJobData && window.currentJobData.posterId === currentUser.uid) {
     console.error('🚫 User attempted to apply to their own job');
+    dynamicTrace('render:apply:error', 'self_apply_blocked');
     alert('You cannot apply to your own job posting!');
     return;
   }
@@ -1118,8 +1208,6 @@ function handleJobApplication() {
   }
   
   // Prepare application data
-  const { jobId } = getUrlParameters();
-  
   const applicationData = {
     message: message,
     counterOffer: counterOffer ? parseFloat(counterOffer) : null
@@ -1134,15 +1222,19 @@ function handleJobApplication() {
     if (loadingText) loadingText.textContent = 'Sending Application...';
     loadingOverlay.classList.add('show');
   }
+  dynamicTrace('render:apply:loading', 'Sending Application...');
   
   // Submit application to Firebase
   if (typeof applyForJob === 'function') {
-    withDynamicJobTimeout(applyForJob(jobId, applicationData), 'applyForJob', 15000)
+    dynamicTrace('fetch:mode', dynamicTraceIsEnabled() ? 'REST_PRIMARY' : 'SDK');
+    const applySubmitTimeoutMs = dynamicTraceIsEnabled() ? 34000 : 15000;
+    withDynamicJobTimeout(applyForJob(jobId, applicationData), 'applyForJob', applySubmitTimeoutMs)
       .then(result => {
         // Hide loading
         if (loadingOverlay) loadingOverlay.classList.remove('show');
         
         if (result.success) {
+          dynamicTrace('render:apply:success', { applicationId: result.applicationId || '' });
           console.log('✅ Application submitted successfully!');
           console.log('   Application ID:', result.applicationId);
           console.log('   Job ID:', jobId);
@@ -1156,6 +1248,7 @@ function handleJobApplication() {
           // Show confirmation overlay
           showApplicationSentOverlay();
         } else {
+          dynamicTrace('render:apply:error', result.message || 'apply_failed');
           console.error('❌ Application submission failed:', result.message);
           alert(result.message || 'Failed to submit application. Please try again.');
         }
@@ -1166,8 +1259,12 @@ function handleJobApplication() {
         
         console.error('❌ Error submitting application:', error);
         if (String(error?.message || '').includes('timed out')) {
+          dynamicTrace('fetch:timeout', String(error.message || error));
+          dynamicTrace('render:apply:error', 'timeout');
           alert('Application request is taking too long on this connection. Please try again.');
         } else {
+          dynamicTrace('fetch:error', String(error?.message || error));
+          dynamicTrace('render:apply:error', 'exception');
           alert('An error occurred. Please try again.');
         }
       });
@@ -1176,6 +1273,7 @@ function handleJobApplication() {
     if (loadingOverlay) loadingOverlay.classList.remove('show');
     
     console.error('❌ applyForJob function not available');
+    dynamicTrace('render:apply:error', 'applyForJob_unavailable');
     alert('Application system unavailable. Please refresh the page.');
   }
 }
@@ -2060,6 +2158,13 @@ function initializeGigDetailAdSlot() {
 // Initialize everything when the page loads
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 Dynamic job page loading...');
+  if (dynamicTraceIsEnabled()) {
+    window.__GISUGO_IOS_TRACE = function(payload) {
+      const route = String(payload && payload.route ? payload.route : '');
+      if (!route.startsWith('dynamic-job:')) return;
+      dynamicTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
+    };
+  }
   const safeInit = (label, fn) => {
     try {
       fn();

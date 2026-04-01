@@ -4864,6 +4864,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
   }
   
+  if (isProfileIOSTraceEnabled()) {
+    window.__GISUGO_IOS_TRACE = function(payload) {
+      const route = String(payload && payload.route ? payload.route : '');
+      if (!route.startsWith('profile:')) return;
+      profileTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
+    };
+  }
+
   // Wait for Firebase auth to be ready before loading profile
   await waitForAuthAndLoadProfile();
   applyRequestedProfileTabFromQuery();
@@ -4891,6 +4899,65 @@ document.addEventListener('DOMContentLoaded', async function() {
  * - Mock mode: ONLY loads from mock data, no Firebase calls
  */
 const PROFILE_VISIBILITY_SELECTORS = '.profile-subheader, .profile-tabs, .tab-content-wrapper';
+
+const PROFILE_IOS_TRACE_STATE = {
+  maxLines: 20
+};
+
+function isProfileIOSTraceEnabled() {
+  try {
+    const ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (_) {
+    return false;
+  }
+}
+
+function ensureProfileTraceOverlay() {
+  if (!isProfileIOSTraceEnabled()) return null;
+  let panel = document.getElementById('profileIosTracePanel');
+  if (panel) return panel;
+  panel = document.createElement('div');
+  panel.id = 'profileIosTracePanel';
+  panel.style.cssText = [
+    'position:fixed',
+    'left:8px',
+    'right:8px',
+    'bottom:8px',
+    'max-height:34vh',
+    'overflow:auto',
+    'padding:8px',
+    'border:1px solid rgba(255,255,255,0.28)',
+    'border-radius:10px',
+    'background:rgba(5,8,20,0.90)',
+    'color:#d8f5ff',
+    'font:11px/1.35 monospace',
+    'z-index:2147483647',
+    'white-space:pre-wrap',
+    'word-break:break-word',
+    'pointer-events:none'
+  ].join(';');
+  document.body.appendChild(panel);
+  return panel;
+}
+
+function profileTrace(event, details) {
+  if (!isProfileIOSTraceEnabled()) return;
+  const panel = ensureProfileTraceOverlay();
+  if (!panel) return;
+  const time = new Date().toISOString().slice(11, 19);
+  const detailText = details === undefined
+    ? ''
+    : (typeof details === 'string' ? details : JSON.stringify(details));
+  const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
+  const rows = panel.textContent ? panel.textContent.split('\n') : [];
+  rows.push(line);
+  if (rows.length > PROFILE_IOS_TRACE_STATE.maxLines) {
+    rows.splice(0, rows.length - PROFILE_IOS_TRACE_STATE.maxLines);
+  }
+  panel.textContent = rows.join('\n');
+  panel.scrollTop = panel.scrollHeight;
+}
 
 function setProfileShellVisibility(isVisible) {
   const sections = document.querySelectorAll(PROFILE_VISIBILITY_SELECTORS);
@@ -5024,6 +5091,10 @@ async function waitForAuthAndLoadProfile() {
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
   
   console.log(`📊 Profile loading in ${useFirebase ? 'FIREBASE' : 'MOCK'} mode`);
+  profileTrace('route:profile', {
+    requestedUserId: String(new URLSearchParams(window.location.search).get('userId') || ''),
+    mode: useFirebase ? 'FIREBASE' : 'MOCK'
+  });
   
   if (useFirebase) {
     // ══════════════════════════════════════════════════════════════
@@ -5038,6 +5109,7 @@ async function waitForAuthAndLoadProfile() {
       if (!user) {
         // Not authenticated - redirect to login
         console.log('⚠️ Not authenticated in Firebase mode, redirecting to login...');
+        profileTrace('render:error', 'auth_missing_redirect_login');
         finishProfileLoading();
         window.location.href = 'login.html?redirect=profile.html';
         return;
@@ -5071,6 +5143,11 @@ async function waitForAuthAndLoadProfile() {
       // Determine which user profile to load
       const profileUserId = getProfileUserId(); // Will check URL param or fall back to current user
       const isViewingOwnProfile = (profileUserId === user.uid);
+      profileTrace('route:profile:context', {
+        profileUserId: String(profileUserId || ''),
+        currentUserId: String(user.uid || ''),
+        viewerContext: isViewingOwnProfile ? 'own_profile' : 'other_profile'
+      });
       
       console.log('👤 Profile to load:', profileUserId);
       console.log('🔍 Viewing own profile:', isViewingOwnProfile);
@@ -5100,6 +5177,10 @@ async function waitForAuthAndLoadProfile() {
           await reconcileProfileStatisticsIfNeeded(profileUserId, firebaseProfile, isViewingOwnProfile);
           finishProfileLoading();
           loadUserProfile(firebaseProfile);
+          profileTrace('render:success', {
+            userId: String(profileUserId || ''),
+            viewerContext: isViewingOwnProfile ? 'own_profile' : 'other_profile'
+          });
           maybeStartFaceVerificationAfterSignup(firebaseProfile, isViewingOwnProfile);
           // Warm both review tabs in the background for faster tab switching.
           setTimeout(() => prefetchProfileReviews(profileUserId), 0);
@@ -5108,12 +5189,14 @@ async function waitForAuthAndLoadProfile() {
           if (isViewingOwnProfile) {
           // User is authenticated but has no profile - redirect to sign-up
           console.log('⚠️ No profile found, redirecting to complete sign-up...');
+          profileTrace('render:error', 'own_profile_missing_redirect_signup');
           finishProfileLoading();
           window.location.href = 'sign-up.html?complete=true';
           return;
           } else {
             // Viewing someone else's profile that doesn't exist
             console.error('❌ Profile not found for user:', profileUserId);
+            profileTrace('render:error', 'other_profile_not_found');
             finishProfileLoading();
             showProfileError('User profile not found.');
             return;
@@ -5125,6 +5208,7 @@ async function waitForAuthAndLoadProfile() {
       
     } catch (error) {
       console.error('❌ Error loading Firebase profile:', error);
+      profileTrace('render:error', (error && error.message) ? error.message : String(error));
       finishProfileLoading();
       // Show error message instead of falling back to mock
       showProfileError('Failed to load profile. Please try again.');
@@ -5132,6 +5216,7 @@ async function waitForAuthAndLoadProfile() {
     
   } else {
     console.error('❌ Firebase mode is disabled. Mock profile mode is removed.');
+    profileTrace('render:error', 'firebase_mode_disabled');
     finishProfileLoading();
     showProfileError('Profile service is unavailable. Firebase mode must be enabled.');
     return;

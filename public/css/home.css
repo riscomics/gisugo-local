@@ -1748,32 +1748,144 @@ section {
   text-shadow: 0 0 14px rgba(255, 111, 146, 0.95), 0 0 25px rgba(86, 19, 37, 0.55);
 }
 
-/* SKILLED TRADES - Sapphire blue metallic */
+/* SKILLED TRADES - Forest emerald metallic */
 .category-header.tier-trades {
   background: linear-gradient(135deg,
-    #0d1f3c 0%,
-    #122850 10%,
-    #173260 20%,
-    #1d3c70 30%,
-    #2952a3 40%,
-    #1d3c70 50%,
-    #173260 60%,
-    #122850 75%,
-    #0d1f3c 100%);
-  border-left: 4px solid #2952a3;
-  border-right: 4px solid #2952a3;
-  border-top: 1px solid rgba(41, 82, 163, 0.45);
-  border-bottom: 1px solid rgba(13, 31, 60, 0.85);
+    #082b18 0%,
+    #0d3a21 10%,
+    #12502d 20%,
+    #1a6a3c 30%,
+    #2d9d57 40%,
+    #1a6a3c 50%,
+    #12502d 60%,
+    #0d3a21 75%,
+    #082b18 100%);
+  border-left: 4px solid #3ecf78;
+  border-right: 4px solid #3ecf78;
+  border-top: 1px solid rgba(62, 207, 120, 0.45);
+  border-bottom: 1px solid rgba(8, 43, 24, 0.85);
   box-shadow:
-    inset 0 2px 4px rgba(41, 82, 163, 0.28),
+    inset 0 2px 4px rgba(62, 207, 120, 0.28),
     inset 0 -2px 4px rgba(0, 0, 0, 0.35),
-    0 5px 16px rgba(41, 82, 163, 0.28);
+    0 5px 16px rgba(62, 207, 120, 0.28);
 }
 
 .category-header.tier-trades::before,
 .category-header.tier-trades::after {
-  color: #5f8fe8;
-  text-shadow: 0 0 14px rgba(95, 143, 232, 0.9), 0 0 24px rgba(29, 60, 112, 0.5);
+  color: #a5f0c5;
+  text-shadow: 0 0 14px rgba(165, 240, 197, 0.9), 0 0 24px rgba(26, 106, 60, 0.5);
+}
+
+/* OFFICE SUPPORT - Amethyst metallic */
+.category-header.tier-support {
+  background: linear-gradient(135deg,
+    #2d0f3a 0%,
+    #3d1450 10%,
+    #531c6b 20%,
+    #6f2590 30%,
+    #9f33cf 40%,
+    #6f2590 50%,
+    #531c6b 60%,
+    #3d1450 75%,
+    #2d0f3a 100%);
+  border-left: 4px solid #c35bff;
+  border-right: 4px solid #c35bff;
+  border-top: 1px solid rgba(195, 91, 255, 0.45);
+  border-bottom: 1px solid rgba(45, 15, 58, 0.85);
+  box-shadow:
+    inset 0 2px 4px rgba(195, 91, 255, 0.28),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.35),
+    0 5px 16px rgba(195, 91, 255, 0.3);
+}
+
+.category-header.tier-support::before,
+.category-header.tier-support::after {
+  color: #e3b7ff;
+  text-shadow: 0 0 14px rgba(227, 183, 255, 0.9), 0 0 24px rgba(111, 37, 144, 0.5);
+}
+
+/* HOME & DAILY - Aqua metallic */
+.category-header.tier-daily {
+  background: linear-gradient(135deg,
+    #08333a 0%,
+    #0c4450 10%,
+    #115c6b 20%,
+    #17788b 30%,
+    #24b7d4 40%,
+    #17788b 50%,
+    #115c6b 60%,
+    #0c4450 75%,
+    #08333a 100%);
+  border-left: 4px solid #4ae0ff;
+  border-right: 4px solid #4ae0ff;
+  border-top: 1px solid rgba(74, 224, 255, 0.45);
+  border-bottom: 1px solid rgba(8, 51, 58, 0.85);
+  box-shadow:
+    inset 0 2px 4px rgba(74, 224, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.34),
+    0 5px 16px rgba(74, 224, 255, 0.3);
+}
+
+.category-header.tier-daily::before,
+.category-header.tier-daily::after {
+  color: #bff4ff;
+  text-shadow: 0 0 14px rgba(191, 244, 255, 0.9), 0 0 24px rgba(23, 120, 139, 0.5);
+}
+
+/* HOSPITALITY - Ruby red metallic */
+.category-header.tier-hospitality {
+  background: linear-gradient(135deg,
+    #3a0b12 0%,
+    #4d0f19 10%,
+    #651524 20%,
+    #852034 30%,
+    #c73352 40%,
+    #852034 50%,
+    #651524 60%,
+    #4d0f19 75%,
+    #3a0b12 100%);
+  border-left: 4px solid #ff5c7f;
+  border-right: 4px solid #ff5c7f;
+  border-top: 1px solid rgba(255, 92, 127, 0.45);
+  border-bottom: 1px solid rgba(58, 11, 18, 0.85);
+  box-shadow:
+    inset 0 2px 4px rgba(255, 92, 127, 0.28),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.35),
+    0 5px 16px rgba(255, 92, 127, 0.3);
+}
+
+.category-header.tier-hospitality::before,
+.category-header.tier-hospitality::after {
+  color: #ffb8c7;
+  text-shadow: 0 0 14px rgba(255, 184, 199, 0.9), 0 0 24px rgba(133, 32, 52, 0.5);
+}
+
+/* CREATIVE - Neon lime metallic */
+.category-header.tier-creative {
+  background: linear-gradient(135deg,
+    #20300b 0%,
+    #2b4410 10%,
+    #385a16 20%,
+    #4a761e 30%,
+    #79bc2f 40%,
+    #4a761e 50%,
+    #385a16 60%,
+    #2b4410 75%,
+    #20300b 100%);
+  border-left: 4px solid #a6ef4f;
+  border-right: 4px solid #a6ef4f;
+  border-top: 1px solid rgba(166, 239, 79, 0.45);
+  border-bottom: 1px solid rgba(32, 48, 11, 0.85);
+  box-shadow:
+    inset 0 2px 4px rgba(166, 239, 79, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.34),
+    0 5px 16px rgba(166, 239, 79, 0.3);
+}
+
+.category-header.tier-creative::before,
+.category-header.tier-creative::after {
+  color: #ddffb3;
+  text-shadow: 0 0 14px rgba(221, 255, 179, 0.92), 0 0 24px rgba(74, 118, 30, 0.52);
 }
 
 /* PROFESSIONAL - Rich Metallic Gold (Elite/Premium) - Subtle dual peak */
@@ -1821,6 +1933,10 @@ section {
 .category-header.tier-basic,
 .category-header.tier-skilled,
 .category-header.tier-trades,
+.category-header.tier-support,
+.category-header.tier-daily,
+.category-header.tier-hospitality,
+.category-header.tier-creative,
 .category-header.tier-professional {
   background-size: 200% 200%;
   animation: tierShimmer 8s ease-in-out infinite alternate !important;

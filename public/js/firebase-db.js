@@ -111,6 +111,23 @@ function isIOSWebKitBrowserForDataPath() {
   }
 }
 
+// TEMP iOS trace bridge. Page scripts can register window.__GISUGO_IOS_TRACE(payload).
+function emitIOSDataTrace(route, stage, details) {
+  if (!isIOSWebKitBrowserForDataPath()) return;
+  if (typeof window === 'undefined') return;
+  if (typeof window.__GISUGO_IOS_TRACE !== 'function') return;
+  try {
+    window.__GISUGO_IOS_TRACE({
+      route: route || 'unknown',
+      stage: stage || 'event',
+      details: details === undefined ? null : details,
+      at: Date.now()
+    });
+  } catch (_) {
+    // never break production flows because of temporary tracing
+  }
+}
+
 function getProjectIdForFirestoreRest() {
   try {
     if (window.firebaseConfig && window.firebaseConfig.projectId) {
@@ -242,6 +259,137 @@ async function fetchJobsByFieldViaFirestoreRest(fieldPath, value) {
   return rows
     .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
     .filter(Boolean);
+}
+
+async function fetchJobByIdViaFirestoreRest(jobId) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for job REST fetch');
+  const safeJobId = String(jobId || '').trim();
+  if (!safeJobId) return null;
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/jobs/${encodeURIComponent(safeJobId)}`;
+  const response = await fetch(endpoint, { method: 'GET' });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`REST job fetch failed (${response.status})`);
+  }
+  const raw = await response.json();
+  return mapFirestoreRestDoc(raw);
+}
+
+async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applicantId, maxItems = 6) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for applications REST fallback');
+  const safeJobId = String(jobId || '').trim();
+  const safeApplicantId = String(applicantId || '').trim();
+  if (!safeJobId || !safeApplicantId) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'applications' }],
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: 'jobId' },
+                op: 'EQUAL',
+                value: { stringValue: safeJobId }
+              }
+            },
+            {
+              fieldFilter: {
+                field: { fieldPath: 'applicantId' },
+                op: 'EQUAL',
+                value: { stringValue: safeApplicantId }
+              }
+            }
+          ]
+        }
+      },
+      limit: Math.max(1, Math.min(Number(maxItems) || 6, 30))
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST applications(by applicant) fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function fetchPendingApplicationsByJobViaFirestoreRest(jobId, maxItems = 11) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for pending applications REST fallback');
+  const safeJobId = String(jobId || '').trim();
+  if (!safeJobId) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'applications' }],
+      where: {
+        compositeFilter: {
+          op: 'AND',
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: 'jobId' },
+                op: 'EQUAL',
+                value: { stringValue: safeJobId }
+              }
+            },
+            {
+              fieldFilter: {
+                field: { fieldPath: 'status' },
+                op: 'EQUAL',
+                value: { stringValue: 'pending' }
+              }
+            }
+          ]
+        }
+      },
+      limit: Math.max(1, Math.min(Number(maxItems) || 11, 30))
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST applications(pending) fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+function toComparableMillis(rawValue) {
+  if (!rawValue) return 0;
+  if (typeof rawValue === 'number' && Number.isFinite(rawValue)) return rawValue;
+  if (typeof rawValue === 'string') {
+    const parsed = Date.parse(rawValue);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof rawValue === 'object') {
+    if (typeof rawValue.toDate === 'function') {
+      const dt = rawValue.toDate();
+      return dt instanceof Date ? dt.getTime() : 0;
+    }
+    if (typeof rawValue.seconds === 'number') {
+      return Math.floor(rawValue.seconds * 1000);
+    }
+  }
+  return 0;
 }
 
 function cacheJobById(job) {
@@ -727,9 +875,14 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   }
   
   console.log(`🔍 Fetching jobs for user: ${userId}, statuses: ${statuses.join(', ')}`);
+  emitIOSDataTrace('jobs:listings', 'fetch:start', {
+    userId: String(userId || ''),
+    statuses: Array.isArray(statuses) ? statuses.join(',') : ''
+  });
   
   try {
     if (isIOSWebKitBrowserForDataPath()) {
+      emitIOSDataTrace('jobs:listings', 'fetch:mode', 'REST');
       const asPoster = await withFirestoreReadTimeout(fetchJobsByFieldViaFirestoreRest('posterId', userId), 10000);
       const asWorker = await withFirestoreReadTimeout(fetchJobsByFieldViaFirestoreRest('hiredWorkerId', userId), 10000);
       const allRows = [...asPoster, ...asWorker];
@@ -750,8 +903,10 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
           const dateB = new Date(b.datePosted || 0).getTime();
           return dateB - dateA;
         });
+      emitIOSDataTrace('jobs:listings', 'fetch:done', { count: jobs.length, mode: 'REST' });
       return jobs;
     }
+    emitIOSDataTrace('jobs:listings', 'fetch:mode', 'SDK');
 
     // Query for jobs where user is the poster
     const posterSnapshot = await db.collection('jobs')
@@ -795,10 +950,14 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
       });
     
     console.log(`✅ Filtered & sorted jobs: ${jobs.length}`);
+    emitIOSDataTrace('jobs:listings', 'fetch:done', { count: jobs.length, mode: 'SDK' });
     return jobs;
     
   } catch (error) {
     console.error('❌ Error getting user listings:', error);
+    const message = (error && error.message) ? error.message : String(error);
+    const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+    emitIOSDataTrace('jobs:listings', stage, message);
     
     // Check if it's an index error
     if (error.message && error.message.includes('index')) {
@@ -1193,6 +1352,10 @@ function deleteJobOffline(jobId) {
 async function applyForJob(jobId, applicationData) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
+  const useRestPrimaryForApply = isIOSWebKitBrowserForDataPath();
+  // iOS WebKit can exceed normal Firestore timing during multi-step apply validation.
+  const applyReadTimeoutMs = useRestPrimaryForApply ? 18000 : 9000;
+  const applyWriteTimeoutMs = useRestPrimaryForApply ? 22000 : 12000;
   const textValidation = validateAllowedTextChars([
     { label: 'Application message', value: getSafeValue(applicationData, 'message', '') }
   ]);
@@ -1209,10 +1372,37 @@ async function applyForJob(jobId, applicationData) {
   }
   
   try {
+    emitIOSDataTrace('dynamic-job:apply', 'submit:start', {
+      jobId: String(jobId || ''),
+      applicantId: currentUser && currentUser.uid ? currentUser.uid : ''
+    });
+    emitIOSDataTrace('dynamic-job:apply', 'fetch:mode', useRestPrimaryForApply ? 'REST_PRIMARY' : 'SDK');
     // ═══════════════════════════════════════════════════════════════
     // VALIDATION: Prevent self-application
     // ═══════════════════════════════════════════════════════════════
-    const job = await getJobById(jobId);
+    let job = null;
+    if (useRestPrimaryForApply) {
+      try {
+        const restJob = await withFirestoreReadTimeout(fetchJobByIdViaFirestoreRest(jobId), applyReadTimeoutMs);
+        if (restJob) {
+          job = { id: restJob.id, jobId: restJob.id, ...restJob };
+          emitIOSDataTrace('dynamic-job:apply', 'job:fetch:done', { mode: 'REST', found: true });
+        } else {
+          emitIOSDataTrace('dynamic-job:apply', 'job:fetch:done', { mode: 'REST', found: false });
+        }
+      } catch (restJobError) {
+        emitIOSDataTrace('dynamic-job:apply', 'job:fetch:error', {
+          mode: 'REST',
+          message: restJobError && restJobError.message ? restJobError.message : String(restJobError)
+        });
+      }
+    }
+    if (!job) {
+      const safeJobId = String(jobId || '').trim();
+      const doc = await withFirestoreReadTimeout(db.collection('jobs').doc(safeJobId).get(), applyReadTimeoutMs);
+      job = doc && doc.exists ? { id: doc.id, jobId: doc.id, ...doc.data() } : null;
+      emitIOSDataTrace('dynamic-job:apply', 'job:fetch:done', { mode: 'SDK', found: !!job });
+    }
     
     if (!job) {
       return { success: false, message: 'Job not found' };
@@ -1242,33 +1432,25 @@ async function applyForJob(jobId, applicationData) {
     // ═══════════════════════════════════════════════════════════════
     console.log('🔍 Checking for existing applications...');
     
-    let existingApplications;
-    try {
-      existingApplications = await withFirestoreReadTimeout(
-        db.collection('applications')
-          .where('jobId', '==', jobId)
-          .where('applicantId', '==', currentUser.uid)
-          .orderBy('appliedAt', 'desc')  // Most recent first
-          .get(),
-        9000
-      );
-    } catch (indexError) {
-      // ═══════════════════════════════════════════════════════════════
-      // Firebase Index Missing - Show helpful error
-      // ═══════════════════════════════════════════════════════════════
-      if (indexError.code === 'failed-precondition' || indexError.message.includes('index')) {
-        console.error('❌ FIREBASE INDEX REQUIRED!');
-        console.error('📋 Error:', indexError.message);
-        console.error('🔗 Look for a link in the error above to create the index');
-        console.error('⏱️ After clicking the link, wait 5-10 minutes for index to build');
-        
-        return {
-          success: false,
-          message: '⚠️ Firebase index is being set up. Please check the browser console for a link to create the required index, then try again in 5-10 minutes.'
-        };
-      }
-      throw indexError; // Re-throw if it's a different error
-    }
+    const jobApplicationsSnapshot = await withFirestoreReadTimeout(
+      db.collection('applications')
+        .where('jobId', '==', jobId)
+        .get(),
+      applyReadTimeoutMs
+    );
+    const matchingApplicationDocs = jobApplicationsSnapshot.docs.filter((doc) => {
+      const data = doc.data() || {};
+      return String(data.applicantId || '') === String(currentUser.uid || '');
+    });
+    const existingApplications = {
+      size: matchingApplicationDocs.length,
+      docs: matchingApplicationDocs
+    };
+    emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:done', {
+      mode: 'SDK_JOB_SCAN',
+      scanned: jobApplicationsSnapshot.size,
+      count: existingApplications.size
+    });
     
     const applicationCount = existingApplications.size;
     
@@ -1289,7 +1471,9 @@ async function applyForJob(jobId, applicationData) {
     // RULE 2: Block if 1 application exists and it's pending or accepted
     // ═══════════════════════════════════════════════════════════════
     if (applicationCount === 1) {
-      const existingApp = existingApplications.docs[0].data();
+      const existingApp = existingApplications.docs
+        .map((doc) => doc.data())
+        .sort((a, b) => toComparableMillis(b.appliedAt) - toComparableMillis(a.appliedAt))[0];
       console.log(`📊 Existing application status: ${existingApp.status}`);
       
       if (existingApp.status === 'pending') {
@@ -1325,15 +1509,22 @@ async function applyForJob(jobId, applicationData) {
     // ═══════════════════════════════════════════════════════════════
     console.log('🔍 Checking total application count for auto-pause logic...');
     
-    const allApplicationsSnapshot = await withFirestoreReadTimeout(
-      db.collection('applications')
-        .where('jobId', '==', jobId)
-        .where('status', '==', 'pending')
-        .get(),
-      9000
-    );
+    let totalPendingApplications = Number(job.applicationCount);
+    let hasPendingCountFromJob = Number.isFinite(totalPendingApplications) && totalPendingApplications >= 0;
+    if (hasPendingCountFromJob) {
+      emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'JOB_FIELD', count: totalPendingApplications });
+    } else {
+      const allApplicationsSnapshot = await withFirestoreReadTimeout(
+        db.collection('applications')
+          .where('jobId', '==', jobId)
+          .where('status', '==', 'pending')
+          .get(),
+        applyReadTimeoutMs
+      );
+      totalPendingApplications = allApplicationsSnapshot.size;
+      emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'SDK', count: totalPendingApplications });
+    }
     
-    const totalPendingApplications = allApplicationsSnapshot.size;
     console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);
     
     // Block if gig already has 10+ applications (paused)
@@ -1382,7 +1573,7 @@ async function applyForJob(jobId, applicationData) {
       counterOffer: applicationData.counterOffer || null
     };
     
-    const appRef = await withFirestoreReadTimeout(db.collection('applications').add(application), 12000);
+    const appRef = await withFirestoreReadTimeout(db.collection('applications').add(application), applyWriteTimeoutMs);
     
     // Update job application count
     await withFirestoreReadTimeout(
@@ -1390,7 +1581,7 @@ async function applyForJob(jobId, applicationData) {
         applicationCount: firebase.firestore.FieldValue.increment(1),
         applicationIds: firebase.firestore.FieldValue.arrayUnion(appRef.id)
       }),
-      12000
+      applyWriteTimeoutMs
     );
     
     console.log('✅ Application submitted:', appRef.id);
@@ -1452,6 +1643,9 @@ async function applyForJob(jobId, applicationData) {
     
   } catch (error) {
     console.error('❌ Error applying for job:', error);
+    const message = (error && error.message) ? error.message : String(error);
+    const stage = /timed out/i.test(message) ? 'submit:timeout' : 'submit:error';
+    emitIOSDataTrace('dynamic-job:apply', stage, message);
     return { success: false, message: error.message };
   }
 }
@@ -1647,7 +1841,9 @@ async function getOfferedJobsForWorker(workerId) {
   
   try {
     console.log(`🔍 Fetching offered jobs for worker: ${workerId}`);
+    emitIOSDataTrace('jobs:offered', 'fetch:start', { workerId: String(workerId || '') });
     if (isIOSWebKitBrowserForDataPath()) {
+      emitIOSDataTrace('jobs:offered', 'fetch:mode', 'REST');
       const rows = await withFirestoreReadTimeout(fetchJobsByFieldViaFirestoreRest('hiredWorkerId', workerId), 10000);
       const offeredJobs = rows
         .filter((job) => job && job.status === 'hired')
@@ -1656,8 +1852,10 @@ async function getOfferedJobsForWorker(workerId) {
           jobId: job.id,
           ...job
         }));
+      emitIOSDataTrace('jobs:offered', 'fetch:done', { count: offeredJobs.length, mode: 'REST' });
       return offeredJobs;
     }
+    emitIOSDataTrace('jobs:offered', 'fetch:mode', 'SDK');
     
     // Get jobs where status is 'hired' and worker is the hired worker
     const offeredJobsSnapshot = await db.collection('jobs')
@@ -1685,10 +1883,14 @@ async function getOfferedJobsForWorker(workerId) {
     }));
     
     console.log(`✅ Returning ${offeredJobs.length} offered jobs`);
+    emitIOSDataTrace('jobs:offered', 'fetch:done', { count: offeredJobs.length, mode: 'SDK' });
     return offeredJobs;
     
   } catch (error) {
     console.error('❌ Error fetching offered jobs:', error);
+    const message = (error && error.message) ? error.message : String(error);
+    const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+    emitIOSDataTrace('jobs:offered', stage, message);
     return [];
   }
 }
@@ -2514,9 +2716,13 @@ function subscribeToUserNotifications(currentUser, callback) {
   }
   
   console.log('👂 Starting real-time listener for notifications');
+  emitIOSDataTrace('messages:alerts', 'fetch:start', {
+    userId: currentUser && currentUser.uid ? currentUser.uid : ''
+  });
   
   try {
     if (isIOSWebKitBrowserForDataPath()) {
+      emitIOSDataTrace('messages:alerts', 'fetch:mode', 'REST_POLL');
       let disposed = false;
       let inFlight = false;
       let pollTimer = null;
@@ -2529,6 +2735,10 @@ function subscribeToUserNotifications(currentUser, callback) {
             fetchNotificationsViaFirestoreRest(currentUser.uid, 50),
             10000
           );
+          emitIOSDataTrace('messages:alerts', 'fetch:done', {
+            count: Array.isArray(notifications) ? notifications.length : 0,
+            mode: 'REST_POLL'
+          });
           if (!disposed) {
             callback(Array.isArray(notifications) ? notifications : [], {
               fromCache: false,
@@ -2538,6 +2748,9 @@ function subscribeToUserNotifications(currentUser, callback) {
           }
         } catch (error) {
           console.error('❌ Notifications REST poll error:', error);
+          const message = (error && error.message) ? error.message : String(error);
+          const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+          emitIOSDataTrace('messages:alerts', stage, message);
           if (!disposed) {
             callback([], {
               error: true,
@@ -2558,6 +2771,7 @@ function subscribeToUserNotifications(currentUser, callback) {
         if (pollTimer) clearInterval(pollTimer);
       };
     }
+    emitIOSDataTrace('messages:alerts', 'fetch:mode', 'SDK_SNAPSHOT');
 
     const unsubscribe = db.collection('notifications')
       .where('recipientId', '==', currentUser.uid)
@@ -2569,6 +2783,11 @@ function subscribeToUserNotifications(currentUser, callback) {
             id: doc.id,
             ...doc.data()
           }));
+          emitIOSDataTrace('messages:alerts', 'fetch:done', {
+            count: notifications.length,
+            mode: 'SDK_SNAPSHOT',
+            fromCache: snapshot && snapshot.metadata ? snapshot.metadata.fromCache === true : false
+          });
           console.log(`🔔 Notifications updated: ${notifications.length} items`);
           callback(notifications, {
             fromCache: snapshot && snapshot.metadata ? snapshot.metadata.fromCache === true : false,
@@ -2577,6 +2796,9 @@ function subscribeToUserNotifications(currentUser, callback) {
         },
         (error) => {
           console.error('❌ Notifications listener error:', error);
+          const message = (error && error.message) ? error.message : String(error);
+          const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+          emitIOSDataTrace('messages:alerts', stage, message);
           callback([], {
             error: true,
             fromCache: false,
@@ -2788,16 +3010,24 @@ async function getUserProfile(userId) {
   }
   
   try {
+    emitIOSDataTrace('profile:load', 'fetch:start', { userId: String(userId || '') });
     if (isIOSWebKitBrowserForDataPath()) {
       try {
+        emitIOSDataTrace('profile:load', 'fetch:mode', 'REST');
         const restProfile = await withFirestoreReadTimeout(fetchUserProfileViaFirestoreRest(userId), 9000);
         if (restProfile) {
+          emitIOSDataTrace('profile:load', 'fetch:done', { found: true, mode: 'REST' });
           return { userId: restProfile.id, ...restProfile };
         }
+        emitIOSDataTrace('profile:load', 'fetch:done', { found: false, mode: 'REST' });
       } catch (restError) {
         console.warn('⚠️ Profile REST fallback failed, trying SDK:', restError);
+        const message = (restError && restError.message) ? restError.message : String(restError);
+        const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+        emitIOSDataTrace('profile:load', stage, { mode: 'REST', message });
       }
     }
+    emitIOSDataTrace('profile:load', 'fetch:mode', 'SDK');
     console.log('📡 Querying Firestore: users/' + userId);
     const userDoc = await db.collection('users').doc(userId).get();
     
@@ -2815,13 +3045,18 @@ async function getUserProfile(userId) {
         email: profileData.email,
         hasPhoto: !!profileData.profilePhoto
       });
+      emitIOSDataTrace('profile:load', 'fetch:done', { found: true, mode: 'SDK' });
       return profileData;
     } else {
       console.warn('⚠️ User profile not found in Firestore:', userId);
+      emitIOSDataTrace('profile:load', 'fetch:done', { found: false, mode: 'SDK' });
       return null;
     }
   } catch (error) {
     console.error('❌ Error getting user profile from Firestore:', error);
+    const message = (error && error.message) ? error.message : String(error);
+    const stage = /timed out/i.test(message) ? 'fetch:timeout' : 'fetch:error';
+    emitIOSDataTrace('profile:load', stage, { mode: 'SDK', message });
     return null;
   }
 }

@@ -153,6 +153,65 @@ const ACTIVE_LISTENERS = {
     activeThreadMessages: null
 };
 
+const MESSAGES_IOS_TRACE_STATE = {
+    maxLines: 20
+};
+
+function isMessagesIOSTraceEnabled() {
+    try {
+        const ua = navigator.userAgent || '';
+        return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    } catch (_) {
+        return false;
+    }
+}
+
+function ensureMessagesTraceOverlay() {
+    if (!isMessagesIOSTraceEnabled()) return null;
+    let panel = document.getElementById('messagesIosTracePanel');
+    if (panel) return panel;
+    panel = document.createElement('div');
+    panel.id = 'messagesIosTracePanel';
+    panel.style.cssText = [
+        'position:fixed',
+        'left:8px',
+        'right:8px',
+        'bottom:8px',
+        'max-height:34vh',
+        'overflow:auto',
+        'padding:8px',
+        'border:1px solid rgba(255,255,255,0.28)',
+        'border-radius:10px',
+        'background:rgba(5,8,20,0.90)',
+        'color:#d8f5ff',
+        'font:11px/1.35 monospace',
+        'z-index:2147483647',
+        'white-space:pre-wrap',
+        'word-break:break-word',
+        'pointer-events:none'
+    ].join(';');
+    document.body.appendChild(panel);
+    return panel;
+}
+
+function messagesTrace(event, details) {
+    if (!isMessagesIOSTraceEnabled()) return;
+    const panel = ensureMessagesTraceOverlay();
+    if (!panel) return;
+    const time = new Date().toISOString().slice(11, 19);
+    const detailText = details === undefined
+        ? ''
+        : (typeof details === 'string' ? details : JSON.stringify(details));
+    const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
+    const rows = panel.textContent ? panel.textContent.split('\n') : [];
+    rows.push(line);
+    if (rows.length > MESSAGES_IOS_TRACE_STATE.maxLines) {
+        rows.splice(0, rows.length - MESSAGES_IOS_TRACE_STATE.maxLines);
+    }
+    panel.textContent = rows.join('\n');
+    panel.scrollTop = panel.scrollHeight;
+}
+
 // MEMORY LEAK FIX: Enhanced cleanup utility
 function registerCleanup(type, key, cleanupFn) {
     if (type === 'function') {
@@ -975,6 +1034,11 @@ async function ensureAlertsRealtimeStream(currentUser) {
     resetAlertsPaginationState();
 
     ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications, snapshotMeta) => {
+        const source = snapshotMeta && snapshotMeta.source ? snapshotMeta.source : 'sdk-snapshot';
+        messagesTrace('fetch:alerts:mode', source);
+        if (snapshotMeta && snapshotMeta.error) {
+            messagesTrace('fetch:alerts:error', source);
+        }
         ALERTS_STREAM_STATE.notifications = Array.isArray(notifications) ? notifications : [];
         ALERTS_STREAM_STATE.hasSnapshot = true;
         if (!ALERTS_PAGINATION_STATE.olderNotifications.length) {
@@ -982,6 +1046,7 @@ async function ensureAlertsRealtimeStream(currentUser) {
             ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
         }
         renderAllAlertsViews(getCombinedAlertsNotifications());
+        messagesTrace('render:alerts:success', { count: ALERTS_STREAM_STATE.notifications.length, source });
         markMessagesServerSnapshotReady(snapshotMeta);
     });
 }
@@ -1027,6 +1092,8 @@ async function loadWorkerNotifications() {
     
     // Show loading state
     container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    messagesTrace('route:messages/alerts', { role: 'worker' });
+    messagesTrace('render:alerts:loading', 'worker');
     
     // Check if Firebase available
     const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
@@ -1061,6 +1128,7 @@ async function loadWorkerNotifications() {
             ALERTS_STREAM_STATE.hasSnapshot = false;
             resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            messagesTrace('render:alerts:error', 'worker_not_authenticated');
             updateAlertTabBadgeCounts([]);
             return;
         }
@@ -1070,11 +1138,13 @@ async function loadWorkerNotifications() {
         await ensureAlertsRealtimeStream(currentUser);
         if (ALERTS_STREAM_STATE.hasSnapshot) {
             renderAllAlertsViews(getCombinedAlertsNotifications());
+            messagesTrace('render:alerts:success', { role: 'worker', count: ALERTS_STREAM_STATE.notifications.length });
         }
         
     } catch (error) {
         console.error('❌ Error loading worker alerts:', error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+        messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
     } finally {
         hideMessagesPageLoadingOverlay();
     }
@@ -1086,6 +1156,8 @@ async function loadCustomerNotifications() {
     
     // Show loading state
     container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    messagesTrace('route:messages/alerts', { role: 'customer' });
+    messagesTrace('render:alerts:loading', 'customer');
     
     // Check if Firebase available
     const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
@@ -1120,6 +1192,7 @@ async function loadCustomerNotifications() {
             ALERTS_STREAM_STATE.hasSnapshot = false;
             resetAlertsPaginationState();
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            messagesTrace('render:alerts:error', 'customer_not_authenticated');
             updateAlertTabBadgeCounts([]);
             return;
         }
@@ -1129,11 +1202,13 @@ async function loadCustomerNotifications() {
         await ensureAlertsRealtimeStream(currentUser);
         if (ALERTS_STREAM_STATE.hasSnapshot) {
             renderAllAlertsViews(getCombinedAlertsNotifications());
+            messagesTrace('render:alerts:success', { role: 'customer', count: ALERTS_STREAM_STATE.notifications.length });
         }
         
     } catch (error) {
         console.error('❌ Error loading customer alerts:', error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+        messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
     } finally {
         hideMessagesPageLoadingOverlay();
     }
@@ -1194,6 +1269,13 @@ function loadCustomerInterviews() {
 
 // Initialize the Messages app when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
+    if (isMessagesIOSTraceEnabled()) {
+        window.__GISUGO_IOS_TRACE = function(payload) {
+            const route = String(payload && payload.route ? payload.route : '');
+            if (!route.startsWith('messages:')) return;
+            messagesTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
+        };
+    }
     showMessagesPageLoadingOverlay();
     MESSAGES_PAGE_LOADING_STATE.hideTimerId = setTimeout(() => {
         hideMessagesPageLoadingOverlay();
