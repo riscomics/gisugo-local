@@ -2289,6 +2289,24 @@ section {
 }
 
 /* ===== HERO GRID (2-COLUMN FOCUS) ===== */
+.category-header.hero-title-multiline {
+  line-height: 1.38;
+  padding-top: clamp(0.62rem, 1.9vw, 0.92rem);
+  padding-bottom: clamp(0.68rem, 2.1vw, 1rem);
+}
+
+@media (max-width: 600px) {
+  .category-header.hero-title-multiline {
+    line-height: 1.44;
+  }
+}
+
+@media (max-width: 400px) {
+  .category-header.hero-title-multiline {
+    line-height: 1.48;
+  }
+}
+
 .service-grid.service-grid--hero {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2297,7 +2315,7 @@ section {
   margin-top: clamp(0.55rem, 1.8vw, 0.95rem);
   margin-bottom: clamp(0.95rem, 2.9vw, 1.45rem);
   padding: clamp(0.5rem, 1.7vw, 0.9rem) clamp(0.95rem, 4.6vw, 1.6rem);
-  max-width: min(660px, calc(100% - clamp(1.8rem, 8vw, 3.8rem)));
+  max-width: min(760px, calc(100% - clamp(1.8rem, 8vw, 3.8rem)));
 }
 
 .service-grid--hero .service-card {
@@ -2328,11 +2346,12 @@ section {
 
 @media (max-width: 600px) {
   .service-grid.service-grid--hero {
-    column-gap: clamp(1.6rem, 6vw, 2.8rem);
+    column-gap: clamp(1.4rem, 6vw, 2.2rem);
     row-gap: clamp(0.62rem, 2.5vw, 0.9rem);
     margin-top: clamp(0.52rem, 2vw, 0.82rem);
     margin-bottom: clamp(0.82rem, 3vw, 1.2rem);
-    padding: clamp(0.5rem, 2vw, 0.82rem) clamp(0.85rem, 5vw, 1.35rem);
+    max-width: 100%;
+    padding: clamp(0.5rem, 2vw, 0.82rem) clamp(0.9rem, 5.2vw, 1.35rem);
   }
 
   .service-grid--hero .service-card__image {
@@ -2348,11 +2367,12 @@ section {
 
 @media (max-width: 400px) {
   .service-grid.service-grid--hero {
-    column-gap: clamp(1.35rem, 6.1vw, 2.2rem);
+    column-gap: clamp(1.22rem, 5.9vw, 1.9rem);
     row-gap: clamp(0.56rem, 2.7vw, 0.82rem);
     margin-top: clamp(0.46rem, 1.9vw, 0.72rem);
     margin-bottom: clamp(0.74rem, 3vw, 1.05rem);
-    padding: clamp(0.48rem, 2vw, 0.76rem) clamp(0.78rem, 4.8vw, 1.18rem);
+    max-width: 100%;
+    padding: clamp(0.48rem, 2vw, 0.76rem) clamp(0.82rem, 5vw, 1.2rem);
   }
 
   .service-grid--hero .service-card__image {
@@ -2368,11 +2388,12 @@ section {
 
 @media (max-width: 375px) {
   .service-grid.service-grid--hero {
-    column-gap: clamp(1.18rem, 5.9vw, 1.85rem);
+    column-gap: clamp(1.08rem, 5.7vw, 1.62rem);
     row-gap: clamp(0.5rem, 2.8vw, 0.74rem);
     margin-top: clamp(0.42rem, 1.8vw, 0.62rem);
     margin-bottom: clamp(0.66rem, 2.9vw, 0.94rem);
-    padding: clamp(0.44rem, 1.9vw, 0.68rem) clamp(0.7rem, 4.6vw, 1.05rem);
+    max-width: 100%;
+    padding: clamp(0.44rem, 1.9vw, 0.68rem) clamp(0.72rem, 4.8vw, 1.06rem);
   }
 
   .service-grid--hero .service-card__image {
@@ -2388,11 +2409,12 @@ section {
 
 @media (max-width: 320px) {
   .service-grid.service-grid--hero {
-    column-gap: clamp(0.96rem, 5.4vw, 1.45rem);
+    column-gap: clamp(0.86rem, 5vw, 1.24rem);
     row-gap: clamp(0.42rem, 2.6vw, 0.58rem);
     margin-top: clamp(0.34rem, 1.7vw, 0.5rem);
     margin-bottom: clamp(0.56rem, 2.8vw, 0.8rem);
-    padding: clamp(0.4rem, 1.8vw, 0.54rem) clamp(0.56rem, 4.2vw, 0.82rem);
+    max-width: 100%;
+    padding: clamp(0.4rem, 1.8vw, 0.54rem) clamp(0.58rem, 4.5vw, 0.84rem);
   }
 
   .service-grid--hero .service-card__image {
