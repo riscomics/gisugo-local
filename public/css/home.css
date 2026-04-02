@@ -2428,3 +2428,40 @@ section {
   }
 }
 
+/* Desktop: hero follows same card system as Explore (3x2) */
+@media (min-width: 1024px) {
+  .service-grid.service-grid--hero {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: clamp(1.5rem, 3vw, 2rem) !important;
+    padding: clamp(1.5rem, 3vw, 2rem) !important;
+    max-width: 900px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .service-grid--hero .service-card {
+    width: clamp(160px, 18vw, 180px) !important;
+    min-width: 160px !important;
+    max-width: 180px !important;
+  }
+
+  .service-grid--hero .service-card__image-container {
+    border-radius: 12px !important;
+    padding: clamp(0.4rem, 1.2vw, 0.6rem) !important;
+  }
+
+  .service-grid--hero .service-card__image {
+    width: 100% !important;
+    max-width: 100px !important;
+    height: clamp(70px, 12vw, 100px) !important;
+    object-fit: contain !important;
+    transform: none !important;
+  }
+
+  .service-grid--hero .service-card__title {
+    font-size: clamp(0.95rem, 2vw, 1.05rem) !important;
+  }
+}
+
