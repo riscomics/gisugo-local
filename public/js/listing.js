@@ -3212,68 +3212,74 @@ function initJobcatButtonAutoResize() {
     return;
   }
 
-  // Job categories with emojis and page names
+  // Job categories synced with homepage order/sections
   const jobCategories = [
-    // BUSINESS ESSENTIALS SECTION
-    { emoji: '📣', label: 'Solicitor', page: 'solicitor.html', section: 'basic' },
-    { emoji: '🧹', label: 'Janitor', page: 'limpyo.html', section: 'basic' },
-    { emoji: '📦', label: 'Delivery', page: 'hatod.html', section: 'basic' },
-    { emoji: '❄️', label: 'AC Cleaner', page: 'aircon.html', section: 'basic' },
-    { emoji: '🖌️', label: 'Painter', page: 'painter.html', section: 'basic' },
-    { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'basic' },
-    { emoji: '🗂️', label: 'Clerical', page: 'clerical.html', section: 'basic' },
-    { emoji: '👨🏻‍🔧', label: 'Handyman', page: 'handyman.html', section: 'basic' },
-    { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'basic' },
-    { emoji: '🚰', label: 'Plumber', page: 'plumber.html', section: 'basic' },
-    { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'basic' },
-    { emoji: '💻', label: 'Programmer', page: 'programmer.html', section: 'basic' },
+    // POPULAR REQUESTS FROM BUSINESS OWNERS
+    { emoji: '❄️', label: 'AC Cleaner', page: 'aircon.html', section: 'hero' },
+    { emoji: '📦', label: 'Transporter', page: 'hatod.html', section: 'hero' },
+    { emoji: '📣', label: 'Solicitor', page: 'solicitor.html', section: 'hero' },
+    { emoji: '🧹', label: 'Basic Cleaner', page: 'limpyo.html', section: 'hero' },
+    { emoji: '👨🏻‍🔧', label: 'Handyman', page: 'handyman.html', section: 'hero' },
+    { emoji: '🚕', label: 'Driver', page: 'driver.html', section: 'hero' },
 
-    // EVERYDAY SERVICES SECTION
-    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'everyday' },
-    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'everyday' },
-    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'everyday' },
-    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'everyday' },
-    { emoji: '🚚', label: 'Hakot', page: 'hakot.html', section: 'everyday' },
-    { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'everyday' },
-    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'everyday' },
-    { emoji: '👩🏻‍💼👨🏻‍💼', label: 'Reception', page: 'reception.html', section: 'everyday' },
-    { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'everyday' },
-    { emoji: '🙋🏻', label: 'Staff', page: 'staff.html', section: 'everyday' },
-    { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'everyday' },
-    { emoji: '💆🏻‍♀️', label: 'Massager', page: 'massage.html', section: 'everyday' },
-    { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'everyday' },
-    { emoji: '🧭', label: 'Tour Guide', page: 'tourguide.html', section: 'everyday' },
-    { emoji: '📱', label: 'Social', page: 'social.html', section: 'everyday' },
+    // MAINTENANCE & TRADES
+    { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'maintenance' },
+    { emoji: '🚰', label: 'Plumber', page: 'plumber.html', section: 'maintenance' },
+    { emoji: '👮🏻', label: 'Security', page: 'security.html', section: 'maintenance' },
+    { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'maintenance' },
+    { emoji: '🖌️', label: 'Painter', page: 'painter.html', section: 'maintenance' },
+    { emoji: '👷🏻', label: 'Builder', page: 'builder.html', section: 'maintenance' },
+    { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'maintenance' },
+    { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'maintenance' },
+    { emoji: '🚚', label: 'Movers', page: 'hakot.html', section: 'maintenance' },
 
-    // SKILLED TRADES SECTION
-    { emoji: '👷🏻', label: 'Builder', page: 'builder.html', section: 'trades' },
-    { emoji: '🔨', label: 'Carpenter', page: 'carpenter.html', section: 'trades' },
-    { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'trades' },
-    { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'trades' },
-    { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'trades' },
-    { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'trades' },
-    { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'trades' },
-    { emoji: '🎥', label: 'Videographer', page: 'videographer.html', section: 'trades' },
-    { emoji: '🎬', label: 'Editor', page: 'editor.html', section: 'trades' },
-    { emoji: '👮🏻', label: 'Security', page: 'security.html', section: 'trades' },
-    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'trades' },
-    { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'trades' },
+    // OFFICE SUPPORT
+    { emoji: '🗂️', label: 'Clerical', page: 'clerical.html', section: 'office' },
+    { emoji: '🙋🏻', label: 'Assistant', page: 'staff.html', section: 'office' },
+    { emoji: '🛜', label: 'IT Tech', page: 'ittech.html', section: 'office' },
+    { emoji: '💻', label: 'Programmer', page: 'programmer.html', section: 'office' },
+    { emoji: '🔍', label: 'Researcher', page: 'researcher.html', section: 'office' },
+    { emoji: '💼', label: 'Consultant', page: 'consultant.html', section: 'office' },
+    { emoji: '🧮', label: 'Accountant', page: 'accountant.html', section: 'office' },
+    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'office' },
 
-    // PROFESSIONAL SERVICES SECTION
+    // RETAIL SERVICES
+    { emoji: '💁🏻‍♂️', label: 'Waiter', page: 'waiter.html', section: 'retail' },
+    { emoji: '👩🏻‍💼', label: 'Reception', page: 'reception.html', section: 'retail' },
+    { emoji: '👩🏻‍🍳', label: 'Chef', page: 'chef.html', section: 'retail' },
+    { emoji: '🏪', label: 'Tindera', page: 'tindera.html', section: 'retail' },
+    { emoji: '🧭', label: 'Tour Guide', page: 'tourguide.html', section: 'retail' },
+    { emoji: '🏋️', label: 'Trainer', page: 'trainer.html', section: 'retail' },
+
+    // HOME SERVICES
+    { emoji: '🍽️', label: 'Hugas', page: 'hugas.html', section: 'home' },
+    { emoji: '👕', label: 'Laba', page: 'laba.html', section: 'home' },
+    { emoji: '🍳', label: 'Luto', page: 'luto.html', section: 'home' },
+    { emoji: '🛒', label: 'Kompra', page: 'kompra.html', section: 'home' },
+    { emoji: '💇🏻', label: 'Barber', page: 'barber.html', section: 'home' },
+    { emoji: '👁️', label: 'Bantay', page: 'bantay.html', section: 'home' },
+    { emoji: '📚', label: 'Tutor', page: 'tutor.html', section: 'home' },
+    { emoji: '💆🏻‍♀️', label: 'Massager', page: 'massage.html', section: 'home' },
+    { emoji: '🐾', label: 'Pet Care', page: 'petcare.html', section: 'home' },
+
+    // CREATIVE & MEDIA
+    { emoji: '📷', label: 'Photographer', page: 'photographer.html', section: 'creative' },
+    { emoji: '🎥', label: 'Videographer', page: 'videographer.html', section: 'creative' },
+    { emoji: '🎬', label: 'Editor', page: 'editor.html', section: 'creative' },
+    { emoji: '🖼️', label: 'Artist', page: 'artist.html', section: 'creative' },
+    { emoji: '🎵', label: 'Musician', page: 'musician.html', section: 'creative' },
+    { emoji: '💃🏻', label: 'Performer', page: 'performer.html', section: 'creative' },
+    { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'creative' },
+    { emoji: '🧵', label: 'Tailor', page: 'tailor.html', section: 'creative' },
+    { emoji: '📱', label: 'Social', page: 'social.html', section: 'creative' },
+
+    // PROFESSIONAL SERVICES
     { emoji: '🧑🏻‍⚕️', label: 'Doctor', page: 'doctor.html', section: 'professional' },
     { emoji: '❤️‍🩹', label: 'Nurse', page: 'nurse.html', section: 'professional' },
     { emoji: '⚖️', label: 'Lawyer', page: 'lawyer.html', section: 'professional' },
-    { emoji: '🧮', label: 'Accountant', page: 'accountant.html', section: 'professional' },
-    { emoji: '💼', label: 'Consultant', page: 'consultant.html', section: 'professional' },
-    { emoji: '🔍', label: 'Researcher', page: 'researcher.html', section: 'professional' },
     { emoji: '⚙️', label: 'Engineer', page: 'engineer.html', section: 'professional' },
-    { emoji: '📊', label: 'Marketer', page: 'marketer.html', section: 'professional' },
     { emoji: '🏡', label: 'Realtor', page: 'realtor.html', section: 'professional' },
-    { emoji: '🧘🏻', label: 'Therapist', page: 'therapist.html', section: 'professional' },
-    { emoji: '💃🏻', label: 'Performer', page: 'performer.html', section: 'professional' },
-    { emoji: '🎵', label: 'Musician', page: 'musician.html', section: 'professional' },
-    { emoji: '🖼️', label: 'Artist', page: 'artist.html', section: 'professional' },
-    { emoji: '💡', label: 'Creative', page: 'creative.html', section: 'professional' }
+    { emoji: '🧘🏻', label: 'Therapist', page: 'therapist.html', section: 'professional' }
   ];
 
   // Get current page to mark active
@@ -3281,9 +3287,12 @@ function initJobcatButtonAutoResize() {
 
   // Group by section
   const sections = {
-    basic: { title: 'Business Essentials', items: [] },
-    everyday: { title: 'Everyday Services', items: [] },
-    trades: { title: 'Skilled Trades', items: [] },
+    hero: { title: 'POPULAR FOR BUSINESS', items: [] },
+    maintenance: { title: 'Maintenance & Trades', items: [] },
+    office: { title: 'Office Support', items: [] },
+    retail: { title: 'Retail Services', items: [] },
+    home: { title: 'Home Services', items: [] },
+    creative: { title: 'Creative & Media', items: [] },
     professional: { title: 'Professional Services', items: [] }
   };
 
@@ -3293,7 +3302,8 @@ function initJobcatButtonAutoResize() {
 
   // Generate the new modal structure HTML
   let bodyHTML = '';
-  Object.values(sections).forEach(section => {
+  ['hero', 'maintenance', 'office', 'retail', 'home', 'creative', 'professional'].forEach((sectionKey) => {
+    const section = sections[sectionKey];
     bodyHTML += `<div class="jobcat-section-divider">${section.title}</div>`;
     bodyHTML += '<div class="jobcat-category-grid">';
     section.items.forEach(cat => {
@@ -3327,6 +3337,13 @@ function initJobcatButtonAutoResize() {
     closeBtn.addEventListener('click', () => {
       serviceMenuOverlay.classList.remove('show');
     });
+  }
+
+  // Keep header dropdown label synced with modal naming
+  const serviceNameDiv = document.querySelector('.jobcat-servicename div:first-child');
+  const currentCategory = jobCategories.find((cat) => cat.page === currentPage);
+  if (serviceNameDiv && currentCategory) {
+    serviceNameDiv.textContent = `${currentCategory.label} Gigs`;
   }
 
   console.log('✓ Job category menu upgraded to new modal structure');

@@ -624,13 +624,13 @@ function cityHasBarangayData(city) {
 
 function getCategoryDisplayName(category) {
   const categoryMap = {
-    hatod: 'Delivery Jobs',
-    hakot: 'Hakot Jobs',
+    hatod: 'Transporter Jobs',
+    hakot: 'Movers Jobs',
     kompra: 'Kompra Jobs',
     luto: 'Luto Jobs',
     hugas: 'Hugas Jobs',
     laba: 'Laba Jobs',
-    limpyo: 'Janitor Jobs',
+    limpyo: 'Basic Cleaner Jobs',
     tindera: 'Tindera Jobs',
     bantay: 'Bantay Jobs',
     trainer: 'Trainer Jobs',
@@ -994,57 +994,80 @@ function buildJobCategoryGrid(categoryDropdown) {
 
   const sections = [
     {
-      title: '🏢 Business Essentials',
+      title: '🏢 POPULAR FOR BUSINESS',
       items: [
-        { value: 'solicitor', icon: '📣', color: '#eab308', label: 'Solicitor' },
-        { value: 'limpyo', icon: '🧹', color: '#06b6d4', label: 'Janitor' },
-        { value: 'hatod', icon: '📦', color: '#6366f1', label: 'Delivery' },
         { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' },
-        { value: 'painter', icon: '🖌️', color: '#f59e0b', label: 'Painter' },
-        { value: 'driver', icon: '🚗', color: '#3b82f6', label: 'Driver' },
-        { value: 'clerical', icon: '🗂️', color: '#a855f7', label: 'Clerical' },
+        { value: 'hatod', icon: '📦', color: '#6366f1', label: 'Transporter' },
+        { value: 'solicitor', icon: '📣', color: '#eab308', label: 'Solicitor' },
+        { value: 'limpyo', icon: '🧹', color: '#06b6d4', label: 'Basic Cleaner' },
         { value: 'handyman', icon: '👨🏻‍🔧', color: '#f59e0b', label: 'Handyman' },
-        { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
-        { value: 'plumber', icon: '🚰', color: '#0ea5e9', label: 'Plumber' },
-        { value: 'ittech', icon: '🛜', color: '#06b6d4', label: 'IT Tech' },
-        { value: 'programmer', icon: '💻', color: '#6366f1', label: 'Programmer' }
+        { value: 'driver', icon: '🚗', color: '#3b82f6', label: 'Driver' }
       ]
     },
     {
-      title: '🧺 Everyday Services',
+      title: '🛠️ Maintenance & Trades',
+      items: [
+        { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
+        { value: 'plumber', icon: '🚰', color: '#0ea5e9', label: 'Plumber' },
+        { value: 'security', icon: '👮🏻', color: '#ef4444', label: 'Security' },
+        { value: 'carpenter', icon: '🔨', color: '#8b5cf6', label: 'Carpenter' },
+        { value: 'painter', icon: '🖌️', color: '#f59e0b', label: 'Painter' },
+        { value: 'builder', icon: '👷🏻', color: '#22c55e', label: 'Builder' },
+        { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
+        { value: 'mechanic', icon: '🛠️', color: '#ef4444', label: 'Mechanic' },
+        { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Movers' }
+      ]
+    },
+    {
+      title: '🏢 Office Support',
+      items: [
+        { value: 'clerical', icon: '🗂️', color: '#a855f7', label: 'Clerical' },
+        { value: 'staff', icon: '🙋🏻', color: '#a855f7', label: 'Assistant' },
+        { value: 'ittech', icon: '🛜', color: '#06b6d4', label: 'IT Tech' },
+        { value: 'programmer', icon: '💻', color: '#6366f1', label: 'Programmer' },
+        { value: 'researcher', icon: '🔍', color: '#0ea5e9', label: 'Researcher' },
+        { value: 'consultant', icon: '💼', color: '#10b981', label: 'Consultant' },
+        { value: 'accountant', icon: '💰', color: '#f59e0b', label: 'Accountant' },
+        { value: 'marketer', icon: '📊', color: '#22c55e', label: 'Marketer' }
+      ]
+    },
+    {
+      title: '🛍️ Retail Services',
+      items: [
+        { value: 'waiter', icon: '💁🏻‍♂️', color: '#14b8a6', label: 'Waiter' },
+        { value: 'reception', icon: '👩🏻‍💼', color: '#14b8a6', label: 'Reception' },
+        { value: 'chef', icon: '👩🏻‍🍳', color: '#f97316', label: 'Chef' },
+        { value: 'tindera', icon: '🏪', color: '#ec4899', label: 'Tindera' },
+        { value: 'tourguide', icon: '🧭', color: '#22c55e', label: 'Tour Guide' },
+        { value: 'trainer', icon: '🏃', color: '#f59e0b', label: 'Trainer' }
+      ]
+    },
+    {
+      title: '🏠 Home Services',
       items: [
         { value: 'hugas', icon: '🍽️', color: '#06b6d4', label: 'Hugas' },
         { value: 'laba', icon: '👕', color: '#8b5cf6', label: 'Laba' },
         { value: 'luto', icon: '🍳', color: '#f97316', label: 'Luto' },
         { value: 'kompra', icon: '🛒', color: '#22c55e', label: 'Kompra' },
-        { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Hakot' },
-        { value: 'bantay', icon: '👁️', color: '#10b981', label: 'Bantay' },
-        { value: 'waiter', icon: '💁🏻‍♂️', color: '#14b8a6', label: 'Waiter' },
-        { value: 'reception', icon: '👩🏻‍💼👨🏻‍💼', color: '#14b8a6', label: 'Reception' },
-        { value: 'tindera', icon: '🏪', color: '#ec4899', label: 'Tindera' },
-        { value: 'staff', icon: '🙋🏻', color: '#a855f7', label: 'Staff' },
         { value: 'barber', icon: '💇🏻', color: '#3b82f6', label: 'Barber' },
+        { value: 'bantay', icon: '👁️', color: '#10b981', label: 'Bantay' },
+        { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' },
         { value: 'massage', icon: '💆🏻‍♀️', color: '#a855f7', label: 'Massager' },
-        { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' },
-        { value: 'tourguide', icon: '🧭', color: '#22c55e', label: 'Tour Guide' },
-        { value: 'social', icon: '📱', color: '#ec4899', label: 'Social' }
+        { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' }
       ]
     },
     {
-      title: '🛠️ Skilled Trades',
+      title: '🎨 Creative & Media',
       items: [
-        { value: 'builder', icon: '👷🏻', color: '#22c55e', label: 'Builder' },
-        { value: 'carpenter', icon: '🔨', color: '#8b5cf6', label: 'Carpenter' },
-        { value: 'mechanic', icon: '🛠️', color: '#ef4444', label: 'Mechanic' },
-        { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
-        { value: 'chef', icon: '👩🏻‍🍳', color: '#f97316', label: 'Chef' },
-        { value: 'tailor', icon: '✂️', color: '#8b5cf6', label: 'Tailor' },
         { value: 'photographer', icon: '📷', color: '#8b5cf6', label: 'Photographer' },
         { value: 'videographer', icon: '🎥', color: '#06b6d4', label: 'Videographer' },
         { value: 'editor', icon: '🎬', color: '#a855f7', label: 'Editor' },
-        { value: 'security', icon: '👮🏻', color: '#ef4444', label: 'Security' },
-        { value: 'trainer', icon: '🏃', color: '#f59e0b', label: 'Trainer' },
-        { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' }
+        { value: 'artist', icon: '🖼️', color: '#f472b6', label: 'Artist' },
+        { value: 'musician', icon: '🎵', color: '#a855f7', label: 'Musician' },
+        { value: 'performer', icon: '💃🏻', color: '#ec4899', label: 'Performer' },
+        { value: 'creative', icon: '✨', color: '#ec4899', label: 'Creative' },
+        { value: 'tailor', icon: '✂️', color: '#8b5cf6', label: 'Tailor' },
+        { value: 'social', icon: '📱', color: '#ec4899', label: 'Social' }
       ]
     },
     {
@@ -1053,17 +1076,9 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'doctor', icon: '🧑🏻‍⚕️', color: '#3b82f6', label: 'Doctor' },
         { value: 'nurse', icon: '❤️‍🩹', color: '#ec4899', label: 'Nurse' },
         { value: 'lawyer', icon: '⚖️', color: '#6366f1', label: 'Lawyer' },
-        { value: 'accountant', icon: '💰', color: '#f59e0b', label: 'Accountant' },
-        { value: 'consultant', icon: '💼', color: '#10b981', label: 'Consultant' },
-        { value: 'researcher', icon: '🔍', color: '#0ea5e9', label: 'Researcher' },
         { value: 'engineer', icon: '⚙️', color: '#0ea5e9', label: 'Engineer' },
-        { value: 'marketer', icon: '📊', color: '#22c55e', label: 'Marketer' },
         { value: 'realtor', icon: '🏡', color: '#ec4899', label: 'Realtor' },
-        { value: 'therapist', icon: '🧘🏻', color: '#ec4899', label: 'Therapist' },
-        { value: 'performer', icon: '💃🏻', color: '#ec4899', label: 'Performer' },
-        { value: 'musician', icon: '🎵', color: '#a855f7', label: 'Musician' },
-        { value: 'artist', icon: '🖼️', color: '#f472b6', label: 'Artist' },
-        { value: 'creative', icon: '✨', color: '#ec4899', label: 'Creative' }
+        { value: 'therapist', icon: '🧘🏻', color: '#ec4899', label: 'Therapist' }
       ]
     }
   ];
@@ -2668,13 +2683,13 @@ function showEditForm(jobData, category) {
   
   // Category mapping
   const categoryCards = {
-    'hatod': { label: 'Delivery (Transport)', icon: '📦' },
-    'hakot': { label: 'Hakot (Moving/Hauling)', icon: '🚚' },
+    'hatod': { label: 'Transporter (Delivery)', icon: '📦' },
+    'hakot': { label: 'Movers (Moving/Hauling)', icon: '🚚' },
     'kompra': { label: 'Kompra (Shopping)', icon: '🛒' },
     'luto': { label: 'Luto (Cooking)', icon: '🍳' },
     'hugas': { label: 'Hugas (Dishwashing)', icon: '🍽️' },
     'laba': { label: 'Laba (Laundry)', icon: '👕' },
-    'limpyo': { label: 'Janitor (Cleaning)', icon: '🧹' },
+    'limpyo': { label: 'Basic Cleaner (Cleaning)', icon: '🧹' },
     'tindera': { label: 'Tindera (Store Help)', icon: '🏪' },
     'bantay': { label: 'Bantay (Babysitting/Caregiving)', icon: '👶' },
     'painter': { label: 'Painter', icon: '🎨' },
@@ -3383,13 +3398,13 @@ function populateFormWithJobData(jobData, category, mode) {
   
   // Find category details
   const categoryCards = {
-    'hatod': { label: 'Hatod', icon: 'motorcycle', color: '#3498db' },
-    'hakot': { label: 'Hakot', icon: 'truck', color: '#e74c3c' },
+    'hatod': { label: 'Transporter', icon: 'motorcycle', color: '#3498db' },
+    'hakot': { label: 'Movers', icon: 'truck', color: '#e74c3c' },
     'kompra': { label: 'Kompra', icon: 'shopping_cart', color: '#2ecc71' },
     'luto': { label: 'Luto', icon: 'restaurant', color: '#f39c12' },
     'hugas': { label: 'Hugas', icon: 'cleaning_services', color: '#9b59b6' },
     'laba': { label: 'Laba', icon: 'local_laundry_service', color: '#1abc9c' },
-    'limpyo': { label: 'Limpyo', icon: 'home', color: '#16a085' },
+    'limpyo': { label: 'Basic Cleaner', icon: 'home', color: '#16a085' },
     'tindera': { label: 'Tindera', icon: 'store', color: '#d35400' },
     'bantay': { label: 'Bantay', icon: 'person', color: '#c0392b' },
     'painter': { label: 'Painter', icon: 'format_paint', color: '#8e44ad' },
