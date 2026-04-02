@@ -2292,9 +2292,12 @@ section {
 .service-grid.service-grid--hero {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(0.85rem, 2.6vw, 1.3rem);
-  padding: clamp(0.6rem, 1.9vw, 1.1rem) clamp(0.5rem, 1.8vw, 1rem);
-  max-width: min(760px, 100%);
+  column-gap: clamp(1.95rem, 6.2vw, 3.4rem);
+  row-gap: clamp(0.7rem, 2.1vw, 1rem);
+  margin-top: clamp(0.55rem, 1.8vw, 0.95rem);
+  margin-bottom: clamp(0.95rem, 2.9vw, 1.45rem);
+  padding: clamp(0.5rem, 1.7vw, 0.9rem) clamp(0.95rem, 4.6vw, 1.6rem);
+  max-width: min(660px, calc(100% - clamp(1.8rem, 8vw, 3.8rem)));
 }
 
 .service-grid--hero .service-card {
@@ -2306,7 +2309,7 @@ section {
 
 .service-grid--hero .service-card__image-container {
   border-radius: 14px;
-  padding: clamp(0.32rem, 0.95vw, 0.56rem);
+  padding: clamp(0.34rem, 1.05vw, 0.62rem);
   overflow: hidden;
 }
 
@@ -2315,69 +2318,41 @@ section {
   height: 100%;
   max-width: none;
   object-fit: contain;
-  transform: scale(1.08);
+  transform: scale(1.03);
   transform-origin: center center;
 }
 
 .service-grid--hero .service-card__title {
-  font-size: clamp(0.78rem, 1.75vw, 0.98rem);
+  font-size: clamp(0.9rem, 2vw, 1.12rem);
 }
 
 @media (max-width: 600px) {
   .service-grid.service-grid--hero {
-    gap: clamp(0.7rem, 2.8vw, 1rem);
-    padding: clamp(0.55rem, 2.2vw, 0.95rem) clamp(0.45rem, 2.1vw, 0.8rem);
+    column-gap: clamp(1.6rem, 6vw, 2.8rem);
+    row-gap: clamp(0.62rem, 2.5vw, 0.9rem);
+    margin-top: clamp(0.52rem, 2vw, 0.82rem);
+    margin-bottom: clamp(0.82rem, 3vw, 1.2rem);
+    padding: clamp(0.5rem, 2vw, 0.82rem) clamp(0.85rem, 5vw, 1.35rem);
   }
 
   .service-grid--hero .service-card__image {
     width: 100%;
     height: 100%;
-    transform: scale(1.07);
+    transform: scale(1.02);
   }
 
   .service-grid--hero .service-card__title {
-    font-size: clamp(0.75rem, 3vw, 0.92rem);
+    font-size: clamp(0.86rem, 3.4vw, 1.02rem);
   }
 }
 
 @media (max-width: 400px) {
   .service-grid.service-grid--hero {
-    gap: clamp(0.62rem, 2.9vw, 0.9rem);
-    padding: clamp(0.5rem, 2.2vw, 0.85rem) clamp(0.35rem, 2vw, 0.65rem);
-  }
-
-  .service-grid--hero .service-card__image {
-    width: 100%;
-    height: 100%;
-    transform: scale(1.05);
-  }
-
-  .service-grid--hero .service-card__title {
-    font-size: clamp(0.72rem, 3.1vw, 0.88rem);
-  }
-}
-
-@media (max-width: 375px) {
-  .service-grid.service-grid--hero {
-    gap: clamp(0.55rem, 3vw, 0.8rem);
-    padding: clamp(0.46rem, 2.1vw, 0.75rem) clamp(0.3rem, 1.9vw, 0.55rem);
-  }
-
-  .service-grid--hero .service-card__image {
-    width: 100%;
-    height: 100%;
-    transform: scale(1.03);
-  }
-
-  .service-grid--hero .service-card__title {
-    font-size: clamp(0.69rem, 3.2vw, 0.84rem);
-  }
-}
-
-@media (max-width: 320px) {
-  .service-grid.service-grid--hero {
-    gap: clamp(0.45rem, 2.7vw, 0.65rem);
-    padding: clamp(0.42rem, 2vw, 0.6rem) clamp(0.2rem, 1.5vw, 0.35rem);
+    column-gap: clamp(1.35rem, 6.1vw, 2.2rem);
+    row-gap: clamp(0.56rem, 2.7vw, 0.82rem);
+    margin-top: clamp(0.46rem, 1.9vw, 0.72rem);
+    margin-bottom: clamp(0.74rem, 3vw, 1.05rem);
+    padding: clamp(0.48rem, 2vw, 0.76rem) clamp(0.78rem, 4.8vw, 1.18rem);
   }
 
   .service-grid--hero .service-card__image {
@@ -2387,7 +2362,47 @@ section {
   }
 
   .service-grid--hero .service-card__title {
-    font-size: clamp(0.64rem, 3.1vw, 0.76rem);
+    font-size: clamp(0.82rem, 3.25vw, 0.96rem);
+  }
+}
+
+@media (max-width: 375px) {
+  .service-grid.service-grid--hero {
+    column-gap: clamp(1.18rem, 5.9vw, 1.85rem);
+    row-gap: clamp(0.5rem, 2.8vw, 0.74rem);
+    margin-top: clamp(0.42rem, 1.8vw, 0.62rem);
+    margin-bottom: clamp(0.66rem, 2.9vw, 0.94rem);
+    padding: clamp(0.44rem, 1.9vw, 0.68rem) clamp(0.7rem, 4.6vw, 1.05rem);
+  }
+
+  .service-grid--hero .service-card__image {
+    width: 100%;
+    height: 100%;
+    transform: scale(1);
+  }
+
+  .service-grid--hero .service-card__title {
+    font-size: clamp(0.79rem, 3.2vw, 0.92rem);
+  }
+}
+
+@media (max-width: 320px) {
+  .service-grid.service-grid--hero {
+    column-gap: clamp(0.96rem, 5.4vw, 1.45rem);
+    row-gap: clamp(0.42rem, 2.6vw, 0.58rem);
+    margin-top: clamp(0.34rem, 1.7vw, 0.5rem);
+    margin-bottom: clamp(0.56rem, 2.8vw, 0.8rem);
+    padding: clamp(0.4rem, 1.8vw, 0.54rem) clamp(0.56rem, 4.2vw, 0.82rem);
+  }
+
+  .service-grid--hero .service-card__image {
+    width: 100%;
+    height: 100%;
+    transform: scale(0.98);
+  }
+
+  .service-grid--hero .service-card__title {
+    font-size: clamp(0.72rem, 3vw, 0.82rem);
   }
 }
 
