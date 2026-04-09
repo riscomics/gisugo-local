@@ -2737,6 +2737,7 @@ body:has(.jobs-header) {
   padding: 12px;
   font-size: 0.875rem;
   font-family: Arial, Helvetica, sans-serif;
+  text-align: left;
   resize: vertical;
   margin: 0 auto 16px; /* center the field within modal */
   display: block;
@@ -2748,11 +2749,11 @@ body:has(.jobs-header) {
   border-color: #10b981;
 }
 
-/* Center placeholder globally */
-.contact-message-input::placeholder { text-align: center; }
-.contact-message-input::-webkit-input-placeholder { text-align: center; }
+/* Keep message entry left-aligned for natural typing */
+.contact-message-input::placeholder { text-align: left; }
+.contact-message-input::-webkit-input-placeholder { text-align: left; }
 
-/* Mobile adjustments: raise modal above keyboard and center input content */
+/* Mobile adjustments: raise modal above keyboard */
 @media (max-width: 600px) {
   .contact-message-overlay {
     align-items: flex-start;
@@ -2767,13 +2768,13 @@ body:has(.jobs-header) {
     box-sizing: border-box;
   }
   .contact-message-input {
-    text-align: center;
+    text-align: left;
   }
   .contact-message-input::placeholder {
-    text-align: center;
+    text-align: left;
   }
   .contact-message-input::-webkit-input-placeholder {
-    text-align: center;
+    text-align: left;
   }
 }
 

@@ -156,6 +156,7 @@ const ACTIVE_LISTENERS = {
 const MESSAGES_IOS_TRACE_STATE = {
     maxLines: 20
 };
+const MESSAGES_RUNTIME_DEBUG = false;
 
 function isMessagesIOSTraceEnabled() {
     try {
@@ -212,6 +213,11 @@ function messagesTrace(event, details) {
     panel.scrollTop = panel.scrollHeight;
 }
 
+function messagesDebug(...args) {
+    if (!MESSAGES_RUNTIME_DEBUG) return;
+    console.log(...args);
+}
+
 // MEMORY LEAK FIX: Enhanced cleanup utility
 function registerCleanup(type, key, cleanupFn) {
     if (type === 'function') {
@@ -231,16 +237,11 @@ function executeAllCleanups() {
     // Clean up Firebase real-time listeners
     if (ACTIVE_LISTENERS.notifications) {
         console.log('🧹 Cleaning up notifications listener');
-        ACTIVE_LISTENERS.notifications();
-        ACTIVE_LISTENERS.notifications = null;
-        ALERTS_STREAM_STATE.uid = '';
-        ALERTS_STREAM_STATE.notifications = [];
-        ALERTS_STREAM_STATE.started = false;
+        stopAlertsRealtimeStream('execute_all_cleanups');
     }
     if (ACTIVE_LISTENERS.threads) {
         console.log('🧹 Cleaning up threads listener');
-        ACTIVE_LISTENERS.threads();
-        ACTIVE_LISTENERS.threads = null;
+        stopChatsRealtimeStream('execute_all_cleanups');
     }
     if (ACTIVE_LISTENERS.activeThreadMessages) {
         console.log('🧹 Cleaning up active thread messages listener');
@@ -335,7 +336,7 @@ function clearTrackedInterval(intervalId) {
 function isAllowedTextCharacter(char) {
     if (!char) return true;
     if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
-    if (/[.,!?'"()\/$&@₱-]/.test(char)) return true;
+    if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
     if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
     return false;
 }
@@ -503,8 +504,25 @@ async function initializeCustomerMessagesTab() {
     }, 100);
 }
 
-const WORKER_ALERT_TYPES = ['offer_sent', 'interview_request', 'job_completed', 'feedback_received', 'contract_voided', 'application_not_selected_batch', 'application_rejected_batch'];
-const CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
+// Source-of-truth alert types currently emitted by backend flows (jobs.js + firebase-db.js).
+const PRODUCED_WORKER_ALERT_TYPES = ['offer_sent', 'job_completed', 'feedback_received', 'contract_voided'];
+const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
+
+// Retained for compatibility with legacy datasets and planned interview workflow.
+// NOTE: No current producer emits this type in the active backend flow.
+const LEGACY_WORKER_ALERT_TYPES = ['interview_request'];
+
+// Additional worker status batches already supported by UI copy/localization.
+const BATCH_WORKER_ALERT_TYPES = ['application_not_selected_batch', 'application_rejected_batch'];
+
+const WORKER_ALERT_TYPES = [
+    ...PRODUCED_WORKER_ALERT_TYPES,
+    ...LEGACY_WORKER_ALERT_TYPES,
+    ...BATCH_WORKER_ALERT_TYPES
+];
+const CUSTOMER_ALERT_TYPES = [...PRODUCED_CUSTOMER_ALERT_TYPES];
+const KNOWN_ALERT_TYPES = new Set([...WORKER_ALERT_TYPES, ...CUSTOMER_ALERT_TYPES]);
+const LOGGED_UNMAPPED_ALERT_TYPES = new Set();
 let currentAlertsLang = 'english';
 const ALERT_READ_HIDE_AFTER_DAYS = 50;
 
@@ -576,16 +594,28 @@ function setTabNotificationCount(tabSelector, count) {
     const countElement = document.querySelector(`${tabSelector} .notification-count`);
     if (!countElement) return;
     const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
-    countElement.textContent = safeCount;
-    countElement.style.display = safeCount > 0 ? 'block' : 'none';
+    const nextText = String(safeCount);
+    const nextDisplay = safeCount > 0 ? 'block' : 'none';
+    if (countElement.textContent !== nextText) {
+        countElement.textContent = nextText;
+    }
+    if (countElement.style.display !== nextDisplay) {
+        countElement.style.display = nextDisplay;
+    }
 }
 
 function setRoleNotificationCount(roleSelector, count) {
     const countElement = document.querySelector(`${roleSelector} .role-notification-count`);
     if (!countElement) return;
     const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
-    countElement.textContent = safeCount > 99 ? '99+' : String(safeCount);
-    countElement.style.display = safeCount > 0 ? 'inline-flex' : 'none';
+    const nextText = safeCount > 99 ? '99+' : String(safeCount);
+    const nextDisplay = safeCount > 0 ? 'inline-flex' : 'none';
+    if (countElement.textContent !== nextText) {
+        countElement.textContent = nextText;
+    }
+    if (countElement.style.display !== nextDisplay) {
+        countElement.style.display = nextDisplay;
+    }
 }
 
 function filterNotificationsForAlertRole(notifications, role) {
@@ -597,6 +627,19 @@ function filterNotificationsForAlertRole(notifications, role) {
     });
 }
 
+function traceUnmappedAlertTypes(notifications) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    source.forEach((notif) => {
+        const type = String(notif?.type || notif?.notificationType || '').trim();
+        if (!type || KNOWN_ALERT_TYPES.has(type) || LOGGED_UNMAPPED_ALERT_TYPES.has(type)) {
+            return;
+        }
+        LOGGED_UNMAPPED_ALERT_TYPES.add(type);
+        console.warn(`⚠️ Unmapped alert type received: ${type}`);
+        messagesTrace('alerts:unmapped_type', type);
+    });
+}
+
 function updateAlertTabBadgeCounts(notifications) {
     const workerNotifications = filterNotificationsForAlertRole(notifications, 'worker');
     const customerNotifications = filterNotificationsForAlertRole(notifications, 'customer');
@@ -604,8 +647,7 @@ function updateAlertTabBadgeCounts(notifications) {
     const customerUnread = customerNotifications.filter((n) => !n.read).length;
     setTabNotificationCount('#workerAlertsTab', workerUnread);
     setTabNotificationCount('#customerAlertsTab', customerUnread);
-    setRoleNotificationCount('#workerRoleTab', workerUnread);
-    setRoleNotificationCount('#customerRoleTab', customerUnread);
+    updateRoleTopUnreadCounts();
 }
 
 function resetTabBadgeCounts() {
@@ -625,6 +667,45 @@ const ALERTS_STREAM_STATE = {
     started: false,
     hasSnapshot: false
 };
+const ALERTS_LOAD_STATE = {
+    requestId: 0
+};
+
+function resetAlertsStreamState() {
+    ALERTS_STREAM_STATE.uid = '';
+    ALERTS_STREAM_STATE.notifications = [];
+    ALERTS_STREAM_STATE.started = false;
+    ALERTS_STREAM_STATE.hasSnapshot = false;
+}
+
+function stopAlertsRealtimeStream(reason = 'unspecified') {
+    if (ACTIVE_LISTENERS.notifications) {
+        try {
+            ACTIVE_LISTENERS.notifications();
+        } catch (error) {
+            console.warn('⚠️ Failed to unsubscribe alerts listener:', error);
+        }
+        ACTIVE_LISTENERS.notifications = null;
+    }
+    resetAlertsStreamState();
+    resetAlertsPaginationState();
+    messagesTrace('fetch:alerts:stop', reason);
+}
+
+function beginAlertsLoadRequest(role) {
+    ALERTS_LOAD_STATE.requestId += 1;
+    const requestId = ALERTS_LOAD_STATE.requestId;
+    messagesTrace('render:alerts:request_start', { role, requestId });
+    return requestId;
+}
+
+function isAlertsLoadRequestStale(requestId, role) {
+    if (requestId !== ALERTS_LOAD_STATE.requestId) {
+        return true;
+    }
+    const activeRole = getActiveAlertsRole();
+    return !!activeRole && !!role && activeRole !== role;
+}
 
 const ALERTS_PAGINATION_STATE = {
     olderNotifications: [],
@@ -909,6 +990,7 @@ function renderAllAlertsViews(notifications, options = {}) {
     const workerContainer = document.querySelector('#worker-alerts-content .notifications-container');
     const customerContainer = document.querySelector('#customer-alerts-content .notifications-container');
     const activeRole = options.forceRole || getActiveAlertsRole();
+    traceUnmappedAlertTypes(notifications);
 
     // Optimization: only render the alerts pane currently visible to the user.
     if (activeRole === 'worker') {
@@ -1019,19 +1101,14 @@ async function ensureAlertsRealtimeStream(currentUser) {
     }
 
     if (ALERTS_STREAM_STATE.started && ALERTS_STREAM_STATE.uid === currentUser.uid) {
+        messagesTrace('fetch:alerts:stream_reuse', currentUser.uid);
         return;
     }
 
-    if (ACTIVE_LISTENERS.notifications) {
-        ACTIVE_LISTENERS.notifications();
-        ACTIVE_LISTENERS.notifications = null;
-    }
-
+    stopAlertsRealtimeStream('switch_user_or_restart');
     ALERTS_STREAM_STATE.uid = currentUser.uid;
     ALERTS_STREAM_STATE.started = true;
-    ALERTS_STREAM_STATE.hasSnapshot = false;
-    ALERTS_STREAM_STATE.notifications = [];
-    resetAlertsPaginationState();
+    messagesTrace('fetch:alerts:stream_start', currentUser.uid);
 
     ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications, snapshotMeta) => {
         const source = snapshotMeta && snapshotMeta.source ? snapshotMeta.source : 'sdk-snapshot';
@@ -1086,185 +1163,592 @@ function waitForAuthStateWithTimeout(timeoutMs = 7000) {
 }
 
 // Load segregated notifications based on role
-async function loadWorkerNotifications() {
-    const container = document.querySelector('#worker-alerts-content .notifications-container');
+function getAlertsRoleConfig(role) {
+    const normalizedRole = role === 'customer' ? 'customer' : 'worker';
+    return {
+        role: normalizedRole,
+        containerSelector: normalizedRole === 'customer'
+            ? '#customer-alerts-content .notifications-container'
+            : '#worker-alerts-content .notifications-container',
+        authTraceReason: normalizedRole === 'customer'
+            ? 'customer_not_authenticated'
+            : 'worker_not_authenticated'
+    };
+}
+
+async function loadAlertsForRole(role) {
+    const config = getAlertsRoleConfig(role);
+    const requestId = beginAlertsLoadRequest(config.role);
+    const container = document.querySelector(config.containerSelector);
     if (!container) return;
-    
+
     // Show loading state
     container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
-    messagesTrace('route:messages/alerts', { role: 'worker' });
-    messagesTrace('render:alerts:loading', 'worker');
-    
+    messagesTrace('route:messages/alerts', { role: config.role });
+    messagesTrace('render:alerts:loading', config.role);
+
     // Check if Firebase available
-    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
-        ? APP_CONFIG.useFirebaseData() 
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined'
+        ? APP_CONFIG.useFirebaseData()
         : true;
-    
+
     if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
-        // Fallback to mock data
-        console.log('🎮 Dev Mode: Loading mock worker notifications');
+        // Fallback to mock data (temporary dev safety path; no new fallback behavior introduced)
+        console.log(`🎮 Dev Mode: Loading mock ${config.role} notifications`);
         resetAlertsPaginationState();
         ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
         ALERTS_PAGINATION_STATE.exhausted = true;
-        renderAllAlertsViews(getCombinedAlertsNotifications());
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'mock_fallback' });
+            return;
+        }
+        renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: config.role });
         updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
         hideMessagesPageLoadingOverlay();
         return;
     }
-    
+
     try {
         // Wait for Firebase auth state to be ready
         const currentUser = await waitForAuthStateWithTimeout();
-        
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'after_auth' });
+            return;
+        }
+
         if (!currentUser) {
             // Not logged in - show empty state with login prompt
-            if (ACTIVE_LISTENERS.notifications) {
-                ACTIVE_LISTENERS.notifications();
-                ACTIVE_LISTENERS.notifications = null;
-            }
-            ALERTS_STREAM_STATE.uid = '';
-            ALERTS_STREAM_STATE.notifications = [];
-            ALERTS_STREAM_STATE.started = false;
-            ALERTS_STREAM_STATE.hasSnapshot = false;
-            resetAlertsPaginationState();
+            stopAlertsRealtimeStream(config.authTraceReason);
             container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
-            messagesTrace('render:alerts:error', 'worker_not_authenticated');
+            messagesTrace('render:alerts:error', config.authTraceReason);
             updateAlertTabBadgeCounts([]);
             return;
         }
-        
-        console.log('✅ Worker alerts: User authenticated as', currentUser.uid);
+
+        console.log(`✅ ${config.role} alerts: User authenticated as`, currentUser.uid);
 
         await ensureAlertsRealtimeStream(currentUser);
-        if (ALERTS_STREAM_STATE.hasSnapshot) {
-            renderAllAlertsViews(getCombinedAlertsNotifications());
-            messagesTrace('render:alerts:success', { role: 'worker', count: ALERTS_STREAM_STATE.notifications.length });
+        await ensureChatsRealtimeStream(currentUser);
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'after_subscribe' });
+            return;
         }
-        
+        if (ALERTS_STREAM_STATE.hasSnapshot) {
+            renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: config.role });
+            messagesTrace('render:alerts:success', { role: config.role, count: ALERTS_STREAM_STATE.notifications.length });
+        }
+
     } catch (error) {
-        console.error('❌ Error loading worker alerts:', error);
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'error_path' });
+            return;
+        }
+        console.error(`❌ Error loading ${config.role} alerts:`, error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
         messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
     } finally {
-        hideMessagesPageLoadingOverlay();
+        if (!isAlertsLoadRequestStale(requestId, config.role)) {
+            hideMessagesPageLoadingOverlay();
+        }
     }
+}
+
+async function loadWorkerNotifications() {
+    await loadAlertsForRole('worker');
 }
 
 async function loadCustomerNotifications() {
-    const container = document.querySelector('#customer-alerts-content .notifications-container');
-    if (!container) return;
-    
-    // Show loading state
-    container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
-    messagesTrace('route:messages/alerts', { role: 'customer' });
-    messagesTrace('render:alerts:loading', 'customer');
-    
-    // Check if Firebase available
-    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
-        ? APP_CONFIG.useFirebaseData() 
-        : true;
-    
-    if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
-        // Fallback to mock data
-        console.log('🎮 Dev Mode: Loading mock customer notifications');
-        resetAlertsPaginationState();
-        ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
-        ALERTS_PAGINATION_STATE.exhausted = true;
-        renderAllAlertsViews(getCombinedAlertsNotifications());
-        updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
-        hideMessagesPageLoadingOverlay();
+    await loadAlertsForRole('customer');
+}
+
+const CHATS_STREAM_STATE = {
+    uid: '',
+    threads: [],
+    started: false
+};
+const CHATS_RENDER_STATE = {
+    workerSignature: '',
+    customerSignature: '',
+    streamSignature: ''
+};
+const CHATS_LOCAL_UNREAD_SUPPRESS = new Map();
+const CHATS_READ_SYNC_STATE = {
+    inFlight: new Set(),
+    lastAttemptByThread: new Map()
+};
+
+const CHATS_LOAD_STATE = {
+    requestId: 0
+};
+
+function resetChatsStreamState() {
+    CHATS_STREAM_STATE.uid = '';
+    CHATS_STREAM_STATE.threads = [];
+    CHATS_STREAM_STATE.started = false;
+    CHATS_RENDER_STATE.workerSignature = '';
+    CHATS_RENDER_STATE.customerSignature = '';
+    CHATS_RENDER_STATE.streamSignature = '';
+    CHATS_LOCAL_UNREAD_SUPPRESS.clear();
+    CHATS_READ_SYNC_STATE.inFlight.clear();
+    CHATS_READ_SYNC_STATE.lastAttemptByThread.clear();
+}
+
+function stopChatsRealtimeStream(reason = 'unspecified') {
+    if (ACTIVE_LISTENERS.threads) {
+        try {
+            ACTIVE_LISTENERS.threads();
+        } catch (error) {
+            console.warn('⚠️ Failed to unsubscribe threads listener:', error);
+        }
+        ACTIVE_LISTENERS.threads = null;
+    }
+    resetChatsStreamState();
+    messagesTrace('fetch:chats:stop', reason);
+}
+
+function beginChatsLoadRequest(role) {
+    CHATS_LOAD_STATE.requestId += 1;
+    const requestId = CHATS_LOAD_STATE.requestId;
+    messagesTrace('render:chats:request_start', { role, requestId });
+    return requestId;
+}
+
+function isChatsLoadRequestStale(requestId, role) {
+    if (requestId !== CHATS_LOAD_STATE.requestId) return true;
+    if (role === 'worker') {
+        const isActive = isElementActiveAndVisible(document.getElementById('worker-chats-content'));
+        return !isActive;
+    }
+    if (role === 'customer') {
+        const isActive = isElementActiveAndVisible(document.getElementById('customer-interviews-content'));
+        return !isActive;
+    }
+    return false;
+}
+
+function getThreadId(thread) {
+    return thread?.id || thread?.threadId || '';
+}
+
+function toMillis(value) {
+    if (!value) return 0;
+    if (typeof value.toDate === 'function') {
+        const dt = value.toDate();
+        return dt instanceof Date ? dt.getTime() : 0;
+    }
+    if (value instanceof Date) return value.getTime();
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getRawUnreadCountForThread(thread, currentUserId) {
+    return Math.max(0, Number(thread?.unreadCount?.[currentUserId]) || 0);
+}
+
+function getEffectiveUnreadCountForThread(thread, currentUserId) {
+    const unread = getRawUnreadCountForThread(thread, currentUserId);
+    if (unread <= 0) {
+        CHATS_LOCAL_UNREAD_SUPPRESS.delete(getThreadId(thread));
+        return 0;
+    }
+    const threadId = getThreadId(thread);
+    const suppressUntil = CHATS_LOCAL_UNREAD_SUPPRESS.get(threadId);
+    if (!suppressUntil) return unread;
+
+    const lastMessageMillis = toMillis(thread?.lastMessageTime || thread?.createdAt);
+    if (lastMessageMillis <= suppressUntil) {
+        return 0;
+    }
+
+    // New activity happened after local read mark, so unread can surface again.
+    CHATS_LOCAL_UNREAD_SUPPRESS.delete(threadId);
+    return unread;
+}
+
+function serializeThreadsForSignature(threads, currentUserId) {
+    const source = Array.isArray(threads) ? threads : [];
+    return source.map((thread) => {
+        const threadId = getThreadId(thread);
+        return [
+            threadId,
+            getThreadCurrentUserRole(thread, currentUserId),
+            thread?.participant1?.userId || '',
+            thread?.participant1?.userName || '',
+            thread?.participant2?.userId || '',
+            thread?.participant2?.userName || '',
+            thread?.jobId || '',
+            thread?.jobTitle || '',
+            thread?.threadOrigin || '',
+            thread?.applicationId || '',
+            getEffectiveUnreadCountForThread(thread, currentUserId),
+            toMillis(thread?.lastMessageTime || thread?.createdAt),
+            thread?.lastMessagePreview || ''
+        ].join('|');
+    }).join('||');
+}
+
+function serializeRenderedThreadsForSignature(threads) {
+    const source = Array.isArray(threads) ? threads : [];
+    return source.map((thread) => ([
+        thread?.threadId || '',
+        thread?.jobId || '',
+        thread?.jobTitle || '',
+        thread?.participantId || '',
+        thread?.participantName || '',
+        thread?.threadOrigin || '',
+        thread?.applicationId || '',
+        thread?.currentUserRole || '',
+        thread?.isNew ? 1 : 0,
+        toMillis(thread?.lastMessageTime),
+        thread?.lastMessagePreview || ''
+    ].join('|'))).join('||');
+}
+
+function getThreadCurrentUserRole(thread, currentUserId) {
+    if (thread && typeof thread.currentUserRole === 'string') {
+        return thread.currentUserRole === 'worker' ? 'worker' : 'customer';
+    }
+    if (thread && thread.currentUserRole && typeof thread.currentUserRole === 'object' && currentUserId) {
+        const mappedRole = String(thread.currentUserRole[currentUserId] || '').toLowerCase();
+        if (mappedRole === 'worker' || mappedRole === 'customer') return mappedRole;
+    }
+    if (thread?.participant1?.userId === currentUserId) {
+        return thread?.participant1?.role === 'worker' ? 'worker' : 'customer';
+    }
+    if (thread?.participant2?.userId === currentUserId) {
+        return thread?.participant2?.role === 'worker' ? 'worker' : 'customer';
+    }
+    return 'customer';
+}
+
+function transformFirebaseThreadToChatThread(thread, currentUserId) {
+    const threadId = thread?.id || thread?.threadId || '';
+    const participantIds = Array.isArray(thread?.participantIds) ? thread.participantIds : [];
+    const otherParticipantId = participantIds.find((id) => id !== currentUserId) || '';
+    const isParticipant1CurrentUser = thread?.participant1?.userId === currentUserId;
+    const isParticipant2CurrentUser = thread?.participant2?.userId === currentUserId;
+    let otherParticipant = null;
+    if (isParticipant1CurrentUser) {
+        otherParticipant = thread?.participant2 || null;
+    } else if (isParticipant2CurrentUser) {
+        otherParticipant = thread?.participant1 || null;
+    } else {
+        otherParticipant = thread?.participant2 || thread?.participant1 || null;
+    }
+
+    const role = getThreadCurrentUserRole(thread, currentUserId);
+    const unreadCount = getEffectiveUnreadCountForThread(thread, currentUserId);
+    const lastMessageTime = thread?.lastMessageTime?.toDate
+        ? thread.lastMessageTime.toDate().toISOString()
+        : (thread?.lastMessageTime || thread?.createdAt?.toDate?.()?.toISOString() || new Date().toISOString());
+
+    return {
+        threadId: threadId,
+        jobId: thread?.jobId || '',
+        jobTitle: thread?.jobTitle || 'Chat',
+        participantId: otherParticipant?.userId || otherParticipantId || '',
+        participantName: otherParticipant?.userName || 'User',
+        threadOrigin: thread?.threadOrigin || (thread?.applicationId ? 'application' : 'job'),
+        applicationId: thread?.applicationId || '',
+        currentUserRole: role,
+        isNew: unreadCount > 0,
+        lastMessageTime: lastMessageTime,
+        lastMessagePreview: thread?.lastMessagePreview || 'Start a conversation...',
+        messages: []
+    };
+}
+
+function filterThreadsForRole(threads, role) {
+    const source = Array.isArray(threads) ? threads : [];
+    return source.filter((thread) => {
+        const normalizedRole = getThreadCurrentUserRole(thread, getCurrentUserId());
+        return normalizedRole === role;
+    });
+}
+
+async function ensureChatsRealtimeStream(currentUser) {
+    if (!currentUser || !currentUser.uid || typeof subscribeToUserThreads !== 'function') {
         return;
     }
-    
-    try {
-        // Wait for Firebase auth state to be ready
-        const currentUser = await waitForAuthStateWithTimeout();
-        
-        if (!currentUser) {
-            // Not logged in - show empty state with login prompt
-            if (ACTIVE_LISTENERS.notifications) {
-                ACTIVE_LISTENERS.notifications();
-                ACTIVE_LISTENERS.notifications = null;
-            }
-            ALERTS_STREAM_STATE.uid = '';
-            ALERTS_STREAM_STATE.notifications = [];
-            ALERTS_STREAM_STATE.started = false;
-            ALERTS_STREAM_STATE.hasSnapshot = false;
-            resetAlertsPaginationState();
-            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
-            messagesTrace('render:alerts:error', 'customer_not_authenticated');
-            updateAlertTabBadgeCounts([]);
+    if (CHATS_STREAM_STATE.started && CHATS_STREAM_STATE.uid === currentUser.uid) {
+        messagesTrace('fetch:chats:stream_reuse', currentUser.uid);
+        return;
+    }
+
+    stopChatsRealtimeStream('switch_user_or_restart');
+    CHATS_STREAM_STATE.uid = currentUser.uid;
+    CHATS_STREAM_STATE.started = true;
+    messagesTrace('fetch:chats:stream_start', currentUser.uid);
+
+    ACTIVE_LISTENERS.threads = subscribeToUserThreads(currentUser, (threads) => {
+        const nextThreads = Array.isArray(threads) ? threads : [];
+        const streamSignature = serializeThreadsForSignature(nextThreads, currentUser.uid);
+        if (streamSignature === CHATS_RENDER_STATE.streamSignature) {
             return;
         }
-        
-        console.log('✅ Customer alerts: User authenticated as', currentUser.uid);
+        CHATS_RENDER_STATE.streamSignature = streamSignature;
+        CHATS_STREAM_STATE.threads = nextThreads;
 
-        await ensureAlertsRealtimeStream(currentUser);
-        if (ALERTS_STREAM_STATE.hasSnapshot) {
-            renderAllAlertsViews(getCombinedAlertsNotifications());
-            messagesTrace('render:alerts:success', { role: 'customer', count: ALERTS_STREAM_STATE.notifications.length });
+        // Prevent local unread suppression map from growing with stale thread ids.
+        const activeThreadIds = new Set(nextThreads.map((thread) => getThreadId(thread)).filter(Boolean));
+        for (const threadId of CHATS_LOCAL_UNREAD_SUPPRESS.keys()) {
+            if (!activeThreadIds.has(threadId)) {
+                CHATS_LOCAL_UNREAD_SUPPRESS.delete(threadId);
+            }
         }
-        
-    } catch (error) {
-        console.error('❌ Error loading customer alerts:', error);
-        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
-        messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
-    } finally {
-        hideMessagesPageLoadingOverlay();
+
+        messagesTrace('render:chats:stream_update', { count: CHATS_STREAM_STATE.threads.length });
+        renderChatsViewsFromStream();
+    });
+}
+
+function renderChatsViewsFromStream() {
+    const currentUserId = getCurrentUserId();
+    const workerContainer = document.querySelector('#worker-chats-content .messages-container');
+    const customerContainer = document.querySelector('#customer-interviews-content .messages-container');
+    const workerThreads = filterThreadsForRole(CHATS_STREAM_STATE.threads, 'worker')
+        .map((thread) => transformFirebaseThreadToChatThread(thread, currentUserId));
+    const customerThreads = filterThreadsForRole(CHATS_STREAM_STATE.threads, 'customer')
+        .map((thread) => transformFirebaseThreadToChatThread(thread, currentUserId));
+
+    if (workerContainer && isElementActiveAndVisible(document.getElementById('worker-chats-content'))) {
+        const workerSignature = serializeRenderedThreadsForSignature(workerThreads);
+        if (workerSignature !== CHATS_RENDER_STATE.workerSignature) {
+            workerContainer.innerHTML = workerThreads.map(generateMessageThreadHTML).join('');
+            initializeMessages(workerContainer);
+            CHATS_RENDER_STATE.workerSignature = workerSignature;
+        }
     }
+    if (customerContainer && isElementActiveAndVisible(document.getElementById('customer-interviews-content'))) {
+        const customerSignature = serializeRenderedThreadsForSignature(customerThreads);
+        if (customerSignature !== CHATS_RENDER_STATE.customerSignature) {
+            customerContainer.innerHTML = customerThreads.map(generateMessageThreadHTML).join('');
+            initializeMessages(customerContainer);
+            CHATS_RENDER_STATE.customerSignature = customerSignature;
+        }
+    }
+
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
+}
+
+function getUnreadThreadCountForRole(role) {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId || !Array.isArray(CHATS_STREAM_STATE.threads)) return 0;
+    return filterThreadsForRole(CHATS_STREAM_STATE.threads, role).reduce((count, thread) => {
+        const unreadForUser = getEffectiveUnreadCountForThread(thread, currentUserId);
+        return count + (unreadForUser > 0 ? 1 : 0);
+    }, 0);
+}
+
+function getFallbackUnreadThreadCountForRole(role) {
+    if (role === 'worker') {
+        const workerContainer = document.querySelector('#worker-chats-content .messages-container');
+        const newTags = workerContainer ? workerContainer.querySelectorAll('.thread-new-tag') : [];
+        return newTags.length;
+    }
+    if (role === 'customer') {
+        const customerContainer = document.querySelector('#customer-interviews-content .messages-container');
+        const newTags = customerContainer ? customerContainer.querySelectorAll('.thread-new-tag') : [];
+        return newTags.length;
+    }
+    return 0;
+}
+
+function getUnreadAlertCountForRole(role) {
+    if (ALERTS_STREAM_STATE.started) {
+        const roleNotifications = filterNotificationsForAlertRole(ALERTS_STREAM_STATE.notifications, role);
+        return roleNotifications.filter((notification) => !notification.read).length;
+    }
+    if (role === 'worker') {
+        return document.querySelectorAll('#worker-alerts-content .notification-item:not(.read)').length;
+    }
+    if (role === 'customer') {
+        return document.querySelectorAll('#customer-alerts-content .notification-item:not(.read)').length;
+    }
+    return 0;
+}
+
+function updateRoleTopUnreadCounts() {
+    const workerAlertsUnread = getUnreadAlertCountForRole('worker');
+    const customerAlertsUnread = getUnreadAlertCountForRole('customer');
+    const workerChatsUnread = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('worker')
+        : getFallbackUnreadThreadCountForRole('worker');
+    const customerChatsUnread = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('customer')
+        : getFallbackUnreadThreadCountForRole('customer');
+
+    setRoleNotificationCount('#workerRoleTab', workerAlertsUnread + workerChatsUnread);
+    setRoleNotificationCount('#customerRoleTab', customerAlertsUnread + customerChatsUnread);
+}
+
+function publishMessagesUnreadCounterUpdate() {
+    const workerUnread = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('worker')
+        : getFallbackUnreadThreadCountForRole('worker');
+    const customerUnread = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('customer')
+        : getFallbackUnreadThreadCountForRole('customer');
+    const totalUnread = Math.max(0, workerUnread + customerUnread);
+
+    try {
+        document.dispatchEvent(new CustomEvent('gisugo:messages-unread-counter-update', {
+            detail: { workerUnread, customerUnread, totalUnread }
+        }));
+    } catch (error) {
+        messagesDebug('Failed to publish messages unread counter update', error);
+    }
+    updateRoleTopUnreadCounts();
+}
+
+function clearThreadUnreadLocally(threadId) {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId || !threadId || !Array.isArray(CHATS_STREAM_STATE.threads)) return;
+
+    CHATS_LOCAL_UNREAD_SUPPRESS.set(threadId, Date.now());
+    CHATS_STREAM_STATE.threads = CHATS_STREAM_STATE.threads.map((thread) => {
+        const candidateId = thread?.id || thread?.threadId;
+        if (candidateId !== threadId) return thread;
+        const unreadCount = { ...(thread?.unreadCount || {}) };
+        unreadCount[currentUserId] = 0;
+        return { ...thread, unreadCount };
+    });
+    CHATS_RENDER_STATE.streamSignature = '';
+    CHATS_RENDER_STATE.workerSignature = '';
+    CHATS_RENDER_STATE.customerSignature = '';
+}
+
+function markThreadAsRead(threadId) {
+    if (!threadId) return;
+
+    const currentUserId = getCurrentUserId();
+    const thread = (CHATS_STREAM_STATE.threads || []).find((entry) => {
+        const candidateId = entry?.id || entry?.threadId;
+        return candidateId === threadId;
+    });
+    const unreadBefore = getRawUnreadCountForThread(thread, currentUserId);
+    const suppressUntil = Math.max(Date.now(), toMillis(thread?.lastMessageTime || thread?.createdAt));
+    CHATS_LOCAL_UNREAD_SUPPRESS.set(threadId, suppressUntil);
+
+    clearThreadUnreadLocally(threadId);
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+
+    if (unreadBefore > 0 && typeof markChatThreadRead === 'function') {
+        void markChatThreadRead(threadId).catch((error) => {
+            console.warn('⚠️ Failed to persist thread read state:', error);
+        });
+    }
+}
+
+function requestThreadReadSync(threadId, options = {}) {
+    if (!threadId) return;
+    const forcePersist = options.force === true;
+
+    clearThreadUnreadLocally(threadId);
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
+
+    if (typeof markChatThreadRead !== 'function') return;
+    if (CHATS_READ_SYNC_STATE.inFlight.has(threadId)) return;
+
+    const now = Date.now();
+    const lastAttempt = CHATS_READ_SYNC_STATE.lastAttemptByThread.get(threadId) || 0;
+    if (!forcePersist && now - lastAttempt < 800) return;
+
+    CHATS_READ_SYNC_STATE.lastAttemptByThread.set(threadId, now);
+    CHATS_READ_SYNC_STATE.inFlight.add(threadId);
+    void markChatThreadRead(threadId)
+        .catch((error) => {
+            console.warn('⚠️ Failed to sync active-thread read state:', error);
+        })
+        .finally(() => {
+            CHATS_READ_SYNC_STATE.inFlight.delete(threadId);
+        });
 }
 
 // Load segregated chats based on role
-function loadWorkerChats() {
-    const container = document.querySelector('#worker-chats-content .messages-container');
-    if (container) {
-        // Filter chats for worker role
-        const workerChats = MOCK_MESSAGES.filter(thread => 
-            thread.currentUserRole === 'worker'
-        );
-        
-        const content = workerChats.map(thread => generateMessageThreadHTML(thread)).join('');
-        container.innerHTML = content;
-        
-        // Initialize event handlers for this specific container
-        initializeMessages(container);
-        
-        // Update count
-        const countElement = document.querySelector('#workerChatsTab .notification-count');
-        if (countElement) {
-            const newCount = workerChats.filter(thread => thread.isNew).length;
-            countElement.textContent = newCount;
-            countElement.style.display = newCount > 0 ? 'block' : 'none';
+async function loadRoleChats(role) {
+    const isWorkerRole = role === 'worker';
+    const roleName = isWorkerRole ? 'worker' : 'customer';
+    const containerSelector = isWorkerRole
+        ? '#worker-chats-content .messages-container'
+        : '#customer-interviews-content .messages-container';
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+    const requestId = beginChatsLoadRequest(roleName);
+
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined'
+        ? APP_CONFIG.useFirebaseData()
+        : true;
+    const canUseFirebaseChats = shouldUseFirebase
+        && typeof getUserChatThreads === 'function'
+        && typeof subscribeToUserThreads === 'function'
+        && typeof isFirebaseOnline === 'function'
+        && isFirebaseOnline();
+
+    if (!canUseFirebaseChats) {
+        if (!shouldUseFirebase) {
+            const fallbackChats = MOCK_MESSAGES.filter((thread) => thread.currentUserRole === roleName);
+            container.innerHTML = fallbackChats.map(generateMessageThreadHTML).join('');
+            initializeMessages(container);
+            if (isWorkerRole) {
+                updateWorkerChatsCount();
+            } else {
+                updateCustomerInterviewsCount();
+            }
+            updateMainMessagesTabCount();
+            console.log(`${isWorkerRole ? 'Worker' : 'Customer'} chats loaded (mock fallback):`, fallbackChats.length);
+        } else {
+            // Production-like Firebase mode: never show unrelated mock chats.
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>Chats are temporarily unavailable. Please refresh and try again.</div>';
+            if (isWorkerRole) {
+                setTabNotificationCount('#workerChatsTab', 0);
+            } else {
+                setTabNotificationCount('#customerInterviewsTab', 0);
+            }
+            updateMainMessagesTabCount();
+            console.warn(`⚠️ ${roleName} chats unavailable: Firebase chat path not ready`);
         }
-        
-        console.log('Worker chats loaded:', workerChats.length);
+        return;
+    }
+
+    try {
+        const currentUser = await waitForAuthStateWithTimeout();
+        if (isChatsLoadRequestStale(requestId, roleName)) {
+            messagesTrace('render:chats:request_stale', { role: roleName, requestId, stage: 'after_auth' });
+            return;
+        }
+
+        if (!currentUser) {
+            stopChatsRealtimeStream(`${roleName}_not_authenticated`);
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view chats</div>';
+            return;
+        }
+
+        await ensureChatsRealtimeStream(currentUser);
+        if (isChatsLoadRequestStale(requestId, roleName)) {
+            messagesTrace('render:chats:request_stale', { role: roleName, requestId, stage: 'after_subscribe' });
+            return;
+        }
+
+        // Render immediately from current stream cache for snappy tab switches.
+        renderChatsViewsFromStream();
+    } catch (error) {
+        console.error(`❌ Error loading ${roleName} chats:`, error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load chats. Please refresh the page.</div>';
     }
 }
 
-function loadCustomerInterviews() {
-    const container = document.querySelector('#customer-interviews-content .messages-container');
-    if (container) {
-        // Filter chats for customer role
-        const customerChats = MOCK_MESSAGES.filter(thread => 
-            thread.currentUserRole === 'customer'
-        );
-        
-        const content = customerChats.map(thread => generateMessageThreadHTML(thread)).join('');
-        container.innerHTML = content;
-        
-        // Initialize event handlers for this specific container
-        initializeMessages(container);
-        
-        // Update count
-        const countElement = document.querySelector('#customerInterviewsTab .notification-count');
-        if (countElement) {
-            const newCount = customerChats.filter(thread => thread.isNew).length;
-            countElement.textContent = newCount;
-            countElement.style.display = newCount > 0 ? 'block' : 'none';
-        }
-        
-        console.log('Customer interviews loaded:', customerChats.length);
-    }
+async function loadWorkerChats() {
+    await loadRoleChats('worker');
+}
+
+async function loadCustomerInterviews() {
+    await loadRoleChats('customer');
 }
 
 // Initialize the Messages app when DOM is ready
@@ -1433,6 +1917,7 @@ async function switchToRole(roleType) {
         // Activate customer alerts tab
         document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('customerAlertsTab')?.classList.add('active');
+        stopChatsRealtimeStream('switch_role_to_customer_default_alerts');
         
         // Initialize the default customer alerts tab content
         await initializeCustomerAlertsTab();
@@ -1459,6 +1944,7 @@ async function switchToRole(roleType) {
         // Activate worker alerts tab
         document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('workerAlertsTab')?.classList.add('active');
+        stopChatsRealtimeStream('switch_role_to_worker_default_alerts');
         
         // Initialize the default worker alerts tab content
         await initializeWorkerAlertsTab();
@@ -1496,6 +1982,7 @@ function initializeTabs() {
 
 async function switchToUnifiedMessages() {
     console.log('🔄 Switching to unified Messages tab');
+    stopChatsRealtimeStream('switch_to_unified_messages');
     
     // CLEANUP: Close all message threads when switching tabs
     closeAllMessageThreads();
@@ -1570,6 +2057,9 @@ async function switchToCustomerTab(tabType) {
     }
     
     console.log(`🔄 Switched to customer tab: ${tabType}`);
+    if (tabType !== 'customer-interviews') {
+        stopChatsRealtimeStream('switch_away_from_customer_interviews');
+    }
     
     // Load customer content
     if (tabType === 'customer-alerts') {
@@ -1626,6 +2116,9 @@ async function switchToWorkerTab(tabType) {
     }
     
     console.log(`🔄 Switched to worker tab: ${tabType}`);
+    if (tabType !== 'worker-chats') {
+        stopChatsRealtimeStream('switch_away_from_worker_chats');
+    }
     
     // Load worker content
     if (tabType === 'worker-alerts') {
@@ -2207,27 +2700,14 @@ function initializeNotifications(scopeRoot = document) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent notification item click
             
-            const btnText = this.textContent.trim();
             const notificationItem = this.closest('.notification-item');
-            const notificationTitle = notificationItem.querySelector('.notification-title').textContent;
+            if (!notificationItem) return;
             
             // Mark notification as read when any action button is clicked
             void markNotificationAsRead(notificationItem);
-            
-            // Handle different action types
-            switch(btnText) {
-                case 'Review Applications':
-                    handleReviewApplications(notificationItem);
-                    break;
-                case 'View Application':
-                    handleViewApplication(notificationItem);
-                    break;
-                case 'Reply':
-                    handleReplyMessage(notificationItem);
-                    break;
-                default:
-                    console.log(`Action: ${btnText} for notification: ${notificationTitle}`);
-            }
+
+            const actionName = String(this.getAttribute('data-action') || '').trim().toLowerCase();
+            void dispatchNotificationAction(actionName, notificationItem, this);
         });
     });
     
@@ -2278,6 +2758,28 @@ function initializeNotifications(scopeRoot = document) {
     });
 }
 
+async function dispatchNotificationAction(actionName, notificationItem, actionButton) {
+    const normalizedAction = String(actionName || '').trim().toLowerCase();
+    const handlerMap = {
+        review_applications: () => handleReviewApplications(notificationItem),
+        view_application: () => handleViewApplication(notificationItem),
+        reply_message: () => handleReplyMessage(notificationItem, actionButton),
+        // Route "rate_worker" through type-based navigation while completed flow remains in jobs/profile.
+        rate_worker: () => handleNotificationTypeNavigation(notificationItem)
+    };
+
+    const handler = handlerMap[normalizedAction];
+    if (handler) {
+        await handler();
+        return;
+    }
+
+    const notificationTitle = notificationItem.querySelector('.notification-title')?.textContent || 'Unknown';
+    const buttonText = actionButton?.textContent?.trim() || '';
+    console.log(`Unhandled notification action "${normalizedAction}" (${buttonText}) for: ${notificationTitle}`);
+    messagesTrace('alerts:action_unhandled', normalizedAction || 'missing');
+}
+
 function handleReviewApplications(notificationItem) {
     // Extract job info from notification
     const message = notificationItem.querySelector('.notification-message').textContent;
@@ -2326,13 +2828,13 @@ function handleViewApplication(notificationItem) {
     console.log('Backend action: Navigate to specific application for:', applicantName, '- REMOVED');
 }
 
-function handleReplyMessage(notificationItem) {
+function handleReplyMessage(notificationItem, actionButton = null) {
     const message = notificationItem.querySelector('.notification-message').textContent;
     const senderMatch = message.match(/\*\*(.*?)\*\*/);
     const senderName = senderMatch ? senderMatch[1] : 'Unknown';
     
     // Get the threadId from the Reply button's data attributes
-    const replyButton = notificationItem.querySelector('[data-action="reply_message"]');
+    const replyButton = actionButton || notificationItem.querySelector('[data-action="reply_message"]');
     const threadId = replyButton ? replyButton.getAttribute('data-thread-id') : null;
     
     if (threadId) {
@@ -2350,8 +2852,10 @@ function handleReplyMessage(notificationItem) {
 }
 
 function navigateToMessageThread(threadId) {
-    // Switch to messages tab first
-    const messagesTab = document.getElementById('messagesTab');
+    // Switch to the unified messages tab first
+    const customerMessagesTab = document.getElementById('unifiedMessagesTab');
+    const workerMessagesTab = document.getElementById('unifiedMessagesTabWorker');
+    const messagesTab = customerMessagesTab?.offsetParent !== null ? customerMessagesTab : workerMessagesTab;
     if (messagesTab) {
         messagesTab.click();
         
@@ -2391,17 +2895,12 @@ function navigateToMessageThread(threadId) {
 
 // Update notification count (would be called when new notifications arrive)
 function updateNotificationCount(count) {
-    const notificationCountElement = document.querySelector('.notification-count');
-    if (notificationCountElement) {
-        notificationCountElement.textContent = count;
-        
-        // Hide badge if count is 0
-        if (count === 0) {
-            notificationCountElement.style.display = 'none';
-        } else {
-            notificationCountElement.style.display = 'inline-block';
-        }
-    }
+    // Legacy compatibility wrapper: maintain role/tab badge consistency for current layout.
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    setTabNotificationCount('#workerAlertsTab', safeCount);
+    setTabNotificationCount('#customerAlertsTab', safeCount);
+    setRoleNotificationCount('#workerRoleTab', safeCount);
+    setRoleNotificationCount('#customerRoleTab', safeCount);
 } 
 
 const PENDING_NOTIFICATION_READS_KEY = 'gisugo_pending_notification_reads';
@@ -3973,32 +4472,188 @@ function generateMessageHTML(message) {
         `data-read="${message.read}"`
     ].join(' ');
 
+    const isImageMessage = message.messageType === 'image' && (message.thumbnailUrl || message.fullSizeUrl);
+    const messageBody = isImageMessage
+        ? `
+            <div class="message-photo" onclick="showPhotoLightbox('${message.fullSizeUrl || message.thumbnailUrl}')">
+                <img src="${message.thumbnailUrl || message.fullSizeUrl}" alt="Shared photo" class="photo-thumbnail" data-full-size="${message.fullSizeUrl || message.thumbnailUrl}" loading="eager" decoding="async">
+            </div>
+        `
+        : `
+            <div class="message-bubble ${message.direction}">
+                ${message.content}
+            </div>
+        `;
+
     return `
         <div class="message-card ${message.direction}" ${messageDataAttrs}>
             <div class="message-header">
                 ${message.direction === 'outgoing' ? `
-                    <div class="message-avatar">
-                        <img src="${message.avatar}" alt="${message.senderName}">
-                    </div>
                     <div class="message-info">
                         <div class="message-sender">${message.senderName}</div>
                         <div class="message-timestamp">${message.timeDisplay}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <img src="${message.avatar}" alt="${message.senderName}">
                     </div>
                 ` : `
+                    <div class="message-avatar">
+                        <img src="${message.avatar}" alt="${message.senderName}">
+                    </div>
                     <div class="message-info">
                         <div class="message-sender">${message.senderName}</div>
                         <div class="message-timestamp">${message.timeDisplay}</div>
-                    </div>
-                    <div class="message-avatar">
-                        <img src="${message.avatar}" alt="${message.senderName}">
                     </div>
                 `}
             </div>
-            <div class="message-bubble ${message.direction}">
-                ${message.content}
-            </div>
+            ${messageBody}
         </div>
     `;
+}
+
+function formatChatModalTimestamp(rawTimestamp) {
+    const dateValue = rawTimestamp?.toDate
+        ? rawTimestamp.toDate()
+        : new Date(rawTimestamp || Date.now());
+    if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) {
+        return new Date().toLocaleString();
+    }
+    return dateValue.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+}
+
+function normalizeFirebaseChatMessage(message, currentUserId) {
+    const senderId = String(message?.senderId || '').trim();
+    const direction = senderId && senderId === currentUserId ? 'outgoing' : 'incoming';
+    const senderType = String(message?.senderType || (direction === 'outgoing' ? 'worker' : 'customer')).toLowerCase();
+    const normalizedDate = message?.timestamp?.toDate
+        ? message.timestamp.toDate()
+        : new Date(message?.timestamp || message?.createdAt || Date.now());
+    const safeDate = Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate;
+
+    const messageType = String(message?.messageType || 'text').toLowerCase() === 'image' ? 'image' : 'text';
+    const thumbnailUrl = String(message?.thumbnailUrl || message?.photoData?.thumbnailUrl || '').trim();
+    const fullSizeUrl = String(message?.fullSizeUrl || message?.photoData?.fullSizeUrl || thumbnailUrl).trim();
+    return {
+        id: message?.id || message?.messageId || `${safeDate.getTime()}`,
+        threadId: message?.threadId || '',
+        senderId: senderId || 'unknown',
+        senderName: direction === 'outgoing' ? 'You' : (message?.senderName || 'User'),
+        senderType: senderType === 'worker' || senderType === 'customer' ? senderType : (direction === 'outgoing' ? 'worker' : 'customer'),
+        timestamp: safeDate.toISOString(),
+        timeDisplay: formatChatModalTimestamp(message?.timestamp || message?.createdAt || safeDate),
+        read: message?.read === true,
+        direction: direction,
+        avatar: message?.senderAvatar || message?.avatar || 'public/icons/unknown.jpg',
+        content: String(message?.content || ''),
+        messageType: messageType,
+        thumbnailUrl: thumbnailUrl,
+        fullSizeUrl: fullSizeUrl
+    };
+}
+
+function renderThreadMessagesInModal(modalOverlay, messages, options = {}) {
+    const shouldAutoscroll = options.autoScroll !== false;
+    const messagesContainer = modalOverlay?.querySelector('.chat-messages-container');
+    if (!messagesContainer) return;
+    const currentUserId = getCurrentUserId();
+    const normalizedMessages = (Array.isArray(messages) ? messages : [])
+        .map((message) => normalizeFirebaseChatMessage(message, currentUserId));
+    messagesContainer.innerHTML = normalizedMessages.map((message) => generateMessageHTML(message)).join('');
+    initializeAvatarOverlays(modalOverlay);
+    if (shouldAutoscroll) {
+        scrollMessagesContainerToBottom(messagesContainer);
+        const photoThumbs = messagesContainer.querySelectorAll('.photo-thumbnail');
+        photoThumbs.forEach((img) => {
+            if (img.complete) return;
+            img.addEventListener('load', () => {
+                scrollMessagesContainerToBottom(messagesContainer, 2);
+            }, { once: true });
+        });
+    }
+}
+
+let chatModalOpenCount = 0;
+
+function lockBodyScrollForChatModal() {
+    if (chatModalOpenCount === 0) {
+        document.body.dataset.chatModalPrevOverflow = document.body.style.overflow || '';
+        document.body.dataset.chatModalPrevTouchAction = document.body.style.touchAction || '';
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+    }
+    chatModalOpenCount += 1;
+}
+
+function unlockBodyScrollForChatModal() {
+    chatModalOpenCount = Math.max(0, chatModalOpenCount - 1);
+    if (chatModalOpenCount > 0) return;
+
+    document.body.style.overflow = document.body.dataset.chatModalPrevOverflow || '';
+    document.body.style.touchAction = document.body.dataset.chatModalPrevTouchAction || '';
+    delete document.body.dataset.chatModalPrevOverflow;
+    delete document.body.dataset.chatModalPrevTouchAction;
+}
+
+function scrollMessagesContainerToBottom(messagesContainer, attempts = 4) {
+    if (!messagesContainer) return;
+    const settle = () => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    settle();
+    for (let index = 1; index <= attempts; index += 1) {
+        requestAnimationFrame(() => {
+            settle();
+            setTimeout(settle, index * 40);
+        });
+    }
+}
+
+async function bindRealtimeThreadMessages(modalOverlay, threadId) {
+    if (!modalOverlay || !threadId) return;
+    const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
+    }
+
+    if (ACTIVE_LISTENERS.activeThreadMessages) {
+        ACTIVE_LISTENERS.activeThreadMessages();
+        ACTIVE_LISTENERS.activeThreadMessages = null;
+    }
+
+    if (typeof subscribeToThreadMessages === 'function') {
+        ACTIVE_LISTENERS.activeThreadMessages = subscribeToThreadMessages(threadId, (messages) => {
+            renderThreadMessagesInModal(modalOverlay, messages, { autoScroll: true });
+            const lastMessage = Array.isArray(messages) && messages.length > 0
+                ? messages[messages.length - 1]
+                : null;
+            const lastMessageId = String(lastMessage?.id || lastMessage?.messageId || '').trim();
+            const previousLastMessageId = String(modalOverlay.dataset.lastSnapshotMessageId || '').trim();
+            if (lastMessageId && lastMessageId !== previousLastMessageId) {
+                modalOverlay.dataset.lastSnapshotMessageId = lastMessageId;
+                const currentUserId = String(getCurrentUserId() || '');
+                const lastSenderId = String(lastMessage?.senderId || '').trim();
+                if (currentUserId && lastSenderId && lastSenderId !== currentUserId) {
+                    // While thread is open, treat new incoming messages as read immediately.
+                    requestThreadReadSync(threadId, { force: true });
+                }
+            }
+        });
+    } else if (typeof getThreadMessages === 'function') {
+        // Fallback path only when realtime listener is unavailable.
+        try {
+            const initialMessages = await getThreadMessages(threadId, 100);
+            renderThreadMessagesInModal(modalOverlay, initialMessages, { autoScroll: true });
+        } catch (error) {
+            console.warn('⚠️ Failed to load thread messages:', error);
+        }
+    }
 }
 
 // Helper function to generate participant text based on user perspective
@@ -4254,6 +4909,7 @@ function initializeMessages(container = document) {
                             updateMessageCount();
                         }
                     }
+                    markThreadAsRead(threadId);
                     
                     // Modal initialization is handled in showChatModal function
                 }
@@ -4307,7 +4963,7 @@ function closeAllMessageThreads() {
     hideAvatarOverlay();
     cleanupMobileInputVisibility();
     
-    console.log('✅ All message threads closed and cleaned up');
+    messagesDebug('✅ All message threads closed and cleaned up');
 }
 
 function scrollToThreadTop() {
@@ -4319,94 +4975,33 @@ function scrollToThreadTop() {
 }
 
 function updateMessageCount() {
-    // Count remaining "new" tags only within the messages container to avoid counting orphaned elements
-    const messagesContainer = document.querySelector('#messages-content .messages-container');
-    const newTags = messagesContainer ? messagesContainer.querySelectorAll('.thread-new-tag') : [];
-    const messageCountElement = document.querySelector('#messagesTab .notification-count');
-    
-    console.log('Updating message count:', {
-        newTagsFound: newTags.length,
-        newTagElements: Array.from(newTags).map(tag => tag.closest('.message-thread')?.querySelector('.thread-job-title')?.textContent)
-    });
-    
-    if (messageCountElement) {
-        const remainingCount = newTags.length;
-        messageCountElement.textContent = remainingCount;
-        
-        // Hide badge if count is 0
-        if (remainingCount === 0) {
-            messageCountElement.style.display = 'none';
-        } else {
-            messageCountElement.style.display = 'inline-block';
-        }
-        
-        console.log('Message count updated to:', remainingCount);
-    }
+    // Legacy compatibility wrapper: refresh current role-based chat/message counters.
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
 }
 
 function updateWorkerChatsCount() {
-    const workerContainer = document.querySelector('#worker-chats-content .messages-container');
-    const newTags = workerContainer ? workerContainer.querySelectorAll('.thread-new-tag') : [];
-    const countElement = document.querySelector('#workerChatsTab .notification-count');
-    
-    if (countElement) {
-        const remainingCount = newTags.length;
-        countElement.textContent = remainingCount;
-        
-        if (remainingCount === 0) {
-            countElement.style.display = 'none';
-        } else {
-            countElement.style.display = 'inline-block';
-        }
-        
-        console.log(`Updated worker chats count to: ${remainingCount}`);
-    }
+    const remainingCount = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('worker')
+        : getFallbackUnreadThreadCountForRole('worker');
+
+    setTabNotificationCount('#workerChatsTab', remainingCount);
+    publishMessagesUnreadCounterUpdate();
 }
 
 function updateCustomerInterviewsCount() {
-    const customerContainer = document.querySelector('#customer-interviews-content .messages-container');
-    const newTags = customerContainer ? customerContainer.querySelectorAll('.thread-new-tag') : [];
-    const countElement = document.querySelector('#customerInterviewsTab .notification-count');
-    
-    if (countElement) {
-        const remainingCount = newTags.length;
-        countElement.textContent = remainingCount;
-        
-        if (remainingCount === 0) {
-            countElement.style.display = 'none';
-        } else {
-            countElement.style.display = 'inline-block';
-        }
-        
-        console.log(`Updated customer interviews count to: ${remainingCount}`);
-    }
+    const remainingCount = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('customer')
+        : getFallbackUnreadThreadCountForRole('customer');
+
+    setTabNotificationCount('#customerInterviewsTab', remainingCount);
+    publishMessagesUnreadCounterUpdate();
 }
 
 function updateApplicationsCount() {
-    // UPDATED: 3rd tab is now Messages (admin communications), not applications
-    // Set static count for Messages tab
-    const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
-    
-    if (applicationsCountElement) {
-        const remainingCount = 6; // Static count for Messages tab
-        applicationsCountElement.textContent = remainingCount;
-        
-        // Hide badge if count is 0
-        if (remainingCount === 0) {
-            applicationsCountElement.style.display = 'none';
-            // Show placeholder when no applications remain
-            if (applicationsPlaceholder) {
-                applicationsPlaceholder.style.display = 'block';
-                console.log('✅ Applications placeholder now visible - no applications remaining');
-            }
-        } else {
-            applicationsCountElement.style.display = 'inline-block';
-            // Hide placeholder when applications are present
-            if (applicationsPlaceholder) {
-                applicationsPlaceholder.style.display = 'none';
-            }
-        }
-    }
+    // Applications tab was removed from messages page; keep function as no-op compatibility hook.
+    updateMainMessagesTabCount();
 }
 
 function updateJobHeaderCounts() {
@@ -4431,70 +5026,26 @@ function updateAllTabCounts() {
     // Calculate and update all tab counts on page load based on mock data
     // This ensures counts are accurate before tabs are clicked
     
-    // Applications count - total application cards from mock data
-    const applicationsCountElement = document.querySelector('#applicationsTab .notification-count');
-    const applicationsPlaceholder = document.getElementById('applications-placeholder');
-    
-    if (applicationsCountElement) {
-        let totalApplications = 0;
-        MOCK_APPLICATIONS.forEach(jobData => {
-            totalApplications += jobData.applications.length;
-        });
-        applicationsCountElement.textContent = totalApplications;
-        
-        if (totalApplications === 0) {
-            applicationsCountElement.style.display = 'none';
-            // Show placeholder when no applications exist
-            if (applicationsPlaceholder) {
-                applicationsPlaceholder.style.display = 'block';
-            }
-        } else {
-            applicationsCountElement.style.display = 'inline-block';
-            // Hide placeholder when applications exist
-            if (applicationsPlaceholder) {
-                applicationsPlaceholder.style.display = 'none';
-            }
-        }
-    }
-    
     // Notifications count - keep existing count logic
     updateNotificationsCount();
     
-    // Messages count - calculate from mock data
-    const messagesCountElement = document.querySelector('#messagesTab .notification-count');
-    if (messagesCountElement) {
-        // Count "new" threads from MOCK_MESSAGES data
-        const newThreadsCount = MOCK_MESSAGES.filter(thread => thread.isNew === true).length;
-        messagesCountElement.textContent = newThreadsCount;
-        
-        if (newThreadsCount === 0) {
-            messagesCountElement.style.display = 'none';
-        } else {
-            messagesCountElement.style.display = 'inline-block';
-        }
-        
-        console.log('Messages count updated from mock data:', newThreadsCount);
-    }
+    // Chats counters from mock data by role (legacy compatibility)
+    const workerNewThreadsCount = MOCK_MESSAGES.filter(thread => thread.currentUserRole === 'worker' && thread.isNew === true).length;
+    setTabNotificationCount('#workerChatsTab', workerNewThreadsCount);
+    const customerNewThreadsCount = MOCK_MESSAGES.filter(thread => thread.currentUserRole === 'customer' && thread.isNew === true).length;
+    setTabNotificationCount('#customerInterviewsTab', customerNewThreadsCount);
+    updateMainMessagesTabCount();
     
     console.log('All tab counts updated on page load');
 }
 
 function updateNotificationsCount() {
-    // Count unread notifications (those without the 'read' class)
-    const unreadNotifications = document.querySelectorAll('.notification-item:not(.read)');
-    const notificationsCountElement = document.querySelector('#notificationsTab .notification-count');
-    
-    if (notificationsCountElement) {
-        const unreadCount = unreadNotifications.length;
-        notificationsCountElement.textContent = unreadCount;
-        
-        // Hide badge if count is 0
-        if (unreadCount === 0) {
-            notificationsCountElement.style.display = 'none';
-        } else {
-            notificationsCountElement.style.display = 'inline-block';
-        }
-    }
+    // Keep alert badge IDs aligned with current role-based layout.
+    const workerUnread = document.querySelectorAll('#worker-alerts-content .notification-item:not(.read)').length;
+    const customerUnread = document.querySelectorAll('#customer-alerts-content .notification-item:not(.read)').length;
+    setTabNotificationCount('#workerAlertsTab', workerUnread);
+    setTabNotificationCount('#customerAlertsTab', customerUnread);
+    updateRoleTopUnreadCounts();
 }
 
 // Contact Message Overlay Functions
@@ -4566,7 +5117,7 @@ function cleanupMobileInputVisibility() {
     });
     mobileInputListeners = [];
     
-    console.log('🧹 Mobile input visibility cleanup completed');
+    messagesDebug('🧹 Mobile input visibility cleanup completed');
 }
 
 function initializeContactMessageOverlay() {
@@ -6526,7 +7077,7 @@ function initializeAvatarForOverlay(avatar) {
         // Skip overlay initialization for current user's own avatar
         // Convert both to strings for comparison since DOM attributes are strings
         if (String(senderId) === String(currentUserId) || senderId === '1') {
-            console.log(`🚫 Skipping avatar overlay for current user (ID: ${senderId})`);
+            messagesDebug(`🚫 Skipping avatar overlay for current user (ID: ${senderId})`);
             return;
         }
     }
@@ -6540,7 +7091,7 @@ function initializeAvatarForOverlay(avatar) {
         
         // CRITICAL FIX: Debounce rapid clicks to prevent overlay stacking
         if (globalAvatarClickProcessing) {
-            console.log('Avatar click ignored - still processing previous click');
+            messagesDebug('Avatar click ignored - still processing previous click');
             return;
         }
         
@@ -6615,7 +7166,7 @@ function initializeAvatarOverlays(messageThread) {
         initializeAvatarForOverlay(avatar);
     });
     
-    console.log(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
+    messagesDebug(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
 }
 
 // Create and show chat modal overlay - TRUE MODAL SYSTEM
@@ -6625,9 +7176,7 @@ function showChatModal(messageThread, threadContent) {
     const jobTitle = messageThread.querySelector('.thread-job-title').textContent;
     const participant = messageThread.querySelector('.thread-participant').textContent;
     
-    // Get messages content from the thread
-    const messagesContainer = threadContent.querySelector('.message-scroll-container');
-    const messagesHTML = messagesContainer ? messagesContainer.innerHTML : '';
+    const messagesHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
     
     // Create modal overlay - append to body for proper z-index
     const modalOverlay = document.createElement('div');
@@ -6673,6 +7222,7 @@ function showChatModal(messageThread, threadContent) {
     
     // Append to body for proper layering
     document.body.appendChild(modalOverlay);
+    lockBodyScrollForChatModal();
     
     // Initialize modal functionality
     initializeChatModal(modalOverlay, messageThread, threadId);
@@ -6684,7 +7234,7 @@ function showChatModal(messageThread, threadContent) {
         // Scroll to bottom to show latest messages (chronological order)
         const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
         if (messagesContainer) {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            scrollMessagesContainerToBottom(messagesContainer);
         }
     }, 10);
     
@@ -6700,36 +7250,23 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     // ===== VISUAL VIEWPORT API - Auto-resize for mobile keyboard =====
     let viewportHandler = null;
     const originalHeight = window.innerHeight;
+    let keyboardOpen = false;
     
     if (window.visualViewport) {
         viewportHandler = () => {
             const viewport = window.visualViewport;
             const viewportHeight = viewport.height;
-            const viewportOffsetTop = viewport.offsetTop;
             
             // Calculate if keyboard is likely open (significant height reduction)
             const heightDiff = originalHeight - viewportHeight;
-            const keyboardLikelyOpen = heightDiff > 100; // Threshold for keyboard detection
-            
-            if (keyboardLikelyOpen) {
-                // Keyboard is open - resize modal to fit visible area
-                const safeHeight = viewportHeight - 40; // 40px padding
-                modalContainer.style.height = safeHeight + 'px';
-                modalContainer.style.maxHeight = safeHeight + 'px';
-                
-                // Adjust overlay to account for viewport offset (iOS Safari quirk)
-                modalOverlay.style.height = viewportHeight + 'px';
-                modalOverlay.style.top = viewportOffsetTop + 'px';
-                
-                console.log(`📱 Keyboard detected - resizing modal to ${safeHeight}px`);
-            } else {
-                // Keyboard closed - reset to CSS defaults
-                modalContainer.style.height = '';
-                modalContainer.style.maxHeight = '';
-                modalOverlay.style.height = '';
-                modalOverlay.style.top = '';
-                
-                console.log('📱 Keyboard closed - resetting modal size');
+            const keyboardLikelyOpen = heightDiff > 120;
+            if (keyboardLikelyOpen !== keyboardOpen) {
+                keyboardOpen = keyboardLikelyOpen;
+                modalOverlay.classList.toggle('keyboard-open', keyboardOpen);
+                if (keyboardOpen) {
+                    const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+                    scrollMessagesContainerToBottom(messagesContainer, 2);
+                }
             }
         };
         
@@ -6748,8 +7285,8 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         e.stopPropagation();
         e.preventDefault();
         
-        console.log('🔍 Menu button clicked, event target:', e.target);
-        console.log('🔍 Menu button position:', e.target.getBoundingClientRect());
+        messagesDebug('🔍 Menu button clicked, event target:', e.target);
+        messagesDebug('🔍 Menu button position:', e.target.getBoundingClientRect());
         
         // Get thread data for avatar overlay - extract participant name properly
         const participantText = messageThread.querySelector('.thread-participant').textContent;
@@ -6775,7 +7312,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
             lastActivity: new Date().toISOString()
         };
         
-        console.log('🔍 Opening chat options for:', threadData);
+        messagesDebug('🔍 Opening chat options for:', threadData);
         
         // Ensure showAvatarOverlay function exists before calling
         if (typeof showAvatarOverlay === 'function') {
@@ -6807,7 +7344,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     
     // Initialize chat functionality with proper selectors
     initializeChatInputFunctionality(modalOverlay);
-    initializeAvatarOverlays(modalOverlay);
+    void bindRealtimeThreadMessages(modalOverlay, threadId);
     
     // Store cleanup functions
     modalOverlay._cleanup = () => {
@@ -6821,6 +7358,11 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
             window.visualViewport.removeEventListener('resize', viewportHandler);
             window.visualViewport.removeEventListener('scroll', viewportHandler);
             console.log('🧹 Visual Viewport listeners cleaned up');
+        }
+
+        if (ACTIVE_LISTENERS.activeThreadMessages) {
+            ACTIVE_LISTENERS.activeThreadMessages();
+            ACTIVE_LISTENERS.activeThreadMessages = null;
         }
     };
 }
@@ -6853,14 +7395,6 @@ function initializeChatInputFunctionality(modalOverlay) {
     const focusHandler = function() {
         this.classList.add('expanded');
         inputContainer.classList.add('input-focused');
-        
-        // SAFETY NET: Scroll input into view when keyboard appears
-        // Small delay to let keyboard animation start
-        setTimeout(() => {
-            if (document.activeElement === this) {
-                this.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            }
-        }, 300);
     };
     
     // Blur handler
@@ -6892,8 +7426,9 @@ function initializeChatInputFunctionality(modalOverlay) {
     };
     
     // Send message functionality
-    const sendMessage = () => {
-        const message = inputField.value.trim();
+    const sendMessageHandler = async () => {
+        const rawMessage = inputField.value;
+        const message = rawMessage.trim();
         if (message) {
             if (hasUnsupportedTextChars(message)) {
                 showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
@@ -6901,140 +7436,64 @@ function initializeChatInputFunctionality(modalOverlay) {
             }
 
             const safeMessage = sanitizeTextInput(message);
-            console.log('📤 Sending message:', message);
-            
-            // Get thread data from modal
             const threadId = modalOverlay.getAttribute('data-thread-id');
-            const participantId = modalOverlay.getAttribute('data-participant-id');
+            if (!threadId) {
+                showToast('Unable to send message: missing thread.');
+                return;
+            }
             
-            // Create message data
-            const messageData = {
-                threadId: threadId,
-                senderId: getCurrentUserId(),
-                receiverId: participantId,
-                content: safeMessage,
-                timestamp: new Date().toISOString(),
-                type: 'text'
-            };
-            
-            // Add message to chat immediately (optimistic update) - Use proper message bubble structure
-            const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
-            const messageElement = document.createElement('div');
-            messageElement.className = 'message-card outgoing';
-            messageElement.innerHTML = `
-                <div class="message-header">
-                    <div class="message-avatar">
-                        <img src="public/users/Peter-J-Ang-User-01.jpg" alt="You" onerror="this.src='public/images/logo.png'">
-                    </div>
-                    <div class="message-info">
-                        <div class="message-sender">You</div>
-                        <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                    </div>
-                </div>
-                <div class="message-bubble outgoing">
-                    ${safeMessage}
-                </div>
-            `;
-            
-            // Insert at bottom since newest messages are last (chronological order)
-            messagesContainer.appendChild(messageElement);
-            
-            // Add entrance animation
-            messageElement.style.opacity = '0';
-            messageElement.style.transform = 'translateY(10px)';
-            setTimeout(() => {
-                messageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                messageElement.style.opacity = '1';
-                messageElement.style.transform = 'translateY(0)';
-            }, 50);
-            
-            // Scroll to bottom to show the new message
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // Clear input and reset state
+            if (sendBtn.disabled) return;
+            sendBtn.disabled = true;
+
+            // Clear immediately for snappy UX; realtime listener renders the sent bubble.
             inputField.value = '';
             inputField.classList.remove('expanded');
             inputContainer.classList.remove('input-focused');
-            
-            // SIMULATE AUTO-RESPONSE (like original system)
-            const participantName = modalOverlay.querySelector('.chat-modal-participant').textContent
-                .replace('Direct Message with ', '')
-                .replace('Application Interview with ', '')
-                .replace('You contacted ', '')
-                .replace(' contacted you', '')
-                .trim();
-            
-            // 70% chance of auto-response after 1.5-3.5 seconds
-            if (Math.random() > 0.3) {
-                setTimeout(() => {
-                    const responses = [
-                        "Thanks for your message! I'll get back to you soon.",
-                        "Sounds good! When would be a good time to discuss this?",
-                        "I'm interested in learning more about this opportunity.",
-                        "That works for me. Let me know the next steps.",
-                        "I have some questions about the job requirements.",
-                        "Perfect! I'm available for an interview anytime.",
-                        "Thank you for considering my application!"
-                    ];
-                    
-                    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                    
-                    const responseElement = document.createElement('div');
-                    responseElement.className = 'message-card incoming';
-                    responseElement.innerHTML = `
-                        <div class="message-header">
-                            <div class="message-info">
-                                <div class="message-sender">${participantName}</div>
-                                <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                            </div>
-                            <div class="message-avatar">
-                                <img src="${getParticipantAvatar(threadId)}" alt="${participantName}" onerror="this.src='public/images/logo.png'">
-                            </div>
-                        </div>
-                        <div class="message-bubble incoming">
-                            ${randomResponse}
-                        </div>
-                    `;
-                    
-                    // Insert at bottom since newest messages are last
-                    messagesContainer.appendChild(responseElement);
-                    
-                    // Add entrance animation
-                    responseElement.style.opacity = '0';
-                    responseElement.style.transform = 'translateY(10px)';
-                    setTimeout(() => {
-                        responseElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                        responseElement.style.opacity = '1';
-                        responseElement.style.transform = 'translateY(0)';
-                    }, 50);
-                    
-                    // Scroll to bottom to show the new message
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    
-                    console.log(`🤖 Auto-response from ${participantName}: ${randomResponse}`);
-                }, Math.random() * 2000 + 1500); // 1.5-3.5 seconds delay
+            try {
+                if (typeof sendMessage === 'function') {
+                    const recipientId = String(modalOverlay.getAttribute('data-participant-id') || '').trim();
+                    const result = await sendMessage(threadId, safeMessage, recipientId);
+                    if (!result || result.success !== true) {
+                        const reason = result?.message || 'Unable to send message';
+                        showToast(reason);
+                        // Restore user text if backend rejected the send.
+                        inputField.value = rawMessage;
+                        inputField.classList.add('expanded');
+                        inputContainer.classList.add('input-focused');
+                        inputField.focus();
+                        return;
+                    }
+                } else {
+                    showToast('Messaging backend is unavailable.');
+                    inputField.value = rawMessage;
+                    inputField.classList.add('expanded');
+                    inputContainer.classList.add('input-focused');
+                    inputField.focus();
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ Failed to send chat message:', error);
+                showToast('Failed to send message. Please try again.');
+                inputField.value = rawMessage;
+                inputField.classList.add('expanded');
+                inputContainer.classList.add('input-focused');
+                inputField.focus();
+            } finally {
+                sendBtn.disabled = false;
             }
-            
-            // Send to backend (if available)
-            if (typeof sendMessageToBackend === 'function') {
-                sendMessageToBackend(messageData);
-            } else {
-                console.log('📝 Message data (backend not connected):', messageData);
-            }
-            
-            // Update the original thread's last message
-            updateThreadLastMessage(threadId, safeMessage);
         }
     };
     
     // Send button click
-    sendBtn.addEventListener('click', sendMessage);
+    sendBtn.addEventListener('click', () => {
+        void sendMessageHandler();
+    });
     
     // Enter key to send (Shift+Enter for new line)
     inputField.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            sendMessage();
+            void sendMessageHandler();
         }
     });
 
@@ -7064,38 +7523,76 @@ function initializeChatInputFunctionality(modalOverlay) {
  * @param {File} file - Selected image file
  * @param {HTMLElement} modalOverlay - Chat modal overlay
  */
-function handlePhotoUpload(file, modalOverlay) {
+function processChatImageAsync(file) {
+    return new Promise((resolve, reject) => {
+        processChatImage(file, resolve, reject);
+    });
+}
+
+function buildChatPhotoBasePath(threadId, currentUserId, participantId) {
+    const safeThreadId = String(threadId || '').trim();
+    const uidA = String(currentUserId || '').trim();
+    const uidB = String(participantId || '').trim();
+    if (!safeThreadId || !uidA || !uidB) {
+        throw new Error('Missing thread/participant identity for chat photo path');
+    }
+    const ordered = [uidA, uidB].sort();
+    return `chat_photos/${safeThreadId}/${ordered[0]}/${ordered[1]}`;
+}
+
+async function uploadChatPhotoVariants(processedImage, threadId, participantId) {
+    let thumbnailUrl = processedImage.thumbnailURL;
+    let fullSizeUrl = processedImage.fullSizeURL;
+
+    if (typeof uploadWithProgress !== 'function' || typeof dataUrlToFile !== 'function') {
+        return { thumbnailUrl, fullSizeUrl };
+    }
+
+    const uniquePrefix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const basePath = buildChatPhotoBasePath(threadId, getCurrentUserId(), participantId);
+    const thumbPath = `${basePath}/${uniquePrefix}_thumb.jpg`;
+    const fullPath = `${basePath}/${uniquePrefix}_full.jpg`;
+    const thumbFile = dataUrlToFile(processedImage.thumbnailURL, `${uniquePrefix}_thumb.jpg`);
+    const fullFile = dataUrlToFile(processedImage.fullSizeURL, `${uniquePrefix}_full.jpg`);
+
+    const [thumbUpload, fullUpload] = await Promise.all([
+        uploadWithProgress(thumbPath, thumbFile, () => {}),
+        uploadWithProgress(fullPath, fullFile, () => {})
+    ]);
+
+    if (!thumbUpload?.success || !fullUpload?.success) {
+        throw new Error('Failed to upload chat photo assets');
+    }
+
+    thumbnailUrl = String(thumbUpload.url || '').trim() || thumbnailUrl;
+    fullSizeUrl = String(fullUpload.url || '').trim() || fullSizeUrl;
+    return { thumbnailUrl, fullSizeUrl };
+}
+
+async function handlePhotoUpload(file, modalOverlay) {
     const photoBtn = modalOverlay.querySelector('.chat-photo-btn');
-    const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
-    
-    // Show loading state
+    if (!photoBtn) return;
+
     photoBtn.classList.add('loading');
     
     console.log('📸 Processing photo for chat...');
-    
-    // Add timeout safety to prevent stuck loading state (3 seconds max)
-    const safetyTimeout = setTimeout(() => {
-        photoBtn.classList.remove('loading');
-        console.error('⚠️ Photo processing timeout - removing loading state');
-        alert('Photo processing is taking too long. Please try a different image.');
-    }, 3000);
-    
-    // Process image using new-post.js compression standards
-    processChatImage(file, (processedImage) => {
-        // Clear safety timeout since processing completed
-        clearTimeout(safetyTimeout);
-        // Get thread data
+
+    try {
+        const processedImage = await processChatImageAsync(file);
         const threadId = modalOverlay.getAttribute('data-thread-id');
         const participantId = modalOverlay.getAttribute('data-participant-id');
-        
-        // Create photo message data with dual URLs
+        if (!threadId) {
+            throw new Error('Missing threadId for photo send');
+        }
+
+        const uploadedAssets = await uploadChatPhotoVariants(processedImage, threadId, participantId);
         const photoMessageData = {
             threadId: threadId,
             senderId: getCurrentUserId(),
             receiverId: participantId,
-            content: '', // Empty for photo messages
-            thumbnailUrl: processedImage.thumbnailURL,
-            fullSizeUrl: processedImage.fullSizeURL,
+            content: '[image]',
+            thumbnailUrl: uploadedAssets.thumbnailUrl,
+            fullSizeUrl: uploadedAssets.fullSizeUrl,
             messageType: 'image',
             timestamp: new Date().toISOString(),
             dimensions: processedImage.dimensions,
@@ -7105,49 +7602,16 @@ function handlePhotoUpload(file, modalOverlay) {
                 fullSize: processedImage.fullSizeSize
             }
         };
-        
-        // Create photo message HTML with thumbnail for display, full-size for lightbox
-        const photoMessageHTML = createPhotoMessageHTML(
-            processedImage.thumbnailURL,
-            processedImage.fullSizeURL,
-            'outgoing',
-            'You',
-            'public/users/Peter-J-Ang-User-01.jpg'
-        );
-        
-        // Add photo message to chat
-        const messageElement = document.createElement('div');
-        messageElement.innerHTML = photoMessageHTML;
-        const photoMessage = messageElement.firstElementChild;
-        
-        // Insert at bottom since newest messages are last
-        messagesContainer.appendChild(photoMessage);
-        
-        // Ensure proper scrolling after image loads
-        const photoImg = photoMessage.querySelector('.photo-thumbnail');
-        const scrollToBottom = () => {
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        };
-        
-        // Add load event listener to image for proper scroll positioning
-        photoImg.addEventListener('load', scrollToBottom);
-        
-        // Add entrance animation
-        photoMessage.style.opacity = '0';
-        photoMessage.style.transform = 'translateY(10px)';
-        setTimeout(() => {
-            photoMessage.style.opacity = '1';
-            photoMessage.style.transform = 'translateY(0)';
-            photoMessage.style.transition = 'all 0.3s ease';
-            
-            // Scroll to bottom after animation starts (fallback if image already loaded)
-            setTimeout(scrollToBottom, 50);
-        }, 10);
-        
-        // Reset photo button
-        photoBtn.classList.remove('loading');
-        
-        // Log performance metrics
+
+        if (typeof sendImageMessage !== 'function') {
+            throw new Error('Image messaging backend is unavailable');
+        }
+
+        const sendResult = await sendImageMessage(threadId, photoMessageData, participantId);
+        if (!sendResult || sendResult.success !== true) {
+            throw new Error(sendResult?.message || 'Failed to send image');
+        }
+
         const originalSize = Math.round(processedImage.originalFile.size / 1024); // KB
         const thumbnailSizeKB = Math.round(processedImage.thumbnailSize / 1024); // KB  
         const fullSizeSizeKB = Math.round(processedImage.fullSizeSize / 1024); // KB
@@ -7159,81 +7623,23 @@ function handlePhotoUpload(file, modalOverlay) {
         console.log(`   Thumbnail: ${thumbnailSizeKB} KB`);
         console.log(`   💰 Bandwidth savings: ${bandwidthSavings}% (${fullSizeSizeKB - thumbnailSizeKB} KB saved)`);
         console.log('✅ Photo message sent:', photoMessageData);
-        
-        // BACKEND TODO: Send photoMessageData to server
-        // In production, upload image to Firebase Storage and send message with image URL
-        
-        // Simulate auto-response with TEXT (30% chance) - photos should get text responses, not photo responses
-        if (Math.random() > 0.7) {
-            setTimeout(() => {
-                // Extract participant name properly (same logic as text auto-response)
-                const participantNameElement = modalOverlay.querySelector('.chat-modal-participant');
-                const participantName = participantNameElement ? 
-                    participantNameElement.textContent
-                        .replace('Direct Message with ', '')
-                        .replace('Application Interview with ', '')
-                        .replace('You contacted ', '')
-                        .replace(' contacted you', '')
-                        .trim() : 'Bot';
-                
-                const photoResponses = [
-                    "Nice photo! 📸",
-                    "Looks great! Thanks for sharing.",
-                    "Perfect! That's exactly what I needed to see.",
-                    "Thanks for the photo! Very helpful.",
-                    "Great shot! 👍",
-                    "Awesome! This gives me a better idea.",
-                    "Perfect timing with that photo!"
-                ];
-                
-                const randomResponse = photoResponses[Math.floor(Math.random() * photoResponses.length)];
-                
-                const responseElement = document.createElement('div');
-                responseElement.className = 'message-card incoming';
-                responseElement.innerHTML = `
-                    <div class="message-header">
-                        <div class="message-info">
-                            <div class="message-sender">${participantName}</div>
-                            <div class="message-timestamp">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        </div>
-                        <div class="message-avatar">
-                            <img src="${getParticipantAvatar(threadId)}" alt="${participantName}" onerror="this.src='public/images/logo.png'">
-                        </div>
-                    </div>
-                    <div class="message-bubble incoming">
-                        ${randomResponse}
-                    </div>
-                `;
-                
-                // Insert at bottom since newest messages are last
-                messagesContainer.appendChild(responseElement);
-                
-                // Add entrance animation
-                responseElement.style.opacity = '0';
-                responseElement.style.transform = 'translateY(10px)';
-                setTimeout(() => {
-                    responseElement.style.opacity = '1';
-                    responseElement.style.transform = 'translateY(0)';
-                    responseElement.style.transition = 'all 0.3s ease';
-                }, 10);
-                
-                // Scroll to bottom
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
-                console.log('💬 Auto-response text sent for photo');
-            }, 2000 + Math.random() * 2000); // 2-4 seconds delay
-        }
-    }, (error) => {
-        // Error callback - clear loading state when image processing fails
-        clearTimeout(safetyTimeout);
-        photoBtn.classList.remove('loading');
+    } catch (error) {
         console.error('❌ Photo processing failed in handlePhotoUpload:', error);
-    });
+        showToast('Failed to send photo. Please try again.');
+    } finally {
+        photoBtn.classList.remove('loading');
+    }
 }
 
 // Close chat modal
 function closeChatModal(modalOverlay) {
     if (modalOverlay && modalOverlay.parentNode) {
+        const openThreadId = String(modalOverlay.getAttribute('data-thread-id') || '').trim();
+        if (openThreadId) {
+            // Final read sync on close prevents stale "new" tags after active viewing.
+            requestThreadReadSync(openThreadId, { force: true });
+        }
+
         // === AGGRESSIVE CLEANUP START ===
         
         // 1. Cleanup general event listeners
@@ -7269,10 +7675,7 @@ function closeChatModal(modalOverlay) {
             messagesContainer.scrollTop = 0;
         }
         
-        // 6. Reset window scroll to prevent positioning issues on next open
-        window.scrollTo(0, 0);
-        
-        // 7. Call mobile input visibility cleanup
+        // 6. Call mobile input visibility cleanup
         cleanupMobileInputVisibility();
         
         // === AGGRESSIVE CLEANUP END ===
@@ -7311,6 +7714,7 @@ function closeChatModal(modalOverlay) {
             if (modalOverlay.parentNode) {
                 modalOverlay.parentNode.removeChild(modalOverlay);
             }
+            unlockBodyScrollForChatModal();
         }, 300);
         
         console.log('✅ Chat modal closed with aggressive cleanup');
@@ -7348,7 +7752,7 @@ function cleanupAvatarOverlays(container) {
 function showAvatarOverlay(event, userData) {
     // CRITICAL FIX: Prevent rapid clicking from creating multiple overlays
     if (document.getElementById('avatarOverlay')) {
-        console.log('Avatar overlay already exists, ignoring rapid click');
+        messagesDebug('Avatar overlay already exists, ignoring rapid click');
         return; // Exit early if overlay already exists
     }
     
@@ -7365,11 +7769,11 @@ function showAvatarOverlay(event, userData) {
     overlay.className = 'avatar-overlay';
     overlay.id = 'avatarOverlay';
     
-    // DEBUG: Log userData to see what we're working with
-    console.log(`🔍 DEBUG: Avatar overlay userData:`, userData);
-    console.log(`🔍 DEBUG: threadOrigin = "${userData.threadOrigin}"`);
-    console.log(`🔍 DEBUG: applicationId = "${userData.applicationId}"`);
-    console.log(`🔍 DEBUG: jobId = "${userData.jobId}"`);
+    // Debug traces kept behind runtime flag to avoid production console noise.
+    messagesDebug(`🔍 DEBUG: Avatar overlay userData:`, userData);
+    messagesDebug(`🔍 DEBUG: threadOrigin = "${userData.threadOrigin}"`);
+    messagesDebug(`🔍 DEBUG: applicationId = "${userData.applicationId}"`);
+    messagesDebug(`🔍 DEBUG: jobId = "${userData.jobId}"`);
     
     // REMOVED: "View Application" button - no longer needed since applications moved to jobs.html
     const viewApplicationButton = ''; // Always empty now
@@ -7390,7 +7794,7 @@ function showAvatarOverlay(event, userData) {
             </button>
             <button class="avatar-action-btn job" data-job-id="${userData.jobId}" data-job-title="${userData.jobTitle}">
                 <span>💼</span>
-                <span>VIEW JOB POST</span>
+                <span>VIEW GIG POST</span>
             </button>
             ${viewApplicationButton}
             <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
@@ -7446,7 +7850,7 @@ function showAvatarOverlay(event, userData) {
         document.addEventListener('click', window.avatarOverlayClickHandler, true);
         window.avatarOverlayListenerCount++;
         
-        console.log(`📌 Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
+        messagesDebug(`📌 Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
     }, 150); // Increased delay to ensure overlay is fully positioned
 }
 
@@ -7497,56 +7901,57 @@ function initializeAvatarOverlayActions(overlay, userData) {
     if (profileBtn) {
         profileBtn.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
-            const userName = this.getAttribute('data-user-name');
-            
-            console.log(`🔗 Opening profile for user: ${userName} (ID: ${userId})`);
-            
-            // BACKEND INTEGRATION POINT: Navigate to user profile
-            // Example: window.location.href = `/profile/${userId}`;
-            // Or: openUserProfile(userId);
-            
-            // Show temporary notification
-            showTemporaryNotification(`Opening profile for ${userName}...`);
-            
-            // Hide overlay
+            if (!userId) {
+                showTemporaryNotification('Profile is unavailable for this user.');
+                return;
+            }
             hideAvatarOverlay();
+            window.location.href = `profile.html?userId=${encodeURIComponent(userId)}`;
         }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
     }
     
     // VIEW JOB POST button
     const jobBtn = overlay.querySelector('.avatar-action-btn.job');
     if (jobBtn) {
-        jobBtn.addEventListener('click', function() {
+        jobBtn.addEventListener('click', async function() {
             const jobId = this.getAttribute('data-job-id');
-            const jobTitle = this.getAttribute('data-job-title');
-            
-            console.log(`🔗 Opening job post: ${jobTitle} (ID: ${jobId})`);
-            
-            // BACKEND INTEGRATION POINT: Navigate to job post
-            // Example: window.location.href = `/job/${jobId}`;
-            // Or: openJobPost(jobId);
-            
-            // Show temporary notification
-            showTemporaryNotification(`Opening job post: ${jobTitle}...`);
-            
-            // Hide overlay
+            if (!jobId) {
+                showTemporaryNotification('Gig post is unavailable for this conversation.');
+                return;
+            }
             hideAvatarOverlay();
+            try {
+                let category = '';
+                if (typeof getJobById === 'function') {
+                    const job = await getJobById(jobId);
+                    category = String(job?.category || '').trim().toLowerCase();
+                }
+                if (category) {
+                    window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}&category=${encodeURIComponent(category)}`;
+                    return;
+                }
+                // Fallback keeps previous behavior if category lookup is unavailable.
+                window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}`;
+            } catch (error) {
+                console.warn('⚠️ Failed to resolve gig category for chat action:', error);
+                window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}`;
+            }
         }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
     }
     
     // VIEW APPLICATION button (only for application-based threads)
     const applicationBtn = overlay.querySelector('.avatar-action-btn.application');
     if (applicationBtn) {
-        console.log(`🔍 DEBUG: View Application button found:`, applicationBtn);
-        console.log(`🔍 DEBUG: Button data attributes:`, {
+        messagesDebug(`🔍 DEBUG: View Application button found:`, applicationBtn);
+        messagesDebug(`🔍 DEBUG: Button data attributes:`, {
             applicationId: applicationBtn.getAttribute('data-application-id'),
             jobId: applicationBtn.getAttribute('data-job-id')
         });
         
         // REMOVED: View Application button click handler - no longer needed
-        console.log(`🔍 DEBUG: View Application button functionality removed`);
+        messagesDebug(`🔍 DEBUG: View Application button functionality removed`);
     } else {
-        console.log(`🔍 DEBUG: No View Application button found in overlay (expected - removed)`);
+        messagesDebug(`🔍 DEBUG: No View Application button found in overlay (expected - removed)`);
     }
     
     // BLOCK USER button
@@ -7624,7 +8029,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
             // Show custom confirmation dialog
             showCustomConfirmation(
                 'Delete Conversation',
-                `Are you sure you want to delete this conversation with ${userName}? This action cannot be undone.`,
+                `Delete this conversation from your inbox only? The other user will still keep their copy.`,
                 'Delete',
                 'Cancel',
                 async () => {
@@ -7767,7 +8172,7 @@ function hideAvatarOverlay() {
         window.avatarOverlayListenerCount = 0;
     }
     
-    console.log('🧹 Avatar overlay cleanup completed');
+    messagesDebug('🧹 Avatar overlay cleanup completed');
 }
 
 function hideAvatarOverlayOnOutsideClick(event) {
@@ -7959,49 +8364,17 @@ async function blockUserInFirebase(currentUserId, blockedUserId, blockedUserName
 async function deleteConversationInFirebase(currentUserId, threadId, participantName) {
     try {
         console.log(`🔥 Firebase: Deleting conversation ${threadId} for user ${currentUserId}`);
-        
-        // Check Firebase connection first
-        const connectionCheck = checkFirebaseConnection();
-        if (!connectionCheck.connected) {
-            throw new Error(`Firebase connection failed: ${connectionCheck.error}`);
+        if (typeof deleteChatThreadForCurrentUser !== 'function') {
+            throw new Error('Delete conversation backend is unavailable');
         }
-        
-        // Initialize Firestore batch
-        const batch = db.batch();
-        
-        // 1. Mark conversation as deleted for current user (soft delete)
-        const conversationRef = db.collection('conversations').doc(threadId);
-        batch.update(conversationRef, {
-            [`deletedFor.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp(),
-            [`hiddenFor.${currentUserId}`]: true,
-            [`lastActivity.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // 2. Soft delete all messages for this user
-        const messagesQuery = await db.collection('conversations').doc(threadId)
-                                    .collection('messages').get();
-        
-        messagesQuery.forEach(messageDoc => {
-            batch.update(messageDoc.ref, {
-                [`deletedFor.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp(),
-                [`hiddenFor.${currentUserId}`]: true
-            });
-        });
-        
-        // 3. Update user's conversation management
-        const userRef = db.collection('users').doc(currentUserId);
-        batch.update(userRef, {
-            activeConversations: firebase.firestore.FieldValue.arrayRemove(threadId),
-            deletedConversations: firebase.firestore.FieldValue.arrayUnion(threadId),
-            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // 4. Commit all changes atomically
-        await batch.commit();
-        
+
+        const result = await deleteChatThreadForCurrentUser(threadId);
+        if (!result || result.success !== true) {
+            throw new Error(result?.message || 'Delete conversation failed');
+        }
+
         console.log(`✅ Firebase: Successfully deleted conversation with ${participantName}`);
         return { success: true };
-        
     } catch (error) {
         console.error('❌ Firebase: Delete conversation failed:', error);
         return { success: false, error: error.message };
@@ -9046,20 +9419,20 @@ function createPhotoMessageHTML(thumbnailUrl, fullSizeUrl, direction, senderName
         <div class="message-card ${direction}">
             <div class="message-header">
                 ${direction === 'outgoing' ? `
-                    <div class="message-avatar">
-                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
-                    </div>
                     <div class="message-info">
                         <div class="message-sender">${senderName}</div>
                         <div class="message-timestamp">${timestamp}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
                     </div>
                 ` : `
+                    <div class="message-avatar">
+                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
+                    </div>
                     <div class="message-info">
                         <div class="message-sender">${senderName}</div>
                         <div class="message-timestamp">${timestamp}</div>
-                    </div>
-                    <div class="message-avatar">
-                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
                     </div>
                 `}
             </div>
@@ -10570,19 +10943,30 @@ function updateMainMessagesTabCount() {
     const customerMessagesTabBadge = document.querySelector('#unifiedMessagesTab .notification-count');
     const workerMessagesTabBadge = document.querySelector('#unifiedMessagesTabWorker .notification-count');
     
-    console.log(`📊 Unified badge update: ${unifiedCount} messages`);
-    
     // Update customer Messages tab badge
     if (customerMessagesTabBadge) {
-        customerMessagesTabBadge.textContent = unifiedCount;
-        customerMessagesTabBadge.style.display = unifiedCount > 0 ? 'inline-block' : 'none';
+        const nextText = String(unifiedCount);
+        const nextDisplay = unifiedCount > 0 ? 'inline-block' : 'none';
+        if (customerMessagesTabBadge.textContent !== nextText) {
+            customerMessagesTabBadge.textContent = nextText;
+        }
+        if (customerMessagesTabBadge.style.display !== nextDisplay) {
+            customerMessagesTabBadge.style.display = nextDisplay;
+        }
     }
     
     // Update worker Messages tab badge (same count for unified view)
     if (workerMessagesTabBadge) {
-        workerMessagesTabBadge.textContent = unifiedCount;
-        workerMessagesTabBadge.style.display = unifiedCount > 0 ? 'inline-block' : 'none';
+        const nextText = String(unifiedCount);
+        const nextDisplay = unifiedCount > 0 ? 'inline-block' : 'none';
+        if (workerMessagesTabBadge.textContent !== nextText) {
+            workerMessagesTabBadge.textContent = nextText;
+        }
+        if (workerMessagesTabBadge.style.display !== nextDisplay) {
+            workerMessagesTabBadge.style.display = nextDisplay;
+        }
     }
+    messagesDebug(`📊 Unified badge update: ${unifiedCount} messages`);
 }
 
     // Setup message filtering functionality

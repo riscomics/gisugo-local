@@ -78,9 +78,13 @@ function initializeHeaderCounterBridge() {
     if (headerCounterBridgeAttached && headerCounterBridgeHandler) return;
     const handler = (event) => {
         const detail = event?.detail || {};
+        const messagesTotalUnread = Number(detail.messagesTotalUnread);
+        const effectiveTotalUnread = Number.isFinite(messagesTotalUnread)
+            ? Math.max(0, messagesTotalUnread)
+            : Math.max(0, Number(detail.totalUnread) || 0);
         HEADER_NOTIFICATION_COUNTER_STATE.workerUnread = Math.max(0, Number(detail.workerUnread) || 0);
         HEADER_NOTIFICATION_COUNTER_STATE.customerUnread = Math.max(0, Number(detail.customerUnread) || 0);
-        HEADER_NOTIFICATION_COUNTER_STATE.totalUnread = Math.max(0, Number(detail.totalUnread) || 0);
+        HEADER_NOTIFICATION_COUNTER_STATE.totalUnread = effectiveTotalUnread;
         updateHeaderMenuBadge(HEADER_NOTIFICATION_COUNTER_STATE.totalUnread);
     };
     headerCounterBridgeHandler = handler;

@@ -9450,11 +9450,31 @@ async function handleSendContactMessage() {
     
     const overlay = document.getElementById('contactMessageOverlay');
     const messageInput = document.getElementById('contactMessageInput');
+    const sendBtn = document.getElementById('contactSendBtn');
+    const cancelBtn = document.getElementById('contactCancelBtn');
+    const closeBtn = document.getElementById('contactCloseBtn');
     
     if (!overlay || !messageInput) {
         console.error('❌ Contact overlay or input not found', { overlay, messageInput });
         return;
     }
+
+    if (overlay.dataset.sendingInProgress === 'true') {
+        console.log('⏳ Contact send already in progress; ignoring duplicate submit');
+        return;
+    }
+
+    const originalSendLabel = sendBtn ? sendBtn.textContent : 'Send Message';
+    const setContactSendingState = (isSending) => {
+        overlay.dataset.sendingInProgress = isSending ? 'true' : 'false';
+        if (sendBtn) {
+            sendBtn.disabled = isSending;
+            sendBtn.textContent = isSending ? 'Sending...' : originalSendLabel;
+        }
+        if (cancelBtn) cancelBtn.disabled = isSending;
+        if (closeBtn) closeBtn.disabled = isSending;
+        messageInput.disabled = isSending;
+    };
     
     const recipientId = overlay.getAttribute('data-user-id');
     const recipientName = overlay.getAttribute('data-user-name');
@@ -9477,8 +9497,10 @@ async function handleSendContactMessage() {
     
     console.log(`📤 Sending message to ${recipientName}:`, message);
     
-    /* FIREBASE IMPLEMENTATION - UNCOMMENT WHEN FIREBASE IS CONFIGURED
     try {
+        setContactSendingState(true);
+        showLoadingOverlay('Sending message...');
+
         const currentUser = firebase.auth().currentUser;
         if (!currentUser) {
             console.error('❌ User not authenticated');
@@ -9499,6 +9521,26 @@ async function handleSendContactMessage() {
         // Get recipient info
         const recipientDoc = await db.collection('users').doc(recipientId).get();
         const recipientData = recipientDoc.data();
+
+        // Normalize profile fields to avoid undefined Firestore writes
+        const resolveDisplayName = (profileData, fallbackName = 'User') => {
+            const candidate = profileData?.displayName
+                || profileData?.fullName
+                || profileData?.name
+                || fallbackName;
+            return String(candidate || fallbackName).trim() || fallbackName;
+        };
+        const resolveThumbnail = (profileData) => {
+            const candidate = profileData?.photoURL
+                || profileData?.profilePhoto
+                || profileData?.avatar
+                || '';
+            return String(candidate || '').trim();
+        };
+        const currentUserName = resolveDisplayName(currentUserData, currentUser.displayName || 'User');
+        const currentUserThumbnail = resolveThumbnail(currentUserData) || String(currentUser.photoURL || '').trim() || '👤';
+        const recipientDisplayName = resolveDisplayName(recipientData, recipientName || 'User');
+        const recipientThumbnail = resolveThumbnail(recipientData) || '👤';
         
         // Determine roles based on job poster
         const currentUserRole = jobData.posterId === currentUser.uid ? 'customer' : 'worker';
@@ -9528,6 +9570,17 @@ async function handleSendContactMessage() {
             const data = doc.data();
             return data.participantIds.includes(recipientId);
         });
+
+        if (applicationId && matchingThread) {
+            console.log('⛔ Duplicate View Applications contact blocked:', matchingThread.id);
+            showConfirmation(
+                '⏳',
+                'Message Already Sent',
+                `A message was already sent to ${recipientName}. Please wait for the worker to respond.`,
+                'default'
+            );
+            return;
+        }
         
         if (matchingThread) {
             // Use existing thread
@@ -9543,14 +9596,14 @@ async function handleSendContactMessage() {
                 participantIds: [currentUser.uid, recipientId],
                 participant1: {
                     userId: currentUser.uid,
-                    userName: currentUserData.displayName,
-                    userThumbnail: currentUserData.photoURL || '👤', // Emoji fallback
+                    userName: currentUserName,
+                    userThumbnail: currentUserThumbnail,
                     role: currentUserRole
                 },
                 participant2: {
                     userId: recipientId,
-                    userName: recipientData.displayName,
-                    userThumbnail: recipientData.photoURL || '👤', // Emoji fallback
+                    userName: recipientDisplayName,
+                    userThumbnail: recipientThumbnail,
                     role: recipientRole
                 },
                 threadOrigin: applicationId ? 'application' : 'job', // 'application' if from Listings, 'job' if from Gigs Offered
@@ -9576,9 +9629,9 @@ async function handleSendContactMessage() {
             messageId: messageRef.id,
             threadId: threadId,
             senderId: currentUser.uid,
-            senderName: currentUserData.displayName,
+            senderName: currentUserName,
             senderType: currentUserRole,
-            senderAvatar: currentUserData.photoURL || '👤', // Emoji fallback
+            senderAvatar: currentUserThumbnail,
             content: message,
             messageType: 'text',
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
@@ -9605,12 +9658,10 @@ async function handleSendContactMessage() {
     } catch (error) {
         console.error('❌ Error sending message:', error);
         showConfirmation('❌', 'Error', 'Failed to send message. Please try again.', 'error');
+    } finally {
+        hideLoadingOverlay();
+        setContactSendingState(false);
     }
-    */
-    
-    // MOCK IMPLEMENTATION (remove when Firebase is ready)
-    showConfirmation('📤', 'Message Sent', `Your message has been sent to ${recipientName}`, 'celebration');
-    hideContactMessageOverlay();
 }
 
 function hideContactMessageOverlay() {
@@ -9621,6 +9672,7 @@ function hideContactMessageOverlay() {
     
     // Clear handlers initialization flag to prevent memory leaks
     delete overlay.dataset.contactHandlersInitialized;
+    delete overlay.dataset.sendingInProgress;
     
     console.log('💬 Contact message overlay hidden and handlers cleaned up');
 }

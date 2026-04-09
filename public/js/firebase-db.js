@@ -18,7 +18,7 @@
 function isAllowedTextCharacter(char) {
   if (!char) return true;
   if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
-  if (/[.,!?'"()\/$&@₱-]/.test(char)) return true;
+  if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
   if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
   return false;
 }
@@ -276,7 +276,23 @@ async function fetchJobByIdViaFirestoreRest(jobId) {
   return mapFirestoreRestDoc(raw);
 }
 
-async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applicantId, maxItems = 6) {
+async function buildFirestoreRestHeadersWithAuth() {
+  const headers = { 'Content-Type': 'application/json' };
+  try {
+    const currentUser = getCurrentUser();
+    if (currentUser && typeof currentUser.getIdToken === 'function') {
+      const idToken = await currentUser.getIdToken();
+      if (idToken) {
+        headers.Authorization = `Bearer ${idToken}`;
+      }
+    }
+  } catch (_) {
+    // Keep unauthenticated headers as fallback.
+  }
+  return headers;
+}
+
+async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applicantId, maxItems = 6, headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for applications REST fallback');
   const safeJobId = String(jobId || '').trim();
@@ -312,7 +328,7 @@ async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applica
   };
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers || { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -325,7 +341,7 @@ async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applica
     .filter(Boolean);
 }
 
-async function fetchPendingApplicationsByJobViaFirestoreRest(jobId, maxItems = 11) {
+async function fetchPendingApplicationsByJobViaFirestoreRest(jobId, maxItems = 11, headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for pending applications REST fallback');
   const safeJobId = String(jobId || '').trim();
@@ -360,7 +376,7 @@ async function fetchPendingApplicationsByJobViaFirestoreRest(jobId, maxItems = 1
   };
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: headers || { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
   if (!response.ok) {
@@ -1353,6 +1369,7 @@ async function applyForJob(jobId, applicationData) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
   const useRestPrimaryForApply = isIOSWebKitBrowserForDataPath();
+  const restAuthHeaders = useRestPrimaryForApply ? await buildFirestoreRestHeadersWithAuth() : null;
   // iOS WebKit can exceed normal Firestore timing during multi-step apply validation.
   const applyReadTimeoutMs = useRestPrimaryForApply ? 18000 : 9000;
   const applyWriteTimeoutMs = useRestPrimaryForApply ? 22000 : 12000;
@@ -1432,25 +1449,50 @@ async function applyForJob(jobId, applicationData) {
     // ═══════════════════════════════════════════════════════════════
     console.log('🔍 Checking for existing applications...');
     
-    const jobApplicationsSnapshot = await withFirestoreReadTimeout(
-      db.collection('applications')
-        .where('jobId', '==', jobId)
-        .get(),
-      applyReadTimeoutMs
-    );
-    const matchingApplicationDocs = jobApplicationsSnapshot.docs.filter((doc) => {
-      const data = doc.data() || {};
-      return String(data.applicantId || '') === String(currentUser.uid || '');
-    });
-    const existingApplications = {
-      size: matchingApplicationDocs.length,
-      docs: matchingApplicationDocs
-    };
-    emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:done', {
-      mode: 'SDK_JOB_SCAN',
-      scanned: jobApplicationsSnapshot.size,
-      count: existingApplications.size
-    });
+    let existingApplications = null;
+    if (useRestPrimaryForApply) {
+      try {
+        const restRows = await withFirestoreReadTimeout(
+          fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, currentUser.uid, 6, restAuthHeaders),
+          applyReadTimeoutMs
+        );
+        const sortedRows = [...restRows].sort((a, b) => toComparableMillis(b.appliedAt) - toComparableMillis(a.appliedAt));
+        existingApplications = {
+          size: sortedRows.length,
+          docs: sortedRows.map((row) => ({ data: () => row }))
+        };
+        emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:done', {
+          mode: 'REST_AUTH',
+          count: existingApplications.size
+        });
+      } catch (restAppError) {
+        emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:error', {
+          mode: 'REST_AUTH',
+          message: restAppError && restAppError.message ? restAppError.message : String(restAppError)
+        });
+      }
+    }
+    if (!existingApplications) {
+      const jobApplicationsSnapshot = await withFirestoreReadTimeout(
+        db.collection('applications')
+          .where('jobId', '==', jobId)
+          .get(),
+        applyReadTimeoutMs
+      );
+      const matchingApplicationDocs = jobApplicationsSnapshot.docs.filter((doc) => {
+        const data = doc.data() || {};
+        return String(data.applicantId || '') === String(currentUser.uid || '');
+      });
+      existingApplications = {
+        size: matchingApplicationDocs.length,
+        docs: matchingApplicationDocs
+      };
+      emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:done', {
+        mode: 'SDK_JOB_SCAN',
+        scanned: jobApplicationsSnapshot.size,
+        count: existingApplications.size
+      });
+    }
     
     const applicationCount = existingApplications.size;
     
@@ -2052,10 +2094,27 @@ async function getOrCreateChatThread(jobId, otherUserId, otherUserInfo = {}) {
     });
     
     if (existingThread) {
+      const existingData = existingThread.data() || {};
+      const desiredJobTitle = String(otherUserInfo?.jobTitle || '').trim();
+      const desiredOrigin = String(otherUserInfo?.threadOrigin || '').trim() || 'job';
+      const needsThreadPatch = (
+        (desiredJobTitle && !String(existingData.jobTitle || '').trim())
+        || !String(existingData.threadOrigin || '').trim()
+      );
+      if (needsThreadPatch) {
+        await db.collection('chat_threads').doc(existingThread.id).update({
+          ...(desiredJobTitle ? { jobTitle: desiredJobTitle } : {}),
+          threadOrigin: desiredOrigin
+        });
+      }
       return {
         success: true,
         threadId: existingThread.id,
-        thread: existingThread.data(),
+        thread: {
+          ...existingData,
+          ...(desiredJobTitle ? { jobTitle: desiredJobTitle } : {}),
+          threadOrigin: desiredOrigin
+        },
         isNew: false
       };
     }
@@ -2063,6 +2122,8 @@ async function getOrCreateChatThread(jobId, otherUserId, otherUserInfo = {}) {
     // Create new thread
     const threadData = {
       jobId: jobId,
+      jobTitle: String(otherUserInfo?.jobTitle || '').trim(),
+      threadOrigin: String(otherUserInfo?.threadOrigin || '').trim() || 'job',
       participantIds: [currentUser.uid, otherUserId],
       participant1: {
         userId: currentUser.uid,
@@ -2110,6 +2171,13 @@ function getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, current
   );
   
   if (existing) {
+    const desiredJobTitle = String(otherUserInfo?.jobTitle || '').trim();
+    const desiredOrigin = String(otherUserInfo?.threadOrigin || '').trim() || 'job';
+    if ((desiredJobTitle && !String(existing.jobTitle || '').trim()) || !String(existing.threadOrigin || '').trim()) {
+      existing.jobTitle = desiredJobTitle || existing.jobTitle || '';
+      existing.threadOrigin = desiredOrigin;
+      localStorage.setItem('gisugo_chat_threads', JSON.stringify(threads));
+    }
     return {
       success: true,
       threadId: existing.threadId,
@@ -2123,6 +2191,8 @@ function getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, current
   const threadData = {
     threadId: threadId,
     jobId: jobId,
+    jobTitle: String(otherUserInfo?.jobTitle || '').trim(),
+    threadOrigin: String(otherUserInfo?.threadOrigin || '').trim() || 'job',
     participantIds: [currentUser.uid, otherUserId],
     participant1: {
       userId: currentUser.uid,
@@ -2152,9 +2222,10 @@ function getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, current
  * Send a message in a chat thread
  * @param {string} threadId - Chat thread ID
  * @param {string} content - Message content
+ * @param {string} recipientId - Optional recipient UID to avoid extra thread read
  * @returns {Promise<Object>} - Result object
  */
-async function sendMessage(threadId, content) {
+async function sendMessage(threadId, content, recipientId = '') {
   const db = getFirestore();
   const currentUser = getCurrentUser();
   const textValidation = validateAllowedTextChars([
@@ -2186,18 +2257,26 @@ async function sendMessage(threadId, content) {
     };
     
     const msgRef = await db.collection('chat_messages').add(message);
-    
-    // Get thread to find other participant
-    const threadDoc = await db.collection('chat_threads').doc(threadId).get();
-    const threadData = threadDoc.data();
-    const otherUserId = threadData.participantIds.find(id => id !== currentUser.uid);
+
+    let otherUserId = String(recipientId || '').trim();
+    if (!otherUserId || otherUserId === currentUser.uid) {
+      // Fallback for legacy callers that do not provide recipientId.
+      const threadDoc = await db.collection('chat_threads').doc(threadId).get();
+      const threadData = threadDoc.data();
+      otherUserId = Array.isArray(threadData?.participantIds)
+        ? threadData.participantIds.find((id) => id !== currentUser.uid) || ''
+        : '';
+    }
     
     // Update thread metadata
-    await db.collection('chat_threads').doc(threadId).update({
+    const threadUpdates = {
       lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
-      lastMessagePreview: content.substring(0, 100),
-      [`unreadCount.${otherUserId}`]: firebase.firestore.FieldValue.increment(1)
-    });
+      lastMessagePreview: content.substring(0, 100)
+    };
+    if (otherUserId) {
+      threadUpdates[`unreadCount.${otherUserId}`] = firebase.firestore.FieldValue.increment(1);
+    }
+    await db.collection('chat_threads').doc(threadId).update(threadUpdates);
     
     return {
       success: true,
@@ -2207,6 +2286,121 @@ async function sendMessage(threadId, content) {
     
   } catch (error) {
     console.error('❌ Error sending message:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+async function resolveOtherUserIdForThread(db, threadId, currentUserId, recipientId = '') {
+  let otherUserId = String(recipientId || '').trim();
+  if (otherUserId && otherUserId !== currentUserId) return otherUserId;
+
+  const threadDoc = await db.collection('chat_threads').doc(threadId).get();
+  const threadData = threadDoc.data();
+  return Array.isArray(threadData?.participantIds)
+    ? threadData.participantIds.find((id) => id !== currentUserId) || ''
+    : '';
+}
+
+/**
+ * Send an image message in a chat thread.
+ * @param {string} threadId - Chat thread ID
+ * @param {Object} imagePayload - Uploaded image metadata/URLs
+ * @param {string} recipientId - Optional recipient UID to avoid extra thread read
+ * @returns {Promise<Object>} - Result object
+ */
+async function sendImageMessage(threadId, imagePayload, recipientId = '') {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+
+  if (!currentUser) {
+    return { success: false, message: 'You must be logged in to send images' };
+  }
+
+  if (!db) {
+    return { success: false, message: 'Messaging backend unavailable for image send' };
+  }
+
+  const thumbnailUrl = String(imagePayload?.thumbnailUrl || '').trim();
+  const fullSizeUrl = String(imagePayload?.fullSizeUrl || '').trim();
+  if (!thumbnailUrl || !fullSizeUrl) {
+    return { success: false, message: 'Image upload failed (missing URLs)' };
+  }
+
+  try {
+    const message = {
+      threadId: threadId,
+      senderId: currentUser.uid,
+      senderName: currentUser.displayName || 'Anonymous',
+      senderAvatar: currentUser.photoURL || '',
+      content: '[image]',
+      messageType: 'image',
+      thumbnailUrl: thumbnailUrl,
+      fullSizeUrl: fullSizeUrl,
+      dimensions: String(imagePayload?.dimensions || ''),
+      aspectRatio: Number(imagePayload?.aspectRatio) || 0,
+      fileSizes: {
+        thumbnail: Number(imagePayload?.fileSizes?.thumbnail) || 0,
+        fullSize: Number(imagePayload?.fileSizes?.fullSize) || 0
+      },
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      read: false
+    };
+
+    const msgRef = await db.collection('chat_messages').add(message);
+    const otherUserId = await resolveOtherUserIdForThread(db, threadId, currentUser.uid, recipientId);
+    const threadUpdates = {
+      lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+      lastMessagePreview: '[Photo]'
+    };
+    if (otherUserId) {
+      threadUpdates[`unreadCount.${otherUserId}`] = firebase.firestore.FieldValue.increment(1);
+    }
+    await db.collection('chat_threads').doc(threadId).update(threadUpdates);
+
+    return {
+      success: true,
+      messageId: msgRef.id,
+      message: 'Image sent'
+    };
+  } catch (error) {
+    console.error('❌ Error sending image message:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Mark a chat thread as read for current user.
+ * This clears unread badge state for the current participant only.
+ * @param {string} threadId - Chat thread ID
+ * @returns {Promise<Object>} - Result object
+ */
+async function markChatThreadRead(threadId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+
+  if (!currentUser) {
+    return { success: false, message: 'You must be logged in to update thread read state' };
+  }
+
+  if (!db) {
+    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
+    const updatedThreads = threads.map((thread) => {
+      if (thread.threadId !== threadId) return thread;
+      const unread = { ...(thread.unreadCount || {}) };
+      unread[currentUser.uid] = 0;
+      return { ...thread, unreadCount: unread };
+    });
+    localStorage.setItem('gisugo_chat_threads', JSON.stringify(updatedThreads));
+    return { success: true, message: 'Thread marked as read (offline)' };
+  }
+
+  try {
+    await db.collection('chat_threads').doc(threadId).update({
+      [`unreadCount.${currentUser.uid}`]: 0
+    });
+    return { success: true, message: 'Thread marked as read' };
+  } catch (error) {
+    console.error('❌ Error marking thread as read:', error);
     return { success: false, message: error.message };
   }
 }
@@ -2295,6 +2489,7 @@ async function getUserChatThreads() {
     const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
     return threads
       .filter(t => t.participantIds.includes(currentUser.uid))
+      .filter((thread) => shouldShowThreadForUser(thread, currentUser.uid))
       .sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
   }
   
@@ -2308,11 +2503,74 @@ async function getUserChatThreads() {
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }));
+    })).filter((thread) => shouldShowThreadForUser(thread, currentUser.uid));
     
   } catch (error) {
     console.error('❌ Error getting chat threads:', error);
     return [];
+  }
+}
+
+function shouldShowThreadForUser(thread, currentUserId) {
+  const safeUid = String(currentUserId || '').trim();
+  if (!safeUid) return true;
+  const deletedMap = thread && thread.deletedFor && typeof thread.deletedFor === 'object'
+    ? thread.deletedFor
+    : null;
+  const deletedAtRaw = deletedMap ? deletedMap[safeUid] : null;
+  if (!deletedAtRaw) return true;
+
+  const deletedAtMs = toComparableMillis(deletedAtRaw);
+  if (deletedAtMs <= 0) return false;
+  const lastActivityMs = Math.max(
+    toComparableMillis(thread?.lastMessageTime),
+    toComparableMillis(thread?.createdAt)
+  );
+  return lastActivityMs > deletedAtMs;
+}
+
+/**
+ * Soft-delete a chat thread for the current user only.
+ * Other participants keep their thread intact.
+ * @param {string} threadId - Chat thread ID
+ * @returns {Promise<Object>} - Result object
+ */
+async function deleteChatThreadForCurrentUser(threadId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeThreadId = String(threadId || '').trim();
+
+  if (!safeThreadId) {
+    return { success: false, message: 'Missing thread id' };
+  }
+  if (!currentUser) {
+    return { success: false, message: 'You must be logged in to delete chat' };
+  }
+
+  if (!db) {
+    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
+    const updatedThreads = threads.map((thread) => {
+      const candidateId = thread.threadId || thread.id;
+      if (candidateId !== safeThreadId) return thread;
+      const deletedFor = { ...(thread.deletedFor || {}) };
+      const unreadCount = { ...(thread.unreadCount || {}) };
+      deletedFor[currentUser.uid] = new Date().toISOString();
+      unreadCount[currentUser.uid] = 0;
+      return { ...thread, deletedFor, unreadCount };
+    });
+    localStorage.setItem('gisugo_chat_threads', JSON.stringify(updatedThreads));
+    return { success: true, message: 'Conversation deleted for current user (offline)' };
+  }
+
+  try {
+    await db.collection('chat_threads').doc(safeThreadId).update({
+      [`deletedFor.${currentUser.uid}`]: firebase.firestore.FieldValue.serverTimestamp(),
+      [`unreadCount.${currentUser.uid}`]: 0
+    });
+    return { success: true, message: 'Conversation deleted for current user' };
+  } catch (error) {
+    console.error('❌ Error deleting conversation for current user:', error);
+    return { success: false, message: error.message };
   }
 }
 
@@ -2505,6 +2763,119 @@ async function createNotification(recipientId, notificationData) {
   } catch (error) {
     console.error('❌ Error creating notification:', error);
     return { success: false, message: error.message };
+  }
+}
+
+function buildGigReportDocumentId(jobId, reporterId) {
+  const safeJob = String(jobId || '').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+  const safeReporter = String(reporterId || '').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+  return `gig_${safeJob}__reporter_${safeReporter}`.slice(0, 240);
+}
+
+/**
+ * Submit a gig report for admin review.
+ * One report per job per reporter is allowed.
+ * @param {string} jobId - Reported job ID
+ * @param {Object} reportData - subject/message and optional metadata
+ * @returns {Promise<Object>} - Result object
+ */
+async function submitGigReportToAdmin(jobId, reportData = {}) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+  const subject = String(reportData.subject || '').trim();
+  const message = String(reportData.message || '').trim();
+  const textValidation = validateAllowedTextChars([
+    { label: 'Report subject', value: subject },
+    { label: 'Report message', value: message }
+  ]);
+
+  if (!safeJobId) {
+    return { success: false, message: 'Missing job reference for report' };
+  }
+  if (!currentUser) {
+    return { success: false, message: 'You must be logged in to submit a report' };
+  }
+  if (!subject) {
+    return { success: false, message: 'Please select a report subject' };
+  }
+  if (!message) {
+    return { success: false, message: 'Please provide report details' };
+  }
+  if (!textValidation.valid) {
+    return { success: false, message: textValidation.message };
+  }
+  if (!db) {
+    return { success: false, message: 'Reporting backend unavailable' };
+  }
+
+  const reportId = buildGigReportDocumentId(safeJobId, currentUser.uid);
+  const reportRef = db.collection('gig_reports').doc(reportId);
+  const payload = {
+    reportId: reportId,
+    jobId: safeJobId,
+    jobTitle: String(reportData.jobTitle || '').trim(),
+    jobCategory: String(reportData.jobCategory || '').trim(),
+    posterId: String(reportData.posterId || '').trim(),
+    reporterId: currentUser.uid,
+    reporterName: currentUser.displayName || 'Anonymous',
+    reporterAvatar: currentUser.photoURL || '',
+    reasonKey: String(reportData.reasonKey || '').trim(),
+    subject: subject,
+    message: message,
+    status: 'pending',
+    source: 'gig_page',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const existing = await transaction.get(reportRef);
+      if (existing.exists) {
+        const duplicateError = new Error('Gig report already exists');
+        duplicateError.code = 'already-exists';
+        throw duplicateError;
+      }
+      transaction.set(reportRef, payload);
+    });
+    return {
+      success: true,
+      reportId: reportId,
+      message: 'Gig report submitted'
+    };
+  } catch (error) {
+    const code = String(error?.code || '');
+    if (code.includes('already-exists')) {
+      return {
+        success: false,
+        code: 'already-reported',
+        message: 'You already submitted a report for this gig.'
+      };
+    }
+    console.error('❌ Error submitting gig report:', error);
+    return { success: false, message: error.message || 'Failed to submit gig report' };
+  }
+}
+
+/**
+ * Check if current user already submitted a report for a gig.
+ * @param {string} jobId - Reported job ID
+ * @returns {Promise<boolean>}
+ */
+async function hasSubmittedGigReport(jobId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+  if (!db || !currentUser || !safeJobId) return false;
+
+  try {
+    const reportId = buildGigReportDocumentId(safeJobId, currentUser.uid);
+    const reportDoc = await db.collection('gig_reports').doc(reportId).get();
+    return reportDoc.exists;
+  } catch (error) {
+    console.warn('⚠️ Gig report duplicate-check lookup failed:', error);
+    return false;
   }
 }
 
@@ -2855,7 +3226,9 @@ function subscribeToUserThreads(currentUser, callback) {
     return null;
   }
   
-  console.log('👂 Starting real-time listener for chat threads');
+  const seen = {
+    signature: ''
+  };
   
   try {
     const unsubscribe = db.collection('chat_threads')
@@ -2868,8 +3241,12 @@ function subscribeToUserThreads(currentUser, callback) {
           const threads = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-          }));
-          console.log(`💬 Threads updated: ${threads.length} items`);
+          })).filter((thread) => shouldShowThreadForUser(thread, currentUser.uid));
+          const signature = threads.map((thread) => `${thread.id}|${JSON.stringify(thread)}`).join('||');
+          if (signature === seen.signature) {
+            return;
+          }
+          seen.signature = signature;
           callback(threads);
         },
         (error) => {
@@ -2899,7 +3276,9 @@ function subscribeToThreadMessages(threadId, callback) {
     return null;
   }
   
-  console.log(`👂 Starting real-time listener for thread: ${threadId}`);
+  const seen = {
+    signature: ''
+  };
   
   try {
     const unsubscribe = db.collection('chat_messages')
@@ -2912,7 +3291,11 @@ function subscribeToThreadMessages(threadId, callback) {
             id: doc.id,
             ...doc.data()
           }));
-          console.log(`📨 Messages updated in thread ${threadId}: ${messages.length} items`);
+          const signature = messages.map((message) => `${message.id}|${JSON.stringify(message)}`).join('||');
+          if (signature === seen.signature) {
+            return;
+          }
+          seen.signature = signature;
           callback(messages);
         },
         (error) => {
@@ -3084,6 +3467,9 @@ window.hireWorker = hireWorker;
 // Chat
 window.getOrCreateChatThread = getOrCreateChatThread;
 window.sendMessage = sendMessage;
+window.sendImageMessage = sendImageMessage;
+window.markChatThreadRead = markChatThreadRead;
+window.deleteChatThreadForCurrentUser = deleteChatThreadForCurrentUser;
 window.getThreadMessages = getThreadMessages;
 window.getUserChatThreads = getUserChatThreads;
 
@@ -3213,6 +3599,8 @@ async function sendWorkerResignedNotification(customerId, customerName, jobId, j
 }
 
 window.sendWorkerResignedNotification = sendWorkerResignedNotification;
+window.submitGigReportToAdmin = submitGigReportToAdmin;
+window.hasSubmittedGigReport = hasSubmittedGigReport;
 
 console.log('📦 Firebase database module loaded');
 

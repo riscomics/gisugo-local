@@ -14,6 +14,7 @@ const MENU_ITEMS = [
 ];
 
 const SHARED_MENU_CSS_HREF = 'public/css/shared-menu.css?v=3.6';
+const SHARED_MENU_CHAT_UNREAD_CACHE_KEY = 'gisugo_chat_unread_threads_cache_v1';
 const LOGOUT_RETRY_DELAY_MS = 250;
 const LOGOUT_MAX_RETRIES = 20;
 const SHARED_MENU_DEPENDENCY_SCRIPTS = [
@@ -40,7 +41,7 @@ const SHARED_MENU_DEPENDENCY_SCRIPTS = [
   {
     key: 'firebase-db',
     match: 'public/js/firebase-db.js',
-    src: 'public/js/firebase-db.js?v=21'
+    src: 'public/js/firebase-db.js?v=31'
   },
   {
     key: 'firebase-auth-helper',
@@ -254,6 +255,11 @@ let _menuUnreadAuthUnsub = null;
 let _menuUnreadCounterUnsub = null;
 let _menuUnreadInitTimer = null;
 let _menuCounterState = { workerUnread: 0, customerUnread: 0, totalUnread: 0 };
+let _menuMessagesUnreadOverride = null;
+let _menuMessagesUnreadEventHandler = null;
+let _menuChatUnreadAuthUnsub = null;
+let _menuChatUnreadCounterUnsub = null;
+let _menuChatUnreadInitTimer = null;
 
 function formatMenuUnreadCount(totalUnread) {
   const safe = Math.max(0, Number(totalUnread) || 0);
@@ -282,14 +288,38 @@ function applyMenuUnreadBadge(totalUnread) {
   });
 }
 
+function getEffectiveMenuMessagesUnread() {
+  if (_menuMessagesUnreadOverride === null || _menuMessagesUnreadOverride === undefined) {
+    return Math.max(0, Number(_menuCounterState.totalUnread) || 0);
+  }
+  return Math.max(0, Number(_menuMessagesUnreadOverride) || 0);
+}
+
 function publishMenuCounterUpdate() {
+  const effectiveMessagesUnread = getEffectiveMenuMessagesUnread();
   const detail = {
     workerUnread: Math.max(0, Number(_menuCounterState.workerUnread) || 0),
     customerUnread: Math.max(0, Number(_menuCounterState.customerUnread) || 0),
-    totalUnread: Math.max(0, Number(_menuCounterState.totalUnread) || 0)
+    totalUnread: Math.max(0, Number(_menuCounterState.totalUnread) || 0),
+    messagesTotalUnread: Math.max(0, Number(effectiveMessagesUnread) || 0)
   };
-  applyMenuUnreadBadge(detail.totalUnread);
+  applyMenuUnreadBadge(effectiveMessagesUnread);
   document.dispatchEvent(new CustomEvent('gisugo:notification-counter-update', { detail }));
+}
+
+function initializeMenuMessagesUnreadBridge() {
+  if (_menuMessagesUnreadEventHandler) return;
+  _menuMessagesUnreadEventHandler = (event) => {
+    const detail = event?.detail || {};
+    const hasTotal = detail.totalUnread !== undefined && detail.totalUnread !== null && detail.totalUnread !== '';
+    if (!hasTotal) {
+      _menuMessagesUnreadOverride = null;
+    } else {
+      _menuMessagesUnreadOverride = Math.max(0, Number(detail.totalUnread) || 0);
+    }
+    applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+  };
+  document.addEventListener('gisugo:messages-unread-counter-update', _menuMessagesUnreadEventHandler);
 }
 
 function stopMenuUnreadCounterListeners() {
@@ -305,6 +335,167 @@ function stopMenuUnreadCounterListeners() {
     clearTimeout(_menuUnreadInitTimer);
     _menuUnreadInitTimer = null;
   }
+}
+
+function countUnreadChatThreads(threads, uid) {
+  const safeUid = String(uid || '').trim();
+  if (!safeUid) return 0;
+  const list = Array.isArray(threads) ? threads : [];
+  return list.reduce((acc, thread) => {
+    const unread = Math.max(0, Number(thread?.unreadCount?.[safeUid]) || 0);
+    return acc + (unread > 0 ? 1 : 0);
+  }, 0);
+}
+
+function readSharedMenuChatUnreadCache(uid) {
+  const safeUid = String(uid || '').trim();
+  if (!safeUid) return null;
+  try {
+    const raw = localStorage.getItem(SHARED_MENU_CHAT_UNREAD_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const value = Number(parsed[safeUid]);
+    return Number.isFinite(value) ? Math.max(0, value) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeSharedMenuChatUnreadCache(uid, unreadCount) {
+  const safeUid = String(uid || '').trim();
+  if (!safeUid) return;
+  try {
+    const raw = localStorage.getItem(SHARED_MENU_CHAT_UNREAD_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    const next = (parsed && typeof parsed === 'object') ? parsed : {};
+    next[safeUid] = Math.max(0, Number(unreadCount) || 0);
+    localStorage.setItem(SHARED_MENU_CHAT_UNREAD_CACHE_KEY, JSON.stringify(next));
+  } catch (_) {
+    // Ignore cache write failures.
+  }
+}
+
+function toMenuMillis(value) {
+  if (!value) return 0;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof value === 'object') {
+    if (typeof value.toDate === 'function') {
+      const dt = value.toDate();
+      return dt instanceof Date ? dt.getTime() : 0;
+    }
+    if (typeof value.seconds === 'number') {
+      return Math.floor(value.seconds * 1000);
+    }
+  }
+  return 0;
+}
+
+function shouldShowMenuThreadForUser(thread, uid) {
+  const safeUid = String(uid || '').trim();
+  if (!safeUid) return true;
+  const deletedFor = thread && thread.deletedFor && typeof thread.deletedFor === 'object'
+    ? thread.deletedFor
+    : null;
+  const deletedAtRaw = deletedFor ? deletedFor[safeUid] : null;
+  if (!deletedAtRaw) return true;
+
+  const deletedAtMs = toMenuMillis(deletedAtRaw);
+  if (deletedAtMs <= 0) return false;
+  const lastActivityMs = Math.max(
+    toMenuMillis(thread?.lastMessageTime),
+    toMenuMillis(thread?.createdAt)
+  );
+  return lastActivityMs > deletedAtMs;
+}
+
+function stopMenuChatUnreadListeners() {
+  if (_menuChatUnreadCounterUnsub) {
+    _menuChatUnreadCounterUnsub();
+    _menuChatUnreadCounterUnsub = null;
+  }
+  if (_menuChatUnreadAuthUnsub) {
+    _menuChatUnreadAuthUnsub();
+    _menuChatUnreadAuthUnsub = null;
+  }
+  if (_menuChatUnreadInitTimer) {
+    clearTimeout(_menuChatUnreadInitTimer);
+    _menuChatUnreadInitTimer = null;
+  }
+}
+
+function startMenuChatUnreadListeners(retry = 0) {
+  if (typeof firebase === 'undefined' || !firebase.auth || typeof firebase.firestore !== 'function') {
+    if (retry < 120) {
+      _menuChatUnreadInitTimer = setTimeout(() => startMenuChatUnreadListeners(retry + 1), 500);
+    }
+    return;
+  }
+  if (_menuChatUnreadAuthUnsub) return;
+
+  _menuChatUnreadAuthUnsub = firebase.auth().onAuthStateChanged((user) => {
+    if (_menuChatUnreadCounterUnsub) {
+      _menuChatUnreadCounterUnsub();
+      _menuChatUnreadCounterUnsub = null;
+    }
+    if (!user || !user.uid) {
+      _menuMessagesUnreadOverride = null;
+      applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+      return;
+    }
+    const cachedUnread = readSharedMenuChatUnreadCache(user.uid);
+    if (cachedUnread !== null) {
+      _menuMessagesUnreadOverride = cachedUnread;
+      applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+    }
+
+    const db = firebase.firestore();
+    // Prime from one-time get so count is restored on navigation even before realtime settles.
+    db.collection('chat_threads')
+      .where('participantIds', 'array-contains', user.uid)
+      .where('isActive', '==', true)
+      .orderBy('lastMessageTime', 'desc')
+      .limit(50)
+      .get()
+      .then((snapshot) => {
+        const threads = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        })).filter((thread) => shouldShowMenuThreadForUser(thread, user.uid));
+        const unread = countUnreadChatThreads(threads, user.uid);
+        _menuMessagesUnreadOverride = unread;
+        writeSharedMenuChatUnreadCache(user.uid, unread);
+        applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+      })
+      .catch(() => {
+        // Realtime listener below remains the source of truth.
+      });
+
+    _menuChatUnreadCounterUnsub = db.collection('chat_threads')
+      .where('participantIds', 'array-contains', user.uid)
+      .where('isActive', '==', true)
+      .orderBy('lastMessageTime', 'desc')
+      .limit(50)
+      .onSnapshot((snapshot) => {
+        const threads = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        })).filter((thread) => shouldShowMenuThreadForUser(thread, user.uid));
+        _menuMessagesUnreadOverride = countUnreadChatThreads(threads, user.uid);
+        writeSharedMenuChatUnreadCache(user.uid, _menuMessagesUnreadOverride);
+        applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+      }, () => {
+        const fallbackUnread = readSharedMenuChatUnreadCache(user.uid);
+        if (fallbackUnread !== null) {
+          _menuMessagesUnreadOverride = fallbackUnread;
+          applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+        }
+      });
+  });
 }
 
 function startMenuUnreadCounterListeners(retry = 0) {
@@ -402,7 +593,7 @@ function populateContainer(container) {
   if (!container) return;
   container.innerHTML = generateMenuHTML();
   appendLogoutWithRetry(container);
-  applyMenuUnreadBadge(_menuCounterState.totalUnread);
+  applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
 }
 
 // ── Initialize: detect which page type we're on ──────────────────────────────
@@ -453,8 +644,10 @@ function autoInitSharedMenu() {
       console.warn('Shared Menu: dependency bootstrap issue, continuing anyway', error);
     })
     .finally(() => {
+      initializeMenuMessagesUnreadBridge();
       initializeSharedMenu();
       startMenuUnreadCounterListeners();
+      startMenuChatUnreadListeners();
       sharedMenuInitialized = true;
       sharedMenuInitInProgress = false;
     });
@@ -476,6 +669,12 @@ window.addEventListener('pagehide', () => {
     _logoutAuthUnsub = null;
   }
   stopMenuUnreadCounterListeners();
+  stopMenuChatUnreadListeners();
+  if (_menuMessagesUnreadEventHandler) {
+    document.removeEventListener('gisugo:messages-unread-counter-update', _menuMessagesUnreadEventHandler);
+    _menuMessagesUnreadEventHandler = null;
+  }
+  _menuMessagesUnreadOverride = null;
 });
 
 window.SharedMenuController = {

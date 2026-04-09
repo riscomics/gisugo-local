@@ -381,6 +381,78 @@ service cloud.firestore {
       // removing stale offer notifications on accept/reject).
       allow delete: if isAuthenticated();
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // GIG REPORTS COLLECTION (Gig Page -> Report Gig)
+    // ═══════════════════════════════════════════════════════════════
+    match /gig_reports/{reportId} {
+      // Reporter can read own reports. Admin can read all reports.
+      allow read: if isAuthenticated()
+        && (resource.data.reporterId == request.auth.uid || isAdmin());
+
+      // Authenticated users can create one report document per gig/user pair.
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll([
+          'reportId', 'jobId', 'reporterId', 'subject', 'message'
+        ])
+        && request.resource.data.reportId is string
+        && request.resource.data.jobId is string
+        && request.resource.data.reporterId is string
+        && request.resource.data.subject is string
+        && request.resource.data.message is string
+        && request.resource.data.reporterId == request.auth.uid;
+
+      // Reports are immutable for reporters. Admin can update moderation status.
+      allow update, delete: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // CHAT THREADS + CHAT MESSAGES (User Chats)
+    // ═══════════════════════════════════════════════════════════════
+    match /chat_threads/{threadId} {
+      // Only participants in a thread can read it.
+      allow read: if isAuthenticated()
+        && request.auth.uid in resource.data.participantIds;
+
+      // Authenticated users can create a thread only if they are one of the participants.
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['participantIds', 'jobId'])
+        && request.resource.data.participantIds is list
+        && request.resource.data.participantIds.size() == 2
+        && request.resource.data.participantIds[0] is string
+        && request.resource.data.participantIds[1] is string
+        && request.resource.data.participantIds[0] != request.resource.data.participantIds[1]
+        && request.resource.data.jobId is string
+        && request.auth.uid in request.resource.data.participantIds;
+
+      // Only participants can update active thread metadata (lastMessage, unread counters, etc.).
+      allow update: if isAuthenticated()
+        && request.auth.uid in resource.data.participantIds
+        && request.resource.data.participantIds == resource.data.participantIds
+        && request.resource.data.jobId == resource.data.jobId;
+
+      // Thread deletion disabled for now (use soft-delete/isActive).
+      allow delete: if false;
+    }
+
+    match /chat_messages/{messageId} {
+      // A user can read messages only for threads they participate in.
+      allow read: if isAuthenticated()
+        && request.auth.uid in get(/databases/$(database)/documents/chat_threads/$(resource.data.threadId)).data.participantIds;
+
+      // Sender must be authenticated and belong to the target thread.
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['threadId', 'senderId', 'content'])
+        && request.resource.data.threadId is string
+        && request.resource.data.senderId is string
+        && request.resource.data.content is string
+        && request.resource.data.senderId == request.auth.uid
+        && get(/databases/$(database)/documents/chat_threads/$(request.resource.data.threadId)).data.isActive == true
+        && request.auth.uid in get(/databases/$(database)/documents/chat_threads/$(request.resource.data.threadId)).data.participantIds;
+
+      // Messages are immutable for now.
+      allow update, delete: if false;
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // DENY ALL OTHER COLLECTIONS BY DEFAULT

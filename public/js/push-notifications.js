@@ -566,7 +566,17 @@
           }
           await handleLogoutCleanup(currentUid);
         } catch (error) {
-          console.warn('⚠️ Push auth-state sync failed:', error);
+          const code = error && error.code ? String(error.code) : '';
+          const message = error && error.message ? String(error.message) : '';
+          const isUnavailablePushEnv = code === 'messaging/unsupported-browser'
+            || code === 'messaging/permission-blocked'
+            || /push service not available/i.test(message)
+            || /AbortError/i.test(message);
+          if (isUnavailablePushEnv) {
+            console.log('ℹ️ Push unavailable in this environment; skipping token sync');
+          } else {
+            console.warn('⚠️ Push auth-state sync failed:', error);
+          }
         }
       });
 

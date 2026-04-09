@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title id="pageTitle">Job Details - GISUGO</title>
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-  <link rel="stylesheet" href="public/css/jobpage.css?v=37">
+  <link rel="stylesheet" href="public/css/jobpage.css?v=39">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body>
@@ -145,12 +145,7 @@
         </div>
         <div class="customer-actions">
           <button class="customer-contact-btn" id="contactBtn">
-            <span>CONTACT</span>
-            <div class="contact-dropdown-arrow">▼</div>
-            <div class="contact-dropdown-overlay" id="contactDropdown">
-              <div class="contact-dropdown-item" data-action="contact">Contact</div>
-              <div class="contact-dropdown-item" data-action="report">Report Job</div>
-            </div>
+            <span>Report Gig</span>
           </button>
           <div class="customer-rating" data-rating="4.5" data-count="0">
             <span class="rating-count">0</span>
@@ -167,6 +162,43 @@
     </div>
   </div>
   
+  <!-- Report Gig Modal Overlay -->
+  <div class="contact-chat-overlay" id="contactChatOverlay">
+    <div class="contact-chat-modal">
+      <div class="contact-chat-header" id="contactChatHeader">Report Gig</div>
+      <div class="report-lang-tabs" id="reportLangTabs">
+        <button type="button" class="report-lang-tab active" data-lang="english">English</button>
+        <button type="button" class="report-lang-tab" data-lang="bisaya">Bisaya</button>
+        <button type="button" class="report-lang-tab" data-lang="tagalog">Tagalog</button>
+      </div>
+      <div class="contact-chat-subtitle" id="contactChatSubtitle">Send your report to Admin for review</div>
+      <div class="contact-chat-content">
+        <label class="contact-chat-subject-label" for="contactChatSubject">Report subject</label>
+        <select
+          class="contact-chat-subject-select"
+          id="contactChatSubject"
+          data-form="false">
+          <option value="">Select a reason</option>
+          <option value="inappropriate_content">Inappropriate content</option>
+          <option value="scam_fraud">Scam/Fraud</option>
+          <option value="misleading_info">Misleading info</option>
+          <option value="duplicate_post">Duplicate post</option>
+          <option value="other_reasons">Other reasons</option>
+        </select>
+        <textarea
+          class="contact-chat-textarea"
+          id="contactChatMessage"
+          placeholder="Describe why this gig should be reviewed..."
+          autocomplete="off"
+          data-form="false"></textarea>
+      </div>
+      <div class="contact-chat-actions">
+        <button class="contact-chat-send-btn" id="contactChatSendBtn" type="button">Submit Report</button>
+        <button class="contact-chat-cancel-btn" id="contactChatCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Apply Job Modal Overlay -->
   <div class="apply-job-overlay" id="applyJobOverlay">
     <div class="apply-job-modal">
@@ -244,12 +276,35 @@
       <button class="application-sent-close-btn" id="applicationSentClose">GOT IT!</button>
     </div>
   </div>
+
+  <!-- Report Gig Confirmation Overlay -->
+  <div class="application-sent-overlay" id="reportGigSentOverlay">
+    <div class="application-sent-modal">
+      <div class="application-sent-icon">🚩</div>
+      <div class="application-sent-title">REPORT SUBMITTED!</div>
+      <div class="application-sent-subtitle">Admin will review your report.</div>
+      <div class="application-sent-steps">
+        <div class="sent-step">
+          <span class="step-number">1</span>
+          <span class="step-text">Your report was logged for moderation review.</span>
+        </div>
+        <div class="sent-step">
+          <span class="step-number">2</span>
+          <span class="step-text">You can continue browsing and applying to gigs.</span>
+        </div>
+      </div>
+      <div class="application-sent-tip">
+        Thanks for helping keep the platform safe.
+      </div>
+      <button class="application-sent-close-btn" id="reportGigSentClose">OK</button>
+    </div>
+  </div>
   
   <!-- Validation Error Overlay -->
   <div class="validation-overlay" id="validationOverlay">
     <div class="validation-modal">
       <div class="validation-icon">⚠️</div>
-      <div class="validation-message" id="validationMessage">Please enter a message to the customer.</div>
+      <div class="validation-message" id="validationMessage">Please complete the report form.</div>
       <button class="validation-ok-btn" id="validationOkBtn">OK</button>
     </div>
   </div>
@@ -270,14 +325,14 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js?v=20260313c"></script>
   <script src="public/js/firebase-auth.js?v=8"></script>
-  <script src="public/js/firebase-db.js?v=36"></script>
+  <script src="public/js/firebase-db.js?v=39"></script>
   <script src="public/js/firebase-storage.js?v=2"></script>
   <script src="public/js/push-notifications.js?v=8"></script>
   
   <script src="public/js/app-config.js"></script>
   <script src="public/js/data-service.js"></script>
   <script src="public/js/shared-menu.js?v=3.7"></script>
-  <script src="public/js/dynamic-job.js?v=47"></script>
+  <script src="public/js/dynamic-job.js?v=50"></script>
 
 </body>
 </html> 

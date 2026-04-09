@@ -41,6 +41,14 @@ service firebase.storage {
       allow read, write, delete: if isAuthenticated();
     }
 
+    // Chat photos (strict participant-scoped access)
+    // Path format: chat_photos/{threadId}/{uidA}/{uidB}/{file}
+    match /chat_photos/{threadId}/{uidA}/{uidB}/{allPaths=**} {
+      allow read, write, delete: if isAuthenticated()
+        && (request.auth.uid == uidA || request.auth.uid == uidB)
+        || isAdmin();
+    }
+
     // Deny everything else by default.
     match /{allPaths=**} {
       allow read, write: if false;

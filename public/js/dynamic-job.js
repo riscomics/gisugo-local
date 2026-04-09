@@ -50,6 +50,63 @@ window.addEventListener('pagehide', function() {
 
 const DYNAMIC_JOB_FETCH_TIMEOUT_MS = 15000;
 let ACTIVE_JOB_LOAD_TOKEN = 0;
+const DYNAMIC_REPORT_MODAL_STATE = {
+  resolver: null
+};
+const REPORT_MODAL_CONTEXT = {
+  jobTitle: 'this gig'
+};
+let ACTIVE_REPORT_LANG = 'english';
+const REPORT_GIG_TRANSLATIONS = {
+  english: {
+    header: 'Report Gig',
+    subtitle: (jobTitle) => `Send a moderation report for "${jobTitle}"`,
+    subjectLabel: 'Report subject',
+    subjectPlaceholder: 'Select a reason',
+    messagePlaceholder: 'Describe why this gig should be reviewed...',
+    sendBtn: 'Submit Report',
+    cancelBtn: 'Cancel',
+    subjects: {
+      inappropriate_content: 'Inappropriate content',
+      scam_fraud: 'Scam/Fraud',
+      misleading_info: 'Misleading info',
+      duplicate_post: 'Duplicate post',
+      other_reasons: 'Other reasons'
+    }
+  },
+  tagalog: {
+    header: 'I-report ang Gig',
+    subtitle: (jobTitle) => `Magpadala ng ulat para sa "${jobTitle}" sa Admin para masuri`,
+    subjectLabel: 'Paksa ng ulat',
+    subjectPlaceholder: 'Pumili ng dahilan',
+    messagePlaceholder: 'Ilarawan kung bakit dapat i-review ang gig na ito...',
+    sendBtn: 'Ipasa ang Ulat',
+    cancelBtn: 'Kanselahin',
+    subjects: {
+      inappropriate_content: 'Hindi angkop na nilalaman',
+      scam_fraud: 'Scam/Panloloko',
+      misleading_info: 'Maling impormasyon',
+      duplicate_post: 'Dobleng post',
+      other_reasons: 'Iba pang dahilan'
+    }
+  },
+  bisaya: {
+    header: 'I-report ang Gig',
+    subtitle: (jobTitle) => `Ipadala ang report para sa "${jobTitle}" ngadto sa Admin aron mareview`,
+    subjectLabel: 'Ulohan sa report',
+    subjectPlaceholder: 'Pili og rason',
+    messagePlaceholder: 'Isaysay ngano nga kinahanglan i-review kining gig...',
+    sendBtn: 'Isumite ang Report',
+    cancelBtn: 'Kansela',
+    subjects: {
+      inappropriate_content: 'Dili angay nga sulod',
+      scam_fraud: 'Scam/Panikas',
+      misleading_info: 'Makalibog nga impormasyon',
+      duplicate_post: 'Parehas nga post',
+      other_reasons: 'Ubang rason'
+    }
+  }
+};
 const DYNAMIC_JOB_INITIAL_FETCH_TIMEOUT_MS = (() => {
   try {
     const ua = navigator.userAgent || '';
@@ -68,6 +125,78 @@ function isIOSWebKitBrowserForDataPath() {
   } catch (_) {
     return false;
   }
+}
+
+function getReportTranslationPack(langKey) {
+  const safeLang = String(langKey || '').trim().toLowerCase();
+  return REPORT_GIG_TRANSLATIONS[safeLang] || REPORT_GIG_TRANSLATIONS.english;
+}
+
+function applyReportGigLanguage(langKey) {
+  const safeLang = String(langKey || '').trim().toLowerCase();
+  if (!REPORT_GIG_TRANSLATIONS[safeLang]) {
+    ACTIVE_REPORT_LANG = 'english';
+  } else {
+    ACTIVE_REPORT_LANG = safeLang;
+  }
+  const pack = getReportTranslationPack(ACTIVE_REPORT_LANG);
+  const jobTitle = String(REPORT_MODAL_CONTEXT.jobTitle || 'this gig').trim() || 'this gig';
+
+  const header = document.getElementById('contactChatHeader');
+  const subtitle = document.getElementById('contactChatSubtitle');
+  const subjectLabel = document.querySelector('label[for="contactChatSubject"]');
+  const subjectInput = document.getElementById('contactChatSubject');
+  const messageInput = document.getElementById('contactChatMessage');
+  const sendBtn = document.getElementById('contactChatSendBtn');
+  const cancelBtn = document.getElementById('contactChatCancelBtn');
+
+  if (header) header.textContent = pack.header;
+  if (subtitle) subtitle.textContent = pack.subtitle(jobTitle);
+  if (subjectLabel) subjectLabel.textContent = pack.subjectLabel;
+  if (messageInput) messageInput.placeholder = pack.messagePlaceholder;
+  if (sendBtn) sendBtn.textContent = pack.sendBtn;
+  if (cancelBtn) cancelBtn.textContent = pack.cancelBtn;
+
+  if (subjectInput) {
+    const currentValue = String(subjectInput.value || '').trim();
+    const options = [
+      { value: '', label: pack.subjectPlaceholder },
+      { value: 'inappropriate_content', label: pack.subjects.inappropriate_content },
+      { value: 'scam_fraud', label: pack.subjects.scam_fraud },
+      { value: 'misleading_info', label: pack.subjects.misleading_info },
+      { value: 'duplicate_post', label: pack.subjects.duplicate_post },
+      { value: 'other_reasons', label: pack.subjects.other_reasons }
+    ];
+    subjectInput.innerHTML = options.map((item) => (
+      `<option value="${item.value}">${item.label}</option>`
+    )).join('');
+    if (currentValue && options.some((item) => item.value === currentValue)) {
+      subjectInput.value = currentValue;
+    } else {
+      subjectInput.value = '';
+    }
+  }
+
+  document.querySelectorAll('#reportLangTabs .report-lang-tab').forEach((tab) => {
+    const tabLang = String(tab.getAttribute('data-lang') || '').toLowerCase();
+    tab.classList.toggle('active', tabLang === ACTIVE_REPORT_LANG);
+  });
+}
+
+function initializeReportGigLanguageTabs() {
+  const tabContainer = document.getElementById('reportLangTabs');
+  if (!tabContainer) return;
+
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(tabContainer, 'click', (event) => {
+    const tab = event.target.closest('.report-lang-tab');
+    if (!tab) return;
+    event.preventDefault();
+    const nextLang = String(tab.getAttribute('data-lang') || '').trim().toLowerCase();
+    if (!nextLang) return;
+    applyReportGigLanguage(nextLang);
+  });
+
+  applyReportGigLanguage(ACTIVE_REPORT_LANG);
 }
 
 function getProjectIdForFirestoreRest() {
@@ -1328,6 +1457,44 @@ function closeApplicationSentOverlay() {
   }
 }
 
+function showReportGigSentOverlay() {
+  const overlay = document.getElementById('reportGigSentOverlay');
+  const lightRaysContainer = document.getElementById('lightRaysContainer');
+  if (overlay) {
+    overlay.classList.add('show');
+  }
+  if (lightRaysContainer) {
+    lightRaysContainer.classList.add('active');
+    const positionTimeout = setTimeout(() => {
+      const icon = overlay ? overlay.querySelector('.application-sent-icon') : null;
+      if (!icon) return;
+      const rect = icon.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const rays = lightRaysContainer.querySelectorAll('.light-ray');
+      rays.forEach((ray) => {
+        ray.style.top = centerY + 'px';
+        ray.style.left = centerX + 'px';
+        ray.style.animation = 'none';
+        ray.offsetHeight;
+        ray.style.animation = '';
+      });
+    }, 100);
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(positionTimeout);
+  }
+}
+
+function closeReportGigSentOverlay() {
+  const overlay = document.getElementById('reportGigSentOverlay');
+  const lightRaysContainer = document.getElementById('lightRaysContainer');
+  if (overlay) {
+    overlay.classList.remove('show');
+  }
+  if (lightRaysContainer) {
+    lightRaysContainer.classList.remove('active');
+  }
+}
+
 // ========================== VALIDATION OVERLAY ==========================
 function showValidationError(message, focusElement = null) {
   const overlay = document.getElementById('validationOverlay');
@@ -1418,6 +1585,27 @@ function initializeApplicationSentOverlay() {
   }
 }
 
+function initializeReportGigSentOverlay() {
+  const overlay = document.getElementById('reportGigSentOverlay');
+  const closeBtn = document.getElementById('reportGigSentClose');
+  if (!overlay || !closeBtn) return;
+
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(closeBtn, 'click', (e) => {
+    if (e) e.preventDefault();
+    closeReportGigSentOverlay();
+  });
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(overlay, 'click', (e) => {
+    if (e.target === overlay) closeReportGigSentOverlay();
+  });
+
+  const reportSentEscHandler = function(e) {
+    if (e.key === 'Escape' && overlay.classList.contains('show')) {
+      closeReportGigSentOverlay();
+    }
+  };
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', reportSentEscHandler);
+}
+
 // Function to format counter offer input
 function initCounterOfferFormatting() {
   const counterOfferInput = document.getElementById('counterOfferAmount');
@@ -1472,36 +1660,198 @@ function initializeCustomerProfileLink() {
   }
 }
 
-// Initialize contact dropdown
-function initializeContactDropdown() {
-  const contactBtn = document.getElementById('contactBtn');
-  const contactDropdown = document.getElementById('contactDropdown');
-  
-  if (contactBtn && contactDropdown) {
-    contactBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      contactDropdown.classList.toggle('show');
-    });
-    
-    // Contact dropdown document click handler - using cleanup registry
-    const contactDropdownClickHandler = function() {
-      contactDropdown.classList.remove('show');
-    };
-    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'click', contactDropdownClickHandler);
-    
-    // Handle dropdown item clicks
-    contactDropdown.addEventListener('click', function(e) {
-      if (e.target.classList.contains('contact-dropdown-item')) {
-        const action = e.target.getAttribute('data-action');
-        if (action === 'contact') {
-          alert('Contact functionality not implemented yet.');
-        } else if (action === 'report') {
-          alert('Report functionality not implemented yet.');
-        }
-        contactDropdown.classList.remove('show');
-      }
+// Initialize gig report modal
+function openDynamicReportModal(jobTitle = 'this gig') {
+  const overlay = document.getElementById('contactChatOverlay');
+  const subjectInput = document.getElementById('contactChatSubject');
+  const textarea = document.getElementById('contactChatMessage');
+  if (!overlay || !subjectInput || !textarea) {
+    const fallbackSubject = String(window.prompt('Report subject (reason):') || '').trim();
+    if (!fallbackSubject) return Promise.resolve(null);
+    const fallbackMessage = String(window.prompt('Describe the issue:') || '').trim();
+    if (!fallbackMessage) return Promise.resolve(null);
+    return Promise.resolve({
+      subject: fallbackSubject,
+      message: fallbackMessage
     });
   }
+
+  REPORT_MODAL_CONTEXT.jobTitle = String(jobTitle || '').trim() || 'this gig';
+  applyReportGigLanguage(ACTIVE_REPORT_LANG);
+  subjectInput.value = '';
+  textarea.value = '';
+  overlay.classList.add('show');
+
+  const focusTimeout = setTimeout(() => subjectInput.focus(), 120);
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(focusTimeout);
+
+  return new Promise((resolve) => {
+    DYNAMIC_REPORT_MODAL_STATE.resolver = resolve;
+  });
+}
+
+function closeDynamicReportModal(payload = null) {
+  const overlay = document.getElementById('contactChatOverlay');
+  if (overlay) {
+    overlay.classList.remove('show');
+  }
+  if (typeof DYNAMIC_REPORT_MODAL_STATE.resolver === 'function') {
+    DYNAMIC_REPORT_MODAL_STATE.resolver(payload);
+    DYNAMIC_REPORT_MODAL_STATE.resolver = null;
+  }
+}
+
+function initializeDynamicReportModal() {
+  const overlay = document.getElementById('contactChatOverlay');
+  const sendBtn = document.getElementById('contactChatSendBtn');
+  const cancelBtn = document.getElementById('contactChatCancelBtn');
+  const subjectInput = document.getElementById('contactChatSubject');
+  const textarea = document.getElementById('contactChatMessage');
+
+  if (!overlay || !sendBtn || !cancelBtn || !subjectInput || !textarea) return;
+
+  blockUnsupportedCharsForInput(textarea);
+
+  const submitHandler = () => {
+    const subject = String(subjectInput.value || '').trim();
+    const message = String(textarea.value || '').trim();
+    if (!subject) {
+      showValidationError('Please select a report subject.', subjectInput);
+      return;
+    }
+    if (!message) {
+      showValidationError('Please enter report details for Admin.', textarea);
+      return;
+    }
+    closeDynamicReportModal({ subject, message });
+  };
+
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(sendBtn, 'click', submitHandler);
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(cancelBtn, 'click', () => closeDynamicReportModal(null));
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(overlay, 'click', (event) => {
+    if (event.target === overlay) {
+      closeDynamicReportModal(null);
+    }
+  });
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(subjectInput, 'keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDynamicReportModal(null);
+    }
+  });
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(textarea, 'keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDynamicReportModal(null);
+      return;
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      submitHandler();
+    }
+  });
+}
+
+function getGigReportSubjectLabel(subjectValue) {
+  const labels = {
+    inappropriate_content: 'Inappropriate content',
+    scam_fraud: 'Scam/Fraud',
+    misleading_info: 'Misleading info',
+    duplicate_post: 'Duplicate post',
+    other_reasons: 'Other reasons'
+  };
+  return labels[String(subjectValue || '').trim()] || String(subjectValue || '').trim();
+}
+
+async function handleDynamicGigReportAction() {
+  try {
+    const authUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    if (!authUser) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const jobData = window.currentJobData || {};
+    const jobId = String(jobData.jobId || jobData.id || '').trim();
+    const posterId = String(jobData.posterId || '').trim();
+    const jobTitle = String(jobData.title || jobData.jobTitle || 'Gig').trim();
+    if (!jobId) {
+      alert('Unable to submit report: missing gig details. Please refresh.');
+      return;
+    }
+    if (posterId && posterId === authUser.uid) {
+      showValidationError('You cannot report your own gig posting.');
+      return;
+    }
+
+    if (typeof hasSubmittedGigReport === 'function') {
+      const alreadyReported = await hasSubmittedGigReport(jobId);
+      if (alreadyReported) {
+        showValidationError('You already reported this gig. Admin review is already in queue.');
+        return;
+      }
+    }
+
+    const draft = await openDynamicReportModal(jobTitle);
+    if (draft == null) return;
+    const subject = String(draft.subject || '').trim();
+    const message = String(draft.message || '').trim();
+    const subjectLabel = getGigReportSubjectLabel(subject);
+    if (!subjectLabel) {
+      showValidationError('Please select a report subject.');
+      return;
+    }
+    if (!message) {
+      showValidationError('Please enter report details for Admin.');
+      return;
+    }
+    if (typeof hasUnsupportedTextChars === 'function' && (hasUnsupportedTextChars(subjectLabel) || hasUnsupportedTextChars(message))) {
+      showValidationError('Report has unsupported symbols.');
+      return;
+    }
+
+    if (typeof submitGigReportToAdmin !== 'function') {
+      alert('Report service is unavailable right now. Please try again later.');
+      return;
+    }
+
+    const reportResult = await submitGigReportToAdmin(jobId, {
+      reasonKey: subject,
+      subject: subjectLabel,
+      message: message,
+      jobTitle: jobTitle,
+      jobCategory: String(jobData.category || '').trim(),
+      posterId: posterId
+    });
+    if (!reportResult || reportResult.success !== true) {
+      if (String(reportResult?.code || '') === 'already-reported') {
+        showValidationError('You already reported this gig. Admin review is already in queue.');
+        return;
+      }
+      throw new Error(reportResult?.message || 'Failed to submit report');
+    }
+
+    showReportGigSentOverlay();
+  } catch (error) {
+    console.error('❌ Dynamic gig report failed:', error);
+    alert('Failed to submit report. Please try again.');
+  }
+}
+
+function initializeReportGigButton() {
+  const contactBtn = document.getElementById('contactBtn');
+  if (!contactBtn) return;
+
+  DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(contactBtn, 'click', async function(e) {
+    if (e) e.preventDefault();
+    if (contactBtn.disabled) return;
+    contactBtn.disabled = true;
+    try {
+      await handleDynamicGigReportAction();
+    } finally {
+      contactBtn.disabled = false;
+    }
+    });
 }
 
 // ========================== PHOTO LIGHTBOX FUNCTIONALITY ==========================
@@ -2177,8 +2527,11 @@ document.addEventListener('DOMContentLoaded', function() {
   safeInit('initializeMenu', initializeMenu);
   safeInit('initializeApplyJob', initializeApplyJob);
   safeInit('initializeApplicationSentOverlay', initializeApplicationSentOverlay);
+  safeInit('initializeReportGigSentOverlay', initializeReportGigSentOverlay);
+  safeInit('initializeReportGigLanguageTabs', initializeReportGigLanguageTabs);
   safeInit('initializeCustomerProfileLink', initializeCustomerProfileLink);
-  safeInit('initializeContactDropdown', initializeContactDropdown);
+  safeInit('initializeDynamicReportModal', initializeDynamicReportModal);
+  safeInit('initializeReportGigButton', initializeReportGigButton);
   safeInit('initCounterOfferFormatting', initCounterOfferFormatting);
   safeInit('initializePhotoLightbox', initializePhotoLightbox);
   safeInit('initializeGigDetailAdSlot', initializeGigDetailAdSlot);

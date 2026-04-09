@@ -58,24 +58,19 @@ function enableFirestorePersistenceSafely() {
   const db = firebase.firestore();
   const isIOS = isIOSWebKit();
 
-  // Improve Safari transport reliability. Older iOS WebKit can intermittently
-  // stall on streaming transport, so we force long-polling there.
-  try {
-    const firestoreSettings = isIOS
-      ? {
-          experimentalAutoDetectLongPolling: true,
-          experimentalForceLongPolling: true,
-          useFetchStreams: false
-        }
-      : {
-          experimentalAutoDetectLongPolling: true
-        };
-    db.settings(firestoreSettings);
-    if (isIOS) {
+  // Improve Safari transport reliability. Apply custom transport settings only
+  // on iOS WebKit to avoid unnecessary host/settings warnings elsewhere.
+  if (isIOS) {
+    try {
+      db.settings({
+        experimentalAutoDetectLongPolling: true,
+        experimentalForceLongPolling: true,
+        useFetchStreams: false
+      });
       console.log('🧭 iOS Firestore transport fallback enabled (long-polling mode)');
+    } catch (settingsError) {
+      console.warn('⚠️ Firestore settings() skipped:', settingsError);
     }
-  } catch (settingsError) {
-    console.warn('⚠️ Firestore settings() skipped:', settingsError);
   }
 
   // iOS Safari is more stable with single-tab persistence mode.
