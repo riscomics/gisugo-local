@@ -3547,15 +3547,15 @@ body:has(.selection-controls[style*="display: flex"]) {
 /* Custom Confirmation Dialog Styles - Mobile positioning */
 .custom-confirmation-overlay {
   position: fixed;
-  top: calc(var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px);
+  top: 0;
   left: 0;
-  width: 100%;
-  height: calc(100vh - (var(--header-height, 76px) + var(--header-borderline-height, 4px) + 10px + 60px + 52px));
+  width: 100vw;
+  height: 100vh;
   background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2300; /* Higher than avatar overlay */
+  z-index: 11050; /* Always above chat/avatar overlays */
   opacity: 0;
   transition: opacity 0.2s ease;
 }
