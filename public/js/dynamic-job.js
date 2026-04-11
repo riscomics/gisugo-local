@@ -1189,6 +1189,39 @@ function initializeMenu() {
 }
 
 // Initialize apply job functionality
+async function refreshApplyCoinStatus() {
+  const statusBox = document.getElementById('applyCoinStatus');
+  const valueEl = document.getElementById('applyCoinValue');
+  const captionEl = document.getElementById('applyCoinCaption');
+  const submitBtn = document.getElementById('submitApplication');
+  const user = firebase?.auth ? firebase.auth().currentUser : null;
+  if (!statusBox || !valueEl || !captionEl || !submitBtn || !user?.uid || typeof getUserApplicationCoinStatus !== 'function') {
+    return { current: 0, max: 10 };
+  }
+
+  try {
+    const result = await getUserApplicationCoinStatus(user.uid);
+    const current = Number(result?.current ?? 0);
+    const max = Number(result?.max ?? 10);
+    valueEl.textContent = `${current} / ${max}`;
+    statusBox.classList.toggle('low', current <= 2);
+    captionEl.textContent = current <= 2
+      ? 'Low on coins. Withdraw a pending application if needed before applying.'
+      : 'This application uses 1 coin. Your coin returns when this application closes or the gig is completed.';
+    submitBtn.disabled = current <= 0;
+    submitBtn.style.opacity = current <= 0 ? '0.65' : '';
+    if (current <= 0) {
+      submitBtn.textContent = 'NO COINS AVAILABLE';
+    } else {
+      submitBtn.textContent = 'APPLY (1 G COIN)';
+    }
+    return { current, max };
+  } catch (error) {
+    console.warn('⚠️ Could not refresh apply coin status:', error);
+    return { current: 0, max: 10 };
+  }
+}
+
 function initializeApplyJob() {
   const applyBtn = document.getElementById('jobApplyBtn');
   const applyOverlay = document.getElementById('applyJobOverlay');
@@ -1229,7 +1262,7 @@ function initializeApplyJob() {
     }
     
     // Show modal when apply button is clicked
-    applyBtn.addEventListener('click', function(e) {
+    applyBtn.addEventListener('click', async function(e) {
       e.preventDefault();
       
       // ═══════════════════════════════════════════════════════════════
@@ -1248,6 +1281,7 @@ function initializeApplyJob() {
       
       // Scroll window to top to prevent Android keyboard positioning issues
       window.scrollTo(0, 0);
+      await refreshApplyCoinStatus();
       applyOverlay.scrollTop = 0;
       applyOverlay.classList.add('show');
       // Focus on message textarea for better UX
@@ -1319,6 +1353,12 @@ function handleJobApplication() {
     alert('You cannot apply to your own job posting!');
     return;
   }
+
+  const submitBtn = document.getElementById('submitApplication');
+  if (submitBtn && submitBtn.disabled) {
+    alert('You have no G coins available right now.');
+    return;
+  }
   
   // Get form values
   const message = messageTextarea ? messageTextarea.value.trim() : '';
@@ -1376,6 +1416,7 @@ function handleJobApplication() {
           
           // Show confirmation overlay
           showApplicationSentOverlay();
+          refreshApplyCoinStatus();
         } else {
           dynamicTrace('render:apply:error', result.message || 'apply_failed');
           console.error('❌ Application submission failed:', result.message);

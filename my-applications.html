@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>My Applications - GISUGO</title>
+    <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
+    <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
+    <link rel="stylesheet" href="public/css/jobs.css?v=6.6">
+    <link rel="stylesheet" href="public/css/my-applications.css?v=1">
+    <link rel="stylesheet" href="public/css/shared-menu.css">
+</head>
+<body class="page-jobs page-my-applications">
+    <div class="uniform-header">
+        <div class="uniform-header-title-container">
+            <button class="uniform-header-btn back" aria-label="Back" onclick="history.back()">
+                <span class="btn-emoji back-emoji">←</span>
+                <span>Back</span>
+            </button>
+            <div class="uniform-header-title">My Applications</div>
+            <button class="uniform-header-btn menu" id="uniformMenuBtn" aria-label="Menu">
+                <span class="btn-emoji">📋</span>
+                <span>Menu</span>
+            </button>
+        </div>
+        <div class="uniform-header-borderline"></div>
+    </div>
+
+    <div class="uniform-menu-overlay" id="uniformMenuOverlay">
+        <div class="uniform-menu-items"></div>
+    </div>
+
+    <section class="role-tabs coin-status-strip" id="coinStatusStrip" aria-live="polite">
+        <div class="coin-status-content">
+            <div class="coin-status-text">
+                <div class="coin-status-main">
+                    <span class="coin-status-title">G Coins</span>
+                    <span class="coin-status-value" id="coinStatusValue">10 / 10</span>
+                </div>
+                <div class="coin-status-caption" id="coinStatusCaption">
+                    Coins Return when Closed.
+                </div>
+            </div>
+            <div class="coin-status-float" aria-hidden="true">
+                <div class="coin-status-coin">
+                    <span class="coin-status-letter">G</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="jobs-tabs worker-tabs">
+        <button class="tab-btn active" data-tab="active" id="activeApplicationsTab">
+            <span class="tab-label">ACTIVE</span>
+            <span class="notification-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="closed" id="closedApplicationsTab">
+            <span class="tab-label">CLOSED</span>
+            <span class="notification-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="withdrawn" id="withdrawnApplicationsTab">
+            <span class="tab-label">WITHDRAWN</span>
+            <span class="notification-count">0</span>
+        </button>
+    </div>
+
+    <div class="tab-content-wrapper worker-content active" id="active-content">
+        <div class="tab-scroll-container">
+            <div class="my-applications-container" id="activeApplicationsList"></div>
+        </div>
+    </div>
+
+    <div class="tab-content-wrapper worker-content" id="closed-content" style="display: none;">
+        <div class="tab-scroll-container">
+            <div class="my-applications-container" id="closedApplicationsList"></div>
+        </div>
+    </div>
+
+    <div class="tab-content-wrapper worker-content" id="withdrawn-content" style="display: none;">
+        <div class="tab-scroll-container">
+            <div class="my-applications-container" id="withdrawnApplicationsList"></div>
+        </div>
+    </div>
+
+    <div class="listing-options-overlay" id="applicationCardOptionsOverlay">
+        <div class="listing-options-container">
+            <div class="listing-options-header">
+                <div class="listing-options-title" id="applicationOptionsTitle">Application</div>
+                <div class="listing-options-subtitle" id="applicationOptionsSubtitle">Choose an action</div>
+            </div>
+            <div class="listing-options-actions" id="applicationOptionsActions"></div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
+
+    <script src="public/js/firebase-config.js?v=20260313c"></script>
+    <script src="public/js/firebase-auth.js?v=8"></script>
+    <script src="public/js/push-notifications.js?v=8"></script>
+    <script src="public/js/firebase-db.js?v=39"></script>
+    <script src="public/js/firebase-storage.js?v=2"></script>
+    <script src="public/js/app-config.js"></script>
+    <script src="public/js/data-service.js"></script>
+    <script src="public/js/header-uniform.js?v=1.2"></script>
+    <script src="public/js/shared-menu.js?v=3.7"></script>
+    <script src="public/js/my-applications.js?v=1"></script>
+</body>
+</html>

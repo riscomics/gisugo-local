@@ -65,6 +65,7 @@ function getArrayItemSafe(list, index, fallback = '') {
 
 const JOB_CACHE_BY_ID_KEY = 'gisugo_job_cache_by_id_v1';
 const JOB_CACHE_BY_CATEGORY_KEY = 'gisugo_job_cache_by_category_v1';
+const DEFAULT_APPLICATION_COINS_MAX = 10;
 
 function readJsonStorageSafe(key, fallback) {
   try {
@@ -83,6 +84,95 @@ function writeJsonStorageSafe(key, value) {
   } catch (_) {
     // Ignore storage quota/privacy mode failures.
   }
+}
+
+function normalizeApplicationCoins(profile = {}) {
+  const maxCoinsRaw = Number(profile.applicationCoinsMax);
+  const maxCoins = Number.isFinite(maxCoinsRaw) && maxCoinsRaw > 0
+    ? maxCoinsRaw
+    : DEFAULT_APPLICATION_COINS_MAX;
+  const currentCoinsRaw = Number(profile.applicationCoinsCurrent);
+  const currentCoins = Number.isFinite(currentCoinsRaw)
+    ? Math.max(0, Math.min(maxCoins, currentCoinsRaw))
+    : maxCoins;
+  return { current: currentCoins, max: maxCoins };
+}
+
+async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
+  const safeUserId = String(userId || '').trim();
+  if (!safeUserId) return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
+  const db = dbOverride || getFirestore();
+  if (!db) {
+    const users = JSON.parse(localStorage.getItem('gisugo_users') || '{}');
+    const user = users[safeUserId] || {};
+    const normalized = normalizeApplicationCoins(user);
+    if (
+      user.applicationCoinsCurrent !== normalized.current
+      || user.applicationCoinsMax !== normalized.max
+    ) {
+      users[safeUserId] = {
+        ...user,
+        applicationCoinsCurrent: normalized.current,
+        applicationCoinsMax: normalized.max
+      };
+      localStorage.setItem('gisugo_users', JSON.stringify(users));
+    }
+    return normalized;
+  }
+
+  const userRef = db.collection('users').doc(safeUserId);
+  const userDoc = await userRef.get();
+  if (!userDoc.exists) {
+    return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
+  }
+  const normalized = normalizeApplicationCoins(userDoc.data() || {});
+  await userRef.set({
+    applicationCoinsCurrent: normalized.current,
+    applicationCoinsMax: normalized.max
+  }, { merge: true });
+  return normalized;
+}
+
+async function getUserApplicationCoinStatus(userId) {
+  const safeUserId = String(userId || '').trim();
+  if (!safeUserId) return { success: false, message: 'User ID is required' };
+  try {
+    const coinState = await ensureApplicationCoinsForUser(safeUserId);
+    return { success: true, ...coinState };
+  } catch (error) {
+    console.error('❌ Error getting application coin status:', error);
+    return { success: false, message: error.message, current: 0, max: DEFAULT_APPLICATION_COINS_MAX };
+  }
+}
+
+async function releaseApplicationCoinForUser(userId, reason = '') {
+  const safeUserId = String(userId || '').trim();
+  if (!safeUserId) return;
+  const db = getFirestore();
+  if (!db) {
+    const users = JSON.parse(localStorage.getItem('gisugo_users') || '{}');
+    const user = users[safeUserId] || {};
+    const normalized = normalizeApplicationCoins(user);
+    users[safeUserId] = {
+      ...user,
+      applicationCoinsMax: normalized.max,
+      applicationCoinsCurrent: Math.min(normalized.max, normalized.current + 1),
+      applicationCoinLastReleaseReason: reason || user.applicationCoinLastReleaseReason || '',
+      applicationCoinLastReleasedAt: new Date().toISOString()
+    };
+    localStorage.setItem('gisugo_users', JSON.stringify(users));
+    return;
+  }
+
+  const userRef = db.collection('users').doc(safeUserId);
+  const userDoc = await userRef.get();
+  const normalized = normalizeApplicationCoins(userDoc.exists ? (userDoc.data() || {}) : {});
+  await userRef.set({
+    applicationCoinsMax: normalized.max,
+    applicationCoinsCurrent: Math.min(normalized.max, normalized.current + 1),
+    applicationCoinLastReleaseReason: reason || '',
+    applicationCoinLastReleasedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
 }
 
 function withFirestoreReadTimeout(promise, timeoutMs = 5000) {
@@ -1219,6 +1309,7 @@ async function deleteJob(jobId) {
       
       // First, get applicant IDs before deleting (we need this data for statistics)
       const applicantIds = [];
+      const coinReleaseCandidates = [];
       try {
         const appPromises = jobData.applicationIds.map(appId => 
           db.collection('applications').doc(appId).get()
@@ -1227,9 +1318,16 @@ async function deleteJob(jobId) {
         
         appDocs.forEach(appDoc => {
           if (appDoc.exists) {
-            const applicantId = appDoc.data().applicantId;
+            const appData = appDoc.data() || {};
+            const applicantId = appData.applicantId;
             if (applicantId) {
               applicantIds.push(applicantId);
+              if (appData.coinHeld !== false && !appData.coinReleasedAt) {
+                coinReleaseCandidates.push({
+                  applicantId,
+                  applicationId: appDoc.id
+                });
+              }
             }
           }
         });
@@ -1276,6 +1374,20 @@ async function deleteJob(jobId) {
         } catch (statsError) {
           console.error('⚠️ Error updating applicant statistics:', statsError);
           // Non-critical - continue with deletion
+        }
+      }
+
+      if (coinReleaseCandidates.length > 0) {
+        try {
+          const uniqueReleaseUsers = [...new Set(coinReleaseCandidates.map((entry) => entry.applicantId))];
+          const releasePromises = uniqueReleaseUsers.map((uid) =>
+            releaseApplicationCoinForUser(uid, 'job_deleted').catch((error) => {
+              console.warn('⚠️ Could not release coin for deleted-job applicant:', error);
+            })
+          );
+          await Promise.all(releasePromises);
+        } catch (coinReleaseError) {
+          console.warn('⚠️ Error releasing coins for deleted job applications:', coinReleaseError);
         }
       }
     }
@@ -1359,6 +1471,130 @@ function deleteJobOffline(jobId) {
 // APPLICATIONS COLLECTION
 // ============================================================================
 
+async function releaseApplicationCoinForApplication(applicationId, releaseReason = 'released') {
+  const safeApplicationId = String(applicationId || '').trim();
+  if (!safeApplicationId) return { success: false, message: 'Application ID required' };
+  const db = getFirestore();
+  if (!db) return { success: true, released: false };
+
+  try {
+    const appRef = db.collection('applications').doc(safeApplicationId);
+    const appDoc = await appRef.get();
+    if (!appDoc.exists) return { success: false, message: 'Application not found' };
+    const appData = appDoc.data() || {};
+    const applicantId = String(appData.applicantId || '').trim();
+    if (!applicantId) return { success: false, message: 'Application has no applicantId' };
+
+    if (appData.coinHeld === false || appData.coinReleasedAt) {
+      return { success: true, released: false };
+    }
+
+    await releaseApplicationCoinForUser(applicantId, releaseReason);
+    await appRef.update({
+      coinHeld: false,
+      coinReleaseReason: releaseReason,
+      coinReleasedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return { success: true, released: true };
+  } catch (error) {
+    console.error('❌ Error releasing application coin:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+async function getWorkerApplications(workerId, filters = {}) {
+  const db = getFirestore();
+  const safeWorkerId = String(workerId || '').trim();
+  if (!safeWorkerId) return [];
+  const statusFilter = Array.isArray(filters.statuses) ? filters.statuses.filter(Boolean) : [];
+  const searchTerm = String(filters.search || '').trim().toLowerCase();
+
+  if (!db) {
+    const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
+    return applications
+      .filter((app) => String(app.applicantId || '') === safeWorkerId)
+      .filter((app) => statusFilter.length === 0 || statusFilter.includes(String(app.status || '')))
+      .filter((app) => !searchTerm || String(app.jobTitle || '').toLowerCase().includes(searchTerm))
+      .sort((a, b) => toComparableMillis(b.appliedAt) - toComparableMillis(a.appliedAt));
+  }
+
+  try {
+    const snapshot = await db.collection('applications')
+      .where('applicantId', '==', safeWorkerId)
+      .orderBy('appliedAt', 'desc')
+      .limit(200)
+      .get();
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((app) => statusFilter.length === 0 || statusFilter.includes(String(app.status || '')))
+      .filter((app) => !searchTerm || String(app.jobTitle || '').toLowerCase().includes(searchTerm));
+  } catch (error) {
+    console.error('❌ Error loading worker applications:', error);
+    return [];
+  }
+}
+
+async function withdrawWorkerApplication(applicationId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeApplicationId = String(applicationId || '').trim();
+  if (!safeApplicationId) return { success: false, message: 'Application ID required' };
+  if (!currentUser) return { success: false, message: 'You must be logged in' };
+
+  if (!db) {
+    const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
+    const index = applications.findIndex((app) => String(app.applicationId || app.id || '') === safeApplicationId);
+    if (index === -1) return { success: false, message: 'Application not found' };
+    const target = applications[index];
+    if (String(target.applicantId || '') !== currentUser.uid) {
+      return { success: false, message: 'You can only withdraw your own applications' };
+    }
+    applications[index] = {
+      ...target,
+      status: 'withdrawn',
+      withdrawnAt: new Date().toISOString(),
+      coinHeld: false,
+      coinReleaseReason: 'withdrawn',
+      coinReleasedAt: new Date().toISOString()
+    };
+    localStorage.setItem('gisugo_applications', JSON.stringify(applications));
+    await releaseApplicationCoinForUser(currentUser.uid, 'withdrawn');
+    return { success: true, message: 'Application withdrawn' };
+  }
+
+  try {
+    const appRef = db.collection('applications').doc(safeApplicationId);
+    const appDoc = await appRef.get();
+    if (!appDoc.exists) return { success: false, message: 'Application not found' };
+    const appData = appDoc.data() || {};
+    if (String(appData.applicantId || '') !== currentUser.uid) {
+      return { success: false, message: 'You can only withdraw your own applications' };
+    }
+    if (String(appData.status || '') !== 'pending') {
+      return { success: false, message: 'Only pending applications can be withdrawn' };
+    }
+
+    await appRef.update({
+      status: 'withdrawn',
+      withdrawnAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    try {
+      await db.collection('jobs').doc(appData.jobId).update({
+        applicationCount: firebase.firestore.FieldValue.increment(-1)
+      });
+    } catch (_) {
+      // Non-fatal for withdrawal workflow.
+    }
+
+    await releaseApplicationCoinForApplication(safeApplicationId, 'withdrawn');
+    return { success: true, message: 'Application withdrawn successfully' };
+  } catch (error) {
+    console.error('❌ Error withdrawing application:', error);
+    return { success: false, message: error.message };
+  }
+}
+
 /**
  * Apply for a job
  * @param {string} jobId - Job document ID
@@ -1387,6 +1623,7 @@ async function applyForJob(jobId, applicationData) {
   if (!db) {
     return applyForJobOffline(jobId, applicationData, currentUser);
   }
+  let consumedCoin = false;
   
   try {
     emitIOSDataTrace('dynamic-job:apply', 'submit:start', {
@@ -1534,13 +1771,15 @@ async function applyForJob(jobId, applicationData) {
         };
       }
       
-      // If status is 'rejected', 'voided', or 'resigned', allow reapplication
+      // Allow reapplication after closed outcomes.
       if (existingApp.status === 'rejected') {
         console.log('♻️ User was rejected - allowing reapplication (2nd chance)');
       } else if (existingApp.status === 'voided') {
         console.log('♻️ User was voided (contract terminated by customer) - allowing reapplication (2nd chance)');
       } else if (existingApp.status === 'resigned') {
         console.log('♻️ User resigned (left the job) - allowing reapplication (2nd chance)');
+      } else if (existingApp.status === 'withdrawn' || existingApp.status === 'rejected_by_worker' || existingApp.status === 'expired') {
+        console.log(`♻️ User status "${existingApp.status}" - allowing reapplication`);
       }
     }
     
@@ -1579,6 +1818,20 @@ async function applyForJob(jobId, applicationData) {
     }
     
     console.log('✅ Auto-pause check passed - gig still accepting applications');
+
+    // Validate coin availability and consume one coin before writing the application.
+    const coinState = await ensureApplicationCoinsForUser(currentUser.uid, db);
+    if (coinState.current <= 0) {
+      return {
+        success: false,
+        message: 'You have no G coins left right now. Wait for a current application to close, or withdraw one pending application.'
+      };
+    }
+    await db.collection('users').doc(currentUser.uid).set({
+      applicationCoinsCurrent: coinState.current - 1,
+      applicationCoinsMax: coinState.max
+    }, { merge: true });
+    consumedCoin = true;
     
     // Get applicant profile from Firestore for accurate info
     let applicantName = currentUser.displayName || 'Anonymous';
@@ -1612,7 +1865,10 @@ async function applyForJob(jobId, applicationData) {
       appliedAt: firebase.firestore.FieldValue.serverTimestamp(),
       status: 'pending',
       message: applicationData.message || '',
-      counterOffer: applicationData.counterOffer || null
+      counterOffer: applicationData.counterOffer || null,
+      jobTitle: job.title || '',
+      coinHeld: true,
+      coinConsumedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
     const appRef = await withFirestoreReadTimeout(db.collection('applications').add(application), applyWriteTimeoutMs);
@@ -1685,6 +1941,13 @@ async function applyForJob(jobId, applicationData) {
     
   } catch (error) {
     console.error('❌ Error applying for job:', error);
+    if (consumedCoin && currentUser && currentUser.uid) {
+      try {
+        await releaseApplicationCoinForUser(currentUser.uid, 'apply_error_refund');
+      } catch (refundError) {
+        console.warn('⚠️ Could not auto-refund consumed coin after apply failure:', refundError);
+      }
+    }
     const message = (error && error.message) ? error.message : String(error);
     const stage = /timed out/i.test(message) ? 'submit:timeout' : 'submit:error';
     emitIOSDataTrace('dynamic-job:apply', stage, message);
@@ -1693,6 +1956,15 @@ async function applyForJob(jobId, applicationData) {
 }
 
 function applyForJobOffline(jobId, applicationData, currentUser) {
+  const users = JSON.parse(localStorage.getItem('gisugo_users') || '{}');
+  const user = users[currentUser.uid] || {};
+  const normalized = normalizeApplicationCoins(user);
+  if (normalized.current <= 0) {
+    return {
+      success: false,
+      message: 'You have no G coins left right now. Wait for an application to close or withdraw one pending application.'
+    };
+  }
   const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
   
   const applicationId = `app_${Date.now()}`;
@@ -1704,11 +1976,19 @@ function applyForJobOffline(jobId, applicationData, currentUser) {
     appliedAt: new Date().toISOString(),
     status: 'pending',
     message: applicationData.message || '',
-    counterOffer: applicationData.counterOffer || null
+    counterOffer: applicationData.counterOffer || null,
+    coinHeld: true,
+    coinConsumedAt: new Date().toISOString()
   };
   
   applications.push(application);
   localStorage.setItem('gisugo_applications', JSON.stringify(applications));
+  users[currentUser.uid] = {
+    ...user,
+    applicationCoinsMax: normalized.max,
+    applicationCoinsCurrent: normalized.current - 1
+  };
+  localStorage.setItem('gisugo_users', JSON.stringify(users));
   
   triggerPushMilestonePrompt('apply');
   return {
@@ -2029,6 +2309,7 @@ async function rejectApplication(applicationId) {
       status: 'rejected',
       rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    await releaseApplicationCoinForApplication(applicationId, 'rejected');
     
     // ═══════════════════════════════════════════════════════════════
     // UPDATE JOB APPLICATION COUNT (decrement for rejected)
@@ -3463,6 +3744,10 @@ window.getUserProfile = getUserProfile;
 window.applyForJob = applyForJob;
 window.getJobApplications = getJobApplications;
 window.hireWorker = hireWorker;
+window.getWorkerApplications = getWorkerApplications;
+window.withdrawWorkerApplication = withdrawWorkerApplication;
+window.getUserApplicationCoinStatus = getUserApplicationCoinStatus;
+window.releaseApplicationCoinForApplication = releaseApplicationCoinForApplication;
 
 // Chat
 window.getOrCreateChatThread = getOrCreateChatThread;

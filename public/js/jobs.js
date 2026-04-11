@@ -5160,6 +5160,14 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                             }));
                         await Promise.all(notifyPromises);
                     }
+
+                    if (typeof releaseApplicationCoinForApplication === 'function') {
+                        const releasePromises = otherApps.docs.map((doc) =>
+                            releaseApplicationCoinForApplication(doc.id, 'not_selected_after_hire')
+                                .catch((error) => console.warn('⚠️ Could not release coin for rejected application:', error))
+                        );
+                        await Promise.all(releasePromises);
+                    }
                 }
             } catch (rejectError) {
                 console.warn('⚠️ Could not reject other applications:', rejectError);
@@ -5264,12 +5272,20 @@ async function rejectGigOffer(jobId) {
                 const batch = db.batch();
                 applicationsSnapshot.docs.forEach(doc => {
                     batch.update(doc.ref, {
-                        status: 'rejected',
+                        status: 'rejected_by_worker',
                         rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 });
                 await batch.commit();
                 console.log('✅ Worker application status updated to rejected');
+
+                if (typeof releaseApplicationCoinForApplication === 'function') {
+                    const releasePromises = applicationsSnapshot.docs.map((doc) =>
+                        releaseApplicationCoinForApplication(doc.id, 'rejected_by_worker')
+                            .catch((error) => console.warn('⚠️ Could not release coin on worker rejection:', error))
+                    );
+                    await Promise.all(releasePromises);
+                }
                 
                 // Count remaining pending applications and restore applicationCount
                 const pendingApps = await db.collection('applications')
@@ -5762,6 +5778,36 @@ function initializeCompleteJobConfirmationHandlers() {
                 });
                 
                 console.log('✅ Job status updated to completed');
+
+                // Mark the hired worker's application as completed and release held coin slot.
+                if (jobData.hiredWorkerId) {
+                    try {
+                        const acceptedAppsSnapshot = await db.collection('applications')
+                            .where('jobId', '==', jobId)
+                            .where('applicantId', '==', jobData.hiredWorkerId)
+                            .where('status', '==', 'accepted')
+                            .get();
+                        const appBatch = db.batch();
+                        acceptedAppsSnapshot.docs.forEach((doc) => {
+                            appBatch.update(doc.ref, {
+                                status: 'completed',
+                                completedAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        });
+                        if (!acceptedAppsSnapshot.empty) {
+                            await appBatch.commit();
+                            if (typeof releaseApplicationCoinForApplication === 'function') {
+                                const releasePromises = acceptedAppsSnapshot.docs.map((doc) =>
+                                    releaseApplicationCoinForApplication(doc.id, 'gig_completed')
+                                        .catch((error) => console.warn('⚠️ Could not release coin on completion:', error))
+                                );
+                                await Promise.all(releasePromises);
+                            }
+                        }
+                    } catch (applicationCompletionError) {
+                        console.warn('⚠️ Could not update hired application completion state:', applicationCompletionError);
+                    }
+                }
                 
                 // Step 2b: Send notification to worker about completion (with feedback reminder)
                 try {
@@ -6057,6 +6103,14 @@ function initializeRelistJobConfirmationHandlers() {
                                 });
                                 await batch.commit();
                                 console.log('✅ Worker application marked as voided');
+
+                                if (typeof releaseApplicationCoinForApplication === 'function') {
+                                    const releasePromises = applicationsSnapshot.docs.map((doc) =>
+                                        releaseApplicationCoinForApplication(doc.id, 'voided_by_customer')
+                                            .catch((error) => console.warn('⚠️ Could not release coin for voided application:', error))
+                                    );
+                                    await Promise.all(releasePromises);
+                                }
                                 
                                 // ═══════════════════════════════════════════════════════════════
                                 // SEND NOTIFICATION TO WORKER (Uses existing ALERTS tab)
@@ -6371,6 +6425,14 @@ function initializeResignJobConfirmationHandlers() {
                             });
                             await batch.commit();
                             console.log('✅ Worker application marked as resigned');
+
+                            if (typeof releaseApplicationCoinForApplication === 'function') {
+                                const releasePromises = applicationsSnapshot.docs.map((doc) =>
+                                    releaseApplicationCoinForApplication(doc.id, 'resigned_by_worker')
+                                        .catch((error) => console.warn('⚠️ Could not release coin for resigned application:', error))
+                                );
+                                await Promise.all(releasePromises);
+                            }
                         } catch (appError) {
                             console.error('⚠️ Error updating application:', appError);
                         }

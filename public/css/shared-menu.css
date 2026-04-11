@@ -65,6 +65,29 @@
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.home-menu-card.row-link {
+  grid-column: 1 / -1;
+  min-height: 58px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  gap: 10px;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.home-menu-card.row-link .home-menu-card-icon {
+  font-size: clamp(1.1rem, 3.6vw, 1.4rem);
+}
+
+.home-menu-card.row-link .home-menu-card-label {
+  font-size: clamp(0.82rem, 2.5vw, 0.95rem);
+  line-height: 1.1;
+  text-align: left;
+}
+
 .shared-menu-messages-badge {
   position: absolute;
   top: -8px;

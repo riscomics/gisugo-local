@@ -7,11 +7,13 @@ const MENU_ITEMS = [
   { emoji: '😊', text: 'Account',      link: 'profile.html',   requiresAuth: true,  color: 'purple' },
   { emoji: '💬', text: 'Messages',     link: 'messages.html',  requiresAuth: true,  color: 'cyan'   },
   { emoji: '💼', text: 'Gigs Manager', link: 'jobs.html',      requiresAuth: true,  color: 'green'  },
+  { emoji: '🗂️', text: 'Applications', link: 'my-applications.html', requiresAuth: true, color: 'teal' },
   { emoji: '🚀', text: 'Updates',      link: 'updates.html',   requiresAuth: false, color: 'orange' },
   { emoji: '🎭', text: 'Community',    link: 'forum.html',     requiresAuth: false, color: 'teal'   },
   { emoji: '🏠', text: 'Home',         link: 'index.html',     requiresAuth: false, color: 'blue'   },
   { emoji: '📬', text: 'Contact',      link: 'contacts.html',  requiresAuth: false, color: 'pink'   },
 ];
+const FULL_ROW_MENU_TEXTS = new Set(['Messages', 'Gigs Manager', 'Applications']);
 
 const SHARED_MENU_CSS_HREF = 'public/css/shared-menu.css?v=3.6';
 const SHARED_MENU_CHAT_UNREAD_CACHE_KEY = 'gisugo_chat_unread_threads_cache_v1';
@@ -227,12 +229,13 @@ function handleMenuClick(link, requiresAuth) {
 }
 
 // Build a single card element string
-function buildCard(emoji, text, link, color, requiresAuth) {
+function buildCard(emoji, text, link, color, requiresAuth, extraClass = '') {
   const hasUnreadBadge = String(text).toLowerCase() === 'messages';
   const badgeHtml = hasUnreadBadge
     ? '<span class="shared-menu-messages-badge" style="display:none;">0</span>'
     : '';
-  return `<a class="home-menu-card" href="${link}"
+  const safeExtraClass = String(extraClass || '').trim();
+  return `<a class="home-menu-card${safeExtraClass ? ` ${safeExtraClass}` : ''}" href="${link}"
               data-color="${color}"
               onclick="sharedMenuNavigate(event,'${link}',${requiresAuth})">
     <span class="home-menu-card-icon">${emoji}${badgeHtml}</span>
@@ -243,8 +246,15 @@ function buildCard(emoji, text, link, color, requiresAuth) {
 // Generate the full grid HTML (section label + cards)
 function generateMenuHTML() {
   let html = '<div class="home-menu-section-label">Menu</div>';
-  html += MENU_ITEMS.map(item =>
-    buildCard(item.emoji, item.text, item.link, item.color, item.requiresAuth)
+  html += MENU_ITEMS.map((item) =>
+    buildCard(
+      item.emoji,
+      item.text,
+      item.link,
+      item.color,
+      item.requiresAuth,
+      FULL_ROW_MENU_TEXTS.has(item.text) ? 'row-link' : ''
+    )
   ).join('');
   return html;
 }

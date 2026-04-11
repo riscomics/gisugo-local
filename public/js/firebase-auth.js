@@ -982,6 +982,8 @@ async function createUserProfile(userId, profileData) {
       // Job Statistics
       appliedJobsCount: 0,
       activeJobsCount: 0,
+      applicationCoinsCurrent: 10,
+      applicationCoinsMax: 10,
       
       // Financial Statistics (for tax reporting)
       statistics: {
