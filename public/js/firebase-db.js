@@ -126,10 +126,21 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
     return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
   }
   const normalized = normalizeApplicationCoins(userDoc.data() || {});
-  await userRef.set({
-    applicationCoinsCurrent: normalized.current,
-    applicationCoinsMax: normalized.max
-  }, { merge: true });
+  const existingData = userDoc.data() || {};
+  const existingCurrent = Number(existingData.applicationCoinsCurrent);
+  const existingMax = Number(existingData.applicationCoinsMax);
+  const needsNormalizationWrite = (
+    !Number.isFinite(existingCurrent)
+    || !Number.isFinite(existingMax)
+    || existingCurrent !== normalized.current
+    || existingMax !== normalized.max
+  );
+  if (needsNormalizationWrite) {
+    await userRef.set({
+      applicationCoinsCurrent: normalized.current,
+      applicationCoinsMax: normalized.max
+    }, { merge: true });
+  }
   return normalized;
 }
 
@@ -1824,7 +1835,7 @@ async function applyForJob(jobId, applicationData) {
     if (coinState.current <= 0) {
       return {
         success: false,
-        message: 'You have no G coins left right now. Wait for a current application to close, or withdraw one pending application.'
+        message: 'You have no G tokens left right now. Wait for a current application to close, or withdraw one pending application.'
       };
     }
     await db.collection('users').doc(currentUser.uid).set({
@@ -1962,7 +1973,7 @@ function applyForJobOffline(jobId, applicationData, currentUser) {
   if (normalized.current <= 0) {
     return {
       success: false,
-      message: 'You have no G coins left right now. Wait for an application to close or withdraw one pending application.'
+      message: 'You have no G tokens left right now. Wait for an application to close or withdraw one pending application.'
     };
   }
   const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');

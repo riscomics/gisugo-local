@@ -364,7 +364,7 @@ function setApplyButtonSyncState(applyBtn, isSyncing) {
     applyBtn.title = 'Checking your latest application status...';
   } else {
     if (span && span.textContent === 'SYNCING STATUS...') {
-      span.textContent = 'APPLY TO JOB';
+      span.textContent = 'APPLY TO GIG';
       applyBtn.title = '';
       applyBtn.disabled = false;
       applyBtn.style.opacity = '1';
@@ -1189,6 +1189,14 @@ function initializeMenu() {
 }
 
 // Initialize apply job functionality
+function renderApplyTokenCaption(captionEl, isLowToken) {
+  if (!captionEl) return;
+  const guidanceText = isLowToken
+    ? 'Apply only if you are qualified and available. You are low on tokens.'
+    : 'Apply only if you are qualified and available.';
+  captionEl.innerHTML = `<span class="apply-coin-caption-guidance">${guidanceText}</span>`;
+}
+
 async function refreshApplyCoinStatus() {
   const statusBox = document.getElementById('applyCoinStatus');
   const valueEl = document.getElementById('applyCoinValue');
@@ -1205,19 +1213,17 @@ async function refreshApplyCoinStatus() {
     const max = Number(result?.max ?? 10);
     valueEl.textContent = `${current} / ${max}`;
     statusBox.classList.toggle('low', current <= 2);
-    captionEl.textContent = current <= 2
-      ? 'Low on coins. Withdraw a pending application if needed before applying.'
-      : 'This application uses 1 coin. Your coin returns when this application closes or the gig is completed.';
+    renderApplyTokenCaption(captionEl, current <= 2);
     submitBtn.disabled = current <= 0;
     submitBtn.style.opacity = current <= 0 ? '0.65' : '';
     if (current <= 0) {
-      submitBtn.textContent = 'NO COINS AVAILABLE';
+      submitBtn.textContent = 'NO TOKENS AVAILABLE';
     } else {
-      submitBtn.textContent = 'APPLY (1 G COIN)';
+      submitBtn.textContent = 'APPLY (1 G TOKEN)';
     }
     return { current, max };
   } catch (error) {
-    console.warn('⚠️ Could not refresh apply coin status:', error);
+    console.warn('⚠️ Could not refresh apply token status:', error);
     return { current: 0, max: 10 };
   }
 }
@@ -1262,7 +1268,7 @@ function initializeApplyJob() {
     }
     
     // Show modal when apply button is clicked
-    applyBtn.addEventListener('click', async function(e) {
+    applyBtn.addEventListener('click', function(e) {
       e.preventDefault();
       
       // ═══════════════════════════════════════════════════════════════
@@ -1281,9 +1287,17 @@ function initializeApplyJob() {
       
       // Scroll window to top to prevent Android keyboard positioning issues
       window.scrollTo(0, 0);
-      await refreshApplyCoinStatus();
       applyOverlay.scrollTop = 0;
       applyOverlay.classList.add('show');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.65';
+        submitBtn.textContent = 'CHECKING TOKENS...';
+      }
+      // Refresh token state after opening so modal appears instantly.
+      Promise.resolve(refreshApplyCoinStatus()).catch((error) => {
+        console.warn('⚠️ Delayed token refresh failed after opening modal:', error);
+      });
       // Focus on message textarea for better UX
       if (messageTextarea) {
         const focusTimeout = setTimeout(() => messageTextarea.focus(), 300);
@@ -1356,7 +1370,7 @@ function handleJobApplication() {
 
   const submitBtn = document.getElementById('submitApplication');
   if (submitBtn && submitBtn.disabled) {
-    alert('You have no G coins available right now.');
+    alert('You have no G tokens available right now.');
     return;
   }
   
@@ -2026,7 +2040,7 @@ async function checkIfUserAlreadyApplied(jobId) {
     }
     
     if (applicationCount === 0) {
-      // Never applied - button stays as "APPLY TO JOB" (enabled)
+      // Never applied - button stays as "APPLY TO GIG" (enabled)
       console.log('✅ User has not applied yet, button remains enabled');
       return;
       
