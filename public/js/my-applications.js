@@ -24,34 +24,43 @@ const MY_APP_STATUS_LABELS = {
   withdrawn: 'Withdrawn'
 };
 
+const MY_APP_EMPTY_PLACEHOLDERS = {
+  active: 'No applications found for this tab yet.',
+  closed: 'Applications will appear here:<ul class="my-app-empty-list"><li>If it is rejected by customer.</li><li>If you are hired and complete your Gig.</li></ul>',
+  withdrawn: 'Applications will appear here:<ul class="my-app-empty-list"><li>If you cancel an active application.</li></ul>'
+};
+
 const MY_APP_TAB_INTROS = {
   active: {
-    icon: '🎯',
+    icon: '',
     title: {
       english: 'Active Applications',
       bisaya: 'Aktibong Applications',
       tagalog: 'Aktibong Applications'
     },
     subtitle: {
-      english: 'Apply only if you are qualified and available.',
-      bisaya: 'Pag-apply lang sa gigs nga andam ug qualified ka buhaton.',
-      tagalog: 'Mag-apply lamang sa gigs na handa at qualified kang gawin.'
+      english: '',
+      bisaya: '',
+      tagalog: ''
     },
     bullets: {
       english: [
-        'Each pending application temporarily holds 1 G token.',
-        'Use this tab to withdraw if your schedule changes.',
-        'Focus on quality applications to increase your hire rate and keep your token flow healthy.'
+        'You get 10 FREE Tokens always.',
+        'Tokens return if application is cancelled/closed.',
+        'You can withdraw to cancel applications.',
+        'Apply only to Gigs you are available to do!'
       ],
       bisaya: [
-        'Ang matag pending application mokupot ug 1 ka G token.',
-        'Gamita ni nga tab kung kinahanglan nimo i-withdraw tungod sa schedule.',
-        'Pilia ang quality nga applications aron mosaka imong chance ma-hire ug hapsay ang token flow.'
+        'Makadawat ka ug 10 ka FREE Tokens kanunay.',
+        'Mobalik ang tokens kung na-cancel o na-close ang application.',
+        'Pwede ka mag-withdraw para i-cancel ang applications.',
+        'Pag-apply lang sa Gigs nga available ka buhaton!'
       ],
       tagalog: [
-        'Bawat pending application ay pansamantalang humahawak ng 1 G token.',
-        'Gamitin ang tab na ito kung kailangan mong mag-withdraw dahil sa schedule.',
-        'Pumili ng quality applications para tumaas ang hire rate mo at manatiling maayos ang token flow mo.'
+        'Lagi kang may 10 FREE Tokens.',
+        'Bumabalik ang tokens kapag cancelled/closed ang application.',
+        'Pwede kang mag-withdraw para i-cancel ang applications.',
+        'Mag-apply lang sa Gigs na available mong gawin!'
       ]
     },
     footer: {
@@ -151,11 +160,43 @@ let activeTab = 'active';
 let allApplications = [];
 let currentWorkerId = '';
 let activeTutorialLang = 'english';
+let tabsInitialized = false;
+let authObserverUnsubscribe = null;
 let tabIntroConfirmed = {
   active: false,
   closed: false,
   withdrawn: false
 };
+
+function getCoinCacheKey(userId) {
+  return `gisugo_my_app_coin_cache_${String(userId || '').trim()}`;
+}
+
+function readCachedCoinStatus(userId) {
+  try {
+    const key = getCoinCacheKey(userId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const current = Number(parsed?.current);
+    if (!Number.isFinite(current)) return null;
+    return { current: Math.max(0, current) };
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeCachedCoinStatus(userId, current) {
+  try {
+    const key = getCoinCacheKey(userId);
+    localStorage.setItem(key, JSON.stringify({
+      current: Math.max(0, Number(current) || 0),
+      updatedAt: Date.now()
+    }));
+  } catch (_) {
+    // Ignore cache write failures.
+  }
+}
 
 function getIntroStorageKey() {
   return `gisugo_my_app_intro_seen_${currentWorkerId || 'guest'}`;
@@ -213,11 +254,12 @@ function renderTabIntro(container) {
         <div class="my-app-intro-icon">${intro.icon}</div>
         <div class="my-app-intro-title">${getLocalizedIntroCopy(intro, 'title')}</div>
       </div>
-      <div class="my-app-intro-subtitle">${getLocalizedIntroCopy(intro, 'subtitle')}</div>
       <div class="my-app-intro-coin-banner">
+        <span class="rule-prefix">${activeTutorialLang === 'english' ? 'Each time you Apply costs 1' : activeTutorialLang === 'bisaya' ? 'Sa matag pag-Apply, mugasto og 1 ka' : 'Sa bawat pag-Apply, may cost na 1'}</span>
         <span class="coin-dot coin-dot-g"><span class="coin-dot-letter">G</span></span>
-        <span>${activeTutorialLang === 'english' ? 'G token rule: 1 active application = 1 token held. Tokens return when closed.' : activeTutorialLang === 'bisaya' ? 'G token rule: 1 active application = 1 token held. Mobalik ang token kung closed na.' : 'G token rule: 1 active application = 1 token held. Babalik ang token kapag closed na.'}</span>
+        <span class="rule-suffix"></span>
       </div>
+      <div class="my-app-intro-subtitle">${getLocalizedIntroCopy(intro, 'subtitle')}</div>
       <ul class="my-app-intro-list">
         ${bullets.map((line) => `<li>${line}</li>`).join('')}
       </ul>
@@ -309,7 +351,8 @@ function renderApplicationCards() {
   const container = document.getElementById(targetId);
   if (!container) return;
 
-  if (!tabIntroConfirmed[activeTab]) {
+  // Keep the guided tutorial only for the Active tab.
+  if (activeTab === 'active' && !tabIntroConfirmed[activeTab]) {
     renderTabIntro(container);
     return;
   }
@@ -324,7 +367,8 @@ function renderApplicationCards() {
     });
 
   if (records.length === 0) {
-    container.innerHTML = '<div class="my-app-empty">No applications found for this tab yet.</div>';
+    const placeholder = MY_APP_EMPTY_PLACEHOLDERS[activeTab] || MY_APP_EMPTY_PLACEHOLDERS.active;
+    container.innerHTML = `<div class="my-app-empty">${placeholder}</div>`;
     return;
   }
 
@@ -384,14 +428,29 @@ async function loadCoinStatus() {
   const captionEl = document.getElementById('coinStatusCaption');
   const strip = document.getElementById('coinStatusStrip');
   if (!valueEl || !captionEl || !strip || !currentWorkerId || typeof getUserApplicationCoinStatus !== 'function') return;
-  const result = await getUserApplicationCoinStatus(currentWorkerId);
-  const current = Number(result?.current ?? 0);
-  const max = Number(result?.max ?? 10);
-  valueEl.textContent = `${current} / ${max}`;
-  strip.classList.toggle('low', current <= 2);
-  captionEl.textContent = current <= 2
-    ? 'Low tokens. Withdraw a pending application to recover one.'
-    : 'Tokens Return if Withdrawn.';
+  const cached = readCachedCoinStatus(currentWorkerId);
+  if (cached) {
+    valueEl.textContent = String(cached.current);
+    strip.classList.toggle('low', cached.current <= 2);
+    captionEl.textContent = cached.current <= 2
+      ? 'Low tokens. Withdraw a pending application to recover one.'
+      : '';
+    valueEl.classList.remove('loading');
+  } else {
+    valueEl.classList.add('loading');
+  }
+  try {
+    const result = await getUserApplicationCoinStatus(currentWorkerId);
+    const current = Number(result?.current ?? 0);
+    valueEl.textContent = String(current);
+    strip.classList.toggle('low', current <= 2);
+    captionEl.textContent = current <= 2
+      ? 'Low tokens. Withdraw a pending application to recover one.'
+      : '';
+    writeCachedCoinStatus(currentWorkerId, current);
+  } finally {
+    valueEl.classList.remove('loading');
+  }
 }
 
 function switchTab(tabId) {
@@ -408,9 +467,11 @@ function switchTab(tabId) {
 }
 
 function initializeTabs() {
+  if (tabsInitialized) return;
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
   });
+  tabsInitialized = true;
 }
 
 async function initializeMyApplicationsPage() {
@@ -422,16 +483,32 @@ async function initializeMyApplicationsPage() {
   currentWorkerId = user.uid;
   loadTabIntroState();
   initializeTabs();
-  await Promise.all([loadCoinStatus(), loadApplications()]);
+  // Render immediately (especially the Active tutorial) before network calls.
+  renderApplicationCards();
+  // Prioritize token display first; applications list can fill in afterward.
+  Promise.resolve(loadCoinStatus()).catch((error) => {
+    console.warn('⚠️ My Applications coin status load failed:', error);
+  });
+  Promise.resolve(loadApplications()).catch((error) => {
+    console.warn('⚠️ My Applications applications load failed:', error);
+  });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!firebase?.auth) return;
-  firebase.auth().onAuthStateChanged((user) => {
+  if (authObserverUnsubscribe) return;
+  authObserverUnsubscribe = firebase.auth().onAuthStateChanged((user) => {
     if (!user) {
       window.location.href = 'login.html';
       return;
     }
     initializeMyApplicationsPage();
   });
+});
+
+window.addEventListener('pagehide', () => {
+  if (typeof authObserverUnsubscribe === 'function') {
+    authObserverUnsubscribe();
+    authObserverUnsubscribe = null;
+  }
 });

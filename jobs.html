@@ -115,7 +115,7 @@
                 <div class="empty-state">
                     <div class="empty-state-icon">🎯</div>
                     <div class="empty-state-title">No Gig Offers Yet</div>
-                    <div class="empty-state-message">When customers hire you from your applications, their job offers will appear here waiting for your acceptance before work begins.</div>
+                    <div class="empty-state-message">When customers hire you from your applications, their gig offers will appear here waiting for your acceptance before work begins.</div>
                 </div>
             </div>
         </div>
@@ -160,8 +160,8 @@
     <div class="listing-options-overlay" id="listingOptionsOverlay">
         <div class="listing-options-container">
             <div class="listing-options-header">
-                <div class="listing-options-title" id="listingOptionsTitle">Manage Job</div>
-                <div class="listing-options-subtitle" id="listingOptionsSubtitle">Choose an action for this job posting</div>
+                <div class="listing-options-title" id="listingOptionsTitle">Manage Gig</div>
+                <div class="listing-options-subtitle" id="listingOptionsSubtitle">Choose an action for this gig posting</div>
             </div>
             <div class="listing-options-actions">
                 <button class="listing-option-btn applications" id="viewApplicationsBtn">
@@ -204,12 +204,12 @@
         <div class="delete-confirmation-container">
             <div class="delete-confirmation-header">
                 <div class="delete-confirmation-icon">✅</div>
-                <div class="delete-confirmation-title">Mark Job as Completed</div>
+                <div class="delete-confirmation-title">Mark Gig as Completed</div>
                 <div class="delete-confirmation-subtitle" id="completeJobSubtitle">Please confirm that the job has been completed</div>
             </div>
             <div class="delete-confirmation-warning">
                 <div class="delete-warning-text">
-                    Before marking this job as completed, please verify:<br>
+                    Before marking this gig as completed, please verify:<br>
                     • The work has been completed to your satisfaction<br>
                     • You have paid the worker for their services<br>
                     • Any follow-up arrangements have been made
@@ -232,7 +232,7 @@
             <div class="delete-confirmation-header">
                 <div class="delete-confirmation-title-row">
                     <div class="delete-confirmation-icon">🔄</div>
-                    <div class="delete-confirmation-title" id="relistJobTitle">Relist Job</div>
+                    <div class="delete-confirmation-title" id="relistJobTitle">Relist Gig</div>
                 </div>
                 <div class="delete-confirmation-subtitle" id="relistJobSubtitle">This will void the contract</div>
             </div>
@@ -243,12 +243,12 @@
             </div>
             <div class="delete-confirmation-warning">
                 <div class="delete-warning-text" id="relistWarningText">
-                    WARNING: Relisting this job will:<br>
+                    WARNING: Relisting this gig will:<br>
                     • Void the current contract with <span id="relistWorkerName">the worker</span><br>
-                    • Remove them from this job<br>
+                    • Remove them from this gig<br>
                     • Make the job available for new applications<br>
                     • Move it back to your active listings<br><br>
-                    Please make sure you have notified <span id="relistWorkerNameReminder">the worker</span> that you are removing them from this job before proceeding.
+                    Please make sure you have notified <span id="relistWorkerNameReminder">the worker</span> that you are removing them from this gig before proceeding.
                 </div>
             </div>
             <div class="reason-input-section">
@@ -283,7 +283,7 @@
             <div class="delete-confirmation-header">
                 <div class="delete-confirmation-title-row">
                     <div class="delete-confirmation-icon">👋</div>
-                    <div class="delete-confirmation-title" id="resignJobTitle">Resign from Job</div>
+                    <div class="delete-confirmation-title" id="resignJobTitle">Resign from Gig</div>
                 </div>
                 <div class="delete-confirmation-subtitle" id="resignJobSubtitle">This will void your contract</div>
             </div>
@@ -294,9 +294,9 @@
             </div>
             <div class="delete-confirmation-warning">
                 <div class="delete-warning-text" id="resignWarningText">
-                    WARNING: Resigning from this job will:<br>
+                    WARNING: Resigning from this gig will:<br>
                     • Void your contract with <span id="resignCustomerName">the customer</span><br>
-                    • Remove you from this job<br>
+                    • Remove you from this gig<br>
                     • Make the job available for new applications<br><br>
                     Please ensure you have contacted the customer about quitting before proceeding.
                 </div>
@@ -421,7 +421,7 @@
                 <div class="rain-drop rain-10"></div>
             </div>
             <div class="success-icon">😞</div>
-            <div class="success-title resignation-title">Job Resignation</div>
+            <div class="success-title resignation-title">Gig Resignation</div>
             <div class="success-message" id="resignationMessage">You have resigned from the job.</div>
             <button class="success-btn resignation-btn" id="resignationOkBtn">UNDERSTOOD</button>
         </div>
@@ -454,12 +454,12 @@
         <div class="delete-confirmation-container">
             <div class="delete-confirmation-header">
                 <div class="delete-confirmation-icon">⚠️</div>
-                <div class="delete-confirmation-title">Delete Job Posting</div>
-                <div class="delete-confirmation-subtitle" id="deleteConfirmationSubtitle">Are you sure you want to permanently delete this job?</div>
+                <div class="delete-confirmation-title">Delete Gig Posting</div>
+                <div class="delete-confirmation-subtitle" id="deleteConfirmationSubtitle">Are you sure you want to permanently delete this gig?</div>
             </div>
             <div class="delete-confirmation-warning">
                 <div class="delete-warning-text">
-                    This action cannot be undone. The job posting and all related applications will be permanently removed.
+                    This action cannot be undone. The gig posting and all related applications will be permanently removed.
                 </div>
                 <div class="delete-application-count" id="deleteApplicationCount">
                     <!-- Application count warning will be inserted here -->
@@ -482,7 +482,7 @@
             <div class="applications-header">
                 <div class="applications-header-text">
                     <div class="applications-title" id="applicationsTitle">Applications</div>
-                    <div class="applications-subtitle" id="applicationsSubtitle">Review applications for this job</div>
+                    <div class="applications-subtitle" id="applicationsSubtitle">Review applications for this gig</div>
                 </div>
                 <button class="applications-close-btn" id="applicationsCloseBtn">×</button>
             </div>
@@ -805,7 +805,7 @@
     <div class="listing-options-overlay" id="previousOptionsOverlay">
         <div class="listing-options-container">
             <div class="listing-options-header">
-                <div class="listing-options-title" id="previousOptionsTitle">Completed Job Options</div>
+                <div class="listing-options-title" id="previousOptionsTitle">Completed Gig Options</div>
                 <div class="listing-options-subtitle" id="previousOptionsSubtitle">Choose an action for this completed job</div>
             </div>
             <div class="listing-options-actions" id="previousOptionsActions">
@@ -926,7 +926,7 @@
         <div class="listing-options-container">
             <div class="listing-options-header">
                 <div class="listing-options-title" id="gigOfferOptionsTitle">Gig Offer</div>
-                <div class="listing-options-subtitle" id="gigOfferOptionsSubtitle">Choose an action for this job offer</div>
+                <div class="listing-options-subtitle" id="gigOfferOptionsSubtitle">Choose an action for this gig offer</div>
             </div>
             <div class="listing-options-actions">
                 <button class="listing-option-btn accept" id="acceptOfferBtn">
@@ -1264,7 +1264,7 @@
                     <div class="delete-confirmation-icon">❌</div>
                     <div class="delete-confirmation-title">Reject Gig Offer</div>
                 </div>
-                <div class="delete-confirmation-subtitle" id="rejectGigOfferSubtitle">This will decline the job offer</div>
+                <div class="delete-confirmation-subtitle" id="rejectGigOfferSubtitle">This will decline the gig offer</div>
             </div>
             <div class="delete-confirmation-warning">
                 <div class="delete-warning-text">
@@ -1320,7 +1320,7 @@
     <script src="public/js/firebase-config.js?v=20260313c"></script>
     <script src="public/js/firebase-auth.js?v=8"></script>
     <script src="public/js/push-notifications.js?v=8"></script>
-    <script src="public/js/firebase-db.js?v=31"></script>
+    <script src="public/js/firebase-db.js?v=39"></script>
     <script src="public/js/firebase-storage.js?v=2"></script>
     
     <!-- UNIFORM HEADER SYSTEM -->

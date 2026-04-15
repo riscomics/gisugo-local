@@ -5495,14 +5495,14 @@ async function handleRelistJob(jobData) {
 
 const RELIST_MODAL_TRANSLATIONS = {
     english: {
-        title: 'Relist Job',
+        title: 'Relist Gig',
         subtitle: 'This will void the contract with {workerName}',
-        warning: `WARNING: Relisting this job will:<br>
+        warning: `WARNING: Relisting this gig will:<br>
 • Void the current contract with {workerName}<br>
-• Remove them from this job<br>
-• Make the job available for new applications<br>
+• Remove them from this gig<br>
+• Make the gig available for new applications<br>
 • Move it back to your active listings<br><br>
-Please make sure you have notified {workerName} that you are removing them from this job before proceeding.`,
+Please make sure you have notified {workerName} that you are removing them from this gig before proceeding.`,
         reasonLabel: 'For records, please provide reason why you are firing {workerName}:',
         reasonPlaceholder: 'Enter reason for termination (minimum 2 characters)',
         cancel: 'NO, KEEP CONTRACT',
@@ -5634,14 +5634,14 @@ async function handleResignJob(jobData) {
 
 const RESIGN_MODAL_TRANSLATIONS = {
     english: {
-        title: 'Resign from Job',
+        title: 'Resign from Gig',
         subtitle: 'This will void your contract with {customerName}',
-        warning: `WARNING: Resigning from this job will:<br>
+        warning: `WARNING: Resigning from this gig will:<br>
 • Void your contract with {customerName}<br>
-• Remove you from this job<br>
-• Make the job available for new applications<br><br>
+• Remove you from this gig<br>
+• Make the gig available for new applications<br><br>
 Please ensure you have contacted the customer about quitting before proceeding.`,
-        reasonLabel: 'For records, please provide reason why you are quitting before the job is complete:',
+        reasonLabel: 'For records, please provide reason why you are quitting before the gig is complete:',
         reasonPlaceholder: 'Enter reason for resignation (minimum 2 characters)',
         cancel: 'NO, CONTINUE WORKING',
         confirm: 'YES, RESIGN'
@@ -8081,7 +8081,7 @@ async function showPreviousOptionsOverlay(jobData) {
                 VIEW GIG POST
             </button>
             <button class="listing-option-btn modify" id="relistCompletedJobBtn">
-                RELIST JOB
+                RELIST GIG
             </button>
             <button class="listing-option-btn cancel" id="cancelPreviousBtn">
                 CLOSE

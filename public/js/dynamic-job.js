@@ -1167,12 +1167,15 @@ function initializeMenu() {
   const menuOverlay = document.getElementById('jobcatMenuOverlay');
   
   if (menuBtn && menuOverlay) {
-    menuBtn.addEventListener('click', function(e) {
+    if (menuOverlay.dataset.menuInitialized === '1') return;
+    menuOverlay.dataset.menuInitialized = '1';
+
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(menuBtn, 'click', function(e) {
       e.stopPropagation();
       menuOverlay.classList.toggle('show');
     });
     
-    menuOverlay.addEventListener('click', function(e) {
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(menuOverlay, 'click', function(e) {
       if (e.target === menuOverlay) {
         menuOverlay.classList.remove('show');
       }
@@ -1191,10 +1194,9 @@ function initializeMenu() {
 // Initialize apply job functionality
 function renderApplyTokenCaption(captionEl, isLowToken) {
   if (!captionEl) return;
-  const guidanceText = isLowToken
-    ? 'Apply only if you are qualified and available. You are low on tokens.'
-    : 'Apply only if you are qualified and available.';
-  captionEl.innerHTML = `<span class="apply-coin-caption-guidance">${guidanceText}</span>`;
+  const guidanceText = 'Apply only if you are qualified and available.';
+  const lowTokenText = isLowToken ? '<span class="apply-coin-caption-low">You are low on tokens.</span>' : '';
+  captionEl.innerHTML = `<span class="apply-coin-caption-guidance">${guidanceText}</span><span class="apply-coin-caption-cost">Each time you Apply costs 1 Token.</span>${lowTokenText}`;
 }
 
 async function refreshApplyCoinStatus() {
@@ -1219,7 +1221,7 @@ async function refreshApplyCoinStatus() {
     if (current <= 0) {
       submitBtn.textContent = 'NO TOKENS AVAILABLE';
     } else {
-      submitBtn.textContent = 'APPLY (1 G TOKEN)';
+      submitBtn.textContent = 'APPLY TO GIG';
     }
     return { current, max };
   } catch (error) {
@@ -1237,10 +1239,13 @@ function initializeApplyJob() {
   const counterOfferInput = document.getElementById('counterOfferAmount');
   
   if (applyBtn && applyOverlay) {
+    if (applyOverlay.dataset.applyInitialized === '1') return;
+    applyOverlay.dataset.applyInitialized = '1';
+
     // Prevent any form submission behavior on the modal
     const modal = applyOverlay.querySelector('.apply-job-modal');
     if (modal) {
-      modal.addEventListener('submit', function(e) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(modal, 'submit', function(e) {
         e.preventDefault();
         e.stopPropagation();
         return false;
@@ -1250,7 +1255,7 @@ function initializeApplyJob() {
     // Prevent Enter key from submitting in textarea/input
     if (messageTextarea) {
       blockUnsupportedCharsForInput(messageTextarea);
-      messageTextarea.addEventListener('keydown', function(e) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(messageTextarea, 'keydown', function(e) {
         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           handleJobApplication();
@@ -1259,7 +1264,7 @@ function initializeApplyJob() {
     }
     
     if (counterOfferInput) {
-      counterOfferInput.addEventListener('keydown', function(e) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(counterOfferInput, 'keydown', function(e) {
         if (e.key === 'Enter') {
           e.preventDefault();
           handleJobApplication();
@@ -1268,7 +1273,7 @@ function initializeApplyJob() {
     }
     
     // Show modal when apply button is clicked
-    applyBtn.addEventListener('click', function(e) {
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(applyBtn, 'click', function(e) {
       e.preventDefault();
       
       // ═══════════════════════════════════════════════════════════════
@@ -1307,14 +1312,14 @@ function initializeApplyJob() {
     
     // Hide modal when cancel button is clicked
     if (cancelBtn) {
-      cancelBtn.addEventListener('click', function(e) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(cancelBtn, 'click', function(e) {
         e.preventDefault();
         closeApplyModal();
       });
     }
     
     // Hide modal when clicking outside the modal content
-    applyOverlay.addEventListener('click', function(e) {
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(applyOverlay, 'click', function(e) {
       if (e.target === applyOverlay) {
         closeApplyModal();
       }
@@ -1322,7 +1327,7 @@ function initializeApplyJob() {
     
     // Handle form submission
     if (submitBtn) {
-      submitBtn.addEventListener('click', function(e) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(submitBtn, 'click', function(e) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();

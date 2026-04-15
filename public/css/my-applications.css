@@ -34,31 +34,52 @@ body.page-my-applications {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 0;
 }
 
 .coin-status-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   justify-content: center;
   width: 100%;
 }
 
-.coin-status-title {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #9dd6ff;
+.coin-status-value {
+  font-size: 1.82rem;
+  font-weight: 900;
+  color: #fbbf24;
+  line-height: 1;
   letter-spacing: 0.3px;
+  text-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
   text-transform: uppercase;
 }
 
-.coin-status-value {
-  font-size: 1.7rem;
+.coin-status-value.loading {
+  position: relative;
+  color: transparent;
+  text-shadow: none;
+  min-width: 1.8rem;
+}
+
+.coin-status-value.loading::before {
+  content: '⏳';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #93c5fd;
+  font-size: 1.05rem;
+  animation: coinCountLoadingSpin 1.2s linear infinite;
+}
+
+.coin-status-suffix {
+  font-size: 1.02rem;
   font-weight: 800;
-  color: #fbbf24;
+  color: #9dd6ff;
   line-height: 1;
-  text-shadow: 0 0 16px rgba(251, 191, 36, 0.35);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
 .coin-status-caption {
@@ -77,10 +98,9 @@ body.page-my-applications {
 
 .coin-status-float {
   position: relative;
-  order: -1;
   width: 44px;
   height: 44px;
-  margin-right: 6px;
+  margin: 0;
   opacity: 1;
   pointer-events: none;
   display: inline-flex;
@@ -143,12 +163,12 @@ body.page-my-applications {
     margin-right: 4px;
   }
 
-  .coin-status-title {
-    font-size: 0.76rem;
+  .coin-status-value {
+    font-size: 1.45rem;
   }
 
-  .coin-status-value {
-    font-size: 1.35rem;
+  .coin-status-suffix {
+    font-size: 0.86rem;
   }
 
   .coin-status-caption {
@@ -171,6 +191,15 @@ body.page-my-applications {
   }
   to {
     transform: rotateY(360deg);
+  }
+}
+
+@keyframes coinCountLoadingSpin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -270,6 +299,17 @@ body.page-my-applications {
   background: rgba(30, 41, 59, 0.55);
 }
 
+.my-app-empty-list {
+  margin: 10px auto 0;
+  padding-left: 18px;
+  display: inline-block;
+  text-align: left;
+}
+
+.my-app-empty-list li {
+  margin: 6px 0 0;
+}
+
 .my-app-intro {
   margin-top: 24px;
   border-radius: 16px;
@@ -335,9 +375,14 @@ body.page-my-applications {
   margin-bottom: 10px;
 }
 
+.my-app-intro-subtitle:empty {
+  display: none;
+}
+
 .my-app-intro-coin-banner {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-size: 0.78rem;
   color: #fef3c7;
@@ -346,6 +391,12 @@ body.page-my-applications {
   border-radius: 10px;
   padding: 8px 10px;
   margin-bottom: 10px;
+  text-align: center;
+}
+
+.my-app-intro-coin-banner .rule-prefix,
+.my-app-intro-coin-banner .rule-suffix {
+  font-weight: 700;
 }
 
 .coin-dot-g {

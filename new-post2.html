@@ -321,7 +321,7 @@
             <div class="np2-payment-type-selector">
               <div class="np2-payment-type-option active" data-value="Per Job" id="paymentPerJob">
                 <div class="np2-payment-type-icon">💼</div>
-                <div class="np2-payment-type-label">Per Job</div>
+                <div class="np2-payment-type-label">Per Gig</div>
               </div>
               <div class="np2-payment-type-option" data-value="Per Hour" id="paymentPerHour">
                 <div class="np2-payment-type-icon">⏱️</div>
@@ -440,7 +440,7 @@
             <div class="np2-edit-group np2-edit-half">
               <label class="np2-edit-label">Payment Type<span class="np2-required">*</span></label>
               <div class="np2-edit-dropdown" id="editPaymentTypeDropdown">
-                <div class="np2-edit-dropdown-display" data-value="Per Job">Per Job</div>
+                <div class="np2-edit-dropdown-display" data-value="Per Job">Per Gig</div>
               </div>
             </div>
             <div class="np2-edit-group np2-edit-half">
@@ -474,7 +474,7 @@
         <span>Continue →</span>
       </button>
       <button class="np2-btn np2-btn-success" id="previewBtn" style="display: none;">
-        <span>Preview Job Post</span>
+        <span>Preview Gig Post</span>
       </button>
     </div>
 
@@ -484,7 +484,7 @@
   <div class="np2-overlay" id="previewOverlay">
     <div class="np2-overlay-container">
       <div class="np2-overlay-header">
-        <div class="np2-overlay-title">Job Preview</div>
+        <div class="np2-overlay-title">Gig Preview</div>
         <button class="np2-overlay-close" id="previewCloseBtn">✕</button>
       </div>
       <div class="np2-overlay-content">
@@ -531,12 +531,12 @@
         <!-- Payment -->
         <div class="np2-preview-payment">
           <div class="np2-preview-payment-amount" id="previewPaymentAmount">₱0</div>
-          <div class="np2-preview-payment-type" id="previewPaymentType">Per Job</div>
+          <div class="np2-preview-payment-type" id="previewPaymentType">Per Gig</div>
         </div>
       </div>
       <div class="np2-overlay-actions">
         <button class="np2-btn np2-btn-secondary" id="previewEditBtn">Edit</button>
-        <button class="np2-btn np2-btn-success" id="previewPostBtn">Post Job</button>
+        <button class="np2-btn np2-btn-success" id="previewPostBtn">Post Gig</button>
       </div>
     </div>
   </div>
@@ -820,7 +820,7 @@
         <button class="np2-dropdown-close">×</button>
       </div>
       <div class="np2-dropdown-body" id="paymentTypeDropdown">
-        <div class="np2-dropdown-option" data-value="Per Job">Per Job</div>
+        <div class="np2-dropdown-option" data-value="Per Job">Per Gig</div>
         <div class="np2-dropdown-option" data-value="Per Hour">Per Hour</div>
       </div>
     </div>
@@ -842,16 +842,16 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js?v=20260313c"></script>
   <script src="public/js/firebase-auth.js?v=8"></script>
-  <script src="public/js/firebase-db.js?v=26"></script>
+  <script src="public/js/firebase-db.js?v=39"></script>
   <script src="public/js/firebase-storage.js?v=2"></script>
   <script src="public/js/push-notifications.js?v=8"></script>
   
   <!-- SCRIPTS -->
   <script src="public/js/app-config.js"></script>
   <script src="public/js/data-service.js"></script>
-  <script src="public/js/header-uniform.js?v=1.0"></script>
+  <script src="public/js/header-uniform.js?v=1.2"></script>
   <script src="public/js/shared-menu.js?v=3.7"></script>
-  <script src="public/js/jobs.js?v=14"></script>
+  <script src="public/js/jobs.js?v=141"></script>
   <script src="public/js/new-post2.js?v=32.4"></script>
 
 </body>

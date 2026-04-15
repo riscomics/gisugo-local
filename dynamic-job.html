@@ -203,20 +203,6 @@
   <div class="apply-job-overlay" id="applyJobOverlay">
     <div class="apply-job-modal">
       <div class="apply-job-header">WRITE MESSAGE TO CUSTOMER:</div>
-      <div class="apply-coin-status" id="applyCoinStatus">
-        <div class="apply-coin-main">
-          <div class="apply-coin-left">
-            <div class="apply-gcoin-coin" aria-hidden="true">
-              <span class="apply-gcoin-letter">G</span>
-            </div>
-            <span class="apply-coin-label">G Token Remaining</span>
-          </div>
-          <span class="apply-coin-value" id="applyCoinValue">10 / 10</span>
-        </div>
-        <div class="apply-coin-caption" id="applyCoinCaption">
-          <span class="apply-coin-caption-guidance">Apply only if you are qualified and available.</span>
-        </div>
-      </div>
       
       <div class="apply-message-section">
         <div class="apply-message-container">
@@ -226,7 +212,7 @@
       
       <div class="apply-payment-info">
         <div class="apply-payment-row">
-          <span class="apply-payment-label">PAY AFTER<br>COMPLETED</span>
+          <span class="apply-payment-label">CUSTOMER OFFERS</span>
           <span class="apply-payment-amount" id="modalPaymentAmount">₱0</span>
         </div>
         
@@ -244,9 +230,25 @@
           </div>
         </div>
       </div>
+
+      <div class="apply-coin-status" id="applyCoinStatus">
+        <div class="apply-coin-main">
+          <div class="apply-coin-left">
+            <div class="apply-gcoin-coin" aria-hidden="true">
+              <span class="apply-gcoin-letter">G</span>
+            </div>
+            <span class="apply-coin-label">Token Remaining</span>
+          </div>
+          <span class="apply-coin-value" id="applyCoinValue">10 / 10</span>
+        </div>
+        <div class="apply-coin-caption" id="applyCoinCaption">
+          <span class="apply-coin-caption-guidance">Apply only if you are qualified and available.</span>
+          <span class="apply-coin-caption-cost">Each time you Apply costs 1 Token.</span>
+        </div>
+      </div>
       
       <div class="apply-actions">
-        <button class="apply-submit-btn" id="submitApplication" type="button">APPLY</button>
+        <button class="apply-submit-btn" id="submitApplication" type="button">APPLY TO GIG</button>
         <button class="apply-cancel-btn" id="cancelApplication" type="button">Cancel</button>
       </div>
     </div>

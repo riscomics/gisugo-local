@@ -83,7 +83,7 @@
 }
 
 .home-menu-card.row-link .home-menu-card-label {
-  font-size: clamp(0.82rem, 2.5vw, 0.95rem);
+  font-size: clamp(0.78rem, 2.3vw, 0.9rem);
   line-height: 1.1;
   text-align: left;
 }

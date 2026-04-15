@@ -565,6 +565,18 @@ let activeRegion = "CEBU";
 let activeCity = "CEBU CITY";
 let activePay = "PAY TYPE";
 
+function formatListingPayTypeLabel(value) {
+  if (value === 'PER JOB') return 'PER GIG';
+  if (value === 'Per Job') return 'Per Gig';
+  return value;
+}
+
+function applyListingPayTypeDisplayLabels() {
+  document.querySelectorAll('.pay-type-option[data-value="per-job"] .pay-type-label').forEach((labelEl) => {
+    labelEl.textContent = 'Per Gig';
+  });
+}
+
 function renderRegionMenu() {
   const list = document.getElementById('regionMenuList');
   if (!list) return; // V2 gaming filter mode
@@ -636,7 +648,7 @@ function renderPayMenu() {
   list.innerHTML = '';
   // Top item with arrow
   const top = document.createElement('li');
-  top.textContent = activePay;
+  top.textContent = formatListingPayTypeLabel(activePay);
   top.className = 'active';
   const arrow = document.createElement('span');
   arrow.className = 'arrow';
@@ -646,7 +658,7 @@ function renderPayMenu() {
   // Other pay types (always show all except the active one at the top)
   payTypes.filter(p => p !== activePay).forEach(pay => {
     const li = document.createElement('li');
-    li.textContent = pay;
+    li.textContent = formatListingPayTypeLabel(pay);
     if (pay === activePay) li.className = 'active';
     list.appendChild(li);
   });
@@ -662,7 +674,7 @@ const cityLabel = document.getElementById('cityMenuLabel');
 const payLabel = document.getElementById('payMenuLabel');
 if (regionLabel) regionLabel.textContent = activeRegion;
 if (cityLabel) cityLabel.textContent = activeCity;
-if (payLabel) payLabel.textContent = activePay;
+if (payLabel) payLabel.textContent = formatListingPayTypeLabel(activePay);
 if (typeof updateCityMenuLabelFontSize === 'function') {
   setTimeout(updateCityMenuLabelFontSize, 0);
 }
@@ -2295,7 +2307,7 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   
   // Format rate badge text and icon
   const rateIcon = payType === 'Per Hour' ? '⏰' : '💰';
-  const rateText = cardData.rate || payType;
+  const rateText = formatListingPayTypeLabel(cardData.rate || payType);
   const safeTitle = escapeHtml(cardData.title || 'Untitled Job');
   const safePhoto = escapeHtml(sanitizeUrl(cardData.photo, LISTING_THUMBNAIL_FALLBACK));
   const safeExtra1Label = escapeHtml(extra1Label);
@@ -3025,7 +3037,7 @@ function initJobcatButtonAutoResize() {
     if (filterDisplayRegion) filterDisplayRegion.textContent = selectedRegion;
     if (filterDisplayCity) filterDisplayCity.textContent = selectedCity;
     let payTypeText = 'SELECT';
-    if (selectedPayType === 'per-job') payTypeText = 'PER JOB';
+    if (selectedPayType === 'per-job') payTypeText = 'PER GIG';
     else if (selectedPayType === 'per-hour') payTypeText = 'PER HOUR';
     if (filterDisplayPay) filterDisplayPay.textContent = payTypeText;
   }
@@ -3125,6 +3137,7 @@ function initJobcatButtonAutoResize() {
   }
   
   // Initialize display on load
+  applyListingPayTypeDisplayLabels();
   updateFilterDisplay();
 
   // Toggle panel expansion when clicking footer bar

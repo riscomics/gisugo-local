@@ -299,10 +299,12 @@ function applyMenuUnreadBadge(totalUnread) {
 }
 
 function getEffectiveMenuMessagesUnread() {
-  if (_menuMessagesUnreadOverride === null || _menuMessagesUnreadOverride === undefined) {
-    return Math.max(0, Number(_menuCounterState.totalUnread) || 0);
-  }
-  return Math.max(0, Number(_menuMessagesUnreadOverride) || 0);
+  const notificationUnread = Math.max(0, Number(_menuCounterState.totalUnread) || 0);
+  const chatUnread = (_menuMessagesUnreadOverride === null || _menuMessagesUnreadOverride === undefined)
+    ? 0
+    : Math.max(0, Number(_menuMessagesUnreadOverride) || 0);
+  // Combine alerts (application/system notifications) + chat unread threads.
+  return notificationUnread + chatUnread;
 }
 
 function publishMenuCounterUpdate() {
@@ -327,7 +329,7 @@ function initializeMenuMessagesUnreadBridge() {
     } else {
       _menuMessagesUnreadOverride = Math.max(0, Number(detail.totalUnread) || 0);
     }
-    applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+    publishMenuCounterUpdate();
   };
   document.addEventListener('gisugo:messages-unread-counter-update', _menuMessagesUnreadEventHandler);
 }
@@ -454,13 +456,13 @@ function startMenuChatUnreadListeners(retry = 0) {
     }
     if (!user || !user.uid) {
       _menuMessagesUnreadOverride = null;
-      applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+      publishMenuCounterUpdate();
       return;
     }
     const cachedUnread = readSharedMenuChatUnreadCache(user.uid);
     if (cachedUnread !== null) {
       _menuMessagesUnreadOverride = cachedUnread;
-      applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+      publishMenuCounterUpdate();
     }
 
     const db = firebase.firestore();
@@ -479,7 +481,7 @@ function startMenuChatUnreadListeners(retry = 0) {
         const unread = countUnreadChatThreads(threads, user.uid);
         _menuMessagesUnreadOverride = unread;
         writeSharedMenuChatUnreadCache(user.uid, unread);
-        applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+        publishMenuCounterUpdate();
       })
       .catch(() => {
         // Realtime listener below remains the source of truth.
@@ -497,12 +499,12 @@ function startMenuChatUnreadListeners(retry = 0) {
         })).filter((thread) => shouldShowMenuThreadForUser(thread, user.uid));
         _menuMessagesUnreadOverride = countUnreadChatThreads(threads, user.uid);
         writeSharedMenuChatUnreadCache(user.uid, _menuMessagesUnreadOverride);
-        applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+        publishMenuCounterUpdate();
       }, () => {
         const fallbackUnread = readSharedMenuChatUnreadCache(user.uid);
         if (fallbackUnread !== null) {
           _menuMessagesUnreadOverride = fallbackUnread;
-          applyMenuUnreadBadge(getEffectiveMenuMessagesUnread());
+          publishMenuCounterUpdate();
         }
       });
   });

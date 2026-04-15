@@ -1803,10 +1803,17 @@ function showPreview() {
   
   // Payment
   document.getElementById('previewPaymentAmount').textContent = `₱${np2State.paymentAmount}`;
-  document.getElementById('previewPaymentType').textContent = np2State.paymentType;
+  document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(np2State.paymentType);
   
   // Show overlay
   overlay.classList.add('show');
+}
+
+function formatPaymentTypeDisplay(paymentType) {
+  if (paymentType === 'Per Job') {
+    return 'Per Gig';
+  }
+  return paymentType || 'Per Gig';
 }
 
 function initializePreviewOverlay() {
@@ -2848,7 +2855,7 @@ function showEditForm(jobData, category) {
   const paymentType = jobData.paymentType || 'Per Job';
   if (paymentTypeDisplay) {
     paymentTypeDisplay.setAttribute('data-value', paymentType);
-    paymentTypeDisplay.textContent = paymentType;
+    paymentTypeDisplay.textContent = formatPaymentTypeDisplay(paymentType);
   }
   document.getElementById('editPaymentAmountInput').value = jobData.paymentAmount || jobData.priceOffer || '';
   
@@ -2945,7 +2952,9 @@ function initializeEditDropdowns() {
       if (option === currentValue) {
         optionEl.classList.add('selected');
       }
-      optionEl.textContent = option;
+      optionEl.textContent = dropdown.id === 'editPaymentTypeDropdown'
+        ? formatPaymentTypeDisplay(option)
+        : option;
       optionEl.addEventListener('click', () => {
         selectOption(dropdown, option, config);
       });
@@ -2960,7 +2969,9 @@ function initializeEditDropdowns() {
   function selectOption(dropdown, value, config) {
     const display = dropdown.querySelector('.np2-edit-dropdown-display');
     display.setAttribute('data-value', value);
-    display.textContent = value;
+    display.textContent = dropdown.id === 'editPaymentTypeDropdown'
+      ? formatPaymentTypeDisplay(value)
+      : value;
     closeDropdown();
   }
   
@@ -3284,7 +3295,7 @@ function showEditPreview(updatedJob, category, jobId) {
   document.getElementById('previewTime').textContent = `${updatedJob.startTime} - ${updatedJob.endTime}`;
   document.getElementById('previewDescription').textContent = updatedJob.description;
   document.getElementById('previewPaymentAmount').textContent = `₱${updatedJob.paymentAmount}`;
-  document.getElementById('previewPaymentType').textContent = updatedJob.paymentType;
+  document.getElementById('previewPaymentType').textContent = formatPaymentTypeDisplay(updatedJob.paymentType);
   
   // Photo
   if (updatedJob.thumbnail) {

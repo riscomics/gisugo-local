@@ -595,7 +595,7 @@ function setTabNotificationCount(tabSelector, count) {
     if (!countElement) return;
     const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
     const nextText = String(safeCount);
-    const nextDisplay = safeCount > 0 ? 'block' : 'none';
+    const nextDisplay = 'inline-flex';
     if (countElement.textContent !== nextText) {
         countElement.textContent = nextText;
     }
