@@ -1211,6 +1211,9 @@ async function refreshApplyCoinStatus() {
 
   try {
     const result = await getUserApplicationCoinStatus(user.uid);
+    if (result && result.success === false) {
+      throw new Error(result.message || 'coin_status_failed');
+    }
     const current = Number(result?.current ?? 0);
     const max = Number(result?.max ?? 10);
     valueEl.textContent = `${current} / ${max}`;
@@ -1226,7 +1229,23 @@ async function refreshApplyCoinStatus() {
     return { current, max };
   } catch (error) {
     console.warn('⚠️ Could not refresh apply token status:', error);
-    return { current: 0, max: 10 };
+    valueEl.textContent = '— / —';
+    statusBox.classList.remove('low');
+    renderApplyTokenCaption(captionEl, false);
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.65';
+    submitBtn.textContent = 'TOKEN CHECK FAILED — RETRY';
+    if (!submitBtn.dataset.retryHandlerBound) {
+      submitBtn.dataset.retryHandlerBound = '1';
+      submitBtn.addEventListener('click', function handleRetry(ev) {
+        if (submitBtn.textContent !== 'TOKEN CHECK FAILED — RETRY') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        submitBtn.textContent = 'CHECKING TOKENS...';
+        Promise.resolve(refreshApplyCoinStatus()).catch(() => {});
+      }, true);
+    }
+    return { current: 0, max: 10, failed: true };
   }
 }
 

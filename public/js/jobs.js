@@ -87,6 +87,20 @@ function sanitizeUrl(url, fallback = '') {
     return fallback;
 }
 
+function isLocalDevelopmentRuntime() {
+    if (typeof window === 'undefined' || !window.location) return false;
+    const host = String(window.location.hostname || '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || window.location.protocol === 'file:';
+}
+
+function reportMockModeBlocked(flowName) {
+    const message = `${flowName} is disabled outside local development.`;
+    console.error(`❌ ${message}`);
+    if (typeof showErrorNotification === 'function') {
+        showErrorNotification(message);
+    }
+}
+
 const ENABLE_FV_MEDIA_CALLABLE = false;
 
 const TAB_RENDER_GUARDS = {
@@ -2151,10 +2165,8 @@ function generateOfferedJobCard(job) {
     const userThumbnail = job.posterThumbnail || 'public/users/User-04.jpg';
     const userName = job.posterName;
     
-    // Use agreed price if it exists, otherwise fall back to original price
-    // Format with peso symbol
-    const rawPrice = job.agreedPrice || job.priceOffer;
-    const displayPrice = formatPriceWithPeso(rawPrice) || `₱${rawPrice}`;
+    // Always prioritize agreed price (counter offer) when available.
+    const displayPrice = resolveAgreedPriceDisplay(job);
     const safeJobId = escapeHtml(job.jobId || '');
     const safePosterId = escapeHtml(job.posterId || '');
     const safePosterName = escapeHtml(job.posterName || '');
@@ -3172,7 +3184,7 @@ function generateHiringCardHTML(job) {
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
     const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
-    const safePriceOffer = escapeHtml(`₱${job.priceOffer}`);
+    const safePriceOffer = escapeHtml(resolveAgreedPriceDisplay(job));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
     const safeUserName = escapeHtml(userName || 'User');
@@ -3184,6 +3196,8 @@ function generateHiringCardHTML(job) {
              data-poster-name="${safePosterName}"
              data-category="${safeCategory}"
              data-role="${safeRole}"
+             data-price-offer="${safePriceOffer}"
+             data-agreed-price="${safePriceOffer}"
              data-hired-worker-id="${safeHiredWorkerId}"
              data-hired-worker-name="${safeHiredWorkerNameData}">
             
@@ -3273,6 +3287,7 @@ function extractHiringJobDataFromCard(cardElement) {
         posterName,
         category,
         role,
+        priceOffer: cardElement.getAttribute('data-price-offer') || cardElement.querySelector('.hiring-price')?.textContent || '',
         hiredWorkerId,
         hiredWorkerName,
         title,
@@ -3297,6 +3312,8 @@ async function showHiringOptionsOverlay(jobData) {
     overlay.setAttribute('data-job-id', jobData.jobId);
     overlay.setAttribute('data-role', jobData.role);
     overlay.setAttribute('data-title', jobData.title);
+    overlay.setAttribute('data-price-offer', jobData.priceOffer || '');
+    overlay.setAttribute('data-agreed-price', jobData.priceOffer || '');
 
     const counterpartUserId = jobData.role === 'customer' ? jobData.hiredWorkerId : jobData.posterId;
     const counterpartName = jobData.role === 'customer' ? (jobData.hiredWorkerName || 'Worker') : (jobData.posterName || 'Customer');
@@ -3563,6 +3580,8 @@ function getHiringJobDataFromOverlay() {
         jobId: overlay.getAttribute('data-job-id'),
         role: overlay.getAttribute('data-role'),
         title: overlay.getAttribute('data-title'),
+        priceOffer: overlay.getAttribute('data-price-offer'),
+        agreedPrice: overlay.getAttribute('data-agreed-price') || overlay.getAttribute('data-price-offer'),
         counterpartUserId: overlay.getAttribute('data-counterpart-user-id'),
         counterpartName: overlay.getAttribute('data-counterpart-name'),
         counterpartFacePosterUrl: overlay.getAttribute('data-counterpart-face-poster-url'),
@@ -5187,9 +5206,12 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
         }
     }
     
-    // ══════════════════════════════════════════════════════════════
-    // MOCK MODE - Move from offered to hiring data
-    // ══════════════════════════════════════════════════════════════
+    if (!isLocalDevelopmentRuntime()) {
+        reportMockModeBlocked('Offer acceptance fallback flow');
+        return;
+    }
+
+    // Local-dev mock mode only.
     if (!MOCK_OFFERED_DATA) return;
     
     const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
@@ -5324,9 +5346,12 @@ async function rejectGigOffer(jobId) {
         }
     }
     
-    // ══════════════════════════════════════════════════════════════
-    // MOCK MODE - Remove from offered data
-    // ══════════════════════════════════════════════════════════════
+    if (!isLocalDevelopmentRuntime()) {
+        reportMockModeBlocked('Offer rejection fallback flow');
+        return;
+    }
+
+    // Local-dev mock mode only.
     if (!MOCK_OFFERED_DATA) return;
     
     const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
@@ -7455,7 +7480,7 @@ function generateCompletedCardHTML(job) {
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeCompletedDate = escapeHtml(formatCompletedDate(job.completedAt));
     const safeRatingCount = escapeHtml(ratingCount);
-    const safePriceOffer = escapeHtml(typeof job.priceOffer === 'number' ? '₱' + job.priceOffer : ((job.priceOffer || '').startsWith('₱') ? job.priceOffer : '₱' + (job.priceOffer || 0)));
+    const safePriceOffer = escapeHtml(resolveAgreedPriceDisplay(job));
     const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
     const safeUserName = escapeHtml(userName || 'User');
     const safeUserLabel = escapeHtml(userLabel);
@@ -7610,6 +7635,24 @@ function formatPriceWithPeso(price) {
     
     // Fallback: return as is
     return price;
+}
+
+function resolveAgreedPriceDisplay(job) {
+    const rawPrice = resolveAgreedPriceValue(job);
+    if (rawPrice === null || rawPrice === undefined || rawPrice === '') return '₱0';
+    return formatPriceWithPeso(rawPrice) || '₱0';
+}
+
+function resolveAgreedPriceValue(job) {
+    const source = job && typeof job === 'object' ? job : {};
+    // Keep legacy "salary" support for older docs/cards while migrating to basePrice naming.
+    const candidates = [source.agreedPrice, source.priceOffer, source.basePrice, source.salary, source.price];
+    for (const candidate of candidates) {
+        if (candidate === null || candidate === undefined) continue;
+        if (typeof candidate === 'string' && candidate.trim() === '') continue;
+        return candidate;
+    }
+    return 0;
 }
 
 function formatCompletedDate(timestamp) {
@@ -10323,10 +10366,8 @@ async function processHireConfirmation(workerData) {
             console.error('❌ Error hiring worker:', error);
             showErrorNotification('An error occurred while hiring. Please try again.');
         }
-    } else {
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE - Use existing mock data logic
-        // ══════════════════════════════════════════════════════════════
+    } else if (isLocalDevelopmentRuntime()) {
+        // Local-dev mock mode only.
         console.log('🧪 Using mock hire logic');
         
         // Hide loading after short delay
@@ -10374,6 +10415,9 @@ async function processHireConfirmation(workerData) {
             },
             'celebration'
         );
+    } else {
+        hideLoadingOverlay();
+        reportMockModeBlocked('Hire confirmation fallback flow');
     }
 }
 
@@ -10522,8 +10566,8 @@ function addToHiringData(jobData) {
         category: jobData.category,
         location: jobData.location,
         datePosted: jobData.datePosted,
-        salary: jobData.agreedPrice || jobData.salary, // Use agreed price from application, fallback to original
-        priceOffer: formatPriceWithPeso(jobData.agreedPrice) || jobData.salary, // Add priceOffer field for hiring card display
+        basePrice: jobData.agreedPrice || jobData.basePrice || jobData.salary, // agreed price first, then legacy base fields
+        priceOffer: formatPriceWithPeso(jobData.agreedPrice) || jobData.basePrice || jobData.salary, // display amount for hiring cards
         thumbnail: jobData.thumbnail,
         hiredWorker: jobData.hiredWorker,
         hiredWorkerName: jobData.hiredWorker || 'Unknown Worker', // Fix for toUpperCase error
@@ -10565,9 +10609,9 @@ function addToHiringData(jobData) {
     
     // Debug: Check price data in hiring job
     console.log('🔍 PRICE DEBUG - Final hiring job data:', {
-        originalSalary: jobData.salary,
+        originalBasePrice: jobData.basePrice || jobData.salary,
         agreedPrice: jobData.agreedPrice,
-        finalSalary: hiringJob.salary,
+        finalBasePrice: hiringJob.basePrice,
         priceType: jobData.priceType
     });
     

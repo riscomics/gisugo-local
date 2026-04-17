@@ -121,6 +121,35 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
   }
 
   const userRef = db.collection('users').doc(safeUserId);
+
+  if (isIOSWebKitBrowserForDataPath()) {
+    emitIOSDataTrace('dynamic-job:apply', 'coin:status:start', { mode: 'REST_AUTH' });
+    try {
+      const restHeaders = await withFirestoreReadTimeout(buildFirestoreRestHeadersWithAuth(), 6000);
+      const restProfile = await withFirestoreReadTimeout(
+        fetchUserProfileViaFirestoreRest(safeUserId, restHeaders),
+        8000
+      );
+      if (!restProfile) {
+        emitIOSDataTrace('dynamic-job:apply', 'coin:status:done', { mode: 'REST_AUTH', found: false });
+        return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
+      }
+      const normalized = normalizeApplicationCoins(restProfile);
+      emitIOSDataTrace('dynamic-job:apply', 'coin:status:done', {
+        mode: 'REST_AUTH',
+        current: normalized.current,
+        max: normalized.max
+      });
+      return normalized;
+    } catch (restError) {
+      emitIOSDataTrace('dynamic-job:apply', 'coin:status:error', {
+        mode: 'REST_AUTH',
+        message: restError && restError.message ? restError.message : String(restError)
+      });
+      throw restError;
+    }
+  }
+
   const userDoc = await userRef.get();
   if (!userDoc.exists) {
     return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
@@ -279,13 +308,17 @@ function mapFirestoreRestDoc(rawDoc) {
   return mapped;
 }
 
-async function fetchUserProfileViaFirestoreRest(userId) {
+async function fetchUserProfileViaFirestoreRest(userId, headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for profile REST fallback');
   const safeUserId = String(userId || '').trim();
   if (!safeUserId) return null;
   const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/users/${encodeURIComponent(safeUserId)}`;
-  const response = await fetch(endpoint, { method: 'GET' });
+  const requestInit = { method: 'GET' };
+  if (headers && typeof headers === 'object') {
+    requestInit.headers = headers;
+  }
+  const response = await fetch(endpoint, requestInit);
   if (response.status === 404) return null;
   if (!response.ok) {
     throw new Error(`REST profile fetch failed (${response.status})`);
@@ -1616,7 +1649,7 @@ async function applyForJob(jobId, applicationData) {
   const db = getFirestore();
   const currentUser = getCurrentUser();
   const useRestPrimaryForApply = isIOSWebKitBrowserForDataPath();
-  const restAuthHeaders = useRestPrimaryForApply ? await buildFirestoreRestHeadersWithAuth() : null;
+  let restAuthHeaders = null;
   // iOS WebKit can exceed normal Firestore timing during multi-step apply validation.
   const applyReadTimeoutMs = useRestPrimaryForApply ? 18000 : 9000;
   const applyWriteTimeoutMs = useRestPrimaryForApply ? 22000 : 12000;
@@ -1642,6 +1675,19 @@ async function applyForJob(jobId, applicationData) {
       applicantId: currentUser && currentUser.uid ? currentUser.uid : ''
     });
     emitIOSDataTrace('dynamic-job:apply', 'fetch:mode', useRestPrimaryForApply ? 'REST_PRIMARY' : 'SDK');
+    if (useRestPrimaryForApply) {
+      emitIOSDataTrace('dynamic-job:apply', 'auth:token:start', null);
+      restAuthHeaders = await withFirestoreReadTimeout(buildFirestoreRestHeadersWithAuth(), applyReadTimeoutMs);
+      emitIOSDataTrace('dynamic-job:apply', 'auth:token:done', {
+        hasAuth: !!(restAuthHeaders && restAuthHeaders.Authorization)
+      });
+      if (!restAuthHeaders || !restAuthHeaders.Authorization) {
+        return {
+          success: false,
+          message: 'Session verification failed. Please refresh and sign in again.'
+        };
+      }
+    }
     // ═══════════════════════════════════════════════════════════════
     // VALIDATION: Prevent self-application
     // ═══════════════════════════════════════════════════════════════
@@ -1699,6 +1745,7 @@ async function applyForJob(jobId, applicationData) {
     
     let existingApplications = null;
     if (useRestPrimaryForApply) {
+      emitIOSDataTrace('dynamic-job:apply', 'applications:fetch:start', { mode: 'REST_AUTH' });
       try {
         const restRows = await withFirestoreReadTimeout(
           fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, currentUser.uid, 6, restAuthHeaders),
@@ -1718,6 +1765,10 @@ async function applyForJob(jobId, applicationData) {
           mode: 'REST_AUTH',
           message: restAppError && restAppError.message ? restAppError.message : String(restAppError)
         });
+        return {
+          success: false,
+          message: 'Application check failed on this connection. Please retry.'
+        };
       }
     }
     if (!existingApplications) {
@@ -1806,15 +1857,36 @@ async function applyForJob(jobId, applicationData) {
     if (hasPendingCountFromJob) {
       emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'JOB_FIELD', count: totalPendingApplications });
     } else {
-      const allApplicationsSnapshot = await withFirestoreReadTimeout(
-        db.collection('applications')
-          .where('jobId', '==', jobId)
-          .where('status', '==', 'pending')
-          .get(),
-        applyReadTimeoutMs
-      );
-      totalPendingApplications = allApplicationsSnapshot.size;
-      emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'SDK', count: totalPendingApplications });
+      if (useRestPrimaryForApply) {
+        emitIOSDataTrace('dynamic-job:apply', 'pending:count:start', { mode: 'REST_AUTH' });
+        try {
+          const pendingRows = await withFirestoreReadTimeout(
+            fetchPendingApplicationsByJobViaFirestoreRest(jobId, 11, restAuthHeaders),
+            applyReadTimeoutMs
+          );
+          totalPendingApplications = pendingRows.length;
+          emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'REST_AUTH', count: totalPendingApplications });
+        } catch (pendingError) {
+          emitIOSDataTrace('dynamic-job:apply', 'pending:count:error', {
+            mode: 'REST_AUTH',
+            message: pendingError && pendingError.message ? pendingError.message : String(pendingError)
+          });
+          return {
+            success: false,
+            message: 'Unable to verify gig capacity right now. Please retry.'
+          };
+        }
+      } else {
+        const allApplicationsSnapshot = await withFirestoreReadTimeout(
+          db.collection('applications')
+            .where('jobId', '==', jobId)
+            .where('status', '==', 'pending')
+            .get(),
+          applyReadTimeoutMs
+        );
+        totalPendingApplications = allApplicationsSnapshot.size;
+        emitIOSDataTrace('dynamic-job:apply', 'pending:count:done', { mode: 'SDK', count: totalPendingApplications });
+      }
     }
     
     console.log(`📊 Total pending applications for this gig: ${totalPendingApplications}`);

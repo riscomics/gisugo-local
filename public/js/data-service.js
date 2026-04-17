@@ -17,6 +17,11 @@
 // ============================================================================
 
 const DataService = {
+  _isLocalDevRuntime() {
+    if (typeof window === 'undefined' || !window.location) return false;
+    const host = String(window.location.hostname || '').toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || window.location.protocol === 'file:';
+  },
   
   // ===== MODE DETECTION =====
   
@@ -25,6 +30,12 @@ const DataService = {
    * @returns {boolean}
    */
   useFirebase() {
+    // Production safety: outside local dev, always stay on Firebase path.
+    // Never auto-fall back to mock data in deployed environments.
+    if (!this._isLocalDevRuntime()) {
+      return true;
+    }
+
     // Check APP_CONFIG if available
     if (typeof APP_CONFIG !== 'undefined') {
       return APP_CONFIG.useFirebaseData();
@@ -43,7 +54,8 @@ const DataService = {
    * @returns {boolean}
    */
   useMock() {
-    return !this.useFirebase();
+    // Mock mode is local-dev only.
+    return this._isLocalDevRuntime() && !this.useFirebase();
   },
   
   /**
@@ -59,6 +71,15 @@ const DataService = {
    * @param {'firebase' | 'mock'} mode
    */
   setMode(mode) {
+    if (!this._isLocalDevRuntime()) {
+      console.warn('🚫 DataService: setMode ignored outside local development');
+      localStorage.setItem('gisugo_dev_mode', 'false');
+      if (typeof APP_CONFIG !== 'undefined') {
+        APP_CONFIG.devMode = false;
+      }
+      return;
+    }
+
     if (mode === 'firebase') {
       localStorage.setItem('gisugo_dev_mode', 'false');
       console.log('🔥 DataService: Switched to FIREBASE mode');
