@@ -98,6 +98,12 @@ function normalizeApplicationCoins(profile = {}) {
   return { current: currentCoins, max: maxCoins };
 }
 
+function isApplicationHoldingCoin(application = {}) {
+  const status = String(application.status || '').toLowerCase();
+  const holdsByStatus = status === 'pending' || status === 'accepted' || status === 'hired';
+  return application.coinHeld !== false && !application.coinReleasedAt && holdsByStatus;
+}
+
 async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
   const safeUserId = String(userId || '').trim();
   if (!safeUserId) return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
@@ -135,12 +141,48 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
         return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
       }
       const normalized = normalizeApplicationCoins(restProfile);
+      let reconciledCurrent = normalized.current;
+      try {
+        const applicantRows = await withFirestoreReadTimeout(
+          fetchApplicationsByApplicantViaFirestoreRest(safeUserId, 200, restHeaders),
+          8000
+        );
+        const heldByJob = new Set();
+        applicantRows.forEach((row) => {
+          if (!isApplicationHoldingCoin(row)) return;
+          const key = String(row.jobId || row.id || '').trim();
+          if (!key) return;
+          heldByJob.add(key);
+        });
+        const expectedCurrent = Math.max(0, normalized.max - heldByJob.size);
+        if (normalized.current < expectedCurrent) {
+          await withFirestoreReadTimeout(
+            updateUserApplicationCoinsViaFirestoreRest(safeUserId, expectedCurrent, normalized.max, restHeaders),
+            9000
+          );
+          reconciledCurrent = expectedCurrent;
+          emitIOSDataTrace('dynamic-job:apply', 'coin:status:reconciled', {
+            mode: 'REST_AUTH',
+            before: normalized.current,
+            after: expectedCurrent,
+            held: heldByJob.size
+          });
+        }
+      } catch (reconcileError) {
+        emitIOSDataTrace('dynamic-job:apply', 'coin:status:reconcile:error', {
+          mode: 'REST_AUTH',
+          message: reconcileError && reconcileError.message ? reconcileError.message : String(reconcileError)
+        });
+      }
       emitIOSDataTrace('dynamic-job:apply', 'coin:status:done', {
         mode: 'REST_AUTH',
-        current: normalized.current,
+        current: reconciledCurrent,
         max: normalized.max
       });
-      return normalized;
+      return {
+        current: reconciledCurrent,
+        max: normalized.max
+      };
     } catch (restError) {
       emitIOSDataTrace('dynamic-job:apply', 'coin:status:error', {
         mode: 'REST_AUTH',
@@ -202,6 +244,25 @@ async function releaseApplicationCoinForUser(userId, reason = '') {
     };
     localStorage.setItem('gisugo_users', JSON.stringify(users));
     return;
+  }
+
+  if (isIOSWebKitBrowserForDataPath()) {
+    try {
+      const restHeaders = await withFirestoreReadTimeout(buildFirestoreRestHeadersWithAuth(), 6000);
+      const normalized = await withFirestoreReadTimeout(ensureApplicationCoinsForUser(safeUserId, db), 8000);
+      await withFirestoreReadTimeout(
+        updateUserApplicationCoinsViaFirestoreRest(
+          safeUserId,
+          Math.min(normalized.max, normalized.current + 1),
+          normalized.max,
+          restHeaders
+        ),
+        9000
+      );
+      return;
+    } catch (restRefundError) {
+      console.warn('⚠️ REST coin refund failed, attempting SDK fallback:', restRefundError);
+    }
   }
 
   const userRef = db.collection('users').doc(safeUserId);
@@ -426,6 +487,114 @@ async function buildFirestoreRestHeadersWithAuth() {
   return headers;
 }
 
+async function updateUserApplicationCoinsViaFirestoreRest(userId, currentCoins, maxCoins, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for coins REST update');
+  const safeUserId = String(userId || '').trim();
+  if (!safeUserId) throw new Error('Missing userId for coins REST update');
+  const safeCurrent = Math.max(0, Math.floor(Number(currentCoins) || 0));
+  const safeMax = Math.max(1, Math.floor(Number(maxCoins) || DEFAULT_APPLICATION_COINS_MAX));
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/users/${encodeURIComponent(safeUserId)}?updateMask.fieldPaths=applicationCoinsCurrent&updateMask.fieldPaths=applicationCoinsMax`;
+  const payload = {
+    fields: {
+      applicationCoinsCurrent: { integerValue: String(safeCurrent) },
+      applicationCoinsMax: { integerValue: String(safeMax) }
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'PATCH',
+    headers: headers || { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST coin update failed (${response.status})`);
+  }
+  return true;
+}
+
+async function createApplicationViaFirestoreRest(applicationData, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for applications REST create');
+  const safeJobId = String(applicationData && applicationData.jobId ? applicationData.jobId : '').trim();
+  const safeApplicantId = String(applicationData && applicationData.applicantId ? applicationData.applicantId : '').trim();
+  if (!safeJobId || !safeApplicantId) {
+    throw new Error('Missing required application fields');
+  }
+  const safeDocId = `app_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/applications?documentId=${encodeURIComponent(safeDocId)}`;
+  const safeCounterOffer = Number(applicationData && applicationData.counterOffer);
+  const payload = {
+    fields: {
+      jobId: { stringValue: safeJobId },
+      applicantId: { stringValue: safeApplicantId },
+      applicantName: { stringValue: String(applicationData && applicationData.applicantName ? applicationData.applicantName : '') },
+      applicantThumbnail: { stringValue: String(applicationData && applicationData.applicantThumbnail ? applicationData.applicantThumbnail : '') },
+      appliedAt: { timestampValue: new Date().toISOString() },
+      status: { stringValue: 'pending' },
+      message: { stringValue: String(applicationData && applicationData.message ? applicationData.message : '') },
+      counterOffer: Number.isFinite(safeCounterOffer)
+        ? { doubleValue: safeCounterOffer }
+        : { nullValue: null },
+      jobTitle: { stringValue: String(applicationData && applicationData.jobTitle ? applicationData.jobTitle : '') },
+      coinHeld: { booleanValue: true },
+      coinConsumedAt: { timestampValue: new Date().toISOString() }
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers || { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST application create failed (${response.status})`);
+  }
+  const raw = await response.json();
+  return {
+    id: raw && raw.name ? String(raw.name).split('/').pop() : safeDocId
+  };
+}
+
+async function incrementJobApplicationCountViaFirestoreRest(jobId, applicationId, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for job REST update');
+  const safeJobId = String(jobId || '').trim();
+  const safeApplicationId = String(applicationId || '').trim();
+  if (!safeJobId || !safeApplicationId) {
+    throw new Error('Missing job/application id for job REST update');
+  }
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:commit`;
+  const payload = {
+    writes: [
+      {
+        transform: {
+          document: `projects/${projectId}/databases/(default)/documents/jobs/${safeJobId}`,
+          fieldTransforms: [
+            {
+              fieldPath: 'applicationCount',
+              increment: { integerValue: '1' }
+            },
+            {
+              fieldPath: 'applicationIds',
+              appendMissingElements: {
+                values: [{ stringValue: safeApplicationId }]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers || { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST job update failed (${response.status})`);
+  }
+  return true;
+}
+
 async function fetchApplicationsByJobAndApplicantViaFirestoreRest(jobId, applicantId, maxItems = 6, headers = null) {
   const projectId = getProjectIdForFirestoreRest();
   if (!projectId) throw new Error('Missing projectId for applications REST fallback');
@@ -515,6 +684,40 @@ async function fetchPendingApplicationsByJobViaFirestoreRest(jobId, maxItems = 1
   });
   if (!response.ok) {
     throw new Error(`REST applications(pending) fetch failed (${response.status})`);
+  }
+  const rows = await response.json();
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .map((row) => mapFirestoreRestDoc(row && row.document ? row.document : null))
+    .filter(Boolean);
+}
+
+async function fetchApplicationsByApplicantViaFirestoreRest(applicantId, maxItems = 200, headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for applicant applications REST fallback');
+  const safeApplicantId = String(applicantId || '').trim();
+  if (!safeApplicantId) return [];
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents:runQuery`;
+  const payload = {
+    structuredQuery: {
+      from: [{ collectionId: 'applications' }],
+      where: {
+        fieldFilter: {
+          field: { fieldPath: 'applicantId' },
+          op: 'EQUAL',
+          value: { stringValue: safeApplicantId }
+        }
+      },
+      limit: Math.max(1, Math.min(Number(maxItems) || 200, 300))
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: headers || { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST applications(by applicant all) fetch failed (${response.status})`);
   }
   const rows = await response.json();
   if (!Array.isArray(rows)) return [];
@@ -1910,10 +2113,31 @@ async function applyForJob(jobId, applicationData) {
         message: 'You have no G tokens left right now. Wait for a current application to close, or withdraw one pending application.'
       };
     }
-    await db.collection('users').doc(currentUser.uid).set({
-      applicationCoinsCurrent: coinState.current - 1,
-      applicationCoinsMax: coinState.max
-    }, { merge: true });
+    emitIOSDataTrace('dynamic-job:apply', 'write:coin:start', {
+      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+    });
+    if (useRestPrimaryForApply) {
+      await withFirestoreReadTimeout(
+        updateUserApplicationCoinsViaFirestoreRest(
+          currentUser.uid,
+          coinState.current - 1,
+          coinState.max,
+          restAuthHeaders
+        ),
+        applyWriteTimeoutMs
+      );
+    } else {
+      await withFirestoreReadTimeout(
+        db.collection('users').doc(currentUser.uid).set({
+          applicationCoinsCurrent: coinState.current - 1,
+          applicationCoinsMax: coinState.max
+        }, { merge: true }),
+        applyWriteTimeoutMs
+      );
+    }
+    emitIOSDataTrace('dynamic-job:apply', 'write:coin:done', {
+      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+    });
     consumedCoin = true;
     
     // Get applicant profile from Firestore for accurate info
@@ -1922,8 +2146,13 @@ async function applyForJob(jobId, applicationData) {
     
     console.log('🔍 Fetching applicant profile from Firestore for:', currentUser.uid);
     
+    emitIOSDataTrace('dynamic-job:apply', 'profile:fetch:start', null);
     try {
-      const applicantProfile = await getUserProfile(currentUser.uid);
+      const applicantProfile = await withFirestoreReadTimeout(
+        getUserProfile(currentUser.uid),
+        applyReadTimeoutMs
+      );
+      emitIOSDataTrace('dynamic-job:apply', 'profile:fetch:done', { hasProfile: !!applicantProfile });
       
       if (applicantProfile) {
         console.log('✅ Using Firestore profile data for applicant');
@@ -1933,6 +2162,9 @@ async function applyForJob(jobId, applicationData) {
         console.warn('⚠️ No Firestore profile found for applicant, using Auth data');
       }
     } catch (error) {
+      emitIOSDataTrace('dynamic-job:apply', 'profile:fetch:error', {
+        message: error && error.message ? error.message : String(error)
+      });
       console.error('❌ Error fetching applicant profile:', error);
       console.warn('⚠️ Falling back to Auth data for applicant');
     }
@@ -1954,16 +2186,48 @@ async function applyForJob(jobId, applicationData) {
       coinConsumedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
-    const appRef = await withFirestoreReadTimeout(db.collection('applications').add(application), applyWriteTimeoutMs);
+    emitIOSDataTrace('dynamic-job:apply', 'write:application:start', {
+      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+    });
+    let appRef = null;
+    if (useRestPrimaryForApply) {
+      const restApp = await withFirestoreReadTimeout(
+        createApplicationViaFirestoreRest(application, restAuthHeaders),
+        applyWriteTimeoutMs
+      );
+      appRef = { id: restApp && restApp.id ? restApp.id : '' };
+    } else {
+      appRef = await withFirestoreReadTimeout(
+        db.collection('applications').add(application),
+        applyWriteTimeoutMs
+      );
+    }
+    emitIOSDataTrace('dynamic-job:apply', 'write:application:done', {
+      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK',
+      applicationId: appRef && appRef.id ? appRef.id : ''
+    });
     
     // Update job application count
-    await withFirestoreReadTimeout(
-      db.collection('jobs').doc(jobId).update({
-        applicationCount: firebase.firestore.FieldValue.increment(1),
-        applicationIds: firebase.firestore.FieldValue.arrayUnion(appRef.id)
-      }),
-      applyWriteTimeoutMs
-    );
+    emitIOSDataTrace('dynamic-job:apply', 'write:jobCount:start', {
+      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+    });
+    if (useRestPrimaryForApply) {
+      await withFirestoreReadTimeout(
+        incrementJobApplicationCountViaFirestoreRest(jobId, appRef.id, restAuthHeaders),
+        applyWriteTimeoutMs
+      );
+    } else {
+      await withFirestoreReadTimeout(
+        db.collection('jobs').doc(jobId).update({
+          applicationCount: firebase.firestore.FieldValue.increment(1),
+          applicationIds: firebase.firestore.FieldValue.arrayUnion(appRef.id)
+        }),
+        applyWriteTimeoutMs
+      );
+    }
+    emitIOSDataTrace('dynamic-job:apply', 'write:jobCount:done', {
+      mode: useRestPrimaryForApply ? 'REST_AUTH' : 'SDK'
+    });
     
     console.log('✅ Application submitted:', appRef.id);
     
@@ -2765,6 +3029,81 @@ async function markChatThreadRead(threadId) {
     return { success: true, message: 'Thread marked as read' };
   } catch (error) {
     console.error('❌ Error marking thread as read:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Check whether current user already acknowledged Gig Tips for a thread.
+ * @param {string} threadId - Chat thread ID
+ * @returns {Promise<boolean>}
+ */
+async function hasGigTipsAcknowledgementForThread(threadId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeThreadId = String(threadId || '').trim();
+  if (!currentUser || !safeThreadId) return false;
+
+  if (!db) {
+    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
+    const thread = threads.find((entry) => String(entry.threadId || entry.id || '') === safeThreadId);
+    const ackMap = thread && thread.gigTipsAcknowledged && typeof thread.gigTipsAcknowledged === 'object'
+      ? thread.gigTipsAcknowledged
+      : {};
+    return ackMap[currentUser.uid] === true;
+  }
+
+  try {
+    const threadDoc = await db.collection('chat_threads').doc(safeThreadId).get();
+    if (!threadDoc.exists) return false;
+    const data = threadDoc.data() || {};
+    const ackMap = data.gigTipsAcknowledged && typeof data.gigTipsAcknowledged === 'object'
+      ? data.gigTipsAcknowledged
+      : {};
+    return ackMap[currentUser.uid] === true;
+  } catch (error) {
+    console.warn('⚠️ Gig Tips acknowledgement read failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Persist Gig Tips acknowledgement for current user in a thread.
+ * @param {string} threadId - Chat thread ID
+ * @returns {Promise<Object>} - Result object
+ */
+async function acknowledgeGigTipsForThread(threadId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeThreadId = String(threadId || '').trim();
+  if (!currentUser) {
+    return { success: false, message: 'Authentication required' };
+  }
+  if (!safeThreadId) {
+    return { success: false, message: 'Missing thread id' };
+  }
+
+  if (!db) {
+    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
+    const updatedThreads = threads.map((entry) => {
+      const id = String(entry.threadId || entry.id || '');
+      if (id !== safeThreadId) return entry;
+      const ackMap = { ...(entry.gigTipsAcknowledged || {}) };
+      ackMap[currentUser.uid] = true;
+      return { ...entry, gigTipsAcknowledged: ackMap };
+    });
+    localStorage.setItem('gisugo_chat_threads', JSON.stringify(updatedThreads));
+    return { success: true, message: 'Gig Tips acknowledgement saved offline' };
+  }
+
+  try {
+    await db.collection('chat_threads').doc(safeThreadId).update({
+      [`gigTipsAcknowledged.${currentUser.uid}`]: true,
+      [`gigTipsAcknowledgedAt.${currentUser.uid}`]: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return { success: true, message: 'Gig Tips acknowledgement saved' };
+  } catch (error) {
+    console.error('❌ Error saving Gig Tips acknowledgement:', error);
     return { success: false, message: error.message };
   }
 }
@@ -3837,6 +4176,8 @@ window.getOrCreateChatThread = getOrCreateChatThread;
 window.sendMessage = sendMessage;
 window.sendImageMessage = sendImageMessage;
 window.markChatThreadRead = markChatThreadRead;
+window.hasGigTipsAcknowledgementForThread = hasGigTipsAcknowledgementForThread;
+window.acknowledgeGigTipsForThread = acknowledgeGigTipsForThread;
 window.deleteChatThreadForCurrentUser = deleteChatThreadForCurrentUser;
 window.getThreadMessages = getThreadMessages;
 window.getUserChatThreads = getUserChatThreads;

@@ -157,6 +157,50 @@ const MESSAGES_IOS_TRACE_STATE = {
     maxLines: 20
 };
 const MESSAGES_RUNTIME_DEBUG = false;
+const GIG_TIPS_ACK_STORAGE_KEY = 'gisugo_gig_tips_ack_v1';
+const GIG_TIPS_LANG_DEFAULT = 'en';
+
+const GIG_TIPS_CONTENT = {
+    en: {
+        title: 'Be CLEAR with your Instructions!',
+        subtitle: 'Before starting the Gig:',
+        acknowledge: 'I Understand',
+        close: 'Close',
+        points: [
+            'Confirm final price, date, and time of gig.',
+            'Discuss any changes in chat first!',
+            'Take before-and-after photos.',
+            'Prioritize a safe work environment.',
+            'Mark completed only after both sides confirm.'
+        ]
+    },
+    tl: {
+        title: 'Maging CLEAR sa iyong Instructions!',
+        subtitle: 'Bago simulan ang Gig:',
+        acknowledge: 'Naiintindihan Ko',
+        close: 'Isara',
+        points: [
+            'I-confirm ninyong pareho ang presyo, petsa, oras, at detalye.',
+            'Sa chat ilagay lahat ng updates at kasunduan.',
+            'Magkuha ng before-and-after photos.',
+            'Panatilihing ligtas ang work environment.',
+            'I-mark na completed lang kapag parehong panig ay confirmed.'
+        ]
+    },
+    ceb: {
+        title: 'Pagka CLEAR sa imong Instructions!',
+        subtitle: 'Sa dili pa sugdan ang Gig:',
+        acknowledge: 'Nasabtan Ko',
+        close: 'Isira',
+        points: [
+            'Kumpirmaha ninyo ang bayad, petsa, oras, ug detalye sa trabaho.',
+            'Ibutang sa chat ang tanang updates ug sabot.',
+            'Kuhaa ang before-and-after photos.',
+            'Siguroa nga luwas ang work environment.',
+            'I-mark nga completed kung pareho na mong confirmed.'
+        ]
+    }
+};
 
 function isMessagesIOSTraceEnabled() {
     try {
@@ -216,6 +260,276 @@ function messagesTrace(event, details) {
 function messagesDebug(...args) {
     if (!MESSAGES_RUNTIME_DEBUG) return;
     console.log(...args);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getGigTipsAckMap() {
+    try {
+        const raw = localStorage.getItem(GIG_TIPS_ACK_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function getGigTipsAckCacheKey(threadId, userId) {
+    const safeThreadId = String(threadId || '').trim();
+    const safeUserId = String(userId || '').trim() || 'anon';
+    if (!safeThreadId) return '';
+    return `${safeUserId}::${safeThreadId}`;
+}
+
+function getGigTipsAckCacheValue(threadId, userId) {
+    const cacheKey = getGigTipsAckCacheKey(threadId, userId);
+    if (!cacheKey) return false;
+    const map = getGigTipsAckMap();
+    return map[cacheKey] === true;
+}
+
+function setGigTipsAckCacheValue(threadId, userId, value = true) {
+    const cacheKey = getGigTipsAckCacheKey(threadId, userId);
+    if (!cacheKey) return;
+    const map = getGigTipsAckMap();
+    map[cacheKey] = value === true;
+    try {
+        localStorage.setItem(GIG_TIPS_ACK_STORAGE_KEY, JSON.stringify(map));
+    } catch (_) {
+        // Ignore storage write failures.
+    }
+}
+
+async function hasAcknowledgedGigTips(threadId, userId) {
+    const safeThreadId = String(threadId || '').trim();
+    if (!safeThreadId) return false;
+    const safeUserId = String(userId || '').trim() || 'anon';
+
+    if (getGigTipsAckCacheValue(safeThreadId, safeUserId)) {
+        return true;
+    }
+
+    if (typeof hasGigTipsAcknowledgementForThread === 'function') {
+        try {
+            const acknowledged = await hasGigTipsAcknowledgementForThread(safeThreadId);
+            if (acknowledged) {
+                setGigTipsAckCacheValue(safeThreadId, safeUserId, true);
+                return true;
+            }
+        } catch (error) {
+            console.warn('⚠️ Gig Tips acknowledgement check failed:', error);
+        }
+    }
+
+    return false;
+}
+
+async function setAcknowledgedGigTips(threadId, userId) {
+    const safeThreadId = String(threadId || '').trim();
+    const safeUserId = String(userId || '').trim() || 'anon';
+    if (!safeThreadId) return false;
+
+    setGigTipsAckCacheValue(safeThreadId, safeUserId, true);
+
+    if (typeof acknowledgeGigTipsForThread === 'function') {
+        try {
+            const result = await acknowledgeGigTipsForThread(safeThreadId);
+            if (!result || result.success !== true) {
+                setGigTipsAckCacheValue(safeThreadId, safeUserId, false);
+                return false;
+            }
+        } catch (error) {
+            console.warn('⚠️ Gig Tips acknowledgement save failed:', error);
+            setGigTipsAckCacheValue(safeThreadId, safeUserId, false);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function setChatInteractionLockedForGigTips(modalOverlay, locked) {
+    if (!modalOverlay) return;
+    const targets = modalOverlay.querySelectorAll('.chat-input, .chat-send-btn, .chat-photo-btn, .chat-photo-input, .chat-modal-menu');
+    targets.forEach((element) => {
+        if ('disabled' in element) {
+            element.disabled = !!locked;
+        }
+    });
+    modalOverlay.classList.toggle('gig-tips-gated', !!locked);
+}
+
+async function resolveGigTipsCategory(jobId, seedCategory = '') {
+    const safeSeed = String(seedCategory || '').trim().toLowerCase();
+    if (safeSeed) return safeSeed;
+    const safeJobId = String(jobId || '').trim();
+    if (!safeJobId || typeof getJobById !== 'function') return '';
+    try {
+        const job = await getJobById(safeJobId);
+        return String(job?.category || '').trim().toLowerCase();
+    } catch (error) {
+        console.warn('⚠️ Unable to resolve category for Gig Tips:', error);
+        return '';
+    }
+}
+
+function getGigTipsLanguagePack(lang) {
+    const safeLang = String(lang || '').toLowerCase();
+    return GIG_TIPS_CONTENT[safeLang] || GIG_TIPS_CONTENT[GIG_TIPS_LANG_DEFAULT];
+}
+
+function renderGigTipsBody(container, lang) {
+    if (!container) return;
+    const pack = getGigTipsLanguagePack(lang);
+    const tipsItems = pack.points.map((point) => `<li>${point}</li>`).join('');
+    container.innerHTML = `
+        <h3 class="gig-tips-title">${pack.title}</h3>
+        <p class="gig-tips-subtitle">${pack.subtitle}</p>
+        <ul class="gig-tips-list">${tipsItems}</ul>
+    `;
+}
+
+function openGigTipsModal({
+    modalOverlay,
+    threadId,
+    jobId,
+    jobTitle,
+    category = '',
+    requireAcknowledge = false
+} = {}) {
+    if (!modalOverlay) return Promise.resolve(false);
+    const safeThreadId = String(threadId || '').trim();
+    const safeJobId = String(jobId || '').trim();
+    const safeJobTitle = escapeHtml(String(jobTitle || 'Gig').trim() || 'Gig');
+
+    const existing = modalOverlay.querySelector('.gig-tips-overlay');
+    if (existing) {
+        existing.remove();
+    }
+
+    const tipsOverlay = document.createElement('div');
+    tipsOverlay.className = 'gig-tips-overlay';
+    tipsOverlay.innerHTML = `
+        <div class="gig-tips-modal" role="dialog" aria-modal="true" aria-label="Gig tips">
+            <div class="gig-tips-header">
+                <div class="gig-tips-heading-wrap">
+                    <div class="gig-tips-heading">READ GIG TIPS</div>
+                    <div class="gig-tips-job-title">${safeJobTitle}</div>
+                </div>
+                ${requireAcknowledge ? '' : '<button class="gig-tips-close-btn" type="button" aria-label="Close gig tips">✕</button>'}
+            </div>
+            <div class="gig-tips-lang-tabs" role="tablist" aria-label="Gig tips language">
+                <button class="gig-tips-lang-tab active" type="button" data-lang="en">English</button>
+                <button class="gig-tips-lang-tab" type="button" data-lang="ceb">Bisaya</button>
+                <button class="gig-tips-lang-tab" type="button" data-lang="tl">Tagalog</button>
+            </div>
+            <div class="gig-tips-body"></div>
+            <div class="gig-tips-footer">
+                ${requireAcknowledge ? '<button class="gig-tips-ack-btn" type="button"></button>' : '<button class="gig-tips-close-footer-btn" type="button"></button>'}
+            </div>
+        </div>
+    `;
+
+    modalOverlay.querySelector('.chat-modal-container')?.appendChild(tipsOverlay);
+
+    const bodyEl = tipsOverlay.querySelector('.gig-tips-body');
+    const langTabs = Array.from(tipsOverlay.querySelectorAll('.gig-tips-lang-tab'));
+    let activeLang = GIG_TIPS_LANG_DEFAULT;
+    renderGigTipsBody(bodyEl, activeLang);
+
+    const ackBtn = tipsOverlay.querySelector('.gig-tips-ack-btn');
+    const closeFooterBtn = tipsOverlay.querySelector('.gig-tips-close-footer-btn');
+    if (ackBtn) {
+        ackBtn.textContent = getGigTipsLanguagePack(activeLang).acknowledge;
+    }
+    if (closeFooterBtn) {
+        closeFooterBtn.textContent = getGigTipsLanguagePack(activeLang).close;
+    }
+
+    setChatInteractionLockedForGigTips(modalOverlay, requireAcknowledge);
+    tipsOverlay.classList.add('show');
+
+    return new Promise((resolve) => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        const closeButton = tipsOverlay.querySelector('.gig-tips-close-btn');
+
+        const cleanup = (acknowledged) => {
+            controller.abort();
+            setChatInteractionLockedForGigTips(modalOverlay, false);
+            tipsOverlay.classList.remove('show');
+            setTimeout(() => {
+                if (tipsOverlay.parentNode) tipsOverlay.parentNode.removeChild(tipsOverlay);
+                resolve(acknowledged === true);
+            }, 150);
+        };
+
+        langTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const selected = String(tab.getAttribute('data-lang') || GIG_TIPS_LANG_DEFAULT).toLowerCase();
+                activeLang = selected;
+                langTabs.forEach((entry) => entry.classList.toggle('active', entry === tab));
+                renderGigTipsBody(bodyEl, activeLang);
+                if (ackBtn) ackBtn.textContent = getGigTipsLanguagePack(activeLang).acknowledge;
+                if (closeFooterBtn) closeFooterBtn.textContent = getGigTipsLanguagePack(activeLang).close;
+            }, { signal });
+        });
+
+        if (ackBtn) {
+            ackBtn.addEventListener('click', async () => {
+                if (ackBtn.disabled) return;
+                ackBtn.disabled = true;
+                const saved = await setAcknowledgedGigTips(safeThreadId, getCurrentUserId());
+                if (!saved) {
+                    ackBtn.disabled = false;
+                    showToast('Unable to save confirmation. Please try again.');
+                    return;
+                }
+                cleanup(true);
+            }, { signal });
+        }
+
+        if (!requireAcknowledge) {
+            if (closeButton) {
+                closeButton.addEventListener('click', () => cleanup(false), { signal });
+            }
+            if (closeFooterBtn) {
+                closeFooterBtn.addEventListener('click', () => cleanup(false), { signal });
+            }
+            tipsOverlay.addEventListener('click', (event) => {
+                if (event.target === tipsOverlay) cleanup(false);
+            }, { signal });
+        }
+
+        // Preload category for future archetype routing (currently universal content).
+        void resolveGigTipsCategory(safeJobId, category);
+    });
+}
+
+async function enforceGigTipsGateOnChatOpen(modalOverlay) {
+    if (!modalOverlay) return;
+    const threadId = String(modalOverlay.getAttribute('data-thread-id') || '').trim();
+    const currentUserId = String(getCurrentUserId() || '').trim();
+    if (!threadId) return;
+    const alreadyAcknowledged = await hasAcknowledgedGigTips(threadId, currentUserId);
+    if (alreadyAcknowledged) return;
+
+    await openGigTipsModal({
+        modalOverlay,
+        threadId,
+        jobId: modalOverlay.getAttribute('data-job-id'),
+        jobTitle: modalOverlay.querySelector('.chat-modal-title')?.textContent || 'Gig',
+        category: modalOverlay.getAttribute('data-job-category') || '',
+        requireAcknowledge: true
+    });
 }
 
 // MEMORY LEAK FIX: Enhanced cleanup utility
@@ -4680,6 +4994,7 @@ function generateMessageThreadHTML(thread) {
     const threadDataAttrs = [
         `data-thread-id="${thread.threadId}"`,
         `data-job-id="${thread.jobId}"`,
+        `data-job-category="${thread.jobCategory || ''}"`,
         `data-job-title="${thread.jobTitle}"`,
         `data-participant-id="${thread.participantId}"`,
         `data-participant-name="${thread.participantName}"`,
@@ -4798,6 +5113,7 @@ function generateMessageThreadHTMLFromFirebase(thread) {
     const mockThread = {
         threadId: thread.id || thread.threadId,
         jobId: thread.jobId || '',
+        jobCategory: thread.jobCategory || '',
         jobTitle: thread.jobTitle || 'Chat',
         applicationId: thread.applicationId || '',
         threadOrigin: 'chat',
@@ -7187,6 +7503,7 @@ function showChatModal(messageThread, threadContent) {
     modalOverlay.setAttribute('data-thread-id', threadId);
     modalOverlay.setAttribute('data-participant-id', messageThread.getAttribute('data-participant-id'));
     modalOverlay.setAttribute('data-job-id', messageThread.getAttribute('data-job-id'));
+    modalOverlay.setAttribute('data-job-category', messageThread.getAttribute('data-job-category') || '');
     modalOverlay.setAttribute('data-thread-origin', messageThread.getAttribute('data-thread-origin'));
     modalOverlay.setAttribute('data-application-id', messageThread.getAttribute('data-application-id'));
     modalOverlay.setAttribute('data-current-user-role', messageThread.getAttribute('data-current-user-role'));
@@ -7226,6 +7543,7 @@ function showChatModal(messageThread, threadContent) {
     
     // Initialize modal functionality
     initializeChatModal(modalOverlay, messageThread, threadId);
+    void enforceGigTipsGateOnChatOpen(modalOverlay);
     
     // Show modal with animation
     setTimeout(() => {
@@ -7303,6 +7621,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
             senderName: senderName,
             threadId: threadId,
             jobId: messageThread.getAttribute('data-job-id'),
+            jobCategory: messageThread.getAttribute('data-job-category') || '',
             jobTitle: messageThread.querySelector('.thread-job-title').textContent,
             threadOrigin: messageThread.getAttribute('data-thread-origin') || 'direct',
             applicationId: messageThread.getAttribute('data-application-id'),
@@ -7324,6 +7643,9 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     
     // Click outside to close
     const outsideClickHandler = (e) => {
+        if (modalOverlay.classList.contains('gig-tips-gated')) {
+            return;
+        }
         if (e.target === modalOverlay) {
             closeChatModal(modalOverlay);
         }
@@ -7331,6 +7653,9 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
     
     // Escape key to close
     const escapeHandler = (e) => {
+        if (modalOverlay.classList.contains('gig-tips-gated')) {
+            return;
+        }
         if (e.key === 'Escape') {
             closeChatModal(modalOverlay);
         }
@@ -7796,6 +8121,10 @@ function showAvatarOverlay(event, userData) {
                 <span>💼</span>
                 <span>VIEW GIG POST</span>
             </button>
+            <button class="avatar-action-btn tips" data-thread-id="${userData.threadId || ''}" data-job-id="${userData.jobId || ''}" data-job-title="${escapeHtml(String(userData.jobTitle || 'Gig'))}" data-job-category="${escapeHtml(String(userData.jobCategory || ''))}">
+                <span>📘</span>
+                <span>READ GIG TIPS</span>
+            </button>
             ${viewApplicationButton}
             <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
                 <span>🚫</span>
@@ -7952,6 +8281,33 @@ function initializeAvatarOverlayActions(overlay, userData) {
         messagesDebug(`🔍 DEBUG: View Application button functionality removed`);
     } else {
         messagesDebug(`🔍 DEBUG: No View Application button found in overlay (expected - removed)`);
+    }
+
+    // READ GIG TIPS button
+    const tipsBtn = overlay.querySelector('.avatar-action-btn.tips');
+    if (tipsBtn) {
+        tipsBtn.addEventListener('click', async function() {
+            const threadId = String(this.getAttribute('data-thread-id') || '').trim();
+            const jobId = String(this.getAttribute('data-job-id') || '').trim();
+            const jobTitle = String(this.getAttribute('data-job-title') || 'Gig').trim();
+            const jobCategory = String(this.getAttribute('data-job-category') || '').trim();
+
+            hideAvatarOverlay();
+
+            const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
+            if (!modalOverlay) {
+                showTemporaryNotification('Open the conversation first to read gig tips.');
+                return;
+            }
+            await openGigTipsModal({
+                modalOverlay,
+                threadId,
+                jobId,
+                jobTitle,
+                category: jobCategory,
+                requireAcknowledge: false
+            });
+        }, { signal });
     }
     
     // BLOCK USER button
