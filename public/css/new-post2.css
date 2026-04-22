@@ -1379,6 +1379,18 @@
   margin-top: 16px;
 }
 
+.np2-category-group {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+/* Keep Popular For Business even at 2 cards per row */
+.np2-category-group--hero {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .np2-category-card {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1485,6 +1497,15 @@
     gap: 12px;
   }
   
+  .np2-category-group {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+  
+  .np2-category-group--hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
   .np2-category-card {
     padding: 16px 10px;
     gap: 10px;
@@ -1503,6 +1524,15 @@
   .np2-category-grid {
     grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
     gap: 10px;
+  }
+  
+  .np2-category-group {
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 10px;
+  }
+  
+  .np2-category-group--hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   
   .np2-category-card {

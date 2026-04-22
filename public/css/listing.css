@@ -615,6 +615,11 @@ body::-webkit-scrollbar {
   margin-bottom: 16px;
 }
 
+/* Keep Popular For Business at 2 cards per row */
+.jobcat-category-grid.jobcat-category-grid--hero {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 /* Large desktop: 6 columns at 888px+ */
 @media (min-width: 888px) {
   .jobcat-category-grid {
@@ -734,6 +739,10 @@ body::-webkit-scrollbar {
     gap: 12px;
   }
   
+  .jobcat-category-grid.jobcat-category-grid--hero {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
   .jobcat-category-card {
     padding: 16px 10px;
     gap: 10px;
@@ -759,6 +768,10 @@ body::-webkit-scrollbar {
   .jobcat-category-grid {
     grid-template-columns: repeat(3, 1fr); /* Fixed 3 columns for small mobile */
     gap: 10px;
+  }
+  
+  .jobcat-category-grid.jobcat-category-grid--hero {
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .jobcat-category-card {

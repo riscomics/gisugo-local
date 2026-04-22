@@ -662,6 +662,8 @@ function getCategoryDisplayName(category) {
     tailor: 'Tailor Jobs',
     consultant: 'Consultant Jobs',
     engineer: 'Engineer Jobs',
+    architect: 'Architect Jobs',
+    landscaper: 'Landscaper Jobs',
     programmer: 'Programmer Jobs',
     therapist: 'Therapist Jobs',
     marketer: 'Marketer Jobs',
@@ -999,21 +1001,16 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'aircon', icon: '❄️', color: '#38bdf8', label: 'AC Cleaner' },
         { value: 'hatod', icon: '📦', color: '#6366f1', label: 'Transporter' },
         { value: 'solicitor', icon: '📣', color: '#eab308', label: 'Solicitor' },
-        { value: 'limpyo', icon: '🧹', color: '#06b6d4', label: 'Basic Cleaner' },
-        { value: 'handyman', icon: '👨🏻‍🔧', color: '#f59e0b', label: 'Handyman' },
-        { value: 'driver', icon: '🚗', color: '#3b82f6', label: 'Driver' }
+        { value: 'limpyo', icon: '🧹', color: '#06b6d4', label: 'Basic Cleaner' }
       ]
     },
     {
       title: '🛠️ Maintenance & Trades',
       items: [
-        { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
         { value: 'plumber', icon: '🚰', color: '#0ea5e9', label: 'Plumber' },
-        { value: 'security', icon: '👮🏻', color: '#ef4444', label: 'Security' },
-        { value: 'carpenter', icon: '🔨', color: '#8b5cf6', label: 'Carpenter' },
-        { value: 'painter', icon: '🖌️', color: '#f59e0b', label: 'Painter' },
-        { value: 'builder', icon: '👷🏻', color: '#22c55e', label: 'Builder' },
+        { value: 'handyman', icon: '👨🏻‍🔧', color: '#f59e0b', label: 'Handyman' },
         { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
+        { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
         { value: 'mechanic', icon: '🛠️', color: '#ef4444', label: 'Mechanic' },
         { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Movers' }
       ]
@@ -1024,9 +1021,7 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'clerical', icon: '🗂️', color: '#a855f7', label: 'Clerical' },
         { value: 'staff', icon: '🙋🏻', color: '#a855f7', label: 'Assistant' },
         { value: 'ittech', icon: '🛜', color: '#06b6d4', label: 'IT Tech' },
-        { value: 'programmer', icon: '💻', color: '#6366f1', label: 'Programmer' },
         { value: 'researcher', icon: '🔍', color: '#0ea5e9', label: 'Researcher' },
-        { value: 'consultant', icon: '💼', color: '#10b981', label: 'Consultant' },
         { value: 'accountant', icon: '💰', color: '#f59e0b', label: 'Accountant' },
         { value: 'marketer', icon: '📊', color: '#22c55e', label: 'Marketer' }
       ]
@@ -1034,12 +1029,15 @@ function buildJobCategoryGrid(categoryDropdown) {
     {
       title: '🛍️ Retail Services',
       items: [
-        { value: 'waiter', icon: '💁🏻‍♂️', color: '#14b8a6', label: 'Waiter' },
-        { value: 'reception', icon: '👩🏻‍💼', color: '#14b8a6', label: 'Reception' },
-        { value: 'chef', icon: '👩🏻‍🍳', color: '#f97316', label: 'Chef' },
         { value: 'tindera', icon: '🏪', color: '#ec4899', label: 'Tindera' },
+        { value: 'reception', icon: '👩🏻‍💼', color: '#14b8a6', label: 'Reception' },
+        { value: 'waiter', icon: '💁🏻‍♂️', color: '#14b8a6', label: 'Waiter' },
+        { value: 'security', icon: '👮🏻', color: '#ef4444', label: 'Security' },
+        { value: 'driver', icon: '🚗', color: '#3b82f6', label: 'Driver' },
         { value: 'tourguide', icon: '🧭', color: '#22c55e', label: 'Tour Guide' },
-        { value: 'trainer', icon: '🏃', color: '#f59e0b', label: 'Trainer' }
+        { value: 'trainer', icon: '🏃', color: '#f59e0b', label: 'Trainer' },
+        { value: 'chef', icon: '👩🏻‍🍳', color: '#f97316', label: 'Chef' },
+        { value: 'realtor', icon: '🏡', color: '#ec4899', label: 'Realtor' }
       ]
     },
     {
@@ -1054,6 +1052,17 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'tutor', icon: '📚', color: '#14b8a6', label: 'Tutor' },
         { value: 'massage', icon: '💆🏻‍♀️', color: '#a855f7', label: 'Massager' },
         { value: 'petcare', icon: '🐾', color: '#fb923c', label: 'Pet Care' }
+      ]
+    },
+    {
+      title: '🏗️ Construction',
+      items: [
+        { value: 'builder', icon: '👷🏻', color: '#22c55e', label: 'Builder' },
+        { value: 'carpenter', icon: '🔨', color: '#8b5cf6', label: 'Carpenter' },
+        { value: 'painter', icon: '🖌️', color: '#f59e0b', label: 'Painter' },
+        { value: 'engineer', icon: '⚙️', color: '#0ea5e9', label: 'Engineer' },
+        { value: 'architect', icon: '🏛️', color: '#facc15', label: 'Architect' },
+        { value: 'landscaper', icon: '🌿', color: '#65a30d', label: 'Landscaper' }
       ]
     },
     {
@@ -1076,20 +1085,21 @@ function buildJobCategoryGrid(categoryDropdown) {
         { value: 'doctor', icon: '🧑🏻‍⚕️', color: '#3b82f6', label: 'Doctor' },
         { value: 'nurse', icon: '❤️‍🩹', color: '#ec4899', label: 'Nurse' },
         { value: 'lawyer', icon: '⚖️', color: '#6366f1', label: 'Lawyer' },
-        { value: 'engineer', icon: '⚙️', color: '#0ea5e9', label: 'Engineer' },
-        { value: 'realtor', icon: '🏡', color: '#ec4899', label: 'Realtor' },
-        { value: 'therapist', icon: '🧘🏻', color: '#ec4899', label: 'Therapist' }
+        { value: 'consultant', icon: '💼', color: '#10b981', label: 'Consultant' },
+        { value: 'therapist', icon: '🧘🏻', color: '#ec4899', label: 'Therapist' },
+        { value: 'programmer', icon: '💻', color: '#6366f1', label: 'Programmer' }
       ]
     }
   ];
 
   let html = '';
-  sections.forEach((section) => {
+  sections.forEach((section, sectionIndex) => {
     html += `
       <div class="np2-category-section-divider">
         <div class="np2-category-section-title">${section.title}</div>
       </div>
     `;
+    html += `<div class="np2-category-group${sectionIndex === 0 ? ' np2-category-group--hero' : ''}">`;
     section.items.forEach((item) => {
       html += `
         <div class="np2-category-card" data-value="${item.value}" data-icon="${item.icon}" data-color="${item.color}">
@@ -1098,6 +1108,7 @@ function buildJobCategoryGrid(categoryDropdown) {
         </div>
       `;
     });
+    html += '</div>';
   });
 
   categoryGrid.innerHTML = html;
@@ -2710,6 +2721,9 @@ function showEditForm(jobData, category) {
     'lawyer': { label: 'Lawyer', icon: '⚖️' },
     'mechanic': { label: 'Mechanic', icon: '🔩' },
     'electrician': { label: 'Electrician', icon: '⚡' },
+    'engineer': { label: 'Engineer', icon: '⚙️' },
+    'architect': { label: 'Architect', icon: '🏛️' },
+    'landscaper': { label: 'Landscaper', icon: '🌿' },
     'tailor': { label: 'Tailor', icon: '✂️' },
     'accountant': { label: 'Accountant', icon: '💼' },
     'solicitor': { label: 'Solicitor', icon: '📣' },
@@ -3429,6 +3443,9 @@ function populateFormWithJobData(jobData, category, mode) {
     'lawyer': { label: 'Lawyer', icon: 'gavel', color: '#34495e' },
     'mechanic': { label: 'Mechanic', icon: 'build', color: '#7f8c8d' },
     'electrician': { label: 'Electrician', icon: 'electrical_services', color: '#f39c12' },
+    'engineer': { label: 'Engineer', icon: 'settings', color: '#2980b9' },
+    'architect': { label: 'Architect', icon: 'architecture', color: '#f1c40f' },
+    'landscaper': { label: 'Landscaper', icon: 'yard', color: '#27ae60' },
     'tailor': { label: 'Tailor', icon: 'content_cut', color: '#9b59b6' },
     'accountant': { label: 'Accountant', icon: 'account_balance', color: '#27ae60' }
   };
