@@ -19,6 +19,7 @@ function isAllowedTextCharacter(char) {
   if (!char) return true;
   if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
   if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
+  if (/[’‘]/.test(char)) return true;
   if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
   return false;
 }
@@ -148,13 +149,49 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
           8000
         );
         const heldByJob = new Set();
-        applicantRows.forEach((row) => {
-          if (!isApplicationHoldingCoin(row)) return;
-          const key = String(row.jobId || row.id || '').trim();
-          if (!key) return;
-          heldByJob.add(key);
-        });
+        const jobCache = new Map();
+        const orphanApplications = [];
+        for (const row of applicantRows) {
+          if (!isApplicationHoldingCoin(row)) continue;
+          const applicationId = String(row.id || '').trim();
+          const jobId = String(row.jobId || '').trim();
+          if (!applicationId || !jobId) continue;
+          let jobData = jobCache.get(jobId);
+          if (jobData === undefined) {
+            try {
+              jobData = await withFirestoreReadTimeout(fetchJobByIdViaFirestoreRest(jobId), 7000);
+            } catch (_) {
+              jobData = null;
+            }
+            jobCache.set(jobId, jobData);
+          }
+          const jobAppIds = jobData && Array.isArray(jobData.applicationIds) ? jobData.applicationIds.map((id) => String(id || '').trim()) : [];
+          const linkedToJob = jobAppIds.includes(applicationId);
+          if (!linkedToJob) {
+            orphanApplications.push(applicationId);
+            continue;
+          }
+          heldByJob.add(jobId);
+        }
+        for (const orphanAppId of orphanApplications) {
+          try {
+            await withFirestoreReadTimeout(
+              markApplicationCoinReleasedViaFirestoreRest(orphanAppId, 'orphan_reconcile', restHeaders),
+              7000
+            );
+          } catch (_) {
+            // continue reconciliation even if one app release fails
+          }
+        }
         const expectedCurrent = Math.max(0, normalized.max - heldByJob.size);
+        emitIOSDataTrace('dynamic-job:apply', 'coin:status:audit', {
+          mode: 'REST_AUTH',
+          currentProfile: normalized.current,
+          expectedCurrent,
+          held: heldByJob.size,
+          orphanDetected: orphanApplications.length,
+          heldJobIds: Array.from(heldByJob).slice(0, 8)
+        });
         if (normalized.current < expectedCurrent) {
           await withFirestoreReadTimeout(
             updateUserApplicationCoinsViaFirestoreRest(safeUserId, expectedCurrent, normalized.max, restHeaders),
@@ -165,7 +202,8 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
             mode: 'REST_AUTH',
             before: normalized.current,
             after: expectedCurrent,
-            held: heldByJob.size
+            held: heldByJob.size,
+            orphanReleased: orphanApplications.length
           });
         }
       } catch (reconcileError) {
@@ -552,6 +590,30 @@ async function createApplicationViaFirestoreRest(applicationData, headers = null
   return {
     id: raw && raw.name ? String(raw.name).split('/').pop() : safeDocId
   };
+}
+
+async function markApplicationCoinReleasedViaFirestoreRest(applicationId, releaseReason = 'reconciled_orphan', headers = null) {
+  const projectId = getProjectIdForFirestoreRest();
+  if (!projectId) throw new Error('Missing projectId for application coin release');
+  const safeApplicationId = String(applicationId || '').trim();
+  if (!safeApplicationId) throw new Error('Missing applicationId for coin release');
+  const endpoint = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/applications/${encodeURIComponent(safeApplicationId)}?updateMask.fieldPaths=coinHeld&updateMask.fieldPaths=coinReleaseReason&updateMask.fieldPaths=coinReleasedAt`;
+  const payload = {
+    fields: {
+      coinHeld: { booleanValue: false },
+      coinReleaseReason: { stringValue: String(releaseReason || 'reconciled_orphan') },
+      coinReleasedAt: { timestampValue: new Date().toISOString() }
+    }
+  };
+  const response = await fetch(endpoint, {
+    method: 'PATCH',
+    headers: headers || { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) {
+    throw new Error(`REST application coin release failed (${response.status})`);
+  }
+  return true;
 }
 
 async function incrementJobApplicationCountViaFirestoreRest(jobId, applicationId, headers = null) {

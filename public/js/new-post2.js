@@ -1008,10 +1008,10 @@ function buildJobCategoryGrid(categoryDropdown) {
       title: '🛠️ Maintenance & Trades',
       items: [
         { value: 'plumber', icon: '🚰', color: '#0ea5e9', label: 'Plumber' },
-        { value: 'handyman', icon: '👨🏻‍🔧', color: '#f59e0b', label: 'Handyman' },
+        { value: 'handyman', icon: '🛠️', color: '#f59e0b', label: 'Handyman' },
         { value: 'gardner', icon: '👩🏻‍🌾', color: '#10b981', label: 'Gardner' },
         { value: 'electrician', icon: '⚡', color: '#fbbf24', label: 'Electrician' },
-        { value: 'mechanic', icon: '🛠️', color: '#ef4444', label: 'Mechanic' },
+        { value: 'mechanic', icon: '👨🏻‍🔧', color: '#ef4444', label: 'Mechanic' },
         { value: 'hakot', icon: '🚚', color: '#84cc16', label: 'Movers' }
       ]
     },
@@ -2719,7 +2719,7 @@ function showEditForm(jobData, category) {
     'nurse': { label: 'Nurse', icon: '💉' },
     'doctor': { label: 'Doctor', icon: '⚕️' },
     'lawyer': { label: 'Lawyer', icon: '⚖️' },
-    'mechanic': { label: 'Mechanic', icon: '🔩' },
+    'mechanic': { label: 'Mechanic', icon: '👨🏻‍🔧' },
     'electrician': { label: 'Electrician', icon: '⚡' },
     'engineer': { label: 'Engineer', icon: '⚙️' },
     'architect': { label: 'Architect', icon: '🏛️' },

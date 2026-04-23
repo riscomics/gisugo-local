@@ -8836,6 +8836,7 @@ const DEFAULT_SETTINGS = {
     backupFrequency: 'daily',
     
     // Feature Toggles
+    showHomepageVideoForLoggedIn: false, // OFF = visitors only, ON = both visitors + logged-in users
     featuredGigs: true,
     reviewsSystem: true,
     directMessaging: false,

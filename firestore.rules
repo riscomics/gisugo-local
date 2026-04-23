@@ -453,6 +453,58 @@ service cloud.firestore {
       // Messages are immutable for now.
       allow update, delete: if false;
     }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SUPPORT REQUESTS (Public contact form + in-app support)
+    // ═══════════════════════════════════════════════════════════════
+    match /support_requests/{requestId} {
+      // Requester can read own ticket. Admin can read all.
+      allow read: if isAdmin()
+        || (isAuthenticated()
+            && resource.data.requester is map
+            && resource.data.requester.userId is string
+            && resource.data.requester.userId == request.auth.uid);
+
+      // Create allowed for authenticated users and guests.
+      // Authenticated users must write their own UID as requester.userId.
+      // Guests must keep requester.userId as null.
+      allow create: if request.resource.data.keys().hasAll([
+            'source', 'messageType', 'channel', 'categoryCode', 'categoryLabel',
+            'subject', 'message', 'requester', 'status', 'referenceId'
+          ])
+        && request.resource.data.source is string
+        && request.resource.data.messageType is string
+        && request.resource.data.channel is string
+        && request.resource.data.categoryCode is string
+        && request.resource.data.categoryLabel is string
+        && request.resource.data.subject is string
+        && request.resource.data.message is string
+        && request.resource.data.requester is map
+        && request.resource.data.requester.keys().hasAll(['userId', 'name', 'email'])
+        && request.resource.data.requester.name is string
+        && request.resource.data.requester.email is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.referenceId is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 200
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 5000
+        && (
+          (isAuthenticated()
+            && request.resource.data.requester.userId is string
+            && request.resource.data.requester.userId == request.auth.uid)
+          || (!isAuthenticated() && request.resource.data.requester.userId == null)
+        );
+
+      // Admin can manage lifecycle fields. Requesters can only mark as read.
+      allow update: if isAdmin()
+        || (isAuthenticated()
+            && resource.data.requester is map
+            && resource.data.requester.userId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isReadByRequester', 'updatedAt', 'updatedAtISO', 'updatedAtMs']));
+
+      allow delete: if isAdmin();
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // DENY ALL OTHER COLLECTIONS BY DEFAULT

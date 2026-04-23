@@ -1519,9 +1519,10 @@ function renderJobBatch(batchSize, headerSpacer) {
   // Determine if this is the initial load or a pagination batch
   const isInitialLoad = PAGINATION.displayedJobs.length === 0;
   
-  // For initial load: render in reverse order (newest at top)
-  // For pagination: render in normal order (append to bottom)
-  const jobsToProcess = isInitialLoad ? jobBatch.reverse() : jobBatch;
+  // Render in the same order as the sorted source array.
+  // filteredJobs is already sorted soonest-first in filterAndSortJobs().
+  const jobsToProcess = jobBatch;
+  let insertionCursor = headerSpacer;
   
   jobsToProcess.forEach((cardData) => {
     const currentPayType = cardData.rate || 'Per Hour';
@@ -1540,8 +1541,10 @@ function renderJobBatch(batchSize, headerSpacer) {
     const emptyState = document.getElementById('listingEmptyState');
     const anchor = (emptyState && emptyState.parentNode === parent) ? emptyState : null;
     if (isInitialLoad) {
-      // Keep cards ordered directly after header and always before any empty placeholder.
-      parent.insertBefore(jobCard, anchor || headerSpacer.nextSibling);
+      // Deterministic insertion: always place next card after the previous inserted card.
+      // This preserves sorted order (soonest-first) regardless of placeholder nodes.
+      parent.insertBefore(jobCard, insertionCursor.nextSibling);
+      insertionCursor = jobCard;
     } else if (anchor) {
       // Never append cards after an empty placeholder, or it appears mid-list.
       parent.insertBefore(jobCard, anchor);
@@ -3235,10 +3238,10 @@ function initJobcatButtonAutoResize() {
 
     // MAINTENANCE & TRADES
     { emoji: '🚰', label: 'Plumber', page: 'plumber.html', section: 'maintenance' },
-    { emoji: '👨🏻‍🔧', label: 'Handyman', page: 'handyman.html', section: 'maintenance' },
+    { emoji: '🛠️', label: 'Handyman', page: 'handyman.html', section: 'maintenance' },
     { emoji: '👩🏻‍🌾', label: 'Gardner', page: 'gardner.html', section: 'maintenance' },
     { emoji: '⚡', label: 'Electrician', page: 'electrician.html', section: 'maintenance' },
-    { emoji: '🔩', label: 'Mechanic', page: 'mechanic.html', section: 'maintenance' },
+    { emoji: '👨🏻‍🔧', label: 'Mechanic', page: 'mechanic.html', section: 'maintenance' },
     { emoji: '🚚', label: 'Movers', page: 'hakot.html', section: 'maintenance' },
 
     // CONSTRUCTION

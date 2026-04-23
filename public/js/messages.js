@@ -150,7 +150,8 @@ const CLEANUP_REGISTRY = {
 const ACTIVE_LISTENERS = {
     notifications: null,
     threads: null,
-    activeThreadMessages: null
+    activeThreadMessages: null,
+    supportResponses: null
 };
 
 const MESSAGES_IOS_TRACE_STATE = {
@@ -562,6 +563,10 @@ function executeAllCleanups() {
         ACTIVE_LISTENERS.activeThreadMessages();
         ACTIVE_LISTENERS.activeThreadMessages = null;
     }
+    if (ACTIVE_LISTENERS.supportResponses) {
+        console.log('🧹 Cleaning up support responses listener');
+        stopSupportResponsesRealtimeStream('execute_all_cleanups');
+    }
     
     // Clean up document listeners
     CLEANUP_REGISTRY.documentListeners.forEach((listener, key) => {
@@ -651,6 +656,7 @@ function isAllowedTextCharacter(char) {
     if (!char) return true;
     if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
     if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
+    if (/[’‘]/.test(char)) return true;
     if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
     return false;
 }
@@ -793,6 +799,7 @@ async function initializeCustomerInterviewsTab() {
 
 async function initializeUnifiedMessagesTab() {
     console.log('📧 Initializing unified messages tab');
+    await ensureSupportResponsesRealtimeStream();
     // Initialize unified admin messages functionality using customer data
     loadUnifiedMessages();
     setupMessageFiltering('unified');
@@ -981,6 +988,14 @@ const ALERTS_STREAM_STATE = {
     started: false,
     hasSnapshot: false
 };
+
+const SUPPORT_RESPONSES_STREAM_STATE = {
+    uid: '',
+    messages: [],
+    started: false,
+    hasSnapshot: false,
+    limit: 50
+};
 const ALERTS_LOAD_STATE = {
     requestId: 0
 };
@@ -1004,6 +1019,26 @@ function stopAlertsRealtimeStream(reason = 'unspecified') {
     resetAlertsStreamState();
     resetAlertsPaginationState();
     messagesTrace('fetch:alerts:stop', reason);
+}
+
+function resetSupportResponsesStreamState() {
+    SUPPORT_RESPONSES_STREAM_STATE.uid = '';
+    SUPPORT_RESPONSES_STREAM_STATE.messages = [];
+    SUPPORT_RESPONSES_STREAM_STATE.started = false;
+    SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = false;
+}
+
+function stopSupportResponsesRealtimeStream(reason = 'unspecified') {
+    if (ACTIVE_LISTENERS.supportResponses) {
+        try {
+            ACTIVE_LISTENERS.supportResponses();
+        } catch (error) {
+            console.warn('⚠️ Failed to unsubscribe support responses listener:', error);
+        }
+        ACTIVE_LISTENERS.supportResponses = null;
+    }
+    resetSupportResponsesStreamState();
+    messagesTrace('fetch:support:stop', reason);
 }
 
 function beginAlertsLoadRequest(role) {
@@ -2232,6 +2267,7 @@ async function switchToRole(roleType) {
         document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('customerAlertsTab')?.classList.add('active');
         stopChatsRealtimeStream('switch_role_to_customer_default_alerts');
+        stopSupportResponsesRealtimeStream('switch_role_to_customer_default_alerts');
         
         // Initialize the default customer alerts tab content
         await initializeCustomerAlertsTab();
@@ -2259,6 +2295,7 @@ async function switchToRole(roleType) {
         document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => btn.classList.remove('active'));
         document.getElementById('workerAlertsTab')?.classList.add('active');
         stopChatsRealtimeStream('switch_role_to_worker_default_alerts');
+        stopSupportResponsesRealtimeStream('switch_role_to_worker_default_alerts');
         
         // Initialize the default worker alerts tab content
         await initializeWorkerAlertsTab();
@@ -2374,6 +2411,7 @@ async function switchToCustomerTab(tabType) {
     if (tabType !== 'customer-interviews') {
         stopChatsRealtimeStream('switch_away_from_customer_interviews');
     }
+    stopSupportResponsesRealtimeStream('switch_away_from_unified_messages_customer');
     
     // Load customer content
     if (tabType === 'customer-alerts') {
@@ -2433,6 +2471,7 @@ async function switchToWorkerTab(tabType) {
     if (tabType !== 'worker-chats') {
         stopChatsRealtimeStream('switch_away_from_worker_chats');
     }
+    stopSupportResponsesRealtimeStream('switch_away_from_unified_messages_worker');
     
     // Load worker content
     if (tabType === 'worker-alerts') {
@@ -10666,6 +10705,163 @@ GISUGO Referral Team`,
     ]
 };
 
+let SUPPORT_MOCK_DATA_ENABLED_CACHE = null;
+
+function refreshSupportMockDataEnabledCache() {
+    SUPPORT_MOCK_DATA_ENABLED_CACHE = !!(window.APP_CONFIG && window.APP_CONFIG.devMode);
+    return SUPPORT_MOCK_DATA_ENABLED_CACHE;
+}
+
+function isSupportMockDataEnabled() {
+    if (SUPPORT_MOCK_DATA_ENABLED_CACHE === null) {
+        return refreshSupportMockDataEnabledCache();
+    }
+    return SUPPORT_MOCK_DATA_ENABLED_CACHE;
+}
+
+const supportMockStorageHandler = (event) => {
+    if (event && event.key === 'gisugo_dev_mode') {
+        refreshSupportMockDataEnabledCache();
+        if (isSupportMockDataEnabled()) {
+            stopSupportResponsesRealtimeStream('dev_mode_toggled_on');
+            loadUnifiedMessages();
+        } else {
+            ensureSupportResponsesRealtimeStream()
+                .catch((error) => console.warn('⚠️ Failed to refresh support stream after dev toggle:', error));
+        }
+    }
+};
+window.addEventListener('storage', supportMockStorageHandler);
+registerCleanup('function', 'supportMockStorageListenerCleanup', () => {
+    window.removeEventListener('storage', supportMockStorageHandler);
+});
+
+function getMessagesByRole(role) {
+    if (role === 'unified') {
+        if (!isSupportMockDataEnabled()) {
+            return Array.isArray(SUPPORT_RESPONSES_STREAM_STATE.messages)
+                ? SUPPORT_RESPONSES_STREAM_STATE.messages
+                : [];
+        }
+        return MOCK_ADMIN_MESSAGES.customer || [];
+    }
+
+    return MOCK_ADMIN_MESSAGES[role] || [];
+}
+
+function getSupportMessageByIdForRole(role, messageId) {
+    return getMessagesByRole(role).find((m) => m.id === messageId) || null;
+}
+
+window.getSupportMessageByIdForRole = getSupportMessageByIdForRole;
+
+function ensureSupportSubtypeDropdownOptions(dropdown) {
+    if (!dropdown || dropdown.dataset.optionsInitialized === 'true') return;
+
+    const supportOptions = getSupportResponseSubfilterTopics();
+    dropdown.innerHTML = `
+        <option value="all">All Support Topics</option>
+        ${supportOptions.map((topic) => `<option value="${topic.code}">${topic.label}</option>`).join('')}
+    `;
+    dropdown.dataset.optionsInitialized = 'true';
+}
+
+function toDateFromSupportRecord(record) {
+    if (record?.createdAt && typeof record.createdAt.toDate === 'function') {
+        return record.createdAt.toDate();
+    }
+    if (record?.updatedAt && typeof record.updatedAt.toDate === 'function') {
+        return record.updatedAt.toDate();
+    }
+    if (Number.isFinite(record?.createdAtMs)) {
+        return new Date(record.createdAtMs);
+    }
+    if (record?.createdAtISO) {
+        return new Date(record.createdAtISO);
+    }
+    return new Date();
+}
+
+function mapSupportRecordToUnifiedMessage(doc) {
+    const data = doc?.data ? doc.data() : {};
+    const createdAtDate = toDateFromSupportRecord(data);
+    const rawMessage = String(data?.message || '').trim();
+
+    return {
+        id: `support_${doc.id}`,
+        messageType: 'direct',
+        topic: String(data?.categoryCode || data?.topic || 'other').replace(/-/g, '_'),
+        subject: String(data?.subject || 'Support Request'),
+        excerpt: rawMessage ? `${rawMessage.slice(0, 120)}${rawMessage.length > 120 ? '...' : ''}` : 'No details provided.',
+        content: rawMessage || 'No details provided.',
+        sender: {
+            name: 'GISUGO Support',
+            email: 'support@gisugo.com',
+            avatar: 'public/users/User-11.jpg'
+        },
+        timestamp: createdAtDate,
+        isRead: Boolean(data?.isReadByRequester || data?.read),
+        hasAttachment: Boolean(data?.attachments?.photoUrl || data?.photoUrl),
+        attachmentName: data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null
+    };
+}
+
+async function ensureSupportResponsesRealtimeStream() {
+    if (isSupportMockDataEnabled()) {
+        stopSupportResponsesRealtimeStream('dev_mode_enabled');
+        return;
+    }
+
+    const currentUser = await waitForAuthStateWithTimeout();
+    if (!currentUser || !currentUser.uid) {
+        stopSupportResponsesRealtimeStream('support_not_authenticated');
+        return;
+    }
+
+    if (SUPPORT_RESPONSES_STREAM_STATE.started && SUPPORT_RESPONSES_STREAM_STATE.uid === currentUser.uid) {
+        messagesTrace('fetch:support:stream_reuse', currentUser.uid);
+        return;
+    }
+
+    stopSupportResponsesRealtimeStream('switch_user_or_restart');
+
+    const db = typeof getFirestore === 'function' ? getFirestore() : null;
+    if (!db) {
+        console.warn('⚠️ Firestore unavailable: support stream disabled');
+        return;
+    }
+
+    SUPPORT_RESPONSES_STREAM_STATE.uid = currentUser.uid;
+    SUPPORT_RESPONSES_STREAM_STATE.started = true;
+    messagesTrace('fetch:support:stream_start', currentUser.uid);
+
+    ACTIVE_LISTENERS.supportResponses = db
+        .collection('support_requests')
+        .where('requester.userId', '==', currentUser.uid)
+        .orderBy('createdAt', 'desc')
+        .limit(SUPPORT_RESPONSES_STREAM_STATE.limit)
+        .onSnapshot((snapshot) => {
+            const supportMessages = snapshot.docs
+                .map((doc) => mapSupportRecordToUnifiedMessage(doc));
+
+            SUPPORT_RESPONSES_STREAM_STATE.messages = supportMessages;
+            SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
+
+            const filteringSystem = window.unifiedFilteringSystem;
+            if (filteringSystem && typeof filteringSystem.reloadFilteredMessages === 'function') {
+                filteringSystem.reloadFilteredMessages();
+            } else {
+                loadUnifiedMessages();
+            }
+            updateMainMessagesTabCount();
+            updateInboxTabCounts('unified');
+        }, (error) => {
+            console.error('❌ Support responses stream error:', error);
+            stopSupportResponsesRealtimeStream('snapshot_error');
+            loadUnifiedMessages();
+        });
+}
+
 // ===== ADMIN MESSAGES FUNCTIONALITY =====
 
 // Initialize admin messages when page loads
@@ -10704,18 +10900,25 @@ function loadCustomerMessages() {
 function loadUnifiedMessages() {
     console.log('Loading unified messages...');
     const container = document.querySelector('#unified-messages-content .user-messages-list-container');
-    if (container && MOCK_ADMIN_MESSAGES.customer) {
+    if (container) {
+        const unifiedMessages = getMessagesByRole('unified');
         // Start with New messages only (filtering will handle Old messages)
-        const newMessages = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
+        const newMessages = unifiedMessages.filter(msg => {
             const messageState = messageStates[msg.id];
             return messageState ? !messageState.isClosed : true;
         });
         console.log('Unified new messages count:', newMessages.length);
         
-        container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'unified')).join('');
-        
-        // Setup click handlers for message items
-        setupMessageDetailHandlers('unified');
+        if (newMessages.length === 0) {
+            container.innerHTML = getSupportEmptyStateHTML(
+                'No support responses yet',
+                'Support replies from GISUGO will appear here after your first support request.'
+            );
+        } else {
+            container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'unified')).join('');
+            // Setup click handlers for message items
+            setupMessageDetailHandlers('unified');
+        }
         
         updateMainMessagesTabCount();
     }
@@ -10819,10 +11022,35 @@ function getTopicLabel(topicOrCategory, isPublic = false) {
         'updates': 'Platform Updates',
         'promotions': 'Promotions'
     };
-    
-    // Choose the appropriate label set based on message type
-    const labels = isPublic ? publicLabels : directLabels;
-    return labels[topicOrCategory] || topicOrCategory;
+
+    if (isPublic) {
+        return publicLabels[topicOrCategory] || topicOrCategory;
+    }
+
+    const topicKey = String(topicOrCategory || '').toLowerCase();
+    const normalizedTopicKey = topicKey.replace(/-/g, '_');
+    const supportDomainTopics = new Set([
+        ...getSupportResponseSubfilterTopics().map((topic) => topic.code),
+        'account_verification',
+        'account_suspension',
+        'policy_violation',
+        'payment_issue',
+        'gig_inquiry',
+        'verification_request',
+        'general_inquiry',
+        'security_alert',
+        'important_notice'
+    ]);
+
+    if (supportDomainTopics.has(normalizedTopicKey)) {
+        const supportCode = getSupportSubtopicCodeFromMessage({ topic: topicOrCategory, messageType: 'direct' });
+        const supportLabel = getSupportResponseSubfilterTopics().find((topic) => topic.code === supportCode)?.label;
+        if (supportLabel) {
+            return supportLabel;
+        }
+    }
+
+    return directLabels[topicKey] || topicOrCategory;
 }
 
 // Format timestamp to relative time
@@ -10902,7 +11130,7 @@ function showMessageWindow(message, role) {
                     ${overlayMessageContent}
                 </div>
                 <div class="overlay-footer">
-                    <button class="detail-reply-btn" onclick="showReplyModal(${role === 'unified' ? 'MOCK_ADMIN_MESSAGES.customer' : 'MOCK_ADMIN_MESSAGES.' + role}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-reply-btn" onclick="showReplyModal(getSupportMessageByIdForRole('${role}', '${message.id}'), '${role}')">Reply</button>
                     <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
                 </div>
             </div>
@@ -11101,7 +11329,64 @@ function markMessageAsRead(message, role) {
 }
 
 // Helper function for filtering messages
-function filterMessages(messages, searchTerm, messageType, currentTab) {
+function getSupportResponseSubfilterTopics() {
+    const taxonomy = window.GISUGO_SUPPORT_TAXONOMY;
+    if (taxonomy && Array.isArray(taxonomy.supportResponseSublabels) && taxonomy.supportResponseSublabels.length) {
+        return taxonomy.supportResponseSublabels;
+    }
+
+    return [
+        { code: 'account_issues', label: 'Account Issues' },
+        { code: 'complaints_disputes', label: 'Complaints & Disputes' },
+        { code: 'feature_request', label: 'Feature Request' },
+        { code: 'bug_report', label: 'Bug Report' },
+        { code: 'safety_security', label: 'Safety & Security' },
+        { code: 'payment_billing', label: 'Payment & Billing' },
+        { code: 'other', label: 'Other' }
+    ];
+}
+
+function getSupportSubtopicCodeFromMessage(message) {
+    const rawTopic = String(message?.topic || '').toLowerCase().trim();
+    if (!rawTopic) return 'other';
+
+    const normalizedTopic = rawTopic.replace(/-/g, '_');
+    const exactSupportTopicCodes = new Set(getSupportResponseSubfilterTopics().map((topic) => topic.code));
+    if (exactSupportTopicCodes.has(normalizedTopic)) {
+        return normalizedTopic;
+    }
+
+    const supportTopicMap = {
+        account_verification: 'account_issues',
+        account_suspension: 'account_issues',
+        verification_request: 'account_issues',
+        policy_violation: 'complaints_disputes',
+        gig_inquiry: 'complaints_disputes',
+        payment_issue: 'payment_billing',
+        security_alert: 'safety_security',
+        support: 'other',
+        general_inquiry: 'other'
+    };
+
+    return supportTopicMap[normalizedTopic] || 'other';
+}
+
+function isSupportResponseMessage(message) {
+    return !!message && message.messageType === 'direct';
+}
+
+function getSupportEmptyStateHTML(messageText, detailText) {
+    return `
+        <div class="messages-placeholder">
+            <div class="placeholder-icon">📧</div>
+            <h3>${messageText}</h3>
+            <p>${detailText}</p>
+            <small>Check back later for updates.</small>
+        </div>
+    `;
+}
+
+function filterMessages(messages, searchTerm, messageType, currentTab, supportSubtopic = 'all') {
     return messages.filter(message => {
         // Filter by current tab (New/Old) - check messageStates instead of message object
         const messageState = messageStates[message.id];
@@ -11115,8 +11400,18 @@ function filterMessages(messages, searchTerm, messageType, currentTab) {
         }
         
         // Filter by message type
-        if (messageType !== 'all' && message.topic !== messageType) {
-            return false;
+        if (messageType !== 'all') {
+            if (messageType === 'support') {
+                if (!isSupportResponseMessage(message)) {
+                    return false;
+                }
+
+                if (supportSubtopic !== 'all' && getSupportSubtopicCodeFromMessage(message) !== supportSubtopic) {
+                    return false;
+                }
+            } else if (message.topic !== messageType) {
+                return false;
+            }
         }
         
         // Filter by search term
@@ -11135,8 +11430,7 @@ function filterMessages(messages, searchTerm, messageType, currentTab) {
 
 // Close message (move to Old Messages)
 function closeMessage(messageId, role) {
-    // Use customer messages for unified, otherwise use role-specific messages
-    const messages = role === 'unified' ? MOCK_ADMIN_MESSAGES.customer : MOCK_ADMIN_MESSAGES[role];
+    const messages = getMessagesByRole(role);
     const message = messages.find(m => m.id === messageId);
     
     if (message) {
@@ -11258,39 +11552,10 @@ function updateMessageCounts(role) {
 }
 
 
-// Update inbox tab counts (New/Old)
-function updateInboxTabCounts(role) {
-    const messages = MOCK_ADMIN_MESSAGES[role];
-    const newCount = messages.filter(msg => {
-        const messageState = messageStates[msg.id];
-        return messageState ? !messageState.isClosed : true;
-    }).length;
-    const oldCount = messages.filter(msg => {
-        const messageState = messageStates[msg.id];
-        return messageState ? messageState.isClosed : false;
-    }).length;
-    
-    // Update New tab count
-    const newTabBadge = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="new"] .notification-badge`);
-    if (newTabBadge) {
-        newTabBadge.textContent = newCount;
-        newTabBadge.style.display = newCount > 0 ? 'inline-block' : 'none';
-    }
-    
-    // Update Old tab count
-    const oldTabBadge = document.querySelector(`#${role}-messages-content .inbox-tab-btn[data-tab="old"] .notification-badge`);
-    if (oldTabBadge) {
-        oldTabBadge.textContent = oldCount;
-        oldTabBadge.style.display = oldCount > 0 ? 'inline-block' : 'none';
-    }
-    
-    console.log(`📊 Updated ${role} inbox tabs: New(${newCount}), Old(${oldCount})`);
-}
-
 // Update main Messages tab count (separate function to avoid race conditions)
 function updateMainMessagesTabCount() {
-    // Unified view uses customer data only - count ALL unclosed customer messages
-    const unifiedCount = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
+    // Unified view uses support data source for current mode.
+    const unifiedCount = getMessagesByRole('unified').filter(msg => {
         const messageState = messageStates[msg.id];
         return messageState ? !messageState.isClosed : true;
     }).length;
@@ -11325,13 +11590,24 @@ function updateMainMessagesTabCount() {
     messagesDebug(`📊 Unified badge update: ${unifiedCount} messages`);
 }
 
+const MESSAGE_FILTER_CLEANUPS = new Map();
+
     // Setup message filtering functionality
     function setupMessageFiltering(role) {
+        refreshSupportMockDataEnabledCache();
+
+        const existingCleanup = MESSAGE_FILTER_CLEANUPS.get(role);
+        if (typeof existingCleanup === 'function') {
+            existingCleanup();
+            MESSAGE_FILTER_CLEANUPS.delete(role);
+        }
+
         // Handle unified messages with different selector
         const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
         const searchInput = document.querySelector(`${contentSelector} .search-input-small`);
         const searchBtn = document.querySelector(`${contentSelector} .search-btn-small`);
         const typeDropdown = document.querySelector(`${contentSelector} .type-dropdown`);
+        const supportSubtypeDropdown = document.querySelector(`${contentSelector} .support-subtype-dropdown`);
         const newTabBtn = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="new"]`);
         const oldTabBtn = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="old"]`);
         
@@ -11343,6 +11619,9 @@ function updateMainMessagesTabCount() {
         let currentTab = 'new';
         let currentSearchTerm = '';
         let currentMessageType = 'all';
+        let currentSupportSubtype = 'all';
+
+        ensureSupportSubtypeDropdownOptions(supportSubtypeDropdown);
         
         // Handle tab switching
         function switchTab(tab) {
@@ -11376,15 +11655,31 @@ function updateMainMessagesTabCount() {
         function changeMessageType() {
             currentMessageType = typeDropdown.value;
             console.log('changeMessageType:', currentMessageType);
+
+            if (supportSubtypeDropdown) {
+                const shouldShowSupportSubtype = currentMessageType === 'support';
+                supportSubtypeDropdown.style.display = shouldShowSupportSubtype ? 'inline-flex' : 'none';
+                if (!shouldShowSupportSubtype) {
+                    supportSubtypeDropdown.value = 'all';
+                    currentSupportSubtype = 'all';
+                }
+            }
+
+            reloadFilteredMessages();
+        }
+
+        function changeSupportSubtype() {
+            if (!supportSubtypeDropdown) return;
+            currentSupportSubtype = supportSubtypeDropdown.value || 'all';
+            console.log('changeSupportSubtype:', currentSupportSubtype);
             reloadFilteredMessages();
         }
         
         // Reload messages with current filters
         function reloadFilteredMessages() {
             console.log('reloadFilteredMessages called for role:', role, 'tab:', currentTab);
-            // Use customer messages for unified, otherwise use role-specific messages
-            const messages = role === 'unified' ? MOCK_ADMIN_MESSAGES.customer : MOCK_ADMIN_MESSAGES[role];
-            const filteredMessages = filterMessages(messages, currentSearchTerm, currentMessageType, currentTab);
+            const messages = getMessagesByRole(role);
+            const filteredMessages = filterMessages(messages, currentSearchTerm, currentMessageType, currentTab, currentSupportSubtype);
             
             console.log('Total messages:', messages.length);
             console.log('New messages:', messages.filter(m => {
@@ -11401,11 +11696,25 @@ function updateMainMessagesTabCount() {
             const listContainer = document.querySelector(`${contentSelector} .user-messages-list-container`);
             if (listContainer) {
                 if (filteredMessages.length === 0) {
-                    listContainer.innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: #a0aec0;">
-                            <p>No ${currentTab} messages found${currentSearchTerm ? ` for "${currentSearchTerm}"` : ''}</p>
-                        </div>
-                    `;
+                    if (role === 'unified' && messages.length === 0) {
+                        listContainer.innerHTML = getSupportEmptyStateHTML(
+                            'No support responses yet',
+                            'Support replies from GISUGO will appear here after your first support request.'
+                        );
+                    } else if (role === 'unified') {
+                        listContainer.innerHTML = getSupportEmptyStateHTML(
+                            'No matching support responses',
+                            currentSearchTerm
+                                ? `No support responses match "${currentSearchTerm}" with your current filters.`
+                                : 'No support responses match your current filters.'
+                        );
+                    } else {
+                        listContainer.innerHTML = `
+                            <div style="text-align: center; padding: 2rem; color: #a0aec0;">
+                                <p>No ${currentTab} messages found${currentSearchTerm ? ` for "${currentSearchTerm}"` : ''}</p>
+                            </div>
+                        `;
+                    }
                 } else {
                     listContainer.innerHTML = filteredMessages.map(message => generateAdminMessageHTML(message, role)).join('');
                     
@@ -11433,26 +11742,47 @@ function updateMainMessagesTabCount() {
         switchTab('new'); // Ensure New tab starts as active
         
         // Event listeners
-        newTabBtn.addEventListener('click', () => switchTab('new'));
-        oldTabBtn.addEventListener('click', () => switchTab('old'));
-        
-        if (searchBtn) {
-            searchBtn.addEventListener('click', performSearch);
-        }
-        
-        searchInput.addEventListener('keypress', (e) => {
+        const onNewTabClick = () => switchTab('new');
+        const onOldTabClick = () => switchTab('old');
+        const onSearchButtonClick = () => performSearch();
+        const onSearchKeyPress = (e) => {
             if (e.key === 'Enter') {
                 performSearch();
             }
-        });
-        
-        searchInput.addEventListener('input', () => {
+        };
+        const onSearchInput = () => {
             // Real-time search with debounce
             clearTimeout(searchInput.searchTimeout);
             searchInput.searchTimeout = setTimeout(performSearch, 300);
-        });
-        
+        };
+
+        newTabBtn.addEventListener('click', onNewTabClick);
+        oldTabBtn.addEventListener('click', onOldTabClick);
+        if (searchBtn) {
+            searchBtn.addEventListener('click', onSearchButtonClick);
+        }
+        searchInput.addEventListener('keypress', onSearchKeyPress);
+        searchInput.addEventListener('input', onSearchInput);
         typeDropdown.addEventListener('change', changeMessageType);
+        if (supportSubtypeDropdown) {
+            supportSubtypeDropdown.addEventListener('change', changeSupportSubtype);
+        }
+
+        const cleanupFilteringListeners = () => {
+            clearTimeout(searchInput.searchTimeout);
+            newTabBtn.removeEventListener('click', onNewTabClick);
+            oldTabBtn.removeEventListener('click', onOldTabClick);
+            if (searchBtn) {
+                searchBtn.removeEventListener('click', onSearchButtonClick);
+            }
+            searchInput.removeEventListener('keypress', onSearchKeyPress);
+            searchInput.removeEventListener('input', onSearchInput);
+            typeDropdown.removeEventListener('change', changeMessageType);
+            if (supportSubtypeDropdown) {
+                supportSubtypeDropdown.removeEventListener('change', changeSupportSubtype);
+            }
+        };
+        MESSAGE_FILTER_CLEANUPS.set(role, cleanupFilteringListeners);
         
         // Initialize with new tab active
         switchTab('new');
@@ -11471,8 +11801,7 @@ function setupMessageDetailHandlers(role) {
     messageItems.forEach(item => {
         item.addEventListener('click', () => {
             const messageId = item.dataset.messageId;
-            // Use customer messages for unified, otherwise use role-specific messages
-            const messages = role === 'unified' ? MOCK_ADMIN_MESSAGES.customer : MOCK_ADMIN_MESSAGES[role];
+            const messages = getMessagesByRole(role);
             const message = messages.find(m => m.id === messageId);
             
             if (message) {
@@ -11640,10 +11969,12 @@ function sendReply() {
     messageStates[currentReplyMessage.id].lastReplyTime = new Date().toISOString();
     
     // Update the message's excerpt to show latest activity
-    const messageIndex = MOCK_ADMIN_MESSAGES[actualRole].findIndex(msg => msg.id === currentReplyMessage.id);
+    const replyRole = currentReplyRole === 'unified' ? 'unified' : actualRole;
+    const replyMessages = getMessagesByRole(replyRole);
+    const messageIndex = replyMessages.findIndex(msg => msg.id === currentReplyMessage.id);
     if (messageIndex !== -1) {
-        MOCK_ADMIN_MESSAGES[actualRole][messageIndex].excerpt = `You replied: ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}`;
-        MOCK_ADMIN_MESSAGES[actualRole][messageIndex].timestamp = new Date(); // Update timestamp for sorting
+        replyMessages[messageIndex].excerpt = `You replied: ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}`;
+        replyMessages[messageIndex].timestamp = new Date(); // Update timestamp for sorting
     }
     
     // Close the reply modal immediately
@@ -11704,9 +12035,7 @@ function sendReply() {
 
 // Update New/Old Messages tab counters
 function updateInboxTabCounts(role) {
-    // Use customer data for unified messages
-    const actualRole = role === 'unified' ? 'customer' : role;
-    const messages = MOCK_ADMIN_MESSAGES[actualRole];
+    const messages = getMessagesByRole(role);
     
     if (!messages) return;
     
@@ -11722,18 +12051,18 @@ function updateInboxTabCounts(role) {
         }
     });
     
-    // Update the notification badges
-    const newBadge = document.querySelector('.inbox-tab-btn[data-tab="new"] .notification-badge');
-    const oldBadge = document.querySelector('.inbox-tab-btn[data-tab="old"] .notification-badge');
+    const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
+    const newBadge = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="new"] .notification-badge`);
+    const oldBadge = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="old"] .notification-badge`);
     
     if (newBadge) {
         newBadge.textContent = newCount;
-        newBadge.style.display = newCount > 0 ? 'inline' : 'none';
+        newBadge.style.display = newCount > 0 ? 'inline-block' : 'none';
     }
     
     if (oldBadge) {
         oldBadge.textContent = oldCount;
-        oldBadge.style.display = oldCount > 0 ? 'inline' : 'none';
+        oldBadge.style.display = oldCount > 0 ? 'inline-block' : 'none';
     }
     
     console.log(`📊 Updated inbox counters: New=${newCount}, Old=${oldCount}`);
@@ -11775,9 +12104,6 @@ function refreshCurrentMessageDisplay(message, role) {
         // Refresh overlay content
         const overlayMessageContent = generateOverlayMessageHTML(message, role);
         
-        // Get the correct data source for unified messages
-        const dataSource = role === 'unified' ? 'MOCK_ADMIN_MESSAGES.customer' : `MOCK_ADMIN_MESSAGES.${role}`;
-        
         overlay.innerHTML = `
             <div class="overlay-content">
                 <div class="overlay-header">
@@ -11788,7 +12114,7 @@ function refreshCurrentMessageDisplay(message, role) {
                     ${overlayMessageContent}
                 </div>
                 <div class="overlay-footer">
-                    <button class="detail-reply-btn" onclick="showReplyModal(${dataSource}.find(m => m.id === '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-reply-btn" onclick="showReplyModal(getSupportMessageByIdForRole('${role}', '${message.id}'), '${role}')">Reply</button>
                     <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
                 </div>
             </div>

@@ -28,7 +28,8 @@ const STORAGE_CONFIG = {
   paths: {
     profilePhotos: 'profile_photos',
     jobPhotos: 'job_photos',
-    idDocuments: 'verification_ids'
+    idDocuments: 'verification_ids',
+    supportPhotos: 'support_photos'
   },
   
   // Image compression settings
@@ -38,6 +39,31 @@ const STORAGE_CONFIG = {
     quality: 0.8
   }
 };
+
+const SUPPORT_GUEST_SESSION_KEY = 'gisugo_support_guest_session_id';
+
+function generateSupportGuestSessionId() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    }
+  } catch (error) {
+    // Fall through to timestamp-based id.
+  }
+  return `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function getSupportGuestSessionId() {
+  try {
+    const existing = localStorage.getItem(SUPPORT_GUEST_SESSION_KEY);
+    if (existing) return existing;
+    const next = generateSupportGuestSessionId();
+    localStorage.setItem(SUPPORT_GUEST_SESSION_KEY, next);
+    return next;
+  } catch (error) {
+    return generateSupportGuestSessionId();
+  }
+}
 
 // ============================================================================
 // FILE VALIDATION
@@ -321,6 +347,80 @@ async function uploadJobPhotoOffline(jobId, file) {
       success: true,
       url: dataUrl,
       path: `local_job_${jobId}`,
+      isLocal: true
+    };
+  } catch (error) {
+    return {
+      success: false,
+      errors: [error.message]
+    };
+  }
+}
+
+/**
+ * Upload a support/contact attachment photo
+ * @param {string} referenceId - Support request reference id
+ * @param {File} file - Image file to upload
+ * @param {string|null} requesterId - Optional requester UID
+ * @returns {Promise<Object>} - Result with download URL
+ */
+async function uploadSupportPhoto(referenceId, file, requesterId = null) {
+  const validation = validateFile(file, 'job');
+  if (!validation.valid) {
+    return { success: false, errors: validation.errors };
+  }
+
+  const storage = getFirebaseStorage();
+  if (!storage) {
+    return uploadSupportPhotoOffline(referenceId, file);
+  }
+
+  try {
+    console.log('📤 Uploading support photo...');
+
+    const compressedBlob = await compressImage(file);
+    const safeReferenceId = String(referenceId || `support_${Date.now()}`).replace(/[^\w-]/g, '_');
+    const safeRequesterId = requesterId ? String(requesterId).replace(/[^\w-]/g, '_') : null;
+    const requesterBucket = safeRequesterId
+      ? safeRequesterId
+      : `guest/${getSupportGuestSessionId()}`;
+    const filePath = `${STORAGE_CONFIG.paths.supportPhotos}/${requesterBucket}/${safeReferenceId}.jpg`;
+    const fileRef = storage.ref().child(filePath);
+
+    const snapshot = await fileRef.put(compressedBlob, {
+      contentType: 'image/jpeg',
+      customMetadata: {
+        referenceId: String(referenceId || ''),
+        requesterId: String(requesterId || ''),
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+    const downloadUrl = await snapshot.ref.getDownloadURL();
+
+    console.log('✅ Support photo uploaded:', downloadUrl);
+    return {
+      success: true,
+      url: downloadUrl,
+      path: filePath
+    };
+  } catch (error) {
+    console.error('❌ Support photo upload error:', error);
+    return {
+      success: false,
+      errors: [error.message]
+    };
+  }
+}
+
+async function uploadSupportPhotoOffline(referenceId, file) {
+  try {
+    const compressedBlob = await compressImage(file);
+    const dataUrl = await blobToDataUrl(compressedBlob);
+    return {
+      success: true,
+      url: dataUrl,
+      path: `local_support_${referenceId || Date.now()}`,
       isLocal: true
     };
   } catch (error) {
@@ -642,6 +742,7 @@ window.validateFile = validateFile;
 window.compressImage = compressImage;
 window.uploadProfilePhoto = uploadProfilePhoto;
 window.uploadJobPhoto = uploadJobPhoto;
+window.uploadSupportPhoto = uploadSupportPhoto;
 window.uploadVerificationDocuments = uploadVerificationDocuments;
 window.deleteFile = deleteFile;
 window.deletePhotoFromStorageUrl = deletePhotoFromStorageUrl;

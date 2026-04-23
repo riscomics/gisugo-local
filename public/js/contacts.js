@@ -4,19 +4,173 @@
 let isSubmitting = false;
 let uploadedPhoto = null;
 let currentFormData = null;
+const SUPPORT_GUEST_SESSION_KEY = 'gisugo_support_guest_session_id';
+
+function isAllowedContactTextCharacter(char) {
+    if (!char) return true;
+    if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+    if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
+    if (/[’‘]/.test(char)) return true;
+    if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+    return false;
+}
+
+function sanitizeContactTextInput(value) {
+    return Array.from(String(value || ''))
+        .filter(isAllowedContactTextCharacter)
+        .join('');
+}
+
+function contactHasUnsupportedTextChars(value) {
+    return Array.from(String(value || ''))
+        .some((char) => !isAllowedContactTextCharacter(char));
+}
+
+function showContactInputGuide(message) {
+    let hint = document.getElementById('contacts-input-guide');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'contacts-input-guide';
+        hint.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(88vw, 360px);
+            padding: 8px;
+            border-radius: 16px;
+            background: repeating-linear-gradient(135deg, #facc15 0 10px, #111827 10px 20px);
+            color: #fee2e2;
+            text-align: center;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+            z-index: 11000;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            overflow: hidden;
+        `;
+        document.body.appendChild(hint);
+    }
+
+    hint.innerHTML = `
+        <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+            <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+            <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+            <div style="font-size:14px; font-weight:600; line-height:1.38;">${message}</div>
+        </div>
+    `;
+    hint.style.opacity = '1';
+    hint.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(window.__contactsInputGuideTimer);
+    window.__contactsInputGuideTimer = setTimeout(() => {
+        hint.style.opacity = '0';
+        hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+    }, 3200);
+}
+
+function blockUnsupportedCharsForContactInput(inputEl) {
+    if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+    inputEl.dataset.markupCharsBlocked = 'true';
+
+    const showGuide = () => {
+        const now = Date.now();
+        const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+        if (now - lastShownAt < 1500) return;
+        inputEl.dataset.inputGuideShownAt = String(now);
+        showContactInputGuide('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    };
+
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && !isAllowedContactTextCharacter(e.key)) {
+            e.preventDefault();
+            showGuide();
+        }
+    });
+
+    inputEl.addEventListener('paste', function(e) {
+        const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+        if (!contactHasUnsupportedTextChars(pastedText)) return;
+        e.preventDefault();
+        showGuide();
+        const cleaned = sanitizeContactTextInput(pastedText);
+        const start = inputEl.selectionStart ?? inputEl.value.length;
+        const end = inputEl.selectionEnd ?? inputEl.value.length;
+        inputEl.setRangeText(cleaned, start, end, 'end');
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    inputEl.addEventListener('input', function() {
+        const sanitized = sanitizeContactTextInput(inputEl.value);
+        if (sanitized !== inputEl.value) {
+            inputEl.value = sanitized;
+            showGuide();
+        }
+    });
+}
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Contacts page loaded');
-    
+
+    initializeContactTopicOptions();
     initializeForm();
     initializeCharacterCounters();
     initializePhotoUpload();
     setupFormValidation();
+    initializeContactInputSecurity();
     
     // Pre-fill user data if available
     preloadUserData();
 });
+
+function getPublicContactTopics() {
+    const taxonomy = window.GISUGO_SUPPORT_TAXONOMY;
+    const topics = taxonomy && Array.isArray(taxonomy.publicContactTopics)
+        ? taxonomy.publicContactTopics
+        : null;
+
+    if (topics && topics.length) {
+        return topics;
+    }
+
+    return [
+        { code: 'general_inquiry', label: 'General Inquiry' },
+        { code: 'website_issues', label: 'Website Issues' },
+        { code: 'feature_request', label: 'Feature Request' },
+        { code: 'partners_sponsors', label: 'Partners & Sponsors' }
+    ];
+}
+
+function initializeContactTopicOptions() {
+    const topicSelect = document.getElementById('contactTopic');
+    if (!topicSelect) return;
+
+    const topics = getPublicContactTopics();
+    const expectedOptions = [
+        { value: '', label: 'Select a topic...' },
+        ...topics.map((topic) => ({ value: topic.code, label: topic.label }))
+    ];
+    const existingOptions = Array.from(topicSelect.options).map((option) => ({
+        value: option.value,
+        label: option.textContent.trim()
+    }));
+
+    const isAlreadyUpToDate = (
+        existingOptions.length === expectedOptions.length &&
+        expectedOptions.every((expected, index) => {
+            const current = existingOptions[index];
+            return current && current.value === expected.value && current.label === expected.label;
+        })
+    );
+
+    if (isAlreadyUpToDate) return;
+
+    const firstOption = '<option value="">Select a topic...</option>';
+    const topicOptions = topics
+        .map((topic) => `<option value="${topic.code}">${topic.label}</option>`)
+        .join('');
+    topicSelect.innerHTML = `${firstOption}${topicOptions}`;
+}
 
 // ===== HEADER FUNCTIONALITY =====
 function goBack() {
@@ -102,6 +256,15 @@ function initializeForm() {
     });
     
     console.log('✅ Form initialized with validation');
+}
+
+function initializeContactInputSecurity() {
+    const textFieldIds = ['userName', 'contactSubject', 'contactMessage'];
+    textFieldIds.forEach((fieldId) => {
+        const field = document.getElementById(fieldId);
+        blockUnsupportedCharsForContactInput(field);
+    });
+    console.log('✅ Contact input security guard enabled');
 }
 
 // ===== CHARACTER COUNTERS =====
@@ -240,7 +403,10 @@ function validateField(field) {
     // Specific field validations
     switch (fieldName) {
         case 'userName':
-            if (value && value.length < 2) {
+            if (value && contactHasUnsupportedTextChars(value)) {
+                isValid = false;
+                errorMessage = 'Name has unsupported symbols';
+            } else if (value && value.length < 2) {
                 isValid = false;
                 errorMessage = 'Name must be at least 2 characters';
             }
@@ -254,14 +420,20 @@ function validateField(field) {
             break;
             
         case 'contactSubject':
-            if (value && value.length < 5) {
+            if (value && contactHasUnsupportedTextChars(value)) {
+                isValid = false;
+                errorMessage = 'Subject has unsupported symbols';
+            } else if (value && value.length < 5) {
                 isValid = false;
                 errorMessage = 'Subject must be at least 5 characters';
             }
             break;
             
         case 'contactMessage':
-            if (value && value.length < 10) {
+            if (value && contactHasUnsupportedTextChars(value)) {
+                isValid = false;
+                errorMessage = 'Message has unsupported symbols';
+            } else if (value && value.length < 10) {
                 isValid = false;
                 errorMessage = 'Message must be at least 10 characters';
             }
@@ -334,32 +506,73 @@ async function handleFormSubmit(event) {
     isSubmitting = true;
     updateSubmitButton(true);
     showLoadingOverlay();
+    let uploadedPhotoPathForCleanup = null;
     
     try {
         // Collect form data
         const formData = collectFormData();
         currentFormData = formData;
+        const userId = getCurrentUserId();
+        const guestSessionId = userId ? null : getSupportGuestSessionId();
+        const referenceId = generateReferenceId();
+        let uploadedPhotoPath = null;
+        let uploadedPhotoUrl = null;
         
         // Upload photo if exists
-        let photoUrl = null;
         if (uploadedPhoto) {
-            photoUrl = await uploadPhoto(uploadedPhoto);
+            const uploadMeta = await uploadPhoto(uploadedPhoto, referenceId, userId);
+            uploadedPhotoUrl = uploadMeta.url;
+            uploadedPhotoPath = uploadMeta.path || null;
+            uploadedPhotoPathForCleanup = uploadedPhotoPath;
         }
         
         // Prepare contact data
+        const now = new Date();
+        const categoryLabel = getTopicDisplayName(formData.categoryCode);
         const contactData = {
-            ...formData,
-            photoUrl: photoUrl,
-            timestamp: new Date(),
+            source: 'public_contact',
+            messageType: 'support_request',
+            channel: 'contact_page',
+            categoryCode: formData.categoryCode,
+            categoryLabel: categoryLabel,
+            subject: formData.subject,
+            message: formData.message,
+            requester: {
+                userId: userId,
+                guestSessionId: guestSessionId,
+                name: formData.userName,
+                email: formData.userEmail
+            },
+            attachments: {
+                photoUrl: uploadedPhotoUrl || null,
+                photoPath: uploadedPhotoPath || null
+            },
             status: 'pending',
-            userId: getCurrentUserId(),
-            referenceId: generateReferenceId()
+            priority: 'normal',
+            assignedTo: null,
+            isReadByRequester: false,
+            referenceId: referenceId,
+            createdAtISO: now.toISOString(),
+            updatedAtISO: now.toISOString(),
+            lastUpdatedAtISO: now.toISOString(),
+            createdAtMs: now.getTime(),
+            updatedAtMs: now.getTime(),
+            lastUpdatedAtMs: now.getTime(),
+
+            // Backward-compatibility aliases for existing UI/legacy readers.
+            topic: formData.categoryCode,
+            userName: formData.userName,
+            userEmail: formData.userEmail,
+            userId: userId,
+            photoUrl: uploadedPhotoUrl,
+            timestamp: now
         };
         
         console.log('📋 Contact data prepared:', contactData);
         
         // Submit to Firebase (mock for now)
         await submitContactForm(contactData);
+        uploadedPhotoPathForCleanup = null;
         
         // Show success
         hideLoadingOverlay();
@@ -369,6 +582,15 @@ async function handleFormSubmit(event) {
         
     } catch (error) {
         console.error('❌ Form submission error:', error);
+        const uploadPath = uploadedPhotoPathForCleanup;
+        if (uploadPath && typeof window.deleteFile === 'function') {
+            const cleanupResult = await window.deleteFile(uploadPath);
+            if (!cleanupResult.success) {
+                console.warn('⚠️ Failed to clean orphaned support photo:', cleanupResult.message || cleanupResult);
+            } else {
+                console.log('🧹 Cleaned orphaned support photo:', uploadPath);
+            }
+        }
         hideLoadingOverlay();
         showErrorOverlay(error.message);
     } finally {
@@ -382,39 +604,87 @@ function collectFormData() {
     const formData = new FormData(form);
     
     return {
-        userName: formData.get('userName').trim(),
+        userName: sanitizeContactTextInput(formData.get('userName').trim()),
         userEmail: formData.get('userEmail').trim(),
-        topic: formData.get('contactTopic'),
-        subject: formData.get('contactSubject').trim(),
-        message: formData.get('contactMessage').trim()
+        categoryCode: formData.get('contactTopic'),
+        subject: sanitizeContactTextInput(formData.get('contactSubject').trim()),
+        message: sanitizeContactTextInput(formData.get('contactMessage').trim())
     };
 }
 
-async function uploadPhoto(file) {
+function getSupportGuestSessionId() {
+    try {
+        const existing = localStorage.getItem(SUPPORT_GUEST_SESSION_KEY);
+        if (existing) return existing;
+
+        const next = (
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+                ? crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+                : `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
+        );
+        localStorage.setItem(SUPPORT_GUEST_SESSION_KEY, next);
+        return next;
+    } catch (error) {
+        return `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    }
+}
+
+async function uploadPhoto(file, referenceId, userId = null) {
     console.log('📸 Uploading photo...');
-    
-    // Simulate photo upload delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock photo URL
+
+    const useFirebaseData = !!(
+        window.APP_CONFIG &&
+        typeof window.APP_CONFIG.useFirebaseData === 'function' &&
+        window.APP_CONFIG.useFirebaseData()
+    );
+    if (useFirebaseData && typeof window.uploadSupportPhoto === 'function') {
+        const uploadResult = await window.uploadSupportPhoto(referenceId, file, userId);
+        if (!uploadResult.success) {
+            throw new Error((uploadResult.errors && uploadResult.errors[0]) || 'Photo upload failed');
+        }
+        return {
+            url: uploadResult.url || null,
+            path: uploadResult.path || null
+        };
+    }
+
+    // Dev/local fallback (short delay for UI feedback)
+    await new Promise(resolve => setTimeout(resolve, 200));
     const mockPhotoUrl = `https://gisugo-uploads.com/contacts/${Date.now()}_${file.name}`;
-    console.log('✅ Photo uploaded:', mockPhotoUrl);
-    
-    return mockPhotoUrl;
+    console.log('🧪 Photo upload simulated in dev/local mode:', mockPhotoUrl);
+    return {
+        url: mockPhotoUrl,
+        path: null
+    };
 }
 
 async function submitContactForm(contactData) {
     console.log('🔥 Submitting to Firebase...');
-    
-    // Simulate Firebase submission
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock successful submission
-    console.log('✅ Contact submitted to Firebase');
-    
-    // In real implementation, this would be:
-    // const db = getFirestore();
-    // await addDoc(collection(db, 'contacts'), contactData);
+
+    const db = typeof getFirestore === 'function' ? getFirestore() : null;
+    const useFirebaseData = !!(window.APP_CONFIG && typeof window.APP_CONFIG.useFirebaseData === 'function' && window.APP_CONFIG.useFirebaseData());
+
+    if (db && useFirebaseData) {
+        const serverTimestamp = (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue)
+            ? firebase.firestore.FieldValue.serverTimestamp()
+            : new Date();
+        const payload = {
+            ...contactData,
+            createdAt: serverTimestamp,
+            updatedAt: serverTimestamp,
+            lastUpdatedAt: serverTimestamp
+        };
+
+        const docRef = await db.collection('support_requests').add(payload);
+        contactData.supportRequestId = docRef.id;
+        console.log('✅ Contact submitted to support_requests:', docRef.id);
+        return docRef.id;
+    }
+
+    // Dev/local fallback mode
+    await new Promise(resolve => setTimeout(resolve, 250));
+    console.log('🧪 Contact submission simulated in dev/local mode');
+    return null;
 }
 
 function generateReferenceId() {
@@ -428,8 +698,15 @@ function generateReferenceId() {
 }
 
 function getCurrentUserId() {
-    // Mock user ID - in real implementation, get from Firebase Auth
-    return 'user_12345';
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            const user = firebase.auth().currentUser;
+            return user ? user.uid : null;
+        }
+    } catch (error) {
+        console.warn('⚠️ Unable to resolve current user ID for contact form:', error);
+    }
+    return null;
 }
 
 // ===== UI HELPERS =====
@@ -486,19 +763,18 @@ function showErrorOverlay(message) {
 }
 
 function getTopicDisplayName(topicValue) {
-    const topicMap = {
+    const taxonomyLabel = getPublicContactTopics().find((topic) => topic.code === topicValue)?.label;
+    if (taxonomyLabel) return taxonomyLabel;
+
+    // Legacy fallback labels for old topic values.
+    const legacyTopicMap = {
         'general': 'General Inquiry',
         'website-issues': 'Website Issues',
-        'complaints-disputes': 'Complaints & Disputes',
         'feature-request': 'Feature Request',
-        'bug-report': 'Bug Report',
-        'account-issues': 'Account Issues',
-        'safety-security': 'Safety & Security',
-        'payment-billing': 'Payment & Billing',
-        'other': 'Other'
+        'partners-sponsors': 'Partners & Sponsors'
     };
-    
-    return topicMap[topicValue] || topicValue;
+
+    return legacyTopicMap[topicValue] || topicValue;
 }
 
 // ===== OVERLAY CONTROLS =====

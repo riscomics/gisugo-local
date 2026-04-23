@@ -260,7 +260,7 @@
     </div>
 
     <!-- Video Section with Custom Thumbnail -->
-    <section class="video-container">
+    <section class="video-container" id="homeVideoSection">
       <div class="video-wrapper">
         <!-- Custom Thumbnail Overlay -->
         <div class="video-thumbnail-overlay" onclick="playVideo()">
@@ -284,7 +284,7 @@
     </section>
 
     <!-- Accent Line -->
-    <div class="accent-line2"></div>
+    <div class="accent-line2" id="homeVideoAccentLine"></div>
 
     <!-- Essentials Section -->
     <section>
@@ -510,6 +510,44 @@
       let homeMessagesUnreadOverride = null;
       let isNavigatingAway = false; // Track if user is navigating to another page
       const HOME_CHAT_UNREAD_CACHE_KEY = 'gisugo_chat_unread_threads_cache_v1';
+      const HOME_ADMIN_SETTINGS_KEY = 'gisugo_admin_settings';
+
+      function getHomeVideoSettingAllowLoggedIn() {
+        try {
+          const raw = localStorage.getItem(HOME_ADMIN_SETTINGS_KEY);
+          if (!raw) return false;
+          const parsed = JSON.parse(raw);
+          return Boolean(parsed && parsed.showHomepageVideoForLoggedIn === true);
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function applyHomeVideoVisibility(user) {
+        const videoSection = document.getElementById('homeVideoSection');
+        const videoAccentLine = document.getElementById('homeVideoAccentLine');
+        if (!videoSection) return;
+        const isLoggedIn = !!(user && user.uid);
+        const allowLoggedInVideo = getHomeVideoSettingAllowLoggedIn();
+        const shouldShowVideo = !isLoggedIn || allowLoggedInVideo;
+
+        videoSection.style.display = shouldShowVideo ? '' : 'none';
+        if (videoAccentLine) {
+          videoAccentLine.style.display = shouldShowVideo ? '' : 'none';
+        }
+
+        if (!shouldShowVideo) {
+          const overlay = document.querySelector('.video-thumbnail-overlay');
+          const iframe = document.getElementById('youtube-player');
+          if (iframe) {
+            iframe.src = '';
+            iframe.style.display = 'none';
+          }
+          if (overlay) {
+            overlay.style.display = '';
+          }
+        }
+      }
 
       function formatHomeUnreadCount(totalUnread) {
         const safe = Math.max(0, Number(totalUnread) || 0);
@@ -766,6 +804,7 @@
         const cachedAuth = localStorage.getItem(CACHE_KEY);
         if (cachedAuth !== null) {
           updateHomeMenu(cachedAuth === 'true');
+          applyHomeVideoVisibility(cachedAuth === 'true' ? { uid: 'cached' } : null);
           console.log('⚡ Menu rendered from cache:', cachedAuth === 'true' ? 'logged in' : 'logged out');
         }
         // ────────────────────────────────────────────────────────────────
@@ -799,6 +838,7 @@
             
             // Now update menu with confirmed auth state
             updateHomeMenu(!!user);
+            applyHomeVideoVisibility(user);
           });
           startHomeCounterListener();
           startHomeChatCounterListener();
@@ -806,6 +846,7 @@
           // Firebase not available - show logged out state
           console.warn('⚠️ Firebase not available');
           updateHomeMenu();
+          applyHomeVideoVisibility(null);
         }
       });
 
