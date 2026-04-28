@@ -490,9 +490,8 @@ function openGigTipsModal({
                 ackBtn.disabled = true;
                 const saved = await setAcknowledgedGigTips(safeThreadId, getCurrentUserId());
                 if (!saved) {
-                    ackBtn.disabled = false;
-                    showToast('Unable to save confirmation. Please try again.');
-                    return;
+                    console.warn('⚠️ Gig tips acknowledgement could not be persisted; closing gate to avoid trapping chat.');
+                    showToast('Confirmation saved locally. You can continue chatting.');
                 }
                 cleanup(true);
             }, { signal });
@@ -2650,264 +2649,6 @@ function scrollToJobListing(jobListing) {
     });
     
     console.log(`Auto-scrolling to center job listing at position ${finalScrollTop}`);
-}
-
-// Application Action Overlay Management
-function initializeApplicationActions() {
-    // CRITICAL FIX: Clean up existing event listeners before re-initializing
-    // This prevents duplicate listeners that cause the double-click bug
-    cleanupApplicationActionListeners();
-    
-    const applicationCards = document.querySelectorAll('.application-card');
-    const actionOverlay = document.getElementById('applicationActionOverlay');
-    const actionProfileName = document.getElementById('actionProfileName');
-    const actionProfileImage = document.getElementById('actionProfileImage');
-    const actionProfileRating = document.getElementById('actionProfileRating');
-    const actionReviewCount = document.getElementById('actionReviewCount');
-    
-    applicationCards.forEach(card => {
-        card.addEventListener('click', function(e) {
-            // Prevent event bubbling
-            e.stopPropagation();
-            
-            // Get applicant data from the card
-            const userName = this.querySelector('[data-user-name]').getAttribute('data-user-name');
-            const userId = this.getAttribute('data-user-id');
-            const userPhoto = this.getAttribute('data-user-photo');
-            const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
-            const reviewCount = parseInt(this.querySelector('[data-review-count]').getAttribute('data-review-count'));
-            const jobTitle = this.getAttribute('data-job-title');
-            
-            // Find the job ID from the parent job listing
-            const jobListing = this.closest('.job-listing');
-            const jobId = jobListing ? jobListing.getAttribute('data-job-id') : null;
-            
-            console.log(`Opening overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
-            console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
-            
-            // Update overlay content
-            actionProfileName.textContent = userName;
-            actionProfileImage.src = userPhoto;
-            actionProfileImage.alt = userName;
-            
-            // Update star rating and review count
-            updateActionStars(userRating);
-            actionReviewCount.textContent = `(${reviewCount})`;
-            
-            // Store application data for reject button
-            const rejectJobBtn = document.getElementById('rejectJobBtn');
-            if (rejectJobBtn) {
-                // REMOVED: applicationId - applications moved to jobs.html
-                rejectJobBtn.setAttribute('data-user-id', userId);
-                rejectJobBtn.setAttribute('data-user-name', userName);
-                rejectJobBtn.setAttribute('data-job-id', jobId);
-                rejectJobBtn.setAttribute('data-job-title', jobTitle);
-                console.log('=== SETTING REJECT BUTTON DATA ===');
-                // REMOVED: Application ID console.log - applications moved to jobs.html
-                console.log('User ID set to:', userId);
-                console.log('User Name set to:', userName);
-                console.log('Job ID set to:', jobId);
-                console.log('Job Title set to:', jobTitle);
-            } else {
-                console.error('Reject button not found!');
-            }
-            
-            // Store application data for contact button
-            const contactBtn = document.getElementById('contactBtn');
-            if (contactBtn) {
-                contactBtn.setAttribute('data-user-id', userId);
-                contactBtn.setAttribute('data-user-name', userName);
-                // REMOVED: applicationId - applications moved to jobs.html
-            }
-            
-            // Show overlay
-            actionOverlay.classList.add('show');
-            
-            // Double-check stars are updated after overlay is shown
-            setTimeout(() => {
-                updateActionStars(userRating);
-            }, 50);
-        });
-    });
-    
-    // Close overlay when clicking outside
-    actionOverlay.addEventListener('click', function(e) {
-        if (e.target === actionOverlay) {
-            closeActionOverlay();
-        }
-    });
-    
-    // Handle profile button click
-    const profileBtn = document.getElementById('profileBtn');
-    if (profileBtn) {
-        profileBtn.addEventListener('click', function() {
-            const userName = actionProfileImage.alt;
-            if (userName) {
-                // Convert user name to URL-friendly format
-                const userId = userName.toLowerCase()
-                    .replace(/\s+/g, '-')
-                    .replace(/[^a-z0-9-]/g, '');
-                
-                // Navigate to profile page
-                window.location.href = `profile.html?userId=${userId}`;
-            }
-        });
-    }
-
-    // Handle contact button click
-    const contactBtn = document.getElementById('contactBtn');
-    if (contactBtn) {
-        contactBtn.addEventListener('click', function() {
-            console.log('Contact button clicked');
-            const userName = this.getAttribute('data-user-name');
-            const userId = this.getAttribute('data-user-id');
-            // REMOVED: applicationId - applications moved to jobs.html
-            
-            console.log('Contact button data:', { userName, userId });
-            
-            if (userName && userId) {
-                console.log(`Opening contact message for ${userName}`);
-                
-                // Close the current overlay
-                closeActionOverlay();
-                
-                // Show contact message overlay
-                showContactMessageOverlay(userId, userName, null); // REMOVED: applicationId parameter
-            } else {
-                console.error('Missing contact button data attributes:', { userName, userId });
-            }
-        });
-    }
-    
-    // Handle reject button click
-    const rejectJobBtn = document.getElementById('rejectJobBtn');
-    if (rejectJobBtn) {
-        rejectJobBtn.addEventListener('click', function() {
-            // REMOVED: applicationId - applications moved to jobs.html
-            const userId = this.getAttribute('data-user-id');
-            const userName = this.getAttribute('data-user-name');
-            const jobId = this.getAttribute('data-job-id');
-            const jobTitle = this.getAttribute('data-job-title');
-            
-            // CRITICAL FIX: Validate data before proceeding
-            if (!userId || !userName) {
-                console.error('❌ REJECT BUTTON ERROR: Missing critical data attributes');
-                return;
-            }
-            
-            // REMOVED: Firebase reject action logging - hire/reject functionality moved to jobs.html
-            console.log('REMOVED: Firebase reject action - functionality moved to jobs.html');
-            
-            // REMOVED: Firestore batch operations block - hire/reject functionality moved to jobs.html
-            
-            // Close action overlay first
-            closeActionOverlay();
-            
-            // Show confirmation with reject-specific styling  
-            showConfirmationOverlay(
-                'reject',
-                'Application Rejected',
-                `${userName}'s application has been rejected. They will be notified appropriately.`
-            );
-            
-            // Remove the application card from UI after confirmation
-            setTimeout(() => {
-                // REMOVED: Application card DOM manipulation - applications moved to jobs.html
-                const applicationCard = null;
-                if (applicationCard) {
-                    applicationCard.style.transition = 'all 0.3s ease';
-                    applicationCard.style.opacity = '0';
-                    applicationCard.style.transform = 'translateX(100%)';
-                    
-                    setTimeout(() => {
-                        applicationCard.remove();
-                        
-                        // Update counts after removing application card
-                        // Keep job listing even if empty (job is still open for new applications)
-                        updateJobHeaderCounts();
-                        updateApplicationsCount();
-                    }, 300);
-                }
-            }, 500); // Reduced delay from 2000ms to 500ms
-        });
-    }
-    
-    // Close with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && actionOverlay.classList.contains('show')) {
-            closeActionOverlay();
-        }
-    });
-}
-
-// CRITICAL BUG FIX: Clean up existing event listeners from shared modal buttons
-// This prevents the double-click bug when navigating between tabs
-function cleanupApplicationActionListeners() {
-    // Clean up application card listeners first
-    const applicationCards = document.querySelectorAll('.application-card');
-    applicationCards.forEach(card => {
-        if (card && card.parentNode) {
-            const newCard = card.cloneNode(true);
-            card.parentNode.replaceChild(newCard, card);
-        }
-    });
-    
-    // Clean up action button listeners
-    const rejectJobBtn = document.getElementById('rejectJobBtn');
-    const profileBtn = document.getElementById('profileBtn');
-    const contactBtn = document.getElementById('contactBtn');
-    const actionOverlay = document.getElementById('applicationActionOverlay');
-    
-    // Clone and replace nodes to remove ALL event listeners
-    if (rejectJobBtn && rejectJobBtn.parentNode) {
-        const newRejectBtn = rejectJobBtn.cloneNode(true);
-        rejectJobBtn.parentNode.replaceChild(newRejectBtn, rejectJobBtn);
-    }
-    
-    if (profileBtn && profileBtn.parentNode) {
-        const newProfileBtn = profileBtn.cloneNode(true);
-        profileBtn.parentNode.replaceChild(newProfileBtn, profileBtn);
-    }
-    
-    if (contactBtn && contactBtn.parentNode) {
-        const newContactBtn = contactBtn.cloneNode(true);
-        contactBtn.parentNode.replaceChild(newContactBtn, contactBtn);
-    }
-    
-    // Clean up overlay click listeners
-    if (actionOverlay && actionOverlay.parentNode) {
-        const newOverlay = actionOverlay.cloneNode(true);
-        actionOverlay.parentNode.replaceChild(newOverlay, actionOverlay);
-    }
-    
-    console.log('🧹 Cleaned up application cards and action button event listeners');
-}
-
-function updateActionStars(rating) {
-    const stars = document.querySelectorAll('.action-star');
-    console.log(`Found ${stars.length} stars, updating to ${rating} rating`);
-    
-    // First, remove all filled classes to reset
-    stars.forEach(star => {
-        star.classList.remove('filled');
-    });
-    
-    // Then add filled class to the appropriate number of stars
-    stars.forEach((star, index) => {
-        if (index < rating) {
-            star.classList.add('filled');
-            console.log(`Filled star ${index + 1}`);
-        }
-    });
-    
-    console.log(`Updated overlay stars to ${rating} rating`);
-}
-
-function closeActionOverlay() {
-    const actionOverlay = document.getElementById('applicationActionOverlay');
-    if (actionOverlay) {
-        actionOverlay.classList.remove('show');
-    }
 }
 
 // Check if there are any applications and show/hide placeholder accordingly
@@ -8127,7 +7868,7 @@ function showAvatarOverlay(event, userData) {
                data-worker-name="${escapeHtml(String(userData.senderName || ''))}"
                data-state="ready">
                <span>💼</span>
-               <span>SEND HIRE OFFER</span>
+               <span>OPEN HIRE CHECKLIST</span>
            </button>`
         : '';
 
@@ -8340,30 +8081,10 @@ function initializeAvatarOverlayActions(overlay, userData) {
     }
     
     // HIRE WORKER button (customer role only, application-based threads)
+    // Uses shared GigOverlays hire checklist (disclaimer + verification preview).
     const hireBtn = overlay.querySelector('.avatar-action-btn.hire');
     if (hireBtn) {
-        let hireConfirmTimer = null;
-
-        hireBtn.addEventListener('click', async function () {
-            if (this.dataset.state === 'ready') {
-                // First tap: switch to confirm state
-                this.dataset.state = 'confirm';
-                this.querySelector('span:first-child').textContent = '⚠️';
-                this.querySelector('span:last-child').textContent = 'TAP AGAIN TO CONFIRM';
-
-                clearTimeout(hireConfirmTimer);
-                hireConfirmTimer = setTimeout(() => {
-                    if (this.dataset.state === 'confirm') {
-                        this.dataset.state = 'ready';
-                        this.querySelector('span:first-child').textContent = '💼';
-                        this.querySelector('span:last-child').textContent = 'SEND HIRE OFFER';
-                    }
-                }, 4000);
-                return;
-            }
-
-            // Second tap: execute hire
-            clearTimeout(hireConfirmTimer);
+        hireBtn.addEventListener('click', function () {
             const applicationId = this.getAttribute('data-application-id');
             const jobId = this.getAttribute('data-job-id');
             const workerName = this.getAttribute('data-worker-name');
@@ -8373,30 +8094,23 @@ function initializeAvatarOverlayActions(overlay, userData) {
                 return;
             }
 
-            if (typeof hireWorker !== 'function') {
-                showTemporaryNotification('Hire action is unavailable. Please try again.');
+            if (window.GigOverlays && typeof window.GigOverlays.showHireConfirmationOverlay === 'function') {
+                hideAvatarOverlay();
+                window.GigOverlays.showHireConfirmationOverlay({
+                    applicationId: applicationId,
+                    userId: userData.senderId,
+                    userName: workerName,
+                    jobId: jobId,
+                    jobTitle: userData.jobTitle || '',
+                    userRating: Number(userData.userRating || 0),
+                    userPhoto: userData.avatar || '',
+                    totalReviews: Number(userData.totalReviews || 0)
+                });
                 return;
             }
 
-            this.disabled = true;
-            this.querySelector('span:last-child').textContent = 'HIRING...';
-
-            try {
-                await hireWorker(jobId, applicationId);
-                hideAvatarOverlay();
-                showTemporaryNotification(`Offer sent to ${workerName}. Check Gigs Manager for status.`);
-            } catch (err) {
-                console.error('[messages] hireWorker failed:', err);
-                this.disabled = false;
-                this.dataset.state = 'ready';
-                this.querySelector('span:first-child').textContent = '💼';
-                this.querySelector('span:last-child').textContent = 'SEND HIRE OFFER';
-                showTemporaryNotification('Hire failed. Please try again or use Gigs Manager.');
-            }
+            showTemporaryNotification('Hire checklist is temporarily unavailable. Please try again.');
         }, { signal });
-
-        // Clear pending confirm timer when overlay is destroyed
-        signal.addEventListener('abort', () => clearTimeout(hireConfirmTimer));
     }
 
     // BLOCK USER button
