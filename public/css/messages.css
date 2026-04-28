@@ -1416,12 +1416,6 @@ body:has(.messages-header) {
 }
 
 /* Profile and Contact Button Styles */
-.profile-contact-buttons {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-}
-
 .profile-btn, .contact-btn {
   flex: 1;
   border-radius: 12px;
@@ -1479,21 +1473,34 @@ body:has(.messages-header) {
   letter-spacing: 0.5px;
 }
 
-.action-divider {
-  margin: 20px 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #a0aec0;
-  font-family: Arial, Helvetica, sans-serif;
+/* CONTACT TO HIRE — primary CTA glow when contact is the hiring gateway */
+.contact-btn.contact-to-hire {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  border-color: #68d391;
+  animation: contact-hire-pulse 2.4s ease-in-out infinite;
+}
+
+.contact-btn.contact-to-hire span {
+  font-size: 0.78rem;
+}
+
+@keyframes contact-hire-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(72, 187, 120, 0.5), 0 4px 12px rgba(72, 187, 120, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(72, 187, 120, 0.85), 0 0 32px rgba(72, 187, 120, 0.35);
+  }
 }
 
 .application-action-buttons {
   margin-top: 0;
   display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.hire-job-btn, .reject-job-btn {
+.reject-job-btn {
   flex: 1;
   border-radius: 12px;
   padding: 15px 20px;
@@ -1504,31 +1511,6 @@ body:has(.messages-header) {
   transition: transform 0.2s, box-shadow 0.2s;
   font-family: Arial, Helvetica, sans-serif;
   border: 2px solid;
-}
-
-.hire-job-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #ffffff;
-}
-
-.hire-job-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
-}
-
-.hire-job-btn:active {
-  transform: translateY(0);
-}
-
-.hire-job-btn span {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.5px;
-}
-
-.reject-job-btn {
   background: transparent;
   border-color: #e53e3e;
 }
@@ -2292,26 +2274,16 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 1.1rem;
   }
 
-  .action-divider {
-    margin: 15px 0;
-    font-size: 0.9rem;
-  }
-
   .application-action-buttons {
     gap: 8px;
   }
 
-  .hire-job-btn, .reject-job-btn {
+  .reject-job-btn {
     padding: 12px 15px;
   }
 
-  .hire-job-btn span, .reject-job-btn span {
+  .reject-job-btn span {
     font-size: 0.9rem;
-  }
-
-  .profile-contact-buttons {
-    margin-top: 12px;
-    gap: 8px;
   }
 
   .profile-btn, .contact-btn {
@@ -4000,6 +3972,37 @@ body:has(.selection-controls[style*="display: flex"]) {
   border-color: #718096;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(113, 128, 150, 0.3);
+}
+
+.avatar-action-btn.hire {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.avatar-action-btn.hire:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-color: #10b981;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+}
+
+.avatar-action-btn.hire[data-state="confirm"] {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  border-color: #f59e0b;
+  animation: hire-confirm-pulse 0.5s ease;
+}
+
+.avatar-action-btn.hire:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@keyframes hire-confirm-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
 
 .avatar-action-btn:active {

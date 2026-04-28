@@ -2069,7 +2069,14 @@ async function checkIfUserAlreadyApplied(jobId) {
       console.log('✅ User has not applied yet, button remains enabled');
       return;
       
-    } else if (applicationCount === 1 && (mostRecentApp.status === 'rejected' || mostRecentApp.status === 'voided' || mostRecentApp.status === 'resigned')) {
+    } else if (
+      applicationCount === 1 && (
+        mostRecentApp.status === 'rejected' ||
+        mostRecentApp.status === 'rejected_by_worker' ||
+        mostRecentApp.status === 'voided' ||
+        mostRecentApp.status === 'resigned'
+      )
+    ) {
       // ═══════════════════════════════════════════════════════════════
       // Applied once, got rejected/voided/resigned - show "APPLY AGAIN" (enabled)
       // ═══════════════════════════════════════════════════════════════
@@ -2077,6 +2084,9 @@ async function checkIfUserAlreadyApplied(jobId) {
       if (mostRecentApp.status === 'rejected') {
         reason = 'You were rejected. You can apply one more time.';
         console.log('♻️ User was rejected - showing APPLY AGAIN button');
+      } else if (mostRecentApp.status === 'rejected_by_worker') {
+        reason = 'You declined a prior offer. You can apply one more time.';
+        console.log('♻️ User previously rejected offer - showing APPLY AGAIN button');
       } else if (mostRecentApp.status === 'voided') {
         reason = 'Your contract was voided. You can apply one more time.';
         console.log('♻️ User was voided (customer relisted) - showing APPLY AGAIN button');

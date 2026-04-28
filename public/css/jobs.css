@@ -1264,15 +1264,21 @@ body:has(.jobs-header) {
   box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
 }
 
-.listing-option-btn.contact {
+.listing-option-btn.open-chat {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
-.listing-option-btn.contact:hover {
+.listing-option-btn.open-chat:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   transform: translateY(-3px);
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.listing-option-btn.open-chat:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* Applications Overlay */
@@ -1594,12 +1600,6 @@ body:has(.jobs-header) {
   font-size: 0.875rem;
 }
 
-.profile-contact-buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
 .profile-btn, .contact-btn {
   flex: 1;
   border-radius: 12px;
@@ -1657,19 +1657,33 @@ body:has(.jobs-header) {
   letter-spacing: 0.5px;
 }
 
-.action-divider {
-  color: #9CA3AF;
-  font-size: 0.875rem;
-  margin: 20px 0;
-  font-weight: 600;
+/* CONTACT TO HIRE — primary CTA glow when contact is the hiring gateway */
+.contact-btn.contact-to-hire {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+  border-color: #68d391;
+  animation: contact-hire-pulse 2.4s ease-in-out infinite;
+}
+
+.contact-btn.contact-to-hire span {
+  font-size: 0.78rem;
+}
+
+@keyframes contact-hire-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(72, 187, 120, 0.5), 0 4px 12px rgba(72, 187, 120, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(72, 187, 120, 0.85), 0 0 32px rgba(72, 187, 120, 0.35);
+  }
 }
 
 .application-action-buttons {
   display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.hire-job-btn, .reject-job-btn {
+.reject-job-btn {
   flex: 1;
   border-radius: 12px;
   padding: 15px 20px;
@@ -1680,31 +1694,6 @@ body:has(.jobs-header) {
   transition: transform 0.2s, box-shadow 0.2s;
   font-family: Arial, Helvetica, sans-serif;
   border: 2px solid;
-}
-
-.hire-job-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border-color: rgba(16, 185, 129, 0.5);
-  color: #ffffff;
-}
-
-.hire-job-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.hire-job-btn:active {
-  transform: translateY(0);
-}
-
-.hire-job-btn span {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #2d3748;
-  letter-spacing: 0.5px;
-}
-
-.reject-job-btn {
   background: transparent;
   border-color: #e53e3e;
 }

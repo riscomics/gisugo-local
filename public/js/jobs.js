@@ -3797,8 +3797,21 @@ async function showGigOfferOptionsOverlay(jobData) {
     overlay.setAttribute('data-price-offer', jobData.priceOffer);
     overlay.setAttribute('data-category', jobData.category);
     overlay.setAttribute('data-job-page-url', jobData.jobPageUrl || `dynamic-job.html?category=${jobData.category}&jobNumber=${jobData.jobId}`);
-    
-    // Initialize handlers
+
+    // Pre-fetch the thread ID non-blocking — cached in dataset so the Open Chat handler
+    // can navigate instantly without waiting on a Firestore read at tap time.
+    overlay.dataset.existingThreadId = '';
+    ChatThreadService.findExistingChatThreadId({
+        recipientId: jobData.posterId,
+        jobId: jobData.jobId
+    }).then(function (threadId) {
+        overlay.dataset.existingThreadId = threadId || '';
+        console.log('💬 Thread lookup complete. existingThreadId:', threadId || 'none');
+    }).catch(function () {
+        overlay.dataset.existingThreadId = '';
+    });
+
+    // Initialize handlers (idempotent — only runs once per page load)
     initializeGigOfferOverlayHandlers();
     
     // Show overlay
@@ -3813,7 +3826,7 @@ function initializeGigOfferOverlayHandlers() {
     
     const acceptBtn = document.getElementById('acceptOfferBtn');
     const rejectBtn = document.getElementById('rejectOfferBtn');
-    const contactBtn = document.getElementById('contactCustomerBtn');
+    const openChatBtn = document.getElementById('openChatBtn');
     const viewGigPostBtn = document.getElementById('viewGigPostBtn');
     const closeBtn = document.getElementById('closeOfferOptionsBtn');
     
@@ -3840,18 +3853,33 @@ function initializeGigOfferOverlayHandlers() {
             }
         });
     }
-    
-    // Contact Customer button
-    if (contactBtn) {
-        contactBtn.addEventListener('click', function() {
+
+    // Open Chat button — routes directly to the existing thread, no compose flow.
+    // The thread is guaranteed to exist because customers must contact before hiring.
+    // Falls back to a fresh lookup only if the pre-fetch hadn't resolved yet.
+    if (openChatBtn) {
+        openChatBtn.addEventListener('click', async function () {
             const jobData = extractGigOfferDataFromOverlay();
-            if (jobData) {
-                hideGigOfferOptionsOverlay();
-                showContactCustomerOverlay(jobData);
+            if (!jobData) return;
+
+            let threadId = overlay.dataset.existingThreadId || '';
+            if (!threadId) {
+                threadId = await ChatThreadService.findExistingChatThreadId({
+                    recipientId: jobData.posterId,
+                    jobId: jobData.jobId
+                }) || '';
             }
+
+            if (!threadId) {
+                showErrorNotification('Chat thread not found. Open Messages to find your conversation.');
+                return;
+            }
+
+            hideGigOfferOptionsOverlay();
+            ChatThreadService.navigateToExistingChatThread(threadId, { role: 'worker' });
         });
     }
-    
+
     // View Gig Post button
     if (viewGigPostBtn) {
         viewGigPostBtn.addEventListener('click', function() {
@@ -3903,16 +3931,14 @@ function extractGigOfferDataFromOverlay() {
 function hideGigOfferOptionsOverlay() {
     const overlay = document.getElementById('gigOfferOptionsOverlay');
     if (!overlay) return;
-    
+
     overlay.classList.remove('show');
-    
-    // Clean up handlers
-    executeCleanupsByType('gig-offer-overlay');
-    
-    // Clear handlers initialization flag
-    delete overlay.dataset.handlersInitialized;
-    
-    console.log('💼 Gig offer overlay hidden and handlers cleaned up');
+
+    // Clear thread ID cache so the next open always performs a fresh lookup.
+    overlay.dataset.existingThreadId = '';
+
+    // Handlers stay attached — rebinding on every open would stack duplicate listeners.
+    console.log('💼 Gig offer overlay hidden');
 }
 
 // ===== CONFIRM ACCEPT GIG OVERLAY FUNCTIONS =====
@@ -4856,6 +4882,7 @@ function processAcceptGigConfirmation(jobData) {
             } catch (error) {
                 console.error('❌ Error in accept gig process:', error);
                 hideLoadingOverlay();
+                showErrorNotification('Failed to accept offer. Please refresh and try again.');
             }
         },
         'celebration'
@@ -5033,22 +5060,6 @@ async function processRejectGigConfirmation(jobData) {
         console.error('❌ Error in reject gig process:', error);
         showErrorNotification('Failed to reject offer. Please try again.');
     }
-}
-
-// ===== CONTACT CUSTOMER OVERLAY FUNCTIONS =====
-function showContactCustomerOverlay(jobData) {
-    console.log('📞 Show contact customer overlay for:', jobData);
-    
-    // Use the existing contact message overlay system
-    showContactMessageOverlay(jobData.posterId, jobData.posterName, jobData.jobId);
-    
-    // Update placeholder text for customer context
-    const messageInput = document.getElementById('contactMessageInput');
-    if (messageInput) {
-        messageInput.placeholder = 'Write your message to the customer. Suggestion: Ask for contact details or clarify job requirements.';
-    }
-    
-    console.log('📞 Contact customer overlay shown');
 }
 
 // ===== DATA MANIPULATION FUNCTIONS =====
@@ -5289,21 +5300,29 @@ async function rejectGigOffer(jobId) {
                 const applicationsSnapshot = await db.collection('applications')
                     .where('jobId', '==', jobId)
                     .where('applicantId', '==', currentUser.uid)
-                    .where('status', '==', 'accepted')
                     .get();
-                
+
+                const targetApplications = applicationsSnapshot.docs.filter((doc) => {
+                    const status = String((doc.data() || {}).status || '').toLowerCase();
+                    return status === 'accepted' || status === 'hired' || status === 'pending';
+                });
+
                 const batch = db.batch();
-                applicationsSnapshot.docs.forEach(doc => {
+                targetApplications.forEach(doc => {
                     batch.update(doc.ref, {
                         status: 'rejected_by_worker',
                         rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 });
-                await batch.commit();
-                console.log('✅ Worker application status updated to rejected');
+                if (targetApplications.length > 0) {
+                    await batch.commit();
+                    console.log(`✅ Worker application status updated to rejected_by_worker (${targetApplications.length})`);
+                } else {
+                    console.log('ℹ️ No mutable worker application rows found to mark rejected_by_worker');
+                }
 
                 if (typeof releaseApplicationCoinForApplication === 'function') {
-                    const releasePromises = applicationsSnapshot.docs.map((doc) =>
+                    const releasePromises = targetApplications.map((doc) =>
                         releaseApplicationCoinForApplication(doc.id, 'rejected_by_worker')
                             .catch((error) => console.warn('⚠️ Could not release coin on worker rejection:', error))
                     );
@@ -9098,7 +9117,6 @@ function showApplicationActionOverlay(applicationCard) {
     // Update button data attributes
     const profileBtn = document.getElementById('profileBtn');
     const contactBtn = document.getElementById('contactBtn');
-    const hireBtn = document.getElementById('hireJobBtn');
     const rejectBtn = document.getElementById('rejectJobBtn');
     
     if (profileBtn) {
@@ -9110,21 +9128,6 @@ function showApplicationActionOverlay(applicationCard) {
         contactBtn.setAttribute('data-user-id', userId);
         contactBtn.setAttribute('data-user-name', userName);
         contactBtn.setAttribute('data-application-id', applicationId);
-    }
-    
-    if (hireBtn) {
-        hireBtn.setAttribute('data-application-id', applicationId);
-        hireBtn.setAttribute('data-user-id', userId);
-        hireBtn.setAttribute('data-user-name', userName);
-        hireBtn.setAttribute('data-job-id', jobId);
-        hireBtn.setAttribute('data-job-title', jobTitle);
-        hireBtn.setAttribute('data-user-rating', userRating);
-        hireBtn.setAttribute('data-user-photo', userPhoto);
-        // Add price information from application card
-        const priceOffer = applicationCard.getAttribute('data-price-offer');
-        const priceType = applicationCard.getAttribute('data-price-type');
-        hireBtn.setAttribute('data-price-offer', priceOffer || '');
-        hireBtn.setAttribute('data-price-type', priceType || '');
     }
     
     if (rejectBtn) {
@@ -9161,7 +9164,6 @@ function initializeApplicationActionHandlers() {
     
     const profileBtn = document.getElementById('profileBtn');
     const contactBtn = document.getElementById('contactBtn');
-    const hireBtn = document.getElementById('hireJobBtn');
     const rejectBtn = document.getElementById('rejectJobBtn');
     
     // Handle profile button click
@@ -9195,7 +9197,7 @@ function initializeApplicationActionHandlers() {
     }
     
     // Handle contact button click
-    const handleContactClick = function() {
+    const handleContactClick = async function() {
         console.log('💬 Contact button clicked!');
         const userName = this.getAttribute('data-user-name');
         const userId = this.getAttribute('data-user-id');
@@ -9206,6 +9208,21 @@ function initializeApplicationActionHandlers() {
         
         if (userName && userId) {
             console.log(`Opening contact message for ${userName}`);
+
+            try {
+                const existingThreadId = await ChatThreadService.findExistingChatThreadId({
+                    recipientId: userId,
+                    jobId,
+                    applicationId
+                });
+                if (existingThreadId) {
+                    hideApplicationActionOverlay();
+                    ChatThreadService.navigateToExistingChatThread(existingThreadId, { role: 'customer' });
+                    return;
+                }
+            } catch (error) {
+                console.warn('⚠️ Could not pre-check existing application thread:', error);
+            }
             
             // Close the current overlay
             hideApplicationActionOverlay();
@@ -9224,82 +9241,6 @@ function initializeApplicationActionHandlers() {
         // Register cleanup
         registerCleanup('element', 'application-action-handlers', () => {
             contactBtn.removeEventListener('click', handleContactClick);
-        });
-    }
-    
-    // Handle hire button click
-    const handleHireClick = async function() {
-        console.log('✅ Hire button clicked!');
-        if (overlay.dataset.hireActionInFlight === '1') {
-            console.warn('⚠️ Ignoring duplicate hire click while action is in-flight');
-            return;
-        }
-        overlay.dataset.hireActionInFlight = '1';
-        const applicationId = this.getAttribute('data-application-id');
-        const userId = this.getAttribute('data-user-id');
-        const userName = this.getAttribute('data-user-name');
-        const jobId = this.getAttribute('data-job-id');
-        const jobTitle = this.getAttribute('data-job-title');
-        const userRating = this.getAttribute('data-user-rating');
-        const userPhoto = this.getAttribute('data-user-photo');
-        const priceOffer = this.getAttribute('data-price-offer');
-        const priceType = this.getAttribute('data-price-type');
-        
-        // Validate data before proceeding
-        if (!applicationId || !userId || !userName) {
-            console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
-            delete overlay.dataset.hireActionInFlight;
-            return;
-        }
-        
-        console.log('HIRE ACTION:', {
-            applicationId,
-            userId,
-            userName,
-            jobId,
-            jobTitle,
-            userRating,
-            userPhoto,
-            priceOffer,
-            priceType
-        });
-        
-        // Debug: Check if price data is being captured
-        console.log('🔍 PRICE DEBUG - Hire button price data:', {
-            priceOffer: priceOffer,
-            priceType: priceType,
-            priceOfferType: typeof priceOffer,
-            priceOfferLength: priceOffer?.length
-        });
-        
-        // Hide current action overlay
-        hideApplicationActionOverlay();
-        
-        // Show hire confirmation overlay with worker details
-        try {
-            await showHireConfirmationOverlay({
-                applicationId,
-                userId,
-                userName,
-                jobId,
-                jobTitle,
-                userRating: parseFloat(userRating) || 0,
-                userPhoto: userPhoto,
-                priceOffer: priceOffer,
-                priceType: priceType
-            });
-        } finally {
-            delete overlay.dataset.hireActionInFlight;
-        }
-    };
-    
-    if (hireBtn) {
-        console.log('✅ Hire button found, adding event listener');
-        hireBtn.addEventListener('click', handleHireClick);
-        
-        // Register cleanup
-        registerCleanup('element', 'application-action-handlers', () => {
-            hireBtn.removeEventListener('click', handleHireClick);
         });
     }
     
@@ -9493,18 +9434,26 @@ function showContactMessageOverlay(userId, userName, jobId = null, applicationId
     overlay.setAttribute('data-user-name', userName);
     if (jobId) {
         overlay.setAttribute('data-job-id', jobId);
+    } else {
+        overlay.removeAttribute('data-job-id');
     }
     if (applicationId) {
         overlay.setAttribute('data-application-id', applicationId);
+    } else {
+        overlay.removeAttribute('data-application-id');
     }
     
     messageInput.setAttribute('data-user-id', userId);
     messageInput.setAttribute('data-user-name', userName);
     if (jobId) {
         messageInput.setAttribute('data-job-id', jobId);
+    } else {
+        messageInput.removeAttribute('data-job-id');
     }
     if (applicationId) {
         messageInput.setAttribute('data-application-id', applicationId);
+    } else {
+        messageInput.removeAttribute('data-application-id');
     }
     
     // Clear previous message
@@ -9678,13 +9627,8 @@ async function handleSendContactMessage() {
         });
 
         if (applicationId && matchingThread) {
-            console.log('⛔ Duplicate View Applications contact blocked:', matchingThread.id);
-            showConfirmation(
-                '⏳',
-                'Message Already Sent',
-                `A message was already sent to ${recipientName}. Please wait for the worker to respond.`,
-                'default'
-            );
+            console.log('🧭 Existing application thread found, redirecting:', matchingThread.id);
+            ChatThreadService.navigateToExistingChatThread(matchingThread.id, { role: 'customer' });
             return;
         }
         
@@ -9776,11 +9720,10 @@ function hideContactMessageOverlay() {
     
     overlay.classList.remove('show');
     
-    // Clear handlers initialization flag to prevent memory leaks
-    delete overlay.dataset.contactHandlersInitialized;
+    // Keep handlers initialized to avoid duplicate listener binding on reopen.
     delete overlay.dataset.sendingInProgress;
     
-    console.log('💬 Contact message overlay hidden and handlers cleaned up');
+    console.log('💬 Contact message overlay hidden');
 }
 
 function hideApplicationActionOverlay() {

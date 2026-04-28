@@ -1165,6 +1165,52 @@ function openProfileFeedbackTab(tab = '') {
     window.location.href = `profile.html?${params.toString()}`;
 }
 
+function readThreadDeepLinkFromUrl() {
+    const params = new URLSearchParams(window.location.search || '');
+    const threadId = String(params.get('threadId') || '').trim();
+    if (!threadId) return null;
+
+    const role = String(params.get('role') || '').trim().toLowerCase();
+    const tab = String(params.get('tab') || '').trim();
+    return { threadId, role, tab };
+}
+
+function clearThreadDeepLinkFromUrl() {
+    try {
+        const nextParams = new URLSearchParams(window.location.search || '');
+        nextParams.delete('threadId');
+        nextParams.delete('role');
+        nextParams.delete('tab');
+        const query = nextParams.toString();
+        const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
+        window.history.replaceState({}, '', nextUrl);
+    } catch (error) {
+        console.warn('⚠️ Could not clear thread deep-link params:', error);
+    }
+}
+
+async function applyThreadDeepLinkFromUrl() {
+    const deepLink = readThreadDeepLinkFromUrl();
+    if (!deepLink) return;
+
+    const { threadId, role, tab } = deepLink;
+    try {
+        if (role === 'customer') {
+            await switchToRole('customer');
+            await switchToCustomerTab(tab || 'customer-interviews');
+        } else {
+            await switchToRole('worker');
+            await switchToWorkerTab(tab || 'worker-chats');
+        }
+        navigateToMessageThread(threadId);
+    } catch (error) {
+        console.warn('⚠️ Failed to apply thread deep-link, falling back to default tab:', error);
+        navigateToMessageThread(threadId);
+    } finally {
+        clearThreadDeepLinkFromUrl();
+    }
+}
+
 async function resolveWorkerOfferRouteByCurrentStatus(jobId) {
     const safeJobId = String(jobId || '').trim();
     const fallback = { role: 'worker', tab: 'offered', jobId: safeJobId };
@@ -2140,6 +2186,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Initialize default role (worker) and tab (worker-alerts)
     await initializeWorkerAlertsTab();
+    await applyThreadDeepLinkFromUrl();
     
     // SAFETY CLEANUP: Ensure no lingering mobile input adjustments on page load
     cleanupMobileInputVisibility();
@@ -2617,7 +2664,6 @@ function initializeApplicationActions() {
     const actionProfileImage = document.getElementById('actionProfileImage');
     const actionProfileRating = document.getElementById('actionProfileRating');
     const actionReviewCount = document.getElementById('actionReviewCount');
-    const hireJobBtn = document.getElementById('hireJobBtn');
     
     applicationCards.forEach(card => {
         card.addEventListener('click', function(e) {
@@ -2627,11 +2673,10 @@ function initializeApplicationActions() {
             // Get applicant data from the card
             const userName = this.querySelector('[data-user-name]').getAttribute('data-user-name');
             const userId = this.getAttribute('data-user-id');
-            const userPhoto = this.getAttribute('data-user-photo'); // Get from card data attribute
+            const userPhoto = this.getAttribute('data-user-photo');
             const userRating = parseInt(this.querySelector('[data-user-rating]').getAttribute('data-user-rating'));
             const reviewCount = parseInt(this.querySelector('[data-review-count]').getAttribute('data-review-count'));
-            // REMOVED: applicationId - applications moved to jobs.html
-            const jobTitle = this.getAttribute('data-job-title'); // Get job title
+            const jobTitle = this.getAttribute('data-job-title');
             
             // Find the job ID from the parent job listing
             const jobListing = this.closest('.job-listing');
@@ -2642,19 +2687,12 @@ function initializeApplicationActions() {
             
             // Update overlay content
             actionProfileName.textContent = userName;
-            actionProfileImage.src = userPhoto; // Use photo URL directly
+            actionProfileImage.src = userPhoto;
             actionProfileImage.alt = userName;
             
             // Update star rating and review count
             updateActionStars(userRating);
             actionReviewCount.textContent = `(${reviewCount})`;
-            
-            // Store application data for hire button
-            // REMOVED: applicationId - applications moved to jobs.html
-            hireJobBtn.setAttribute('data-user-id', userId);
-            hireJobBtn.setAttribute('data-user-name', userName);
-            hireJobBtn.setAttribute('data-job-id', jobId);
-            hireJobBtn.setAttribute('data-job-title', jobTitle);
             
             // Store application data for reject button
             const rejectJobBtn = document.getElementById('rejectJobBtn');
@@ -2741,61 +2779,6 @@ function initializeApplicationActions() {
         });
     }
     
-    // Handle hire button click
-    if (hireJobBtn) {
-        hireJobBtn.addEventListener('click', function() {
-            // REMOVED: applicationId - applications moved to jobs.html
-            const userId = this.getAttribute('data-user-id');
-            const userName = this.getAttribute('data-user-name');
-            const jobId = this.getAttribute('data-job-id');
-            const jobTitle = this.getAttribute('data-job-title');
-            
-            // CRITICAL FIX: Validate data before proceeding
-            if (!userId || !userName) {
-                console.error('❌ HIRE BUTTON ERROR: Missing critical data attributes');
-                return;
-            }
-            
-            // REMOVED: Firebase hire action logging - hire/reject functionality moved to jobs.html
-            console.log('REMOVED: Firebase hire action - functionality moved to jobs.html');
-            
-            // REMOVED: Firestore batch operations block - hire/reject functionality moved to jobs.html
-            
-            // Close action overlay first
-            closeActionOverlay();
-            
-            // Show confirmation with hire-specific styling
-            showConfirmationOverlay(
-                'success',
-                'Application Accepted!',
-                `You have hired ${userName} for the job. They will be notified and you can coordinate the work details through messages.`
-            );
-            
-            // REMOVED: Job listing removal logic - applications moved to jobs.html
-            setTimeout(() => {
-                // REMOVED: Application card DOM manipulation - applications moved to jobs.html
-                const applicationCard = null;
-                
-                if (applicationCard) {
-                    // Find the parent job listing
-                    const jobListing = applicationCard.closest('.job-listing');
-                    
-                    if (jobListing) {
-                        jobListing.style.transition = 'all 0.4s ease';
-                        jobListing.style.opacity = '0';
-                        jobListing.style.transform = 'translateY(-20px)';
-                        
-                        setTimeout(() => {
-                            jobListing.remove();
-                            updateApplicationsCount();
-                            updateJobHeaderCounts();
-                        }, 400);
-                    }
-                }
-            }, 500); // Reduced delay from 2000ms to 500ms
-        });
-    }
-    
     // Handle reject button click
     const rejectJobBtn = document.getElementById('rejectJobBtn');
     if (rejectJobBtn) {
@@ -2870,19 +2853,12 @@ function cleanupApplicationActionListeners() {
     });
     
     // Clean up action button listeners
-    const hireJobBtn = document.getElementById('hireJobBtn');
     const rejectJobBtn = document.getElementById('rejectJobBtn');
     const profileBtn = document.getElementById('profileBtn');
     const contactBtn = document.getElementById('contactBtn');
     const actionOverlay = document.getElementById('applicationActionOverlay');
     
     // Clone and replace nodes to remove ALL event listeners
-    // This is the most reliable way to ensure complete cleanup
-    if (hireJobBtn && hireJobBtn.parentNode) {
-        const newHireBtn = hireJobBtn.cloneNode(true);
-        hireJobBtn.parentNode.replaceChild(newHireBtn, hireJobBtn);
-    }
-    
     if (rejectJobBtn && rejectJobBtn.parentNode) {
         const newRejectBtn = rejectJobBtn.cloneNode(true);
         rejectJobBtn.parentNode.replaceChild(newRejectBtn, rejectJobBtn);
@@ -8141,7 +8117,20 @@ function showAvatarOverlay(event, userData) {
     
     // REMOVED: "View Application" button - no longer needed since applications moved to jobs.html
     const viewApplicationButton = ''; // Always empty now
-    
+
+    // HIRE WORKER button — customer role only, requires applicationId on the thread
+    const showHireBtn = userData.currentUserRole === 'customer' && !!userData.applicationId;
+    const hireButtonHTML = showHireBtn
+        ? `<button class="avatar-action-btn hire"
+               data-application-id="${userData.applicationId}"
+               data-job-id="${userData.jobId || ''}"
+               data-worker-name="${escapeHtml(String(userData.senderName || ''))}"
+               data-state="ready">
+               <span>💼</span>
+               <span>SEND HIRE OFFER</span>
+           </button>`
+        : '';
+
     overlay.innerHTML = `
         <div class="avatar-overlay-header">
             <div class="avatar-overlay-name">${userData.senderName}</div>
@@ -8165,6 +8154,7 @@ function showAvatarOverlay(event, userData) {
                 <span>READ GIG TIPS</span>
             </button>
             ${viewApplicationButton}
+            ${hireButtonHTML}
             <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
                 <span>🚫</span>
                 <span>BLOCK USER</span>
@@ -8349,6 +8339,66 @@ function initializeAvatarOverlayActions(overlay, userData) {
         }, { signal });
     }
     
+    // HIRE WORKER button (customer role only, application-based threads)
+    const hireBtn = overlay.querySelector('.avatar-action-btn.hire');
+    if (hireBtn) {
+        let hireConfirmTimer = null;
+
+        hireBtn.addEventListener('click', async function () {
+            if (this.dataset.state === 'ready') {
+                // First tap: switch to confirm state
+                this.dataset.state = 'confirm';
+                this.querySelector('span:first-child').textContent = '⚠️';
+                this.querySelector('span:last-child').textContent = 'TAP AGAIN TO CONFIRM';
+
+                clearTimeout(hireConfirmTimer);
+                hireConfirmTimer = setTimeout(() => {
+                    if (this.dataset.state === 'confirm') {
+                        this.dataset.state = 'ready';
+                        this.querySelector('span:first-child').textContent = '💼';
+                        this.querySelector('span:last-child').textContent = 'SEND HIRE OFFER';
+                    }
+                }, 4000);
+                return;
+            }
+
+            // Second tap: execute hire
+            clearTimeout(hireConfirmTimer);
+            const applicationId = this.getAttribute('data-application-id');
+            const jobId = this.getAttribute('data-job-id');
+            const workerName = this.getAttribute('data-worker-name');
+
+            if (!applicationId || !jobId) {
+                showTemporaryNotification('Hire data is incomplete. Please try again from Gigs Manager.');
+                return;
+            }
+
+            if (typeof hireWorker !== 'function') {
+                showTemporaryNotification('Hire action is unavailable. Please try again.');
+                return;
+            }
+
+            this.disabled = true;
+            this.querySelector('span:last-child').textContent = 'HIRING...';
+
+            try {
+                await hireWorker(jobId, applicationId);
+                hideAvatarOverlay();
+                showTemporaryNotification(`Offer sent to ${workerName}. Check Gigs Manager for status.`);
+            } catch (err) {
+                console.error('[messages] hireWorker failed:', err);
+                this.disabled = false;
+                this.dataset.state = 'ready';
+                this.querySelector('span:first-child').textContent = '💼';
+                this.querySelector('span:last-child').textContent = 'SEND HIRE OFFER';
+                showTemporaryNotification('Hire failed. Please try again or use Gigs Manager.');
+            }
+        }, { signal });
+
+        // Clear pending confirm timer when overlay is destroyed
+        signal.addEventListener('abort', () => clearTimeout(hireConfirmTimer));
+    }
+
     // BLOCK USER button
     const blockBtn = overlay.querySelector('.avatar-action-btn.block');
     if (blockBtn) {
