@@ -40,12 +40,41 @@ const DYNAMIC_JOB_CLEANUP_REGISTRY = {
   }
 };
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
+// Cleanup on page hide.
+// When pagehide is persisted, browser is placing this page in bfcache, so
+// we skip cleanup to preserve instant back/forward restoration.
+window.addEventListener('pagehide', function(event) {
+  try {
+    const { category, jobId } = getUrlParameters();
+    const cacheKey = buildDynamicJobCacheKey(category, jobId);
+    if (cacheKey) {
+      sessionStorage.setItem(`${cacheKey}:hiddenAt`, String(Date.now()));
+    }
+  } catch (_) {
+    // Ignore storage/path errors.
+  }
+  if (event && event.persisted) return;
   DYNAMIC_JOB_CLEANUP_REGISTRY.cleanup();
 });
-window.addEventListener('pagehide', function() {
-  DYNAMIC_JOB_CLEANUP_REGISTRY.cleanup();
+
+// If bfcache restores this page after TTL, force a refresh so data age
+// behavior stays consistent with the cache window policy.
+window.addEventListener('pageshow', function(event) {
+  if (!event || !event.persisted) return;
+  try {
+    const { category, jobId } = getUrlParameters();
+    const cacheKey = buildDynamicJobCacheKey(category, jobId);
+    if (!cacheKey) return;
+    const hiddenAtRaw = sessionStorage.getItem(`${cacheKey}:hiddenAt`);
+    const hiddenAt = Number(hiddenAtRaw);
+    if (Number.isFinite(hiddenAt) && (Date.now() - hiddenAt) > DYNAMIC_JOB_CACHE_TTL_MS) {
+      sessionStorage.removeItem(cacheKey);
+      console.log('♻️ Dynamic page bfcache restore exceeded TTL; refreshing data');
+      loadJobData();
+    }
+  } catch (_) {
+    // Ignore storage/path errors.
+  }
 });
 
 const DYNAMIC_JOB_FETCH_TIMEOUT_MS = 15000;
@@ -117,6 +146,101 @@ const DYNAMIC_JOB_INITIAL_FETCH_TIMEOUT_MS = (() => {
     return 12000;
   }
 })();
+
+const DYNAMIC_JOB_CACHE_PREFIX = 'dynamic-job-cache-v1:';
+const DYNAMIC_JOB_CACHE_TTL_MS = 2 * 60 * 1000;
+
+function buildDynamicJobCacheKey(category, jobId) {
+  const safeCategory = String(category || '').toLowerCase();
+  const safeJobId = String(jobId || '').trim();
+  return `${DYNAMIC_JOB_CACHE_PREFIX}${safeCategory}:${safeJobId}`;
+}
+
+function makeDynamicJobSignature(job) {
+  if (!job || typeof job !== 'object') return '';
+  return JSON.stringify({
+    id: String(job.id || job.jobId || '').trim(),
+    status: String(job.status || ''),
+    updatedAt: String(job.updatedAt || job.lastModified || job.createdAt || ''),
+    title: String(job.title || job.jobTitle || ''),
+    thumbnail: String(job.thumbnail || job.photo || ''),
+    priceOffer: String(job.priceOffer || job.paymentAmount || ''),
+    applicationCount: Number(job.applicationCount || 0)
+  });
+}
+
+function readDynamicJobCache(cacheKey) {
+  try {
+    const raw = sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed.job || typeof parsed.job !== 'object') return null;
+    const savedAt = Number(parsed.savedAt);
+    if (!Number.isFinite(savedAt) || (Date.now() - savedAt) > DYNAMIC_JOB_CACHE_TTL_MS) return null;
+    return {
+      job: parsed.job,
+      signature: String(parsed.signature || '')
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeDynamicJobCache(cacheKey, job) {
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      savedAt: Date.now(),
+      signature: makeDynamicJobSignature(job),
+      job
+    }));
+  } catch (_) {
+    // Ignore session storage failures.
+  }
+}
+
+function scheduleDynamicJobPostRender(job, loadToken) {
+  if (!isActiveJobLoad(loadToken)) return;
+  const applyBtn = document.getElementById('jobApplyBtn');
+  const currentUser = firebase.auth ? firebase.auth().currentUser : null;
+  const postRenderTasks = [];
+
+  if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
+    applyBtn.style.display = 'none';
+  } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
+    applyBtn.disabled = true;
+    applyBtn.style.opacity = '0.5';
+    applyBtn.style.cursor = 'not-allowed';
+    applyBtn.style.backgroundColor = '';
+    const span = applyBtn.querySelector('span');
+    if (span) span.textContent = 'YOUR GIG';
+    applyBtn.title = 'This is your own gig';
+  } else {
+    setApplyButtonSyncState(applyBtn, true);
+    postRenderTasks.push(
+      withDynamicJobTimeout(checkIfUserAlreadyApplied(job.jobId || job.id), 'checkIfUserAlreadyApplied', 4500)
+        .then(() => {
+          setApplyButtonSyncState(applyBtn, false);
+        })
+        .catch((error) => {
+          setApplyButtonSyncState(applyBtn, false);
+          dynamicTrace('post:applyCheck:timeout', (error && error.message) ? error.message : String(error));
+        })
+    );
+  }
+
+  // Customer section enrichment should not block primary page render.
+  postRenderTasks.push(
+    withDynamicJobTimeout(loadCustomerRating(job.posterId), 'loadCustomerRating', 6000)
+      .catch((error) => {
+        dynamicTrace('post:customerRating:timeout', (error && error.message) ? error.message : String(error));
+      })
+  );
+
+  Promise.allSettled(postRenderTasks).then(() => {
+    dynamicTrace('render:complete');
+  });
+}
 
 function isIOSWebKitBrowserForDataPath() {
   try {
@@ -737,15 +861,19 @@ async function fetchStrictJobByIdWithRetry(jobId, dbInstance = null, attempts = 
 
 async function loadJobData() {
   const loadToken = ++ACTIVE_JOB_LOAD_TOKEN;
-  // Show loading overlay
+  const { category, jobId } = getUrlParameters();
+  const cacheKey = buildDynamicJobCacheKey(category, jobId);
+  const cached = readDynamicJobCache(cacheKey);
+
+  // Show blocking loader only on cold loads.
   const loadingOverlay = document.getElementById('loadingOverlay');
-  if (loadingOverlay) {
+  const usedWarmCache = !!(cached && cached.job);
+  if (loadingOverlay && !usedWarmCache) {
     loadingOverlay.classList.add('show');
   }
-  
+
   let hasRenderedCore = false;
   try {
-    const { category, jobId } = getUrlParameters();
     dynamicTrace('load:start', { category, jobId });
     if (!category || !jobId) {
       dynamicTrace('load:url:error', 'missing category/jobId');
@@ -753,6 +881,14 @@ async function loadJobData() {
       return;
     }
     console.log(`🔍 Loading job data for category: ${category}, jobId: ${jobId}`);
+
+    if (usedWarmCache) {
+      populateJobPage(cached.job);
+      dynamicTrace('cache:hit', { jobId: cached.job.id || cached.job.jobId || jobId });
+      hasRenderedCore = true;
+      scheduleDynamicJobPostRender(cached.job, loadToken);
+    }
+
     const firestore = await waitForFirestoreReady();
     dynamicTrace('firestore:ready', { ready: !!firestore });
     if (!firestore) {
@@ -772,48 +908,22 @@ async function loadJobData() {
 
     const job = normalizeFirebaseJob(jobDoc);
     dynamicTrace('fetch:result', { id: job.id || job.jobId, hasPhoto: !!(job.thumbnail || job.photo) });
-    populateJobPage(job);
-    dynamicTrace('render:core:ok');
-    hasRenderedCore = true;
 
-    const applyBtn = document.getElementById('jobApplyBtn');
-    const currentUser = firebase.auth ? firebase.auth().currentUser : null;
-    const postRenderTasks = [];
-    if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
-      applyBtn.style.display = 'none';
-    } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
-      applyBtn.disabled = true;
-      applyBtn.style.opacity = '0.5';
-      applyBtn.style.cursor = 'not-allowed';
-      applyBtn.style.backgroundColor = '';
-      const span = applyBtn.querySelector('span');
-      if (span) span.textContent = 'YOUR GIG';
-      applyBtn.title = 'This is your own gig';
+    const freshSignature = makeDynamicJobSignature(job);
+    const cachedSignature = cached && cached.signature ? cached.signature : '';
+    const shouldRerender = !usedWarmCache || freshSignature !== cachedSignature;
+
+    if (shouldRerender) {
+      populateJobPage(job);
+      dynamicTrace('render:core:ok');
+      hasRenderedCore = true;
+      scheduleDynamicJobPostRender(job, loadToken);
     } else {
-      setApplyButtonSyncState(applyBtn, true);
-      postRenderTasks.push(
-        withDynamicJobTimeout(checkIfUserAlreadyApplied(jobId), 'checkIfUserAlreadyApplied', 4500)
-          .then(() => {
-            setApplyButtonSyncState(applyBtn, false);
-          })
-          .catch((error) => {
-            setApplyButtonSyncState(applyBtn, false);
-            dynamicTrace('post:applyCheck:timeout', (error && error.message) ? error.message : String(error));
-          })
-      );
+      dynamicTrace('cache:match', { jobId: job.id || job.jobId || jobId });
+      console.log('⚡ Dynamic job refresh matched cache; skipped rerender');
     }
 
-    // Customer section enrichment should not block primary page render.
-    postRenderTasks.push(
-      withDynamicJobTimeout(loadCustomerRating(job.posterId), 'loadCustomerRating', 6000)
-        .catch((error) => {
-          dynamicTrace('post:customerRating:timeout', (error && error.message) ? error.message : String(error));
-        })
-    );
-
-    Promise.allSettled(postRenderTasks).then(() => {
-      dynamicTrace('render:complete');
-    });
+    writeDynamicJobCache(cacheKey, job);
     if (!isActiveJobLoad(loadToken)) return;
   } catch (unexpectedError) {
     console.error('❌ Unexpected error in loadJobData:', unexpectedError);
@@ -1627,13 +1737,31 @@ function closeAndNavigateToListings() {
   
   // Get the category from URL to navigate back to the correct listings page
   const { category } = getUrlParameters();
-  if (category) {
-    // Navigate to the category listings page
-    window.location.href = `${category}.html`;
-  } else {
-    // Fallback to browser back
-    window.history.back();
+  const expectedListingPath = category ? `/${String(category).toLowerCase()}.html` : '';
+  let referrerPath = '';
+
+  try {
+    if (document.referrer) {
+      referrerPath = new URL(document.referrer, window.location.href).pathname.toLowerCase();
+    }
+  } catch (_) {
+    referrerPath = '';
   }
+
+  // Prefer history.back() when user came from this listing page so browser can
+  // restore prior list/scroll state via bfcache.
+  if (expectedListingPath && referrerPath.endsWith(expectedListingPath) && window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+
+  if (category) {
+    window.location.href = `${category}.html`;
+    return;
+  }
+
+  // Last resort when category is unavailable.
+  window.history.back();
 }
 
 // Function to initialize application sent overlay

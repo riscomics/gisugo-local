@@ -5,23 +5,19 @@
 // ========================================================================
 
 const APP_CONFIG = {
-  // ===== MASTER DEV MODE =====
-  // When true: All features accessible without login, uses mock data
-  // When false: Full Firebase enforcement (auth required, live data)
-  // Controlled by: Admin Dashboard toggle OR localStorage
+  // ===== DEV MODE (RETIRED) =====
+  // Production policy: mock-data runtime mode is disabled.
   get devMode() {
-    // Check localStorage first (set by admin dashboard)
-    const stored = localStorage.getItem('gisugo_dev_mode');
-    if (stored !== null) {
-      return stored === 'true';
-    }
-    // Default to false for production (Firebase mode)
     return false;
   },
   
-  set devMode(value) {
-    localStorage.setItem('gisugo_dev_mode', value.toString());
-    console.log(`🔧 Dev Mode: ${value ? 'ON' : 'OFF'}`);
+  set devMode(_value) {
+    try {
+      localStorage.removeItem('gisugo_dev_mode');
+    } catch (_error) {
+      // Ignore storage failures; mode remains disabled regardless.
+    }
+    console.warn('🚫 Dev Mode toggle ignored: mock data mode is retired.');
   },
 
   // ===== FIREBASE STATUS =====
@@ -36,17 +32,17 @@ const APP_CONFIG = {
   
   // Should we enforce authentication?
   requireAuth() {
-    return !this.devMode && this.isFirebaseConnected;
+    return true;
   },
   
   // Should we use mock data?
   useMockData() {
-    return this.devMode || !this.isFirebaseConnected;
+    return false;
   },
   
   // Should we use Firebase data?
   useFirebaseData() {
-    return !this.devMode && this.isFirebaseConnected;
+    return this.isFirebaseConnected;
   },
 
   // ===== FUTURE FEATURE FLAGS =====
@@ -61,10 +57,10 @@ const APP_CONFIG = {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🔧 GISUGO App Config');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log(`   Dev Mode: ${this.devMode ? '✅ ON' : '❌ OFF'}`);
+    console.log('   Dev Mode: 🚫 Retired');
     console.log(`   Firebase: ${this.isFirebaseConnected ? '🟢 Connected' : '🔴 Not Connected'}`);
     console.log(`   Auth Required: ${this.requireAuth() ? 'Yes' : 'No'}`);
-    console.log(`   Data Source: ${this.useMockData() ? 'Mock Data' : 'Firebase'}`);
+    console.log(`   Data Source: ${this.useFirebaseData() ? 'Firebase' : 'Unavailable'}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 };

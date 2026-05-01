@@ -73,26 +73,15 @@ function enableFirestorePersistenceSafely() {
     }
   }
 
-  // iOS Safari is more stable with single-tab persistence mode.
-  const primaryOptions = isIOS ? { synchronizeTabs: false } : { synchronizeTabs: true };
-  db.enablePersistence(primaryOptions)
+  // Use single-tab persistence consistently to avoid multi-tab API deprecation warnings.
+  // App behavior remains "works or fails": if persistence init fails, Firestore still runs online.
+  db.enablePersistence({ synchronizeTabs: false })
     .then(() => {
-      console.log(`💾 Firestore offline persistence enabled (${isIOS ? 'single-tab iOS mode' : 'multi-tab mode'})`);
+      console.log(`💾 Firestore offline persistence enabled (${isIOS ? 'single-tab iOS mode' : 'single-tab mode'})`);
     })
     .catch((error) => {
       const code = error && error.code ? error.code : 'unknown';
       console.warn(`⚠️ Firestore persistence setup issue (${code})`, error);
-
-      // Retry without synchronizeTabs if multi-tab precondition fails.
-      if (!isIOS && code === 'failed-precondition') {
-        db.enablePersistence({ synchronizeTabs: false })
-          .then(() => {
-            console.log('💾 Firestore persistence enabled after single-tab fallback');
-          })
-          .catch((retryError) => {
-            console.warn('⚠️ Firestore persistence disabled after fallback:', retryError);
-          });
-      }
       // App continues to work without persistence.
     });
 }
@@ -203,7 +192,11 @@ function getFirestore() {
   }
   
   if (firebaseInitialized && typeof firebase !== 'undefined') {
-    return firebase.firestore();
+    if (typeof firebase.firestore === 'function') {
+      return firebase.firestore();
+    }
+    console.warn('⚠️ Firestore SDK is not available (firebase.firestore missing).');
+    return null;
   }
   return null;
 }

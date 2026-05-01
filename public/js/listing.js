@@ -422,32 +422,33 @@ function startListingNotificationListener(retry = 0) {
       return;
     }
 
-    // Prefer shared counter helper if available (includes reconcile fallback).
+    // Use shared counter helper only (works-or-fails policy).
     if (typeof subscribeToUnreadNotificationCounters === 'function') {
       listingNotifDocUnsub = subscribeToUnreadNotificationCounters(user, (counters) => {
         applyListingUnreadBadges(getListingUnreadTotal(counters));
       });
       return;
     }
-
-    // Fallback path when helper is not available on page.
-    const db = firebase.firestore ? firebase.firestore() : null;
-    if (!db) {
-      applyListingUnreadBadges(0);
-      return;
-    }
-    listingNotifDocUnsub = db.collection('users').doc(user.uid).onSnapshot((snap) => {
-      applyListingUnreadBadges(getListingUnreadFromSnapshot(snap));
-    }, () => {
-      applyListingUnreadBadges(0);
-    });
+    console.warn('⚠️ Unread counter helper unavailable on listing page');
+    applyListingUnreadBadges(0);
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function scheduleListingNotificationStartup() {
   applyListingUnreadBadges(0);
-  startListingNotificationListener();
-});
+  const start = () => startListingNotificationListener();
+  if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(start, { timeout: 2000 });
+  } else {
+    setTimeout(start, 900);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', scheduleListingNotificationStartup, { once: true });
+} else {
+  scheduleListingNotificationStartup();
+}
 window.addEventListener('pagehide', stopListingNotificationListener);
 // Service Menu Overlay
 const serviceMenuBtn = document.getElementById('jobcatServiceMenuBtn');
@@ -1192,11 +1193,121 @@ function normalizeListingCardNavigation(card, category) {
   };
 }
 
+const LISTING_CACHE_TTL_MS = 2 * 60 * 1000;
+const LISTING_CACHE_PREFIX = 'listing-cache-v1:';
+const LISTING_VIEW_STATE_PREFIX = 'listing-view-v1:';
+
+function buildListingCacheKey(category, region, payType) {
+  const safeCategory = String(category || '').toLowerCase();
+  const safeRegion = String(region || '').toUpperCase();
+  const safePayType = String(payType || 'PAY TYPE').toUpperCase();
+  return `${LISTING_CACHE_PREFIX}${safeCategory}:${safeRegion}:${safePayType}`;
+}
+
+function readListingCache(cacheKey) {
+  try {
+    const raw = sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.jobs) || !Number.isFinite(parsed.savedAt)) return null;
+    if ((Date.now() - parsed.savedAt) > LISTING_CACHE_TTL_MS) return null;
+    // Sliding expiration: refresh timestamp on successful cache read so TTL
+    // reflects active user flow instead of original fetch time only.
+    writeListingCache(cacheKey, parsed.jobs);
+    return parsed.jobs;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeListingCache(cacheKey, jobs) {
+  try {
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      savedAt: Date.now(),
+      jobs: Array.isArray(jobs) ? jobs : []
+    }));
+  } catch (_) {
+    // Ignore storage errors to avoid blocking listing load.
+  }
+}
+
+function buildListingViewStateKey(cacheKey) {
+  return `${LISTING_VIEW_STATE_PREFIX}${cacheKey}`;
+}
+
+function readListingViewState(viewStateKey) {
+  try {
+    const raw = sessionStorage.getItem(viewStateKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    const scrollY = Number(parsed.scrollY);
+    const displayedCount = Number(parsed.displayedCount);
+    return {
+      scrollY: Number.isFinite(scrollY) && scrollY >= 0 ? scrollY : 0,
+      displayedCount: Number.isFinite(displayedCount) && displayedCount >= 0 ? displayedCount : 0
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeListingViewState(viewStateKey, payload) {
+  try {
+    const scrollY = Number(payload && payload.scrollY);
+    const displayedCount = Number(payload && payload.displayedCount);
+    sessionStorage.setItem(viewStateKey, JSON.stringify({
+      scrollY: Number.isFinite(scrollY) && scrollY >= 0 ? scrollY : 0,
+      displayedCount: Number.isFinite(displayedCount) && displayedCount >= 0 ? displayedCount : 0
+    }));
+  } catch (_) {
+    // Ignore storage errors.
+  }
+}
+
+function getListingJobsSignature(jobs) {
+  if (!Array.isArray(jobs) || jobs.length === 0) return 'empty';
+  const ids = jobs.map((job) => getBestListingJobIdentifier(job));
+  return `${jobs.length}:${ids.join('|')}`;
+}
+
+function renderListingJobs(filteredJobs, headerSpacer, options = {}) {
+  if (!headerSpacer) return;
+  if (!Array.isArray(filteredJobs) || filteredJobs.length === 0) {
+    setListingEmptyStateVisible(true, headerSpacer);
+    return;
+  }
+
+  // Reset pagination state
+  PAGINATION.allJobs = filteredJobs;
+  PAGINATION.currentIndex = 0;
+  PAGINATION.displayedJobs = [];
+  PAGINATION.hasMore = filteredJobs.length > PAGINATION.initialBatchSize;
+
+  console.log(`📊 Total jobs after filtering: ${filteredJobs.length}`);
+  console.log(`📦 Initial batch size: ${PAGINATION.initialBatchSize}`);
+
+  setListingEmptyStateVisible(false, headerSpacer);
+  const existingCards = Array.from(document.querySelectorAll('.job-preview-card'));
+  existingCards.forEach(card => card.remove());
+  resetAdRenderState();
+
+  const requestedTarget = Number(options.targetCount);
+  const targetCount = Number.isFinite(requestedTarget)
+    ? Math.min(Math.max(requestedTarget, PAGINATION.initialBatchSize), filteredJobs.length)
+    : PAGINATION.initialBatchSize;
+
+  renderJobBatch(targetCount, headerSpacer);
+}
+
 // Filter and sort jobs based on selected criteria
 async function filterAndSortJobs() {
   const currentCategory = getCurrentCategory();
   const headerSpacer = document.querySelector('.jobcat-header-spacer');
-  const existingCards = Array.from(document.querySelectorAll('.job-preview-card'));
+  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activePay);
+  const viewStateKey = buildListingViewStateKey(cacheKey);
+  let renderedFromCache = false;
+  let cachedJobsSignature = '';
   
   if (!headerSpacer) {
     console.error('Header spacer not found');
@@ -1206,16 +1317,34 @@ async function filterAndSortJobs() {
   // Hide empty state while loading new results
   setListingEmptyStateVisible(false, headerSpacer);
 
-  // Show loading modal only if load is not instant (avoids loader flash on cache hits)
+  const cachedJobs = readListingCache(cacheKey);
+  if (cachedJobs) {
+    const viewState = readListingViewState(viewStateKey);
+    const initialTarget = viewState && viewState.displayedCount > 0
+      ? viewState.displayedCount
+      : PAGINATION.initialBatchSize;
+    renderListingJobs(cachedJobs, headerSpacer, { targetCount: initialTarget });
+    cachedJobsSignature = getListingJobsSignature(cachedJobs);
+    if (viewState && viewState.scrollY > 0) {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, viewState.scrollY);
+      });
+    }
+    renderedFromCache = true;
+    console.log(`⚡ Warm listing cache restored (${cachedJobs.length} jobs)`);
+  }
+
+  // Show loading modal only for true cold loads.
+  // If we already rendered warm cache, keep background refresh non-blocking.
   const loadingOverlay = document.getElementById('loadingOverlay');
   const LOADING_OVERLAY_DELAY_MS = 220;
-  let loadingOverlayVisible = false;
-  const loadingOverlayTimer = setTimeout(() => {
-    if (loadingOverlay) {
-      loadingOverlay.classList.add('show');
-      loadingOverlayVisible = true;
-    }
-  }, LOADING_OVERLAY_DELAY_MS);
+  const loadingOverlayTimer = renderedFromCache
+    ? null
+    : setTimeout(() => {
+        if (loadingOverlay) {
+          loadingOverlay.classList.add('show');
+        }
+      }, LOADING_OVERLAY_DELAY_MS);
   
   // ⚠️ CRITICAL: Wrap everything in try-finally to ensure loading hides
   try {
@@ -1224,7 +1353,7 @@ async function filterAndSortJobs() {
   // ============================================================================
   // 🔥 FIREBASE INTEGRATED - DATA FETCHING
   // ============================================================================
-  // Attempts to load from Firebase first, falls back to localStorage if offline
+  // Works-or-fails: use Firebase backend only.
   
   let categoryCards = [];
   let firebaseFetchFailed = false;
@@ -1267,12 +1396,15 @@ async function filterAndSortJobs() {
     };
   }
 
-  // Try Firebase first if available AND dev mode is OFF
-  const shouldUseFirebase = typeof APP_CONFIG !== 'undefined' 
-    ? APP_CONFIG.useFirebaseData() 
-    : (!localStorage.getItem('gisugo_dev_mode') || localStorage.getItem('gisugo_dev_mode') === 'false');
-  
-  if (shouldUseFirebase && typeof getJobsByCategory === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+  const shouldUseFirebase = typeof APP_CONFIG !== 'undefined'
+    ? APP_CONFIG.useFirebaseData()
+    : true;
+
+  if (!shouldUseFirebase || typeof getJobsByCategory !== 'function' || typeof isFirebaseOnline !== 'function' || !isFirebaseOnline()) {
+    throw new Error('Listings backend unavailable');
+  }
+
+  if (shouldUseFirebase) {
     try {
       listingTrace('firebase:begin');
       console.log('🔥 Loading jobs from Firebase for category:', currentCategory);
@@ -1306,8 +1438,7 @@ async function filterAndSortJobs() {
     } catch (error) {
       firebaseFetchFailed = true;
       listingTrace('firebase:error', (error && error.message) ? error.message : String(error));
-      console.error('❌ Firebase error, falling back to localStorage:', error);
-      // Fall through to localStorage below
+      console.error('❌ Firebase error while loading listings:', error);
     }
   }
 
@@ -1316,38 +1447,6 @@ async function filterAndSortJobs() {
     throw new Error('Server read failed. Please retry.');
   }
 
-  if (categoryCards.length === 0 && !shouldUseFirebase) {
-    listingTrace('fallback:localStorage');
-    const devMode = typeof APP_CONFIG !== 'undefined' ? APP_CONFIG.devMode : (localStorage.getItem('gisugo_dev_mode') === 'true');
-    if (devMode) {
-      console.log('🎮 Dev Mode ON - Loading mock jobs from localStorage');
-    } else {
-      console.log('📦 Loading jobs from localStorage (Firebase returned no data)');
-    }
-    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-    categoryCards = (previewCards[currentCategory] || []).map((card) => normalizeListingCardNavigation(card, currentCategory));
-    
-    // Filter out expired gigs from localStorage too
-    const now = new Date().getTime();
-    const beforeFilter = categoryCards.length;
-    categoryCards = categoryCards.filter(job => {
-      if (!job.date || job.date === 'TBD') return true; // Keep jobs without dates
-      
-      // Parse end time to get full expiration timestamp
-      const endTime = parseJobEndTime(job.date, job.time);
-      
-      // If we have end time, use it; otherwise use start time
-      const expirationTime = endTime || parseJobDateTime(job.date, job.time);
-      
-      if (!expirationTime) return true; // Keep if we can't parse
-      
-      return expirationTime >= now; // Only show future or current gigs
-    });
-    
-    if (beforeFilter > categoryCards.length) {
-      console.log(`🗑️  Filtered out ${beforeFilter - categoryCards.length} expired gigs from localStorage`);
-    }
-  }
   
   // ============================================================================
   // ✅ FIREBASE-READY - FILTERING LOGIC (Keep this section as-is)
@@ -1417,29 +1516,38 @@ async function filterAndSortJobs() {
   // ============================================================================
   // Store all filtered jobs for pagination, then render only the initial batch
   
-  // Reset pagination state
-  PAGINATION.allJobs = filteredJobs;
-  PAGINATION.currentIndex = 0;
-  PAGINATION.displayedJobs = [];
-  PAGINATION.hasMore = filteredJobs.length > PAGINATION.initialBatchSize;
-  
-  console.log(`📊 Total jobs after filtering: ${filteredJobs.length}`);
-  console.log(`📦 Initial batch size: ${PAGINATION.initialBatchSize}`);
-  
   // Show empty state when no gigs are available
   if (filteredJobs.length === 0) {
     listingTrace('render:empty');
     setListingEmptyStateVisible(true, headerSpacer);
+    writeListingCache(cacheKey, []);
     return; // Exit early if no jobs
   }
-  
-  setListingEmptyStateVisible(false, headerSpacer);
-  // Clear existing cards only after we have a successful replacement payload.
-  existingCards.forEach(card => card.remove());
-  resetAdRenderState();
-  
-  // Render initial batch
-  renderJobBatch(PAGINATION.initialBatchSize, headerSpacer);
+
+  const freshJobsSignature = getListingJobsSignature(filteredJobs);
+  if (renderedFromCache && cachedJobsSignature && freshJobsSignature === cachedJobsSignature) {
+    writeListingCache(cacheKey, filteredJobs);
+    writeListingViewState(viewStateKey, {
+      scrollY: window.scrollY,
+      displayedCount: PAGINATION.displayedJobs.length
+    });
+    console.log('⚡ Listing refresh matched cache; skipped rerender');
+    return;
+  }
+
+  const previousScrollY = renderedFromCache ? window.scrollY : 0;
+  const preservedCount = renderedFromCache ? PAGINATION.displayedJobs.length : PAGINATION.initialBatchSize;
+  renderListingJobs(filteredJobs, headerSpacer, { targetCount: preservedCount });
+  writeListingCache(cacheKey, filteredJobs);
+  writeListingViewState(viewStateKey, {
+    scrollY: previousScrollY,
+    displayedCount: PAGINATION.displayedJobs.length
+  });
+  if (renderedFromCache && previousScrollY > 0) {
+    requestAnimationFrame(() => {
+      window.scrollTo(0, previousScrollY);
+    });
+  }
   const firstCard = document.querySelector('.job-preview-card');
   listingTrace('render:cards', {
     total: filteredJobs.length,
@@ -1474,13 +1582,27 @@ async function filterAndSortJobs() {
     }
   } finally {
     // ⚠️ CRITICAL: ALWAYS hide loading modal, even if errors occur
-    clearTimeout(loadingOverlayTimer);
+    if (loadingOverlayTimer) clearTimeout(loadingOverlayTimer);
     if (loadingOverlay) {
       loadingOverlay.classList.remove('show');
       console.log('✅ Loading overlay hidden');
     }
   }
 }
+
+window.addEventListener('pagehide', () => {
+  const currentCategory = getCurrentCategory();
+  const cacheKey = buildListingCacheKey(currentCategory, activeRegion, activePay);
+  const viewStateKey = buildListingViewStateKey(cacheKey);
+  // Refresh cache timestamp when leaving listings so TTL starts from departure.
+  if (Array.isArray(PAGINATION.allJobs) && PAGINATION.allJobs.length > 0) {
+    writeListingCache(cacheKey, PAGINATION.allJobs);
+  }
+  writeListingViewState(viewStateKey, {
+    scrollY: window.scrollY,
+    displayedCount: PAGINATION.displayedJobs.length
+  });
+});
 
 // ============================================================================
 // 🔥 PAGINATION - RENDER JOB BATCH
@@ -2226,19 +2348,24 @@ function createAdPlaceholderCard(adConfig, context = {}) {
 }
 
 function getCurrentCategory() {
-  // Get category from page title or URL
-  const title = document.title;
-  const categoryMatch = title.match(/(\w+) Service/);
-  if (categoryMatch) {
-    const category = categoryMatch[1].toLowerCase();
-    return category === 'realtor' ? 'planner' : category;
-  }
-  
-  // Fallback: get from URL
+  // Resolve from URL filename first (aircon.html -> aircon).
+  // Title parsing is unreliable for multi-word service names.
   const url = window.location.pathname;
   const filename = url.substring(url.lastIndexOf('/') + 1);
   const category = filename.replace('.html', '');
-  return category === 'realtor' ? 'planner' : category;
+  if (category) {
+    return category === 'realtor' ? 'planner' : category;
+  }
+
+  // Legacy fallback: derive from title when URL is unavailable.
+  const title = document.title || '';
+  const titleMatch = title.match(/([A-Za-z]+)\s+Service/i);
+  if (titleMatch) {
+    const fromTitle = String(titleMatch[1] || '').toLowerCase();
+    return fromTitle === 'realtor' ? 'planner' : fromTitle;
+  }
+
+  return 'hatod';
 }
 
 // ============================================================================
@@ -2391,8 +2518,11 @@ function createJobPreviewCard(cardData, payType = 'Per Hour', consecutiveCount =
   return cardElement;
 }
 
-// Load job preview cards when page loads
-document.addEventListener('DOMContentLoaded', async function() {
+let LISTING_BOOTSTRAP_STARTED = false;
+
+async function bootstrapListingPage() {
+  if (LISTING_BOOTSTRAP_STARTED) return;
+  LISTING_BOOTSTRAP_STARTED = true;
   console.log('🔥 Listing page loaded with Firebase integration');
   
   // Apply filtering and sorting - now async for Firebase support
@@ -2425,7 +2555,15 @@ document.addEventListener('DOMContentLoaded', async function() {
   } catch (resizeError) {
     console.warn('⚠️ Listing auto-resize init skipped:', resizeError);
   }
-});
+}
+
+// Start fetching as early as possible instead of waiting for the full script
+// to finish executing all non-critical initializers.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrapListingPage, { once: true });
+} else {
+  bootstrapListingPage();
+}
 
 // iOS Safari bfcache can restore stale in-memory state after back navigation.
 window.addEventListener('pageshow', (event) => {

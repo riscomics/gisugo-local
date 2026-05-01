@@ -3,11 +3,41 @@
 
     const state = {
         controller: null,
-        escapeHandler: null
+        escapeHandler: null,
+        hireProfileCache: new Map()
     };
+
+    const HIRE_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+    const HIRE_PROFILE_CACHE_MAX = 80;
 
     function getElement(id) {
         return document.getElementById(id);
+    }
+
+    function getCachedHireProfile(userId) {
+        const safeUserId = String(userId || '').trim();
+        if (!safeUserId) return null;
+        const entry = state.hireProfileCache.get(safeUserId);
+        if (!entry) return null;
+        if ((Date.now() - entry.cachedAt) > HIRE_PROFILE_CACHE_TTL_MS) {
+            state.hireProfileCache.delete(safeUserId);
+            return null;
+        }
+        return entry.profile;
+    }
+
+    function setCachedHireProfile(userId, profile) {
+        const safeUserId = String(userId || '').trim();
+        if (!safeUserId) return;
+        state.hireProfileCache.set(safeUserId, {
+            profile: profile || null,
+            cachedAt: Date.now()
+        });
+        if (state.hireProfileCache.size <= HIRE_PROFILE_CACHE_MAX) return;
+        const oldestKey = state.hireProfileCache.keys().next().value;
+        if (oldestKey) {
+            state.hireProfileCache.delete(oldestKey);
+        }
     }
 
     function runCleanup() {
@@ -288,61 +318,136 @@
             <div class="hire-confirmation-container">
                 <div class="hire-confirmation-header">
                     <div class="hire-confirmation-title-section">
-                        <div class="hire-confirmation-icon">📨</div>
-                        <div class="hire-confirmation-title">Confirm Offer Before Sending</div>
+                        <div class="hire-confirmation-icon">⚖️</div>
+                        <div class="hire-confirmation-title">Confirm Hiring Decision</div>
                     </div>
-                    <div class="hire-worker-profile">
-                        <div class="worker-avatar-large">
-                            <img id="hireWorkerPhoto" src="" alt="Worker">
-                        </div>
-                        <div class="worker-details">
-                            <div class="worker-name" id="hireWorkerName">Worker</div>
-                            <div class="worker-rating">
-                                <span class="worker-stars" id="hireWorkerStars">★★★★★</span>
-                                <span class="worker-review-count" id="hireWorkerReviewCount">(0)</span>
-                            </div>
-                        </div>
-                    </div>
+                    <button id="hireConfirmationCloseBtn" class="hire-confirmation-close-btn" type="button">&times;</button>
                 </div>
-
-                <div class="hire-confirmation-disclaimer">
-                    <div class="disclaimer-language-selector">
+                
+                <div class="hire-confirmation-content">
+                    <div class="legal-disclaimer-section">
+                        <div class="disclaimer-header">
+                            <span class="disclaimer-icon">⚖️</span>
+                            <span class="disclaimer-title">Legal Disclaimer & Terms</span>
+                        </div>
+                        
                         <div class="disclaimer-placeholder" id="confirmHirePlaceholder">
                             <div class="placeholder-text-container">
                                 <div class="placeholder-text">Select a language to read the disclaimer</div>
+                                <div class="placeholder-text">Pili og language para mabasa</div>
+                                <div class="placeholder-text">Pumili ng wika para mabasa</div>
                             </div>
                         </div>
+                        
                         <div class="disclaimer-lang-tabs" id="confirmHireLangTabs">
-                            <button class="lang-tab" data-lang="english" type="button">English</button>
-                            <button class="lang-tab" data-lang="bisaya" type="button">Bisaya</button>
-                            <button class="lang-tab" data-lang="tagalog" type="button">Tagalog</button>
+                            <button class="lang-tab" data-lang="english" data-modal="confirmHire" type="button">English</button>
+                            <button class="lang-tab" data-lang="bisaya" data-modal="confirmHire" type="button">Bisaya</button>
+                            <button class="lang-tab" data-lang="tagalog" data-modal="confirmHire" type="button">Tagalog</button>
                         </div>
+
                         <div class="disclaimer-content lang-content" id="confirmHireEnglish" style="display:none;">
-                            <p><strong>Important:</strong> You are creating a direct gig agreement with this worker.</p>
-                            <ul><li>Confirm scope, time, and final payment in chat before sending.</li><li>Keep all updates documented in chat.</li><li>Proceed only if you understand this is a direct arrangement.</li></ul>
+                            <p><strong>IMPORTANT:</strong> By proceeding with this hiring decision, you acknowledge and agree to the following:</p>
+                            <div class="disclaimer-points">
+                                <div class="disclaimer-point"><span class="point-number">1.</span><span class="point-text"><strong>Independent Transaction:</strong> This is a direct transaction between you (Customer) and the Worker. GISUGO acts solely as a platform facilitator.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">2.</span><span class="point-text"><strong>Liability Limitation:</strong> GISUGO is not liable for work quality, damages, injuries, or disputes arising from this transaction.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">3.</span><span class="point-text"><strong>Background Verification:</strong> Workers undergo basic verification, but you are responsible for additional due diligence.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">4.</span><span class="point-text"><strong>Payment Responsibility:</strong> You agree to pay the worker according to agreed terms. GISUGO cannot collect payment on behalf of the worker, and GISUGO does not offer assistance in payment recovery if there are disputes in quality of work.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">5.</span><span class="point-text"><strong>No Employer/Employee Formation:</strong> I understand that the worker is an independent individual and not my employee, and this arrangement does not create an employer-employee relationship.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">6.</span><span class="point-text"><strong>No Insurance or Benefits Obligation:</strong> I understand that I am not providing, and am not required to provide, any health insurance, liability coverage, or other employee benefits to the worker.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">7.</span><span class="point-text"><strong>Risk & Responsibility:</strong> I understand that this is a direct arrangement between me and the worker, and that any issues related to the gig are handled between us.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">8.</span><span class="point-text"><strong>Platform Limitation:</strong> I understand that GISUGO does not manage or assume responsibility for this arrangement and does not provide guarantees, insurance, or liability coverage.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">9.</span><span class="point-text"><strong>Tax Compliance:</strong> You are responsible for keeping records of payments made to workers and complying with Philippine tax laws, including BIR reporting requirements if applicable to your situation. GISUGO does not process payments, withhold taxes, or issue BIR forms.</span></div>
+                            </div>
+                            <div class="safety-recommendations">
+                                <div class="safety-header"><span class="safety-icon">🛡️</span><span class="safety-title">Safety Recommendations</span></div>
+                                <ul class="safety-list">
+                                    <li>Review the worker's profile and ratings thoroughly</li>
+                                    <li>Meet in safe, public locations when possible</li>
+                                    <li>Verify worker's identity before work begins</li>
+                                    <li>Keep valuable items secure during service</li>
+                                    <li>Trust your instincts - cancel if something feels wrong</li>
+                                </ul>
+                            </div>
                         </div>
                         <div class="disclaimer-content lang-content" id="confirmHireBisaya" style="display:none;">
-                            <p><strong>Importante:</strong> Naghimo ka ug direct nga kasabotan sa worker.</p>
-                            <ul><li>Kumpirmaha ang sakop sa trabaho, oras, ug bayad sa chat.</li><li>Ibilin sa chat ang tanan update ug sabot.</li><li>Padayon lang kung nasabtan nimo ang direct nga kasabotan.</li></ul>
+                            <p><strong>IMPORTANTE:</strong> Kung mopadayon ka sa pag-hire, ikaw nagkauyon sa mosunod:</p>
+                            <div class="disclaimer-points">
+                                <div class="disclaimer-point"><span class="point-number">1.</span><span class="point-text"><strong>Direkta nga Transaksyon:</strong> Kini direkta nga transaksyon nimo (Customer) ug sa Worker. Ang GISUGO facilitator lang — dili apil sa inyong deal.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">2.</span><span class="point-text"><strong>Limitasyon sa Responsibilidad:</strong> Ang GISUGO dili responsable sa kalidad sa trabaho, damages, aksidente, o mga away gikan sa transaksyon.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">3.</span><span class="point-text"><strong>Background Verification:</strong> Ang mga worker adunay basic verification, pero ikaw ang responsable sa dugang nga pag-check.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">4.</span><span class="point-text"><strong>Bayad:</strong> Nagkauyon ka nga bayaran ang worker sumala sa inyong napagkasunduan. Ang GISUGO dili makakolekta ug bayad alang sa worker, ug ang GISUGO dili matabang sa pagkuha sa bayad kung adunay away sa kalidad sa trabaho.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">5.</span><span class="point-text"><strong>No Employer/Employee Formation:</strong> I understand that the worker is an independent individual and not my employee, and this arrangement does not create an employer-employee relationship.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">6.</span><span class="point-text"><strong>No Insurance or Benefits Obligation:</strong> I understand that I am not providing, and am not required to provide, any health insurance, liability coverage, or other employee benefits to the worker.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">7.</span><span class="point-text"><strong>Risk & Responsibility:</strong> I understand that this is a direct arrangement between me and the worker, and that any issues related to the gig are handled between us.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">8.</span><span class="point-text"><strong>Platform Limitation:</strong> I understand that GISUGO does not manage or assume responsibility for this arrangement and does not provide guarantees, insurance, or liability coverage.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">9.</span><span class="point-text"><strong>Tax Compliance:</strong> Ikaw ang responsable sa pag-record sa bayad nga imong gihatag sa mga workers ug pagsunod sa tax laws sa Pilipinas, lakip ang BIR reporting kung kinahanglan sa imong sitwasyon. Ang GISUGO dili mag-process ug bayad, dili mag-withhold ug tax, o mag-issue ug BIR forms.</span></div>
+                            </div>
+                            <div class="safety-recommendations">
+                                <div class="safety-header"><span class="safety-icon">🛡️</span><span class="safety-title">Safety Tips</span></div>
+                                <ul class="safety-list">
+                                    <li>Tan-awa pag-ayo ang profile ug rating sa worker</li>
+                                    <li>Pagkita sa safe ug public nga lugar kung mahimo</li>
+                                    <li>Sigurohon ang identity sa worker before magsugod</li>
+                                    <li>Bantayi ang imong mga bililhon samtang nagtrabaho siya</li>
+                                    <li>Salig sa imong instinct — i-cancel kung dili ka komportable</li>
+                                </ul>
+                            </div>
                         </div>
                         <div class="disclaimer-content lang-content" id="confirmHireTagalog" style="display:none;">
-                            <p><strong>Mahalaga:</strong> Direktang kasunduan ito sa pagitan mo at ng worker.</p>
-                            <ul><li>I-confirm sa chat ang scope, oras, at bayad bago mag-send.</li><li>Ilagay sa chat ang lahat ng updates at napagkasunduan.</li><li>Magpatuloy lamang kung malinaw sa iyo ang direktang kasunduan.</li></ul>
+                            <p><strong>MAHALAGA:</strong> Sa pagpapatuloy ng hiring decision na ito, kinikilala at sinasang-ayunan mo ang mga sumusunod:</p>
+                            <div class="disclaimer-points">
+                                <div class="disclaimer-point"><span class="point-number">1.</span><span class="point-text"><strong>Direktang Transaksyon:</strong> Ito ay direktang transaksyon sa pagitan mo (Customer) at ng Worker. Ang GISUGO ay facilitator lamang — hindi kasali sa inyong deal.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">2.</span><span class="point-text"><strong>Limitasyon ng Pananagutan:</strong> Ang GISUGO ay hindi responsable sa kalidad ng trabaho, damages, aksidente, o mga away mula sa transaksyon.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">3.</span><span class="point-text"><strong>Background Verification:</strong> Ang mga worker ay may basic verification, pero ikaw ang responsable sa karagdagang pag-check.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">4.</span><span class="point-text"><strong>Bayad:</strong> Sumasang-ayon ka na bayaran ang worker ayon sa napagkasunduan. Ang GISUGO ay hindi makakakolekta ng bayad para sa worker, at ang GISUGO ay hindi nag-aalok ng tulong sa pagkuha ng bayad kung may alitan sa kalidad ng trabaho.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">5.</span><span class="point-text"><strong>No Employer/Employee Formation:</strong> I understand that the worker is an independent individual and not my employee, and this arrangement does not create an employer-employee relationship.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">6.</span><span class="point-text"><strong>No Insurance or Benefits Obligation:</strong> I understand that I am not providing, and am not required to provide, any health insurance, liability coverage, or other employee benefits to the worker.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">7.</span><span class="point-text"><strong>Risk & Responsibility:</strong> I understand that this is a direct arrangement between me and the worker, and that any issues related to the gig are handled between us.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">8.</span><span class="point-text"><strong>Platform Limitation:</strong> I understand that GISUGO does not manage or assume responsibility for this arrangement and does not provide guarantees, insurance, or liability coverage.</span></div>
+                                <div class="disclaimer-point"><span class="point-number">9.</span><span class="point-text"><strong>Tax Compliance:</strong> Ikaw ang may pananagutan na mag-record ng mga bayad na ginawa mo sa mga workers at sumunod sa tax laws ng Pilipinas, kasama ang BIR reporting kung kailangan sa iyong sitwasyon. Ang GISUGO ay hindi nag-process ng bayad, hindi nag-withhold ng tax, o nag-issue ng BIR forms.</span></div>
+                            </div>
+                            <div class="safety-recommendations">
+                                <div class="safety-header"><span class="safety-icon">🛡️</span><span class="safety-title">Mga Payo sa Kaligtasan</span></div>
+                                <ul class="safety-list">
+                                    <li>Suriin mabuti ang profile at rating ng worker</li>
+                                    <li>Magkita sa ligtas at pampublikong lugar kung maaari</li>
+                                    <li>Siguraduhin ang identity ng worker bago magsimula</li>
+                                    <li>Bantayan ang iyong mga mahahalagang gamit habang nagtatrabaho siya</li>
+                                    <li>Magtiwala sa iyong instinct — i-cancel kung may kakaiba</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div id="hireStatusFriendlyCard" class="verification-status-card">
-                    <div id="hireStatusFriendlyIcon" class="status-friendly-icon">🆕</div>
-                    <div id="hireStatusFriendlyTitle" class="status-friendly-title">New Member</div>
-                    <div id="hireStatusFriendlyContent" class="status-friendly-content">No verification media found for this worker profile.</div>
-                    <div id="hireFacePreviewBlock" class="fv-status-preview" style="display:none;">
-                        <div class="fv-status-preview-media-frame">
-                            <video id="hireFacePreviewVideo" class="fv-status-preview-video" playsinline preload="metadata" controlsList="nodownload nofullscreen noremoteplayback noplaybackrate" disablePictureInPicture disableRemotePlayback x-webkit-airplay="deny" style="display:none;"></video>
-                            <img id="hireFacePreviewImage" class="fv-status-preview-image" src="" alt="Face verification thumbnail" style="display:none;">
-                            <button type="button" id="hireFacePreviewPlayBtn" class="fv-status-preview-play-btn" style="display:none;" aria-label="Play face verification video">PLAY VIDEO</button>
+                    <div class="worker-status-section">
+                        <div class="worker-status-header">
+                            <div class="worker-status-title">Worker Account Status</div>
                         </div>
-                        <div id="hireFacePreviewCaption" class="fv-status-preview-caption">Face Verification Video</div>
+                        <div id="workerStatusInfo" class="worker-status-info">
+                            <div class="status-info-header">
+                                <span id="statusFriendlyIcon" class="friendly-icon">🌱</span>
+                                <span id="statusInfoTitle" class="info-title">Unverified Member</span>
+                            </div>
+                            <div id="statusInfoContent" class="status-info-content">This user has not completed Face Verification yet. You may continue, but Face Verification adds an extra trust signal for gig interactions.</div>
+                            <div id="hireFacePreviewBlock" class="fv-status-preview" style="display: none;">
+                                <div class="fv-status-preview-media-frame">
+                                    <video id="hireFacePreviewVideo" class="fv-status-preview-video" playsinline preload="metadata" controlsList="nodownload nofullscreen noremoteplayback noplaybackrate" disablePictureInPicture disableRemotePlayback x-webkit-airplay="deny" style="display: none;"></video>
+                                    <img id="hireFacePreviewImage" class="fv-status-preview-image" src="" alt="Face verification thumbnail" style="display: none;">
+                                    <button type="button" id="hireFacePreviewPlayBtn" class="fv-status-preview-play-btn" style="display: none;" aria-label="Play face verification video">PLAY VIDEO</button>
+                                </div>
+                                <div id="hireFacePreviewCaption" class="fv-status-preview-caption">Face Verification Video</div>
+                            </div>
+                        </div>
+                        <div class="verification-reminder-actions" id="hireUnverifiedReminder" style="display: none;">
+                            <div class="verification-reminder-text" id="hireReminderText">
+                                This worker is currently unverified. You can request Face Verification or continue sending the offer.
+                            </div>
+                            <div class="verification-reminder-meta" id="hireReminderMeta" style="display: none;"></div>
+                            <div class="verification-reminder-buttons">
+                                <button type="button" class="verification-reminder-btn request" id="hireRequestVerificationBtn">Request Verification</button>
+                                <button type="button" class="verification-reminder-btn proceed" id="hireProceedAnywayBtn">Send Offer Anyway</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -387,9 +492,9 @@
     }
 
     function applyHireStatusToOverlay(status, workerName) {
-        const iconEl = getElement('hireStatusFriendlyIcon');
-        const titleEl = getElement('hireStatusFriendlyTitle');
-        const contentEl = getElement('hireStatusFriendlyContent');
+        const iconEl = getElement('statusFriendlyIcon');
+        const titleEl = getElement('statusInfoTitle');
+        const contentEl = getElement('statusInfoContent');
         const previewBlock = getElement('hireFacePreviewBlock');
         const previewImage = getElement('hireFacePreviewImage');
         const previewVideo = getElement('hireFacePreviewVideo');
@@ -418,7 +523,7 @@
         }
 
         if (status.type === 'face' && (status.posterUrl || status.videoUrl)) {
-            if (previewBlock) previewBlock.style.display = 'block';
+            if (previewBlock) previewBlock.style.display = 'flex';
             if (previewImage && status.posterUrl) {
                 previewImage.src = status.posterUrl;
                 previewImage.style.display = 'block';
@@ -472,10 +577,7 @@
 
     async function showHireConfirmationOverlay(workerData) {
         const overlay = ensureHireConfirmationOverlay();
-        const workerNameEl = getElement('hireWorkerName');
-        const workerPhotoEl = getElement('hireWorkerPhoto');
-        const workerReviewCountEl = getElement('hireWorkerReviewCount');
-        const workerStarsEl = getElement('hireWorkerStars');
+        const closeBtn = getElement('hireConfirmationCloseBtn');
         const placeholderEl = getElement('confirmHirePlaceholder');
         const tabsContainer = getElement('confirmHireLangTabs');
         const confirmBtn = getElement('confirmHireBtn');
@@ -491,18 +593,6 @@
         state.hireController = hireController;
 
         const workerName = String(workerData.userName || 'Worker').trim() || 'Worker';
-        const userRating = Number(workerData.userRating || 0);
-        const totalReviews = Number(workerData.totalReviews || 0);
-        if (workerNameEl) workerNameEl.textContent = workerName;
-        if (workerPhotoEl) {
-            workerPhotoEl.src = workerData.userPhoto || 'public/users/default-user.jpg';
-            workerPhotoEl.alt = workerName;
-        }
-        if (workerReviewCountEl) workerReviewCountEl.textContent = `(${totalReviews})`;
-        if (workerStarsEl) {
-            const filled = Math.max(0, Math.min(5, Math.round(userRating)));
-            workerStarsEl.textContent = `${'★'.repeat(filled)}${'☆'.repeat(5 - filled)}`;
-        }
 
         const allContent = {
             english: getElement('confirmHireEnglish'),
@@ -514,14 +604,18 @@
         Object.keys(allContent).forEach(function (key) {
             if (allContent[key]) allContent[key].style.display = 'none';
         });
-        if (placeholderEl) placeholderEl.style.display = 'block';
+        if (placeholderEl) placeholderEl.classList.remove('hidden');
         updateHireGateState();
 
-        const profile = (typeof window.getUserProfile === 'function' && workerData.userId)
-            ? await window.getUserProfile(workerData.userId).catch(function () { return null; })
-            : null;
-        const status = resolveStatusFromProfile(profile || {});
-        applyHireStatusToOverlay(status, workerName);
+        // Keep the overlay responsive while verification data resolves.
+        applyHireStatusToOverlay({
+            type: 'new-member',
+            icon: '⌛',
+            title: 'Checking Verification',
+            description: 'Loading worker verification details...',
+            posterUrl: '',
+            videoUrl: ''
+        }, workerName);
 
         langTabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
@@ -530,10 +624,31 @@
                 Object.keys(allContent).forEach(function (key) {
                     if (allContent[key]) allContent[key].style.display = key === lang ? 'block' : 'none';
                 });
-                if (placeholderEl) placeholderEl.style.display = 'none';
+                if (placeholderEl) placeholderEl.classList.add('hidden');
                 updateHireGateState();
             }, { signal: signal });
         });
+
+        const cachedProfile = getCachedHireProfile(workerData.userId);
+        const profilePromise = cachedProfile
+            ? Promise.resolve(cachedProfile)
+            : ((typeof window.getUserProfile === 'function' && workerData.userId)
+                ? window.getUserProfile(workerData.userId).then(function (profile) {
+                    setCachedHireProfile(workerData.userId, profile || null);
+                    return profile || null;
+                }).catch(function () { return null; })
+                : Promise.resolve(null));
+        void profilePromise.then(function (profile) {
+            if (signal.aborted) return;
+            const status = resolveStatusFromProfile(profile || {});
+            applyHireStatusToOverlay(status, workerName);
+        });
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                hideHireConfirmationOverlay();
+            }, { signal: signal });
+        }
 
         cancelBtn.addEventListener('click', function () {
             hideHireConfirmationOverlay();

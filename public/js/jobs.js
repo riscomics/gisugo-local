@@ -9,17 +9,6 @@ const CLEANUP_REGISTRY = {
     cleanupFunctions: new Set()
 };
 
-// ===== GLOBAL MOCK DATA STORE =====
-// This simulates Firebase real-time updates for development
-// In production, this will be replaced by Firebase listeners
-let MOCK_LISTINGS_DATA = null;
-let MOCK_HIRING_DATA = null;
-let MOCK_COMPLETED_DATA = null; // ADD: Missing completed data tracking
-let MOCK_OFFERED_DATA = null; // ADD: Offered jobs data for worker perspective
-
-// Current user ID for testing different perspectives
-const CURRENT_USER_ID = 'user_peter_ang_001';
-
 // ===== LOADING OVERLAY FUNCTIONS =====
 function showLoadingOverlay(message = 'Loading...') {
     const overlay = document.getElementById('loadingOverlay');
@@ -85,20 +74,6 @@ function sanitizeUrl(url, fallback = '') {
         // fall through
     }
     return fallback;
-}
-
-function isLocalDevelopmentRuntime() {
-    if (typeof window === 'undefined' || !window.location) return false;
-    const host = String(window.location.hostname || '').toLowerCase();
-    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || window.location.protocol === 'file:';
-}
-
-function reportMockModeBlocked(flowName) {
-    const message = `${flowName} is disabled outside local development.`;
-    console.error(`❌ ${message}`);
-    if (typeof showErrorNotification === 'function') {
-        showErrorNotification(message);
-    }
 }
 
 const ENABLE_FV_MEDIA_CALLABLE = false;
@@ -338,235 +313,6 @@ function debugDataStatus() {
     // Intentionally quiet in production flows.
 }
 
-// Applications Data - Moved from messages.js for integration
-const MOCK_APPLICATIONS = [
-    {
-        jobId: 'job_2024_001_limpyo', // Match existing job in listings
-        jobTitle: 'House Cleaning - General cleaning, 3-bedroom apartment',
-        employerUid: 'user_currentUserUid', // Job owner
-        applicationCount: 2,
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-18T10:00:00Z'),
-        updatedAt: new Date('2025-12-22T14:45:00Z'),
-        
-        // Denormalized for better Firestore performance
-        applications: [
-            {
-                applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
-                applicantUid: 'user_mR8nT4kX2qJ5wP9sC7',
-                jobId: 'job_2024_001_limpyo',
-                status: 'pending',
-                
-                // Firestore timestamp format
-                appliedAt: new Date('2025-12-20T14:45:00Z'),
-                updatedAt: new Date('2025-12-20T14:45:00Z'),
-                
-                // Denormalized user data for faster reads
-                applicantProfile: {
-                    displayName: 'Mario Santos',
-                    photoURL: 'public/users/User-02.jpg', // Fixed local path
-                    averageRating: 5.0,
-                    totalReviews: 50,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T12:00:00Z')
-                },
-                
-                // Application-specific data
-                pricing: {
-                    offeredAmount: 550,
-                    originalAmount: 600,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Hi Sir! Please hire me for this job, I have 10 years experience in professional cleaning of offices and hotels. I won\'t let you down!',
-                
-                // Worker qualifications (denormalized for quick access)
-                qualifications: {
-                    experience: '10 years',
-                    specializations: ['professional cleaning', 'offices', 'hotels'],
-                    availability: 'immediate',
-                    equipment: 'own equipment',
-                    languages: ['English', 'Filipino']
-                },
-                
-                // For display formatting
-                displayData: {
-                    appliedDate: '2025-12-20',
-                    appliedTime: '2:45 PM',
-                    formattedPrice: '₱550 Per Job'
-                },
-                
-                // Firestore metadata
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_kT3nH7mR8qX2bS9jL6',
-                applicantUid: 'user_qX5nK8mT3jR7wS2nC9',
-                jobId: 'job_2024_001_limpyo',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-21T10:15:00Z'),
-                updatedAt: new Date('2025-12-21T10:15:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Ana Rodriguez',
-                    photoURL: 'public/users/User-03.jpg', // Fixed local path - matches message thread
-                    averageRating: 4.0,
-                    totalReviews: 32,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T09:30:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 600,
-                    originalAmount: 600,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'Good day! I\'m available for your cleaning job. I specialize in deep cleaning and have excellent references.',
-                
-                qualifications: {
-                    experience: '5 years',
-                    specializations: ['deep cleaning', 'residential'],
-                    availability: 'flexible',
-                    references: 'available upon request',
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-21',
-                    appliedTime: '10:15 AM',
-                    formattedPrice: '₱600 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    },
-    {
-        jobId: 'job_2024_002_kompra',
-        jobTitle: 'Shopping & Errands - Weekly grocery shopping',
-        employerUid: 'user_currentUserUid',
-        applicationCount: 2, // Reduced for Firebase demo
-        jobStatus: 'active',
-        createdAt: new Date('2025-12-19T08:00:00Z'),
-        updatedAt: new Date('2025-12-22T11:00:00Z'),
-        
-        applications: [
-            {
-                applicationId: 'app_nR6mK3qT8jX2wS7nL9',
-                applicantUid: 'user_bM9nR4kX8qT2jW5sP3',
-                jobId: 'job_2024_002_kompra',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T08:30:00Z'),
-                updatedAt: new Date('2025-12-22T08:30:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Miguel Torres',
-                    photoURL: 'public/users/User-06.jpg', // Fixed local path
-                    averageRating: 5.0,
-                    totalReviews: 67,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T08:00:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 800,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: false
-                },
-                
-                applicationMessage: 'I can fix your sink today! 8 years experience in plumbing repairs. I have all necessary tools and parts.',
-                
-                qualifications: {
-                    experience: '8 years',
-                    specializations: ['plumbing repairs', 'sink', 'pipes'],
-                    availability: 'today',
-                    equipment: 'complete plumbing toolkit',
-                    certifications: ['licensed plumber'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '8:30 AM',
-                    formattedPrice: '₱800 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            },
-            {
-                applicationId: 'app_lP4nX7mR9qK2jT8sW5',
-                applicantUid: 'user_sW6nM3rT8qJ2kX9nL4',
-                jobId: 'job_2024_002_kompra',
-                status: 'pending',
-                
-                appliedAt: new Date('2025-12-22T11:00:00Z'),
-                updatedAt: new Date('2025-12-22T11:00:00Z'),
-                
-                applicantProfile: {
-                    displayName: 'Carlos Mendoza',
-                    photoURL: 'public/users/User-07.jpg', // Fixed local path
-                    averageRating: 4.0,
-                    totalReviews: 28,
-                    verified: true,
-                    lastActive: new Date('2025-12-22T10:45:00Z')
-                },
-                
-                pricing: {
-                    offeredAmount: 750,
-                    originalAmount: 800,
-                    currency: 'PHP',
-                    paymentType: 'per_job',
-                    isCounterOffer: true
-                },
-                
-                applicationMessage: 'Licensed plumber available today. Quick and reliable service with 1-year warranty on repairs.',
-                
-                qualifications: {
-                    experience: '6 years',
-                    specializations: ['licensed plumbing', 'repairs'],
-                    availability: 'today',
-                    warranty: '1-year warranty',
-                    certifications: ['government licensed'],
-                    languages: ['English', 'Filipino']
-                },
-                
-                displayData: {
-                    appliedDate: '2025-12-22',
-                    appliedTime: '11:00 AM',
-                    formattedPrice: '₱750 Per Job'
-                },
-                
-                metadata: {
-                    source: 'mobile_app',
-                    version: '1.0',
-                    indexed: true
-                }
-            }
-        ]
-    }
-];
-
 // ===== DATA ACCESS LAYER (Firebase-Ready) =====
 // This layer abstracts data access with CLEAN SEPARATION between Mock and Firebase
 // Uses DataService pattern - toggle controls which data source is used
@@ -641,18 +387,10 @@ window.JobsDataService = {
         };
     },
     
-    // Initialize data (for mock mode only)
-    initialize() {
-        if (!MOCK_LISTINGS_DATA) {
-            MOCK_LISTINGS_DATA = this._generateInitialData();
-        }
-        return MOCK_LISTINGS_DATA;
-    },
-    
     // Get all jobs for current user (My Listings)
     async getAllJobs() {
-        console.log(`📊 JobsDataService.getAllJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
-        jobsTrace('jobs:data:listings:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
+        console.log(`📊 JobsDataService.getAllJobs() - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
+        jobsTrace('jobs:data:listings:start', { backend: this._useFirebase() ? 'enabled' : 'unavailable' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE - Load ONLY from Firestore
@@ -690,37 +428,15 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE - Load from mock data + localStorage
-        // ══════════════════════════════════════════════════════════════
-        console.log('🧪 Loading jobs from MOCK data...');
-        
-        // Get base mock data and merge with localStorage updates
-        const baseMockJobs = this.initialize();
-        
-        // Get user-generated/modified jobs from localStorage (where new-post.js saves them)
-        const localStorageJobs = this._getJobsFromLocalStorage();
-        
-        // Merge localStorage jobs with mock data, prioritizing localStorage versions
-        const allJobs = this._mergeJobData(baseMockJobs, localStorageJobs);
-        
-        console.log('🧪 JobsDataService.getAllJobs() - Combined mock data:', {
-            mockJobs: baseMockJobs.length,
-            localStorageJobs: localStorageJobs.length,
-            totalMerged: allJobs.length
-        });
-        
-        // Filter for jobs posted by current user with active/paused status
-        return allJobs.filter(job => 
-            job.posterId === CURRENT_USER_ID && 
-            (job.status === 'active' || job.status === 'paused')
-        );
+        console.warn('⚠️ Listings backend unavailable (Firebase mode required)');
+        jobsTrace('jobs:data:listings:error', 'backend_unavailable');
+        return [];
     },
     
     // Get all hired jobs (jobs in "hiring" status)
     async getAllHiredJobs() {
-        console.log(`📊 JobsDataService.getAllHiredJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
-        jobsTrace('jobs:data:hired:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
+        console.log(`📊 JobsDataService.getAllHiredJobs() - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
+        jobsTrace('jobs:data:hired:start', { backend: this._useFirebase() ? 'enabled' : 'unavailable' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE
@@ -754,18 +470,14 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE
-        // ══════════════════════════════════════════════════════════════
-        if (!MOCK_HIRING_DATA) {
-            MOCK_HIRING_DATA = this._generateHiredJobsData();
-        }
-        return MOCK_HIRING_DATA;
+        console.warn('⚠️ Hiring backend unavailable (Firebase mode required)');
+        jobsTrace('jobs:data:hired:error', 'backend_unavailable');
+        return [];
     },
     
     // Get single job by ID
     async getJobById(jobId) {
-        console.log(`📊 JobsDataService.getJobById(${jobId}) - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        console.log(`📊 JobsDataService.getJobById(${jobId}) - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE
@@ -787,28 +499,13 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE
-        // ══════════════════════════════════════════════════════════════
-        const baseMockJobs = this.initialize();
-        const localStorageJobs = this._getJobsFromLocalStorage();
-        const allJobs = this._mergeJobData(baseMockJobs, localStorageJobs);
-        
-        console.log(`🧪 getJobById(${jobId}) - searching in ${allJobs.length} mock jobs`);
-        
-        const foundJob = allJobs.find(job => job.jobId === jobId || job.id === jobId);
-        if (foundJob) {
-            console.log(`✅ getJobById found job with status: ${foundJob.status}`);
-        } else {
-            console.log(`❌ getJobById job not found: ${jobId}`);
-        }
-        
-        return foundJob;
+        console.warn(`⚠️ getJobById(${jobId}) unavailable without Firebase backend`);
+        return null;
     },
     
     // Update job status
     async updateJobStatus(jobId, newStatus) {
-        console.log(`📊 JobsDataService.updateJobStatus(${jobId}, ${newStatus}) - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        console.log(`📊 JobsDataService.updateJobStatus(${jobId}, ${newStatus}) - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE
@@ -827,22 +524,12 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE
-        // ══════════════════════════════════════════════════════════════
-        const jobs = this.initialize();
-        const jobIndex = jobs.findIndex(job => job.jobId === jobId);
-        if (jobIndex !== -1) {
-            jobs[jobIndex].status = newStatus;
-            jobs[jobIndex].lastModified = new Date().toISOString();
-            return { success: true };
-        }
-        return { success: false, error: 'Job not found' };
+        return { success: false, error: 'Backend unavailable' };
     },
     
     // Delete job
     async deleteJob(jobId) {
-        console.log(`📊 JobsDataService.deleteJob(${jobId}) - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
+        console.log(`📊 JobsDataService.deleteJob(${jobId}) - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE
@@ -861,435 +548,28 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE
-        // ══════════════════════════════════════════════════════════════
-        console.log(`🧪 Attempting to delete job from mock data: ${jobId}`);
-        
-        // FIXED: Check localStorage jobs first (where RELISTED jobs are stored)
-        try {
-            const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-            let foundInLocalStorage = false;
-            
-            // Search through all categories in localStorage
-            Object.keys(allJobs).forEach(category => {
-                if (Array.isArray(allJobs[category])) {
-                    const jobIndex = allJobs[category].findIndex(job => job.jobId === jobId);
-                    if (jobIndex !== -1) {
-                        const deletedJob = allJobs[category][jobIndex];
-                        console.log(`✅ Found RELISTED job in localStorage category '${category}':`, deletedJob);
-                        
-                        // Job deletion confirmed (no special blacklist needed)
-                        console.log(`✅ RELISTED job deleted successfully: ${jobId}`);
-                        
-                        // Remove the job from the array
-                        allJobs[category].splice(jobIndex, 1);
-                        foundInLocalStorage = true;
-                        
-                        // Update localStorage
-                        localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-                        console.log(`🗑️ Successfully deleted RELISTED job from localStorage: ${jobId}`);
-                        
-                        // CRITICAL FIX: Also remove from jobPreviewCards (used by category pages)
-                        console.log('🔍 Removing job from jobPreviewCards for category pages...');
-                        try {
-                            let previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-                            const categoryPreviewCards = previewCards[category] || [];
-                            
-                            // Extract jobNumber from jobId (e.g., limpyo_job_2025_1751300670777 → 1751300670777)
-                            const jobNumberMatch = jobId.match(/_(\d+)$/);
-                            const jobNumber = jobNumberMatch ? jobNumberMatch[1] : null;
-                            
-                            console.log(`🔍 Extracted jobNumber: ${jobNumber} from jobId: ${jobId}`);
-                            
-                            // Find and remove the job preview card by matching template URL containing jobNumber
-                            const previewCardIndex = categoryPreviewCards.findIndex(card => 
-                                card.templateUrl && card.templateUrl.includes(`jobNumber=${jobNumber}`)
-                            );
-                            
-                            if (previewCardIndex !== -1) {
-                                const deletedCard = categoryPreviewCards[previewCardIndex];
-                                categoryPreviewCards.splice(previewCardIndex, 1);
-                                previewCards[category] = categoryPreviewCards;
-                                localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-                                console.log(`✅ Job preview card also deleted from category '${category}':`, deletedCard);
-                            } else {
-                                console.log(`⚠️ Job preview card not found in category '${category}' for jobNumber '${jobNumber}'`);
-                                console.log(`🔍 Available template URLs:`, categoryPreviewCards.map(c => c.templateUrl));
-                            }
-                        } catch (error) {
-                            console.error('❌ Error removing job preview card:', error);
-                        }
-                    }
-                }
-            });
-            
-            if (foundInLocalStorage) {
-                return { success: true };
-            }
-        } catch (error) {
-            console.error('❌ Error deleting from localStorage:', error);
-        }
-        
-        // Fallback: Check mock data for original jobs
-        if (MOCK_LISTINGS_DATA) {
-            const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
-            if (jobIndex !== -1) {
-                console.log(`✅ Found original job in mock data:`, MOCK_LISTINGS_DATA[jobIndex]);
-                MOCK_LISTINGS_DATA.splice(jobIndex, 1);
-                console.log(`🗑️ Successfully deleted original job from mock data: ${jobId}`);
-                return { success: true };
-            }
-        }
-        
-        console.error(`❌ Job not found in localStorage or mock data: ${jobId}`);
-        return { success: false, error: 'Job not found' };
+        return { success: false, error: 'Backend unavailable' };
     },
     
     // Clean up (prevents memory leaks) - ENHANCED
     cleanup() {
-        MOCK_LISTINGS_DATA = null;
-        MOCK_HIRING_DATA = null;
-        MOCK_COMPLETED_DATA = null; // ADD: Clean up completed data
-        MOCK_OFFERED_DATA = null; // ADD: Clean up offered data
-        console.log('🧹 JobsDataService mock data cleared');
+        console.log('🧹 JobsDataService runtime state cleared');
     },
     
-    // ENHANCED: Get jobs from localStorage (where new-post.js saves modified jobs)
-    _getJobsFromLocalStorage() {
-        try {
-            const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-            
-            // Flatten all category arrays into a single jobs array
-            const flattenedJobs = [];
-            Object.keys(allJobs).forEach(category => {
-                if (Array.isArray(allJobs[category])) {
-                    allJobs[category].forEach(job => {
-                        // Ensure each job has the required fields for compatibility
-                        flattenedJobs.push({
-                            ...job,
-                            category: job.category || category,
-                            jobPageUrl: job.jobPageUrl || `${job.category || category}.html`
-                        });
-                    });
-                }
-            });
-            
-            console.log('📱 Retrieved jobs from localStorage:', {
-                totalJobs: flattenedJobs.length,
-                byCategory: Object.keys(allJobs).map(cat => ({ category: cat, count: allJobs[cat]?.length || 0 }))
-            });
-            
-            return flattenedJobs;
-        } catch (error) {
-            console.error('❌ Error reading localStorage jobs:', error);
-            return [];
-        }
-    },
-    
-    // ENHANCED: Merge localStorage jobs with mock data (localStorage takes priority)
-    _mergeJobData(mockJobs, localStorageJobs) {
-        // Create a map of localStorage jobs by jobId for fast lookup
-        const localStorageJobsMap = new Map();
-        localStorageJobs.forEach(job => {
-            if (job.jobId) {
-                localStorageJobsMap.set(job.jobId, job);
-            }
-        });
-        
-        // Start with localStorage jobs (highest priority)
-        const mergedJobs = [...localStorageJobs];
-        
-        // Add mock jobs that don't exist in localStorage
-        mockJobs.forEach(mockJob => {
-            if (!localStorageJobsMap.has(mockJob.jobId)) {
-                mergedJobs.push(mockJob);
-            }
-        });
-        
-        // ENHANCED DEBUGGING - Show exactly what's happening with job data
-        console.log('🔀 DETAILED Merged job data:', {
-            localStorageOverrides: localStorageJobsMap.size,
-            mockJobsAdded: mockJobs.length - localStorageJobsMap.size,
-            totalAfterMerge: mergedJobs.length,
-            mockJobIds: mockJobs.map(j => j.jobId),
-            localStorageJobIds: localStorageJobs.map(j => j.jobId),
-            overriddenMockJobs: mockJobs.filter(mockJob => localStorageJobsMap.has(mockJob.jobId)).map(j => j.jobId),
-            finalJobIds: mergedJobs.map(j => j.jobId)
-        });
-        
-        // Show specific job details for troubleshooting
-        const problemJobId = 'job_2024_001_limpyo'; // The "Deep Clean" job that should be getting updated
-        if (localStorageJobsMap.has(problemJobId)) {
-            console.log('✅ Found updated version in localStorage for:', problemJobId, localStorageJobsMap.get(problemJobId));
-        } else {
-            console.log('❌ No localStorage override found for:', problemJobId);
-            console.log('Mock version will be used:', mockJobs.find(j => j.jobId === problemJobId));
-        }
-        
-        return mergedJobs;
-    },
-    
-    // Private method to generate initial mock data
+    // Legacy compatibility placeholder
     _generateInitialData() {
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const twoDaysAgo = new Date(today);
-        twoDaysAgo.setDate(today.getDate() - 2);
-        const threeDaysAgo = new Date(today);
-        threeDaysAgo.setDate(today.getDate() - 3);
-        
-        const formatDateTime = (date) => date.toISOString();
-        
-        return [
-            {
-                jobId: 'job_2024_001_limpyo',
-                jobNumber: 1, // Extracted from jobId for update operations
-                posterId: CURRENT_USER_ID, // Current user posted this job
-                posterName: 'Peter J. Ang',
-                title: 'Deep Clean My 3-Bedroom House Before Family Visit',
-                description: 'Looking for experienced cleaner to deep clean my 3-bedroom house before family arrives for holidays. Need thorough cleaning of bathrooms, kitchen, living areas, and bedrooms. All cleaning supplies will be provided.',
-                category: 'limpyo',
-                thumbnail: 'public/mock/mock-limpyo-post1.jpg',
-                jobDate: '2024-01-18',
-                dateNeeded: '2024-01-18', // Backend field name
-                startTime: '9AM',
-                endTime: '1PM',
-                priceOffer: '800', // Remove ₱ symbol for form population
-                paymentAmount: '800', // Backend field name
-                paymentType: 'total', // hourly, daily, total
-                region: 'Metro Manila',
-                city: 'Quezon City',
-                extras: ['Deep Kitchen Cleaning', 'Bathroom Disinfection'],
-                datePosted: formatDateTime(yesterday),
-                status: 'active',
-                applicationCount: 3,
-                applicationIds: ['app_001_user05', 'app_002_user08', 'app_003_user11'],
-                jobPageUrl: 'limpyo.html'
-            },
-            {
-                jobId: 'job_2024_002_kompra',
-                jobNumber: 2, // Extracted from jobId for update operations
-                posterId: CURRENT_USER_ID, // Current user posted this job
-                posterName: 'Peter J. Ang',
-                title: 'Weekly Grocery Shopping for Elderly Grandmother',
-                description: 'Need reliable person to do weekly grocery shopping for my 85-year-old grandmother. Will provide detailed list and payment. Must be careful with fresh produce selection and check expiration dates.',
-                category: 'kompra',
-                thumbnail: 'public/mock/mock-kompra-post3.jpg',
-                jobDate: '2024-01-20',
-                dateNeeded: '2024-01-20',
-                startTime: '3PM',
-                endTime: '5PM',
-                priceOffer: '500',
-                paymentAmount: '500',
-                paymentType: 'total',
-                region: 'Metro Manila',
-                city: 'Manila',
-                extras: ['Fresh Produce Selection', 'Receipt Required'],
-                datePosted: formatDateTime(twoDaysAgo),
-                status: 'active',
-                applicationCount: 7,
-                applicationIds: ['app_004_user03', 'app_005_user07', 'app_006_user09', 'app_007_user12', 'app_008_user15', 'app_009_user18', 'app_010_user20'],
-                jobPageUrl: 'kompra.html'
-            },
-            {
-                jobId: 'job_2024_003_hatod',
-                jobNumber: 3, // Extracted from jobId for update operations
-                posterId: CURRENT_USER_ID, // Current user posted this job
-                posterName: 'Peter J. Ang',
-                title: 'Airport Pickup & Drop-off for Business Trip',
-                description: 'Need reliable driver for airport pickup and drop-off service for important business trip. Must have clean, air-conditioned vehicle and be punctual. Will provide flight details.',
-                category: 'hatod',
-                thumbnail: 'public/mock/mock-kompra-post6.jpg',
-                jobDate: '2024-01-17',
-                dateNeeded: '2024-01-17',
-                startTime: '7AM',
-                endTime: '9AM',
-                priceOffer: '1200',
-                paymentAmount: '1200',
-                paymentType: 'total',
-                region: 'Metro Manila',
-                city: 'Pasay',
-                extras: ['Air-conditioned Vehicle', 'Luggage Assistance'],
-                datePosted: formatDateTime(today),
-                status: 'active',
-                applicationCount: 2,
-                applicationIds: ['app_011_user06', 'app_012_user14'],
-                jobPageUrl: 'hatod.html'
-            },
-            {
-                jobId: 'job_2024_004_hakot',
-                jobNumber: 4, // Extracted from jobId for update operations
-                posterId: CURRENT_USER_ID, // Current user posted this job
-                posterName: 'Peter J. Ang',
-                title: 'Move Heavy Furniture from 2nd Floor to Storage',
-                description: 'Need 2-3 strong workers to move heavy furniture and boxes from 2nd floor apartment to ground floor storage unit. Items include sofa, dining table, refrigerator, and multiple boxes.',
-                category: 'hakot',
-                thumbnail: 'public/mock/mock-hakot-post7.jpg',
-                jobDate: '2024-01-19',
-                dateNeeded: '2024-01-19',
-                startTime: '1PM',
-                endTime: '4PM',
-                priceOffer: '1000',
-                paymentAmount: '1000',
-                paymentType: 'total',
-                region: 'Metro Manila',
-                city: 'Makati',
-                extras: ['Heavy Lifting Required', 'Furniture Protection'],
-                datePosted: formatDateTime(threeDaysAgo),
-                status: 'active',
-                applicationCount: 5,
-                applicationIds: ['app_013_user02', 'app_014_user10', 'app_015_user13', 'app_016_user16', 'app_017_user19'],
-                jobPageUrl: 'hakot.html'
-            }
-        ];
+        return [];
     },
     
-    // Private method to generate hired jobs mock data
+    // Legacy compatibility placeholder
     _generateHiredJobsData() {
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const twoDaysAgo = new Date(today);
-        twoDaysAgo.setDate(today.getDate() - 2);
-        
-        const formatDateTime = (date) => date.toISOString();
-        
-        return [
-            // Job where current user hired someone (customer perspective)
-            {
-                jobId: 'job_2024_hired_001',
-                posterId: CURRENT_USER_ID, // Current user posted this job
-                posterName: 'Peter J. Ang',
-                title: 'Washing Dishes for Busy Restaurant During Peak Hours',
-                category: 'limpyo',
-                thumbnail: 'public/mock/mock-limpyo-post2.jpg',
-                jobDate: '2024-01-20',
-                startTime: '10AM',
-                endTime: '2PM',
-                priceOffer: '₱800',
-                datePosted: formatDateTime(twoDaysAgo),
-                dateHired: formatDateTime(yesterday),
-                status: 'hired',
-                hiredWorkerId: 'user_maria_santos_002',
-                hiredWorkerName: 'Mario Santos',
-                hiredWorkerThumbnail: 'public/users/User-02.jpg',
-                role: 'customer' // Current user is the customer
-            },
-            
-            // Job where current user was hired (worker perspective)
-            {
-                jobId: 'job_2024_hired_002',
-                posterId: 'user_miguel_torres_006',
-                posterName: 'Miguel Torres',
-                posterThumbnail: 'public/users/User-06.jpg',
-                title: 'Move Heavy Furniture & Electronics to New House Location',
-                category: 'hakot',
-                thumbnail: 'public/mock/mock-hakot-post3.jpg',
-                jobDate: '2024-01-22',
-                startTime: '8AM',
-                endTime: '12PM',
-                priceOffer: '₱1,200',
-                datePosted: formatDateTime(twoDaysAgo),
-                dateHired: formatDateTime(yesterday),
-                status: 'hired',
-                hiredWorkerId: CURRENT_USER_ID, // Current user was hired for this job
-                hiredWorkerName: 'Peter J. Ang',
-                hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-                role: 'worker' // Current user is the worker
-            },
-            
-            // Another job where current user hired someone
-            {
-                jobId: 'job_2024_hired_003',
-                posterId: CURRENT_USER_ID,
-                posterName: 'Peter J. Ang',
-                title: 'Weekly Grocery Shopping',
-                category: 'kompra',
-                thumbnail: 'public/mock/mock-kompra-post4.jpg',
-                jobDate: '2024-01-25',
-                startTime: '2PM',
-                endTime: '4PM',
-                priceOffer: '₱500',
-                datePosted: formatDateTime(yesterday),
-                dateHired: formatDateTime(today),
-                status: 'hired',
-                hiredWorkerId: 'user_ana_reyes_004',
-                hiredWorkerName: 'Ana Reyes',
-                hiredWorkerThumbnail: 'public/users/User-03.jpg',
-                role: 'customer'
-            },
-            
-            // Additional long title jobs for testing
-            {
-                jobId: 'job_2024_hired_004',
-                posterId: 'user_elena_rodriguez_005',
-                posterName: 'Elena Rodriguez',
-                posterThumbnail: 'public/users/User-05.jpg',
-                title: 'Professional Deep Cleaning of 4-Bedroom House Today',
-                category: 'limpyo',
-                thumbnail: 'public/mock/mock-limpyo-post5.jpg',
-                jobDate: '2024-01-26',
-                startTime: '9AM',
-                endTime: '3PM',
-                priceOffer: '₱1,500',
-                datePosted: formatDateTime(yesterday),
-                dateHired: formatDateTime(today),
-                status: 'hired',
-                hiredWorkerId: CURRENT_USER_ID,
-                hiredWorkerName: 'Peter J. Ang',
-                hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-                role: 'worker'
-            },
-            
-                         {
-                 jobId: 'job_2024_hired_005',
-                 posterId: CURRENT_USER_ID,
-                 posterName: 'Peter J. Ang',
-                 title: 'Airport Pickup & Drop-off Service with Luggage Handling',
-                 category: 'hatod',
-                 thumbnail: 'public/mock/mock-hatod-post2.jpg',
-                jobDate: '2024-01-28',
-                startTime: '6AM',
-                endTime: '10AM',
-                priceOffer: '₱2,000',
-                datePosted: formatDateTime(today),
-                dateHired: formatDateTime(today),
-                status: 'hired',
-                hiredWorkerId: 'user_carla_dela_cruz_003',
-                hiredWorkerName: 'Carla Dela Cruz',
-                hiredWorkerThumbnail: 'public/users/User-04.jpg',
-                role: 'customer'
-            },
-            
-            {
-                jobId: 'job_2024_hired_006',
-                posterId: 'user_rosa_martinez_007',
-                posterName: 'Ryan Martinez',
-                posterThumbnail: 'public/users/User-07.jpg',
-                title: 'Heavy Construction Materials Transport & Delivery',
-                category: 'hakot',
-                thumbnail: 'public/mock/mock-hakot-post4.jpg',
-                jobDate: '2024-01-30',
-                startTime: '7AM',
-                endTime: '5PM',
-                priceOffer: '₱3,000',
-                datePosted: formatDateTime(twoDaysAgo),
-                dateHired: formatDateTime(yesterday),
-                status: 'hired',
-                hiredWorkerId: CURRENT_USER_ID,
-                hiredWorkerName: 'Peter J. Ang',
-                hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-                role: 'worker'
-            }
-        ];
+        return [];
     },
     
     // Get completed jobs (simulates Firebase query) - FIREBASE READY
     async getCompletedJobs() {
-        console.log(`📊 JobsDataService.getCompletedJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
-        jobsTrace('jobs:data:completed:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
+        console.log(`📊 JobsDataService.getCompletedJobs() - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
+        jobsTrace('jobs:data:completed:start', { backend: this._useFirebase() ? 'enabled' : 'unavailable' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE - Load completed jobs from Firestore
@@ -1423,19 +703,15 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE - Return mock data
-        // ══════════════════════════════════════════════════════════════
-        if (!MOCK_COMPLETED_DATA) {
-            MOCK_COMPLETED_DATA = generateCompletedJobsData();
-        }
-        return MOCK_COMPLETED_DATA;
+        console.warn('⚠️ Completed jobs backend unavailable (Firebase mode required)');
+        jobsTrace('jobs:data:completed:error', 'backend_unavailable');
+        return [];
     },
     
     // Get offered jobs (simulates Firebase query) - NEW FOR GIGS OFFERED TAB
     async getOfferedJobs() {
-        console.log(`📊 JobsDataService.getOfferedJobs() - Mode: ${this._useFirebase() ? 'FIREBASE' : 'MOCK'}`);
-        jobsTrace('jobs:data:offered:start', { mode: this._useFirebase() ? 'FIREBASE' : 'MOCK' });
+        console.log(`📊 JobsDataService.getOfferedJobs() - Backend: ${this._useFirebase() ? 'enabled' : 'unavailable'}`);
+        jobsTrace('jobs:data:offered:start', { backend: this._useFirebase() ? 'enabled' : 'unavailable' });
         
         // ══════════════════════════════════════════════════════════════
         // FIREBASE MODE - Load offered jobs from Firestore
@@ -1473,87 +749,14 @@ window.JobsDataService = {
             }
         }
         
-        // ══════════════════════════════════════════════════════════════
-        // MOCK MODE - Use mock data
-        // ══════════════════════════════════════════════════════════════
-        console.log('🧪 Loading offered jobs from MOCK data...');
-        
-        if (!MOCK_OFFERED_DATA) {
-            MOCK_OFFERED_DATA = this._generateOfferedJobsData();
-        }
-        return MOCK_OFFERED_DATA;
+        console.warn('⚠️ Offered jobs backend unavailable (Firebase mode required)');
+        jobsTrace('jobs:data:offered:error', 'backend_unavailable');
+        return [];
     },
     
-    // Generate mock offered jobs data
+    // Legacy compatibility placeholder
     _generateOfferedJobsData() {
-        const today = new Date();
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        
-        const formatDateTime = (date) => date.toISOString();
-        
-        return [
-            {
-                jobId: 'job_2024_offered_001',
-                posterId: 'user_maria_santos_002',
-                posterName: 'Maria Santos',
-                posterThumbnail: 'public/users/User-02.jpg',
-                title: 'Deep Clean 3-Bedroom House After Renovation',
-                description: 'Need thorough cleaning after home renovation. Includes dust removal, window cleaning, and floor polishing.',
-                category: 'limpyo',
-                thumbnail: 'public/mock/mock-limpyo-post1.jpg',
-                jobDate: '2024-01-25',
-                startTime: '8AM',
-                endTime: '5PM',
-                priceOffer: '₱2,500',
-                datePosted: formatDateTime(yesterday),
-                dateOffered: formatDateTime(today),
-                status: 'offered',
-                hiredWorkerId: CURRENT_USER_ID,
-                hiredWorkerName: 'Peter J. Ang',
-                role: 'worker'
-            },
-            {
-                jobId: 'job_2024_offered_002',
-                posterId: 'user_ana_reyes_004',
-                posterName: 'Ana Reyes',
-                posterThumbnail: 'public/users/User-03.jpg',
-                title: 'Transport Furniture from Makati to Quezon City',
-                description: 'Need reliable transport for moving furniture and boxes to new apartment.',
-                category: 'hatod',
-                thumbnail: 'public/mock/mock-hatod-post2.jpg',
-                jobDate: '2024-01-26',
-                startTime: '10AM',
-                endTime: '2PM',
-                priceOffer: '₱1,800',
-                datePosted: formatDateTime(yesterday),
-                dateOffered: formatDateTime(today),
-                status: 'offered',
-                hiredWorkerId: CURRENT_USER_ID,
-                hiredWorkerName: 'Peter J. Ang',
-                role: 'worker'
-            },
-            {
-                jobId: 'job_2024_offered_003',
-                posterId: 'user_carlos_rivera_005',
-                posterName: 'Carlos Rivera',
-                posterThumbnail: 'public/users/User-05.jpg',
-                title: 'Fix Kitchen Plumbing - Leaky Faucet and Clogged Drain',
-                description: 'Need experienced plumber to fix kitchen sink issues. Faucet has been leaking for days and drain is completely blocked.',
-                category: 'plumber',
-                thumbnail: 'public/mock/mock-limpyo-post3.jpg',
-                jobDate: '2024-01-27',
-                startTime: '2PM',
-                endTime: '4PM',
-                priceOffer: '₱1,200',
-                datePosted: formatDateTime(yesterday),
-                dateOffered: formatDateTime(today),
-                status: 'offered',
-                hiredWorkerId: CURRENT_USER_ID,
-                hiredWorkerName: 'Peter J. Ang',
-                role: 'worker'
-            }
-        ];
+        return [];
     }
 };
 
@@ -1620,9 +823,9 @@ function executeAllCleanups() {
     });
     CLEANUP_REGISTRY.intervals.clear();
     
-    // ===== CLEANUP GLOBAL MOCK DATA =====
+    // ===== CLEANUP GLOBAL STATE =====
     JobsDataService.cleanup();
-    console.log('🧹 Global mock data cleared');
+    console.log('🧹 Global jobs state cleared');
     
     console.log('🧹 Jobs page cleanup completed');
 }
@@ -1749,17 +952,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         const preferredRoleParam = String(urlParams.get('role') || '').toLowerCase();
         
         if (shouldRefresh) {
-            console.log('🔄 Refresh parameter detected - clearing cached job data');
-            // Clear all cached data to force fresh load
-            MOCK_LISTINGS_DATA = null;
-            MOCK_HIRING_DATA = null;
-            MOCK_COMPLETED_DATA = null;
-            MOCK_OFFERED_DATA = null;
-            
+            console.log('🔄 Refresh parameter detected');
             // Remove refresh parameter from URL without reloading page
             const cleanUrl = window.location.pathname;
             window.history.replaceState({}, document.title, cleanUrl);
-            console.log('✅ Job data cache cleared and URL cleaned');
+            console.log('✅ Refresh parameter consumed and URL cleaned');
         }
         
     initializeMenu();
@@ -2548,12 +1745,6 @@ function attachWorkerCompletedCardHandlers() {
 }
 
 async function switchToTab(tabType) {
-    // Clean up old deletion blacklist (no longer needed) - one-time cleanup
-    if (localStorage.getItem('deletedJobsBlacklist')) {
-        localStorage.removeItem('deletedJobsBlacklist');
-        console.log('🧹 Cleaned up old deletion blacklist');
-    }
-    
     // Get current active tab before making changes
     const currentActiveTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
     
@@ -2689,11 +1880,11 @@ async function loadListingsContent() {
     jobsTrace('render:tab:loading', { role: 'customer', tab: 'listings' });
     
     try {
-        // Generate mock listings data
-        const mockListings = await generateMockListings();
+        // Load listings data from backend service
+        const listings = await loadListingsData();
         if (!shouldApplyTabRender('listings', renderToken)) return;
         
-        if (mockListings.length === 0) {
+        if (listings.length === 0) {
             jobsTrace('render:tab:success', { role: 'customer', tab: 'listings', count: 0 });
             if (!shouldApplyTabRender('listings', renderToken)) return;
             container.innerHTML = `
@@ -2710,7 +1901,7 @@ async function loadListingsContent() {
         }
         
         // Sort by job date (earliest jobs first - most urgent at top)
-        const sortedListings = mockListings.sort((a, b) => {
+        const sortedListings = listings.sort((a, b) => {
             const dateA = new Date(a.jobDate);
             const dateB = new Date(b.jobDate);
             return dateA - dateB;
@@ -2738,7 +1929,7 @@ async function loadListingsContent() {
     }
 }
 
-async function generateMockListings() {
+async function loadListingsData() {
     // Use the data service layer for Firebase-ready data access
     return await JobsDataService.getAllJobs();
 }
@@ -5218,43 +4409,7 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
         }
     }
     
-    if (!isLocalDevelopmentRuntime()) {
-        reportMockModeBlocked('Offer acceptance fallback flow');
-        return;
-    }
-
-    // Local-dev mock mode only.
-    if (!MOCK_OFFERED_DATA) return;
-    
-    const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
-    if (jobIndex === -1) {
-        console.error(`❌ Job ${jobId} not found in offered data`);
-        return;
-    }
-    
-    // Get the job data
-    const offeredJob = MOCK_OFFERED_DATA[jobIndex];
-    
-    // Remove from offered data
-    MOCK_OFFERED_DATA.splice(jobIndex, 1);
-    
-    // Convert to accepted job format and add to hiring data
-    const acceptedJob = {
-        ...offeredJob,
-        status: 'hired',
-        dateHired: formatDateTime(new Date()),
-        hiredWorkerName: offeredJob.hiredWorkerName,
-        hiredWorkerId: offeredJob.hiredWorkerId,
-        hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
-    };
-    
-    // Add to hiring data (this makes it appear in both customer's Hiring tab and worker's Accepted tab)
-    if (!MOCK_HIRING_DATA) {
-        MOCK_HIRING_DATA = [];
-    }
-    MOCK_HIRING_DATA.push(acceptedJob);
-    
-    console.log(`✅ Job ${jobId} successfully moved from offered to accepted`);
+    throw new Error('Offer acceptance backend unavailable');
 }
 
 async function rejectGigOffer(jobId) {
@@ -5366,70 +4521,7 @@ async function rejectGigOffer(jobId) {
         }
     }
     
-    if (!isLocalDevelopmentRuntime()) {
-        reportMockModeBlocked('Offer rejection fallback flow');
-        return;
-    }
-
-    // Local-dev mock mode only.
-    if (!MOCK_OFFERED_DATA) return;
-    
-    const jobIndex = MOCK_OFFERED_DATA.findIndex(job => job.jobId === jobId);
-    if (jobIndex === -1) {
-        console.error(`❌ Job ${jobId} not found in offered data`);
-        return;
-    }
-    
-    // Remove from offered data
-    MOCK_OFFERED_DATA.splice(jobIndex, 1);
-    
-    console.log(`✅ Job ${jobId} successfully rejected and removed from offered data`);
-}
-
-async function addToOfferedData(jobData, workerData) {
-    console.log(`💼 Adding job ${jobData.jobId} to offered data for worker ${workerData.userName}`);
-    
-    // Initialize offered data if it doesn't exist
-    if (!MOCK_OFFERED_DATA) {
-        MOCK_OFFERED_DATA = [];
-    }
-    
-    // Create offered job entry
-    const offeredJob = {
-        jobId: jobData.jobId,
-        posterId: jobData.posterId || 'unknown-poster',
-        posterName: jobData.posterName || 'Unknown Customer',
-        posterThumbnail: jobData.posterThumbnail || 'public/users/User-04.jpg',
-        title: jobData.title,
-        description: jobData.description,
-        category: jobData.category,
-        thumbnail: jobData.thumbnail,
-        jobDate: jobData.jobDate,
-        startTime: jobData.startTime,
-        endTime: jobData.endTime,
-        priceOffer: workerData.priceOffer,
-        datePosted: jobData.datePosted,
-        dateOffered: formatDateTime(new Date()),
-        status: 'offered',
-        hiredWorkerId: workerData.userId,
-        hiredWorkerName: workerData.userName,
-        role: 'worker' // Always worker perspective for offered jobs
-    };
-    
-    // Add to offered data
-    MOCK_OFFERED_DATA.push(offeredJob);
-    
-    console.log(`✅ Job ${jobData.jobId} successfully added to offered data`);
-    
-    // In Firebase, this would be:
-    // const db = firebase.firestore();
-    // await db.collection('jobs').doc(jobId).update({
-    //     status: 'offered',
-    //     hiredWorkerId: workerData.userId,
-    //     hiredWorkerName: workerData.userName,
-    //     offeredAt: firebase.firestore.FieldValue.serverTimestamp(),
-    //     agreedPrice: workerData.priceOffer
-    // });
+    throw new Error('Offer rejection backend unavailable');
 }
 
 async function handleCompleteJob(jobData) {
@@ -6201,61 +5293,7 @@ function initializeRelistJobConfirmationHandlers() {
                         yesBtn.disabled = false;
                     }
                 } else {
-                    // ══════════════════════════════════════════════════════════════
-                    // MOCK MODE - Move from hiring data back to listings
-                    // ══════════════════════════════════════════════════════════════
-                    if (MOCK_HIRING_DATA) {
-                        const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === jobId);
-                        if (jobToRelist) {
-                            // Remove from hiring data first
-                            MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== jobId);
-                            console.log(`🗑️ Removed job ${jobId} from MOCK_HIRING_DATA`);
-                            
-                            // Reactivate job by adding back to listings data with SAME ID
-                            if (!MOCK_LISTINGS_DATA) {
-                                MOCK_LISTINGS_DATA = [];
-                            }
-                            
-                            // Restore original job with preserved applications (minus the hired worker)
-                            const reactivatedJob = {
-                                jobId: jobToRelist.jobId, // Keep original ID - THIS IS KEY!
-                                posterId: jobToRelist.posterId,
-                                posterName: jobToRelist.posterName,
-                                title: jobToRelist.title,
-                                category: jobToRelist.category,
-                                thumbnail: jobToRelist.thumbnail,
-                                jobDate: jobToRelist.jobDate,
-                                startTime: jobToRelist.startTime,
-                                endTime: jobToRelist.endTime,
-                                datePosted: new Date().toISOString(), // Update posted date to show as recent
-                                status: 'active', // Reactivate the job
-                                // Preserve applications but exclude the hired worker's application
-                                applicationCount: Math.max(0, (jobToRelist.originalApplicationCount || 0) - 1),
-                                applicationIds: (jobToRelist.originalApplicationIds || []).filter(id => id !== jobToRelist.hiredWorkerId),
-                                jobPageUrl: `${jobToRelist.category}.html`,
-                                // Store metadata about reactivation
-                                originalApplicationCount: jobToRelist.originalApplicationCount || 0,
-                                originalApplicationIds: jobToRelist.originalApplicationIds || [],
-                                reactivatedAt: new Date().toISOString(),
-                                reactivatedFrom: 'hiring',
-                                voidedWorker: workerName,
-                                voidedWorkerId: jobToRelist.hiredWorkerId,
-                                relistReason: reason
-                            };
-                            
-                            MOCK_LISTINGS_DATA.push(reactivatedJob);
-                            console.log(`✅ REACTIVATED job ${jobId} - moved from hiring to listings with ${reactivatedJob.applicationCount} preserved applications (excluded hired worker: ${workerName})`);
-                            
-                            // Show success message
-                            showContractVoidedSuccess(`Gig reactivated successfully! "${jobToRelist.title}" is now active in your Listings with preserved applications.`);
-                        } else {
-                            console.error(`❌ Source hiring job not found: ${jobId}`);
-                            showErrorNotification('Failed to relist job - source job not found');
-                        }
-                    } else {
-                        console.error(`❌ MOCK_HIRING_DATA not available`);
-                        showErrorNotification('Failed to relist job - hiring data not available');
-                    }
+                    throw new Error('Relist backend unavailable');
                 }
             }
             
@@ -6675,31 +5713,17 @@ function showJobCompletedSuccess(jobTitle, workerName) {
         await slideOutCard(cardToRemove, 'right');
         showSuccessNotification('Gig completed and feedback submitted');
         
-        // Remove completed job from hiring data and transfer to completed data
-        // ONLY manipulate mock data if NOT in Firebase mode
         const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
-        if (!useFirebase && completedJobId && MOCK_HIRING_DATA) {
-            const completedJob = MOCK_HIRING_DATA.find(job => job.jobId === completedJobId);
-            if (completedJob) {
-                // Add to completed jobs data
-                await addJobToCompletedData(completedJob, rating, feedbackText);
-                
-                // Remove from hiring data
-                MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== completedJobId);
-                console.log(`✅ Transferred completed job ${completedJobId} from Hiring to Previous tab`);
-            }
-        } else if (useFirebase) {
-            console.log(`🔥 Firebase mode: Skipping mock data manipulation, will refresh from Firestore`);
+        if (!useFirebase) {
+            throw new Error('Feedback completion backend unavailable');
         }
         
         // Reset feedback form for next use
         resetFeedbackForm();
         
         // In Firebase mode, add a small delay to ensure writes propagate before refresh
-        if (useFirebase) {
-            console.log('🔥 Waiting for Firebase propagation before refresh...');
-            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
-        }
+        console.log('🔥 Waiting for Firebase propagation before refresh...');
+        await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
         
         // Refresh hiring tab content to remove completed job and previous tab to show new job
         await loadHiringContent();
@@ -7092,22 +6116,6 @@ function showResignationConfirmed(jobTitle, customerName) {
         await slideOutCard(cardToRemove, 'right');
         showSuccessNotification('You have resigned from this gig');
         
-        // Remove resigned job from hiring data (worker resignation = job simply disappears)
-        if (resignedJobId && MOCK_HIRING_DATA) {
-            // Find the job to resign from
-            const jobToResign = MOCK_HIRING_DATA.find(job => job.jobId === resignedJobId);
-            if (jobToResign) {
-                // Remove from hiring data (worker resigned, so job is effectively completed/cancelled from worker's perspective)
-                MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== resignedJobId);
-                
-                // Worker resignation: Job simply disappears from worker's view
-                // Backend handles: Job goes back to customer's Listings + notification sent to customer
-                // Worker has no further involvement with this job
-                
-                console.log(`👋 Worker resigned from job ${resignedJobId} - removed from worker's hiring view`);
-            }
-        }
-        
         // Refresh hiring tab only (worker won't see customer's listings)
         await loadHiringContent();
         // Update tab counts
@@ -7140,38 +6148,6 @@ function showContractVoidedNegative(jobTitle, workerName) {
         // Slide out card and show toast
         await slideOutCard(cardToRemove, 'left');
         showSuccessNotification('Job moved back to Listings');
-        
-        // Remove relisted job from hiring data and add back to listings
-        if (relistedJobId && MOCK_HIRING_DATA) {
-            // Find the job to relist
-            const jobToRelist = MOCK_HIRING_DATA.find(job => job.jobId === relistedJobId);
-            if (jobToRelist) {
-                // Remove from hiring data
-                MOCK_HIRING_DATA = MOCK_HIRING_DATA.filter(job => job.jobId !== relistedJobId);
-                
-                // Add back to listings data (convert back to active listing)
-                if (MOCK_LISTINGS_DATA) {
-                    const reactivatedJob = {
-                        jobId: jobToRelist.jobId,
-                        posterId: jobToRelist.posterId,
-                        posterName: jobToRelist.posterName,
-                        title: jobToRelist.title,
-                        category: jobToRelist.category,
-                        thumbnail: jobToRelist.thumbnail,
-                        jobDate: jobToRelist.jobDate,
-                        startTime: jobToRelist.startTime,
-                        endTime: jobToRelist.endTime,
-                        datePosted: new Date().toISOString(), // Update posted date
-                        status: 'active',
-                        applicationCount: 0, // Reset application count
-                        applicationIds: [], // Reset applications
-                        jobPageUrl: `${jobToRelist.category}.html`
-                    };
-                    MOCK_LISTINGS_DATA.push(reactivatedJob);
-                    console.log(`🔄 Relisted job ${relistedJobId} - moved from hiring to listings`);
-                }
-            }
-        }
         
         // Refresh both hiring and listings tabs
         await loadHiringContent();
@@ -7207,8 +6183,6 @@ function showEmptyHiringState() {
 }
 
 // ========================== PREVIOUS TAB FUNCTIONALITY ==========================
-
-// Note: MOCK_COMPLETED_DATA is declared globally at the top of this file
 
 async function initializePreviousTab() {
     const container = document.querySelector('.previous-container');
@@ -7278,158 +6252,7 @@ async function loadPreviousContent() {
 
 // ===== GLOBAL FUNCTION FOR CROSS-FILE ACCESS =====
 window.getCompletedJobs = async function() {
-    // Firebase Implementation:
-    // const db = firebase.firestore();
-    // const currentUserId = firebase.auth().currentUser.uid;
-    // 
-    // const completedJobsSnapshot = await db.collection('jobs')
-    //     .where('status', '==', 'completed')
-    //     .where(firebase.firestore.Filter.or(
-    //         firebase.firestore.Filter.where('posterId', '==', currentUserId),
-    //         firebase.firestore.Filter.where('hiredWorkerId', '==', currentUserId)
-    //     ))
-    //     .orderBy('completedAt', 'desc')
-    //     .get();
-    
-    if (!MOCK_COMPLETED_DATA) {
-        MOCK_COMPLETED_DATA = generateCompletedJobsData();
-    }
-    return MOCK_COMPLETED_DATA;
-}
-
-function generateCompletedJobsData() {
-    const today = new Date();
-    const formatDateTime = (date) => date.toISOString();
-    
-    // Generate 6 mock completed jobs with mix of customer and worker perspectives
-    return [
-        {
-            jobId: 'completed_job_001',
-            posterId: CURRENT_USER_ID, // Peter posted this job
-            posterName: 'Peter J. Ang',
-            posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-            title: 'Kitchen Deep Cleaning Service with Cabinet Organization',
-            category: 'limpyo',
-            thumbnail: 'public/mock/mock-limpyo-post1.jpg', // Use actual job photo
-            jobDate: '2024-12-20',
-            startTime: '8:00 AM',
-            endTime: '12:00 PM',
-            priceOffer: '800',
-            completedAt: formatDateTime(new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000)), // 3 days ago
-            rating: 5,
-            feedback: 'Maria did an excellent job! My kitchen looks brand new. Very professional and thorough work.',
-            role: 'customer', // Current user (Peter) hired someone
-            hiredWorkerId: 'user_maria_santos_005',
-            hiredWorkerName: 'Maria Santos',
-            hiredWorkerThumbnail: 'public/users/User-05.jpg'
-        },
-        {
-            jobId: 'completed_job_002',
-            posterId: 'user_carlos_dela_cruz_003',
-            posterName: 'Carlos Dela Cruz',
-            posterThumbnail: 'public/users/User-03.jpg',
-            title: 'Custom Furniture Repair & Assembly with Wood Finishing',
-            category: 'carpenter',
-            thumbnail: 'public/mock/mock-hakot-post2.jpg', // Use actual job photo
-            jobDate: '2024-12-18',
-            startTime: '1:00 PM',
-            endTime: '5:00 PM',
-            priceOffer: '1200',
-            completedAt: formatDateTime(new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000)), // 5 days ago
-            rating: 4, // Customer's rating of the job completion
-            feedback: null, // Worker perspective - no feedback initially, will show instructions
-            workerFeedback: null, // No feedback left yet - first card
-            workerRating: null, // No rating given yet - will be set when worker submits feedback
-            role: 'worker', // Current user (Peter) worked for Carlos
-            hiredWorkerId: CURRENT_USER_ID,
-            hiredWorkerName: 'Peter J. Ang',
-            hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
-        },
-        {
-            jobId: 'completed_job_003',
-            posterId: CURRENT_USER_ID, // Peter posted this job
-            posterName: 'Peter J. Ang',
-            posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-            title: 'Complete Garden Maintenance & Landscaping Project',
-            category: 'limpyo',
-            thumbnail: 'public/mock/mock-limpyo-post3.jpg', // Use actual job photo
-            jobDate: '2024-12-15',
-            startTime: '7:00 AM',
-            endTime: '11:00 AM',
-            priceOffer: '600',
-            completedAt: formatDateTime(new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000)), // 8 days ago
-            rating: 5,
-            feedback: 'Amazing work! Ana transformed our garden completely. Highly recommended!',
-            role: 'customer', // Current user (Peter) hired someone
-            hiredWorkerId: 'user_ana_reyes_007',
-            hiredWorkerName: 'Ana Reyes',
-            hiredWorkerThumbnail: 'public/users/User-07.jpg'
-        },
-        {
-            jobId: 'completed_job_004',
-            posterId: 'user_rico_torres_009',
-            posterName: 'Rico Torres',
-            posterThumbnail: 'public/users/User-09.jpg',
-            title: 'Complete Appliance Installation & Electrical Wiring Setup',
-            category: 'electrician',
-            thumbnail: 'public/mock/mock-hatod-post4.jpg', // Use actual job photo
-            jobDate: '2024-12-12',
-            startTime: '9:00 AM',
-            endTime: '2:00 PM',
-            priceOffer: '1500',
-            completedAt: formatDateTime(new Date(today.getTime() - 11 * 24 * 60 * 60 * 1000)), // 11 days ago
-            rating: 3, // Customer's rating of the job completion
-            feedback: null, // Worker perspective - no feedback shown initially
-            workerFeedback: 'Rico was very organized and clear with his instructions. The workspace was clean and he provided all necessary tools. Great communication throughout the job.',
-            workerRating: 4, // Worker already gave a 4-star rating along with feedback
-            role: 'worker', // Current user (Peter) worked for Rico
-            hiredWorkerId: CURRENT_USER_ID,
-            hiredWorkerName: 'Peter J. Ang',
-            hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
-        },
-        {
-            jobId: 'completed_job_005',
-            posterId: CURRENT_USER_ID, // Peter posted this job
-            posterName: 'Peter J. Ang',
-            posterThumbnail: 'public/users/Peter-J-Ang-User-01.jpg',
-            title: 'Complete Bathroom Renovation with Plumbing & Tile Work',
-            category: 'plumber',
-            thumbnail: 'public/mock/mock-limpyo-post5.jpg', // Use actual job photo
-            jobDate: '2024-12-10',
-            startTime: '8:00 AM',
-            endTime: '6:00 PM',
-            priceOffer: '2500',
-            completedAt: formatDateTime(new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000)), // 13 days ago
-            rating: 5,
-            feedback: 'Outstanding service! Elena finished the bathroom renovation perfectly. Very skilled and reliable.',
-            role: 'customer', // Current user (Peter) hired someone
-            hiredWorkerId: 'user_elena_garcia_006',
-            hiredWorkerName: 'Elena Garcia',
-            hiredWorkerThumbnail: 'public/users/User-06.jpg'
-        },
-        {
-            jobId: 'completed_job_006',
-            posterId: 'user_miguel_santos_011',
-            posterName: 'Miguel Santos',
-            posterThumbnail: 'public/users/User-11.jpg',
-            title: 'Complete Interior & Exterior House Painting with Primer',
-            category: 'painter',
-            thumbnail: 'public/mock/mock-kompra-post6.jpg', // Use actual job photo
-            jobDate: '2024-12-08',
-            startTime: '7:00 AM',
-            endTime: '4:00 PM',
-            priceOffer: '1800',
-            completedAt: formatDateTime(new Date(today.getTime() - 15 * 24 * 60 * 60 * 1000)), // 15 days ago
-            rating: 4, // Customer's rating of the job completion
-            feedback: null, // Worker perspective - no feedback shown initially
-            workerFeedback: 'Miguel was a fantastic customer! He was flexible with timing and very appreciative of the work. The house preparation was perfect and payment was prompt.',
-            workerRating: 5, // Worker already gave a 5-star rating along with feedback
-            role: 'worker', // Current user (Peter) worked for Miguel
-            hiredWorkerId: CURRENT_USER_ID,
-            hiredWorkerName: 'Peter J. Ang',
-            hiredWorkerThumbnail: 'public/users/Peter-J-Ang-User-01.jpg'
-        }
-    ];
+    return JobsDataService.getCompletedJobs();
 }
 
 async function generateMockCompletedJobs(completedJobs) {
@@ -7754,7 +6577,7 @@ function initializeCompletedCardHandlers() {
                 } else {
                     // This is actual feedback text - trigger expand overlay
                     console.log('📖 Feedback text clicked - showing expanded view');
-                    showFeedbackExpandedOverlay(jobData);
+                    showFeedbackExpandedOverlay(jobData, card);
                 }
             };
             
@@ -7899,19 +6722,8 @@ function extractCompletedJobDataFromCard(cardElement) {
     return jobData;
 }
 
-async function showFeedbackExpandedOverlay(jobData) {
+async function showFeedbackExpandedOverlay(jobData, cardElement) {
     console.log('💬 Show expanded feedback for:', jobData);
-    
-    // Find the feedback content from the completed jobs data (use updated data if available)
-    const completedJobs = MOCK_COMPLETED_DATA || generateCompletedJobsData();
-    const job = completedJobs.find(j => j.jobId === jobData.jobId);
-    
-    if (!job) {
-        console.error('❌ Job not found for feedback expansion');
-        return;
-    }
-    
-    console.log('📝 Found job for feedback:', job);
     
     let overlay = document.getElementById('feedbackExpandedOverlay');
     if (!overlay) {
@@ -7931,12 +6743,16 @@ async function showFeedbackExpandedOverlay(jobData) {
     
     // Determine feedback content (instruction boxes are handled at click level now)
     let feedbackText = '';
-    if (job.role === 'customer' && job.feedback) {
-        feedbackText = job.feedback;
+    const feedbackFromCard = cardElement
+        ? cardElement.querySelector('.completed-feedback-text')?.textContent?.trim()
+        : '';
+
+    if (jobData.role === 'customer' && feedbackFromCard) {
+        feedbackText = feedbackFromCard;
         title.textContent = 'Your Feedback';
         console.log('📝 Showing customer feedback');
-    } else if (job.role === 'worker' && job.workerFeedback) {
-        feedbackText = job.workerFeedback;
+    } else if (jobData.role === 'worker' && feedbackFromCard) {
+        feedbackText = feedbackFromCard;
         title.textContent = 'Your Feedback';
         console.log('📝 Showing worker feedback');
     } else {
@@ -8889,10 +7705,8 @@ async function getApplicationsForJob(jobId) {
         }
     }
     
-    // Fallback to mock data
-    console.log('🧪 Using mock applications data');
-    const jobData = MOCK_APPLICATIONS.find(job => job.jobId === jobId);
-    return jobData ? jobData.applications : [];
+    console.warn('⚠️ Applications backend unavailable (Firebase mode required)');
+    return [];
 }
 
 // Helper function to format date from Firestore Timestamp
@@ -10001,58 +8815,9 @@ async function processHireConfirmation(workerData) {
             console.error('❌ Error hiring worker:', error);
             showErrorNotification('An error occurred while hiring. Please try again.');
         }
-    } else if (isLocalDevelopmentRuntime()) {
-        // Local-dev mock mode only.
-        console.log('🧪 Using mock hire logic');
-        
-        // Hide loading after short delay
-        setTimeout(() => hideLoadingOverlay(), 500);
-        
-        showConfirmationWithCallback(
-            '🎉',
-            'Gig Offer Sent!',
-            `<div style="line-height: 1.6;">
-                <p style="margin: 0 0 12px 0;"><strong>${workerData.userName}</strong> has been sent a job offer.</p>
-                <p style="margin: 0 0 12px 0;">They will be notified and must accept the offer before work begins.</p>
-                <p style="margin: 0; color: #666;">The job will move to your <strong>Hiring</strong> tab with "Pending Offer" status.</p>
-            </div>`,
-            async () => {
-                console.log('✅ User closed success overlay, starting offer process...');
-                
-                try {
-                    closeAllOverlaysAfterHire();
-                    
-                    const jobCard = document.querySelector(`[data-job-id="${workerData.jobId}"]`);
-                    if (jobCard) {
-                        const jobData = extractJobDataFromCard(jobCard);
-                        if (jobData) {
-                            await addToOfferedData(jobData, workerData);
-                            
-                            jobData.hiredWorker = workerData.userName;
-                            jobData.hiredWorkerPhoto = workerData.userPhoto;
-                            jobData.agreedPrice = workerData.priceOffer;
-                            jobData.priceType = workerData.priceType;
-                            jobData.status = 'pending-offer';
-                            addToHiringData(jobData);
-                            console.log('✅ Job offer created for both worker and customer');
-                        }
-                    }
-                    
-                    console.log('📋 Applications held in reserve until worker accepts offer');
-                    
-                    setTimeout(async () => {
-                        await moveJobListingToHiringWithData(workerData.jobId, workerData.userName, 'pending-offer');
-                    }, 500);
-                    
-                } catch (error) {
-                    console.error('❌ Error in offer process:', error);
-                }
-            },
-            'celebration'
-        );
     } else {
         hideLoadingOverlay();
-        reportMockModeBlocked('Hire confirmation fallback flow');
+        showErrorNotification('Hire backend unavailable');
     }
 }
 
@@ -10181,78 +8946,6 @@ function moveJobListingToHiring(jobId, workerName) {
     return moveJobListingToHiringWithData(jobId, workerName);
 }
 
-function addToHiringData(jobData) {
-    // Add to mock hiring data (in real app, this would be sent to backend)
-    if (!MOCK_HIRING_DATA) {
-        MOCK_HIRING_DATA = [];
-    }
-    
-    // Find original job in listings data to preserve application data
-    let originalJob = null;
-    if (MOCK_LISTINGS_DATA) {
-        originalJob = MOCK_LISTINGS_DATA.find(job => job.jobId === jobData.jobId);
-    }
-    
-    // Format data to match hiring tab expectations
-    const hiringJob = {
-        jobId: jobData.jobId,
-        title: jobData.title,
-        description: jobData.description,
-        category: jobData.category,
-        location: jobData.location,
-        datePosted: jobData.datePosted,
-        basePrice: jobData.agreedPrice || jobData.basePrice || jobData.salary, // agreed price first, then legacy base fields
-        priceOffer: formatPriceWithPeso(jobData.agreedPrice) || jobData.basePrice || jobData.salary, // display amount for hiring cards
-        thumbnail: jobData.thumbnail,
-        hiredWorker: jobData.hiredWorker,
-        hiredWorkerName: jobData.hiredWorker || 'Unknown Worker', // Fix for toUpperCase error
-        hiredWorkerThumbnail: jobData.hiredWorkerPhoto || 'public/users/User-01.jpg', // Use actual worker photo
-        status: 'hired',
-        role: 'customer', // Current user is the customer who hired someone
-        hiringStatus: 'active',
-        dateHired: new Date().toISOString(),
-        hiredDate: new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        }),
-        // Additional required fields for hiring tab
-        posterId: 'user_peter_ang_001', // Current user as poster
-        posterName: 'Peter J. Ang',
-        // Required time fields to fix formatTime error
-        jobDate: new Date().toISOString().split('T')[0], // Today's date as YYYY-MM-DD
-        startTime: '9:00 AM', // Default start time
-        endTime: '5:00 PM', // Default end time
-        // Additional fields for consistency
-        hiredWorkerId: 'user_hired_worker_001',
-        // PRESERVE ORIGINAL APPLICATION DATA for reactivation
-        originalApplicationCount: originalJob ? originalJob.applicationCount : 0,
-        originalApplicationIds: originalJob ? [...(originalJob.applicationIds || [])] : []
-    };
-    
-    // Remove original job from listings data (it's now hired)
-    if (MOCK_LISTINGS_DATA && originalJob) {
-        MOCK_LISTINGS_DATA = MOCK_LISTINGS_DATA.filter(job => job.jobId !== jobData.jobId);
-        console.log(`🗑️ Removed job ${jobData.jobId} from MOCK_LISTINGS_DATA (now hired)`);
-    }
-    
-    // Add new hired job to the beginning of the array (top of list)
-    MOCK_HIRING_DATA.unshift(hiringJob);
-    
-    // Mark this job as newly hired for highlighting
-    hiringJob.isNewlyHired = true;
-    
-    // Debug: Check price data in hiring job
-    console.log('🔍 PRICE DEBUG - Final hiring job data:', {
-        originalBasePrice: jobData.basePrice || jobData.salary,
-        agreedPrice: jobData.agreedPrice,
-        finalBasePrice: hiringJob.basePrice,
-        priceType: jobData.priceType
-    });
-    
-    console.log('✅ Added to hiring data:', jobData.title, hiringJob);
-}
-
 async function switchToHiringTab() {
     console.log('🔄 Auto-switching to Hiring tab');
     
@@ -10275,12 +8968,6 @@ async function switchToHiringTab() {
                         const highlightedCards = document.querySelectorAll('.hiring-card.newly-hired-highlight');
                         highlightedCards.forEach(card => {
                             card.classList.remove('newly-hired-highlight');
-                            // Also remove the flag from the data
-                            const jobId = card.getAttribute('data-job-id');
-                            const jobData = MOCK_HIRING_DATA.find(job => job.jobId === jobId);
-                            if (jobData) {
-                                jobData.isNewlyHired = false;
-                            }
                         });
                         if (highlightedCards.length > 0) {
                             console.log('🎨 Removed highlighting from newly hired jobs');
@@ -10372,11 +9059,7 @@ async function handlePauseJob(jobData) {
                 console.log('🔥 Job activated in Firebase');
             }
         } else {
-            // ══════════════════════════════════════════════════════════════
-            // MOCK MODE - Update status in mock data
-            // ══════════════════════════════════════════════════════════════
-            console.log('🧪 Updating mock data');
-            updateJobStatusInMockData(jobData.jobId, newStatus);
+            throw new Error('Job status backend unavailable');
         }
         
         // Update the status badge in the UI immediately
@@ -10441,7 +9124,7 @@ async function handleDeleteJob(jobData) {
         // const applicationIds = applicationsSnapshot.docs.map(doc => doc.id);
         // const applicantUserIds = applicationsSnapshot.docs.map(doc => doc.data().applicantId);
         
-        // For mock data, get application count
+        // Get application count from loaded job snapshot
         const applicationCount = fullJobData ? fullJobData.applicationCount : 0;
         const mockApplicationIds = fullJobData ? fullJobData.applicationIds : [];
         
@@ -10856,171 +9539,6 @@ async function updateTabCounts() {
     } catch (error) {
         console.error('❌ Error updating tab counts:', error);
     }
-}
-
-async function updateJobStatusInMockData(jobId, newStatus) {
-    let updated = false;
-    
-    // First, try to update in mock data (for original jobs)
-    if (MOCK_LISTINGS_DATA) {
-        const jobIndex = MOCK_LISTINGS_DATA.findIndex(job => job.jobId === jobId);
-        if (jobIndex !== -1) {
-            MOCK_LISTINGS_DATA[jobIndex].status = newStatus;
-            MOCK_LISTINGS_DATA[jobIndex].lastModified = new Date().toISOString();
-            console.log(`📊 Mock data updated: Job ${jobId} status → ${newStatus}`);
-            updated = true;
-        }
-    }
-    
-    // If not found in mock data, check localStorage (for RELISTED/MODIFIED jobs)
-    if (!updated) {
-        console.log(`🔍 Job ${jobId} not found in mock data, checking localStorage...`);
-        try {
-            // Check both localStorage structures: jobPreviewCards and gisugoJobs
-            
-            // First check: jobPreviewCards structure (direct category mapping)
-            const jobPreviewCardsRaw = localStorage.getItem('jobPreviewCards');
-            if (jobPreviewCardsRaw) {
-                console.log(`🔍 Checking jobPreviewCards structure...`);
-                const jobPreviewCards = JSON.parse(jobPreviewCardsRaw);
-                
-                for (const [category, jobs] of Object.entries(jobPreviewCards)) {
-                    if (Array.isArray(jobs)) {
-                        const jobIndex = jobs.findIndex(job => job.jobId === jobId);
-                        if (jobIndex !== -1) {
-                            jobs[jobIndex].status = newStatus;
-                            jobs[jobIndex].lastModified = new Date().toISOString();
-                            localStorage.setItem('jobPreviewCards', JSON.stringify(jobPreviewCards));
-                            console.log(`📊 jobPreviewCards updated: Job ${jobId} in category '${category}' status → ${newStatus}`);
-                            updated = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            // Second check: gisugoJobs structure (byCategory format)
-            if (!updated) {
-                const gisugoJobsRaw = localStorage.getItem('gisugoJobs');
-                if (gisugoJobsRaw) {
-                    console.log(`🔍 Checking gisugoJobs structure...`);
-                    const gisugoJobs = JSON.parse(gisugoJobsRaw);
-                    
-                    // Handle byCategory format
-                    if (gisugoJobs.byCategory && Array.isArray(gisugoJobs.byCategory)) {
-                        for (const categoryData of gisugoJobs.byCategory) {
-                            if (categoryData.jobs && Array.isArray(categoryData.jobs)) {
-                                const jobIndex = categoryData.jobs.findIndex(job => job.jobId === jobId);
-                                if (jobIndex !== -1) {
-                                    categoryData.jobs[jobIndex].status = newStatus;
-                                    categoryData.jobs[jobIndex].lastModified = new Date().toISOString();
-                                    localStorage.setItem('gisugoJobs', JSON.stringify(gisugoJobs));
-                                    console.log(`📊 gisugoJobs (byCategory) updated: Job ${jobId} in category '${categoryData.category}' status → ${newStatus}`);
-                                    updated = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    // Handle direct category mapping format
-                    else {
-                        for (const [category, jobs] of Object.entries(gisugoJobs)) {
-                            if (Array.isArray(jobs)) {
-                                const jobIndex = jobs.findIndex(job => job.jobId === jobId);
-                                if (jobIndex !== -1) {
-                                    jobs[jobIndex].status = newStatus;
-                                    jobs[jobIndex].lastModified = new Date().toISOString();
-                                    localStorage.setItem('gisugoJobs', JSON.stringify(gisugoJobs));
-                                    console.log(`📊 gisugoJobs (direct mapping) updated: Job ${jobId} in category '${category}' status → ${newStatus}`);
-                                    updated = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            if (!updated) {
-                console.log(`🔍 Job ${jobId} not found in any localStorage structure`);
-            }
-        } catch (error) {
-            console.error('❌ Error updating job status in localStorage:', error);
-        }
-    }
-    
-    if (!updated) {
-        console.warn(`⚠️ Job ${jobId} not found in either mock data or localStorage`);
-    }
-    
-    return updated;
-}
-
-async function updateCompletedJobWorkerFeedback(jobId, feedbackText, rating) {
-    // This simulates updating worker feedback in Firebase
-    console.log(`📝 Updating worker feedback for job ${jobId}: "${feedbackText}" with ${rating} stars`);
-    
-    // Update the mock data
-    if (!MOCK_COMPLETED_DATA) {
-        MOCK_COMPLETED_DATA = generateCompletedJobsData();
-    }
-    
-    const jobIndex = MOCK_COMPLETED_DATA.findIndex(job => job.jobId === jobId);
-    if (jobIndex !== -1) {
-        MOCK_COMPLETED_DATA[jobIndex].workerFeedback = feedbackText;
-        MOCK_COMPLETED_DATA[jobIndex].workerRating = rating;
-        console.log(`✅ Mock data updated: Job ${jobId} now has worker feedback (${rating} stars)`);
-        
-        // Only refresh if Previous tab is currently active to avoid handler interference
-        const currentActiveTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
-        if (currentActiveTab === 'previous') {
-            console.log('🔄 Previous tab is active, refreshing content...');
-            await loadPreviousContent();
-        } else {
-            console.log('📋 Previous tab is not active, will refresh on next visit');
-        }
-        return true;
-    }
-    
-    console.error(`❌ Job ${jobId} not found in completed jobs data`);
-    return false;
-}
-
-async function addJobToCompletedData(hiringJob, customerRating, customerFeedback) {
-    // Initialize completed data if it doesn't exist
-    if (!MOCK_COMPLETED_DATA) {
-        MOCK_COMPLETED_DATA = generateCompletedJobsData();
-    }
-    
-    // Transform hiring job into completed job format
-    const completedJob = {
-        jobId: hiringJob.jobId,
-        posterId: hiringJob.posterId,
-        posterName: hiringJob.posterName,
-        posterThumbnail: hiringJob.posterThumbnail,
-        title: hiringJob.title,
-        category: hiringJob.category,
-        thumbnail: hiringJob.thumbnail,
-        jobDate: hiringJob.jobDate,
-        startTime: hiringJob.startTime,
-        endTime: hiringJob.endTime,
-        priceOffer: hiringJob.priceOffer,
-        completedAt: new Date().toISOString(), // Current timestamp
-        rating: customerRating, // Customer's rating for the worker
-        feedback: customerFeedback, // Customer's feedback for the worker
-        workerFeedback: null, // Worker can leave feedback later
-        workerRating: 0, // Worker rating for customer (can be added later)
-        role: 'customer', // Current user (Peter) is the customer in this scenario
-        hiredWorkerId: hiringJob.hiredWorkerId,
-        hiredWorkerName: hiringJob.hiredWorkerName,
-        hiredWorkerThumbnail: hiringJob.hiredWorkerThumbnail
-    };
-    
-    // Add to the beginning of completed data (most recent first)
-    MOCK_COMPLETED_DATA.unshift(completedJob);
-    
-    console.log(`📋 Added job ${hiringJob.jobId} to completed data with customer rating: ${customerRating}/5`);
-    return true;
 }
 
 // ========================== CUSTOMER FEEDBACK HANDLING ==========================

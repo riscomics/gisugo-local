@@ -114,6 +114,7 @@ function initializeKeyboardHandling() {
 // Menu overlay functionality
 const newPostMenuBtn = document.querySelector('.new-post-header-btn.menu');
 const newPostMenuOverlay = document.querySelector('.new-post-menu-overlay');
+let lastPostedJobContext = null;
 
 if (newPostMenuBtn && newPostMenuOverlay) {
   newPostMenuBtn.addEventListener('click', function(e) {
@@ -2683,92 +2684,65 @@ async function createJobPostWithData(formData) {
       postBtn.disabled = true;
     }
     
-    let jobNumber;
     let jobId;
+    const backendReady = typeof createJob === 'function' && typeof updateJob === 'function';
+    if (!backendReady) {
+      throw new Error('Job posting backend unavailable');
+    }
+
+    const backendPayload = {
+      title: formData.jobTitle || formData.title || '',
+      description: formData.description || '',
+      category: formData.category,
+      thumbnail: formData.photo || formData.originalThumbnail || '',
+      jobDate: formData.jobDate || '',
+      startTime: formData.startTime || '',
+      endTime: formData.endTime || '',
+      paymentAmount: parseInt(formData.paymentAmount, 10) || 0,
+      paymentType: formData.paymentType || '',
+      region: formData.region || '',
+      city: formData.city || '',
+      extras: Array.isArray(formData.extras) ? formData.extras : []
+    };
     
     if (mode === 'edit') {
       console.log('📝 EDIT MODE: Starting edit process...');
       
       // EDIT MODE: Update existing job
       jobId = editJobId;
-      console.log('🔍 Getting job number for edit jobId:', jobId);
-      jobNumber = await getJobNumberFromId(editJobId);
-      console.log('✅ Job number retrieved:', jobNumber);
-      
-      // Firebase Implementation for EDIT:
-      // await updateJobDocument(editJobId, formData);
-      
-      console.log('🔄 Updating job template...');
-      await updateJobTemplate(formData, jobNumber, editJobId);
-      console.log('✅ Job template updated');
-      
-      console.log('🔄 Updating job preview card...');
-      await updateJobPreviewCard(formData, jobNumber, editJobId);
-      console.log('✅ Job preview card updated');
-      
-      console.log('🔄 Updating stored job data...');
-      updateStoredJobData(formData, jobNumber, editJobId);
-      console.log('✅ Stored job data updated');
+      const editResult = await updateJob(editJobId, backendPayload);
+      if (!editResult || !editResult.success) {
+        throw new Error((editResult && editResult.message) || 'Failed to update job');
+      }
       
     } else if (mode === 'relist') {
       console.log('🔄 RELIST MODE: Starting relist process...');
-      
-      // RELIST MODE: Create new job from completed job
-      console.log('🔍 Getting next job number for category:', formData.category);
-      jobNumber = getNextJobNumber(formData.category);
-      jobId = `${formData.category}_job_2025_${jobNumber}`;
-      console.log('✅ New job ID generated:', jobId, 'with job number:', jobNumber);
-      
-      // FIXED: Get original completed job data to preserve thumbnail
-      console.log('🔍 Getting original completed job data for thumbnail preservation...');
+      const relistPayload = { ...backendPayload };
       const originalJobData = await getCompletedJobData(relistJobId);
-      if (originalJobData && originalJobData.thumbnail) {
-        formData.originalThumbnail = originalJobData.thumbnail;
-        console.log('✅ Original thumbnail preserved:', originalJobData.thumbnail);
-      } else {
-        console.log('⚠️ No original thumbnail found for completed job:', relistJobId);
+      if (originalJobData && originalJobData.thumbnail && !relistPayload.thumbnail) {
+        relistPayload.thumbnail = originalJobData.thumbnail;
       }
-      
-      // Firebase Implementation for RELIST:
-      // const originalJobId = relistJobId;
-      // const newJobDoc = await createJobFromTemplate(originalJobId, formData);
-      // await updateCompletedJobStatus(originalJobId, { relistedAs: newJobDoc.id });
-      
-      console.log('🔄 Creating job template...');
-      await createJobTemplate(formData, jobNumber);
-      console.log('✅ Job template created');
-      
-      console.log('🔄 Adding job preview card...');
-      await addJobPreviewCard(formData, jobNumber);
-      console.log('✅ Job preview card added');
-      
-      console.log('🔄 Storing job data...');
-      storeJobData(formData, jobNumber);
-      console.log('✅ Job data stored');
+
+      const relistResult = await createJob(relistPayload);
+      if (!relistResult || !relistResult.success || !relistResult.jobId) {
+        throw new Error((relistResult && relistResult.message) || 'Failed to relist job');
+      }
+      jobId = relistResult.jobId;
       
     } else {
       console.log('🆕 NEW MODE: Starting new job creation process...');
-      
-      // NEW MODE: Create completely new job
-      console.log('🔍 Getting next job number for category:', formData.category);
-      jobNumber = getNextJobNumber(formData.category);
-      jobId = `${formData.category}_job_2025_${jobNumber}`;
-      console.log('✅ New job ID generated:', jobId, 'with job number:', jobNumber);
-      
-      // Firebase Implementation for NEW:
-      // const newJobDoc = await createNewJobDocument(formData);
-      
-      console.log('🔄 Creating job template...');
-      await createJobTemplate(formData, jobNumber);
-      console.log('✅ Job template created');
-      
-      console.log('🔄 Adding job preview card...');
-      await addJobPreviewCard(formData, jobNumber);
-      console.log('✅ Job preview card added');
-      
-      console.log('🔄 Storing job data...');
-      storeJobData(formData, jobNumber);
-      console.log('✅ Job data stored');
+      const createResult = await createJob(backendPayload);
+      if (!createResult || !createResult.success || !createResult.jobId) {
+        throw new Error((createResult && createResult.message) || 'Failed to post job');
+      }
+      jobId = createResult.jobId;
+    }
+
+    if (jobId) {
+      lastPostedJobContext = {
+        jobId,
+        category: formData.category
+      };
     }
     
     // Close preview overlay
@@ -2809,7 +2783,6 @@ async function createJobPostWithData(formData) {
       message: error.message,
       formData,
       mode,
-      jobNumber,
       jobId
     });
     
@@ -2831,150 +2804,6 @@ async function createJobPostWithData(formData) {
     console.log('🔄 Showing error overlay...');
     showValidationOverlay(errorMessage + '\n\nError details: ' + error.message);
   }
-}
-
-function getNextJobNumber(category) {
-  // Get existing job numbers from localStorage
-  const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  const categoryJobs = jobData[category] || [];
-  
-  // Find the highest job number and add 1
-  let maxJobNumber = 0;
-  categoryJobs.forEach(job => {
-    const jobNumber = parseInt(job.jobNumber) || 0;
-    if (jobNumber > maxJobNumber) {
-      maxJobNumber = jobNumber;
-    }
-  });
-  
-  return maxJobNumber + 1;
-}
-
-function storeJobData(formData, jobNumber) {
-  // Get existing data
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  
-  // Initialize category array if it doesn't exist
-  if (!allJobs[formData.category]) {
-    allJobs[formData.category] = [];
-  }
-  
-  // FIXED: Create job object with proper field mapping to match mock data structure
-  const jobObject = {
-    jobId: `${formData.category}_job_2025_${jobNumber}`,  // Proper jobId format
-    jobNumber: jobNumber,
-    posterId: 'user_peter_ang_001',  // Current user ID - matches jobs.js CURRENT_USER_ID
-    posterName: 'Peter J. Ang',      // Current user name
-    
-    // Map form data to correct field names (same as updateStoredJobData)
-    title: formData.jobTitle,           // Form: jobTitle → Mock: title
-    description: formData.description,
-    category: formData.category,
-    thumbnail: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
-    originalPhoto: formData.originalPhoto || null, // Smart storage: original aspect ratio for lightbox
-    jobDate: formData.jobDate,
-    dateNeeded: formData.jobDate,       // Backend field name
-    startTime: formData.startTime,
-    endTime: formData.endTime,
-    priceOffer: formData.paymentAmount, // Remove ₱ symbol for form population
-    paymentAmount: formData.paymentAmount, // Backend field name
-    paymentType: formData.paymentType,
-    region: formData.region,
-    city: formData.city,
-    extras: formData.extras || [],
-    
-    // Required mock data fields
-    status: 'active',
-    applicationCount: 0,
-    applicationIds: [],
-    datePosted: new Date().toISOString(),
-    jobPageUrl: `${formData.category}.html`,
-    
-    // Timestamps
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
-  // Add to category array
-  allJobs[formData.category].push(jobObject);
-  
-  // Save back to localStorage
-  localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-}
-
-async function createJobTemplate(formData, jobNumber) {
-  // Since we can't actually write files from JavaScript, we'll simulate this
-  // In a real implementation, this would send data to a server
-  
-  // For now, we'll create a URL that points to the template
-  const templateUrl = `public/jobs/${formData.category}/${formData.category}-job-2025-${jobNumber}.html`;
-  
-  // Store the template data in localStorage to simulate file creation
-  const templateData = {
-    category: formData.category,
-    jobNumber: jobNumber,
-    title: formData.jobTitle,
-    description: formData.description,
-    date: formData.jobDate,
-    startTime: formData.startTime,
-    endTime: formData.endTime,
-    region: formData.region,
-    city: formData.city,
-    paymentAmount: formData.paymentAmount,
-    paymentType: formData.paymentType,
-    photo: formData.photo,
-    extras: formData.extras,
-    templateUrl: templateUrl
-  };
-  
-  localStorage.setItem(`jobTemplate_${formData.category}_${jobNumber}`, JSON.stringify(templateData));
-  
-  return templateUrl;
-}
-
-async function addJobPreviewCard(formData, jobNumber) {
-  // Get existing preview cards from localStorage
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  
-  // Initialize category array if it doesn't exist
-  if (!previewCards[formData.category]) {
-    previewCards[formData.category] = [];
-  }
-  
-  // Format date for display
-  const date = new Date(formData.jobDate);
-  const options = { month: 'short', day: 'numeric' };
-  const formattedDate = date.toLocaleDateString('en-US', options);
-  
-  // Format time for display
-      const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
-  
-  // Get first two extras for preview
-  const extra1 = formData.extras && formData.extras[0] ? formData.extras[0] : '';
-  const extra2 = formData.extras && formData.extras[1] ? formData.extras[1] : '';
-  
-  // Create preview card object
-  const previewCard = {
-    jobNumber: jobNumber,
-    title: formData.jobTitle,
-    extra1: extra1,
-    extra2: extra2,
-    price: `₱${formData.paymentAmount}`,
-    rate: formData.paymentType,
-    date: formattedDate,
-    time: timeDisplay,
-    photo: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`, // Preview always uses cropped version
-    templateUrl: `dynamic-job.html?category=${formData.category}&jobNumber=${jobNumber}`,
-    region: formData.region,
-    city: formData.city,
-    createdAt: new Date().toISOString()
-  };
-  
-  // Add to category array (insert at beginning for newest first)
-  previewCards[formData.category].unshift(previewCard);
-  
-  // Save back to localStorage
-  localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
 }
 
 // ========================== PAYMENT AMOUNT VALIDATION ==========================
@@ -3244,14 +3073,10 @@ function initializeJobPostedOverlayEvents(formData) {
   // View Job Post button
   viewJobPostBtn.addEventListener('click', function() {
     closeJobPostedOverlay();
-    // Get the job number from localStorage to construct URL
-    const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    const categoryJobs = jobData[formData.category] || [];
-    const latestJob = categoryJobs[categoryJobs.length - 1]; // Get the latest job posted
-    
-    if (latestJob) {
-      window.location.href = `dynamic-job.html?category=${formData.category}&jobNumber=${latestJob.jobNumber}`;
+    if (lastPostedJobContext && lastPostedJobContext.jobId) {
+      window.location.href = `dynamic-job.html?jobId=${lastPostedJobContext.jobId}&category=${lastPostedJobContext.category || formData.category}`;
     } else {
+      console.warn('View Post unavailable: no backend job context found');
       window.location.href = `${formData.category}.html`;
     }
   });
@@ -3382,22 +3207,6 @@ async function getActiveJobData(jobId) {
       }
     }
     
-    // Fallback: Try localStorage method for jobs posted through new-post form
-    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    
-    // Search through all categories for the job
-    for (const category in allJobs) {
-      const categoryJobs = allJobs[category] || [];
-      const job = categoryJobs.find(j => j.jobId === jobId);
-      if (job) {
-        console.log('📋 Found job in localStorage:', job);
-        return {
-          ...job,
-          category: category
-        };
-      }
-    }
-    
     console.log('❌ Job not found in any data source:', jobId);
     console.log('🔍 Available job IDs in JobsDataService:', 
       typeof JobsDataService !== 'undefined' ? 
@@ -3467,22 +3276,6 @@ async function getCompletedJobData(jobId) {
           thumbnail: job.thumbnail, // Preserve original photo from hiring job
         };
       }
-    }
-    
-    // Fallback: Try localStorage method 
-    const completedJobs = JSON.parse(localStorage.getItem('gisugoCompletedJobs') || '[]');
-    const job = completedJobs.find(j => j.jobId === jobId);
-    
-    if (job) {
-      console.log('📋 Found completed job in localStorage:', job);
-      return {
-        ...job,
-        dateNeeded: job.jobDate,
-        category: job.category,
-        region: 'CEBU',
-        city: 'Cebu City',
-        thumbnail: job.thumbnail, // FIXED: Preserve original photo from completed job
-      };
     }
     
     console.log('❌ Completed job not found in any data source:', jobId);
@@ -3648,7 +3441,7 @@ function populateTimeDropdown(timeType, timeValue) {
 
 function populateLocationAndExtras(jobData) {
   console.log('📍 Starting simplified location population (CORE FIELDS ONLY)');
-  console.log('📍 Mock data limited to: Job Title, Date/Time, Details, Rate/Price');
+  console.log('📍 Location population limited to: Job Title, Date/Time, Details, Rate/Price');
   
   // Set region and city if available - basic location info only
   if (jobData.region) {
@@ -3674,7 +3467,7 @@ function populateLocationAndExtras(jobData) {
   }
   
   // 🚫 SKIP EXTRAS AND PAYMENT TYPE - Let user select appropriate values
-  // This prevents field contamination where mock data doesn't match category templates
+  // This prevents field contamination when source values don't match category templates
   console.log('📍 ⚠️ SKIPPING extras and payment type population to prevent field contamination');
   console.log('📍 ℹ️ User will need to manually select category-appropriate values');
   
@@ -3697,249 +3490,6 @@ async function setCategoryAndUpdateForm(category) {
   updateExtrasForCategory(category);
   
   console.log(`📂 Category set to: ${category}`);
-}
-
-// ========================== MODE-SPECIFIC HELPER FUNCTIONS ==========================
-
-async function getJobNumberFromId(jobId) {
-  // Extract job number from jobId format: "category_job_2025_X"
-  const parts = jobId.split('_');
-  return parseInt(parts[parts.length - 1]) || 1;
-  
-  // Firebase Implementation:
-  // const jobDoc = await db.collection('jobs').doc(jobId).get();
-  // return jobDoc.data().jobNumber;
-}
-
-async function updateJobTemplate(formData, jobNumber, jobId) {
-  // Update existing template data in localStorage
-  const templateKey = `jobTemplate_${formData.category}_${jobNumber}`;
-  const existingTemplate = JSON.parse(localStorage.getItem(templateKey) || '{}');
-  
-  const updatedTemplate = {
-    ...existingTemplate,
-    title: formData.jobTitle,
-    description: formData.description,
-    date: formData.jobDate,
-    startTime: formData.startTime,
-    endTime: formData.endTime,
-    paymentAmount: formData.paymentAmount,
-    paymentType: formData.paymentType,
-    photo: formData.photo,
-    extras: formData.extras,
-    updatedAt: new Date().toISOString()
-  };
-  
-  localStorage.setItem(templateKey, JSON.stringify(updatedTemplate));
-  
-  // Firebase Implementation:
-  // await db.collection('jobs').doc(jobId).update({
-  //   title: formData.jobTitle,
-  //   description: formData.description,
-  //   scheduledDate: formData.jobDate,
-  //   startTime: formData.startTime,
-  //   endTime: formData.endTime,
-  //   paymentAmount: formData.paymentAmount,
-  //   photo: formData.photo,
-  //   extras: formData.extras,
-  //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  // });
-}
-
-async function updateJobPreviewCard(formData, jobNumber, jobId) {
-  // Update existing preview card in localStorage
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  const categoryCards = previewCards[formData.category] || [];
-  
-  console.log('🔍 Updating preview card:', {
-    formData: formData,
-    jobNumber: jobNumber,
-    jobId: jobId,
-    categoryCards: categoryCards.length
-  });
-  
-  // Find and update the specific card by jobNumber OR by matching title/data
-  let cardIndex = categoryCards.findIndex(card => card.jobNumber === jobNumber);
-  
-  // If not found by jobNumber, try to find by title match (fallback)
-  if (cardIndex === -1) {
-    // Look for existing card with similar data (fallback matching)
-    const existingTitles = categoryCards.map(c => c.title);
-    console.log('🔍 Existing card titles:', existingTitles);
-    console.log('🔍 Looking for title:', formData.jobTitle);
-  }
-  
-  if (cardIndex !== -1) {
-    const date = new Date(formData.jobDate);
-    const options = { month: 'short', day: 'numeric' };
-    const formattedDate = date.toLocaleDateString('en-US', options);
-    const timeDisplay = `${formData.startTime} - ${formData.endTime}`;
-    
-    const originalCard = categoryCards[cardIndex];
-    console.log('🔍 Original preview card:', originalCard);
-    
-    categoryCards[cardIndex] = {
-      ...originalCard, // Keep existing data
-      title: formData.jobTitle,
-      extra1: formData.extras && formData.extras[0] ? formData.extras[0] : '',
-      extra2: formData.extras && formData.extras[1] ? formData.extras[1] : '',
-      price: `₱${formData.paymentAmount}`,
-      rate: formData.paymentType,
-      date: formattedDate,
-      time: timeDisplay,
-      photo: formData.photo || originalCard.photo,
-      updatedAt: new Date().toISOString()
-    };
-    
-    console.log('✅ Preview card updated:', categoryCards[cardIndex]);
-    localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-    console.log('✅ Preview card data saved to localStorage');
-  } else {
-    console.error('❌ Preview card not found for update:', { 
-      jobNumber, 
-      jobId,
-      availableCards: categoryCards.map(c => ({ jobNumber: c.jobNumber, title: c.title }))
-    });
-  }
-  
-  // Firebase Implementation:
-  // await db.collection('jobPreviews').doc(jobId).update({
-  //   title: formData.jobTitle,
-  //   paymentAmount: formData.paymentAmount,
-  //   scheduledDate: formData.jobDate,
-  //   startTime: formData.startTime,
-  //   endTime: formData.endTime,
-  //   extras: formData.extras,
-  //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  // });
-}
-
-function updateStoredJobData(formData, jobNumber, jobId) {
-  // Update existing job data in localStorage
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  const categoryJobs = allJobs[formData.category] || [];
-  
-  console.log('🔍 Updating stored job data:', {
-    formData: formData,
-    jobNumber: jobNumber, 
-    jobId: jobId,
-    categoryJobs: categoryJobs.length
-  });
-  
-  // Find and update the specific job by jobId (not jobNumber as mock data uses jobId)
-  const jobIndex = categoryJobs.findIndex(job => job.jobId === jobId);
-  console.log('🔍 Job index found:', jobIndex);
-  
-  if (jobIndex !== -1) {
-    // Job exists in localStorage - update it
-    const originalJob = categoryJobs[jobIndex];
-    console.log('🔍 Original job data (from localStorage):', originalJob);
-    
-    // FIXED: Properly map form fields to mock data structure
-    const updatedJob = {
-      ...originalJob, // Keep existing data (posterId, posterName, status, etc.)
-      
-      // Map form data to correct field names
-      title: formData.jobTitle,           // Form: jobTitle → Mock: title
-      description: formData.description,
-      category: formData.category,
-      thumbnail: formData.photo || originalJob.thumbnail,  // Keep original if no new photo
-      originalPhoto: formData.originalPhoto || originalJob.originalPhoto || null, // Smart storage: preserve or update original
-      jobDate: formData.jobDate,
-      dateNeeded: formData.jobDate,       // Backend field name
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      priceOffer: formData.paymentAmount, // Remove ₱ symbol for form population
-      paymentAmount: formData.paymentAmount, // Backend field name
-      paymentType: formData.paymentType,
-      region: formData.region,
-      city: formData.city,
-      extras: formData.extras || [],
-      
-      // Preserve critical existing fields
-      jobId: jobId,
-      jobNumber: jobNumber,
-      posterId: originalJob.posterId,     // Keep original poster info
-      posterName: originalJob.posterName,
-      status: originalJob.status || 'active',
-      applicationCount: originalJob.applicationCount || 0,
-      applicationIds: originalJob.applicationIds || [],
-      datePosted: originalJob.datePosted,
-      jobPageUrl: originalJob.jobPageUrl || `${formData.category}.html`,
-      
-      // Update timestamp
-      updatedAt: new Date().toISOString()
-    };
-    
-    categoryJobs[jobIndex] = updatedJob;
-    console.log('✅ Job data updated with proper field mapping:', categoryJobs[jobIndex]);
-  } else {
-    // Job doesn't exist in localStorage yet (it's a mock job) - create localStorage version
-    console.log('🆕 Job not found in localStorage - this is a mock job being modified for first time');
-    
-    // Get original mock job data from jobs.js to preserve critical fields
-    let originalMockJob = null;
-    try {
-      // Access the mock data from the global JobsDataService if available
-      if (window.JobsDataService) {
-        const mockJobs = window.JobsDataService._generateInitialData();
-        originalMockJob = mockJobs.find(job => job.jobId === jobId);
-      }
-    } catch (error) {
-      console.log('⚠️ Could not access mock data directly:', error);
-    }
-    
-    // Create new job entry for localStorage with mock job data preserved
-    const newJob = {
-      // Use original mock data as base if available
-      ...(originalMockJob || {}),
-      
-      // Map form data to correct field names (override mock data)
-      title: formData.jobTitle,           // Form: jobTitle → Mock: title
-      description: formData.description,
-      category: formData.category,
-      thumbnail: formData.photo || (originalMockJob ? originalMockJob.thumbnail : ''),
-      originalPhoto: formData.originalPhoto || null, // Smart storage: add original photo capability to mock jobs
-      jobDate: formData.jobDate,
-      dateNeeded: formData.jobDate,       // Backend field name
-      startTime: formData.startTime,
-      endTime: formData.endTime,
-      priceOffer: formData.paymentAmount, // Remove ₱ symbol for form population
-      paymentAmount: formData.paymentAmount, // Backend field name
-      paymentType: formData.paymentType,
-      region: formData.region,
-      city: formData.city,
-      extras: formData.extras || [],
-      
-      // Ensure critical fields are present
-      jobId: jobId,
-      jobNumber: jobNumber,
-      posterId: originalMockJob ? originalMockJob.posterId : 'user_peter_ang_001',
-      posterName: originalMockJob ? originalMockJob.posterName : 'Peter J. Ang',
-      status: originalMockJob ? originalMockJob.status : 'active',
-      applicationCount: originalMockJob ? originalMockJob.applicationCount : 0,
-      applicationIds: originalMockJob ? originalMockJob.applicationIds : [],
-      datePosted: originalMockJob ? originalMockJob.datePosted : new Date().toISOString(),
-      jobPageUrl: originalMockJob ? originalMockJob.jobPageUrl : `${formData.category}.html`,
-      
-      // Update timestamp
-      updatedAt: new Date().toISOString()
-    };
-    
-    categoryJobs.push(newJob);
-    console.log('✅ Mock job converted to localStorage job:', newJob);
-  }
-  
-  // Save the updated data back to localStorage
-  allJobs[formData.category] = categoryJobs;
-  localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-  console.log('✅ Job data saved to localStorage');
-  
-  // Firebase Implementation:
-  // await db.collection('jobs').doc(jobId).update({
-  //   ...formData,
-  //   updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  // });
 }
 
 function showJobUpdatedOverlay(formData) {
@@ -4190,580 +3740,31 @@ function isValidJob(job) {
 }
 
 function cleanUpJobsData() {
-  console.log('🧹 Starting job data cleanup...');
-  
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  let cleaned = false;
-  let totalJobs = 0;
-  let removedJobs = 0;
-  
-  Object.keys(allJobs).forEach(category => {
-    const before = allJobs[category].length;
-    totalJobs += before;
-    
-    // More lenient filtering - only remove completely corrupted entries
-    allJobs[category] = allJobs[category].filter(job => {
-      // Keep job if it has basic structure
-      if (!job || typeof job !== 'object') {
-        removedJobs++;
-        return false;
-      }
-      
-      // Keep job if it has at least a title or jobId
-      if ((!job.title || job.title.length === 0) && 
-          (!job.jobId || job.jobId.length === 0)) {
-        removedJobs++;
-        return false;
-      }
-      
-      return true;
-    });
-    
-    if (allJobs[category].length !== before) {
-      cleaned = true;
-      console.log(`🧹 Cleaned ${category}: ${before} → ${allJobs[category].length} jobs`);
-    }
-  });
-  
-  if (cleaned) {
-    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-    console.log(`🧹 Cleanup complete: ${removedJobs} corrupted jobs removed from ${totalJobs} total`);
-    alert(`Job data cleaned! ${removedJobs} corrupted jobs removed from ${totalJobs} total jobs.`);
-  } else {
-    console.log('🧹 No corrupted jobs found. Data is clean.');
-    alert('No corrupted jobs found. Data is clean.');
-  }
+  console.warn('cleanUpJobsData is retired (backend-only mode).');
 }
 
 // Patch getNextJobNumber to skip invalid jobs
 function getNextJobNumber(category) {
-  const jobData = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  const categoryJobs = (jobData[category] || []).filter(isValidJob);
-  let maxJobNumber = 0;
-  categoryJobs.forEach(job => {
-    const jobNumber = parseInt(job.jobNumber, 10);
-    if (Number.isInteger(jobNumber) && jobNumber > 0) {
-      if (jobNumber > maxJobNumber) {
-        maxJobNumber = jobNumber;
-      }
-    }
-  });
-  return maxJobNumber + 1;
+  console.warn('getNextJobNumber local helper is retired.');
+  return 1;
 }
 
 // Patch storeJobData to validate before saving
 function storeJobData(formData, jobNumber) {
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  if (!allJobs[formData.category]) {
-    allJobs[formData.category] = [];
-  }
-  const jobObject = {
-    jobId: `${formData.category}_job_2025_${jobNumber}`,
-    jobNumber: jobNumber,
-    posterId: 'user_peter_ang_001',
-    posterName: 'Peter J. Ang',
-    title: formData.jobTitle,
-    description: formData.description,
-    category: formData.category,
-    thumbnail: formData.photo || formData.originalThumbnail || `public/mock/mock-${formData.category}-post${jobNumber}.jpg`,
-    originalPhoto: formData.originalPhoto || null, // Smart storage: original aspect ratio for lightbox
-    jobDate: formData.jobDate,
-    dateNeeded: formData.jobDate,
-    startTime: formData.startTime,
-    endTime: formData.endTime,
-    priceOffer: formData.paymentAmount,
-    paymentAmount: formData.paymentAmount,
-    paymentType: formData.paymentType,
-    region: formData.region,
-    city: formData.city,
-    extras: formData.extras || [],
-    status: 'active',
-    applicationCount: 0,
-    applicationIds: [],
-    datePosted: new Date().toISOString(),
-    jobPageUrl: `${formData.category}.html`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  if (isValidJob(jobObject)) {
-    allJobs[formData.category].push(jobObject);
-    localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-  } else {
-    alert('Error: Attempted to save invalid job data. Job not saved.');
-  }
+  console.warn('storeJobData local helper is retired.');
 }
 
-// --- DEBUG PANEL BUTTON FOR CLEANUP ---
-window.addEventListener('DOMContentLoaded', function() {
-  const debugPanel = document.getElementById('debugPanel');
-  if (debugPanel) {
-    const cleanBtn = document.createElement('button');
-    cleanBtn.textContent = 'CLEANUP JOB DATA';
-    cleanBtn.style.background = '#f87171';
-    cleanBtn.style.color = 'white';
-    cleanBtn.style.border = 'none';
-    cleanBtn.style.padding = '8px 16px';
-    cleanBtn.style.borderRadius = '4px';
-    cleanBtn.style.cursor = 'pointer';
-    cleanBtn.style.marginLeft = '10px';
-    cleanBtn.onclick = cleanUpJobsData;
-    debugPanel.querySelector('div').appendChild(cleanBtn);
-  }
-});
-
-// --- JOB DATA RECOVERY FUNCTION ---
-function recoverJobsData() {
-  console.log('🔄 Starting job data recovery...');
-  
-  // First, let's see what's currently in localStorage
-  console.log('📊 Current localStorage contents:');
-  const allKeys = Object.keys(localStorage);
-  console.log('All localStorage keys:', allKeys);
-  
-  // Show current gisugoJobs data
-  const currentJobs = localStorage.getItem('gisugoJobs');
-  console.log('Current gisugoJobs data:', currentJobs);
-  
-  if (currentJobs) {
-    try {
-      const parsed = JSON.parse(currentJobs);
-      console.log('Parsed gisugoJobs:', parsed);
-      console.log('Categories found:', Object.keys(parsed));
-      Object.keys(parsed).forEach(category => {
-        console.log(`${category}: ${parsed[category].length} jobs`);
-      });
-    } catch (e) {
-      console.log('Error parsing gisugoJobs:', e);
-    }
-  }
-  
-  // Look for any other potential job data
-  const jobKeys = allKeys.filter(key => 
-    key.includes('job') || 
-    key.includes('gisugo') || 
-    key.includes('Jobs') ||
-    key.includes('Job') ||
-    key.includes('post') ||
-    key.includes('listing')
-  );
-  
-  console.log('🔍 Found potential job data keys:', jobKeys);
-  
-  let recoveredJobs = {};
-  let totalRecovered = 0;
-  
-  jobKeys.forEach(key => {
-    try {
-      const data = localStorage.getItem(key);
-      console.log(`🔍 Checking key "${key}":`, data ? data.substring(0, 200) + '...' : 'null');
-      
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (parsed && typeof parsed === 'object') {
-          // Check if this looks like job data
-          if (Array.isArray(parsed)) {
-            // Array of jobs
-            console.log(`📋 Found array in ${key} with ${parsed.length} items`);
-            const validJobs = parsed.filter(job => 
-              job && typeof job === 'object' && 
-              (job.title || job.jobId || job.category)
-            );
-            if (validJobs.length > 0) {
-              recoveredJobs[key] = validJobs;
-              totalRecovered += validJobs.length;
-              console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}`);
-            }
-          } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-            // Object with categories
-            console.log(`📋 Found object in ${key} with keys:`, Object.keys(parsed));
-            Object.keys(parsed).forEach(category => {
-              if (Array.isArray(parsed[category])) {
-                console.log(`📋 Category ${category} has ${parsed[category].length} items`);
-                const validJobs = parsed[category].filter(job => 
-                  job && typeof job === 'object' && 
-                  (job.title || job.jobId || job.category)
-                );
-                if (validJobs.length > 0) {
-                  if (!recoveredJobs[category]) recoveredJobs[category] = [];
-                  recoveredJobs[category].push(...validJobs);
-                  totalRecovered += validJobs.length;
-                  console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}.${category}`);
-                }
-              }
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.log(`⚠️ Could not parse ${key}:`, error.message);
-    }
-  });
-  
-  console.log('📊 Recovery summary:');
-  console.log('- Total keys checked:', jobKeys.length);
-  console.log('- Jobs recovered:', totalRecovered);
-  console.log('- Recovered data structure:', recoveredJobs);
-  
-  if (totalRecovered > 0) {
-    // Merge with existing data
-    const existingJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    Object.keys(recoveredJobs).forEach(category => {
-      if (!existingJobs[category]) existingJobs[category] = [];
-      existingJobs[category].push(...recoveredJobs[category]);
-    });
-    
-    localStorage.setItem('gisugoJobs', JSON.stringify(existingJobs));
-    console.log(`🔄 Recovery complete: ${totalRecovered} jobs restored`);
-    alert(`Job data recovered! ${totalRecovered} jobs restored. Check console for details.`);
-  } else {
-    console.log('🔄 No recoverable job data found');
-    alert('No recoverable job data found. Check console for details.');
-  }
-}
-
-// --- DEBUG PANEL BUTTON FOR CLEANUP ---
-window.addEventListener('DOMContentLoaded', function() {
-  const debugPanel = document.getElementById('debugPanel');
-  if (debugPanel) {
-    const cleanBtn = document.createElement('button');
-    cleanBtn.textContent = 'CLEANUP JOB DATA';
-    cleanBtn.style.background = '#f87171';
-    cleanBtn.style.color = 'white';
-    cleanBtn.style.border = 'none';
-    cleanBtn.style.padding = '8px 16px';
-    cleanBtn.style.borderRadius = '4px';
-    cleanBtn.style.cursor = 'pointer';
-    cleanBtn.style.marginLeft = '10px';
-    cleanBtn.onclick = cleanUpJobsData;
-    debugPanel.querySelector('div').appendChild(cleanBtn);
-    
-    const recoverBtn = document.createElement('button');
-    recoverBtn.textContent = 'RECOVER JOBS';
-    recoverBtn.style.background = '#10b981';
-    recoverBtn.style.color = 'white';
-    recoverBtn.style.border = 'none';
-    recoverBtn.style.padding = '8px 16px';
-    recoverBtn.style.borderRadius = '4px';
-    recoverBtn.style.cursor = 'pointer';
-    recoverBtn.style.marginLeft = '10px';
-    recoverBtn.onclick = recoverJobsData;
-    debugPanel.querySelector('div').appendChild(recoverBtn);
-  }
-});
-
-// --- MANUAL JOB DATA RESTORATION ---
+// --- RETIRED LOCAL DEBUG HELPERS (kept as no-op compatibility stubs) ---
 function restoreSampleJobs() {
-  console.log('🔧 Restoring sample job data...');
-  
-  const sampleJobs = {
-    "hakot": [
-      {
-        "jobId": "hakot_job_2025_1",
-        "jobNumber": 1,
-        "posterId": "user_peter_ang_001",
-        "posterName": "Peter J. Ang",
-        "title": "Need help moving furniture",
-        "description": "Moving from apartment to new house. Need help with heavy furniture.",
-        "category": "hakot",
-        "thumbnail": "public/mock/mock-hakot-post1.jpg",
-        "jobDate": "2025-01-15",
-        "dateNeeded": "2025-01-15",
-        "startTime": "09:00",
-        "endTime": "17:00",
-        "priceOffer": "1500",
-        "paymentAmount": "1500",
-        "paymentType": "offer",
-        "region": "Metro Manila",
-        "city": "Quezon City",
-        "extras": ["Heavy lifting", "Truck needed"],
-        "status": "active",
-        "applicationCount": 0,
-        "applicationIds": [],
-        "datePosted": "2025-01-10T08:00:00.000Z",
-        "jobPageUrl": "hakot.html",
-        "createdAt": "2025-01-10T08:00:00.000Z",
-        "updatedAt": "2025-01-10T08:00:00.000Z"
-      },
-      {
-        "jobId": "hakot_job_2025_2",
-        "jobNumber": 2,
-        "posterId": "user_peter_ang_001",
-        "posterName": "Peter J. Ang",
-        "title": "Office equipment transport",
-        "description": "Moving office equipment to new location. Need careful handling.",
-        "category": "hakot",
-        "thumbnail": "public/mock/mock-hakot-post2.jpg",
-        "jobDate": "2025-01-20",
-        "dateNeeded": "2025-01-20",
-        "startTime": "10:00",
-        "endTime": "16:00",
-        "priceOffer": "2000",
-        "paymentAmount": "2000",
-        "paymentType": "offer",
-        "region": "Metro Manila",
-        "city": "Makati",
-        "extras": ["Careful handling", "Insurance"],
-        "status": "active",
-        "applicationCount": 0,
-        "applicationIds": [],
-        "datePosted": "2025-01-12T09:00:00.000Z",
-        "jobPageUrl": "hakot.html",
-        "createdAt": "2025-01-12T09:00:00.000Z",
-        "updatedAt": "2025-01-12T09:00:00.000Z"
-      }
-    ],
-    "limpyo": [
-      {
-        "jobId": "limpyo_job_2025_1",
-        "jobNumber": 1,
-        "posterId": "user_peter_ang_001",
-        "posterName": "Peter J. Ang",
-        "title": "Deep cleaning needed",
-        "description": "Need thorough cleaning of 3-bedroom house. Includes kitchen and bathrooms.",
-        "category": "limpyo",
-        "thumbnail": "public/mock/mock-limpyo-post1.jpg",
-        "jobDate": "2025-01-18",
-        "dateNeeded": "2025-01-18",
-        "startTime": "08:00",
-        "endTime": "14:00",
-        "priceOffer": "1200",
-        "paymentAmount": "1200",
-        "paymentType": "offer",
-        "region": "Metro Manila",
-        "city": "Manila",
-        "extras": ["Deep cleaning", "Eco-friendly products"],
-        "status": "active",
-        "applicationCount": 0,
-        "applicationIds": [],
-        "datePosted": "2025-01-14T07:00:00.000Z",
-        "jobPageUrl": "limpyo.html",
-        "createdAt": "2025-01-14T07:00:00.000Z",
-        "updatedAt": "2025-01-14T07:00:00.000Z"
-      }
-    ]
-  };
-  
-  localStorage.setItem('gisugoJobs', JSON.stringify(sampleJobs));
-  console.log('🔧 Sample jobs restored:', sampleJobs);
-  alert('Sample job data restored! Check hakot and limpyo categories.');
+  console.warn('restoreSampleJobs is retired (backend-only mode).');
 }
 
-// --- DEBUG PANEL BUTTON FOR CLEANUP ---
-window.addEventListener('DOMContentLoaded', function() {
-  const debugPanel = document.getElementById('debugPanel');
-  if (debugPanel) {
-    const cleanBtn = document.createElement('button');
-    cleanBtn.textContent = 'CLEANUP JOB DATA';
-    cleanBtn.style.background = '#f87171';
-    cleanBtn.style.color = 'white';
-    cleanBtn.style.border = 'none';
-    cleanBtn.style.padding = '8px 16px';
-    cleanBtn.style.borderRadius = '4px';
-    cleanBtn.style.cursor = 'pointer';
-    cleanBtn.style.marginLeft = '10px';
-    cleanBtn.onclick = cleanUpJobsData;
-    debugPanel.querySelector('div').appendChild(cleanBtn);
-    
-    const recoverBtn = document.createElement('button');
-    recoverBtn.textContent = 'RECOVER JOBS';
-    recoverBtn.style.background = '#10b981';
-    recoverBtn.style.color = 'white';
-    recoverBtn.style.border = 'none';
-    recoverBtn.style.padding = '8px 16px';
-    recoverBtn.style.borderRadius = '4px';
-    recoverBtn.style.cursor = 'pointer';
-    recoverBtn.style.marginLeft = '10px';
-    recoverBtn.onclick = recoverJobsData;
-    debugPanel.querySelector('div').appendChild(recoverBtn);
-    
-    const restoreBtn = document.createElement('button');
-    restoreBtn.textContent = 'RESTORE SAMPLES';
-    restoreBtn.style.background = '#3b82f6';
-    restoreBtn.style.color = 'white';
-    restoreBtn.style.border = 'none';
-    restoreBtn.style.padding = '8px 16px';
-    restoreBtn.style.borderRadius = '4px';
-    restoreBtn.style.cursor = 'pointer';
-    restoreBtn.style.marginLeft = '10px';
-    restoreBtn.onclick = restoreSampleJobs;
-    debugPanel.querySelector('div').appendChild(restoreBtn);
-    
-    const removeDuplicatesBtn = document.createElement('button');
-    removeDuplicatesBtn.textContent = 'REMOVE DUPLICATES';
-    removeDuplicatesBtn.style.background = '#f59e0b';
-    removeDuplicatesBtn.style.color = 'white';
-    removeDuplicatesBtn.style.border = 'none';
-    removeDuplicatesBtn.style.padding = '8px 16px';
-    removeDuplicatesBtn.style.borderRadius = '4px';
-    removeDuplicatesBtn.style.cursor = 'pointer';
-    removeDuplicatesBtn.style.marginLeft = '10px';
-    removeDuplicatesBtn.onclick = removeDuplicateJobs;
-    debugPanel.querySelector('div').appendChild(removeDuplicatesBtn);
-  }
-});
-
-// --- REMOVE DUPLICATE JOBS ---
 function removeDuplicateJobs() {
-  console.log('🧹 Removing duplicate jobs...');
-  
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  let totalRemoved = 0;
-  
-  Object.keys(allJobs).forEach(category => {
-    const before = allJobs[category].length;
-    
-    // Remove duplicates based on jobId
-    const seen = new Set();
-    allJobs[category] = allJobs[category].filter(job => {
-      if (!job.jobId) return true; // Keep jobs without jobId for now
-      
-      if (seen.has(job.jobId)) {
-        totalRemoved++;
-        return false;
-      }
-      
-      seen.add(job.jobId);
-      return true;
-    });
-    
-    const after = allJobs[category].length;
-    if (before !== after) {
-      console.log(`🧹 Removed ${before - after} duplicates from ${category}`);
-    }
-  });
-  
-  localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-  console.log(`🧹 Duplicate removal complete: ${totalRemoved} duplicates removed`);
-  alert(`Duplicate removal complete! ${totalRemoved} duplicate jobs removed.`);
+  console.warn('removeDuplicateJobs is retired (backend-only mode).');
 }
 
-// --- FIXED JOB DATA RECOVERY FUNCTION ---
 function recoverJobsData() {
-  console.log('🔄 Starting job data recovery...');
-  
-  // First, let's see what's currently in localStorage
-  console.log('📊 Current localStorage contents:');
-  const allKeys = Object.keys(localStorage);
-  console.log('All localStorage keys:', allKeys);
-  
-  // Show current gisugoJobs data
-  const currentJobs = localStorage.getItem('gisugoJobs');
-  console.log('Current gisugoJobs data:', currentJobs);
-  
-  if (currentJobs) {
-    try {
-      const parsed = JSON.parse(currentJobs);
-      console.log('Parsed gisugoJobs:', parsed);
-      console.log('Categories found:', Object.keys(parsed));
-      Object.keys(parsed).forEach(category => {
-        console.log(`${category}: ${parsed[category].length} jobs`);
-      });
-    } catch (e) {
-      console.log('Error parsing gisugoJobs:', e);
-    }
-  }
-  
-  // Get existing job IDs to avoid duplicates
-  const existingJobIds = new Set();
-  if (currentJobs) {
-    try {
-      const parsed = JSON.parse(currentJobs);
-      Object.keys(parsed).forEach(category => {
-        parsed[category].forEach(job => {
-          if (job.jobId) existingJobIds.add(job.jobId);
-        });
-      });
-    } catch (e) {
-      console.log('Error parsing existing jobs:', e);
-    }
-  }
-  
-  console.log('Existing job IDs:', Array.from(existingJobIds));
-  
-  // Look for any other potential job data
-  const jobKeys = allKeys.filter(key => 
-    key.includes('job') || 
-    key.includes('gisugo') || 
-    key.includes('Jobs') ||
-    key.includes('Job') ||
-    key.includes('post') ||
-    key.includes('listing')
-  );
-  
-  console.log('🔍 Found potential job data keys:', jobKeys);
-  
-  let recoveredJobs = {};
-  let totalRecovered = 0;
-  
-  jobKeys.forEach(key => {
-    try {
-      const data = localStorage.getItem(key);
-      console.log(`🔍 Checking key "${key}":`, data ? data.substring(0, 200) + '...' : 'null');
-      
-      if (data) {
-        const parsed = JSON.parse(data);
-        if (parsed && typeof parsed === 'object') {
-          // Check if this looks like job data
-          if (Array.isArray(parsed)) {
-            // Array of jobs
-            console.log(`📋 Found array in ${key} with ${parsed.length} items`);
-            const validJobs = parsed.filter(job => 
-              job && typeof job === 'object' && 
-              (job.title || job.jobId || job.category) &&
-              !existingJobIds.has(job.jobId) // Only recover jobs not already present
-            );
-            if (validJobs.length > 0) {
-              recoveredJobs[key] = validJobs;
-              totalRecovered += validJobs.length;
-              console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}`);
-            }
-          } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
-            // Object with categories
-            console.log(`📋 Found object in ${key} with keys:`, Object.keys(parsed));
-            Object.keys(parsed).forEach(category => {
-              if (Array.isArray(parsed[category])) {
-                console.log(`📋 Category ${category} has ${parsed[category].length} items`);
-                const validJobs = parsed[category].filter(job => 
-                  job && typeof job === 'object' && 
-                  (job.title || job.jobId || job.category) &&
-                  !existingJobIds.has(job.jobId) // Only recover jobs not already present
-                );
-                if (validJobs.length > 0) {
-                  if (!recoveredJobs[category]) recoveredJobs[category] = [];
-                  recoveredJobs[category].push(...validJobs);
-                  totalRecovered += validJobs.length;
-                  console.log(`🔄 Recovered ${validJobs.length} jobs from ${key}.${category}`);
-                }
-              }
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.log(`⚠️ Could not parse ${key}:`, error.message);
-    }
-  });
-  
-  console.log('📊 Recovery summary:');
-  console.log('- Total keys checked:', jobKeys.length);
-  console.log('- Jobs recovered:', totalRecovered);
-  console.log('- Recovered data structure:', recoveredJobs);
-  
-  if (totalRecovered > 0) {
-    // Merge with existing data
-    const existingJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    Object.keys(recoveredJobs).forEach(category => {
-      if (!existingJobs[category]) existingJobs[category] = [];
-      existingJobs[category].push(...recoveredJobs[category]);
-    });
-    
-    localStorage.setItem('gisugoJobs', JSON.stringify(existingJobs));
-    console.log(`🔄 Recovery complete: ${totalRecovered} jobs restored`);
-    alert(`Job data recovered! ${totalRecovered} jobs restored. Check console for details.`);
-  } else {
-    console.log('🔄 No recoverable job data found');
-    alert('No recoverable job data found. Check console for details.');
-  }
+  console.warn('recoverJobsData is retired (backend-only mode).');
 }
 
 // Hour & AM/PM Picker Modal Logic

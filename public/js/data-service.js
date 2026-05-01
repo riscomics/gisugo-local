@@ -1,19 +1,8 @@
 // ============================================================================
 // GISUGO DATA SERVICE
 // ============================================================================
-// Central utility for loading data with clean Mock/Firebase separation
-// 
-// USAGE:
-//   if (DataService.useFirebase()) {
-//     // Load from Firebase ONLY
-//   } else {
-//     // Load from Mock ONLY
-//   }
-//
-// TOGGLE:
-//   DataService.setMode('firebase')  → Use real Firebase data
-//   DataService.setMode('mock')      → Use mock data for testing
-//
+// Central utility for loading data from Firebase.
+// Mock-data runtime mode is retired by production policy.
 // ============================================================================
 
 const DataService = {
@@ -30,23 +19,10 @@ const DataService = {
    * @returns {boolean}
    */
   useFirebase() {
-    // Production safety: outside local dev, always stay on Firebase path.
-    // Never auto-fall back to mock data in deployed environments.
-    if (!this._isLocalDevRuntime()) {
-      return true;
-    }
-
-    // Check APP_CONFIG if available
-    if (typeof APP_CONFIG !== 'undefined') {
+    if (typeof APP_CONFIG !== 'undefined' && typeof APP_CONFIG.useFirebaseData === 'function') {
       return APP_CONFIG.useFirebaseData();
     }
-    
-    // Fallback: check localStorage directly
-    const devMode = localStorage.getItem('gisugo_dev_mode');
-    const firebaseConnected = this._isFirebaseConnected();
-    
-    // Use Firebase only if NOT in dev mode AND Firebase is connected
-    return devMode === 'false' && firebaseConnected;
+    return this._isFirebaseConnected();
   },
   
   /**
@@ -54,8 +30,7 @@ const DataService = {
    * @returns {boolean}
    */
   useMock() {
-    // Mock mode is local-dev only.
-    return this._isLocalDevRuntime() && !this.useFirebase();
+    return false;
   },
   
   /**
@@ -63,35 +38,18 @@ const DataService = {
    * @returns {'firebase' | 'mock'}
    */
   getMode() {
-    return this.useFirebase() ? 'firebase' : 'mock';
+    return this.useFirebase() ? 'firebase' : 'unavailable';
   },
   
   /**
    * Set the data mode
    * @param {'firebase' | 'mock'} mode
    */
-  setMode(mode) {
-    if (!this._isLocalDevRuntime()) {
-      console.warn('🚫 DataService: setMode ignored outside local development');
-      localStorage.setItem('gisugo_dev_mode', 'false');
-      if (typeof APP_CONFIG !== 'undefined') {
-        APP_CONFIG.devMode = false;
-      }
-      return;
-    }
-
-    if (mode === 'firebase') {
-      localStorage.setItem('gisugo_dev_mode', 'false');
-      console.log('🔥 DataService: Switched to FIREBASE mode');
-    } else {
-      localStorage.setItem('gisugo_dev_mode', 'true');
-      console.log('🧪 DataService: Switched to MOCK mode');
-    }
-    
-    // Update APP_CONFIG if available
+  setMode(_mode) {
     if (typeof APP_CONFIG !== 'undefined') {
-      APP_CONFIG.devMode = (mode === 'mock');
+      APP_CONFIG.devMode = false;
     }
+    console.warn('🚫 DataService.setMode ignored: mock mode is retired.');
   },
   
   // ===== HELPER METHODS =====
@@ -178,40 +136,25 @@ const DataService = {
   // ===== GENERIC DATA LOADER =====
   
   /**
-   * Load data with automatic mock/firebase switching
+   * Load data from Firebase only.
    * @param {Object} options
    * @param {Function} options.firebaseLoader - Async function to load from Firebase
-   * @param {Function|any} options.mockLoader - Function or data to use for mock mode
    * @param {string} [options.loadingElementId] - Optional loading element ID
    * @returns {Promise<any>}
    */
-  async load({ firebaseLoader, mockLoader, loadingElementId }) {
+  async load({ firebaseLoader, loadingElementId }) {
     // Show loading if element provided
     if (loadingElementId) {
       this.showLoading(loadingElementId);
     }
     
     try {
-      if (this.useFirebase()) {
-        // ══════════════════════════════════════
-        // FIREBASE MODE
-        // ══════════════════════════════════════
-        console.log('🔥 DataService: Loading from Firebase...');
-        const data = await firebaseLoader();
-        return data;
-        
-      } else {
-        // ══════════════════════════════════════
-        // MOCK MODE
-        // ══════════════════════════════════════
-        console.log('🧪 DataService: Loading from Mock data...');
-        
-        // mockLoader can be a function or direct data
-        if (typeof mockLoader === 'function') {
-          return mockLoader();
-        }
-        return mockLoader;
+      if (!this.useFirebase()) {
+        throw new Error('Firebase backend unavailable');
       }
+      console.log('🔥 DataService: Loading from Firebase...');
+      const data = await firebaseLoader();
+      return data;
       
     } catch (error) {
       console.error('❌ DataService: Load error:', error);
@@ -236,7 +179,7 @@ const DataService = {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log(`   Mode: ${this.getMode().toUpperCase()}`);
     console.log(`   Firebase Connected: ${this._isFirebaseConnected() ? '✅' : '❌'}`);
-    console.log(`   Dev Mode (localStorage): ${localStorage.getItem('gisugo_dev_mode')}`);
+    console.log('   Mock Mode: 🚫 Retired');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   }
 };

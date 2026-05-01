@@ -1936,7 +1936,7 @@ async function postJob() {
   
   // Save job using DataService pattern - CLEAN SEPARATION
   const useFirebase = typeof DataService !== 'undefined' && DataService.useFirebase();
-  console.log(`📊 Saving job in ${useFirebase ? 'FIREBASE' : 'MOCK'} mode`);
+  console.log(`📊 Saving job (backend ${useFirebase ? 'enabled' : 'unavailable'})`);
   console.log('📝 Job category:', np2State.selectedCategory);
   
   try {
@@ -2028,93 +2028,7 @@ async function postJob() {
       }
     }
     
-    // ══════════════════════════════════════════════════════════════
-    // MOCK MODE - Save ONLY to localStorage
-    // ══════════════════════════════════════════════════════════════
-    console.log('🧪 MOCK MODE: Saving job to localStorage...');
-    
-    // Add mock photo data for offline mode
-    if (processedJobPhoto) {
-      jobData.thumbnail = processedJobPhoto.cropped;
-      jobData.originalPhoto = processedJobPhoto.hasOriginal ? processedJobPhoto.original : processedJobPhoto.cropped;
-    } else if (np2State.photoDataUrl) {
-      jobData.thumbnail = np2State.photoDataUrl;
-      jobData.originalPhoto = np2State.photoDataUrl;
-    }
-    
-    // Add mock jobId for localStorage
-    jobData.jobId = `${np2State.selectedCategory}_job_2025_${jobNumber}`;
-    jobData.jobNumber = jobNumber;
-    
-    let allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    console.log('📝 Existing jobs:', allJobs);
-    
-    if (!allJobs[np2State.selectedCategory]) {
-      allJobs[np2State.selectedCategory] = [];
-      console.log('📝 Created new category array');
-    }
-    
-    if (np2State.mode === 'edit') {
-      // EDIT MODE: Update existing job
-      const jobIndex = allJobs[np2State.selectedCategory].findIndex(j => j.jobId === np2State.editJobId);
-      if (jobIndex !== -1) {
-        // Preserve original creation data
-        jobData.datePosted = allJobs[np2State.selectedCategory][jobIndex].datePosted;
-        jobData.createdAt = allJobs[np2State.selectedCategory][jobIndex].createdAt;
-        jobData.applicationCount = allJobs[np2State.selectedCategory][jobIndex].applicationCount || 0;
-        jobData.applicationIds = allJobs[np2State.selectedCategory][jobIndex].applicationIds || [];
-        
-        allJobs[np2State.selectedCategory][jobIndex] = jobData;
-        console.log('✏️ Job updated at index:', jobIndex);
-      } else {
-        console.error('❌ Job not found for editing:', np2State.editJobId);
-        throw new Error('Job not found for editing');
-      }
-    } else {
-      // NEW or RELIST MODE: Add new job
-      allJobs[np2State.selectedCategory].push(jobData);
-      console.log('📝 Job added to array. Total jobs in category:', allJobs[np2State.selectedCategory].length);
-    }
-    
-    // Try to save
-    try {
-      localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-      console.log('✅ Job saved to localStorage successfully!');
-    } catch (quotaError) {
-      // If quota exceeded, clean up old jobs and try again
-      console.warn('⚠️ localStorage quota exceeded, cleaning up old jobs...');
-      
-      // Keep only the 10 most recent jobs per category
-      Object.keys(allJobs).forEach(category => {
-        if (allJobs[category].length > 10) {
-          allJobs[category] = allJobs[category]
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, 10);
-        }
-      });
-      
-      // Try saving again
-      localStorage.setItem('gisugoJobs', JSON.stringify(allJobs));
-      console.log('✅ Job saved after cleanup!');
-    }
-    
-    // CRITICAL: Also save to jobPreviewCards for listing pages
-    saveToJobPreviewCards(job);
-    
-    // Store the posted job info for View Post button
-    np2State.lastPostedJobId = job.jobId;
-    np2State.lastPostedJobNumber = jobNumber;
-    
-    // Hide loading modal
-    if (loadingOverlay) {
-      loadingOverlay.classList.remove('show');
-    }
-    
-    // Close preview overlay
-    document.getElementById('previewOverlay').classList.remove('show');
-    
-    // Show success overlay
-    showSuccessOverlay();
+    throw new Error('Job posting backend unavailable');
   } catch (error) {
     console.error('❌ Error saving job:', error);
     console.error('❌ Error details:', error.message);
@@ -2125,52 +2039,8 @@ async function postJob() {
       loadingOverlay.classList.remove('show');
     }
     
-    alert(`Failed to post job: ${error.message}\n\nTry clearing old jobs from localStorage.`);
+    alert(`Failed to post job: ${error.message}`);
     showToast('Failed to post job. Please try again.', 'error');
-  }
-}
-
-// Save job to jobPreviewCards format for listing pages
-function saveToJobPreviewCards(job) {
-  try {
-    const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-    
-    if (!previewCards[job.category]) {
-      previewCards[job.category] = [];
-    }
-    
-    // Format date to match new-post.js format (e.g., "Nov 21")
-    const date = new Date(job.jobDate);
-    const options = { month: 'short', day: 'numeric' };
-    const formattedDate = date.toLocaleDateString('en-US', options);
-    
-    // extras already in "Label: Value" format from postJob()
-    const extra1 = job.extras && job.extras[0] ? job.extras[0] : '';
-    const extra2 = job.extras && job.extras[1] ? job.extras[1] : '';
-    
-    // MATCH EXACT FORMAT FROM new-post.js line 2905-2919
-    const previewCard = {
-      jobNumber: job.jobNumber,
-      title: job.title,
-      extra1: extra1, // "Location: Marigondon"
-      extra2: extra2, // "Subject: Korean"
-      price: `₱${job.paymentAmount}`,
-      rate: job.paymentType,
-      date: formattedDate,
-      time: `${job.startTime} - ${job.endTime}`,
-      photo: job.thumbnail, // base64 or mock path
-      templateUrl: `dynamic-job.html?category=${job.category}&jobNumber=${job.jobNumber}`,
-      region: job.region,
-      city: job.city,
-      createdAt: new Date().toISOString()
-    };
-    
-    // Add to beginning (newest first)
-    previewCards[job.category].unshift(previewCard);
-    localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-    console.log('✅ Job preview card saved for listing page:', previewCard);
-  } catch (error) {
-    console.error('❌ Error saving job preview card:', error);
   }
 }
 
@@ -2285,25 +2155,8 @@ function initializeSuccessOverlay() {
           return;
         }
         
-        // PRIORITY 2: Fall back to localStorage (Mock mode)
-        const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-        const categoryJobs = allJobs[np2State.selectedCategory] || [];
-        
-        // Get the most recently posted job
-        let targetJob;
-        if (np2State.mode === 'edit' && np2State.editJobId) {
-          targetJob = categoryJobs.find(j => j.jobId === np2State.editJobId);
-        } else {
-          targetJob = categoryJobs[categoryJobs.length - 1];
-        }
-        
-        if (targetJob && targetJob.jobNumber) {
-          console.log('📍 Navigating to localStorage job:', targetJob.jobNumber);
-          window.location.href = `dynamic-job.html?category=${np2State.selectedCategory}&jobNumber=${targetJob.jobNumber}`;
-        } else {
-          console.warn('Job not found, redirecting to category page');
-          window.location.href = `${np2State.selectedCategory}.html`;
-        }
+        console.warn('View Post unavailable: no persisted backend job ID');
+        window.location.href = `${np2State.selectedCategory}.html`;
       } catch (error) {
         console.error('Error navigating to job post:', error);
         window.location.href = np2State.selectedCategory ? `${np2State.selectedCategory}.html` : 'jobs.html';
@@ -2440,7 +2293,7 @@ async function handleEditMode(jobId, category) {
                 console.log(`📍 Inferred category from jobPageUrl: ${actualCategory}`);
               }
             }
-            // Fallback to URL parameter only if still empty
+            // Use URL parameter only if backend category is still empty
             if (!actualCategory || actualCategory === 'unknown') {
               actualCategory = category;
             }
@@ -2489,30 +2342,12 @@ async function handleEditMode(jobId, category) {
       } catch (fbError) {
         console.error('❌ Firebase load failed:', fbError);
       }
-    } else {
-      console.log('📦 Using localStorage mode (Firebase not available or dev mode ON)');
     }
-    
-    // Fallback: Load job data from localStorage
-    console.log('📦 Trying localStorage fallback...');
-    const jobData = getActiveJobData(jobId);
-    console.log('📋 localStorage result:', jobData);
-    
-    if (!jobData || jobData === 'FIREBASE_PENDING') {
-      console.error(`❌ Active job not found in any source: ${jobId}`);
-      if (loadingOverlay) loadingOverlay.classList.remove('show');
-      showToast('Job not found. Redirecting to new post...', 'error');
-      return;
-    }
-    
-    console.log(`✅ Loading job data for editing:`, jobData);
-    // Use category from job data, not URL parameter
-    populateFormWithJobData(jobData, jobData.category || category, 'edit');
-    
-    // Hide loading overlay
-    if (loadingOverlay) {
-      setTimeout(() => loadingOverlay.classList.remove('show'), 300);
-    }
+
+    console.error(`❌ Active job not found in backend: ${jobId}`);
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
+    showToast('Job not found in backend. Please refresh and try again.', 'error');
+    return;
     
   } catch (error) {
     console.error(`❌ Error loading job for editing:`, error);
@@ -2583,97 +2418,20 @@ async function handleRelistMode(jobId, category) {
           return;
         }
       } catch (fbError) {
-        console.warn('⚠️ Firebase load failed, trying localStorage:', fbError);
+        console.warn('⚠️ Firebase load failed:', fbError);
       }
     }
-    
-    // Fallback: Load job data from completed jobs in localStorage
-    const jobData = getCompletedJobData(jobId);
-    if (!jobData || jobData === 'FIREBASE_PENDING') {
-      console.error(`❌ Completed job not found: ${jobId}`);
-      if (loadingOverlay) loadingOverlay.classList.remove('show');
-      showToast('Job not found. Redirecting to new post...', 'error');
-      return;
-    }
-    
-    console.log(`📋 Loading completed job data for relisting:`, jobData);
-    const actualCategory = jobData.category || category;
-    console.log(`📂 Using category: ${actualCategory}`);
-    
-    populateFormWithJobData(jobData, actualCategory, 'relist');
-    if (loadingOverlay) setTimeout(() => loadingOverlay.classList.remove('show'), 300);
+
+    console.error(`❌ Completed job not found in backend: ${jobId}`);
+    if (loadingOverlay) loadingOverlay.classList.remove('show');
+    showToast('Completed job not found in backend.', 'error');
+    return;
     
   } catch (error) {
     console.error(`❌ Error loading job for relisting:`, error);
     const loadingOverlay = document.getElementById('loadingOverlay');
     if (loadingOverlay) loadingOverlay.classList.remove('show');
     showToast('Error loading job data. Please try again.', 'error');
-  }
-}
-
-function getActiveJobData(jobId) {
-  try {
-    // PRIORITY 1: Try Firebase first (if in Firebase mode)
-    if (typeof DataService !== 'undefined' && DataService.useFirebase() && typeof getJobById === 'function') {
-      console.log('🔥 Fetching active job from Firebase:', jobId);
-      // This will be handled async in handleEditMode
-      return 'FIREBASE_PENDING';
-    }
-    
-    // PRIORITY 2: Try localStorage (Mock mode)
-    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    
-    // Search through all categories for the job
-    for (const category in allJobs) {
-      const categoryJobs = allJobs[category] || [];
-      const job = categoryJobs.find(j => j.jobId === jobId);
-      if (job) {
-        console.log('📋 Found job in localStorage:', job);
-        return {
-          ...job,
-          category: category
-        };
-      }
-    }
-    
-    console.log('❌ Job not found in localStorage:', jobId);
-    return null;
-  } catch (error) {
-    console.error('Error loading active job data:', error);
-    return null;
-  }
-}
-
-function getCompletedJobData(jobId) {
-  try {
-    // PRIORITY 1: Try Firebase first (if in Firebase mode)
-    if (typeof DataService !== 'undefined' && DataService.useFirebase() && typeof getJobById === 'function') {
-      console.log('🔥 Fetching completed job from Firebase:', jobId);
-      // This will be handled async in handleRelistMode
-      return 'FIREBASE_PENDING';
-    }
-    
-    // PRIORITY 2: Try localStorage
-    const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-    
-    // Search through all categories
-    for (const category in allJobs) {
-      const categoryJobs = allJobs[category] || [];
-      const job = categoryJobs.find(j => j.jobId === jobId && j.status === 'completed');
-      if (job) {
-        console.log('📋 Found completed job in localStorage:', job);
-        return {
-          ...job,
-          category: category
-        };
-      }
-    }
-    
-    console.log('❌ Completed job not found:', jobId);
-    return null;
-  } catch (error) {
-    console.error('Error loading completed job data:', error);
-    return null;
   }
 }
 
@@ -3252,7 +3010,7 @@ async function handleEditFormSubmit(jobId, category) {
         return;
       }
     } else {
-      // Use base64 if offline mode or photo wasn't changed
+      // Use the already-selected in-memory/base64 preview when storage upload is not required.
       updatedJob.thumbnail = np2State.photoDataUrl;
     }
   }
@@ -3384,18 +3142,8 @@ function showEditPreview(updatedJob, category, jobId) {
           // TODO: If we uploaded new photo but Firestore failed, track as orphan
         }
       } else {
-        // localStorage fallback
-        const jobs = JSON.parse(localStorage.getItem('activeJobs') || '[]');
-        const jobIndex = jobs.findIndex(j => j.jobId === jobId);
-        if (jobIndex !== -1) {
-          jobs[jobIndex] = { ...jobs[jobIndex], ...updatedJob };
-          localStorage.setItem('activeJobs', JSON.stringify(jobs));
-          if (loadingOverlay) loadingOverlay.classList.remove('show');
-          showSuccessOverlay();
-        } else {
-          if (loadingOverlay) loadingOverlay.classList.remove('show');
-          showToast('Job not found in localStorage', 'error');
-        }
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
+        showToast('Failed to update job: backend unavailable', 'error');
       }
     };
   }

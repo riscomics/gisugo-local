@@ -570,7 +570,7 @@ async function handleFormSubmit(event) {
         
         console.log('📋 Contact data prepared:', contactData);
         
-        // Submit to Firebase (mock for now)
+        // Submit to backend (works-or-fails).
         await submitContactForm(contactData);
         uploadedPhotoPathForCleanup = null;
         
@@ -647,15 +647,7 @@ async function uploadPhoto(file, referenceId, userId = null) {
             path: uploadResult.path || null
         };
     }
-
-    // Dev/local fallback (short delay for UI feedback)
-    await new Promise(resolve => setTimeout(resolve, 200));
-    const mockPhotoUrl = `https://gisugo-uploads.com/contacts/${Date.now()}_${file.name}`;
-    console.log('🧪 Photo upload simulated in dev/local mode:', mockPhotoUrl);
-    return {
-        url: mockPhotoUrl,
-        path: null
-    };
+    throw new Error('Photo upload backend unavailable');
 }
 
 async function submitContactForm(contactData) {
@@ -680,11 +672,7 @@ async function submitContactForm(contactData) {
         console.log('✅ Contact submitted to support_requests:', docRef.id);
         return docRef.id;
     }
-
-    // Dev/local fallback mode
-    await new Promise(resolve => setTimeout(resolve, 250));
-    console.log('🧪 Contact submission simulated in dev/local mode');
-    return null;
+    throw new Error('Support backend unavailable');
 }
 
 function generateReferenceId() {
@@ -853,32 +841,31 @@ function showLeaveConfirmation() {
 }
 
 function preloadUserData() {
-    // Only pre-fill user data if user is actually logged in
-    // Mock check for logged-in user - in real implementation, check Firebase Auth
-    const isLoggedIn = false; // Set to false for now - will be true when Firebase Auth is connected
-    
-    if (!isLoggedIn) {
+    // Pre-fill only from authenticated Firebase user.
+    let currentUser = null;
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            currentUser = firebase.auth().currentUser;
+        }
+    } catch (error) {
+        console.warn('⚠️ Unable to read Firebase auth user for contact preload:', error);
+    }
+    if (!currentUser) {
         console.log('👤 No user logged in - leaving form fields empty');
         return;
     }
-    
-    // Mock user data - in real implementation, get from Firebase Auth
-    const mockUser = {
-        name: 'John Doe',
-        email: 'john.doe@example.com'
-    };
     
     // Only pre-fill if fields are empty and user is logged in
     const nameField = document.getElementById('userName');
     const emailField = document.getElementById('userEmail');
     
-    if (!nameField.value && mockUser.name) {
-        nameField.value = mockUser.name;
+    if (!nameField.value && currentUser.displayName) {
+        nameField.value = currentUser.displayName;
         console.log('✅ Pre-filled user name');
     }
     
-    if (!emailField.value && mockUser.email) {
-        emailField.value = mockUser.email;
+    if (!emailField.value && currentUser.email) {
+        emailField.value = currentUser.email;
         console.log('✅ Pre-filled user email');
     }
 }

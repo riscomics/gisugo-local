@@ -110,21 +110,7 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
   if (!safeUserId) return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
   const db = dbOverride || getFirestore();
   if (!db) {
-    const users = JSON.parse(localStorage.getItem('gisugo_users') || '{}');
-    const user = users[safeUserId] || {};
-    const normalized = normalizeApplicationCoins(user);
-    if (
-      user.applicationCoinsCurrent !== normalized.current
-      || user.applicationCoinsMax !== normalized.max
-    ) {
-      users[safeUserId] = {
-        ...user,
-        applicationCoinsCurrent: normalized.current,
-        applicationCoinsMax: normalized.max
-      };
-      localStorage.setItem('gisugo_users', JSON.stringify(users));
-    }
-    return normalized;
+    return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
   }
 
   const userRef = db.collection('users').doc(safeUserId);
@@ -270,17 +256,6 @@ async function releaseApplicationCoinForUser(userId, reason = '') {
   if (!safeUserId) return;
   const db = getFirestore();
   if (!db) {
-    const users = JSON.parse(localStorage.getItem('gisugo_users') || '{}');
-    const user = users[safeUserId] || {};
-    const normalized = normalizeApplicationCoins(user);
-    users[safeUserId] = {
-      ...user,
-      applicationCoinsMax: normalized.max,
-      applicationCoinsCurrent: Math.min(normalized.max, normalized.current + 1),
-      applicationCoinLastReleaseReason: reason || user.applicationCoinLastReleaseReason || '',
-      applicationCoinLastReleasedAt: new Date().toISOString()
-    };
-    localStorage.setItem('gisugo_users', JSON.stringify(users));
     return;
   }
 
@@ -857,8 +832,7 @@ async function createJob(jobData) {
   }
   
   if (!db) {
-    // Offline mode - use localStorage
-    return createJobOffline(jobData);
+    return { success: false, message: 'Jobs backend unavailable' };
   }
   
   try {
@@ -989,89 +963,6 @@ async function createJob(jobData) {
   }
 }
 
-// Create job in localStorage for offline mode
-function createJobOffline(jobData) {
-  const jobId = `${jobData.category}_job_${Date.now()}`;
-  const category = jobData.category;
-  
-  // Get current user info from Firebase Auth
-  const auth = getFirebaseAuth();
-  const currentUser = auth ? auth.currentUser : null;
-  const posterId = (currentUser && currentUser.uid) || getCurrentUserId() || 'offline_user';
-  const posterName = (currentUser && currentUser.displayName) || 'Demo User';
-  const posterThumbnail = (currentUser && currentUser.photoURL) || '';
-  
-  const jobDoc = {
-    jobId: jobId,
-    jobNumber: Date.now().toString(),
-    posterId: posterId,
-    posterName: posterName,
-    posterThumbnail: posterThumbnail,
-    title: jobData.title || jobData.jobTitle,
-    description: jobData.description || '',
-    category: category,
-    thumbnail: jobData.thumbnail || jobData.photo || '',
-    photo: jobData.thumbnail || jobData.photo || '',
-    region: jobData.region || 'CEBU',
-    city: jobData.city || 'CEBU CITY',
-    jobDate: jobData.jobDate || jobData.scheduledDate,
-    startTime: jobData.startTime,
-    endTime: jobData.endTime,
-    priceOffer: jobData.priceOffer || jobData.paymentAmount,
-    paymentType: jobData.paymentType || 'Per Hour',
-    paymentAmount: jobData.priceOffer || jobData.paymentAmount,
-    extras: jobData.extras || [],
-    status: 'active',
-    datePosted: new Date().toISOString(),
-    applicationCount: 0
-  };
-  
-  // Store in localStorage
-  const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  if (!jobs[category]) {
-    jobs[category] = [];
-  }
-  jobs[category].push(jobDoc);
-  localStorage.setItem('gisugoJobs', JSON.stringify(jobs));
-  
-  // Also store in job preview cards format
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  if (!previewCards[category]) {
-    previewCards[category] = [];
-  }
-  
-  const previewCard = {
-    id: jobId,
-    jobNumber: jobDoc.jobNumber,
-    category: category,
-    title: jobDoc.title,
-    photo: jobDoc.photo,
-    extra1: getArrayItemSafe(jobData.extras, 0, ''),
-    extra2: getArrayItemSafe(jobData.extras, 1, ''),
-    price: `₱${jobDoc.priceOffer}`,
-    rate: jobDoc.paymentType,
-    date: formatDateForPreview(jobDoc.jobDate),
-    time: `${jobDoc.startTime} - ${jobDoc.endTime}`,
-    region: jobDoc.region,
-    city: jobDoc.city,
-    status: 'active',
-    templateUrl: `dynamic-job.html?category=${category}&jobNumber=${jobDoc.jobNumber}`,
-    createdAt: jobDoc.datePosted
-  };
-  
-  previewCards[category].push(previewCard);
-  localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-  
-  console.log('✅ Job created offline:', jobId);
-  
-  triggerPushMilestonePrompt('post');
-  return {
-    success: true,
-    jobId: jobId,
-    message: 'Job posted successfully! (Offline mode)'
-  };
-}
-
 // Format date for preview cards
 function formatDateForPreview(dateStr) {
   if (!dateStr) return 'TBD';
@@ -1104,8 +995,7 @@ async function getJobById(jobId) {
   const safeJobId = String(jobId || '').trim();
   
   if (!db) {
-    // Offline mode - search localStorage
-    return getCachedJobById(safeJobId) || getJobByIdOffline(safeJobId);
+    return getCachedJobById(safeJobId) || null;
   }
   
   try {
@@ -1139,34 +1029,8 @@ async function getJobById(jobId) {
     
   } catch (error) {
     console.error('❌ Error getting job:', error);
-    return getCachedJobById(safeJobId) || getJobByIdOffline(safeJobId);
+    return getCachedJobById(safeJobId) || null;
   }
-}
-
-// Get job from localStorage for offline mode
-function getJobByIdOffline(jobId) {
-  // Search through all categories in localStorage
-  const allJobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  
-  for (const category of Object.keys(allJobs)) {
-    const jobs = allJobs[category] || [];
-    const found = jobs.find(job => job.jobId === jobId || job.id === jobId);
-    if (found) {
-      return found;
-    }
-  }
-  
-  // Also check preview cards
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  for (const category of Object.keys(previewCards)) {
-    const jobs = previewCards[category] || [];
-    const found = jobs.find(job => job.jobId === jobId || job.id === jobId);
-    if (found) {
-      return found;
-    }
-  }
-  
-  return null;
 }
 
 /**
@@ -1180,11 +1044,7 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
   const allowFallback = options && options.allowFallback !== undefined ? options.allowFallback === true : true;
   
   if (!db) {
-    // Offline mode - use localStorage
-    if (!allowFallback) return [];
-    const cachedJobs = getCachedJobsByCategory(category);
-    if (cachedJobs.length > 0) return cachedJobs;
-    return getJobsByCategoryOffline(category, filters);
+    return [];
   }
   
   try {
@@ -1252,28 +1112,8 @@ async function getJobsByCategory(category, filters = {}, options = {}) {
       console.warn(`⚠️ Using cached jobs for category ${category}: ${cachedJobs.length}`);
       return cachedJobs;
     }
-    return getJobsByCategoryOffline(category, filters);
+    return [];
   }
-}
-
-// Get jobs from localStorage for offline mode
-function getJobsByCategoryOffline(category, filters = {}) {
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  let jobs = previewCards[category] || [];
-  
-  // Apply filters
-  if (filters.region) {
-    jobs = jobs.filter(job => job.region === filters.region);
-  }
-  
-  if (filters.payType && filters.payType !== 'PAY TYPE') {
-    jobs = jobs.filter(job => 
-      (((job && job.rate) || '').toUpperCase()) === filters.payType.toUpperCase()
-    );
-  }
-  
-  console.log(`📋 Found ${jobs.length} jobs offline in category: ${category}`);
-  return jobs;
 }
 
 /**
@@ -1286,7 +1126,7 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   const db = getFirestore();
   
   if (!db) {
-    return getUserJobListingsOffline(userId, statuses);
+    return [];
   }
   
   console.log(`🔍 Fetching jobs for user: ${userId}, statuses: ${statuses.join(', ')}`);
@@ -1383,20 +1223,6 @@ async function getUserJobListings(userId, statuses = ['active', 'paused']) {
   }
 }
 
-function getUserJobListingsOffline(userId, statuses) {
-  const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  let userJobs = [];
-  
-  Object.values(jobs).forEach(categoryJobs => {
-    const filtered = categoryJobs.filter(job => 
-      job.posterId === userId && statuses.includes(job.status)
-    );
-    userJobs = userJobs.concat(filtered);
-  });
-  
-  return userJobs.sort((a, b) => new Date(b.datePosted) - new Date(a.datePosted));
-}
-
 /**
  * Update an existing job (for edit mode)
  * @param {string} jobId - Job document ID
@@ -1414,7 +1240,7 @@ async function updateJob(jobId, jobData) {
   }
   
   if (!db) {
-    return updateJobOffline(jobId, jobData);
+    return { success: false, message: 'Jobs backend unavailable' };
   }
   
   try {
@@ -1470,29 +1296,6 @@ async function updateJob(jobId, jobData) {
   }
 }
 
-function updateJobOffline(jobId, jobData) {
-  const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  
-  for (const category of Object.keys(jobs)) {
-    const jobIndex = jobs[category].findIndex(j => j.jobId === jobId || j.id === jobId);
-    if (jobIndex !== -1) {
-      const existingJob = jobs[category][jobIndex];
-      jobs[category][jobIndex] = {
-        ...existingJob,
-        ...jobData,
-        datePosted: existingJob.datePosted,
-        createdAt: existingJob.createdAt,
-        applicationCount: existingJob.applicationCount || 0,
-        applicationIds: existingJob.applicationIds || [],
-        updatedAt: new Date().toISOString()
-      };
-      localStorage.setItem('gisugoJobs', JSON.stringify(jobs));
-      return { success: true, message: 'Job updated (offline)', jobId };
-    }
-  }
-  return { success: false, message: 'Job not found' };
-}
-
 /**
  * Update job status
  * @param {string} jobId - Job document ID
@@ -1504,7 +1307,7 @@ async function updateJobStatus(jobId, newStatus, additionalData = {}) {
   const db = getFirestore();
   
   if (!db) {
-    return updateJobStatusOffline(jobId, newStatus, additionalData);
+    return { success: false, message: 'Jobs backend unavailable' };
   }
   
   try {
@@ -1523,25 +1326,6 @@ async function updateJobStatus(jobId, newStatus, additionalData = {}) {
   }
 }
 
-function updateJobStatusOffline(jobId, newStatus, additionalData) {
-  const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  
-  for (const category of Object.keys(jobs)) {
-    const jobIndex = jobs[category].findIndex(j => j.jobId === jobId || j.id === jobId);
-    if (jobIndex !== -1) {
-      jobs[category][jobIndex] = {
-        ...jobs[category][jobIndex],
-        status: newStatus,
-        ...additionalData
-      };
-      localStorage.setItem('gisugoJobs', JSON.stringify(jobs));
-      return { success: true, message: 'Job updated (offline)' };
-    }
-  }
-  
-  return { success: false, message: 'Job not found' };
-}
-
 /**
  * Delete a job with comprehensive cleanup (Firestore + Storage)
  * @param {string} jobId - Job document ID
@@ -1551,7 +1335,7 @@ async function deleteJob(jobId) {
   const db = getFirestore();
   
   if (!db) {
-    return deleteJobOffline(jobId);
+    return { success: false, message: 'Jobs backend unavailable' };
   }
   
   try {
@@ -1751,31 +1535,6 @@ async function deleteJob(jobId) {
   }
 }
 
-function deleteJobOffline(jobId) {
-  const jobs = JSON.parse(localStorage.getItem('gisugoJobs') || '{}');
-  const previewCards = JSON.parse(localStorage.getItem('jobPreviewCards') || '{}');
-  
-  for (const category of Object.keys(jobs)) {
-    const jobIndex = jobs[category].findIndex(j => j.jobId === jobId || j.id === jobId);
-    if (jobIndex !== -1) {
-      jobs[category].splice(jobIndex, 1);
-      localStorage.setItem('gisugoJobs', JSON.stringify(jobs));
-      
-      // Also remove from preview cards
-      if (previewCards[category]) {
-        previewCards[category] = previewCards[category].filter(
-          c => c.id !== jobId && c.jobNumber !== jobId
-        );
-        localStorage.setItem('jobPreviewCards', JSON.stringify(previewCards));
-      }
-      
-      return { success: true, message: 'Job deleted (offline)' };
-    }
-  }
-  
-  return { success: false, message: 'Job not found' };
-}
-
 // ============================================================================
 // APPLICATIONS COLLECTION
 // ============================================================================
@@ -1784,7 +1543,7 @@ async function releaseApplicationCoinForApplication(applicationId, releaseReason
   const safeApplicationId = String(applicationId || '').trim();
   if (!safeApplicationId) return { success: false, message: 'Application ID required' };
   const db = getFirestore();
-  if (!db) return { success: true, released: false };
+  if (!db) return { success: false, message: 'Applications backend unavailable' };
 
   try {
     const appRef = db.collection('applications').doc(safeApplicationId);
@@ -1819,12 +1578,7 @@ async function getWorkerApplications(workerId, filters = {}) {
   const searchTerm = String(filters.search || '').trim().toLowerCase();
 
   if (!db) {
-    const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
-    return applications
-      .filter((app) => String(app.applicantId || '') === safeWorkerId)
-      .filter((app) => statusFilter.length === 0 || statusFilter.includes(String(app.status || '')))
-      .filter((app) => !searchTerm || String(app.jobTitle || '').toLowerCase().includes(searchTerm))
-      .sort((a, b) => toComparableMillis(b.appliedAt) - toComparableMillis(a.appliedAt));
+    return [];
   }
 
   try {
@@ -1851,24 +1605,7 @@ async function withdrawWorkerApplication(applicationId) {
   if (!currentUser) return { success: false, message: 'You must be logged in' };
 
   if (!db) {
-    const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
-    const index = applications.findIndex((app) => String(app.applicationId || app.id || '') === safeApplicationId);
-    if (index === -1) return { success: false, message: 'Application not found' };
-    const target = applications[index];
-    if (String(target.applicantId || '') !== currentUser.uid) {
-      return { success: false, message: 'You can only withdraw your own applications' };
-    }
-    applications[index] = {
-      ...target,
-      status: 'withdrawn',
-      withdrawnAt: new Date().toISOString(),
-      coinHeld: false,
-      coinReleaseReason: 'withdrawn',
-      coinReleasedAt: new Date().toISOString()
-    };
-    localStorage.setItem('gisugo_applications', JSON.stringify(applications));
-    await releaseApplicationCoinForUser(currentUser.uid, 'withdrawn');
-    return { success: true, message: 'Application withdrawn' };
+    return { success: false, message: 'Applications backend unavailable' };
   }
 
   try {
@@ -1930,7 +1667,7 @@ async function applyForJob(jobId, applicationData) {
   }
   
   if (!db) {
-    return applyForJobOffline(jobId, applicationData, currentUser);
+    return { success: false, message: 'Applications backend unavailable' };
   }
   let consumedCoin = false;
   
@@ -2364,49 +2101,6 @@ async function applyForJob(jobId, applicationData) {
   }
 }
 
-function applyForJobOffline(jobId, applicationData, currentUser) {
-  const users = JSON.parse(localStorage.getItem('gisugo_users') || '{}');
-  const user = users[currentUser.uid] || {};
-  const normalized = normalizeApplicationCoins(user);
-  if (normalized.current <= 0) {
-    return {
-      success: false,
-      message: 'You have no G tokens left right now. Wait for an application to close or withdraw one pending application.'
-    };
-  }
-  const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
-  
-  const applicationId = `app_${Date.now()}`;
-  const application = {
-    applicationId: applicationId,
-    jobId: jobId,
-    applicantId: currentUser.uid || 'offline_user',
-    applicantName: currentUser.displayName || 'Demo User',
-    appliedAt: new Date().toISOString(),
-    status: 'pending',
-    message: applicationData.message || '',
-    counterOffer: applicationData.counterOffer || null,
-    coinHeld: true,
-    coinConsumedAt: new Date().toISOString()
-  };
-  
-  applications.push(application);
-  localStorage.setItem('gisugo_applications', JSON.stringify(applications));
-  users[currentUser.uid] = {
-    ...user,
-    applicationCoinsMax: normalized.max,
-    applicationCoinsCurrent: normalized.current - 1
-  };
-  localStorage.setItem('gisugo_users', JSON.stringify(users));
-  
-  triggerPushMilestonePrompt('apply');
-  return {
-    success: true,
-    applicationId: applicationId,
-    message: 'Application submitted! (Offline mode)'
-  };
-}
-
 /**
  * Get applications for a job
  * @param {string} jobId - Job document ID
@@ -2419,11 +2113,7 @@ async function getJobApplications(jobId) {
   console.log('   Querying with jobId:', jobId);
   
   if (!db) {
-    console.log('   ⚠️ Offline mode - checking localStorage');
-    const applications = JSON.parse(localStorage.getItem('gisugo_applications') || '[]');
-    const filtered = applications.filter(app => app.jobId === jobId);
-    console.log('   Found', filtered.length, 'applications in localStorage');
-    return filtered;
+    return [];
   }
   
   try {
@@ -2462,7 +2152,7 @@ async function hireWorker(jobId, applicationId) {
   const db = getFirestore();
   
   if (!db) {
-    return { success: true, message: 'Worker hired! (Offline mode)' };
+    return { success: false, message: 'Jobs backend unavailable' };
   }
   
   try {
@@ -2683,7 +2373,7 @@ async function rejectApplication(applicationId) {
   const db = getFirestore();
   
   if (!db) {
-    return { success: true, message: 'Application rejected! (Offline mode)' };
+    return { success: false, message: 'Applications backend unavailable' };
   }
   
   try {
@@ -2768,7 +2458,7 @@ async function getOrCreateChatThread(jobId, otherUserId, otherUserInfo = {}) {
   }
   
   if (!db) {
-    return getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, currentUser);
+    return { success: false, message: 'Messaging backend unavailable' };
   }
   
   try {
@@ -2850,64 +2540,6 @@ async function getOrCreateChatThread(jobId, otherUserId, otherUserInfo = {}) {
   }
 }
 
-function getOrCreateChatThreadOffline(jobId, otherUserId, otherUserInfo, currentUser) {
-  const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-  
-  // Check for existing thread
-  const existing = threads.find(t => 
-    t.jobId === jobId && 
-    t.participantIds.includes(currentUser.uid) &&
-    t.participantIds.includes(otherUserId)
-  );
-  
-  if (existing) {
-    const desiredJobTitle = String(otherUserInfo?.jobTitle || '').trim();
-    const desiredOrigin = String(otherUserInfo?.threadOrigin || '').trim() || 'job';
-    if ((desiredJobTitle && !String(existing.jobTitle || '').trim()) || !String(existing.threadOrigin || '').trim()) {
-      existing.jobTitle = desiredJobTitle || existing.jobTitle || '';
-      existing.threadOrigin = desiredOrigin;
-      localStorage.setItem('gisugo_chat_threads', JSON.stringify(threads));
-    }
-    return {
-      success: true,
-      threadId: existing.threadId,
-      thread: existing,
-      isNew: false
-    };
-  }
-  
-  // Create new thread
-  const threadId = `thread_${Date.now()}`;
-  const threadData = {
-    threadId: threadId,
-    jobId: jobId,
-    jobTitle: String(otherUserInfo?.jobTitle || '').trim(),
-    threadOrigin: String(otherUserInfo?.threadOrigin || '').trim() || 'job',
-    participantIds: [currentUser.uid, otherUserId],
-    participant1: {
-      userId: currentUser.uid,
-      userName: currentUser.displayName || 'Demo User'
-    },
-    participant2: {
-      userId: otherUserId,
-      userName: otherUserInfo.userName || 'User'
-    },
-    createdAt: new Date().toISOString(),
-    lastMessageTime: new Date().toISOString(),
-    isActive: true
-  };
-  
-  threads.push(threadData);
-  localStorage.setItem('gisugo_chat_threads', JSON.stringify(threads));
-  
-  return {
-    success: true,
-    threadId: threadId,
-    thread: threadData,
-    isNew: true
-  };
-}
-
 /**
  * Send a message in a chat thread
  * @param {string} threadId - Chat thread ID
@@ -2930,7 +2562,7 @@ async function sendMessage(threadId, content, recipientId = '') {
   }
   
   if (!db) {
-    return sendMessageOffline(threadId, content, currentUser);
+    return { success: false, message: 'Messaging backend unavailable' };
   }
   
   try {
@@ -3073,15 +2705,7 @@ async function markChatThreadRead(threadId) {
   }
 
   if (!db) {
-    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-    const updatedThreads = threads.map((thread) => {
-      if (thread.threadId !== threadId) return thread;
-      const unread = { ...(thread.unreadCount || {}) };
-      unread[currentUser.uid] = 0;
-      return { ...thread, unreadCount: unread };
-    });
-    localStorage.setItem('gisugo_chat_threads', JSON.stringify(updatedThreads));
-    return { success: true, message: 'Thread marked as read (offline)' };
+    return { success: false, message: 'Messaging backend unavailable' };
   }
 
   try {
@@ -3106,14 +2730,7 @@ async function hasGigTipsAcknowledgementForThread(threadId) {
   const safeThreadId = String(threadId || '').trim();
   if (!currentUser || !safeThreadId) return false;
 
-  if (!db) {
-    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-    const thread = threads.find((entry) => String(entry.threadId || entry.id || '') === safeThreadId);
-    const ackMap = thread && thread.gigTipsAcknowledged && typeof thread.gigTipsAcknowledged === 'object'
-      ? thread.gigTipsAcknowledged
-      : {};
-    return ackMap[currentUser.uid] === true;
-  }
+  if (!db) return false;
 
   try {
     const threadDoc = await db.collection('chat_threads').doc(safeThreadId).get();
@@ -3146,16 +2763,7 @@ async function acknowledgeGigTipsForThread(threadId) {
   }
 
   if (!db) {
-    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-    const updatedThreads = threads.map((entry) => {
-      const id = String(entry.threadId || entry.id || '');
-      if (id !== safeThreadId) return entry;
-      const ackMap = { ...(entry.gigTipsAcknowledged || {}) };
-      ackMap[currentUser.uid] = true;
-      return { ...entry, gigTipsAcknowledged: ackMap };
-    });
-    localStorage.setItem('gisugo_chat_threads', JSON.stringify(updatedThreads));
-    return { success: true, message: 'Gig Tips acknowledgement saved offline' };
+    return { success: false, message: 'Messaging backend unavailable' };
   }
 
   try {
@@ -3170,39 +2778,6 @@ async function acknowledgeGigTipsForThread(threadId) {
   }
 }
 
-function sendMessageOffline(threadId, content, currentUser) {
-  const messages = JSON.parse(localStorage.getItem('gisugo_chat_messages') || '[]');
-  
-  const messageId = `msg_${Date.now()}`;
-  const message = {
-    messageId: messageId,
-    threadId: threadId,
-    senderId: currentUser.uid,
-    senderName: currentUser.displayName || 'Demo User',
-    content: content,
-    timestamp: new Date().toISOString(),
-    read: false
-  };
-  
-  messages.push(message);
-  localStorage.setItem('gisugo_chat_messages', JSON.stringify(messages));
-  
-  // Update thread last message
-  const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-  const threadIndex = threads.findIndex(t => t.threadId === threadId);
-  if (threadIndex !== -1) {
-    threads[threadIndex].lastMessageTime = new Date().toISOString();
-    threads[threadIndex].lastMessagePreview = content.substring(0, 100);
-    localStorage.setItem('gisugo_chat_threads', JSON.stringify(threads));
-  }
-  
-  return {
-    success: true,
-    messageId: messageId,
-    message: 'Message sent (offline)'
-  };
-}
-
 /**
  * Get messages for a thread
  * @param {string} threadId - Chat thread ID
@@ -3213,11 +2788,7 @@ async function getThreadMessages(threadId, limit = 50) {
   const db = getFirestore();
   
   if (!db) {
-    const messages = JSON.parse(localStorage.getItem('gisugo_chat_messages') || '[]');
-    return messages
-      .filter(m => m.threadId === threadId)
-      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-      .slice(-limit);
+    return [];
   }
   
   try {
@@ -3251,11 +2822,7 @@ async function getUserChatThreads() {
   }
   
   if (!db) {
-    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-    return threads
-      .filter(t => t.participantIds.includes(currentUser.uid))
-      .filter((thread) => shouldShowThreadForUser(thread, currentUser.uid))
-      .sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+    return [];
   }
   
   try {
@@ -3313,18 +2880,7 @@ async function deleteChatThreadForCurrentUser(threadId) {
   }
 
   if (!db) {
-    const threads = JSON.parse(localStorage.getItem('gisugo_chat_threads') || '[]');
-    const updatedThreads = threads.map((thread) => {
-      const candidateId = thread.threadId || thread.id;
-      if (candidateId !== safeThreadId) return thread;
-      const deletedFor = { ...(thread.deletedFor || {}) };
-      const unreadCount = { ...(thread.unreadCount || {}) };
-      deletedFor[currentUser.uid] = new Date().toISOString();
-      unreadCount[currentUser.uid] = 0;
-      return { ...thread, deletedFor, unreadCount };
-    });
-    localStorage.setItem('gisugo_chat_threads', JSON.stringify(updatedThreads));
-    return { success: true, message: 'Conversation deleted for current user (offline)' };
+    return { success: false, message: 'Messaging backend unavailable' };
   }
 
   try {
@@ -3371,6 +2927,56 @@ function sanitizeNotificationCounters(rawCounters = null) {
   };
 }
 
+const WORKER_NOTIFICATION_COUNTER_TYPES = new Set([
+  'offer_sent',
+  'job_completed',
+  'feedback_received',
+  'contract_voided',
+  'interview_request',
+  'application_not_selected_batch',
+  'application_rejected_batch'
+]);
+
+const CUSTOMER_NOTIFICATION_COUNTER_TYPES = new Set([
+  'offer_accepted',
+  'application_received',
+  'application_milestone',
+  'gig_auto_paused',
+  'offer_rejected',
+  'worker_resigned',
+  'worker_feedback_received'
+]);
+
+function classifyUnreadNotificationRole(notification = null) {
+  if (!notification || typeof notification !== 'object') return '';
+  const explicitRole = String(notification.role || '').toLowerCase();
+  if (explicitRole === 'worker' || explicitRole === 'customer') {
+    return explicitRole;
+  }
+  const type = String(notification.type || '').toLowerCase();
+  if (WORKER_NOTIFICATION_COUNTER_TYPES.has(type)) return 'worker';
+  if (CUSTOMER_NOTIFICATION_COUNTER_TYPES.has(type)) return 'customer';
+  return '';
+}
+
+function buildUnreadCountersFromNotifications(notifications = []) {
+  const counters = {
+    workerUnread: 0,
+    customerUnread: 0,
+    totalUnread: 0
+  };
+  if (!Array.isArray(notifications)) {
+    return counters;
+  }
+  notifications.forEach((notification) => {
+    counters.totalUnread += 1;
+    const role = classifyUnreadNotificationRole(notification);
+    if (role === 'worker') counters.workerUnread += 1;
+    if (role === 'customer') counters.customerUnread += 1;
+  });
+  return counters;
+}
+
 async function createGroupedApplicationClosureNotification(recipientId, options = {}) {
   const db = getFirestore();
   const outcomeType = options.outcomeType === 'manual_reject' ? 'application_rejected_batch' : 'application_not_selected_batch';
@@ -3380,38 +2986,7 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
   const jobTitle = String(options.jobTitle || '').trim() || 'Gig';
 
   if (!db) {
-    const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
-    const activeBatch = notifications.find((notif) => (
-      notif.recipientId === recipientId &&
-      notif.type === outcomeType &&
-      notif.read !== true &&
-      toMillis(notif.batchWindowEndsAt) > nowMs
-    ));
-
-    if (activeBatch) {
-      const existingTitles = Array.isArray(activeBatch.jobTitles) ? activeBatch.jobTitles : [];
-      const existingIds = Array.isArray(activeBatch.jobIds) ? activeBatch.jobIds : [];
-      if (jobId && !existingIds.includes(jobId)) existingIds.push(jobId);
-      if (jobTitle && !existingTitles.includes(jobTitle)) existingTitles.push(jobTitle);
-      activeBatch.jobIds = existingIds.slice(0, 25);
-      activeBatch.jobTitles = existingTitles.slice(0, 25);
-      activeBatch.closureCount = Math.max(1, Number(activeBatch.closureCount || 0) + 1);
-      activeBatch.batchWindowEndsAt = windowEndsAt.toISOString();
-      activeBatch.message = buildGroupedApplicationClosureMessage(outcomeType, activeBatch.closureCount);
-      localStorage.setItem('gisugo_notifications', JSON.stringify(notifications));
-      return { success: true, notificationId: activeBatch.notificationId, grouped: true };
-    }
-
-    return createNotificationOffline(recipientId, {
-      type: outcomeType,
-      message: buildGroupedApplicationClosureMessage(outcomeType, 1),
-      actionRequired: false,
-      closureCount: 1,
-      batchWindowEndsAt: windowEndsAt.toISOString(),
-      jobIds: jobId ? [jobId] : [],
-      jobTitles: jobTitle ? [jobTitle] : [],
-      jobTitle: jobTitle
-    });
+    return { success: false, message: 'Notification backend unavailable' };
   }
 
   try {
@@ -3482,7 +3057,7 @@ async function createNotification(recipientId, notificationData) {
   const db = getFirestore();
   
   if (!db) {
-    return createNotificationOffline(recipientId, notificationData);
+    return { success: false, message: 'Notification backend unavailable' };
   }
   
   try {
@@ -3644,37 +3219,6 @@ async function hasSubmittedGigReport(jobId) {
   }
 }
 
-function createNotificationOffline(recipientId, notificationData) {
-  const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
-  const dedupeKey = String(getSafeValue(notificationData, 'dedupeKey', '')).trim();
-  const type = String(getSafeValue(notificationData, 'type', '')).trim();
-  const jobId = String(getSafeValue(notificationData, 'jobId', '')).trim();
-  if (dedupeKey) {
-    const existing = notifications.find((n) =>
-      String(n.recipientId || '') === String(recipientId || '') &&
-      String(n.type || '') === type &&
-      String(n.jobId || '') === jobId &&
-      String(n.dedupeKey || '') === dedupeKey
-    );
-    if (existing) {
-      return { success: true, notificationId: existing.notificationId || existing.id || 'offline_deduped' };
-    }
-  }
-  
-  const notifId = `notif_${Date.now()}`;
-  notifications.push({
-    notificationId: notifId,
-    recipientId: recipientId,
-    ...notificationData,
-    createdAt: new Date().toISOString(),
-    read: false
-  });
-  
-  localStorage.setItem('gisugo_notifications', JSON.stringify(notifications));
-  
-  return { success: true, notificationId: notifId };
-}
-
 /**
  * Get user's notifications
  * @param {boolean} unreadOnly - Only return unread notifications
@@ -3689,12 +3233,7 @@ async function getUserNotifications(unreadOnly = false) {
   }
   
   if (!db) {
-    const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
-    let filtered = notifications.filter(n => n.recipientId === currentUser.uid);
-    if (unreadOnly) {
-      filtered = filtered.filter(n => !n.read);
-    }
-    return filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    return [];
   }
   
   try {
@@ -3743,26 +3282,10 @@ async function getUserNotificationsPage(options = {}) {
   }
 
   if (!db) {
-    const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
-    let filtered = notifications
-      .filter((n) => n.recipientId === currentUser.uid)
-      .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
-
-    if (unreadOnly) {
-      filtered = filtered.filter((n) => !n.read);
-    }
-
-    if (startAfterCreatedAt) {
-      const cursorMillis = toMillis(startAfterCreatedAt);
-      filtered = filtered.filter((n) => toMillis(n.createdAt) < cursorMillis);
-    }
-
-    const page = filtered.slice(0, safeLimit);
-    const nextCursor = page.length ? (page[page.length - 1].createdAt || null) : null;
     return {
-      notifications: page,
-      nextCursor,
-      hasMore: filtered.length > safeLimit
+      notifications: [],
+      nextCursor: null,
+      hasMore: false
     };
   }
 
@@ -3807,13 +3330,7 @@ async function markNotificationRead(notificationId) {
   const db = getFirestore();
   
   if (!db) {
-    const notifications = JSON.parse(localStorage.getItem('gisugo_notifications') || '[]');
-    const index = notifications.findIndex(n => n.notificationId === notificationId);
-    if (index !== -1) {
-      notifications[index].read = true;
-      localStorage.setItem('gisugo_notifications', JSON.stringify(notifications));
-    }
-    return { success: true };
+    return { success: false, message: 'Notification backend unavailable' };
   }
   
   try {
@@ -3830,6 +3347,43 @@ async function markNotificationRead(notificationId) {
     }
     console.error('❌ Error marking notification read:', error);
     return { success: false };
+  }
+}
+
+/**
+ * Delete notification for current user.
+ * No fallback path: this is delete-or-fail by policy.
+ * @param {string} notificationId - Notification document ID
+ * @returns {Promise<Object>} - Result object
+ */
+async function deleteNotification(notificationId) {
+  const safeNotificationId = String(notificationId || '').trim();
+  if (!safeNotificationId) {
+    return { success: false, message: 'Missing notification ID' };
+  }
+
+  const currentUser = getCurrentUser();
+  if (!currentUser || !currentUser.uid) {
+    return { success: false, message: 'User not authenticated' };
+  }
+
+  const db = getFirestore();
+
+  if (!db) {
+    return { success: false, message: 'Delete unavailable: Firestore not ready' };
+  }
+
+  try {
+    const notificationRef = db.collection('notifications').doc(safeNotificationId);
+    await notificationRef.delete();
+    return { success: true, mode: 'hard-delete' };
+  } catch (error) {
+    const code = String(error?.code || '');
+    if (code === 'not-found' || code.endsWith('/not-found')) {
+      return { success: true, skipped: 'not-found' };
+    }
+    console.error('❌ Error deleting notification:', error);
+    return { success: false, message: error.message || 'Failed to delete notification' };
   }
 }
 
@@ -3959,17 +3513,23 @@ function subscribeToUnreadNotificationCounters(currentUser, callback) {
   }
 
   try {
-    return db.collection('users').doc(currentUser.uid).onSnapshot(
+    return db.collection('notifications')
+      .where('recipientId', '==', currentUser.uid)
+      .where('read', '==', false)
+      .orderBy('createdAt', 'desc')
+      .limit(200)
+      .onSnapshot(
       (snap) => {
-        const snapData = snap && snap.exists && typeof snap.data === 'function' ? (snap.data() || {}) : {};
-        const counters = sanitizeNotificationCounters(snapData.notificationCounters || null);
+        const unreadNotifications = snap && Array.isArray(snap.docs)
+          ? snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+          : [];
+        const counters = sanitizeNotificationCounters(buildUnreadCountersFromNotifications(unreadNotifications));
         if (typeof callback === 'function') callback(counters);
       },
       (error) => {
         console.warn('⚠️ Notification counters listener error:', error);
         if (typeof callback === 'function') callback(sanitizeNotificationCounters(null));
-      }
-    );
+      });
   } catch (error) {
     console.error('❌ Error setting up notification counters listener:', error);
     if (typeof callback === 'function') callback(sanitizeNotificationCounters(null));
@@ -4088,12 +3648,11 @@ async function getAdminAnalytics() {
   const db = getFirestore();
   
   if (!db) {
-    // Return mock data for offline mode
     return {
-      totalUsers: parseInt(localStorage.getItem('mockTotalUsers') || '1250'),
-      verificationSubmissions: parseInt(localStorage.getItem('mockVerifications') || '23'),
-      monthlyRevenue: parseInt(localStorage.getItem('mockRevenue') || '125000'),
-      reportedGigs: parseInt(localStorage.getItem('mockReportedGigs') || '7')
+      totalUsers: 0,
+      verificationSubmissions: 0,
+      monthlyRevenue: 0,
+      reportedGigs: 0
     };
   }
   
@@ -4249,6 +3808,7 @@ window.createNotification = createNotification;
 window.getUserNotifications = getUserNotifications;
 window.getUserNotificationsPage = getUserNotificationsPage;
 window.markNotificationRead = markNotificationRead;
+window.deleteNotification = deleteNotification;
 
 // Real-time Listeners
 window.subscribeToUserNotifications = subscribeToUserNotifications;

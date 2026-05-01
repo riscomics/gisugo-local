@@ -5676,17 +5676,31 @@ async function initializeStatOverlays() {
                     // Update display with Firebase data
                     updateStatCardsFromFirebase(analytics);
                 } else {
-                    console.log('ℹ️ No Firebase analytics, using mock data');
-                    initializeMockData();
+                    console.warn('⚠️ No Firebase analytics returned');
+                    updateStatCardsFromFirebase({
+                        totalUsers: 0,
+                        verificationSubmissions: 0,
+                        monthlyRevenue: 0,
+                        reportedGigs: 0
+                    });
                 }
             } catch (error) {
-                console.error('❌ Firebase error, falling back to mock data:', error);
-                initializeMockData();
+                console.error('❌ Firebase analytics error:', error);
+                updateStatCardsFromFirebase({
+                    totalUsers: 0,
+                    verificationSubmissions: 0,
+                    monthlyRevenue: 0,
+                    reportedGigs: 0
+                });
             }
         } else {
-            // Load or initialize mock data with cumulative growth
-            initializeMockData();
-            console.log('✅ Mock data initialized');
+            console.warn('⚠️ Firebase analytics backend unavailable');
+            updateStatCardsFromFirebase({
+                totalUsers: 0,
+                verificationSubmissions: 0,
+                monthlyRevenue: 0,
+                reportedGigs: 0
+            });
         }
         
         // Update display with current values

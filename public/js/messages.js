@@ -61,19 +61,19 @@
 This modular tab system provides comprehensive data structures for backend integration:
 
 1. NOTIFICATIONS TAB:
-   - Data: MOCK_NOTIFICATIONS array (line ~1200)
+   - Data: notifications data store (line ~1200)
    - Structure: notification objects with full metadata
    - Actions: mark_read, reply_message, view_application, review_applications
    - Required Endpoints: GET /notifications, PUT /notifications/{id}/read, POST /notifications/action
 
 2. MESSAGES TAB:
-   - Data: MOCK_MESSAGES array (line ~1550)
+   - Data: messages data store (line ~1550)
    - Structure: threaded conversations with full message history
    - Actions: send_message, expand_thread, keyboard_handling
    - Required Endpoints: GET /messages, POST /messages, PUT /messages/{threadId}/read
 
 3. MESSAGES TAB (formerly Applications):
-   - Data: Static HTML for admin communications (no mock data)
+   - Data: Static HTML for admin communications
    - Structure: Inbox/details layout for admin messages and broadcasts
    - Actions: read_message, reply_to_admin, mark_read
    - Required Endpoints: GET /admin-messages, POST /admin-messages/reply
@@ -488,6 +488,9 @@ function openGigTipsModal({
             ackBtn.addEventListener('click', async () => {
                 if (ackBtn.disabled) return;
                 ackBtn.disabled = true;
+                ackBtn.classList.add('is-submitting');
+                const originalLabel = ackBtn.textContent;
+                ackBtn.textContent = `${originalLabel}...`;
                 const saved = await setAcknowledgedGigTips(safeThreadId, getCurrentUserId());
                 if (!saved) {
                     console.warn('⚠️ Gig tips acknowledgement could not be persisted; closing gate to avoid trapping chat.');
@@ -1064,6 +1067,7 @@ const ALERTS_PAGINATION_STATE = {
 
 const MESSAGES_PAGE_LOADING_STATE = {
     hidden: false,
+    showTimerId: null,
     hideTimerId: null,
     serverSnapshotReady: false
 };
@@ -1077,7 +1081,23 @@ function showMessagesPageLoadingOverlay() {
     MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = false;
 }
 
+function requestMessagesPageLoadingOverlay(delayMs = 1800) {
+    if (MESSAGES_PAGE_LOADING_STATE.showTimerId) {
+        clearTimeout(MESSAGES_PAGE_LOADING_STATE.showTimerId);
+        MESSAGES_PAGE_LOADING_STATE.showTimerId = null;
+    }
+    const safeDelay = Math.max(0, Number(delayMs) || 0);
+    MESSAGES_PAGE_LOADING_STATE.showTimerId = setTimeout(() => {
+        MESSAGES_PAGE_LOADING_STATE.showTimerId = null;
+        showMessagesPageLoadingOverlay();
+    }, safeDelay);
+}
+
 function hideMessagesPageLoadingOverlay() {
+    if (MESSAGES_PAGE_LOADING_STATE.showTimerId) {
+        clearTimeout(MESSAGES_PAGE_LOADING_STATE.showTimerId);
+        MESSAGES_PAGE_LOADING_STATE.showTimerId = null;
+    }
     if (MESSAGES_PAGE_LOADING_STATE.hidden) return;
     if (MESSAGES_PAGE_LOADING_STATE.hideTimerId) {
         clearTimeout(MESSAGES_PAGE_LOADING_STATE.hideTimerId);
@@ -1097,11 +1117,18 @@ function hideMessagesPageLoadingOverlay() {
 
 function markMessagesServerSnapshotReady(meta) {
     if (MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady) return;
-    // If metadata is unavailable, treat callback as ready to avoid blocking older flows.
-    if (!meta || meta.fromCache === false || meta.error) {
-        MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = true;
-        hideMessagesPageLoadingOverlay();
-    }
+    // UX-first behavior: hide page loader on the first alerts snapshot
+    // (cache or server) so users don't wait on cache->server transitions.
+    // Data will still refresh in-place as server snapshots arrive.
+    MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = true;
+    hideMessagesPageLoadingOverlay();
+}
+
+function isMessagesPageLoadingOverlayVisible() {
+    const overlay = document.getElementById('messagesPageLoadingOverlay');
+    if (!overlay) return false;
+    if (overlay.style.display === 'none') return false;
+    return !overlay.classList.contains('hidden');
 }
 
 function dedupeNotificationsById(notifications) {
@@ -1524,6 +1551,17 @@ async function ensureAlertsRealtimeStream(currentUser) {
 
 function waitForAuthStateWithTimeout(timeoutMs = 7000) {
     return new Promise((resolve) => {
+        // Fast path: if auth state is already hydrated, don't wait on listener callback.
+        try {
+            const immediateUser = firebase.auth().currentUser;
+            if (immediateUser) {
+                resolve(immediateUser);
+                return;
+            }
+        } catch (error) {
+            // Fall through to listener-based path.
+        }
+
         let resolved = false;
         let unsubscribe = null;
         let timeoutId = null;
@@ -1576,8 +1614,10 @@ async function loadAlertsForRole(role) {
     const container = document.querySelector(config.containerSelector);
     if (!container) return;
 
-    // Show loading state
-    container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    // Avoid double loader on refresh: if full-page overlay is visible, don't also render inline loader.
+    if (!isMessagesPageLoadingOverlayVisible()) {
+        container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    }
     messagesTrace('route:messages/alerts', { role: config.role });
     messagesTrace('render:alerts:loading', config.role);
 
@@ -1587,17 +1627,14 @@ async function loadAlertsForRole(role) {
         : true;
 
     if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
-        // Fallback to mock data (temporary dev safety path; no new fallback behavior introduced)
-        console.log(`🎮 Dev Mode: Loading mock ${config.role} notifications`);
-        resetAlertsPaginationState();
-        ALERTS_STREAM_STATE.notifications = Array.isArray(MOCK_NOTIFICATIONS) ? MOCK_NOTIFICATIONS : [];
-        ALERTS_PAGINATION_STATE.exhausted = true;
+        stopAlertsRealtimeStream('alerts_backend_unavailable');
         if (isAlertsLoadRequestStale(requestId, config.role)) {
-            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'mock_fallback' });
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'backend_unavailable' });
             return;
         }
-        renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: config.role });
-        updateAlertTabBadgeCounts(MOCK_NOTIFICATIONS);
+        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">⚠️<br><br>Alerts backend unavailable</div>';
+        messagesTrace('render:alerts:error', { role: config.role, reason: 'backend_unavailable' });
+        updateAlertTabBadgeCounts([]);
         hideMessagesPageLoadingOverlay();
         return;
     }
@@ -1622,7 +1659,6 @@ async function loadAlertsForRole(role) {
         console.log(`✅ ${config.role} alerts: User authenticated as`, currentUser.uid);
 
         await ensureAlertsRealtimeStream(currentUser);
-        await ensureChatsRealtimeStream(currentUser);
         if (isAlertsLoadRequestStale(requestId, config.role)) {
             messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'after_subscribe' });
             return;
@@ -1640,10 +1676,6 @@ async function loadAlertsForRole(role) {
         console.error(`❌ Error loading ${config.role} alerts:`, error);
         container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
         messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
-    } finally {
-        if (!isAlertsLoadRequestStale(requestId, config.role)) {
-            hideMessagesPageLoadingOverlay();
-        }
     }
 }
 
@@ -2085,28 +2117,14 @@ async function loadRoleChats(role) {
         && isFirebaseOnline();
 
     if (!canUseFirebaseChats) {
-        if (!shouldUseFirebase) {
-            const fallbackChats = MOCK_MESSAGES.filter((thread) => thread.currentUserRole === roleName);
-            container.innerHTML = fallbackChats.map(generateMessageThreadHTML).join('');
-            initializeMessages(container);
-            if (isWorkerRole) {
-                updateWorkerChatsCount();
-            } else {
-                updateCustomerInterviewsCount();
-            }
-            updateMainMessagesTabCount();
-            console.log(`${isWorkerRole ? 'Worker' : 'Customer'} chats loaded (mock fallback):`, fallbackChats.length);
+        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>Chats are temporarily unavailable. Please refresh and try again.</div>';
+        if (isWorkerRole) {
+            setTabNotificationCount('#workerChatsTab', 0);
         } else {
-            // Production-like Firebase mode: never show unrelated mock chats.
-            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>Chats are temporarily unavailable. Please refresh and try again.</div>';
-            if (isWorkerRole) {
-                setTabNotificationCount('#workerChatsTab', 0);
-            } else {
-                setTabNotificationCount('#customerInterviewsTab', 0);
-            }
-            updateMainMessagesTabCount();
-            console.warn(`⚠️ ${roleName} chats unavailable: Firebase chat path not ready`);
+            setTabNotificationCount('#customerInterviewsTab', 0);
         }
+        updateMainMessagesTabCount();
+        console.warn(`⚠️ ${roleName} chats unavailable: Firebase chat path not ready`);
         return;
     }
 
@@ -2154,7 +2172,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             messagesTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
         };
     }
-    showMessagesPageLoadingOverlay();
+    requestMessagesPageLoadingOverlay(2200);
     MESSAGES_PAGE_LOADING_STATE.hideTimerId = setTimeout(() => {
         hideMessagesPageLoadingOverlay();
     }, 6000);
@@ -2223,7 +2241,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 window.addEventListener('pagehide', executeAllCleanups);
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
-    showMessagesPageLoadingOverlay();
+    requestMessagesPageLoadingOverlay(2200);
     initializeWorkerAlertsTab()
         .catch((error) => {
             console.warn('⚠️ pageshow alerts refresh failed:', error);
@@ -2290,6 +2308,16 @@ function initializeRoles() {
 
 async function switchToRole(roleType) {
     console.log(`🔄 Switching to role: ${roleType}`);
+    const normalizedRole = roleType === 'customer' ? 'customer' : 'worker';
+    const activeRoleBtn = document.querySelector('.role-tab-btn.active');
+    const activeRole = String(activeRoleBtn?.dataset?.role || '').trim().toLowerCase();
+    const activeAlertsTabId = normalizedRole === 'customer' ? 'customerAlertsTab' : 'workerAlertsTab';
+    const activeAlertsTab = document.getElementById(activeAlertsTabId);
+    const activeContentId = normalizedRole === 'customer' ? 'customer-alerts-content' : 'worker-alerts-content';
+    const activeAlertsContent = document.getElementById(activeContentId);
+    if (activeRole === normalizedRole && activeAlertsTab?.classList.contains('active') && activeAlertsContent?.classList.contains('active')) {
+        return;
+    }
     
     if (roleType === 'customer') {
         // Show customer tabs and content
@@ -2707,12 +2735,6 @@ function closeConfirmationOverlay() {
     const overlay = document.getElementById('confirmationOverlay');
     if (overlay) {
         overlay.classList.remove('show');
-        
-        // MEMORY LEAK FIX: Remove escape key listener
-        if (overlay._escapeHandler) {
-            document.removeEventListener('keydown', overlay._escapeHandler);
-            overlay._escapeHandler = null;
-        }
     }
 }
 
@@ -2720,6 +2742,8 @@ function closeConfirmationOverlay() {
 function initializeConfirmationOverlay() {
     const overlay = document.getElementById('confirmationOverlay');
     const confirmBtn = document.getElementById('confirmationBtn');
+    if (!overlay || overlay.dataset.confirmationInitBound === '1') return;
+    overlay.dataset.confirmationInitBound = '1';
     
     // Close overlay when clicking OK button
     if (confirmBtn) {
@@ -2743,30 +2767,23 @@ function initializeConfirmationOverlay() {
     };
     document.addEventListener('keydown', escapeHandler);
     
-    // Store reference for cleanup
+    // Store reference for global cleanup during page teardown
     overlay._escapeHandler = escapeHandler;
+    registerCleanup('function', 'confirmationEscapeCleanup', () => {
+        document.removeEventListener('keydown', escapeHandler);
+    });
 }
 
 // Notifications Management
 function initializeNotifications(scopeRoot = document) {
     const root = scopeRoot && typeof scopeRoot.querySelectorAll === 'function' ? scopeRoot : document;
-    // Handle notification item clicks (mark as read, etc.) with memory leak prevention
-    const notificationItems = root.querySelectorAll('.notification-item');
-    
-    // Clear any existing event listeners first (your memory leak prevention)
-    notificationItems.forEach(item => {
-        // Clone node to remove all event listeners
-        const newItem = item.cloneNode(true);
-        item.parentNode.replaceChild(newItem, item);
-    });
-    
-    // Re-select items after cloning (clean slate)
+    // Bind once per element to avoid duplicate listeners and expensive cloneNode churn.
     const freshNotificationItems = root.querySelectorAll('.notification-item');
-    
-    // Initialize action buttons on clean elements (no duplicates)
     const freshActionBtns = root.querySelectorAll('.notification-action-btn');
     
     freshActionBtns.forEach(btn => {
+        if (btn.dataset.notificationActionBound === '1') return;
+        btn.dataset.notificationActionBound = '1';
         btn.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent notification item click
             
@@ -2782,11 +2799,14 @@ function initializeNotifications(scopeRoot = document) {
     });
     
     freshNotificationItems.forEach((item, index) => {
+        if (item.dataset.notificationItemBound === '1') return;
+        item.dataset.notificationItemBound = '1';
+
         // Add debugging for first notification item
         if (index === 0) {
-            console.log('First notification item initialized:', item);
+            messagesDebug('First notification item initialized:', item);
             item.setAttribute('data-first-item', 'true');
-            console.log('First item identification applied');
+            messagesDebug('First item identification applied');
         }
         
         // Initialize long press selection for each notification
@@ -2795,6 +2815,15 @@ function initializeNotifications(scopeRoot = document) {
         // Add click handler with immediate binding
         const clickHandler = function(e) {
             console.log(`Notification clicked - Index: ${index}, First item: ${this.hasAttribute('data-first-item')}`);
+
+            // Ignore the synthetic/follow-up click that commonly fires right after long-press.
+            if (this.dataset.suppressNextSelectionClick === '1') {
+                this.dataset.suppressNextSelectionClick = '0';
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Ignored post-long-press click to preserve selection state');
+                return;
+            }
             
             // Check if we're in selection mode by looking for selection controls
             const selectionBar = document.getElementById('selectionControls');
@@ -3084,9 +3113,9 @@ function initializeLongPressSelection(notificationItem) {
     
     // Debug logging for first item
     if (notificationItem.hasAttribute('data-first-item')) {
-        console.log('Initializing long press for FIRST notification item');
-        console.log('First item element:', notificationItem);
-        console.log('First item position:', notificationItem.getBoundingClientRect());
+        messagesDebug('Initializing long press for FIRST notification item');
+        messagesDebug('First item element:', notificationItem);
+        messagesDebug('First item position:', notificationItem.getBoundingClientRect());
     }
     
     // Remove any existing event listeners first (cleanup)
@@ -3124,6 +3153,7 @@ function initializeLongPressSelection(notificationItem) {
         
         longPressTimer = setTimeout(() => {
             isLongPress = true;
+            notificationItem.dataset.suppressNextSelectionClick = '1';
             if (notificationItem.hasAttribute('data-first-item')) {
                 console.log('*** FIRST ITEM LONG PRESS TRIGGERED ***');
             }
@@ -3162,6 +3192,7 @@ function initializeLongPressSelection(notificationItem) {
         
         longPressTimer = setTimeout(() => {
             isLongPress = true;
+            notificationItem.dataset.suppressNextSelectionClick = '1';
             if (notificationItem.hasAttribute('data-first-item')) {
                 console.log('*** FIRST ITEM MOUSE LONG PRESS TRIGGERED ***');
             }
@@ -3241,33 +3272,8 @@ function showSelectionControls() {
             deleteBtn.onclick = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // Immediate deletion without any timing dependencies
-                const selectedItems = document.querySelectorAll('.notification-item.selected');
-                if (selectedItems.length > 0) {
-                    selectedItems.forEach(item => item.remove());
-                    
-                    // Hide selection controls with animation
-                    const selectionBar = document.getElementById('selectionControls');
-                    if (selectionBar) {
-                        selectionBar.style.opacity = '0';
-                        selectionBar.style.transform = 'translateY(-100%)';
-                        
-                        setTimeout(() => {
-                        selectionBar.style.display = 'none';
-                        }, 300);
-                    }
-                    
-                    // Remove selection class from active tab wrapper immediately
-                    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
-                    if (activeTabWrapper) {
-                        activeTabWrapper.classList.remove('selection-active');
-                    }
-                    
-                    // Update notifications count
-                    updateNotificationsCount();
-                }
-                
+
+                void deleteSelectedNotifications();
                 return false;
             };
             
@@ -3310,14 +3316,30 @@ function showSelectionControls() {
     updateSelectionControls();
 }
 
+function hideSelectionControls() {
+    const selectionBar = document.getElementById('selectionControls');
+    if (selectionBar) {
+        selectionBar.style.opacity = '0';
+        selectionBar.style.transform = 'translateY(-100%)';
+        setTimeout(() => {
+            selectionBar.style.display = 'none';
+        }, 300);
+    }
+
+    // Remove selection class from active tab wrapper immediately.
+    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+    if (activeTabWrapper) {
+        activeTabWrapper.classList.remove('selection-active');
+    }
+}
+
 function updateSelectionControls() {
     const selectedItems = document.querySelectorAll('.notification-item.selected');
     const selectionCount = document.getElementById('selectionCount');
-    const selectionBar = document.getElementById('selectionControls');
     
     if (selectedItems.length === 0) {
-        // Don't auto-hide - let cancelSelection() handle hiding
-        console.log('No items selected, but keeping selection bar visible');
+        hideSelectionControls();
+        console.log('No items selected - selection controls hidden');
     } else {
         if (selectionCount) {
             selectionCount.textContent = selectedItems.length;
@@ -3333,32 +3355,16 @@ function cancelSelection() {
         item.classList.remove('selected');
     });
     
-    // Hide selection controls with animation
-    const selectionBar = document.getElementById('selectionControls');
-    if (selectionBar) {
-        // Trigger exit animation
-        selectionBar.style.opacity = '0';
-        selectionBar.style.transform = 'translateY(-100%)';
-        
-        // Actually hide after animation completes
-        setTimeout(() => {
-        selectionBar.style.display = 'none';
-        }, 300);
-    }
+    // Hide selection controls and remove layout offset.
+    hideSelectionControls();
     
-    // Remove selection class from active tab wrapper immediately for smooth transition
-    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
-    if (activeTabWrapper) {
-        activeTabWrapper.classList.remove('selection-active');
-    }
-    
-    console.log('Selection cancelled with smooth animation');
+    messagesDebug('Selection cancelled with smooth animation');
 }
 
 // Add debouncing to prevent multiple calls
 let deletionInProgress = false;
 
-function deleteSelectedNotifications() {
+async function deleteSelectedNotifications() {
     console.log('Delete function called');
     
     if (deletionInProgress) {
@@ -3376,13 +3382,53 @@ function deleteSelectedNotifications() {
         deletionInProgress = false;
         return;
     }
+
+    if (typeof deleteNotification !== 'function') {
+        console.warn('⚠️ Notification delete API unavailable');
+        showToast('Delete is unavailable right now. Please refresh and try again.');
+        deletionInProgress = false;
+        return;
+    }
     
     // Store references in an array to avoid NodeList issues
     const itemsToDelete = Array.from(selectedItems);
     console.log(`Converted to array: ${itemsToDelete.length} items`);
+
+    const persistedIds = [];
+    for (const item of itemsToDelete) {
+        const notificationId = String(item.dataset.notificationId || '').trim();
+        if (!notificationId) continue;
+        try {
+            const result = await deleteNotification(notificationId);
+            if (result && result.success === true) {
+                persistedIds.push(notificationId);
+            } else {
+                console.warn('⚠️ Failed to persist notification delete:', notificationId, result);
+            }
+        } catch (error) {
+            console.warn('⚠️ Notification delete request failed:', notificationId, error);
+        }
+    }
+
+    if (persistedIds.length === 0) {
+        showToast('Unable to delete selected notification(s).');
+        deletionInProgress = false;
+        return;
+    }
+
+    const persistedIdSet = new Set(persistedIds);
+    const persistedItemsToDelete = itemsToDelete.filter((item) => {
+        const notificationId = String(item.dataset.notificationId || '').trim();
+        return persistedIdSet.has(notificationId);
+    });
+
+    ALERTS_STREAM_STATE.notifications = (Array.isArray(ALERTS_STREAM_STATE.notifications) ? ALERTS_STREAM_STATE.notifications : [])
+        .filter((notification) => !persistedIdSet.has(String(notification?.id || notification?.notificationId || '').trim()));
+    ALERTS_PAGINATION_STATE.olderNotifications = (Array.isArray(ALERTS_PAGINATION_STATE.olderNotifications) ? ALERTS_PAGINATION_STATE.olderNotifications : [])
+        .filter((notification) => !persistedIdSet.has(String(notification?.id || notification?.notificationId || '').trim()));
     
     // Add removing animation to selected items
-    itemsToDelete.forEach((item, index) => {
+    persistedItemsToDelete.forEach((item, index) => {
         console.log(`Adding removing class to item ${index + 1}`);
         item.classList.add('removing');
     });
@@ -3390,7 +3436,7 @@ function deleteSelectedNotifications() {
     // Force immediate deletion if animation doesn't work
     const forceDelete = () => {
         console.log('Force deleting items');
-        itemsToDelete.forEach((item, index) => {
+        persistedItemsToDelete.forEach((item, index) => {
             if (item.parentNode) {
                 console.log(`Force removing item ${index + 1} from DOM`);
                 item.remove();
@@ -3400,24 +3446,12 @@ function deleteSelectedNotifications() {
         // Update notifications count
         updateNotificationsCount();
         
-        // Hide selection controls with animation
-        const selectionBar = document.getElementById('selectionControls');
-        if (selectionBar) {
-            selectionBar.style.opacity = '0';
-            selectionBar.style.transform = 'translateY(-100%)';
-            
-            setTimeout(() => {
-            selectionBar.style.display = 'none';
-            }, 300);
-        }
+        hideSelectionControls();
         
-        // Remove selection class from active tab wrapper immediately
-        const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
-        if (activeTabWrapper) {
-            activeTabWrapper.classList.remove('selection-active');
+        console.log(`${persistedItemsToDelete.length} notifications successfully deleted`);
+        if (persistedItemsToDelete.length < itemsToDelete.length) {
+            showToast('Some notifications could not be deleted. Please try again.');
         }
-        
-        console.log(`${itemsToDelete.length} notifications successfully deleted`);
         
         // Reset deletion flag
         deletionInProgress = false;
@@ -3445,325 +3479,7 @@ function deleteSelectedNotifications() {
     }, 50);
 }
 
-// ===== PHASE 1: MOCK DATA AND TEMPLATES =====
-
-// Mock Notifications Data
-const MOCK_NOTIFICATIONS = [
-    {
-        id: 'notif_xKj9mL2pQ8vR4sW7nC1e',  // Firebase auto-generated ID format
-        notificationType: 'interview_request',
-        recipientUid: 'user_currentUserUid', // Firebase UID format
-        senderUid: 'system',
-        read: false,
-        createdAt: new Date('2025-12-22T12:30:00Z'), // Will be firebase.firestore.Timestamp
-        updatedAt: new Date('2025-12-22T12:30:00Z'),
-        
-        // Firestore document structure - flat for better indexing
-        title: '🎯 APPLICATION INTERVIEW REQUEST',
-        message: '<strong>Janice Legaspi</strong> wants to interview you: "Hi Peter! I reviewed your application for the mobile app development project. Your portfolio is impressive! I\'d like to discuss the project details with you."',
-        icon: '🎯',
-        iconClass: 'interview-icon',
-        priority: 'critical',
-        category: 'interview',
-        timeDisplay: '1 hour ago',
-        dateDisplay: 'Dec. 22, 2025',
-        
-        // Related documents for Firestore
-        relatedDocuments: {
-            threadId: 4,
-            messageId: 'msg_jL3nH8mK9vR4xJ2pS7',
-            senderProfile: 'user_sL9nR4mK6jV8wT3yG7'
-        },
-        
-        // Firebase-optimized action structure
-        actions: [
-            {
-                type: 'secondary',
-                action: 'reply_message',
-                text: 'Reply',
-                actionData: {
-                    threadId: 4,
-                    navigateTo: 'messages'
-                }
-            }
-        ],
-        
-        // Firestore security rules compatibility
-        metadata: {
-            source: 'interview_system',
-            businessLogic: 'application_interview_flow',
-            indexed: true,
-            specialCategory: 'high_priority_career_opportunity'
-        }
-    },
-    {
-        id: 'notif_bT8nX3mR9qY2fH6kL5w',
-        notificationType: 'new_application',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'user_3vN8mQ4rT9xK2jP7sC1',
-        read: false,
-        createdAt: new Date('2025-12-22T10:15:00Z'),
-        updatedAt: new Date('2025-12-22T10:15:00Z'),
-        
-        title: 'New Job Application Received',
-        message: '<strong>Ana Rodriguez</strong> applied for "House cleaning service needed - weekly basis" with a ₱1,200 counter-offer.',
-        icon: '🧑',
-        iconClass: 'app-icon',
-        priority: 'medium',
-        category: 'application',
-        timeDisplay: '3 hours ago',
-        dateDisplay: 'Dec. 22, 2025',
-        
-        // Related document references for Firestore
-        relatedDocuments: {
-            // REMOVED: applicationId - applications moved to jobs.html
-            jobId: 'job_gT5nM8xK2jS6wF3eA9',
-            userProfile: 'user_3vN8mQ4rT9xK2jP7sC1'
-        },
-        
-        actions: [
-            // REMOVED: View Application button - applications moved to jobs.html
-        ],
-        
-        metadata: {
-            source: 'user_application',
-            businessLogic: 'job_application_flow',
-            indexed: true
-        }
-    },
-    {
-        id: 'notif_wR4nJ8mL9qX2kP5sT7v',
-        notificationType: 'new_message',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'user_7yM3nK9rQ4vX2bS8jC5',
-        read: false,
-        createdAt: new Date('2025-12-21T16:00:00Z'),
-        updatedAt: new Date('2025-12-21T16:00:00Z'),
-        
-        title: 'New Message Received',
-        message: '<strong>Carlos Mendoza</strong> sent you a message: "Good morning! I saw your garden maintenance job posting. I have 12 years experience in landscaping and lawn care. I can start this week if you\'re interested."',
-        icon: '💬',
-        iconClass: 'msg-icon',
-        priority: 'medium',
-        category: 'message',
-        timeDisplay: '1 day ago',
-        dateDisplay: 'Dec. 21, 2025',
-        
-        relatedDocuments: {
-            threadId: 3,
-            messageId: 'msg_bQ3nH7mK8vR2xJ4pS9',
-            senderProfile: 'user_7yM3nK9rQ4vX2bS8jC5'
-        },
-        
-        actions: [
-            {
-                type: 'secondary',
-                action: 'reply_message',
-                text: 'Reply',
-                actionData: {
-                    threadId: 3,
-                    navigateTo: 'messages'
-                }
-            }
-        ],
-        
-        metadata: {
-            source: 'user_message',
-            businessLogic: 'messaging_system',
-            indexed: true
-        }
-    },
-    {
-        id: 'notif_cK8mL3nR9qY2fH6kX5w',
-        notificationType: 'job_warning',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'system',
-        read: false,
-        createdAt: new Date('2025-12-21T15:00:00Z'),
-        updatedAt: new Date('2025-12-21T15:00:00Z'),
-        
-        title: 'Job Application Limit Warning',
-        message: 'Job "Carpenter needed for kitchen cabinet repair and refinish" has received 15/20 applications. Consider reviewing applications soon to avoid unlisting.',
-        icon: '📋',
-        iconClass: 'status-icon',
-        priority: 'medium',
-        category: 'job_status',
-        timeDisplay: '1 day ago',
-        dateDisplay: 'Dec. 21, 2025',
-        
-        relatedDocuments: {
-            jobId: 'job_tR5nM8xK2jS6wF3eQ9',
-            applicationCount: 15,
-            maxApplications: 20
-        },
-        
-        actions: [
-            {
-                type: 'secondary',
-                action: 'review_applications',
-                text: 'Review Applications',
-                actionData: {
-                    jobId: 'job_tR5nM8xK2jS6wF3eQ9',
-                    navigateTo: 'applications'
-                }
-            }
-        ],
-        
-        metadata: {
-            source: 'system',
-            businessLogic: 'job_management',
-            indexed: true
-        }
-    },
-    {
-        id: 'notif_pL9nX4mT7qK2jR8sW5',
-        notificationType: 'new_application',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'user_dR7nK4mQ9xT2jP6sL8',
-        read: false,
-        createdAt: new Date('2025-12-20T14:00:00Z'),
-        updatedAt: new Date('2025-12-20T14:00:00Z'),
-        
-        title: 'New Job Application Received',
-        message: '<strong>Roberto Garcia</strong> applied for "Carpenter needed for kitchen cabinet repair and refinish" with a ₱2,800 counter-offer.',
-        icon: '🧑',
-        iconClass: 'app-icon',
-        priority: 'medium',
-        category: 'application',
-        timeDisplay: '2 days ago',
-        dateDisplay: 'Dec. 20, 2025',
-        
-        relatedDocuments: {
-            // REMOVED: applicationId - applications moved to jobs.html
-            jobId: 'job_xK4nM7rT8qJ2wS5nP9',
-            userProfile: 'user_dR7nK4mQ9xT2jP6sL8'
-        },
-        
-        actions: [
-            // REMOVED: View Application button - applications moved to jobs.html
-        ],
-        
-        metadata: {
-            source: 'user_application',
-            businessLogic: 'job_application_flow',
-            indexed: true
-        }
-    },
-    {
-        id: 'notif_mK6nR3qT8jX2wS7nL4',
-        notificationType: 'job_posted',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'system',
-        read: false,
-        createdAt: new Date('2025-12-19T10:00:00Z'),
-        updatedAt: new Date('2025-12-19T10:00:00Z'),
-        
-        title: 'Job Successfully Posted',
-        message: 'Your job "Plumbing repair - kitchen sink leak" has been successfully posted and is now visible to service providers.',
-        icon: '⚙️',
-        iconClass: 'system-icon',
-        priority: 'low',
-        category: 'system',
-        timeDisplay: '3 days ago',
-        dateDisplay: 'Dec. 19, 2025',
-        
-        relatedDocuments: {
-            jobId: 'job_wR4nM7xT9qK2jP5sL8'
-        },
-        
-        actions: [],
-        
-        metadata: {
-            source: 'system',
-            businessLogic: 'job_posting',
-            indexed: true
-        }
-    },
-    {
-        id: 'notif_sT5nL8mR9qK2jX4wP7',
-        notificationType: 'new_message',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'user_nP6mR3qT8jK2wS7nL9',
-        read: false,
-        createdAt: new Date('2025-12-19T09:00:00Z'),
-        updatedAt: new Date('2025-12-19T09:00:00Z'),
-        
-        title: 'New Message Received',
-        message: '<strong>Pedro Santos</strong> sent you a message: "Good morning! I can start the work tomorrow if you\'re available. Please let me know."',
-        icon: '💬',
-        iconClass: 'msg-icon',
-        priority: 'medium',
-        category: 'message',
-        timeDisplay: '3 days ago',
-        dateDisplay: 'Dec. 19, 2025',
-        
-        relatedDocuments: {
-            threadId: 'thread_qJ4nX7mR8kT2wP5sL9',
-            messageId: 'msg_vW8nL3mK7qR2jT4sP6',
-            senderProfile: 'user_nP6mR3qT8jK2wS7nL9'
-        },
-        
-        actions: [
-            {
-                type: 'secondary',
-                action: 'reply_message',
-                text: 'Reply',
-                actionData: {
-                    threadId: 'thread_qJ4nX7mR8kT2wP5sL9',
-                    navigateTo: 'messages'
-                }
-            }
-        ],
-        
-        metadata: {
-            source: 'user_message',
-            businessLogic: 'messaging_system',
-            indexed: true
-        }
-    },
-    {
-        id: 'notif_hJ3nM6rT9qX2kS8wL5',
-        notificationType: 'job_status',
-        recipientUid: 'user_currentUserUid',
-        senderUid: 'system',
-        read: true,
-        createdAt: new Date('2025-12-18T15:30:00Z'),
-        updatedAt: new Date('2025-12-21T10:00:00Z'),
-        
-        title: 'Job Completed Successfully',
-        message: 'Your job "Garden landscaping and maintenance" has been marked as completed by Maria Santos. Please review the work and rate your experience.',
-        icon: '✅',
-        iconClass: 'system-icon',
-        priority: 'medium',
-        category: 'job_status',
-        timeDisplay: '4 days ago',
-        dateDisplay: 'Dec. 18, 2025',
-        
-        relatedDocuments: {
-            jobId: 'job_lM8nR4qT7xK2jW5sP3',
-            contractId: 'contract_app_bH5nK8mR2qX4jT7sW9',
-            workerProfile: 'user_qX5nK8mT3jR7wS2nC9'
-        },
-        
-        actions: [
-            {
-                type: 'primary',
-                action: 'rate_worker',
-                text: 'Rate Work',
-                actionData: {
-                    contractId: 'contract_app_bH5nK8mR2qX4jT7sW9',
-                    workerId: 'user_qX5nK8mT3jR7wS2nC9'
-                }
-            }
-        ],
-        
-        metadata: {
-            source: 'system',
-            businessLogic: 'job_completion',
-            indexed: true
-        }
-    }
-];
+// ===== PHASE 1: LEGACY DATA AND TEMPLATES =====
 
 // Generate Notification HTML
 function generateNotificationHTML(notification) {
@@ -3965,20 +3681,26 @@ function transformFirebaseNotification(notif) {
 
 // Generate All Notifications Content
 function generateNotificationsContent() {
-    return MOCK_NOTIFICATIONS.map(notification => generateNotificationHTML(notification)).join('');
+    const notifications = typeof getCombinedAlertsNotifications === 'function'
+        ? getCombinedAlertsNotifications()
+        : (Array.isArray(ALERTS_STREAM_STATE.notifications) ? ALERTS_STREAM_STATE.notifications : []);
+    return notifications.map((notification) => generateNotificationHTML(notification)).join('');
 }
 
 // Load Notifications Tab
 function loadNotificationsTab() {
     const container = document.querySelector('#notifications-content .notifications-container');
     if (container) {
-        container.innerHTML = generateNotificationsContent();
-        
-        // Reinitialize event handlers for the dynamically loaded content
-        initializeNotifications();
-        
-        // TEMPORARY FIX: Force-enable selection for first item
-        fixFirstNotificationSelection();
+        const notificationsMarkup = generateNotificationsContent();
+        if (!notificationsMarkup) {
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">🔔<br><br>No alerts yet.</div>';
+        } else {
+            container.innerHTML = notificationsMarkup;
+            // Reinitialize event handlers for the dynamically loaded content
+            initializeNotifications();
+            // TEMPORARY FIX: Force-enable selection for first item
+            fixFirstNotificationSelection();
+        }
         
         // Update notification count badge
         updateNotificationsCount();
@@ -3993,6 +3715,10 @@ function loadNotificationsTab() {
 function fixFirstNotificationSelection() {
     const firstItem = document.querySelector('#notifications-content .notification-item:first-child');
     if (firstItem) {
+        if (firstItem.dataset.selectionFixBound === '1') {
+            return;
+        }
+        firstItem.dataset.selectionFixBound = '1';
         console.log('Applying first item selection fix');
         
         // Force-add selection capability with highest priority event listeners
@@ -4030,7 +3756,7 @@ function fixFirstNotificationSelection() {
 /*
 COMPREHENSIVE MESSAGE SYSTEM FIREBASE INTEGRATION MAPPING
 
-This mock data structure is designed for direct Firebase Firestore integration.
+This legacy data structure is designed for direct Firebase Firestore integration.
 All fields and relationships are mapped for production backend implementation.
 
 COLLECTIONS STRUCTURE:
@@ -4204,332 +3930,6 @@ NAVIGATION IMPORTANCE:
 - All worker perspective threads benefit from easy job post access for context
 */
 
-// Mock Messages Data (Firebase-ready structure)
-/**
- * FIREBASE NOTE: This chat structure feeds into Admin Dashboard User Chats
- * See admin-dashboard.js (line ~1330) for mapping details when implementing Firebase
- * Key: threadId → admin.id, jobTitle → admin.gigTitle, content → admin.text, senderType → admin.sender
- */
-const MOCK_MESSAGES = [
-    {
-        threadId: 1,
-        jobId: 1,
-        jobTitle: 'Plumbing repair - kitchen sink leak',
-        participantId: 6,
-        participantName: 'Miguel Torres',
-        threadOrigin: 'job', // NEW: Tracks thread origin ('job' or 'application')
-        applicationId: null, // NEW: null for job-based threads
-        currentUserRole: 'customer', // NEW: Current user (Peter) is the customer who posted the job
-        isNew: true,
-        lastMessageTime: '2025-12-22T15:30:00Z',
-        messages: [
-            {
-                id: 1,
-                threadId: 1,
-                senderId: 6,
-                senderName: 'Miguel Torres',
-                senderType: 'worker',
-                timestamp: '2025-12-22T09:15:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 9:15 AM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-06.jpg',
-                content: 'Good morning po! I saw your plumbing job posting. I have 8 years experience with kitchen sink repairs. When would be a good time to check your sink?'
-            },
-            {
-                id: 2,
-                threadId: 1,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-22T10:30:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 10:30 AM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Hi Miguel! Thanks for reaching out. I\'m available this afternoon after 2 PM or tomorrow morning. What\'s your rate for sink repair?'
-            },
-            {
-                id: 3,
-                threadId: 1,
-                senderId: 6,
-                senderName: 'Miguel Torres',
-                senderType: 'worker',
-                timestamp: '2025-12-22T11:45:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 11:45 AM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-06.jpg',
-                content: 'Perfect! I can come this afternoon at 3 PM. My rate is ₱800 for standard sink leak repair, including parts. Is that okay with you?'
-            },
-            {
-                id: 4,
-                threadId: 1,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-22T12:15:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 12:15 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'That sounds reasonable! 3 PM works perfectly. Do you need me to prepare anything beforehand? Also, what\'s your estimated time to complete the repair?'
-            },
-            {
-                id: 5,
-                threadId: 1,
-                senderId: 6,
-                senderName: 'Miguel Torres',
-                senderType: 'worker',
-                timestamp: '2025-12-22T12:45:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 12:45 PM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-06.jpg',
-                content: 'Just clear the area under the sink so I can access the pipes easily. The repair should take 1-2 hours depending on the issue. I\'ll bring all my tools and replacement parts.'
-            },
-            {
-                id: 6,
-                threadId: 1,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-22T13:10:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 1:10 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Great! I\'ll clear everything out now. Should I turn off the main water valve before you arrive, or will you handle that?'
-            },
-            {
-                id: 7,
-                threadId: 1,
-                senderId: 6,
-                senderName: 'Miguel Torres',
-                senderType: 'worker',
-                timestamp: '2025-12-22T13:25:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 1:25 PM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-06.jpg',
-                content: 'No need to turn off the main valve yet. I\'ll assess the situation first and turn off only what\'s necessary. See you at 3 PM! I\'ll text when I\'m on my way.'
-            },
-            {
-                id: 8,
-                threadId: 1,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-22T14:50:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 2:50 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Perfect! Everything is cleared out and ready. Looking forward to getting this fixed. Thank you Miguel!'
-            }
-        ]
-    },
-    {
-        threadId: 2,
-        jobId: 'job_gT5nM8xK2jS6wF3eA9', // Updated to match the application's jobId
-        jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
-        participantId: 'user_qX5nK8mT3jR7wS2nC9', // Updated to match Ana's applicantUid
-        participantName: 'Ana Rodriguez',
-        threadOrigin: 'application', // NEW: This thread originated from contacting from an application card
-        applicationId: 'app_kT3nH7mR8qX2bS9jL6', // NEW: Reference to Ana Rodriguez's specific application
-        currentUserRole: 'customer', // NEW: Current user (Peter) is the customer who contacted Ana's application
-        isNew: false,
-        lastMessageTime: '2025-12-21T11:30:00Z',
-        messages: [
-            {
-                id: 9,
-                threadId: 2,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-20T14:15:00Z',
-                timeDisplay: 'Dec. 20, 2025 - 2:15 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Hi Ana! I reviewed your application for the house cleaning job. Your profile looks great! I wanted to ask about your availability this weekend.'
-            },
-            {
-                id: 10,
-                threadId: 2,
-                senderId: 'user_qX5nK8mT3jR7wS2nC9',
-                senderName: 'Ana Rodriguez',
-                senderType: 'worker',
-                timestamp: '2025-12-20T15:45:00Z',
-                timeDisplay: 'Dec. 20, 2025 - 3:45 PM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-03.jpg',
-                content: 'Hello po! Thank you for considering my application. I\'m available both Saturday and Sunday. What time would work best for you?'
-            },
-            {
-                id: 11,
-                threadId: 2,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-20T16:20:00Z',
-                timeDisplay: 'Dec. 20, 2025 - 4:20 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Saturday morning around 9 AM would be perfect. How long do you think it will take for a deep clean of a 3-bedroom house?'
-            },
-            {
-                id: 12,
-                threadId: 2,
-                senderId: 'user_qX5nK8mT3jR7wS2nC9',
-                senderName: 'Ana Rodriguez',
-                senderType: 'worker',
-                timestamp: '2025-12-20T17:15:00Z',
-                timeDisplay: 'Dec. 20, 2025 - 5:15 PM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-03.jpg',
-                content: 'For a 3-bedroom deep clean, it usually takes 4-5 hours. I\'ll bring all cleaning supplies and equipment. Do you have any specific areas that need extra attention?'
-            },
-            {
-                id: 13,
-                threadId: 2,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-20T18:30:00Z',
-                timeDisplay: 'Dec. 20, 2025 - 6:30 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'The master bathroom needs extra attention, and the kitchen hasn\'t been deep cleaned in months. Also, we have two cats so there might be some pet hair around.'
-            },
-            {
-                id: 14,
-                threadId: 2,
-                senderId: 'user_qX5nK8mT3jR7wS2nC9',
-                senderName: 'Ana Rodriguez',
-                senderType: 'worker',
-                timestamp: '2025-12-20T19:45:00Z',
-                timeDisplay: 'Dec. 20, 2025 - 7:45 PM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-03.jpg',
-                content: 'No problem! I have experience with pet hair removal and I\'ll bring special tools for that. I\'ll focus extra time on the bathroom and kitchen. Should I bring my own vacuum or do you prefer I use yours?'
-            },
-            {
-                id: 15,
-                threadId: 2,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'customer',
-                timestamp: '2025-12-21T08:20:00Z',
-                timeDisplay: 'Dec. 21, 2025 - 8:20 AM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Please bring your own vacuum if possible - ours is quite old. What time should I expect you on Saturday? And is ₱500 still your final rate?'
-            },
-            {
-                id: 16,
-                threadId: 2,
-                senderId: 'user_qX5nK8mT3jR7wS2nC9',
-                senderName: 'Ana Rodriguez',
-                senderType: 'worker',
-                timestamp: '2025-12-21T09:10:00Z',
-                timeDisplay: 'Dec. 21, 2025 - 9:10 AM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-03.jpg',
-                content: 'I\'ll arrive at exactly 9 AM on Saturday with all my equipment. Yes, ₱500 is my final rate for the deep clean. I\'ll make sure your house sparkles! 😊'
-            }
-        ]
-    },
-    {
-        threadId: 3,
-        jobId: 3,
-        jobTitle: 'Garden maintenance and lawn mowing service',
-        participantId: 8,
-        participantName: 'Carlos Mendoza',
-        threadOrigin: 'job', // NEW: This thread originated from worker contacting job post
-        applicationId: null, // NEW: null for job-based threads
-        currentUserRole: 'customer', // NEW: Current user (Peter) is the customer who posted the job
-        isNew: true,
-        lastMessageTime: '2025-12-23T07:30:00Z',
-        messages: [
-            {
-                id: 17,
-                threadId: 3,
-                senderId: 8,
-                senderName: 'Carlos Mendoza',
-                senderType: 'worker',
-                timestamp: '2025-12-23T07:30:00Z',
-                timeDisplay: 'Dec. 23, 2025 - 7:30 AM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-08.jpg',
-                content: 'Good morning! I saw your garden maintenance job posting. I have 12 years experience in landscaping and lawn care. I can start this week if you\'re interested. My rate is ₱1,200 for full garden maintenance including mowing, trimming, and weeding.'
-            }
-        ]
-    },
-    {
-        threadId: 4,
-        jobId: 'job_mR8pL3nK5jT7wQ2xF6', // Programmer job that Peter applied to
-        jobTitle: 'Mobile App Development - iOS and Android',
-        participantId: 'user_sL9nR4mK6jV8wT3yG7', // Janice Legaspi's user ID
-        participantName: 'Janice Legaspi',
-        threadOrigin: 'application', // NEW: This thread originated from customer contacting Peter's application
-        applicationId: 'app_nK5jT7mR8pL3wQ2xF6', // NEW: Reference to Peter's application
-        currentUserRole: 'worker', // NEW: Current user (Peter) is the worker whose application was contacted
-        isNew: true,
-        lastMessageTime: '2025-12-23T10:15:00Z',
-        messages: [
-            {
-                id: 18,
-                threadId: 4,
-                senderId: 'user_sL9nR4mK6jV8wT3yG7',
-                senderName: 'Janice Legaspi',
-                senderType: 'customer',
-                timestamp: '2025-12-23T10:15:00Z',
-                timeDisplay: 'Dec. 23, 2025 - 10:15 AM',
-                read: true,
-                direction: 'incoming',
-                avatar: 'public/users/User-11.jpg',
-                content: 'Hi Peter! I reviewed your application for the mobile app development project. Your portfolio is impressive! I\'d like to discuss the project details with you. Are you available for a call this week?'
-            }
-        ]
-    },
-    {
-        threadId: 5,
-        jobId: 'job_vW9nM4kL7jS8wR5xB3', // App building project job
-        jobTitle: 'Custom Business App Development',
-        participantId: 'user_tX2nP5mK8jU9wS6yC4', // Chris Vicente's user ID
-        participantName: 'Chris Vicente',
-        threadOrigin: 'job', // NEW: This thread originated from Peter contacting job post
-        applicationId: null, // NEW: null for job-based threads
-        currentUserRole: 'worker', // NEW: Current user (Peter) is the worker who contacted the job
-        isNew: false,
-        lastMessageTime: '2025-12-22T16:30:00Z',
-        messages: [
-            {
-                id: 20,
-                threadId: 5,
-                senderId: 1,
-                senderName: 'You',
-                senderType: 'worker',
-                timestamp: '2025-12-22T16:30:00Z',
-                timeDisplay: 'Dec. 22, 2025 - 4:30 PM',
-                read: true,
-                direction: 'outgoing',
-                avatar: 'public/users/Peter-J-Ang-User-01.jpg',
-                content: 'Good afternoon! I saw your custom business app development project and I\'m very interested. I have 5+ years experience in mobile app development with expertise in both iOS and Android. I\'d love to learn more about your specific requirements and discuss how I can help bring your vision to life. What\'s the best time to discuss the project details?'
-            }
-        ]
-    }
-];
-
 // Generate Message Card HTML
 function generateMessageHTML(message) {
     const messageDataAttrs = [
@@ -4609,6 +4009,18 @@ function normalizeFirebaseChatMessage(message, currentUserId) {
     const messageType = String(message?.messageType || 'text').toLowerCase() === 'image' ? 'image' : 'text';
     const thumbnailUrl = String(message?.thumbnailUrl || message?.photoData?.thumbnailUrl || '').trim();
     const fullSizeUrl = String(message?.fullSizeUrl || message?.photoData?.fullSizeUrl || thumbnailUrl).trim();
+    const rawAvatar = String(message?.senderAvatar || message?.avatar || 'public/icons/unknown.jpg').trim();
+    const avatarCacheKey = senderId || rawAvatar;
+    let normalizedAvatar = rawAvatar || 'public/icons/unknown.jpg';
+    if (avatarCacheKey && THREAD_AVATAR_URL_CACHE.has(avatarCacheKey)) {
+        normalizedAvatar = THREAD_AVATAR_URL_CACHE.get(avatarCacheKey) || normalizedAvatar;
+    } else {
+        normalizedAvatar = normalizeAvatarUrlForRender(normalizedAvatar);
+        if (avatarCacheKey) {
+            THREAD_AVATAR_URL_CACHE.set(avatarCacheKey, normalizedAvatar);
+        }
+    }
+
     return {
         id: message?.id || message?.messageId || `${safeDate.getTime()}`,
         threadId: message?.threadId || '',
@@ -4619,12 +4031,32 @@ function normalizeFirebaseChatMessage(message, currentUserId) {
         timeDisplay: formatChatModalTimestamp(message?.timestamp || message?.createdAt || safeDate),
         read: message?.read === true,
         direction: direction,
-        avatar: message?.senderAvatar || message?.avatar || 'public/icons/unknown.jpg',
+        avatar: normalizedAvatar,
         content: String(message?.content || ''),
         messageType: messageType,
         thumbnailUrl: thumbnailUrl,
         fullSizeUrl: fullSizeUrl
     };
+}
+
+const THREAD_MESSAGES_CACHE = new Map();
+const THREAD_AVATAR_URL_CACHE = new Map();
+
+function normalizeAvatarUrlForRender(url) {
+    const safeUrl = String(url || '').trim();
+    if (!safeUrl) return 'public/icons/unknown.jpg';
+
+    try {
+        const parsed = new URL(safeUrl, window.location.origin);
+        const cacheBustKeys = ['cb', 'cacheBust', '_cb', 'ts', '_ts', 't', 'time', 'timestamp'];
+        cacheBustKeys.forEach((key) => parsed.searchParams.delete(key));
+        if (parsed.origin === window.location.origin) {
+            return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        }
+        return parsed.toString();
+    } catch (_) {
+        return safeUrl;
+    }
 }
 
 function renderThreadMessagesInModal(modalOverlay, messages, options = {}) {
@@ -4634,7 +4066,32 @@ function renderThreadMessagesInModal(modalOverlay, messages, options = {}) {
     const currentUserId = getCurrentUserId();
     const normalizedMessages = (Array.isArray(messages) ? messages : [])
         .map((message) => normalizeFirebaseChatMessage(message, currentUserId));
+    const messageSignature = normalizedMessages.map((message) => [
+        message.id,
+        message.timestamp,
+        message.senderId,
+        message.avatar,
+        message.messageType,
+        message.content,
+        message.thumbnailUrl,
+        message.fullSizeUrl
+    ].join('|')).join('||');
+    if (modalOverlay.dataset.lastRenderedMessageSignature === messageSignature) {
+        if (shouldAutoscroll) scrollMessagesContainerToBottom(messagesContainer);
+        return;
+    }
+
+    const threadId = String(modalOverlay.getAttribute('data-thread-id') || '').trim();
+    if (threadId) {
+        THREAD_MESSAGES_CACHE.set(threadId, {
+            messages: normalizedMessages,
+            signature: messageSignature,
+            cachedAt: Date.now()
+        });
+    }
+
     messagesContainer.innerHTML = normalizedMessages.map((message) => generateMessageHTML(message)).join('');
+    modalOverlay.dataset.lastRenderedMessageSignature = messageSignature;
     initializeAvatarOverlays(modalOverlay);
     if (shouldAutoscroll) {
         scrollMessagesContainerToBottom(messagesContainer);
@@ -4688,7 +4145,13 @@ function scrollMessagesContainerToBottom(messagesContainer, attempts = 4) {
 async function bindRealtimeThreadMessages(modalOverlay, threadId) {
     if (!modalOverlay || !threadId) return;
     const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
-    if (messagesContainer) {
+    const cachedThread = THREAD_MESSAGES_CACHE.get(threadId);
+    if (messagesContainer && cachedThread && Array.isArray(cachedThread.messages) && cachedThread.messages.length > 0) {
+        messagesContainer.innerHTML = cachedThread.messages.map((message) => generateMessageHTML(message)).join('');
+        modalOverlay.dataset.lastRenderedMessageSignature = String(cachedThread.signature || '');
+        initializeAvatarOverlays(modalOverlay);
+        scrollMessagesContainerToBottom(messagesContainer, 2);
+    } else if (messagesContainer) {
         messagesContainer.innerHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
     }
 
@@ -4810,11 +4273,6 @@ function generateMessageThreadHTML(thread) {
     `;
 }
 
-// Generate All Messages Content
-function generateMessagesContent() {
-    return MOCK_MESSAGES.map(thread => generateMessageThreadHTML(thread)).join('');
-}
-
 // Load Messages Tab
 async function loadMessagesTab() {
     const container = document.querySelector('#messages-content .messages-container');
@@ -4823,7 +4281,7 @@ async function loadMessagesTab() {
         // This prevents the bug where expanded threads cause empty content
         closeAllMessageThreads();
         
-        // 🔥 Firebase Integration - Try to load threads from Firebase
+        // Firebase Integration - load threads from backend only.
         let messagesContent = '';
         
         if (typeof getUserChatThreads === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
@@ -4835,15 +4293,14 @@ async function loadMessagesTab() {
                     console.log(`✅ Firebase: Found ${threads.length} chat threads`);
                     messagesContent = threads.map(thread => generateMessageThreadHTMLFromFirebase(thread)).join('');
                 } else {
-                    console.log('ℹ️ No Firebase threads found, using mock data');
-                    messagesContent = generateMessagesContent();
+                    messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>No chats yet.</div>';
                 }
             } catch (error) {
-                console.error('❌ Firebase error, falling back to mock data:', error);
-                messagesContent = generateMessagesContent();
+                console.error('❌ Firebase error while loading chats:', error);
+                messagesContent = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load chats. Please refresh the page.</div>';
             }
         } else {
-            messagesContent = generateMessagesContent();
+            messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">⚠️<br><br>Chats backend unavailable.</div>';
         }
         
         container.innerHTML = messagesContent;
@@ -4862,7 +4319,7 @@ async function loadMessagesTab() {
 
 // Generate HTML for a Firebase chat thread
 function generateMessageThreadHTMLFromFirebase(thread) {
-    // Convert Firebase thread structure to mock data format
+    // Convert Firebase thread structure to UI-friendly format
     const currentUserId = typeof getCurrentUserId === 'function' ? getCurrentUserId() : 'current_user';
     const otherParticipant = thread.participantIds?.find(id => id !== currentUserId);
     
@@ -4902,6 +4359,11 @@ function initializeMessages(container = document) {
     const messageThreadHeaders = container.querySelectorAll('.message-thread-header');
     
     messageThreadHeaders.forEach(header => {
+        if (header.dataset.messagesHeaderBound === '1') {
+            return;
+        }
+        header.dataset.messagesHeaderBound = '1';
+
         header.addEventListener('click', function(e) {
             const threadId = this.getAttribute('data-thread-id');
             const messageThread = this.closest('.message-thread');
@@ -5095,19 +4557,16 @@ function updateJobHeaderCounts() {
 }
 
 function updateAllTabCounts() {
-    // Calculate and update all tab counts on page load based on mock data
-    // This ensures counts are accurate before tabs are clicked
-    
+    // Calculate and update all tab counts from current runtime state.
+
     // Notifications count - keep existing count logic
     updateNotificationsCount();
-    
-    // Chats counters from mock data by role (legacy compatibility)
-    const workerNewThreadsCount = MOCK_MESSAGES.filter(thread => thread.currentUserRole === 'worker' && thread.isNew === true).length;
-    setTabNotificationCount('#workerChatsTab', workerNewThreadsCount);
-    const customerNewThreadsCount = MOCK_MESSAGES.filter(thread => thread.currentUserRole === 'customer' && thread.isNew === true).length;
-    setTabNotificationCount('#customerInterviewsTab', customerNewThreadsCount);
+
+    // Chats counters from stream state
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
     updateMainMessagesTabCount();
-    
+
     console.log('All tab counts updated on page load');
 }
 
@@ -5290,9 +4749,9 @@ function initializeContactMessageOverlay() {
 window.cancelSelection = cancelSelection;
 window.deleteSelectedNotifications = deleteSelectedNotifications;
 
-// Removed: MOCK_APPLICATIONS array - Applications data moved to jobs.html overlay system
+// Removed: legacy applications array - Applications data moved to jobs.html overlay system
 // The Messages tab (3rd tab) now contains admin communications, not application cards
-// const MOCK_APPLICATIONS = [
+// const LEGACY_APPLICATIONS = [
     /*{
         jobId: 'job_gT5nM8xK2jS6wF3eA9', // Firebase document ID format
         jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
@@ -6622,7 +6081,7 @@ window.deleteSelectedNotifications = deleteSelectedNotifications;
             }
         ]
     }*/
-// ]; // End of removed MOCK_APPLICATIONS
+// ]; // End of removed legacy applications array
 
 // REMOVED: Generate Application Card HTML - FIREBASE DATA-DRIVEN
 // REMOVED: generateApplicationCardHTML() function - obsolete since applications moved to jobs.html
@@ -6632,7 +6091,7 @@ window.deleteSelectedNotifications = deleteSelectedNotifications;
 /*
 🔥 FIREBASE MIGRATION INSTRUCTIONS - CRITICAL REFACTOR NEEDED 🔥
 
-CURRENT STATE: Mock data with full DOM regeneration
+CURRENT STATE: Legacy full DOM regeneration
 TARGET STATE: Real-time Firebase with granular updates
 
 🚨 BEFORE IMPLEMENTING FIREBASE, REFACTOR THIS ARCHITECTURE:
@@ -6697,12 +6156,7 @@ function generateApplicationsContent() {
             <span style="font-size: 0.9em; color: #8a92a5; margin-top: 8px; display: block;">Applications from job seekers will appear here when you post job listings</span>
         </div>
     `;
-    
-    // Generate job listings HTML
-    const jobListingsHTML = MOCK_APPLICATIONS.map(jobData => generateJobListingHTML(jobData)).join('');
-    
-    // Return placeholder + job listings
-    return placeholderHTML + jobListingsHTML;
+    return placeholderHTML;
 }
 
 function loadApplicationsTab() {
@@ -6757,7 +6211,7 @@ function initializeInputFocusElegance(messageThread) {
 }
 
 // ===== DYNAMIC MESSAGE ENTRY FUNCTIONALITY =====
-// BACKEND-READY: This functionality is purely frontend mock data
+// BACKEND-READY: This functionality is purely frontend placeholder data
 // When backend is ready, replace the mock logic with API calls
 
 /**
@@ -7312,7 +6766,7 @@ function showChatModal(messageThread, threadContent) {
         }
     }, 10);
     
-    console.log(`✅ Chat modal created for thread ${threadId}`);
+    messagesDebug(`✅ Chat modal created for thread ${threadId}`);
 }
 
 // Initialize chat modal functionality
@@ -7348,7 +6802,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         window.visualViewport.addEventListener('resize', viewportHandler);
         window.visualViewport.addEventListener('scroll', viewportHandler);
         
-        console.log('📱 Visual Viewport API initialized for keyboard handling');
+        messagesDebug('📱 Visual Viewport API initialized for keyboard handling');
     } else {
         console.log('⚠️ Visual Viewport API not available - using fallback');
     }
@@ -7438,7 +6892,7 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         if (window.visualViewport && viewportHandler) {
             window.visualViewport.removeEventListener('resize', viewportHandler);
             window.visualViewport.removeEventListener('scroll', viewportHandler);
-            console.log('🧹 Visual Viewport listeners cleaned up');
+            messagesDebug('🧹 Visual Viewport listeners cleaned up');
         }
 
         if (ACTIVE_LISTENERS.activeThreadMessages) {
@@ -7503,7 +6957,7 @@ function initializeChatInputFunctionality(modalOverlay) {
         listeners.forEach(({ element, event, handler }) => {
             element.removeEventListener(event, handler);
         });
-        console.log('🧹 Chat input listeners cleaned up');
+        messagesDebug('🧹 Chat input listeners cleaned up');
     };
     
     // Send message functionality
@@ -7596,7 +7050,7 @@ function initializeChatInputFunctionality(modalOverlay) {
         photoInput.value = '';
     });
     
-    console.log('✅ Chat input functionality initialized');
+    messagesDebug('✅ Chat input functionality initialized');
 }
 
 /**
@@ -7798,7 +7252,7 @@ function closeChatModal(modalOverlay) {
             unlockBodyScrollForChatModal();
         }, 300);
         
-        console.log('✅ Chat modal closed with aggressive cleanup');
+        messagesDebug('✅ Chat modal closed with aggressive cleanup');
     }
 }
 
@@ -7827,7 +7281,9 @@ function cleanupAvatarOverlays(container) {
         }
     });
     
-    console.log(`🧹 Cleaned up avatar overlays for ${avatars.length} avatars`);
+    if (avatars.length > 0) {
+        messagesDebug(`🧹 Cleaned up avatar overlays for ${avatars.length} avatars`);
+    }
 }
 
 function showAvatarOverlay(event, userData) {
@@ -8266,7 +7722,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
         closeBtn.addEventListener('click', function() {
             const threadId = this.getAttribute('data-thread-id');
             
-            console.log(`✕ Closing conversation (Thread ID: ${threadId})`);
+            messagesDebug(`✕ Closing conversation (Thread ID: ${threadId})`);
             
             // Hide overlay
             hideAvatarOverlay();
@@ -8419,7 +7875,7 @@ function hideAvatarOverlayOnOutsideClick(event) {
 
 // Firebase Helper Functions
 function getCurrentUserId() {
-    // Get current user ID from Firebase Auth or session storage
+    // Get current user ID strictly from Firebase Auth.
     try {
         if (typeof firebase !== 'undefined' && firebase.auth) {
             const currentUser = firebase.auth().currentUser;
@@ -8428,11 +7884,9 @@ function getCurrentUserId() {
             }
         }
     } catch (e) {
-        // Firebase not initialized or auth not available - use fallback
-        console.log('📋 Using mock user ID (Firebase not connected)');
+        console.warn('⚠️ Unable to resolve current user ID from Firebase auth:', e);
     }
-    // Fallback to localStorage for development/offline mode
-    return localStorage.getItem('currentUserId') || '1'; // Peter's ID for mock environment
+    return '';
 }
 
 function checkFirebaseConnection() {
@@ -9667,7 +9121,7 @@ UI Display:
 - Filter by type or show unified inbox
 */
 
-const MOCK_ADMIN_MESSAGES = {
+/*
     customer: [
         {
             id: 'msg_cust_001',
@@ -10467,50 +9921,16 @@ GISUGO Referral Team`,
             hasAttachment: false
         }
     ]
-};
-
-let SUPPORT_MOCK_DATA_ENABLED_CACHE = null;
-
-function refreshSupportMockDataEnabledCache() {
-    SUPPORT_MOCK_DATA_ENABLED_CACHE = !!(window.APP_CONFIG && window.APP_CONFIG.devMode);
-    return SUPPORT_MOCK_DATA_ENABLED_CACHE;
-}
-
-function isSupportMockDataEnabled() {
-    if (SUPPORT_MOCK_DATA_ENABLED_CACHE === null) {
-        return refreshSupportMockDataEnabledCache();
-    }
-    return SUPPORT_MOCK_DATA_ENABLED_CACHE;
-}
-
-const supportMockStorageHandler = (event) => {
-    if (event && event.key === 'gisugo_dev_mode') {
-        refreshSupportMockDataEnabledCache();
-        if (isSupportMockDataEnabled()) {
-            stopSupportResponsesRealtimeStream('dev_mode_toggled_on');
-            loadUnifiedMessages();
-        } else {
-            ensureSupportResponsesRealtimeStream()
-                .catch((error) => console.warn('⚠️ Failed to refresh support stream after dev toggle:', error));
-        }
-    }
-};
-window.addEventListener('storage', supportMockStorageHandler);
-registerCleanup('function', 'supportMockStorageListenerCleanup', () => {
-    window.removeEventListener('storage', supportMockStorageHandler);
-});
+*/
 
 function getMessagesByRole(role) {
     if (role === 'unified') {
-        if (!isSupportMockDataEnabled()) {
-            return Array.isArray(SUPPORT_RESPONSES_STREAM_STATE.messages)
-                ? SUPPORT_RESPONSES_STREAM_STATE.messages
-                : [];
-        }
-        return MOCK_ADMIN_MESSAGES.customer || [];
+        return Array.isArray(SUPPORT_RESPONSES_STREAM_STATE.messages)
+            ? SUPPORT_RESPONSES_STREAM_STATE.messages
+            : [];
     }
 
-    return MOCK_ADMIN_MESSAGES[role] || [];
+    return [];
 }
 
 function getSupportMessageByIdForRole(role, messageId) {
@@ -10571,11 +9991,6 @@ function mapSupportRecordToUnifiedMessage(doc) {
 }
 
 async function ensureSupportResponsesRealtimeStream() {
-    if (isSupportMockDataEnabled()) {
-        stopSupportResponsesRealtimeStream('dev_mode_enabled');
-        return;
-    }
-
     const currentUser = await waitForAuthStateWithTimeout();
     if (!currentUser || !currentUser.uid) {
         stopSupportResponsesRealtimeStream('support_not_authenticated');
@@ -10643,19 +10058,11 @@ function initializeAdminMessages() {
 function loadCustomerMessages() {
     console.log('Loading customer messages...');
     const container = document.querySelector('#customer-messages-content .user-messages-list-container');
-    if (container && MOCK_ADMIN_MESSAGES.customer) {
-        // Start with New messages only (filtering will handle Old messages)
-        const newMessages = MOCK_ADMIN_MESSAGES.customer.filter(msg => {
-            const messageState = messageStates[msg.id];
-            return messageState ? !messageState.isClosed : true;
-        });
-        console.log('Customer new messages count:', newMessages.length);
-        
-        container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'customer')).join('');
-        
-        // Setup click handlers for message items
-        setupMessageDetailHandlers('customer');
-        
+    if (container) {
+        container.innerHTML = getSupportEmptyStateHTML(
+            'No customer admin messages',
+            'Customer admin messages are unavailable.'
+        );
         updateMessageCounts('customer');
     }
 }
@@ -10692,19 +10099,11 @@ function loadUnifiedMessages() {
 function loadWorkerMessages() {
     console.log('Loading worker messages...');
     const container = document.querySelector('#worker-messages-content .user-messages-list-container');
-    if (container && MOCK_ADMIN_MESSAGES.worker) {
-        // Start with New messages only (filtering will handle Old messages)
-        const newMessages = MOCK_ADMIN_MESSAGES.worker.filter(msg => {
-            const messageState = messageStates[msg.id];
-            return messageState ? !messageState.isClosed : true;
-        });
-        console.log('Worker new messages count:', newMessages.length);
-        
-        container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'worker')).join('');
-        
-        // Setup click handlers for message items
-        setupMessageDetailHandlers('worker');
-        
+    if (container) {
+        container.innerHTML = getSupportEmptyStateHTML(
+            'No worker admin messages',
+            'Worker admin messages are unavailable.'
+        );
         updateMessageCounts('worker');
     }
 }
