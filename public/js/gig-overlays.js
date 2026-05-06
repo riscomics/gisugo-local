@@ -40,6 +40,21 @@
         }
     }
 
+    async function getCachedProfileForGigStatus(userId) {
+        const safeUserId = String(userId || '').trim();
+        if (!safeUserId || typeof window.getUserProfile !== 'function') return null;
+        const cached = getCachedHireProfile(safeUserId);
+        if (cached) return cached;
+        try {
+            const profile = await window.getUserProfile(safeUserId);
+            setCachedHireProfile(safeUserId, profile || null);
+            return profile || null;
+        } catch (error) {
+            console.warn('Gig status verification lookup failed:', error);
+            return null;
+        }
+    }
+
     function runCleanup() {
         if (state.controller) {
             state.controller.abort();
@@ -659,7 +674,7 @@
                         </div>
                         <div class="hiring-main-row">
                             <div class="hiring-thumbnail">
-                                <img id="gigStatusJobImage" src="public/images/placeholder.jpg" alt="Gig">
+                                <img id="gigStatusJobImage" src="public/images/Gisugo-icon.png" alt="Gig">
                             </div>
                             <div class="hiring-content">
                                 <div class="hiring-left-content">
@@ -797,6 +812,7 @@
     }
 
     function hideGigStatusOverlay() {
+        const context = state.gigStatusContext;
         const ids = [
             'gigStatusOverlay',
             'gigStatusActionsOverlay',
@@ -808,6 +824,13 @@
             const overlay = getElement(id);
             if (overlay) overlay.classList.remove('show');
         });
+        if (context && typeof context.onClose === 'function') {
+            try {
+                context.onClose();
+            } catch (error) {
+                console.warn('Gig status close callback failed:', error);
+            }
+        }
         state.gigStatusContext = null;
     }
 
@@ -839,6 +862,7 @@
             : `WORKING FOR ${counterpartName.toUpperCase()}`;
         return {
             jobId: String(job.id || payload.jobId || ''),
+            jobCategory: String(job.category || payload.jobCategory || '').trim().toLowerCase(),
             role: role,
             jobTitle: safeText(job.title, 'Gig'),
             dueDate: formatGigStatusDate(job.jobDate || job.scheduledDate),
@@ -847,10 +871,12 @@
             priceLabel: `₱${safeText(job.agreedPrice || job.priceOffer || job.budget, '0')}`,
             partyLabel: partyLabel,
             statusLabel: safeText(job.status, 'accepted').replaceAll('_', ' ').toUpperCase(),
-            jobThumbnail: safeText(job.thumbnail || job.imageUrl || job.photoUrl, 'public/images/placeholder.jpg'),
+            jobThumbnail: safeText(job.thumbnail || job.imageUrl || job.photoUrl, 'public/images/Gisugo-icon.png'),
             verificationVideoUrl: safeText(profile?.verification?.faceVideoUrl, ''),
             verificationPosterUrl: safeText(profile?.verification?.faceImageUrl || profile?.photoURL, ''),
-            onUpdated: payload?.onUpdated
+            counterpartId: safeText(payload?.counterpartId, ''),
+            onUpdated: payload?.onUpdated,
+            onClose: payload?.onClose
         };
     }
 
@@ -878,7 +904,10 @@
 
         addAction('VIEW GIG POST', 'success', function () {
             const encoded = encodeURIComponent(context.jobId);
-            window.location.href = `dynamic-job.html?id=${encoded}`;
+            const encodedCategory = encodeURIComponent(String(context.jobCategory || '').trim());
+            window.location.href = encodedCategory
+                ? `dynamic-job.html?jobId=${encoded}&category=${encodedCategory}`
+                : `dynamic-job.html?jobId=${encoded}`;
         });
         addAction(
             `WATCH ${context.role === 'customer' ? 'WORKER' : 'CUSTOMER'} FACE VERIFICATION VIDEO`,
@@ -908,7 +937,7 @@
         showSingleGigStatusOverlay(overlay);
     }
 
-    function openGigStatusMedia() {
+    async function openGigStatusMedia() {
         const context = state.gigStatusContext;
         if (!context) return;
         const overlay = ensureGigStatusMediaOverlay();
@@ -918,6 +947,12 @@
         const playBtn = getElement('gigStatusMediaPlayBtn');
         const closeBtn = getElement('gigStatusMediaCloseBtn');
         if (!overlay || !videoEl || !posterEl || !playBtn) return;
+
+        if (!context.verificationVideoUrl && context.counterpartId) {
+            const profile = await getCachedProfileForGigStatus(context.counterpartId);
+            context.verificationVideoUrl = safeText(profile?.verification?.faceVideoUrl, '');
+            context.verificationPosterUrl = safeText(profile?.verification?.faceImageUrl || profile?.photoURL, '');
+        }
 
         if (!context.verificationVideoUrl) {
             if (typeof window.showTemporaryNotification === 'function') {
@@ -1195,11 +1230,15 @@
             return;
         }
 
-        let job = null;
-        try {
-            job = await window.getJobById(jobId);
-        } catch (error) {
-            console.warn('Gig status lookup failed:', error);
+        let job = payload?.jobData && typeof payload.jobData === 'object'
+            ? payload.jobData
+            : null;
+        if (!job) {
+            try {
+                job = await window.getJobById(jobId);
+            } catch (error) {
+                console.warn('Gig status lookup failed:', error);
+            }
         }
         if (!job) {
             if (typeof window.showTemporaryNotification === 'function') {
@@ -1211,16 +1250,10 @@
         const counterpartId = role === 'customer'
             ? String(job.hiredWorkerId || '').trim()
             : String(job.posterId || '').trim();
-        let profile = null;
-        try {
-            if (counterpartId && typeof window.getUserProfile === 'function') {
-                profile = await window.getUserProfile(counterpartId);
-            }
-        } catch (error) {
-            console.warn('Gig status verification lookup failed:', error);
-        }
-
-        const context = buildGigStatusContext(job, role, payload, profile || {});
+        const context = buildGigStatusContext(job, role, {
+            ...payload,
+            counterpartId: counterpartId
+        }, {});
         state.gigStatusContext = context;
 
         if (titleEl) titleEl.textContent = context.jobTitle;

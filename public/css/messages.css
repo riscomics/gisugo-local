@@ -3415,9 +3415,9 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: rgba(0, 0, 0, 0.64);
   z-index: 10120;
   display: none;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 14px;
+  padding: 132px 14px 14px;
   box-sizing: border-box;
 }
 
@@ -5021,6 +5021,14 @@ body:has(.selection-controls[style*="display: flex"]) {
     overflow-y: auto;
   }
 
+  .gig-status-overlay {
+    padding-top: 116px;
+  }
+
+  .gig-tips-overlay {
+    padding-top: 112px;
+  }
+
   .gig-complete-icon {
     font-size: 2.2rem;
     margin-bottom: 10px;
@@ -5073,6 +5081,14 @@ body:has(.selection-controls[style*="display: flex"]) {
   .gig-complete-sheet {
     padding: 15px 12px;
     max-height: 80vh;
+  }
+
+  .gig-status-overlay {
+    padding-top: 102px;
+  }
+
+  .gig-tips-overlay {
+    padding-top: 98px;
   }
 
   .gig-complete-sheet h3 {
@@ -5136,11 +5152,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   background: rgba(0, 0, 0, 0.68);
   z-index: 10040;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   opacity: 0;
   transition: opacity 0.15s ease-in-out;
-  padding: 16px;
+  padding: 128px 16px 16px;
   box-sizing: border-box;
 }
 
@@ -6301,6 +6317,11 @@ body:has(.selection-controls[style*="display: flex"]) {
   display: block !important;
 }
 
+.avatar-overlay-backdrop.avatar-overlay-backdrop-suspended {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Message Avatar Overlay Styles */
 .avatar-overlay {
   position: fixed !important;
@@ -6319,12 +6340,18 @@ body:has(.selection-controls[style*="display: flex"]) {
   transition: all 0.2s ease-out;
   pointer-events: none;
   user-select: none;
+  overflow: visible;
 }
 
 .avatar-overlay.show {
   opacity: 1;
   transform: translateX(-50%) scale(1) translateY(0) !important;
   pointer-events: auto;
+}
+
+.avatar-overlay.avatar-overlay-suspended {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .avatar-overlay-header {
@@ -6348,10 +6375,22 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .avatar-overlay-actions {
-  padding: 10px; /* Back to original */
+  padding: 10px 10px 18px;
   display: flex;
   flex-direction: column;
   gap: 8px; /* Back to original */
+}
+
+.avatar-overlay-dynamic-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avatar-overlay-row.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .avatar-action-btn {
@@ -6369,6 +6408,7 @@ body:has(.selection-controls[style*="display: flex"]) {
   justify-content: center;
   gap: 8px; /* Back to original */
   text-decoration: none;
+  width: 100%;
 }
 
 .avatar-action-btn.profile {
@@ -6385,16 +6425,42 @@ body:has(.selection-controls[style*="display: flex"]) {
 }
 
 .avatar-action-btn.job {
-  background: #48bb78;
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 48%, #d1d5db 100%);
   color: #ffffff;
-  border-color: #68d391;
+  border-color: rgba(209, 213, 219, 0.9);
 }
 
 .avatar-action-btn.job:hover {
-  background: #38a169;
-  border-color: #48bb78;
+  background: linear-gradient(135deg, #4b5563 0%, #6b7280 50%, #9ca3af 100%);
+  border-color: #d1d5db;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+  box-shadow: 0 0 0 2px rgba(156, 163, 175, 0.22), 0 4px 12px rgba(75, 85, 99, 0.35);
+}
+
+.avatar-action-btn.tips {
+  background: linear-gradient(135deg, #1d3557 0%, #2f4f7c 48%, #4b6a9c 100%);
+  color: #ffffff;
+  border-color: rgba(111, 145, 196, 0.9);
+}
+
+.avatar-action-btn.tips:hover {
+  background: linear-gradient(135deg, #162a45 0%, #274263 50%, #3d5c86 100%);
+  border-color: #86a7d8;
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 2px rgba(134, 167, 216, 0.2), 0 4px 12px rgba(29, 53, 87, 0.42);
+}
+
+.avatar-action-btn.status {
+  background: linear-gradient(135deg, #8b6a21 0%, #d4af37 48%, #f5dd83 100%);
+  color: #2b1c03;
+  border-color: rgba(245, 221, 131, 0.9);
+  animation: status-attention-pulse 1.4s ease-in-out infinite;
+}
+
+.avatar-action-btn.status:hover {
+  background: linear-gradient(135deg, #7b5b14 0%, #c49a21 50%, #e7c964 100%);
+  border-color: #f4d571;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.24), 0 6px 16px rgba(123, 91, 20, 0.45);
 }
 
 .avatar-action-btn.application {
@@ -6490,8 +6556,55 @@ body:has(.selection-controls[style*="display: flex"]) {
   100% { transform: scale(1); }
 }
 
+@keyframes status-attention-pulse {
+  0% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+  50% {
+    transform: scale(1.03);
+    filter: saturate(1.12) brightness(1.06);
+  }
+  100% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+}
+
 .avatar-action-btn:active {
   transform: translateY(0);
+}
+
+.avatar-options-close-x {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 2px solid #a0aec0;
+  background: #4a5568;
+  color: #ffffff;
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.avatar-options-close-x.outside {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 14px);
+  transform: translateX(-50%);
+  z-index: 10001;
+}
+
+.avatar-options-close-x:hover {
+  background: #2d3748;
+  border-color: #e2e8f0;
+  transform: translateX(-50%) scale(1.05);
 }
 
 /* Only increase modal size for 338px-600px range as requested */
@@ -6509,6 +6622,11 @@ body:has(.selection-controls[style*="display: flex"]) {
     font-size: 1rem; /* Slightly larger font */
     gap: 10px; /* Slightly more gap */
     min-height: 52px; /* Ensure minimum button height */
+  }
+
+  .avatar-options-close-x {
+    width: 42px;
+    height: 42px;
   }
   
   .avatar-overlay-header {
@@ -6545,10 +6663,20 @@ body:has(.selection-controls[style*="display: flex"]) {
     gap: 6px;
   }
 
+  .avatar-overlay-row.two-col {
+    gap: 6px;
+  }
+
   .avatar-action-btn {
     padding: 10px 14px;
     font-size: 0.85rem;
     gap: 6px;
+  }
+
+  .avatar-options-close-x {
+    width: 36px;
+    height: 36px;
+    font-size: 1.02rem;
   }
 }
 

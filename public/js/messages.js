@@ -4056,6 +4056,92 @@ function normalizeFirebaseChatMessage(message, currentUserId) {
 
 const THREAD_MESSAGES_CACHE = new Map();
 const THREAD_AVATAR_URL_CACHE = new Map();
+const GIG_STATUS_VISIBILITY_CACHE = new Map();
+const GIG_STATUS_VISIBILITY_INFLIGHT = new Map();
+const GIG_STATUS_VISIBILITY_TTL_MS = 30000;
+
+function buildChatJobOverlayStateFromJob(job, currentUserId) {
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!job || typeof job !== 'object' || !safeCurrentUserId) {
+        return { allowGigStatus: false, allowHireChecklist: false, category: '', status: '', jobData: null };
+    }
+    const status = String(job.status || '').trim().toLowerCase();
+    const category = String(job.category || '').trim().toLowerCase();
+    const hasOfferSentOrLocked = status === 'hired' || status === 'accepted' || status === 'completed';
+    const hasLockedContract = status === 'accepted' || status === 'completed';
+    const isPoster = String(job.posterId || '').trim() === safeCurrentUserId;
+    const isHiredWorker = String(job.hiredWorkerId || '').trim() === safeCurrentUserId;
+    return {
+        allowGigStatus: hasLockedContract && (isPoster || isHiredWorker),
+        allowHireChecklist: isPoster && !hasOfferSentOrLocked,
+        category: category,
+        status: status,
+        jobData: job
+    };
+}
+
+function setCachedChatJobOverlayState(jobId, currentUserId, value) {
+    const safeJobId = String(jobId || '').trim();
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeJobId || !safeCurrentUserId || !value) return;
+    const cacheKey = `${safeJobId}::${safeCurrentUserId}`;
+    GIG_STATUS_VISIBILITY_CACHE.set(cacheKey, { savedAt: Date.now(), value });
+}
+
+function getCachedChatJobOverlayState(jobId, currentUserId) {
+    const safeJobId = String(jobId || '').trim();
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeJobId || !safeCurrentUserId) return null;
+    const cacheKey = `${safeJobId}::${safeCurrentUserId}`;
+    const cached = GIG_STATUS_VISIBILITY_CACHE.get(cacheKey);
+    if (!cached) return null;
+    const ageMs = Date.now() - Number(cached.savedAt || 0);
+    if (ageMs >= GIG_STATUS_VISIBILITY_TTL_MS) return null;
+    return cached.value || null;
+}
+
+async function resolveChatJobOverlayState(jobId, currentUserId) {
+    const safeJobId = String(jobId || '').trim();
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeJobId || !safeCurrentUserId || typeof getJobById !== 'function') {
+        return { allowGigStatus: false, allowHireChecklist: false, category: '', status: '', jobData: null };
+    }
+
+    const cacheKey = `${safeJobId}::${safeCurrentUserId}`;
+    const now = Date.now();
+    const cached = GIG_STATUS_VISIBILITY_CACHE.get(cacheKey);
+    if (cached && (now - Number(cached.savedAt || 0)) < GIG_STATUS_VISIBILITY_TTL_MS) {
+        return cached.value;
+    }
+    if (GIG_STATUS_VISIBILITY_INFLIGHT.has(cacheKey)) {
+        return GIG_STATUS_VISIBILITY_INFLIGHT.get(cacheKey);
+    }
+
+    const inflight = (async () => {
+        let job = null;
+        try {
+            job = await getJobById(safeJobId);
+        } catch (error) {
+            console.warn('⚠️ Failed to resolve gig status visibility:', error);
+        }
+
+        if (!job || typeof job !== 'object') {
+            const fallback = { allowGigStatus: false, allowHireChecklist: false, category: '', status: '', jobData: null };
+            GIG_STATUS_VISIBILITY_CACHE.set(cacheKey, { savedAt: Date.now(), value: fallback });
+            return fallback;
+        }
+
+        const value = buildChatJobOverlayStateFromJob(job, safeCurrentUserId);
+        GIG_STATUS_VISIBILITY_CACHE.set(cacheKey, { savedAt: Date.now(), value: value });
+        return value;
+    })();
+    GIG_STATUS_VISIBILITY_INFLIGHT.set(cacheKey, inflight);
+    try {
+        return await inflight;
+    } finally {
+        GIG_STATUS_VISIBILITY_INFLIGHT.delete(cacheKey);
+    }
+}
 
 function normalizeAvatarUrlForRender(url) {
     const safeUrl = String(url || '').trim();
@@ -4144,14 +4230,13 @@ async function renderGigFlowCardForThread(modalOverlay) {
     const role = String(modalOverlay.getAttribute('data-current-user-role') || '').trim().toLowerCase();
     if (!jobId || !currentUserId || typeof getJobById !== 'function') return;
 
-    let jobData = null;
-    try {
-        jobData = await getJobById(jobId);
-    } catch (error) {
-        console.warn('⚠️ Gig flow card job fetch failed:', error);
-        return;
+    let jobData = getCachedChatJobOverlayState(jobId, currentUserId)?.jobData || null;
+    if (!jobData) {
+        const overlayState = await resolveChatJobOverlayState(jobId, currentUserId);
+        jobData = overlayState?.jobData || null;
     }
     if (!jobData || typeof jobData !== 'object') return;
+    setCachedChatJobOverlayState(jobId, currentUserId, buildChatJobOverlayStateFromJob(jobData, currentUserId));
 
     const status = String(jobData.status || '').trim().toLowerCase();
     const isWorkerOwner = String(jobData.hiredWorkerId || '').trim() === currentUserId;
@@ -7440,7 +7525,13 @@ function cleanupAvatarOverlays(container) {
     }
 }
 
-function showAvatarOverlay(event, userData) {
+async function showAvatarOverlay(event, userData) {
+    if (showAvatarOverlay._pending) {
+        return;
+    }
+    showAvatarOverlay._pending = true;
+    try {
+    const anchorElement = event?.currentTarget || event?.target || null;
     // CRITICAL FIX: Prevent rapid clicking from creating multiple overlays
     if (document.getElementById('avatarOverlay')) {
         messagesDebug('Avatar overlay already exists, ignoring rapid click');
@@ -7469,47 +7560,22 @@ function showAvatarOverlay(event, userData) {
     // REMOVED: "View Application" button - no longer needed since applications moved to jobs.html
     const viewApplicationButton = ''; // Always empty now
 
-    // HIRE WORKER button — customer role only, requires applicationId on the thread
-    const showHireBtn = userData.currentUserRole === 'customer' && !!userData.applicationId;
-    const hireButtonHTML = showHireBtn
-        ? `<button class="avatar-action-btn hire"
-               data-application-id="${userData.applicationId}"
-               data-job-id="${userData.jobId || ''}"
-               data-worker-name="${escapeHtml(String(userData.senderName || ''))}"
-               data-state="ready">
-               <span>💼</span>
-               <span>OPEN HIRE CHECKLIST</span>
-           </button>`
-        : '';
-
     overlay.innerHTML = `
-        <div class="avatar-overlay-header">
-            <div class="avatar-overlay-name">${userData.senderName}</div>
-            <div class="avatar-overlay-subtitle">${userData.threadOrigin === 'application' ? 'Application Conversation' : 'Job Post Conversation'}</div>
-        </div>
         <div class="avatar-overlay-actions">
-            <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
-                <span>✕</span>
-                <span>CLOSE CONVERSATION</span>
-            </button>
-            <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
-                <span>👤</span>
-                <span>VIEW PROFILE</span>
-            </button>
-            <button class="avatar-action-btn job" data-job-id="${userData.jobId}" data-job-title="${userData.jobTitle}">
-                <span>💼</span>
-                <span>VIEW GIG POST</span>
-            </button>
+            <div class="avatar-overlay-dynamic-actions"></div>
+            <div class="avatar-overlay-row two-col">
+                <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
+                    <span>VIEW PROFILE</span>
+                </button>
+                <button class="avatar-action-btn job" data-job-id="${userData.jobId}" data-job-title="${userData.jobTitle}">
+                    <span>GIG POST</span>
+                </button>
+            </div>
             <button class="avatar-action-btn tips" data-thread-id="${userData.threadId || ''}" data-job-id="${userData.jobId || ''}" data-job-title="${escapeHtml(String(userData.jobTitle || 'Gig'))}" data-job-category="${escapeHtml(String(userData.jobCategory || ''))}">
                 <span>📘</span>
                 <span>READ GIG TIPS</span>
             </button>
-            <button class="avatar-action-btn status" data-job-id="${userData.jobId || ''}" data-current-user-role="${userData.currentUserRole || ''}">
-                <span>📊</span>
-                <span>GIG STATUS</span>
-            </button>
             ${viewApplicationButton}
-            ${hireButtonHTML}
             <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
                 <span>🚫</span>
                 <span>BLOCK USER</span>
@@ -7518,7 +7584,12 @@ function showAvatarOverlay(event, userData) {
                 <span>🗑️</span>
                 <span>DELETE CONVERSATION</span>
             </button>
+            <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
+                <span>🚪</span>
+                <span>EXIT CHAT</span>
+            </button>
         </div>
+        <button class="avatar-options-close-x outside" type="button" aria-label="Close options">✕</button>
     `;
     
     // Create backdrop for subtle shadow and click-to-close functionality
@@ -7538,7 +7609,7 @@ function showAvatarOverlay(event, userData) {
     document.body.appendChild(overlay);
     
     // Position overlay near the clicked avatar
-    positionAvatarOverlay(overlay, event);
+    positionAvatarOverlay(overlay, event, anchorElement);
     
     // Show backdrop and overlay with animation - MEMORY LEAK FIX: Use tracked timeout
     trackTimeout(() => {
@@ -7548,6 +7619,7 @@ function showAvatarOverlay(event, userData) {
     
     // Add action handlers
     initializeAvatarOverlayActions(overlay, userData);
+    void hydrateAvatarOverlayGigActions(overlay, userData);
     
     // IMPROVED LISTENER MANAGEMENT: Add single listener with proper timing and tracking
     // Wait for the overlay to be fully rendered before adding outside click detection
@@ -7565,10 +7637,77 @@ function showAvatarOverlay(event, userData) {
         
         messagesDebug(`📌 Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
     }, 150); // Increased delay to ensure overlay is fully positioned
+    } finally {
+        showAvatarOverlay._pending = false;
+    }
 }
 
-function positionAvatarOverlay(overlay, event) {
-    const rect = event.currentTarget.getBoundingClientRect();
+function renderAvatarOverlayGigActions(userData, overlayState) {
+    const actions = [];
+    const safeJobId = String(userData.jobId || '').trim();
+    const safeRole = String(userData.currentUserRole || '').trim();
+    const resolvedJobCategory = String(userData.jobCategory || overlayState.category || '').trim();
+    const canShowHire = safeRole === 'customer' && !!userData.applicationId && !!overlayState.allowHireChecklist;
+    if (overlayState.allowGigStatus) {
+        actions.push(`
+            <button class="avatar-action-btn status"
+                data-job-id="${safeJobId}"
+                data-job-category="${escapeHtml(resolvedJobCategory)}"
+                data-current-user-role="${safeRole}">
+                <span>📊</span>
+                <span>GIG STATUS</span>
+            </button>
+        `);
+    }
+    if (canShowHire) {
+        actions.push(`
+            <button class="avatar-action-btn hire"
+                data-application-id="${userData.applicationId}"
+                data-job-id="${safeJobId}"
+                data-worker-name="${escapeHtml(String(userData.senderName || ''))}"
+                data-state="ready">
+                <span>💼</span>
+                <span>OPEN HIRE CHECKLIST</span>
+            </button>
+        `);
+    }
+    return actions.join('');
+}
+
+async function hydrateAvatarOverlayGigActions(overlay, userData) {
+    if (!overlay || !overlay.isConnected) return;
+    const dynamicContainer = overlay.querySelector('.avatar-overlay-dynamic-actions');
+    if (!dynamicContainer) return;
+
+    const currentUserId = String(userData.currentUserId || getCurrentUserId() || '').trim();
+    const overlayState = await resolveChatJobOverlayState(userData.jobId, currentUserId);
+    if (!overlay.isConnected) return;
+
+    dynamicContainer.innerHTML = renderAvatarOverlayGigActions(userData, overlayState);
+    overlay._chatJobOverlayState = overlayState;
+
+    const resolvedCategory = String(overlayState?.category || '').trim();
+    const tipsBtn = overlay.querySelector('.avatar-action-btn.tips');
+    if (tipsBtn && resolvedCategory) {
+        tipsBtn.setAttribute('data-job-category', resolvedCategory);
+    }
+    const jobBtn = overlay.querySelector('.avatar-action-btn.job');
+    if (jobBtn && resolvedCategory) {
+        jobBtn.setAttribute('data-job-category', resolvedCategory);
+    }
+
+    const signal = overlay?._abortController?.signal;
+    if (signal) {
+        bindDynamicAvatarOverlayActions(overlay, userData, signal, overlayState);
+    }
+}
+
+function positionAvatarOverlay(overlay, event, anchorElement = null) {
+    const targetElement = anchorElement || event?.currentTarget || event?.target;
+    if (!targetElement || typeof targetElement.getBoundingClientRect !== 'function') {
+        return;
+    }
+    const rect = targetElement.getBoundingClientRect();
     const overlayRect = overlay.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -7598,6 +7737,85 @@ function positionAvatarOverlay(overlay, event) {
     overlay.style.left = `${left}px`;
 }
 
+function bindDynamicAvatarOverlayActions(overlay, userData, signal, prefetchedState = null) {
+    const statusBtn = overlay.querySelector('.avatar-action-btn.status');
+    if (statusBtn && statusBtn.dataset.bound !== '1') {
+        statusBtn.dataset.bound = '1';
+        statusBtn.addEventListener('click', async function() {
+            const jobId = String(this.getAttribute('data-job-id') || '').trim();
+            const jobCategory = String(this.getAttribute('data-job-category') || '').trim();
+            const role = String(this.getAttribute('data-current-user-role') || '').trim().toLowerCase();
+            if (!jobId) {
+                showTemporaryNotification('Gig status is unavailable for this conversation.');
+                return;
+            }
+
+            const visibility = prefetchedState && prefetchedState.jobData
+                ? prefetchedState
+                : await resolveChatJobOverlayState(jobId, String(getCurrentUserId() || '').trim());
+            if (!visibility.allowGigStatus) {
+                showTemporaryNotification('Gig Status unlocks after the offer is accepted by both sides.');
+                return;
+            }
+
+            if (window.GigOverlays && typeof window.GigOverlays.showGigStatusOverlay === 'function') {
+                setAvatarOverlaySuspended(true);
+                window.GigOverlays.showGigStatusOverlay({
+                    jobId: jobId,
+                    jobCategory: jobCategory || visibility.category || '',
+                    jobData: visibility.jobData || null,
+                    currentUserRole: role === 'worker' ? 'worker' : 'customer',
+                    onClose: function () {
+                        setAvatarOverlaySuspended(false);
+                    },
+                    onUpdated: function() {
+                        const threadId = String(userData.threadId || '').trim();
+                        const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
+                        if (modalOverlay) {
+                            void renderGigFlowCardForThread(modalOverlay);
+                        }
+                    }
+                });
+                return;
+            }
+            setAvatarOverlaySuspended(false);
+            showTemporaryNotification('Gig status modal is unavailable right now.');
+        }, { signal });
+    }
+
+    const hireBtn = overlay.querySelector('.avatar-action-btn.hire');
+    if (hireBtn && hireBtn.dataset.bound !== '1') {
+        hireBtn.dataset.bound = '1';
+        hireBtn.addEventListener('click', function () {
+            const applicationId = this.getAttribute('data-application-id');
+            const jobId = this.getAttribute('data-job-id');
+            const workerName = this.getAttribute('data-worker-name');
+
+            if (!applicationId || !jobId) {
+                showTemporaryNotification('Hire data is incomplete. Please try again from Gigs Manager.');
+                return;
+            }
+
+            if (window.GigOverlays && typeof window.GigOverlays.showHireConfirmationOverlay === 'function') {
+                hideAvatarOverlay();
+                window.GigOverlays.showHireConfirmationOverlay({
+                    applicationId: applicationId,
+                    userId: userData.senderId,
+                    userName: workerName,
+                    jobId: jobId,
+                    jobTitle: userData.jobTitle || '',
+                    userRating: Number(userData.userRating || 0),
+                    userPhoto: userData.avatar || '',
+                    totalReviews: Number(userData.totalReviews || 0)
+                });
+                return;
+            }
+
+            showTemporaryNotification('Hire checklist is temporarily unavailable. Please try again.');
+        }, { signal });
+    }
+}
+
 function initializeAvatarOverlayActions(overlay, userData) {
     // MEMORY LEAK FIX: Create AbortController for proper cleanup
     const controller = new AbortController();
@@ -7608,7 +7826,7 @@ function initializeAvatarOverlayActions(overlay, userData) {
     
     // MEMORY LEAK FIX: Track controller in global registry
     CLEANUP_REGISTRY.activeControllers.add(controller);
-    
+
     // VIEW PROFILE button
     const profileBtn = overlay.querySelector('.avatar-action-btn.profile');
     if (profileBtn) {
@@ -7628,14 +7846,15 @@ function initializeAvatarOverlayActions(overlay, userData) {
     if (jobBtn) {
         jobBtn.addEventListener('click', async function() {
             const jobId = this.getAttribute('data-job-id');
+            const seededCategory = String(this.getAttribute('data-job-category') || '').trim().toLowerCase();
             if (!jobId) {
                 showTemporaryNotification('Gig post is unavailable for this conversation.');
                 return;
             }
             hideAvatarOverlay();
             try {
-                let category = '';
-                if (typeof getJobById === 'function') {
+                let category = seededCategory;
+                if (!category && typeof getJobById === 'function') {
                     const job = await getJobById(jobId);
                     category = String(job?.category || '').trim().toLowerCase();
                 }
@@ -7676,85 +7895,28 @@ function initializeAvatarOverlayActions(overlay, userData) {
             const jobTitle = String(this.getAttribute('data-job-title') || 'Gig').trim();
             const jobCategory = String(this.getAttribute('data-job-category') || '').trim();
 
-            hideAvatarOverlay();
-
             const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
             if (!modalOverlay) {
                 showTemporaryNotification('Open the conversation first to read gig tips.');
                 return;
             }
-            await openGigTipsModal({
-                modalOverlay,
-                threadId,
-                jobId,
-                jobTitle,
-                category: jobCategory,
-                requireAcknowledge: false
-            });
-        }, { signal });
-    }
-
-    // GIG STATUS button
-    const statusBtn = overlay.querySelector('.avatar-action-btn.status');
-    if (statusBtn) {
-        statusBtn.addEventListener('click', async function() {
-            const jobId = String(this.getAttribute('data-job-id') || '').trim();
-            const role = String(this.getAttribute('data-current-user-role') || '').trim().toLowerCase();
-            if (!jobId) {
-                showTemporaryNotification('Gig status is unavailable for this conversation.');
-                return;
-            }
-            hideAvatarOverlay();
-            if (window.GigOverlays && typeof window.GigOverlays.showGigStatusOverlay === 'function') {
-                window.GigOverlays.showGigStatusOverlay({
-                    jobId: jobId,
-                    currentUserRole: role === 'worker' ? 'worker' : 'customer',
-                    onUpdated: function() {
-                        const threadId = String(userData.threadId || '').trim();
-                        const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
-                        if (modalOverlay) {
-                            void renderGigFlowCardForThread(modalOverlay);
-                        }
-                    }
+            setAvatarOverlaySuspended(true);
+            try {
+                await openGigTipsModal({
+                    modalOverlay,
+                    threadId,
+                    jobId,
+                    jobTitle,
+                    category: jobCategory,
+                    requireAcknowledge: false
                 });
-                return;
+            } finally {
+                setAvatarOverlaySuspended(false);
             }
-            showTemporaryNotification('Gig status modal is unavailable right now.');
         }, { signal });
     }
-    
-    // HIRE WORKER button (customer role only, application-based threads)
-    // Uses shared GigOverlays hire checklist (disclaimer + verification preview).
-    const hireBtn = overlay.querySelector('.avatar-action-btn.hire');
-    if (hireBtn) {
-        hireBtn.addEventListener('click', function () {
-            const applicationId = this.getAttribute('data-application-id');
-            const jobId = this.getAttribute('data-job-id');
-            const workerName = this.getAttribute('data-worker-name');
 
-            if (!applicationId || !jobId) {
-                showTemporaryNotification('Hire data is incomplete. Please try again from Gigs Manager.');
-                return;
-            }
-
-            if (window.GigOverlays && typeof window.GigOverlays.showHireConfirmationOverlay === 'function') {
-                hideAvatarOverlay();
-                window.GigOverlays.showHireConfirmationOverlay({
-                    applicationId: applicationId,
-                    userId: userData.senderId,
-                    userName: workerName,
-                    jobId: jobId,
-                    jobTitle: userData.jobTitle || '',
-                    userRating: Number(userData.userRating || 0),
-                    userPhoto: userData.avatar || '',
-                    totalReviews: Number(userData.totalReviews || 0)
-                });
-                return;
-            }
-
-            showTemporaryNotification('Hire checklist is temporarily unavailable. Please try again.');
-        }, { signal });
-    }
+    bindDynamicAvatarOverlayActions(overlay, userData, signal, overlay?._chatJobOverlayState || null);
 
     // BLOCK USER button
     const blockBtn = overlay.querySelector('.avatar-action-btn.block');
@@ -7903,19 +8065,22 @@ function initializeAvatarOverlayActions(overlay, userData) {
         }, { signal });
     }
     
-    // CLOSE CONVERSATION button
+    // EXIT CHAT button (closes chat thread)
     const closeBtn = overlay.querySelector('.avatar-action-btn.close');
     if (closeBtn) {
         closeBtn.addEventListener('click', function() {
             const threadId = this.getAttribute('data-thread-id');
-            
-            messagesDebug(`✕ Closing conversation (Thread ID: ${threadId})`);
-            
-            // Hide overlay
+            messagesDebug(`✕ Closing chat (Thread ID: ${threadId})`);
             hideAvatarOverlay();
-            
-            // Close the expanded thread
             closeAllMessageThreads();
+        }, { signal });
+    }
+
+    // CLOSE OPTIONS button (dismisses options modal only)
+    const closeOptionsBtn = overlay.querySelector('.avatar-options-close-x');
+    if (closeOptionsBtn) {
+        closeOptionsBtn.addEventListener('click', function () {
+            hideAvatarOverlay();
         }, { signal });
     }
 }
@@ -7934,6 +8099,7 @@ function hideAvatarOverlay() {
         }
         
         existingOverlay.classList.remove('show');
+        existingOverlay.classList.remove('avatar-overlay-suspended');
         // MEMORY LEAK FIX: Use tracked timeout
         trackTimeout(() => {
             if (existingOverlay.parentNode) {
@@ -7944,6 +8110,7 @@ function hideAvatarOverlay() {
     
     if (existingBackdrop) {
         existingBackdrop.classList.remove('show');
+        existingBackdrop.classList.remove('avatar-overlay-backdrop-suspended');
         // MEMORY LEAK FIX: Use tracked timeout
         trackTimeout(() => {
             if (existingBackdrop.parentNode) {
@@ -7951,7 +8118,7 @@ function hideAvatarOverlay() {
             }
         }, 200);
     }
-    
+
     // CRITICAL FIX: Complete listener cleanup with multiple strategies
     // Strategy 1: Remove using stored reference
     if (window.avatarOverlayClickHandler) {
@@ -7977,9 +8144,26 @@ function hideAvatarOverlay() {
     messagesDebug('🧹 Avatar overlay cleanup completed');
 }
 
+function setAvatarOverlaySuspended(suspended) {
+    const overlay = document.getElementById('avatarOverlay');
+    const backdrop = document.getElementById('avatarOverlayBackdrop');
+    if (overlay) {
+        overlay.classList.toggle('avatar-overlay-suspended', !!suspended);
+    }
+    if (backdrop) {
+        backdrop.classList.toggle('avatar-overlay-backdrop-suspended', !!suspended);
+    }
+}
+
 function hideAvatarOverlayOnOutsideClick(event) {
     const overlay = document.getElementById('avatarOverlay');
     if (overlay && !overlay.contains(event.target)) {
+        if (document.getElementById('customConfirmationOverlay')) {
+            return;
+        }
+        if (overlay.classList.contains('avatar-overlay-suspended')) {
+            return;
+        }
         // ENHANCED SAFETY: Extra checks to prevent stuck overlays
         const isAvatarClick = event.target.closest('.message-avatar');
         const isOverlayAction = event.target.closest('.avatar-action-btn');

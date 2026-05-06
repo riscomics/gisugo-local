@@ -1378,7 +1378,7 @@ function generateOfferedJobCard(job) {
     const safeDueDate = escapeHtml(formatJobDate(job.jobDate));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
-    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
     const safeUserName = escapeHtml(userName || 'User');
@@ -1957,7 +1957,7 @@ function generateListingCardHTML(listing) {
     const safeJobPageUrl = escapeHtml(sanitizeUrl(listing.jobPageUrl, '#'));
     const safePrice = escapeHtml(String(listing.price || 0));
     const safePaymentType = escapeHtml(listing.paymentType || 'per_job');
-    const safeThumbnail = escapeHtml(sanitizeUrl(listing.thumbnail, 'public/images/placeholder.jpg'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(listing.thumbnail, 'public/images/Gisugo-icon.png'));
     const safeTitle = escapeHtml(listing.title || 'Untitled Job');
     const safeJobDate = escapeHtml(jobDateFormatted);
     const safeApplicationText = escapeHtml(applicationText);
@@ -2375,7 +2375,7 @@ function generateHiringCardHTML(job) {
     const safeDueDate = escapeHtml(formatJobDate(job.jobDate));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
-    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
     const safePriceOffer = escapeHtml(resolveAgreedPriceDisplay(job));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeUserThumbnail = escapeHtml(sanitizeUrl(userThumbnail, 'public/users/default-user.jpg'));
@@ -6319,7 +6319,7 @@ function generateCompletedCardHTML(job) {
     const safeJobDate = escapeHtml(formatJobDate(job.jobDate));
     const safeStartTime = escapeHtml(formatTime(job.startTime));
     const safeEndTime = escapeHtml(formatTime(job.endTime));
-    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/placeholder.jpg'));
+    const safeThumbnail = escapeHtml(sanitizeUrl(job.thumbnail, 'public/images/Gisugo-icon.png'));
     const safeRoleCaption = escapeHtml(roleCaption);
     const safeCompletedDate = escapeHtml(formatCompletedDate(job.completedAt));
     const safeRatingCount = escapeHtml(ratingCount);
@@ -7676,7 +7676,7 @@ async function getApplicationsForJob(jobId) {
                 updatedAt: app.updatedAt || app.appliedAt,
                 applicantProfile: {
                     displayName: app.applicantName || 'Anonymous',
-                    photoURL: app.applicantThumbnail || 'public/users/placeholder.jpg',
+                    photoURL: app.applicantThumbnail || 'public/images/Gisugo-icon.png',
                     averageRating: resolvedAverageRating,
                     totalReviews: resolvedTotalReviews,
                     verified: app.verified || false,
