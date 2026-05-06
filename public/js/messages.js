@@ -512,8 +512,7 @@ function openGigTipsModal({
             }, { signal });
         }
 
-        // Preload category for future archetype routing (currently universal content).
-        void resolveGigTipsCategory(safeJobId, category);
+        // No eager prefetch here to avoid extra Firestore reads; category is passed when available.
     });
 }
 
@@ -1484,10 +1483,17 @@ function initializeAlertsInfiniteScroll() {
 function updateAlertsLanguageTabsVisibility() {
     const tabs = document.getElementById('alertsLangTabs');
     if (!tabs) return;
-    const workerAlertsContent = document.getElementById('worker-alerts-content');
-    const customerAlertsContent = document.getElementById('customer-alerts-content');
-    const workerAlertsActive = isElementActiveAndVisible(workerAlertsContent);
-    const customerAlertsActive = isElementActiveAndVisible(customerAlertsContent);
+    const workerAlertsTabBtn = document.querySelector('.worker-tabs [data-tab="worker-alerts"]');
+    const customerAlertsTabBtn = document.querySelector('.customer-tabs [data-tab="customer-alerts"]');
+    const workerTabsContainer = document.querySelector('.worker-tabs');
+    const customerTabsContainer = document.querySelector('.customer-tabs');
+
+    const workerAlertsActive = !!workerAlertsTabBtn
+        && workerAlertsTabBtn.classList.contains('active')
+        && window.getComputedStyle(workerTabsContainer || document.body).display !== 'none';
+    const customerAlertsActive = !!customerAlertsTabBtn
+        && customerAlertsTabBtn.classList.contains('active')
+        && window.getComputedStyle(customerTabsContainer || document.body).display !== 'none';
     const shouldShow = workerAlertsActive || customerAlertsActive;
     tabs.style.display = shouldShow ? 'flex' : 'none';
     document.body.classList.toggle('alerts-lang-visible', shouldShow);
@@ -2408,6 +2414,11 @@ function initializeTabs() {
 async function switchToUnifiedMessages() {
     console.log('🔄 Switching to unified Messages tab');
     stopChatsRealtimeStream('switch_to_unified_messages');
+    document.body.classList.remove('alerts-lang-visible');
+    const alertsLangTabs = document.getElementById('alertsLangTabs');
+    if (alertsLangTabs) {
+        alertsLangTabs.style.display = 'none';
+    }
     
     // CLEANUP: Close all message threads when switching tabs
     closeAllMessageThreads();
@@ -2434,8 +2445,11 @@ async function switchToUnifiedMessages() {
     document.getElementById('unifiedMessagesTabWorker')?.classList.add('active');
     
     // Initialize unified messages tab content
-    await initializeUnifiedMessagesTab();
-    updateAlertsLanguageTabsVisibility();
+    try {
+        await initializeUnifiedMessagesTab();
+    } finally {
+        updateAlertsLanguageTabsVisibility();
+    }
 }
 
 async function switchToCustomerTab(tabType) {
@@ -4012,10 +4026,11 @@ function formatChatModalTimestamp(rawTimestamp) {
     });
 }
 
-function normalizeFirebaseChatMessage(message, currentUserId) {
+function normalizeFirebaseChatMessage(message, currentUserId, options = {}) {
     const senderId = String(message?.senderId || '').trim();
     const direction = senderId && senderId === currentUserId ? 'outgoing' : 'incoming';
     const senderType = String(message?.senderType || (direction === 'outgoing' ? 'worker' : 'customer')).toLowerCase();
+    const incomingSenderNameOverride = String(options?.incomingSenderName || '').trim();
     const normalizedDate = message?.timestamp?.toDate
         ? message.timestamp.toDate()
         : new Date(message?.timestamp || message?.createdAt || Date.now());
@@ -4040,7 +4055,9 @@ function normalizeFirebaseChatMessage(message, currentUserId) {
         id: message?.id || message?.messageId || `${safeDate.getTime()}`,
         threadId: message?.threadId || '',
         senderId: senderId || 'unknown',
-        senderName: direction === 'outgoing' ? 'You' : (message?.senderName || 'User'),
+        senderName: direction === 'outgoing'
+            ? 'You'
+            : (incomingSenderNameOverride || String(message?.senderName || '').trim() || 'User'),
         senderType: senderType === 'worker' || senderType === 'customer' ? senderType : (direction === 'outgoing' ? 'worker' : 'customer'),
         timestamp: safeDate.toISOString(),
         timeDisplay: formatChatModalTimestamp(message?.timestamp || message?.createdAt || safeDate),
@@ -4162,15 +4179,17 @@ function normalizeAvatarUrlForRender(url) {
 
 function renderThreadMessagesInModal(modalOverlay, messages, options = {}) {
     const shouldAutoscroll = options.autoScroll !== false;
+    const incomingSenderName = String(options.incomingSenderName || '').trim();
     const messagesContainer = modalOverlay?.querySelector('.chat-messages-container');
     if (!messagesContainer) return;
     const currentUserId = getCurrentUserId();
     const normalizedMessages = (Array.isArray(messages) ? messages : [])
-        .map((message) => normalizeFirebaseChatMessage(message, currentUserId));
+        .map((message) => normalizeFirebaseChatMessage(message, currentUserId, { incomingSenderName }));
     const messageSignature = normalizedMessages.map((message) => [
         message.id,
         message.timestamp,
         message.senderId,
+        message.senderName,
         message.avatar,
         message.messageType,
         message.content,
@@ -4379,10 +4398,29 @@ function scrollMessagesContainerToBottom(messagesContainer, attempts = 4) {
 async function bindRealtimeThreadMessages(modalOverlay, threadId) {
     if (!modalOverlay || !threadId) return;
     const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+    const incomingSenderName = String(modalOverlay.getAttribute('data-participant-name') || '').trim();
     const cachedThread = THREAD_MESSAGES_CACHE.get(threadId);
     if (messagesContainer && cachedThread && Array.isArray(cachedThread.messages) && cachedThread.messages.length > 0) {
-        messagesContainer.innerHTML = cachedThread.messages.map((message) => generateMessageHTML(message)).join('');
-        modalOverlay.dataset.lastRenderedMessageSignature = String(cachedThread.signature || '');
+        const currentUserId = String(getCurrentUserId() || '').trim();
+        const hydratedCachedMessages = cachedThread.messages.map((message) => {
+            const senderId = String(message?.senderId || '').trim();
+            const isOutgoing = !!currentUserId && senderId === currentUserId;
+            if (isOutgoing || !incomingSenderName) return message;
+            return { ...message, senderName: incomingSenderName };
+        });
+        messagesContainer.innerHTML = hydratedCachedMessages.map((message) => generateMessageHTML(message)).join('');
+        const hydratedSignature = hydratedCachedMessages.map((message) => [
+            message.id,
+            message.timestamp,
+            message.senderId,
+            message.senderName,
+            message.avatar,
+            message.messageType,
+            message.content,
+            message.thumbnailUrl,
+            message.fullSizeUrl
+        ].join('|')).join('||');
+        modalOverlay.dataset.lastRenderedMessageSignature = hydratedSignature;
         initializeAvatarOverlays(modalOverlay);
         scrollMessagesContainerToBottom(messagesContainer, 2);
     } else if (messagesContainer) {
@@ -4396,7 +4434,10 @@ async function bindRealtimeThreadMessages(modalOverlay, threadId) {
 
     if (typeof subscribeToThreadMessages === 'function') {
         ACTIVE_LISTENERS.activeThreadMessages = subscribeToThreadMessages(threadId, (messages) => {
-            renderThreadMessagesInModal(modalOverlay, messages, { autoScroll: true });
+            renderThreadMessagesInModal(modalOverlay, messages, {
+                autoScroll: true,
+                incomingSenderName
+            });
             const lastMessage = Array.isArray(messages) && messages.length > 0
                 ? messages[messages.length - 1]
                 : null;
@@ -4416,7 +4457,10 @@ async function bindRealtimeThreadMessages(modalOverlay, threadId) {
         // Fallback path only when realtime listener is unavailable.
         try {
             const initialMessages = await getThreadMessages(threadId, 100);
-            renderThreadMessagesInModal(modalOverlay, initialMessages, { autoScroll: true });
+            renderThreadMessagesInModal(modalOverlay, initialMessages, {
+                autoScroll: true,
+                incomingSenderName
+            });
         } catch (error) {
             console.warn('⚠️ Failed to load thread messages:', error);
         }
@@ -6934,7 +6978,6 @@ function showChatModal(messageThread, threadContent) {
     // Get thread data
     const threadId = messageThread.getAttribute('data-thread-id');
     const jobTitle = messageThread.querySelector('.thread-job-title').textContent;
-    const participant = messageThread.querySelector('.thread-participant').textContent;
     
     const messagesHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
     
@@ -6946,6 +6989,7 @@ function showChatModal(messageThread, threadContent) {
     // Add data attributes for message sending
     modalOverlay.setAttribute('data-thread-id', threadId);
     modalOverlay.setAttribute('data-participant-id', messageThread.getAttribute('data-participant-id'));
+    modalOverlay.setAttribute('data-participant-name', messageThread.getAttribute('data-participant-name') || '');
     modalOverlay.setAttribute('data-job-id', messageThread.getAttribute('data-job-id'));
     modalOverlay.setAttribute('data-job-category', messageThread.getAttribute('data-job-category') || '');
     modalOverlay.setAttribute('data-thread-origin', messageThread.getAttribute('data-thread-origin'));
@@ -6957,9 +7001,11 @@ function showChatModal(messageThread, threadContent) {
             <div class="chat-modal-header">
                 <div class="chat-modal-info">
                     <div class="chat-modal-title">${jobTitle}</div>
-                    <div class="chat-modal-participant">${participant}</div>
                 </div>
-                <button class="chat-modal-menu">⋮</button>
+                <button class="chat-modal-menu uniform-header-btn menu" type="button" aria-label="Menu">
+                    <span class="btn-emoji">📋</span>
+                    <span>Menu</span>
+                </button>
             </div>
             <div class="chat-modal-body">
                 <div class="chat-messages-container">
@@ -7052,13 +7098,13 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         messagesDebug('🔍 Menu button position:', e.target.getBoundingClientRect());
         
         // Get thread data for avatar overlay - extract participant name properly
-        const participantText = messageThread.querySelector('.thread-participant').textContent;
-        const senderName = participantText
-            .replace('Direct Message with ', '')
-            .replace('Application Interview with ', '')
-            .replace('You contacted ', '')
-            .replace(' contacted you', '')
-            .trim();
+        const senderName = String(messageThread.getAttribute('data-participant-name') || '').trim()
+            || messageThread.querySelector('.thread-participant').textContent
+                .replace('Direct Message with ', '')
+                .replace('Application Interview with ', '')
+                .replace('You contacted ', '')
+                .replace(' contacted you', '')
+                .trim();
         
         // Get thread data for avatar overlay
         const threadData = {
@@ -7585,8 +7631,8 @@ async function showAvatarOverlay(event, userData) {
                 <span>DELETE CONVERSATION</span>
             </button>
             <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
-                <span>🚪</span>
                 <span>EXIT CHAT</span>
+                <span>🚪</span>
             </button>
         </div>
         <button class="avatar-options-close-x outside" type="button" aria-label="Close options">✕</button>
@@ -8420,7 +8466,11 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
     const confirmBtn = confirmOverlay.querySelector('#customConfirmBtn');
     const cancelBtn = confirmOverlay.querySelector('#customCancelBtn');
     
+    let isClosed = false;
     const cleanup = () => {
+        if (isClosed) return;
+        isClosed = true;
+        document.removeEventListener('keydown', escapeHandler);
         confirmOverlay.classList.remove('show');
         // MEMORY LEAK FIX: Use tracked timeout
         trackTimeout(() => {
@@ -8452,7 +8502,6 @@ function showCustomConfirmation(title, message, confirmText, cancelText, onConfi
     const escapeHandler = (e) => {
         if (e.key === 'Escape') {
             cleanup();
-            document.removeEventListener('keydown', escapeHandler);
             if (onCancel) onCancel();
         }
     };

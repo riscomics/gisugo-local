@@ -645,6 +645,29 @@
         return html;
     }
 
+    function renderCompleteBodyHtml(contentText) {
+        const lines = String(contentText || '')
+            .split('\n')
+            .map(function (line) { return line.trim(); })
+            .filter(function (line) { return line.length > 0; });
+        if (!lines.length) return '';
+
+        let html = '<div class="gig-complete-line-bubbles">';
+        lines.forEach(function (line) {
+            const isBullet = line.startsWith('•');
+            const isVerifyLine = /^(VERIFY:|SIGURUHA:|TIYAKIN:)/i.test(line);
+            const text = isBullet ? line.replace(/^•\s*/, '') : line;
+            html += `
+                <div class="gig-complete-line-bubble${isBullet ? ' bullet' : ''}${isVerifyLine ? ' verify' : ''}">
+                    ${isBullet ? '<span class="gig-complete-line-prefix">•</span>' : ''}
+                    <span class="gig-complete-line-text">${escapeHtml(text)}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+        return html;
+    }
+
     function ensureGigStatusOverlay() {
         let overlay = getElement('gigStatusOverlay');
         if (overlay) return overlay;
@@ -657,7 +680,7 @@
                     <h3>Gig Status</h3>
                     <button id="gigStatusCloseBtn" class="gig-status-icon-btn" type="button">&times;</button>
                 </div>
-                <div id="gigStatusCardBody" class="gig-status-card-surface" role="button" tabindex="0" aria-label="Open gig actions">
+                <div id="gigStatusCardBody" class="gig-status-card-surface" aria-label="Gig status card">
                     <div id="gigStatusVisualCard" class="hiring-card customer gig-status-hiring-card">
                         <div class="hiring-title" id="gigStatusJobTitle">Gig</div>
                         <div class="hiring-date-time-row">
@@ -687,26 +710,8 @@
                     </div>
                 </div>
                 <div class="gig-status-sheet-footer">
-                    <button id="gigStatusOpenActionsBtn" class="gig-status-primary-btn" type="button">OPEN ACTIONS</button>
-                    <button id="gigStatusCancelBtn" class="gig-status-secondary-btn" type="button">CLOSE</button>
+                    <div id="gigStatusSheetActions" class="gig-status-sheet-actions"></div>
                 </div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-        return overlay;
-    }
-
-    function ensureGigStatusActionsOverlay() {
-        let overlay = getElement('gigStatusActionsOverlay');
-        if (overlay) return overlay;
-        overlay = document.createElement('div');
-        overlay.id = 'gigStatusActionsOverlay';
-        overlay.className = 'gig-status-overlay';
-        overlay.innerHTML = `
-            <div class="gig-actions-sheet">
-                <h3 id="gigStatusActionsTitle">Manage Hiring</h3>
-                <p id="gigStatusActionsSubtitle">Choose an action for this gig.</p>
-                <div id="gigStatusActionsList" class="gig-actions-list"></div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -780,26 +785,13 @@
                 <div class="gig-complete-icon">✅</div>
                 <h3>Mark Gig as Completed</h3>
                 <p id="gigStatusCompleteSubtitle">Confirm this gig has been completed.</p>
+                <div class="gig-decision-tabs">
+                    <button type="button" class="lang-tab active" data-lang="english">English</button>
+                    <button type="button" class="lang-tab" data-lang="bisaya">Bisaya</button>
+                    <button type="button" class="lang-tab" data-lang="tagalog">Tagalog</button>
+                </div>
                 <div class="gig-complete-checklist">
-                    <div class="gig-complete-checklist-content">
-                        <div class="gig-complete-line-bubbles">
-                            <div class="gig-complete-line-bubble verify">
-                                <span class="gig-complete-line-text">VERIFY:</span>
-                            </div>
-                            <div class="gig-complete-line-bubble bullet">
-                                <span class="gig-complete-line-prefix">•</span>
-                                <span class="gig-complete-line-text">The work has been completed to your satisfaction</span>
-                            </div>
-                            <div class="gig-complete-line-bubble bullet">
-                                <span class="gig-complete-line-prefix">•</span>
-                                <span class="gig-complete-line-text">You have paid the worker for their services</span>
-                            </div>
-                            <div class="gig-complete-line-bubble bullet">
-                                <span class="gig-complete-line-prefix">•</span>
-                                <span class="gig-complete-line-text">Any follow-up arrangements have been made</span>
-                            </div>
-                        </div>
-                    </div>
+                    <div id="gigStatusCompleteChecklistBody" class="gig-complete-checklist-content"></div>
                 </div>
                 <div class="gig-decision-actions">
                     <button id="gigStatusCompleteCancelBtn" class="gig-status-secondary-btn" type="button">NO, NOT YET</button>
@@ -815,7 +807,6 @@
         const context = state.gigStatusContext;
         const ids = [
             'gigStatusOverlay',
-            'gigStatusActionsOverlay',
             'gigStatusMediaOverlay',
             'gigStatusDecisionOverlay',
             'gigStatusCompleteOverlay'
@@ -837,7 +828,6 @@
     function showSingleGigStatusOverlay(targetOverlay) {
         const ids = [
             'gigStatusOverlay',
-            'gigStatusActionsOverlay',
             'gigStatusMediaOverlay',
             'gigStatusDecisionOverlay',
             'gigStatusCompleteOverlay'
@@ -878,63 +868,6 @@
             onUpdated: payload?.onUpdated,
             onClose: payload?.onClose
         };
-    }
-
-    function openGigStatusActions() {
-        const context = state.gigStatusContext;
-        if (!context) return;
-        const overlay = ensureGigStatusActionsOverlay();
-        const titleEl = getElement('gigStatusActionsTitle');
-        const subtitleEl = getElement('gigStatusActionsSubtitle');
-        const listEl = getElement('gigStatusActionsList');
-        if (!overlay || !listEl) return;
-
-        if (titleEl) titleEl.textContent = 'Manage Hiring';
-        if (subtitleEl) subtitleEl.textContent = `Choose an action for "${context.jobTitle}"`;
-        listEl.innerHTML = '';
-
-        const addAction = function (label, className, handler) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = `gig-action-btn ${className || ''}`.trim();
-            button.textContent = label;
-            button.onclick = handler;
-            listEl.appendChild(button);
-        };
-
-        addAction('VIEW GIG POST', 'success', function () {
-            const encoded = encodeURIComponent(context.jobId);
-            const encodedCategory = encodeURIComponent(String(context.jobCategory || '').trim());
-            window.location.href = encodedCategory
-                ? `dynamic-job.html?jobId=${encoded}&category=${encodedCategory}`
-                : `dynamic-job.html?jobId=${encoded}`;
-        });
-        addAction(
-            `WATCH ${context.role === 'customer' ? 'WORKER' : 'CUSTOMER'} FACE VERIFICATION VIDEO`,
-            'success',
-            function () {
-                openGigStatusMedia();
-            }
-        );
-
-        if (context.role === 'customer') {
-            addAction('MARK AS COMPLETED', 'primary', function () {
-                openGigStatusCompleteConfirm();
-            });
-            addAction('RELIST GIG (Void Current Hire)', 'warning', function () {
-                openGigStatusDecision('relist');
-            });
-        } else {
-            addAction('RESIGN FROM GIG', 'danger', function () {
-                openGigStatusDecision('resign');
-            });
-        }
-        addAction('CLOSE', 'cancel', hideGigStatusOverlay);
-
-        overlay.onclick = function (event) {
-            if (event.target === overlay) hideGigStatusOverlay();
-        };
-        showSingleGigStatusOverlay(overlay);
     }
 
     async function openGigStatusMedia() {
@@ -1017,7 +950,7 @@
             videoEl.onended = null;
             videoEl.onclick = null;
             playBtn.onclick = null;
-            openGigStatusActions();
+            showSingleGigStatusOverlay(ensureGigStatusOverlay());
         };
         overlay.onclick = function (event) {
             if (event.target === overlay) {
@@ -1027,7 +960,7 @@
                 videoEl.onended = null;
                 videoEl.onclick = null;
                 playBtn.onclick = null;
-                openGigStatusActions();
+                showSingleGigStatusOverlay(ensureGigStatusOverlay());
             }
         };
         showSingleGigStatusOverlay(overlay);
@@ -1049,6 +982,15 @@
             tagalog: `BABALA:\n• Ito ay magpapawalang-bisa sa kontrata mo kay ${targetName}\n• Tatanggalin ka sa gig na ito\n• Magiging bukas ulit ito sa applications\n\nSiguraduhing nakausap mo ang customer bago magpatuloy.`
         };
         return resignMap[lang] || resignMap.english;
+    }
+
+    function getCompleteChecklistContent(lang) {
+        const completeMap = {
+            english: `VERIFY:\n• The work has been completed to your satisfaction\n• You have paid the worker for their services\n• Any follow-up arrangements have been made`,
+            bisaya: `SIGURUHA:\n• Nahuman ang trabaho ug nakontento ka sa resulta\n• Nabayan na nimo ang worker alang sa iyang serbisyo\n• Nahimo na ang bisan unsang follow-up nga sabot`,
+            tagalog: `TIYAKIN:\n• Natapos ang trabaho ayon sa iyong kasiyahan\n• Nabayaran mo na ang worker para sa kanyang serbisyo\n• Naisagawa na ang anumang follow-up na napagkasunduan`
+        };
+        return completeMap[lang] || completeMap.english;
     }
 
     function openGigStatusDecision(actionType) {
@@ -1109,7 +1051,7 @@
             };
         });
 
-        if (cancelBtn) cancelBtn.onclick = function () { openGigStatusActions(); };
+        if (cancelBtn) cancelBtn.onclick = function () { showSingleGigStatusOverlay(ensureGigStatusOverlay()); };
         confirmBtn.onclick = async function () {
             const reason = String(reasonInput.value || '').trim();
             if (reason.length < 2) {
@@ -1150,7 +1092,7 @@
         };
 
         overlay.onclick = function (event) {
-            if (event.target === overlay) openGigStatusActions();
+            if (event.target === overlay) showSingleGigStatusOverlay(ensureGigStatusOverlay());
         };
         showSingleGigStatusOverlay(overlay);
     }
@@ -1160,14 +1102,28 @@
         if (!context) return;
         const overlay = ensureGigStatusCompleteOverlay();
         const subtitleEl = getElement('gigStatusCompleteSubtitle');
+        const bodyEl = getElement('gigStatusCompleteChecklistBody');
         const cancelBtn = getElement('gigStatusCompleteCancelBtn');
         const confirmBtn = getElement('gigStatusCompleteConfirmBtn');
-        if (!overlay || !confirmBtn) return;
+        const tabs = overlay.querySelectorAll('.lang-tab');
+        if (!overlay || !confirmBtn || !bodyEl) return;
 
         if (subtitleEl) {
             subtitleEl.textContent = `Confirm that "${context.jobTitle}" has been completed.`;
         }
-        if (cancelBtn) cancelBtn.onclick = function () { openGigStatusActions(); };
+        let activeLang = 'english';
+        bodyEl.innerHTML = renderCompleteBodyHtml(getCompleteChecklistContent(activeLang));
+        tabs.forEach(function (tab) {
+            tab.classList.toggle('active', String(tab.dataset.lang) === 'english');
+            tab.onclick = function () {
+                tabs.forEach(function (entry) { entry.classList.remove('active'); });
+                tab.classList.add('active');
+                activeLang = String(tab.dataset.lang || 'english');
+                bodyEl.innerHTML = renderCompleteBodyHtml(getCompleteChecklistContent(activeLang));
+            };
+        });
+
+        if (cancelBtn) cancelBtn.onclick = function () { showSingleGigStatusOverlay(ensureGigStatusOverlay()); };
         confirmBtn.onclick = async function () {
             confirmBtn.disabled = true;
             const oldLabel = confirmBtn.textContent;
@@ -1199,7 +1155,7 @@
             }
         };
         overlay.onclick = function (event) {
-            if (event.target === overlay) openGigStatusActions();
+            if (event.target === overlay) showSingleGigStatusOverlay(ensureGigStatusOverlay());
         };
         showSingleGigStatusOverlay(overlay);
     }
@@ -1207,8 +1163,7 @@
     async function showGigStatusOverlay(payload) {
         const overlay = ensureGigStatusOverlay();
         const closeBtn = getElement('gigStatusCloseBtn');
-        const cancelBtn = getElement('gigStatusCancelBtn');
-        const openActionsBtn = getElement('gigStatusOpenActionsBtn');
+        const actionListEl = getElement('gigStatusSheetActions');
         const cardBody = getElement('gigStatusCardBody');
         const titleEl = getElement('gigStatusJobTitle');
         const dueEl = getElement('gigStatusDue');
@@ -1219,7 +1174,7 @@
         const stateBadgeEl = getElement('gigStatusStatusBadge');
         const jobImageEl = getElement('gigStatusJobImage');
         const visualCardEl = getElement('gigStatusVisualCard');
-        if (!overlay || !cardBody) return;
+        if (!overlay || !cardBody || !actionListEl) return;
 
         const jobId = String(payload?.jobId || '').trim();
         const role = String(payload?.currentUserRole || '').trim().toLowerCase() === 'worker' ? 'worker' : 'customer';
@@ -1278,16 +1233,41 @@
             partyEl.classList.toggle('customer', context.role !== 'worker');
         }
 
-        if (closeBtn) closeBtn.onclick = hideGigStatusOverlay;
-        if (cancelBtn) cancelBtn.onclick = hideGigStatusOverlay;
-        if (openActionsBtn) openActionsBtn.onclick = function () { openGigStatusActions(); };
-        cardBody.onclick = function () { openGigStatusActions(); };
-        cardBody.onkeydown = function (event) {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                openGigStatusActions();
-            }
+        actionListEl.innerHTML = '';
+        const addStatusAction = function (label, className, handler) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `gig-action-btn ${className || ''}`.trim();
+            button.textContent = label;
+            button.onclick = handler;
+            actionListEl.appendChild(button);
         };
+
+        addStatusAction(
+            `WATCH ${context.role === 'customer' ? 'WORKER' : 'CUSTOMER'} FACE VERIFICATION VIDEO`,
+            'success',
+            function () {
+                openGigStatusMedia();
+            }
+        );
+
+        if (context.role === 'customer') {
+            addStatusAction('MARK AS COMPLETED', 'primary', function () {
+                openGigStatusCompleteConfirm();
+            });
+            addStatusAction('RELIST GIG', 'warning', function () {
+                openGigStatusDecision('relist');
+            });
+        } else {
+            addStatusAction('RESIGN FROM GIG', 'danger', function () {
+                openGigStatusDecision('resign');
+            });
+        }
+        addStatusAction('CLOSE', 'cancel', hideGigStatusOverlay);
+
+        if (closeBtn) closeBtn.onclick = hideGigStatusOverlay;
+        cardBody.onclick = null;
+        cardBody.onkeydown = null;
         overlay.onclick = function (event) {
             if (event.target === overlay) hideGigStatusOverlay();
         };
