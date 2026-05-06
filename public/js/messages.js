@@ -1228,10 +1228,10 @@ async function applyThreadDeepLinkFromUrl() {
             await switchToRole('worker');
             await switchToWorkerTab(tab || 'worker-chats');
         }
-        navigateToMessageThread(threadId);
+        navigateToMessageThread(threadId, { preserveContextTab: true });
     } catch (error) {
         console.warn('⚠️ Failed to apply thread deep-link, falling back to default tab:', error);
-        navigateToMessageThread(threadId);
+        navigateToMessageThread(threadId, { preserveContextTab: true });
     } finally {
         clearThreadDeepLinkFromUrl();
     }
@@ -2950,46 +2950,61 @@ function handleReplyMessage(notificationItem, actionButton = null) {
     console.log('Backend action: Open message thread with:', senderName, 'ThreadID:', threadId);
 }
 
-function navigateToMessageThread(threadId) {
-    // Switch to the unified messages tab first
-    const customerMessagesTab = document.getElementById('unifiedMessagesTab');
-    const workerMessagesTab = document.getElementById('unifiedMessagesTabWorker');
-    const messagesTab = customerMessagesTab?.offsetParent !== null ? customerMessagesTab : workerMessagesTab;
-    if (messagesTab) {
-        messagesTab.click();
-        
-        // Use multiple attempts with increasing delays to find the thread
-        const attemptToFindThread = (attempt = 1, maxAttempts = 3) => {
-            // Try to find the specific message thread
-            const messageThread = document.querySelector(`.message-thread[data-thread-id="${threadId}"]`);
-            
-            if (messageThread) {
-                const threadHeader = messageThread.querySelector('.message-thread-header');
-                
-                if (threadHeader) {
-                    // Check if thread is already expanded
-                    const isExpanded = messageThread.classList.contains('expanded');
-                    
-                    if (!isExpanded) {
-                        // Click the header to expand the thread
-                        threadHeader.click();
-                    }
-                    
-                    // Scroll to the thread
-                    messageThread.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start',
-                        inline: 'nearest'
-                    });
-                }
-            } else if (attempt < maxAttempts) {
-                setTimeout(() => attemptToFindThread(attempt + 1, maxAttempts), attempt * 100);
-            }
-        };
-        
-        // Start the first attempt after a short delay
-        setTimeout(() => attemptToFindThread(), 100);
+function navigateToMessageThread(threadId, options = {}) {
+    const safeThreadId = String(threadId || '').trim();
+    if (!safeThreadId) return;
+
+    const preserveContextTab = options && options.preserveContextTab === true;
+    if (!preserveContextTab) {
+        const workerTabs = document.querySelector('.worker-tabs');
+        const customerTabs = document.querySelector('.customer-tabs');
+        const workerChatsTab = document.getElementById('workerChatsTab');
+        const customerInterviewsTab = document.getElementById('customerInterviewsTab');
+        const customerMessagesTab = document.getElementById('unifiedMessagesTab');
+        const workerMessagesTab = document.getElementById('unifiedMessagesTabWorker');
+
+        const workerVisible = !!(workerTabs && workerTabs.offsetParent !== null);
+        const customerVisible = !!(customerTabs && customerTabs.offsetParent !== null);
+
+        // Prefer role-native chat tabs first. Fallback to unified messages only
+        // if a native chat tab is not available in the current context.
+        if (workerVisible && workerChatsTab) {
+            workerChatsTab.click();
+        } else if (customerVisible && customerInterviewsTab) {
+            customerInterviewsTab.click();
+        } else if (customerMessagesTab?.offsetParent !== null) {
+            customerMessagesTab.click();
+        } else if (workerMessagesTab) {
+            workerMessagesTab.click();
+        }
     }
+
+    // Use multiple attempts with increasing delays to find the thread
+    const attemptToFindThread = (attempt = 1, maxAttempts = 4) => {
+        const messageThread = document.querySelector(`.message-thread[data-thread-id="${safeThreadId}"]`);
+
+        if (messageThread) {
+            const threadHeader = messageThread.querySelector('.message-thread-header');
+
+            if (threadHeader) {
+                const isExpanded = messageThread.classList.contains('expanded');
+
+                if (!isExpanded) {
+                    threadHeader.click();
+                }
+
+                messageThread.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                    inline: 'nearest'
+                });
+            }
+        } else if (attempt < maxAttempts) {
+            setTimeout(() => attemptToFindThread(attempt + 1, maxAttempts), attempt * 140);
+        }
+    };
+
+    setTimeout(() => attemptToFindThread(), 120);
 }
 
 // Update notification count (would be called when new notifications arrive)
@@ -4103,6 +4118,140 @@ function renderThreadMessagesInModal(modalOverlay, messages, options = {}) {
             }, { once: true });
         });
     }
+}
+
+function buildChatCardJobUrl(modalOverlay, jobData) {
+    const safeJobId = encodeURIComponent(String(jobData?.jobId || modalOverlay?.getAttribute('data-job-id') || '').trim());
+    const safeCategory = encodeURIComponent(String(jobData?.category || modalOverlay?.getAttribute('data-job-category') || '').trim().toLowerCase());
+    if (!safeJobId || !safeCategory) return '';
+    return `dynamic-job.html?djv=43&category=${safeCategory}&jobId=${safeJobId}`;
+}
+
+async function renderGigFlowCardForThread(modalOverlay) {
+    if (!modalOverlay) return;
+    const chatBody = modalOverlay.querySelector('.chat-modal-body');
+    if (!chatBody) return;
+
+    if (typeof modalOverlay._gigFlowCardCleanup === 'function') {
+        modalOverlay._gigFlowCardCleanup();
+        modalOverlay._gigFlowCardCleanup = null;
+    }
+    const existingCard = chatBody.querySelector('.chat-gig-flow-card');
+    if (existingCard) existingCard.remove();
+
+    const jobId = String(modalOverlay.getAttribute('data-job-id') || '').trim();
+    const currentUserId = String(getCurrentUserId() || '').trim();
+    const role = String(modalOverlay.getAttribute('data-current-user-role') || '').trim().toLowerCase();
+    if (!jobId || !currentUserId || typeof getJobById !== 'function') return;
+
+    let jobData = null;
+    try {
+        jobData = await getJobById(jobId);
+    } catch (error) {
+        console.warn('⚠️ Gig flow card job fetch failed:', error);
+        return;
+    }
+    if (!jobData || typeof jobData !== 'object') return;
+
+    const status = String(jobData.status || '').trim().toLowerCase();
+    const isWorkerOwner = String(jobData.hiredWorkerId || '').trim() === currentUserId;
+    const isCustomerOwner = String(jobData.posterId || '').trim() === currentUserId;
+    const priceText = String(jobData.agreedPrice || jobData.priceOffer || '').trim();
+
+    let cardMode = '';
+    if (status === 'hired' && role === 'worker' && isWorkerOwner) {
+        cardMode = 'worker-offer-pending';
+    } else {
+        return;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'chat-gig-flow-card';
+
+    let title = 'Gig Offer';
+    let subtitle = '';
+    let actionsHtml = '';
+
+    if (cardMode === 'worker-offer-pending') {
+        title = 'Gig Offer Pending';
+        subtitle = `You received a hire offer for "${escapeHtml(String(jobData.title || 'Gig'))}".`;
+        actionsHtml = `
+            <div class="chat-gig-flow-actions">
+                <button class="chat-gig-flow-btn primary" type="button" data-action="accept-offer">Accept Offer</button>
+                <button class="chat-gig-flow-btn danger" type="button" data-action="reject-offer">Reject Offer</button>
+                <button class="chat-gig-flow-btn ghost" type="button" data-action="view-gig">View Gig Post</button>
+            </div>
+        `;
+    }
+
+    card.innerHTML = `
+        <div class="chat-gig-flow-top">
+            <div class="chat-gig-flow-title">${title}</div>
+            ${priceText ? `<div class="chat-gig-flow-price">PHP ${escapeHtml(priceText)}</div>` : ''}
+        </div>
+        <div class="chat-gig-flow-subtitle">${subtitle}</div>
+        ${actionsHtml}
+    `;
+
+    const messagesContainer = chatBody.querySelector('.chat-messages-container');
+    if (messagesContainer) {
+        chatBody.insertBefore(card, messagesContainer);
+    } else {
+        chatBody.appendChild(card);
+    }
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+    modalOverlay._gigFlowCardCleanup = () => controller.abort();
+
+    card.querySelector('[data-action="view-gig"]')?.addEventListener('click', () => {
+        const destination = buildChatCardJobUrl(modalOverlay, jobData);
+        if (destination) window.location.href = destination;
+    }, { signal });
+
+    const setWorkerCardBusy = (busy) => {
+        card.querySelectorAll('.chat-gig-flow-btn').forEach((btn) => {
+            btn.disabled = !!busy;
+        });
+    };
+
+    card.querySelector('[data-action="accept-offer"]')?.addEventListener('click', async () => {
+        if (typeof acceptGigOfferInChat !== 'function') {
+            showToast('Offer action unavailable right now.');
+            return;
+        }
+        setWorkerCardBusy(true);
+        try {
+            const result = await acceptGigOfferInChat(jobId);
+            if (!result?.success) {
+                showToast(result?.message || 'Failed to accept offer');
+                return;
+            }
+            showToast('Offer accepted');
+            await renderGigFlowCardForThread(modalOverlay);
+        } finally {
+            setWorkerCardBusy(false);
+        }
+    }, { signal });
+
+    card.querySelector('[data-action="reject-offer"]')?.addEventListener('click', async () => {
+        if (typeof rejectGigOfferInChat !== 'function') {
+            showToast('Offer action unavailable right now.');
+            return;
+        }
+        setWorkerCardBusy(true);
+        try {
+            const result = await rejectGigOfferInChat(jobId);
+            if (!result?.success) {
+                showToast(result?.message || 'Failed to reject offer');
+                return;
+            }
+            showToast('Offer rejected');
+            await renderGigFlowCardForThread(modalOverlay);
+        } finally {
+            setWorkerCardBusy(false);
+        }
+    }, { signal });
 }
 
 let chatModalOpenCount = 0;
@@ -6754,6 +6903,7 @@ function showChatModal(messageThread, threadContent) {
     // Initialize modal functionality
     initializeChatModal(modalOverlay, messageThread, threadId);
     void enforceGigTipsGateOnChatOpen(modalOverlay);
+    void renderGigFlowCardForThread(modalOverlay);
     
     // Show modal with animation
     setTimeout(() => {
@@ -6898,6 +7048,10 @@ function initializeChatModal(modalOverlay, messageThread, threadId) {
         if (ACTIVE_LISTENERS.activeThreadMessages) {
             ACTIVE_LISTENERS.activeThreadMessages();
             ACTIVE_LISTENERS.activeThreadMessages = null;
+        }
+        if (typeof modalOverlay._gigFlowCardCleanup === 'function') {
+            modalOverlay._gigFlowCardCleanup();
+            modalOverlay._gigFlowCardCleanup = null;
         }
     };
 }
@@ -7350,6 +7504,10 @@ function showAvatarOverlay(event, userData) {
                 <span>📘</span>
                 <span>READ GIG TIPS</span>
             </button>
+            <button class="avatar-action-btn status" data-job-id="${userData.jobId || ''}" data-current-user-role="${userData.currentUserRole || ''}">
+                <span>📊</span>
+                <span>GIG STATUS</span>
+            </button>
             ${viewApplicationButton}
             ${hireButtonHTML}
             <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
@@ -7533,6 +7691,35 @@ function initializeAvatarOverlayActions(overlay, userData) {
                 category: jobCategory,
                 requireAcknowledge: false
             });
+        }, { signal });
+    }
+
+    // GIG STATUS button
+    const statusBtn = overlay.querySelector('.avatar-action-btn.status');
+    if (statusBtn) {
+        statusBtn.addEventListener('click', async function() {
+            const jobId = String(this.getAttribute('data-job-id') || '').trim();
+            const role = String(this.getAttribute('data-current-user-role') || '').trim().toLowerCase();
+            if (!jobId) {
+                showTemporaryNotification('Gig status is unavailable for this conversation.');
+                return;
+            }
+            hideAvatarOverlay();
+            if (window.GigOverlays && typeof window.GigOverlays.showGigStatusOverlay === 'function') {
+                window.GigOverlays.showGigStatusOverlay({
+                    jobId: jobId,
+                    currentUserRole: role === 'worker' ? 'worker' : 'customer',
+                    onUpdated: function() {
+                        const threadId = String(userData.threadId || '').trim();
+                        const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
+                        if (modalOverlay) {
+                            void renderGigFlowCardForThread(modalOverlay);
+                        }
+                    }
+                });
+                return;
+            }
+            showTemporaryNotification('Gig status modal is unavailable right now.');
         }, { signal });
     }
     

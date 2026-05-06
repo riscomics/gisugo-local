@@ -575,6 +575,692 @@
         overlay.classList.remove('show');
     }
 
+    function formatGigStatusDate(dateValue) {
+        if (!dateValue) return 'TBD';
+        try {
+            let dateObj = null;
+            if (dateValue && typeof dateValue.toDate === 'function') {
+                dateObj = dateValue.toDate();
+            } else if (dateValue instanceof Date) {
+                dateObj = dateValue;
+            } else if (typeof dateValue === 'string') {
+                dateObj = new Date(dateValue);
+            }
+            if (!dateObj || Number.isNaN(dateObj.getTime())) return 'TBD';
+            return dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
+        } catch (error) {
+            return 'TBD';
+        }
+    }
+
+    function safeText(value, fallbackValue) {
+        const trimmed = String(value || '').trim();
+        return trimmed || fallbackValue;
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderDecisionBodyHtml(contentText) {
+        const lines = String(contentText || '')
+            .split('\n')
+            .map(function (line) { return line.trim(); })
+            .filter(function (line) { return line.length > 0; });
+        if (!lines.length) return '';
+
+        let html = '<div class="gig-decision-line-bubbles">';
+        lines.forEach(function (line) {
+            const isBullet = line.startsWith('•');
+            const isWarningLine = /^(WARNING:|BANTAY:|BABALA:)/i.test(line);
+            const text = isBullet ? line.replace(/^•\s*/, '') : line;
+            html += `
+                <div class="gig-decision-line-bubble${isBullet ? ' bullet' : ''}${isWarningLine ? ' warning' : ''}">
+                    ${isBullet ? '<span class="gig-decision-line-prefix">•</span>' : ''}
+                    <span class="gig-decision-line-text">${escapeHtml(text)}</span>
+                </div>
+            `;
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function ensureGigStatusOverlay() {
+        let overlay = getElement('gigStatusOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'gigStatusOverlay';
+        overlay.className = 'gig-status-overlay';
+        overlay.innerHTML = `
+            <div class="gig-status-sheet">
+                <div class="gig-status-sheet-head">
+                    <h3>Gig Status</h3>
+                    <button id="gigStatusCloseBtn" class="gig-status-icon-btn" type="button">&times;</button>
+                </div>
+                <div id="gigStatusCardBody" class="gig-status-card-surface" role="button" tabindex="0" aria-label="Open gig actions">
+                    <div id="gigStatusVisualCard" class="hiring-card customer gig-status-hiring-card">
+                        <div class="hiring-title" id="gigStatusJobTitle">Gig</div>
+                        <div class="hiring-date-time-row">
+                            <div class="hiring-date-part">
+                                <span class="hiring-date-label">DUE:</span>
+                                <span class="hiring-date-value" id="gigStatusDue">TBD</span>
+                            </div>
+                            <div class="hiring-time-part">
+                                <span class="hiring-time-label">FROM:</span>
+                                <span class="hiring-time-value" id="gigStatusFrom">-</span>
+                                <span class="hiring-time-label">TO:</span>
+                                <span class="hiring-time-value" id="gigStatusTo">-</span>
+                            </div>
+                        </div>
+                        <div class="hiring-main-row">
+                            <div class="hiring-thumbnail">
+                                <img id="gigStatusJobImage" src="public/images/placeholder.jpg" alt="Gig">
+                            </div>
+                            <div class="hiring-content">
+                                <div class="hiring-left-content">
+                                    <div class="hiring-price" id="gigStatusPrice">PHP 0</div>
+                                    <div class="hiring-role-caption customer" id="gigStatusParty">-</div>
+                                    <div class="hiring-status-badge in-progress" id="gigStatusStatusBadge"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="gig-status-sheet-footer">
+                    <button id="gigStatusOpenActionsBtn" class="gig-status-primary-btn" type="button">OPEN ACTIONS</button>
+                    <button id="gigStatusCancelBtn" class="gig-status-secondary-btn" type="button">CLOSE</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function ensureGigStatusActionsOverlay() {
+        let overlay = getElement('gigStatusActionsOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'gigStatusActionsOverlay';
+        overlay.className = 'gig-status-overlay';
+        overlay.innerHTML = `
+            <div class="gig-actions-sheet">
+                <h3 id="gigStatusActionsTitle">Manage Hiring</h3>
+                <p id="gigStatusActionsSubtitle">Choose an action for this gig.</p>
+                <div id="gigStatusActionsList" class="gig-actions-list"></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function ensureGigStatusMediaOverlay() {
+        let overlay = getElement('gigStatusMediaOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'gigStatusMediaOverlay';
+        overlay.className = 'gig-status-overlay';
+        overlay.innerHTML = `
+            <div class="gig-media-sheet">
+                <h3>Face Verification</h3>
+                <p id="gigStatusMediaName">Worker Verification</p>
+                <div class="gig-media-preview">
+                    <img id="gigStatusMediaPoster" alt="Verification preview">
+                    <video id="gigStatusMediaVideo" controls playsinline preload="metadata"></video>
+                    <button id="gigStatusMediaPlayBtn" class="gig-media-play-btn" type="button" aria-label="Play verification video">▶ Play</button>
+                </div>
+                <button id="gigStatusMediaCloseBtn" class="gig-status-secondary-btn" type="button">CLOSE</button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function ensureGigStatusDecisionOverlay() {
+        let overlay = getElement('gigStatusDecisionOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'gigStatusDecisionOverlay';
+        overlay.className = 'gig-status-overlay';
+        overlay.innerHTML = `
+            <div class="gig-decision-sheet">
+                <div class="gig-decision-title-row">
+                    <div id="gigStatusDecisionIcon" class="gig-decision-icon">♻️</div>
+                    <h3 id="gigStatusDecisionTitle">Decision</h3>
+                </div>
+                <p id="gigStatusDecisionSubtitle">Confirm action for this gig.</p>
+                <div class="gig-decision-tabs">
+                    <button type="button" class="lang-tab active" data-lang="english">English</button>
+                    <button type="button" class="lang-tab" data-lang="bisaya">Bisaya</button>
+                    <button type="button" class="lang-tab" data-lang="tagalog">Tagalog</button>
+                </div>
+                <div id="gigStatusDecisionBody" class="gig-decision-body"></div>
+                <div class="gig-decision-reason-wrap">
+                    <label id="gigStatusReasonLabel" for="gigStatusReasonInput">Reason</label>
+                    <textarea id="gigStatusReasonInput" maxlength="200"></textarea>
+                    <div class="gig-decision-char-count"><span id="gigStatusReasonCount">0</span>/200 characters</div>
+                </div>
+                <div class="gig-decision-actions">
+                    <button id="gigStatusDecisionCancelBtn" class="gig-status-secondary-btn" type="button">CANCEL</button>
+                    <button id="gigStatusDecisionConfirmBtn" class="gig-status-primary-btn" type="button">CONFIRM</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function ensureGigStatusCompleteOverlay() {
+        let overlay = getElement('gigStatusCompleteOverlay');
+        if (overlay) return overlay;
+        overlay = document.createElement('div');
+        overlay.id = 'gigStatusCompleteOverlay';
+        overlay.className = 'gig-status-overlay';
+        overlay.innerHTML = `
+            <div class="gig-complete-sheet">
+                <div class="gig-complete-icon">✅</div>
+                <h3>Mark Gig as Completed</h3>
+                <p id="gigStatusCompleteSubtitle">Confirm this gig has been completed.</p>
+                <div class="gig-complete-checklist">
+                    <div class="gig-complete-checklist-content">
+                        <div class="gig-complete-line-bubbles">
+                            <div class="gig-complete-line-bubble verify">
+                                <span class="gig-complete-line-text">VERIFY:</span>
+                            </div>
+                            <div class="gig-complete-line-bubble bullet">
+                                <span class="gig-complete-line-prefix">•</span>
+                                <span class="gig-complete-line-text">The work has been completed to your satisfaction</span>
+                            </div>
+                            <div class="gig-complete-line-bubble bullet">
+                                <span class="gig-complete-line-prefix">•</span>
+                                <span class="gig-complete-line-text">You have paid the worker for their services</span>
+                            </div>
+                            <div class="gig-complete-line-bubble bullet">
+                                <span class="gig-complete-line-prefix">•</span>
+                                <span class="gig-complete-line-text">Any follow-up arrangements have been made</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="gig-decision-actions">
+                    <button id="gigStatusCompleteCancelBtn" class="gig-status-secondary-btn" type="button">NO, NOT YET</button>
+                    <button id="gigStatusCompleteConfirmBtn" class="gig-status-primary-btn" type="button">YES, COMPLETED</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function hideGigStatusOverlay() {
+        const ids = [
+            'gigStatusOverlay',
+            'gigStatusActionsOverlay',
+            'gigStatusMediaOverlay',
+            'gigStatusDecisionOverlay',
+            'gigStatusCompleteOverlay'
+        ];
+        ids.forEach(function (id) {
+            const overlay = getElement(id);
+            if (overlay) overlay.classList.remove('show');
+        });
+        state.gigStatusContext = null;
+    }
+
+    function showSingleGigStatusOverlay(targetOverlay) {
+        const ids = [
+            'gigStatusOverlay',
+            'gigStatusActionsOverlay',
+            'gigStatusMediaOverlay',
+            'gigStatusDecisionOverlay',
+            'gigStatusCompleteOverlay'
+        ];
+        ids.forEach(function (id) {
+            const overlay = getElement(id);
+            if (!overlay) return;
+            if (overlay === targetOverlay) {
+                overlay.classList.add('show');
+            } else {
+                overlay.classList.remove('show');
+            }
+        });
+    }
+
+    function buildGigStatusContext(job, role, payload, profile) {
+        const counterpartName = role === 'customer'
+            ? safeText(job.hiredWorkerName, 'WORKER')
+            : safeText(job.posterName, 'CUSTOMER');
+        const partyLabel = role === 'customer'
+            ? `YOU HIRED ${counterpartName.toUpperCase()}`
+            : `WORKING FOR ${counterpartName.toUpperCase()}`;
+        return {
+            jobId: String(job.id || payload.jobId || ''),
+            role: role,
+            jobTitle: safeText(job.title, 'Gig'),
+            dueDate: formatGigStatusDate(job.jobDate || job.scheduledDate),
+            timeFrom: safeText(job.startTime || job.timeFrom, '-'),
+            timeTo: safeText(job.endTime || job.timeTo, '-'),
+            priceLabel: `₱${safeText(job.agreedPrice || job.priceOffer || job.budget, '0')}`,
+            partyLabel: partyLabel,
+            statusLabel: safeText(job.status, 'accepted').replaceAll('_', ' ').toUpperCase(),
+            jobThumbnail: safeText(job.thumbnail || job.imageUrl || job.photoUrl, 'public/images/placeholder.jpg'),
+            verificationVideoUrl: safeText(profile?.verification?.faceVideoUrl, ''),
+            verificationPosterUrl: safeText(profile?.verification?.faceImageUrl || profile?.photoURL, ''),
+            onUpdated: payload?.onUpdated
+        };
+    }
+
+    function openGigStatusActions() {
+        const context = state.gigStatusContext;
+        if (!context) return;
+        const overlay = ensureGigStatusActionsOverlay();
+        const titleEl = getElement('gigStatusActionsTitle');
+        const subtitleEl = getElement('gigStatusActionsSubtitle');
+        const listEl = getElement('gigStatusActionsList');
+        if (!overlay || !listEl) return;
+
+        if (titleEl) titleEl.textContent = 'Manage Hiring';
+        if (subtitleEl) subtitleEl.textContent = `Choose an action for "${context.jobTitle}"`;
+        listEl.innerHTML = '';
+
+        const addAction = function (label, className, handler) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `gig-action-btn ${className || ''}`.trim();
+            button.textContent = label;
+            button.onclick = handler;
+            listEl.appendChild(button);
+        };
+
+        addAction('VIEW GIG POST', 'success', function () {
+            const encoded = encodeURIComponent(context.jobId);
+            window.location.href = `dynamic-job.html?id=${encoded}`;
+        });
+        addAction(
+            `WATCH ${context.role === 'customer' ? 'WORKER' : 'CUSTOMER'} FACE VERIFICATION VIDEO`,
+            'success',
+            function () {
+                openGigStatusMedia();
+            }
+        );
+
+        if (context.role === 'customer') {
+            addAction('MARK AS COMPLETED', 'primary', function () {
+                openGigStatusCompleteConfirm();
+            });
+            addAction('RELIST GIG (Void Current Hire)', 'warning', function () {
+                openGigStatusDecision('relist');
+            });
+        } else {
+            addAction('RESIGN FROM GIG', 'danger', function () {
+                openGigStatusDecision('resign');
+            });
+        }
+        addAction('CLOSE', 'cancel', hideGigStatusOverlay);
+
+        overlay.onclick = function (event) {
+            if (event.target === overlay) hideGigStatusOverlay();
+        };
+        showSingleGigStatusOverlay(overlay);
+    }
+
+    function openGigStatusMedia() {
+        const context = state.gigStatusContext;
+        if (!context) return;
+        const overlay = ensureGigStatusMediaOverlay();
+        const titleEl = getElement('gigStatusMediaName');
+        const posterEl = getElement('gigStatusMediaPoster');
+        const videoEl = getElement('gigStatusMediaVideo');
+        const playBtn = getElement('gigStatusMediaPlayBtn');
+        const closeBtn = getElement('gigStatusMediaCloseBtn');
+        if (!overlay || !videoEl || !posterEl || !playBtn) return;
+
+        if (!context.verificationVideoUrl) {
+            if (typeof window.showTemporaryNotification === 'function') {
+                window.showTemporaryNotification('Verification video unavailable.');
+            }
+            return;
+        }
+
+        if (titleEl) {
+            titleEl.textContent = context.role === 'customer'
+                ? 'Worker Verification'
+                : 'Customer Verification';
+        }
+        posterEl.src = context.verificationPosterUrl || '';
+        // Match original viewer behavior: portrait media with no native controls.
+        videoEl.removeAttribute('controls');
+        videoEl.setAttribute('controlsList', 'nodownload nofullscreen noremoteplayback noplaybackrate');
+        videoEl.setAttribute('disablepictureinpicture', 'true');
+        videoEl.setAttribute('playsinline', 'true');
+        videoEl.muted = false;
+        videoEl.loop = false;
+        videoEl.preload = 'metadata';
+        videoEl.poster = context.verificationPosterUrl || '';
+        videoEl.src = context.verificationVideoUrl;
+        posterEl.style.display = 'none';
+        videoEl.style.display = 'block';
+        videoEl.currentTime = 0;
+        playBtn.style.display = 'inline-flex';
+        playBtn.textContent = '▶ Play';
+        playBtn.setAttribute('aria-label', 'Play verification video');
+
+        const syncPlayUi = function () {
+            const isPlaying = !videoEl.paused && !videoEl.ended;
+            playBtn.textContent = isPlaying ? '❚❚ Pause' : '▶ Play';
+            playBtn.setAttribute('aria-label', isPlaying ? 'Pause verification video' : 'Play verification video');
+        };
+
+        playBtn.onclick = function () {
+            if (videoEl.paused || videoEl.ended) {
+                void videoEl.play().then(syncPlayUi).catch(function () {});
+            } else {
+                videoEl.pause();
+                syncPlayUi();
+            }
+        };
+        videoEl.onclick = function () {
+            if (videoEl.paused || videoEl.ended) {
+                void videoEl.play().then(syncPlayUi).catch(function () {});
+            } else {
+                videoEl.pause();
+                syncPlayUi();
+            }
+        };
+        videoEl.onplay = syncPlayUi;
+        videoEl.onpause = syncPlayUi;
+        videoEl.onended = syncPlayUi;
+
+        if (closeBtn) closeBtn.onclick = function () {
+            videoEl.pause();
+            videoEl.onplay = null;
+            videoEl.onpause = null;
+            videoEl.onended = null;
+            videoEl.onclick = null;
+            playBtn.onclick = null;
+            openGigStatusActions();
+        };
+        overlay.onclick = function (event) {
+            if (event.target === overlay) {
+                videoEl.pause();
+                videoEl.onplay = null;
+                videoEl.onpause = null;
+                videoEl.onended = null;
+                videoEl.onclick = null;
+                playBtn.onclick = null;
+                openGigStatusActions();
+            }
+        };
+        showSingleGigStatusOverlay(overlay);
+    }
+
+    function getDecisionContent(actionType, lang, workerName) {
+        const targetName = safeText(workerName, 'Worker');
+        if (actionType === 'relist') {
+            const relistMap = {
+                english: `WARNING:\n• This will void the current contract with ${targetName}\n• Remove them from this gig\n• Make this gig available for new applications\n\nPlease make sure you have notified ${targetName} before proceeding.`,
+                bisaya: `BANTAY:\n• Kini mopahunong sa kasabutan nimo ug ${targetName}\n• Tangtangon sila gikan sa gig\n• Mahimong available pag-usab ang gig\n\nPalihug pahibaloa si ${targetName} sa dili pa mopadayon.`,
+                tagalog: `BABALA:\n• Ito ay magpapawalang-bisa sa kasunduan ninyo ni ${targetName}\n• Tatanggalin siya sa gig na ito\n• Magiging bukas ulit ito sa applications\n\nPakisabihan muna si ${targetName} bago magpatuloy.`
+            };
+            return relistMap[lang] || relistMap.english;
+        }
+        const resignMap = {
+            english: `WARNING:\n• This will void your contract with ${targetName}\n• Remove you from this gig\n• Make this gig available for new applications\n\nPlease ensure you contacted the customer before proceeding.`,
+            bisaya: `BANTAY:\n• Kini mopahunong sa kasabutan nimo ug ${targetName}\n• Matangtang ka sa gig\n• Mabuksan pag-usab ang gig para sa applications\n\nSiguroha nga nakasulti ka sa customer sa dili pa mopadayon.`,
+            tagalog: `BABALA:\n• Ito ay magpapawalang-bisa sa kontrata mo kay ${targetName}\n• Tatanggalin ka sa gig na ito\n• Magiging bukas ulit ito sa applications\n\nSiguraduhing nakausap mo ang customer bago magpatuloy.`
+        };
+        return resignMap[lang] || resignMap.english;
+    }
+
+    function openGigStatusDecision(actionType) {
+        const context = state.gigStatusContext;
+        if (!context) return;
+        const overlay = ensureGigStatusDecisionOverlay();
+        const titleEl = getElement('gigStatusDecisionTitle');
+        const iconEl = getElement('gigStatusDecisionIcon');
+        const subtitleEl = getElement('gigStatusDecisionSubtitle');
+        const bodyEl = getElement('gigStatusDecisionBody');
+        const reasonLabel = getElement('gigStatusReasonLabel');
+        const reasonInput = getElement('gigStatusReasonInput');
+        const reasonCount = getElement('gigStatusReasonCount');
+        const cancelBtn = getElement('gigStatusDecisionCancelBtn');
+        const confirmBtn = getElement('gigStatusDecisionConfirmBtn');
+        const tabs = overlay.querySelectorAll('.lang-tab');
+        if (!overlay || !bodyEl || !reasonInput || !confirmBtn) return;
+
+        const workerName = context.partyLabel.replace(/^YOU HIRED\s+/i, '').replace(/^WORKING FOR\s+/i, '');
+        let activeLang = 'english';
+        if (titleEl) titleEl.textContent = actionType === 'relist' ? 'Relist Gig' : 'Resign from Gig';
+        if (iconEl) iconEl.textContent = actionType === 'relist' ? '🔄' : '👋';
+        if (subtitleEl) {
+            subtitleEl.textContent = actionType === 'relist'
+                ? `This will void the contract with ${workerName}`
+                : `This will void your contract with ${workerName}`;
+        }
+        if (reasonLabel) {
+            reasonLabel.textContent = actionType === 'relist'
+                ? `For records, please provide reason why you are firing ${workerName}:`
+                : 'For records, please provide reason why you are quitting before the gig is complete:';
+        }
+        reasonInput.value = '';
+        if (reasonCount) reasonCount.textContent = '0';
+        reasonInput.placeholder = actionType === 'relist'
+            ? 'Enter reason for termination (minimum 2 characters)'
+            : 'Enter reason for resignation (minimum 2 characters)';
+        bodyEl.innerHTML = renderDecisionBodyHtml(getDecisionContent(actionType, activeLang, workerName));
+        confirmBtn.textContent = actionType === 'relist' ? 'YES, VOID & RELIST' : 'YES, RESIGN';
+        confirmBtn.disabled = true;
+
+        const updateReasonState = function () {
+            const current = String(reasonInput.value || '');
+            const trimmed = current.trim();
+            if (reasonCount) reasonCount.textContent = String(current.length);
+            confirmBtn.disabled = trimmed.length < 2;
+        };
+        reasonInput.oninput = updateReasonState;
+        updateReasonState();
+
+        tabs.forEach(function (tab) {
+            tab.classList.toggle('active', String(tab.dataset.lang) === 'english');
+            tab.onclick = function () {
+                tabs.forEach(function (entry) { entry.classList.remove('active'); });
+                tab.classList.add('active');
+                activeLang = String(tab.dataset.lang || 'english');
+                bodyEl.innerHTML = renderDecisionBodyHtml(getDecisionContent(actionType, activeLang, workerName));
+            };
+        });
+
+        if (cancelBtn) cancelBtn.onclick = function () { openGigStatusActions(); };
+        confirmBtn.onclick = async function () {
+            const reason = String(reasonInput.value || '').trim();
+            if (reason.length < 2) {
+                if (typeof window.showTemporaryNotification === 'function') {
+                    window.showTemporaryNotification('Please add a reason (minimum 2 characters).');
+                }
+                return;
+            }
+
+            confirmBtn.disabled = true;
+            const oldLabel = confirmBtn.textContent;
+            confirmBtn.textContent = actionType === 'relist' ? 'RELISTING...' : 'RESIGNING...';
+            try {
+                const result = actionType === 'relist'
+                    ? (typeof window.relistGigFromChat === 'function' ? await window.relistGigFromChat(context.jobId, reason) : null)
+                    : (typeof window.resignGigFromChat === 'function' ? await window.resignGigFromChat(context.jobId, reason) : null);
+                if (!result || !result.success) {
+                    if (typeof window.showTemporaryNotification === 'function') {
+                        window.showTemporaryNotification(result?.message || 'Action failed.');
+                    }
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = oldLabel;
+                    return;
+                }
+                hideGigStatusOverlay();
+                if (typeof window.showTemporaryNotification === 'function') {
+                    window.showTemporaryNotification(actionType === 'relist' ? 'Gig relisted.' : 'Resignation submitted.');
+                }
+                if (typeof context.onUpdated === 'function') context.onUpdated();
+            } catch (error) {
+                console.error('Gig decision action failed:', error);
+                if (typeof window.showTemporaryNotification === 'function') {
+                    window.showTemporaryNotification('Action failed. Please try again.');
+                }
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = oldLabel;
+            }
+        };
+
+        overlay.onclick = function (event) {
+            if (event.target === overlay) openGigStatusActions();
+        };
+        showSingleGigStatusOverlay(overlay);
+    }
+
+    function openGigStatusCompleteConfirm() {
+        const context = state.gigStatusContext;
+        if (!context) return;
+        const overlay = ensureGigStatusCompleteOverlay();
+        const subtitleEl = getElement('gigStatusCompleteSubtitle');
+        const cancelBtn = getElement('gigStatusCompleteCancelBtn');
+        const confirmBtn = getElement('gigStatusCompleteConfirmBtn');
+        if (!overlay || !confirmBtn) return;
+
+        if (subtitleEl) {
+            subtitleEl.textContent = `Confirm that "${context.jobTitle}" has been completed.`;
+        }
+        if (cancelBtn) cancelBtn.onclick = function () { openGigStatusActions(); };
+        confirmBtn.onclick = async function () {
+            confirmBtn.disabled = true;
+            const oldLabel = confirmBtn.textContent;
+            confirmBtn.textContent = 'COMPLETING...';
+            try {
+                const result = typeof window.completeGigFromChat === 'function'
+                    ? await window.completeGigFromChat(context.jobId)
+                    : null;
+                if (!result || !result.success) {
+                    if (typeof window.showTemporaryNotification === 'function') {
+                        window.showTemporaryNotification(result?.message || 'Failed to complete gig.');
+                    }
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = oldLabel;
+                    return;
+                }
+                hideGigStatusOverlay();
+                if (typeof window.showTemporaryNotification === 'function') {
+                    window.showTemporaryNotification('Gig marked as completed.');
+                }
+                if (typeof context.onUpdated === 'function') context.onUpdated();
+            } catch (error) {
+                console.error('Gig complete action failed:', error);
+                if (typeof window.showTemporaryNotification === 'function') {
+                    window.showTemporaryNotification('Failed to complete gig.');
+                }
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = oldLabel;
+            }
+        };
+        overlay.onclick = function (event) {
+            if (event.target === overlay) openGigStatusActions();
+        };
+        showSingleGigStatusOverlay(overlay);
+    }
+
+    async function showGigStatusOverlay(payload) {
+        const overlay = ensureGigStatusOverlay();
+        const closeBtn = getElement('gigStatusCloseBtn');
+        const cancelBtn = getElement('gigStatusCancelBtn');
+        const openActionsBtn = getElement('gigStatusOpenActionsBtn');
+        const cardBody = getElement('gigStatusCardBody');
+        const titleEl = getElement('gigStatusJobTitle');
+        const dueEl = getElement('gigStatusDue');
+        const fromEl = getElement('gigStatusFrom');
+        const toEl = getElement('gigStatusTo');
+        const priceEl = getElement('gigStatusPrice');
+        const partyEl = getElement('gigStatusParty');
+        const stateBadgeEl = getElement('gigStatusStatusBadge');
+        const jobImageEl = getElement('gigStatusJobImage');
+        const visualCardEl = getElement('gigStatusVisualCard');
+        if (!overlay || !cardBody) return;
+
+        const jobId = String(payload?.jobId || '').trim();
+        const role = String(payload?.currentUserRole || '').trim().toLowerCase() === 'worker' ? 'worker' : 'customer';
+        if (!jobId || typeof window.getJobById !== 'function') {
+            if (typeof window.showTemporaryNotification === 'function') {
+                window.showTemporaryNotification('Gig status data is unavailable.');
+            }
+            return;
+        }
+
+        let job = null;
+        try {
+            job = await window.getJobById(jobId);
+        } catch (error) {
+            console.warn('Gig status lookup failed:', error);
+        }
+        if (!job) {
+            if (typeof window.showTemporaryNotification === 'function') {
+                window.showTemporaryNotification('Unable to load gig status.');
+            }
+            return;
+        }
+
+        const counterpartId = role === 'customer'
+            ? String(job.hiredWorkerId || '').trim()
+            : String(job.posterId || '').trim();
+        let profile = null;
+        try {
+            if (counterpartId && typeof window.getUserProfile === 'function') {
+                profile = await window.getUserProfile(counterpartId);
+            }
+        } catch (error) {
+            console.warn('Gig status verification lookup failed:', error);
+        }
+
+        const context = buildGigStatusContext(job, role, payload, profile || {});
+        state.gigStatusContext = context;
+
+        if (titleEl) titleEl.textContent = context.jobTitle;
+        if (dueEl) dueEl.textContent = context.dueDate;
+        if (fromEl) fromEl.textContent = context.timeFrom;
+        if (toEl) toEl.textContent = context.timeTo;
+        if (priceEl) priceEl.textContent = context.priceLabel;
+        if (partyEl) partyEl.textContent = context.partyLabel;
+        if (stateBadgeEl) {
+            const isInProgress = context.statusLabel === 'ACCEPTED' || context.statusLabel === 'HIRED';
+            stateBadgeEl.textContent = isInProgress ? 'Work in Progress' : context.statusLabel;
+            stateBadgeEl.classList.toggle('in-progress', isInProgress);
+            stateBadgeEl.classList.toggle('pending', !isInProgress);
+        }
+        if (jobImageEl) jobImageEl.src = context.jobThumbnail;
+        if (visualCardEl) {
+            visualCardEl.classList.toggle('worker', context.role === 'worker');
+            visualCardEl.classList.toggle('customer', context.role !== 'worker');
+        }
+        if (partyEl) {
+            partyEl.classList.toggle('worker', context.role === 'worker');
+            partyEl.classList.toggle('customer', context.role !== 'worker');
+        }
+
+        if (closeBtn) closeBtn.onclick = hideGigStatusOverlay;
+        if (cancelBtn) cancelBtn.onclick = hideGigStatusOverlay;
+        if (openActionsBtn) openActionsBtn.onclick = function () { openGigStatusActions(); };
+        cardBody.onclick = function () { openGigStatusActions(); };
+        cardBody.onkeydown = function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openGigStatusActions();
+            }
+        };
+        overlay.onclick = function (event) {
+            if (event.target === overlay) hideGigStatusOverlay();
+        };
+        showSingleGigStatusOverlay(overlay);
+    }
+
     async function showHireConfirmationOverlay(workerData) {
         const overlay = ensureHireConfirmationOverlay();
         const closeBtn = getElement('hireConfirmationCloseBtn');
@@ -718,6 +1404,8 @@
         showApplicationActionOverlay: showApplicationActionOverlay,
         hideApplicationActionOverlay: hideApplicationActionOverlay,
         showHireConfirmationOverlay: showHireConfirmationOverlay,
-        hideHireConfirmationOverlay: hideHireConfirmationOverlay
+        hideHireConfirmationOverlay: hideHireConfirmationOverlay,
+        showGigStatusOverlay: showGigStatusOverlay,
+        hideGigStatusOverlay: hideGigStatusOverlay
     };
 }(window));

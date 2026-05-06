@@ -311,6 +311,10 @@ let listingNotifAuthUnsub = null;
 let listingNotifDocUnsub = null;
 let listingNotifInitTimer = null;
 let listingNotifStarted = false;
+let listingSharedCounterEventHandler = null;
+let listingSharedCounterInitTimer = null;
+let listingSharedCounterConnected = false;
+let listingSharedCounterLastUpdateMs = 0;
 
 function formatListingUnreadCount(totalUnread) {
   const safe = Math.max(0, Number(totalUnread) || 0);
@@ -375,7 +379,7 @@ function applyListingUnreadBadges(totalUnread) {
 
 function getListingUnreadTotal(counters) {
   if (!counters || typeof counters !== 'object') return 0;
-  const total = Number(counters.totalUnread);
+  const total = Number(counters.messagesTotalUnread ?? counters.totalUnread);
   return Number.isFinite(total) ? total : 0;
 }
 
@@ -387,7 +391,7 @@ function getListingUnreadFromSnapshot(snap) {
   return Number.isFinite(total) ? total : 0;
 }
 
-function stopListingNotificationListener() {
+function stopListingNotificationDirectListener() {
   if (listingNotifDocUnsub) {
     listingNotifDocUnsub();
     listingNotifDocUnsub = null;
@@ -405,6 +409,7 @@ function stopListingNotificationListener() {
 
 function startListingNotificationListener(retry = 0) {
   if (listingNotifStarted) return;
+  if (listingSharedCounterConnected && (Date.now() - listingSharedCounterLastUpdateMs) < 10000) return;
   if (typeof firebase === 'undefined' || !firebase.auth) {
     if (retry < 12) {
       listingNotifInitTimer = setTimeout(() => startListingNotificationListener(retry + 1), 300);
@@ -434,9 +439,52 @@ function startListingNotificationListener(retry = 0) {
   });
 }
 
+function initializeListingSharedCounterBridge() {
+  if (listingSharedCounterEventHandler) return;
+  listingSharedCounterEventHandler = (event) => {
+    const detail = event?.detail || {};
+    const total = getListingUnreadTotal(detail);
+    listingSharedCounterConnected = true;
+    listingSharedCounterLastUpdateMs = Date.now();
+    applyListingUnreadBadges(total);
+    // Prevent duplicate reads: if shared menu is already publishing counters,
+    // stop listing-local Firestore listeners.
+    if (listingNotifStarted) {
+      stopListingNotificationDirectListener();
+    }
+  };
+  document.addEventListener('gisugo:notification-counter-update', listingSharedCounterEventHandler);
+}
+
+function stopListingNotificationListener() {
+  stopListingNotificationDirectListener();
+  if (listingSharedCounterInitTimer) {
+    clearTimeout(listingSharedCounterInitTimer);
+    listingSharedCounterInitTimer = null;
+  }
+  if (listingSharedCounterEventHandler) {
+    document.removeEventListener('gisugo:notification-counter-update', listingSharedCounterEventHandler);
+    listingSharedCounterEventHandler = null;
+  }
+  listingSharedCounterConnected = false;
+  listingSharedCounterLastUpdateMs = 0;
+}
+
 function scheduleListingNotificationStartup() {
   applyListingUnreadBadges(0);
-  const start = () => startListingNotificationListener();
+  initializeListingSharedCounterBridge();
+  const start = () => {
+    if (listingSharedCounterInitTimer) {
+      clearTimeout(listingSharedCounterInitTimer);
+    }
+    // Give shared-menu counters time to initialize first. Only start a direct
+    // listener when no shared counter events arrive.
+    listingSharedCounterInitTimer = setTimeout(() => {
+      if (!listingSharedCounterConnected || (Date.now() - listingSharedCounterLastUpdateMs) > 6000) {
+        startListingNotificationListener();
+      }
+    }, 2500);
+  };
   if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
     window.requestIdleCallback(start, { timeout: 2000 });
   } else {

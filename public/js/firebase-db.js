@@ -2248,6 +2248,449 @@ async function hireWorker(jobId, applicationId) {
 }
 
 /**
+ * Worker-side offer acceptance used by chat-thread offer card actions.
+ * Mirrors the offered->accepted transition without relying on jobs.js globals.
+ * @param {string} jobId - Job document ID
+ * @returns {Promise<{success:boolean,message:string}>}
+ */
+async function acceptGigOfferInChat(jobId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+
+  if (!db) return { success: false, message: 'Jobs backend unavailable' };
+  if (!currentUser?.uid) return { success: false, message: 'You must be logged in' };
+  if (!safeJobId) return { success: false, message: 'Missing job id' };
+
+  try {
+    const jobDoc = await db.collection('jobs').doc(safeJobId).get();
+    if (!jobDoc.exists) return { success: false, message: 'Job not found' };
+    const jobData = jobDoc.data() || {};
+    if (String(jobData.hiredWorkerId || '').trim() !== currentUser.uid) {
+      return { success: false, message: 'Offer does not belong to your account' };
+    }
+
+    await db.collection('jobs').doc(safeJobId).update({
+      status: 'accepted',
+      acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      workerAccepted: true
+    });
+
+    try {
+      const workerProfile = await getUserProfile(currentUser.uid);
+      const workerName = workerProfile?.fullName || currentUser.displayName || 'Worker';
+      if (jobData.posterId) {
+        await createNotification(jobData.posterId, {
+          type: 'offer_accepted',
+          jobId: safeJobId,
+          jobTitle: jobData.title || 'Gig',
+          message: `${workerName} has accepted your gig offer for "${jobData.title || 'Gig'}"!`,
+          actionRequired: false
+        });
+      }
+    } catch (notifyError) {
+      console.warn('⚠️ Offer accepted notification skipped:', notifyError);
+    }
+
+    try {
+      const offerNotifs = await db.collection('notifications')
+        .where('recipientId', '==', currentUser.uid)
+        .where('jobId', '==', safeJobId)
+        .where('type', '==', 'offer_sent')
+        .get();
+      if (!offerNotifs.empty) {
+        const deletePromises = offerNotifs.docs.map((doc) => doc.ref.delete());
+        await Promise.all(deletePromises);
+      }
+    } catch (cleanupError) {
+      console.warn('⚠️ Offer notification cleanup skipped:', cleanupError);
+    }
+
+    // NOTE: Do not run pending-application rejection sweep from worker chat accept.
+    // Some projects enforce write rules that only allow the poster/backend to mutate
+    // other applicants, which causes noisy permission errors in worker context.
+    // Keep worker-side accept focused on accepting the offer + customer notification.
+
+    return { success: true, message: 'Offer accepted' };
+  } catch (error) {
+    console.error('❌ Error accepting offer from chat:', error);
+    return { success: false, message: error.message || 'Failed to accept offer' };
+  }
+}
+
+/**
+ * Worker-side offer rejection used by chat-thread offer card actions.
+ * @param {string} jobId - Job document ID
+ * @returns {Promise<{success:boolean,message:string}>}
+ */
+async function rejectGigOfferInChat(jobId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+
+  if (!db) return { success: false, message: 'Jobs backend unavailable' };
+  if (!currentUser?.uid) return { success: false, message: 'You must be logged in' };
+  if (!safeJobId) return { success: false, message: 'Missing job id' };
+
+  try {
+    const jobDoc = await db.collection('jobs').doc(safeJobId).get();
+    if (!jobDoc.exists) return { success: false, message: 'Job not found' };
+    const jobData = jobDoc.data() || {};
+    if (String(jobData.hiredWorkerId || '').trim() !== currentUser.uid) {
+      return { success: false, message: 'Offer does not belong to your account' };
+    }
+
+    await db.collection('jobs').doc(safeJobId).update({
+      status: 'active',
+      hiredWorkerId: firebase.firestore.FieldValue.delete(),
+      hiredWorkerName: firebase.firestore.FieldValue.delete(),
+      hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+      agreedPrice: firebase.firestore.FieldValue.delete(),
+      hiredAt: firebase.firestore.FieldValue.delete(),
+      acceptedAt: firebase.firestore.FieldValue.delete(),
+      rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const applicationsSnapshot = await db.collection('applications')
+      .where('jobId', '==', safeJobId)
+      .where('applicantId', '==', currentUser.uid)
+      .get();
+    const targetApps = applicationsSnapshot.docs.filter((doc) => {
+      const status = String((doc.data() || {}).status || '').toLowerCase();
+      return status === 'accepted' || status === 'hired' || status === 'pending';
+    });
+    if (targetApps.length > 0) {
+      const batch = db.batch();
+      targetApps.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: 'rejected_by_worker',
+          rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      await batch.commit();
+    }
+
+    if (typeof releaseApplicationCoinForApplication === 'function') {
+      const releasePromises = targetApps.map((doc) =>
+        releaseApplicationCoinForApplication(doc.id, 'rejected_by_worker')
+          .catch((error) => console.warn('⚠️ Coin release skipped:', error))
+      );
+      await Promise.all(releasePromises);
+    }
+
+    // Restore live pending count after rejection.
+    try {
+      const pendingApps = await db.collection('applications')
+        .where('jobId', '==', safeJobId)
+        .where('status', '==', 'pending')
+        .get();
+      await db.collection('jobs').doc(safeJobId).update({ applicationCount: pendingApps.size });
+    } catch (countError) {
+      console.warn('⚠️ applicationCount restore skipped:', countError);
+    }
+
+    try {
+      const workerProfile = await getUserProfile(currentUser.uid);
+      const workerName = workerProfile?.fullName || currentUser.displayName || 'Worker';
+      await sendOfferRejectedNotification(
+        jobData.posterId,
+        String(jobData.posterName || 'Customer'),
+        safeJobId,
+        jobData.title || 'Gig',
+        workerName
+      );
+    } catch (notifyError) {
+      console.warn('⚠️ Offer rejected notification skipped:', notifyError);
+    }
+
+    try {
+      const offerNotifs = await db.collection('notifications')
+        .where('recipientId', '==', currentUser.uid)
+        .where('jobId', '==', safeJobId)
+        .where('type', '==', 'offer_sent')
+        .get();
+      if (!offerNotifs.empty) {
+        const deletePromises = offerNotifs.docs.map((doc) => doc.ref.delete());
+        await Promise.all(deletePromises);
+      }
+    } catch (cleanupError) {
+      console.warn('⚠️ Offer notification cleanup skipped:', cleanupError);
+    }
+
+    return { success: true, message: 'Offer rejected' };
+  } catch (error) {
+    console.error('❌ Error rejecting offer from chat:', error);
+    return { success: false, message: error.message || 'Failed to reject offer' };
+  }
+}
+
+/**
+ * Customer-side relist/void action from chat Gig Status modal.
+ * @param {string} jobId
+ * @param {string} reason
+ * @returns {Promise<{success:boolean,message:string}>}
+ */
+async function relistGigFromChat(jobId, reason) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+  const safeReason = String(reason || '').trim();
+
+  if (!db) return { success: false, message: 'Jobs backend unavailable' };
+  if (!currentUser?.uid) return { success: false, message: 'You must be logged in' };
+  if (!safeJobId) return { success: false, message: 'Missing job id' };
+  if (safeReason.length < 2) return { success: false, message: 'Reason must be at least 2 characters' };
+
+  try {
+    const jobDoc = await db.collection('jobs').doc(safeJobId).get();
+    if (!jobDoc.exists) return { success: false, message: 'Job not found' };
+    const jobData = jobDoc.data() || {};
+    if (String(jobData.posterId || '').trim() !== currentUser.uid) {
+      return { success: false, message: 'Only the customer can relist this gig' };
+    }
+
+    const hiredWorkerId = String(jobData.hiredWorkerId || '').trim();
+    const hiredWorkerName = String(jobData.hiredWorkerName || '').trim() || 'Worker';
+
+    await db.collection('jobs').doc(safeJobId).update({
+      status: 'active',
+      hiredWorkerId: firebase.firestore.FieldValue.delete(),
+      hiredWorkerName: firebase.firestore.FieldValue.delete(),
+      hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+      agreedPrice: firebase.firestore.FieldValue.delete(),
+      hiredAt: firebase.firestore.FieldValue.delete(),
+      acceptedAt: firebase.firestore.FieldValue.delete(),
+      relistedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      relistReason: safeReason,
+      voidedWorker: hiredWorkerName,
+      voidedWorkerId: hiredWorkerId,
+      applicationCount: 0,
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    if (hiredWorkerId) {
+      try {
+        const applicationsSnapshot = await db.collection('applications')
+          .where('jobId', '==', safeJobId)
+          .where('applicantId', '==', hiredWorkerId)
+          .where('status', 'in', ['accepted', 'hired', 'pending'])
+          .get();
+        const batch = db.batch();
+        applicationsSnapshot.docs.forEach((doc) => {
+          batch.update(doc.ref, {
+            status: 'voided',
+            voidedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            voidReason: safeReason
+          });
+        });
+        if (!applicationsSnapshot.empty) {
+          await batch.commit();
+          if (typeof releaseApplicationCoinForApplication === 'function') {
+            const releasePromises = applicationsSnapshot.docs.map((doc) =>
+              releaseApplicationCoinForApplication(doc.id, 'voided_by_customer')
+                .catch((error) => console.warn('⚠️ Coin release skipped:', error))
+            );
+            await Promise.all(releasePromises);
+          }
+        }
+      } catch (appError) {
+        console.warn('⚠️ Worker application voiding skipped:', appError);
+      }
+    }
+
+    if (hiredWorkerId && typeof sendContractVoidedNotification === 'function') {
+      await sendContractVoidedNotification(
+        hiredWorkerId,
+        hiredWorkerName,
+        safeJobId,
+        jobData.title || 'Gig',
+        safeReason,
+        String(jobData.posterName || 'Customer')
+      ).catch((error) => {
+        console.warn('⚠️ Contract voided notification skipped:', error);
+      });
+    }
+
+    return { success: true, message: 'Gig relisted' };
+  } catch (error) {
+    console.error('❌ Error relisting gig from chat:', error);
+    return { success: false, message: error.message || 'Failed to relist gig' };
+  }
+}
+
+/**
+ * Worker-side resignation action from chat Gig Status modal.
+ * @param {string} jobId
+ * @param {string} reason
+ * @returns {Promise<{success:boolean,message:string}>}
+ */
+async function resignGigFromChat(jobId, reason) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+  const safeReason = String(reason || '').trim();
+
+  if (!db) return { success: false, message: 'Jobs backend unavailable' };
+  if (!currentUser?.uid) return { success: false, message: 'You must be logged in' };
+  if (!safeJobId) return { success: false, message: 'Missing job id' };
+  if (safeReason.length < 2) return { success: false, message: 'Reason must be at least 2 characters' };
+
+  try {
+    const jobDoc = await db.collection('jobs').doc(safeJobId).get();
+    if (!jobDoc.exists) return { success: false, message: 'Job not found' };
+    const jobData = jobDoc.data() || {};
+    if (String(jobData.hiredWorkerId || '').trim() !== currentUser.uid) {
+      return { success: false, message: 'Only the hired worker can resign this gig' };
+    }
+
+    const workerName = currentUser.displayName || 'Worker';
+    const customerId = String(jobData.posterId || '').trim();
+    const customerName = String(jobData.posterName || 'Customer');
+
+    await db.collection('jobs').doc(safeJobId).update({
+      status: 'active',
+      hiredWorkerId: firebase.firestore.FieldValue.delete(),
+      hiredWorkerName: firebase.firestore.FieldValue.delete(),
+      hiredWorkerThumbnail: firebase.firestore.FieldValue.delete(),
+      agreedPrice: firebase.firestore.FieldValue.delete(),
+      hiredAt: firebase.firestore.FieldValue.delete(),
+      acceptedAt: firebase.firestore.FieldValue.delete(),
+      resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      resignReason: safeReason,
+      resignedWorkerId: currentUser.uid,
+      resignedWorkerName: workerName,
+      applicationCount: 0,
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    try {
+      const applicationsSnapshot = await db.collection('applications')
+        .where('jobId', '==', safeJobId)
+        .where('applicantId', '==', currentUser.uid)
+        .where('status', 'in', ['accepted', 'hired'])
+        .get();
+      const batch = db.batch();
+      applicationsSnapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, {
+          status: 'resigned',
+          resignedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          resignReason: safeReason
+        });
+      });
+      if (!applicationsSnapshot.empty) {
+        await batch.commit();
+        if (typeof releaseApplicationCoinForApplication === 'function') {
+          const releasePromises = applicationsSnapshot.docs.map((doc) =>
+            releaseApplicationCoinForApplication(doc.id, 'resigned_by_worker')
+              .catch((error) => console.warn('⚠️ Coin release skipped:', error))
+          );
+          await Promise.all(releasePromises);
+        }
+      }
+    } catch (appError) {
+      console.warn('⚠️ Resigned application update skipped:', appError);
+    }
+
+    if (customerId && typeof sendWorkerResignedNotification === 'function') {
+      await sendWorkerResignedNotification(
+        customerId,
+        customerName,
+        safeJobId,
+        jobData.title || 'Gig',
+        safeReason,
+        workerName
+      ).catch((error) => {
+        console.warn('⚠️ Worker resigned notification skipped:', error);
+      });
+    }
+
+    return { success: true, message: 'Gig resignation complete' };
+  } catch (error) {
+    console.error('❌ Error resigning gig from chat:', error);
+    return { success: false, message: error.message || 'Failed to resign from gig' };
+  }
+}
+
+/**
+ * Customer-side completion action from chat Gig Status flow.
+ * @param {string} jobId
+ * @returns {Promise<{success:boolean,message:string}>}
+ */
+async function completeGigFromChat(jobId) {
+  const db = getFirestore();
+  const currentUser = getCurrentUser();
+  const safeJobId = String(jobId || '').trim();
+
+  if (!db) return { success: false, message: 'Jobs backend unavailable' };
+  if (!currentUser?.uid) return { success: false, message: 'You must be logged in' };
+  if (!safeJobId) return { success: false, message: 'Missing job id' };
+
+  try {
+    const jobDoc = await db.collection('jobs').doc(safeJobId).get();
+    if (!jobDoc.exists) return { success: false, message: 'Job not found' };
+    const jobData = jobDoc.data() || {};
+    if (String(jobData.posterId || '').trim() !== currentUser.uid) {
+      return { success: false, message: 'Only the customer can complete this gig' };
+    }
+
+    await db.collection('jobs').doc(safeJobId).update({
+      status: 'completed',
+      completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      completedBy: 'customer',
+      completionConfirmed: true
+    });
+
+    const hiredWorkerId = String(jobData.hiredWorkerId || '').trim();
+    if (hiredWorkerId) {
+      try {
+        const acceptedApps = await db.collection('applications')
+          .where('jobId', '==', safeJobId)
+          .where('applicantId', '==', hiredWorkerId)
+          .where('status', 'in', ['accepted', 'hired'])
+          .get();
+        if (!acceptedApps.empty) {
+          const batch = db.batch();
+          acceptedApps.docs.forEach((doc) => {
+            batch.update(doc.ref, {
+              status: 'completed',
+              completedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          });
+          await batch.commit();
+
+          if (typeof releaseApplicationCoinForApplication === 'function') {
+            const releasePromises = acceptedApps.docs.map((doc) =>
+              releaseApplicationCoinForApplication(doc.id, 'gig_completed')
+                .catch((error) => console.warn('⚠️ Coin release skipped:', error))
+            );
+            await Promise.all(releasePromises);
+          }
+        }
+      } catch (appError) {
+        console.warn('⚠️ Completion app update skipped:', appError);
+      }
+    }
+
+    if (hiredWorkerId && typeof createNotification === 'function') {
+      await createNotification(hiredWorkerId, {
+        type: 'job_completed',
+        jobId: safeJobId,
+        jobTitle: jobData.title || 'Gig',
+        message: `Gig "${jobData.title || 'Gig'}" has been marked completed.`,
+        actionRequired: false
+      }).catch((error) => {
+        console.warn('⚠️ Completion notification skipped:', error);
+      });
+    }
+
+    return { success: true, message: 'Gig marked as completed' };
+  } catch (error) {
+    console.error('❌ Error completing gig from chat:', error);
+    return { success: false, message: error.message || 'Failed to complete gig' };
+  }
+}
+
+/**
  * Get offered jobs for a worker (jobs with status 'hired' where they are the hired worker)
  * @param {string} workerId - Worker's user ID
  * @returns {Promise<Array>} - Array of offered job objects
@@ -3787,6 +4230,11 @@ window.getUserProfile = getUserProfile;
 window.applyForJob = applyForJob;
 window.getJobApplications = getJobApplications;
 window.hireWorker = hireWorker;
+window.acceptGigOfferInChat = acceptGigOfferInChat;
+window.rejectGigOfferInChat = rejectGigOfferInChat;
+window.relistGigFromChat = relistGigFromChat;
+window.resignGigFromChat = resignGigFromChat;
+window.completeGigFromChat = completeGigFromChat;
 window.getWorkerApplications = getWorkerApplications;
 window.withdrawWorkerApplication = withdrawWorkerApplication;
 window.getUserApplicationCoinStatus = getUserApplicationCoinStatus;

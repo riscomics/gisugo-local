@@ -73,11 +73,12 @@ function enableFirestorePersistenceSafely() {
     }
   }
 
-  // Use single-tab persistence consistently to avoid multi-tab API deprecation warnings.
+  // Enable multi-tab persistence so concurrent pages share IndexedDB cache
+  // without failed-precondition warnings in normal multi-tab usage.
   // App behavior remains "works or fails": if persistence init fails, Firestore still runs online.
-  db.enablePersistence({ synchronizeTabs: false })
+  db.enablePersistence({ synchronizeTabs: true })
     .then(() => {
-      console.log(`💾 Firestore offline persistence enabled (${isIOS ? 'single-tab iOS mode' : 'single-tab mode'})`);
+      console.log(`💾 Firestore offline persistence enabled (${isIOS ? 'multi-tab iOS mode' : 'multi-tab mode'})`);
     })
     .catch((error) => {
       const code = error && error.code ? error.code : 'unknown';
