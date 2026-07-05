@@ -3348,7 +3348,7 @@ async function fetchFaceVerificationMediaAccess(targetUserId, context = {}) {
             });
     });
     try {
-        const callable = firebase.functions().httpsCallable('getFaceVerificationMediaAccess');
+        const callable = firebase.app().functions('asia-southeast1').httpsCallable('getFaceVerificationMediaAccess');
         const payload = {
             targetUserId,
             scope: context.scope || 'jobs'
@@ -4276,6 +4276,27 @@ async function moveJobFromOfferedToAccepted(jobId, options = {}) {
                 acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 workerAccepted: true // Flag to indicate worker has accepted
             });
+
+            // Getting hired returns the worker's application slot (only pending/offer states hold one).
+            try {
+                const hiredWorker = firebase.auth().currentUser;
+                if (hiredWorker?.uid && typeof releaseApplicationCoinForApplication === 'function') {
+                    const ownApps = await db.collection('applications')
+                        .where('jobId', '==', jobId)
+                        .where('applicantId', '==', hiredWorker.uid)
+                        .get();
+                    const releasePromises = ownApps.docs
+                        .filter((doc) => {
+                            const status = String((doc.data() || {}).status || '').toLowerCase();
+                            return status === 'accepted' || status === 'hired' || status === 'pending';
+                        })
+                        .map((doc) => releaseApplicationCoinForApplication(doc.id, 'hired')
+                            .catch((error) => console.warn('⚠️ Coin release on hire skipped:', error)));
+                    await Promise.all(releasePromises);
+                }
+            } catch (hireReleaseError) {
+                console.warn('⚠️ Coin release on hire skipped:', hireReleaseError);
+            }
 
             // Track worker acceptance activity.
             try {

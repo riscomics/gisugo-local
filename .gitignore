@@ -21,4 +21,11 @@ Thumbs.db
 
 # Build output
 dist/
-build/ 
+build/
+
+# Firebase Admin service-account keys — NEVER commit these (full project access)
+*serviceAccount*.json
+*service-account*.json
+*-firebase-adminsdk-*.json
+secrets/
+admin-keys/

@@ -37,7 +37,8 @@ const CRITICAL_PUSH_NOTIFICATION_TYPES = new Set([
   "contract_voided",
   "worker_resigned",
   "job_completed",
-  "application_received"
+  "application_received",
+  "application_slots_reopened_batch"
 ]);
 
 function inferNotificationRoleForCounter(notification = {}) {
@@ -135,8 +136,9 @@ function buildPushPayloadFromNotification(notification = {}) {
     job_completed: "Gig Completed",
     feedback_received: "Feedback Received",
     worker_feedback_received: "Feedback Received",
-    application_not_selected_batch: "Application Update",
-    application_rejected_batch: "Application Update",
+    application_not_selected_batch: "Application Slots Open",
+    application_rejected_batch: "Application Slots Open",
+    application_slots_reopened_batch: "Application Slots Open",
     interview_request: "Interview Request"
   };
   const title = String(notification.title || fallbackTitleMap[type] || "GISUGO Alert");
@@ -469,7 +471,7 @@ function normalizeFingerprint(value) {
 }
 
 exports.checkSignupRateLimit = onCall(
-  { region: "us-central1", cors: true },
+  { region: "asia-southeast1", cors: true },
   async (request) => {
     const now = Date.now();
     const ip = getCallerIp(request);
@@ -546,90 +548,8 @@ exports.checkSignupRateLimit = onCall(
   }
 );
 
-exports.migrateLegacyProfilePhones = onCall(
-  { region: "us-central1", cors: true },
-  async (request) => {
-    const requesterUid = request.auth?.uid || "";
-    if (!requesterUid) {
-      throw new HttpsError("unauthenticated", "Authentication required.");
-    }
-
-    const migrationRef = db.collection("system_migrations").doc("legacy_profile_phone_v1");
-    const migrationSnap = await migrationRef.get();
-    const migrationData = migrationSnap.exists ? (migrationSnap.data() || {}) : {};
-    if (migrationData.status === "done") {
-      return {
-        ok: true,
-        alreadyDone: true,
-        scannedUsers: Number(migrationData.scannedUsers || 0),
-        updatedUsers: Number(migrationData.updatedUsers || 0)
-      };
-    }
-
-    await migrationRef.set({
-      status: "running",
-      startedBy: requesterUid,
-      startedAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    const usersRef = db.collection("users");
-    const deleteValue = admin.firestore.FieldValue.delete();
-    const docIdField = admin.firestore.FieldPath.documentId();
-    let lastDoc = null;
-    let scannedUsers = 0;
-    let updatedUsers = 0;
-
-    while (true) {
-      let query = usersRef.orderBy(docIdField).limit(250);
-      if (lastDoc) query = query.startAfter(lastDoc);
-
-      // eslint-disable-next-line no-await-in-loop
-      const snapshot = await query.get();
-      if (snapshot.empty) break;
-
-      const batch = db.batch();
-      snapshot.docs.forEach((docSnap) => {
-        scannedUsers += 1;
-        const data = docSnap.data() || {};
-        if (!Object.prototype.hasOwnProperty.call(data, "phoneNumber")) return;
-
-        batch.update(docSnap.ref, {
-          phoneNumber: deleteValue,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
-        updatedUsers += 1;
-      });
-
-      // eslint-disable-next-line no-await-in-loop
-      await batch.commit();
-      lastDoc = snapshot.docs[snapshot.docs.length - 1];
-    }
-
-    logger.info("Legacy profile phone migration completed", {
-      scannedUsers,
-      updatedUsers
-    });
-
-    await migrationRef.set({
-      status: "done",
-      completedBy: requesterUid,
-      completedAt: admin.firestore.FieldValue.serverTimestamp(),
-      scannedUsers,
-      updatedUsers,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
-
-    return {
-      ok: true,
-      scannedUsers,
-      updatedUsers
-    };
-  }
-);
-
 exports.getFaceVerificationMediaAccess = onCall(
-  { region: "us-central1", cors: true },
+  { region: "asia-southeast1", cors: true },
   async (request) => {
     const requesterUid = request.auth?.uid || "";
     if (!requesterUid) {
@@ -646,7 +566,7 @@ exports.getFaceVerificationMediaAccess = onCall(
     }
 
     let allowed = requesterUid === targetUserId; // Owner access
-    // Current app behavior treats Face Verified media as public to authenticated users.
+    // FVV is a public trust signal — any authenticated user can view it on a profile page.
     if (!allowed && scope === "profile") {
       allowed = true;
     }
@@ -763,7 +683,7 @@ exports.getFaceVerificationMediaAccess = onCall(
 );
 
 exports.auditAndRepairFaceVerification = onCall(
-  { region: "us-central1", cors: true },
+  { region: "asia-southeast1", cors: true },
   async (request) => {
     assertAuditAccess(request);
 
@@ -881,7 +801,7 @@ exports.auditAndRepairFaceVerification = onCall(
 );
 
 exports.normalizeFaceVerificationVideo = onCall(
-  { region: "us-central1", timeoutSeconds: 180, memory: "1GiB", cors: true },
+  { region: "asia-southeast1", timeoutSeconds: 180, memory: "1GiB", cors: true },
   async (request) => {
     const requesterUid = request.auth?.uid || "";
     if (!requesterUid) {
@@ -996,7 +916,7 @@ exports.normalizeFaceVerificationVideo = onCall(
 );
 
 exports.cleanupOldReadNotifications = onSchedule(
-  { schedule: "every 24 hours", region: "us-central1", timeZone: "Asia/Manila" },
+  { schedule: "every 24 hours", region: "asia-southeast1", timeZone: "Asia/Manila" },
   async () => {
     const cutoffMs = Date.now() - (ALERT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
     const cutoff = admin.firestore.Timestamp.fromMillis(cutoffMs);
@@ -1037,7 +957,7 @@ exports.cleanupOldReadNotifications = onSchedule(
 );
 
 exports.syncNotificationCountersOnWrite = onDocumentWritten(
-  { document: "notifications/{notificationId}", region: "us-central1" },
+  { document: "notifications/{notificationId}", region: "asia-southeast1" },
   async (event) => {
     const before = event.data?.before?.exists ? (event.data.before.data() || {}) : null;
     const after = event.data?.after?.exists ? (event.data.after.data() || {}) : null;
@@ -1064,7 +984,7 @@ exports.syncNotificationCountersOnWrite = onDocumentWritten(
 );
 
 exports.sendPushOnNotificationCreate = onDocumentCreated(
-  { document: "notifications/{notificationId}", region: "us-central1" },
+  { document: "notifications/{notificationId}", region: "asia-southeast1" },
   async (event) => {
     const notification = event.data?.data() || {};
     const notificationId = String(event.params?.notificationId || "");

@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Date:** 2026-01-14  
-**Status:** DRAFT - Awaiting Approval
+**Status:** IMPLEMENTED — core photo management (compression, Storage↔Firestore sync, error recovery) shipped to production. Spec retained as reference. _(Status updated 2026-06-18.)_
 
 ---
 

@@ -55,6 +55,22 @@ function enableFirestorePersistenceSafely() {
   if (firestorePersistenceAttempted || !firebase.firestore) return;
   firestorePersistenceAttempted = true;
 
+  // The Firestore compat SDK logs a one-time deprecation notice for
+  // enableMultiTabIndexedDbPersistence() (the API enablePersistence() uses under the hood).
+  // It is harmless and costs nothing — purely console noise emitted once at init. We already
+  // track the real fix (new cache config) for a future SDK upgrade, so filter ONLY this exact
+  // message and let every other warning through. Reversible: delete this block.
+  if (!window.__gisugoMutedFirestoreDeprecation && typeof console !== 'undefined' && typeof console.warn === 'function') {
+    window.__gisugoMutedFirestoreDeprecation = true;
+    const originalWarn = console.warn.bind(console);
+    console.warn = function(...args) {
+      let haystack = '';
+      try { haystack = args.map((a) => String(a)).join(' '); } catch (e) { haystack = ''; }
+      if (haystack.indexOf('enableMultiTabIndexedDbPersistence') !== -1) return;
+      originalWarn(...args);
+    };
+  }
+
   const db = firebase.firestore();
   const isIOS = isIOSWebKit();
 

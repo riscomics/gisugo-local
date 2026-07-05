@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
     <link rel="stylesheet" href="public/css/jobs.css?v=6.6">
-    <link rel="stylesheet" href="public/css/my-applications.css?v=1">
+    <link rel="stylesheet" href="public/css/my-applications.css?v=5">
     <link rel="stylesheet" href="public/css/shared-menu.css">
 </head>
 <body class="page-jobs page-my-applications">
@@ -35,12 +35,7 @@
             <div class="coin-status-text">
                 <div class="coin-status-main">
                     <span class="coin-status-value loading" id="coinStatusValue">0</span>
-                    <div class="coin-status-float" aria-hidden="true">
-                        <div class="coin-status-coin">
-                            <span class="coin-status-letter">G</span>
-                        </div>
-                    </div>
-                    <span class="coin-status-suffix">TOKENS REMAINING</span>
+                    <span class="coin-status-suffix">APPLICATIONS REMAINING</span>
                 </div>
                 <div class="coin-status-caption" id="coinStatusCaption"></div>
             </div>
@@ -90,21 +85,39 @@
         </div>
     </div>
 
+    <div class="my-app-confirm-overlay" id="withdrawConfirmOverlay" aria-hidden="true">
+        <div class="my-app-confirm-card" role="dialog" aria-modal="true" aria-labelledby="withdrawConfirmTitle">
+            <div class="my-app-confirm-body">
+                <div class="my-app-confirm-icon">↩️</div>
+                <div class="my-app-confirm-title" id="withdrawConfirmTitle">Withdraw Application?</div>
+                <div class="my-app-confirm-message">This application will be returned to you, and the slot will be freed up so you can apply elsewhere.</div>
+                <div class="my-app-confirm-actions">
+                    <button class="my-app-confirm-btn cancel" id="withdrawConfirmCancel">Keep It</button>
+                    <button class="my-app-confirm-btn confirm" id="withdrawConfirmAccept">Withdraw</button>
+                </div>
+            </div>
+            <div class="my-app-confirm-processing">
+                <div class="my-app-spinner"></div>
+                <div class="my-app-confirm-processing-text">Withdrawing&hellip;</div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
 
-    <script src="public/js/firebase-config.js?v=20260313c"></script>
+    <script src="public/js/firebase-config.js?v=20260627a"></script>
     <script src="public/js/firebase-auth.js?v=8"></script>
     <script src="public/js/push-notifications.js?v=8"></script>
-    <script src="public/js/firebase-db.js?v=40"></script>
+    <script src="public/js/firebase-db.js?v=54"></script>
     <script src="public/js/firebase-storage.js?v=2"></script>
     <script src="public/js/app-config.js"></script>
     <script src="public/js/data-service.js"></script>
     <script src="public/js/header-uniform.js?v=1.2"></script>
     <script src="public/js/shared-menu.js?v=3.7"></script>
-    <script src="public/js/my-applications.js?v=1"></script>
+    <script src="public/js/my-applications.js?v=5"></script>
 </body>
 </html>

@@ -1,5 +1,9 @@
 {
+  "scripts": {
+    "dev": "live-server --port=5500"
+  },
   "devDependencies": {
-    "firebase-admin": "^13.6.1"
+    "firebase-admin": "^13.10.0",
+    "live-server": "^1.2.2"
   }
 }

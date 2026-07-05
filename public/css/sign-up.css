@@ -570,12 +570,43 @@ body::-webkit-scrollbar {
 
 .form-error.show {
   display: block;
+  font-weight: 600;
+  transform-origin: left center;
+  animation: errorTextPulse 0.55s ease-in-out 4;
+}
+
+@keyframes errorTextPulse {
+  0%, 100% {
+    color: #fc8181;
+    transform: scale(1);
+  }
+  50% {
+    color: #ff2d2d;
+    transform: scale(1.07);
+  }
 }
 
 .form-input.error,
 .form-select.error,
 .form-textarea.error {
-  border-color: #fc8181;
+  border-color: #ff5b5b;
+  box-shadow: 0 0 0 3px rgba(255, 91, 91, 0.4), 0 0 18px rgba(255, 91, 91, 0.8);
+  animation: fieldErrorPulse 0.55s ease-in-out 4;
+}
+
+.photo-preview.error {
+  border: 3px solid #ff5b5b !important;
+  box-shadow: 0 0 0 3px rgba(255, 91, 91, 0.4), 0 0 18px rgba(255, 91, 91, 0.8);
+  animation: fieldErrorPulse 0.55s ease-in-out 4;
+}
+
+@keyframes fieldErrorPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(255, 91, 91, 0.35), 0 0 10px rgba(255, 91, 91, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 91, 91, 0.7), 0 0 28px rgba(255, 91, 91, 1);
+  }
 }
 
 /* Loading Overlay */

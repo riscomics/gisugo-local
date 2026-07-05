@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title id="pageTitle">Job Details - GISUGO</title>
   <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
-  <link rel="stylesheet" href="public/css/jobpage.css?v=39">
+  <link rel="stylesheet" href="public/css/jobpage.css?v=44">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body>
@@ -231,22 +231,6 @@
         </div>
       </div>
 
-      <div class="apply-coin-status" id="applyCoinStatus">
-        <div class="apply-coin-main">
-          <div class="apply-coin-left">
-            <div class="apply-gcoin-coin" aria-hidden="true">
-              <span class="apply-gcoin-letter">G</span>
-            </div>
-            <span class="apply-coin-label">Token Remaining</span>
-          </div>
-          <span class="apply-coin-value" id="applyCoinValue">10 / 10</span>
-        </div>
-        <div class="apply-coin-caption" id="applyCoinCaption">
-          <span class="apply-coin-caption-guidance">Apply only if you are qualified and available.</span>
-          <span class="apply-coin-caption-cost">Each time you Apply costs 1 Token.</span>
-        </div>
-      </div>
-      
       <div class="apply-actions">
         <button class="apply-submit-btn" id="submitApplication" type="button">APPLY TO GIG</button>
         <button class="apply-cancel-btn" id="cancelApplication" type="button">Cancel</button>
@@ -254,6 +238,41 @@
     </div>
   </div>
   
+  <!-- Application flow overlays -->
+  <!-- Confirm intent (shows count + how it works, before composing) -->
+  <div class="application-sent-overlay apply-flow-overlay" id="applyConfirmOverlay">
+    <div class="application-sent-modal apply-flow-modal">
+      <div class="apply-flow-lang-tabs" id="applyConfirmLangTabs">
+        <button class="apply-flow-lang-tab active" data-lang="english" type="button">English</button>
+        <button class="apply-flow-lang-tab" data-lang="bisaya" type="button">Bisaya</button>
+        <button class="apply-flow-lang-tab" data-lang="tagalog" type="button">Tagalog</button>
+      </div>
+      <div class="apply-flow-count">
+        <span class="apply-flow-count-value" id="applyConfirmCountValue">— of —</span>
+        <span class="apply-flow-count-label" id="applyConfirmCountLabel">applications remaining</span>
+      </div>
+      <div class="apply-flow-note" id="applyConfirmNote">This uses 1 application. It comes back if you're not chosen, you cancel, or the gig finishes.</div>
+      <div class="apply-flow-subnote" id="applyConfirmWithdrawNote"></div>
+      <div class="apply-flow-actions">
+        <button class="apply-flow-primary-btn" id="applyConfirmContinue" type="button">CONTINUE</button>
+        <button class="apply-flow-secondary-btn" id="applyConfirmCancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capacity reached (zero-state, inline retract) -->
+  <div class="application-sent-overlay apply-flow-overlay" id="applyCapacityOverlay">
+    <div class="application-sent-modal apply-flow-modal">
+      <div class="application-sent-icon">⛔</div>
+      <div class="application-sent-title apply-flow-title">NO APPLICATIONS REMAINING</div>
+      <div class="apply-flow-note">You've reached your limit of <span id="applyCapacityMax">10</span> active applications. An application frees up when a gig finishes or doesn't work out. To apply here, cancel one you no longer need:</div>
+      <div class="apply-flow-active-list" id="applyCapacityList"></div>
+      <div class="apply-flow-actions">
+        <button class="apply-flow-secondary-btn" id="applyCapacityClose" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Light Rays Container (outside overlay for z-index) -->
   <div class="light-rays-container" id="lightRaysContainer">
     <div class="light-ray"></div>
@@ -267,27 +286,32 @@
   </div>
   
   <!-- Application Confirmation Overlay -->
-  <div class="application-sent-overlay" id="applicationSentOverlay">
-    <div class="application-sent-modal">
+  <div class="application-sent-overlay apply-flow-overlay" id="applicationSentOverlay">
+    <div class="application-sent-modal apply-flow-modal">
+      <div class="apply-flow-lang-tabs" id="applicationSentLangTabs">
+        <button class="apply-flow-lang-tab active" data-lang="english" type="button">English</button>
+        <button class="apply-flow-lang-tab" data-lang="bisaya" type="button">Bisaya</button>
+        <button class="apply-flow-lang-tab" data-lang="tagalog" type="button">Tagalog</button>
+      </div>
       <div class="application-sent-icon">✉️</div>
-      <div class="application-sent-title">APPLICATION SENT!</div>
-      <div class="application-sent-subtitle">What happens next?</div>
+      <div class="application-sent-title" id="applicationSentTitle">APPLICATION SENT!</div>
+      <div class="application-sent-subtitle" id="applicationSentSubtitle">What happens next?</div>
       <div class="application-sent-steps">
         <div class="sent-step">
           <span class="step-number">1</span>
-          <span class="step-text">The Customer will review your application</span>
+          <span class="step-text" id="applicationSentStep1">The Customer will review your application</span>
         </div>
         <div class="sent-step">
           <span class="step-number">2</span>
-          <span class="step-text">If accepted, you'll receive a message notification</span>
+          <span class="step-text" id="applicationSentStep2">If accepted, you'll receive a message notification</span>
         </div>
         <div class="sent-step">
           <span class="step-number">3</span>
-          <span class="step-text">Check your <a href="messages.html" class="messages-link">MESSAGES</a> for updates</span>
+          <span class="step-text" id="applicationSentStep3">Check your <a href="messages.html" class="messages-link">MESSAGES</a> for updates</span>
         </div>
       </div>
-      <div class="application-sent-tip">
-        💡 Tip: Apply to multiple gigs to increase your chances!
+      <div class="application-sent-tip" id="applicationSentTip">
+        💡 Tip: You'll get this application back if you're not chosen.
       </div>
       <button class="application-sent-close-btn" id="applicationSentClose">GOT IT!</button>
     </div>
@@ -339,16 +363,16 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
   
   <!-- Firebase Helper Modules -->
-  <script src="public/js/firebase-config.js?v=20260313c"></script>
+  <script src="public/js/firebase-config.js?v=20260627a"></script>
   <script src="public/js/firebase-auth.js?v=8"></script>
-  <script src="public/js/firebase-db.js?v=49"></script>
+  <script src="public/js/firebase-db.js?v=54"></script>
   <script src="public/js/firebase-storage.js?v=2"></script>
   <script src="public/js/push-notifications.js?v=8"></script>
   
   <script src="public/js/app-config.js"></script>
   <script src="public/js/data-service.js"></script>
   <script src="public/js/shared-menu.js?v=3.7"></script>
-  <script src="public/js/dynamic-job.js?v=52"></script>
+  <script src="public/js/dynamic-job.js?v=59"></script>
 
 </body>
 </html> 

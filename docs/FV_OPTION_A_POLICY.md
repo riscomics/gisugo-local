@@ -59,6 +59,16 @@ This project uses **Option A** for Face Verification media.
 - Access control is primarily **UX-gated navigation**, not signed URL token gating.
 - Storage rules enforce authenticated read and owner/admin write/delete.
 
+> **Intentional by design (confirmed 2026-06-18):** Authenticated users being able to
+> read Face Verification media directly (the `face_verification` Storage path allowing
+> `read: if isAuthenticated()`) is **deliberate**, not a security gap. FVV is a
+> **community trust signal** — the whole point is that members can "see" who they're
+> considering hiring or working for before meeting in person, countering the anonymity
+> of avatar-only profiles. Each member records a short selfie video pronouncing their
+> full name as a greeting to the community. Open authenticated access supports that
+> goal. This has been flagged by audits multiple times; it is working as intended and
+> should not be "fixed" without an explicit product decision to change the trust model.
+
 ## Non-goals in Option A
 
 - No client-side folder scans (`listAll`) during normal UX flows.

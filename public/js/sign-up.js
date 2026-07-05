@@ -14,7 +14,6 @@ let isSigningUp = false; // Flag to prevent race conditions during signup
 let currentSignupLang = 'english';
 let signupSuccessMode = 'default';
 const FULL_NAME_MAX_CHARS = 25;
-const LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG = 'legacyProfilePhoneMigrationDoneV1';
 const SUCCESS_MODAL_I18N = {
   english: [
     'Record a quick friendly selfie intro.',
@@ -37,6 +36,7 @@ const SIGNUP_I18N = {
   english: {
     profilePhoto: 'Profile Photo',
     tapSelfie: 'Tap to Take a Clear Selfie',
+    tapChange: 'Tap to Change Photo (Optional)',
     signupWith: 'Sign Up With',
     or: 'OR',
     signupPhone: 'Sign up with Phone Number',
@@ -65,11 +65,14 @@ const SIGNUP_I18N = {
     privacyLink: 'Privacy Policy',
     createAccount: 'CREATE ACCOUNT',
     authSignedInWith: '✅ Signed in with {provider}',
-    authCompleteProfile: 'Complete your profile below to continue'
+    authCompleteProfile: 'Complete your profile below to continue',
+    useDifferentAccount: 'Not you? Use a different account',
+    fixHighlighted: 'Please complete the highlighted fields above'
   },
   bisaya: {
     profilePhoto: 'Profile Photo',
     tapSelfie: 'Pislita para mokuha ug klaro nga selfie',
+    tapChange: 'Pislita para usbon ang litrato (Opsyonal)',
     signupWith: 'PAAGI SA PAG-SIGN UP',
     or: 'O',
     signupPhone: 'Sign up gamit ang Phone Number',
@@ -98,11 +101,14 @@ const SIGNUP_I18N = {
     privacyLink: 'Privacy Policy',
     createAccount: 'CREATE ACCOUNT',
     authSignedInWith: '✅ Signed in with {provider}',
-    authCompleteProfile: 'Kompletoha ang imong profile sa ubos aron makapadayon'
+    authCompleteProfile: 'Kompletoha ang imong profile sa ubos aron makapadayon',
+    useDifferentAccount: 'Dili ikaw? Gamita ang laing account',
+    fixHighlighted: 'Palihug kompletoha ang mga gipasiugda nga field sa ibabaw'
   },
   tagalog: {
     profilePhoto: 'Profile Photo',
     tapSelfie: 'Pindutin para kumuha ng malinaw na selfie',
+    tapChange: 'Pindutin para palitan ang litrato (Opsyonal)',
     signupWith: 'SIGN UP GAMIT',
     or: 'O',
     signupPhone: 'Mag-sign up gamit ang Phone Number',
@@ -131,7 +137,9 @@ const SIGNUP_I18N = {
     privacyLink: 'Privacy Policy',
     createAccount: 'CREATE ACCOUNT',
     authSignedInWith: '✅ Signed in with {provider}',
-    authCompleteProfile: 'Kumpletuhin ang profile mo sa ibaba para magpatuloy'
+    authCompleteProfile: 'Kumpletuhin ang profile mo sa ibaba para magpatuloy',
+    useDifferentAccount: 'Hindi ikaw? Gumamit ng ibang account',
+    fixHighlighted: 'Pakikumpleto ang mga naka-highlight na field sa itaas'
   }
 };
 
@@ -152,7 +160,7 @@ async function checkSignupRateLimitGuard() {
     return { allowed: true };
   }
   try {
-    const callable = firebase.functions().httpsCallable('checkSignupRateLimit');
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('checkSignupRateLimit');
     const result = await callable({
       deviceFingerprint: buildSignupDeviceFingerprint(),
       action: 'create_account'
@@ -179,6 +187,10 @@ function updateAuthStatusCopy() {
   }
   if (subtitleEl) {
     subtitleEl.textContent = tSignup('authCompleteProfile');
+  }
+  const switchEl = status.querySelector('#useDifferentAccountBtn');
+  if (switchEl) {
+    switchEl.textContent = tSignup('useDifferentAccount');
   }
 }
 
@@ -386,20 +398,6 @@ async function checkExistingAuthUser() {
   }
   
   try {
-    const runLegacyProfilePhoneMigrationIfNeeded = async () => {
-      if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
-      if (window.localStorage.getItem(LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG) === '1') return;
-      if (typeof firebase === 'undefined' || !firebase.functions) return;
-      try {
-        const migrateLegacyProfilePhones = firebase.functions().httpsCallable('migrateLegacyProfilePhones');
-        await migrateLegacyProfilePhones({});
-        window.localStorage.setItem(LEGACY_PROFILE_PHONE_MIGRATION_SIGNUP_FLAG, '1');
-      } catch (migrationError) {
-        // Non-blocking: account creation flow should proceed even if migration call is unavailable.
-        console.warn('⚠️ Legacy profile phone migration skipped on sign-up page:', migrationError?.message || migrationError);
-      }
-    };
-
     // Wait for Firebase auth to initialize
     firebase.auth().onAuthStateChanged(async (user) => {
       // Skip checks during active signup to prevent race conditions
@@ -410,8 +408,7 @@ async function checkExistingAuthUser() {
       
       if (user && !authenticatedUser) {
         console.log('🔍 Found existing Firebase Auth user:', user.uid);
-        await runLegacyProfilePhoneMigrationIfNeeded();
-        
+
         // Check if they already have a complete profile
         if (typeof checkUserHasProfile === 'function') {
           const { hasProfile } = await checkUserHasProfile(user.uid);
@@ -485,6 +482,14 @@ function prefillFromAuth(authData) {
     if (photoEmoji) {
       photoEmoji.style.display = 'none';
     }
+
+    // The provider avatar already satisfies the photo requirement, so relabel
+    // the caption from "take a selfie" to an optional "change photo" prompt.
+    const photoCaption = document.querySelector('.photo-upload-caption');
+    if (photoCaption) {
+      photoCaption.setAttribute('data-i18n', 'tapChange');
+      photoCaption.textContent = tSignup('tapChange');
+    }
   }
   
   console.log('✅ Form pre-filled from auth data');
@@ -536,6 +541,8 @@ function showAuthenticatedState(provider) {
         <span class="auth-status-title" style="color: #10b981; font-weight: 600;"></span>
         <br>
         <span class="auth-status-subtitle" style="color: #9ca3af; font-size: 0.85rem;"></span>
+        <br>
+        <button type="button" id="useDifferentAccountBtn" style="margin-top: 10px; background: transparent; border: 1px solid rgba(252, 129, 129, 0.5); color: #fc8181; border-radius: 6px; padding: 6px 14px; font-size: 0.8rem; cursor: pointer;"></button>
       </div>
     `;
   }
@@ -546,7 +553,33 @@ function showAuthenticatedState(provider) {
   if (photoSection && photoSection.nextSibling) {
     photoSection.parentNode.insertBefore(authMessage, photoSection.nextSibling);
   }
+
+  // Escape hatch: let the user drop this OAuth session and pick another method.
+  const switchBtn = document.getElementById('useDifferentAccountBtn');
+  if (switchBtn && !switchBtn.dataset.bound) {
+    switchBtn.dataset.bound = '1';
+    switchBtn.addEventListener('click', handleUseDifferentAccount);
+  }
+
   updateAuthStatusCopy();
+}
+
+/**
+ * Sign out of the currently-authenticated (but profile-incomplete) account and
+ * reload, so the user can sign up with a different account/method.
+ */
+async function handleUseDifferentAccount() {
+  try {
+    sessionStorage.removeItem('gisugo_pending_auth');
+    authenticatedUser = null;
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      await firebase.auth().signOut();
+    }
+  } catch (error) {
+    console.warn('⚠️ Sign-out before switching account failed:', error);
+  } finally {
+    window.location.reload();
+  }
 }
 
 // Initialize form elements and event listeners
@@ -840,14 +873,15 @@ function isSectionComplete(sectionId) {
 }
 
 function autoAdvanceSignupSections() {
-  for (let i = 0; i < SIGNUP_COLLAPSIBLE_FLOW.length - 1; i += 1) {
-    const currentId = SIGNUP_COLLAPSIBLE_FLOW[i];
-    const nextId = SIGNUP_COLLAPSIBLE_FLOW[i + 1];
-    if (isSectionComplete(currentId)) {
-      setSectionCollapsed(nextId, false);
-    } else {
-      break;
-    }
+  // Basic complete -> reveal About.
+  if (isSectionComplete('signupSectionBasic')) {
+    setSectionCollapsed('signupSectionAbout', false);
+  }
+  // About complete -> jump straight to Terms. The optional Background & Social
+  // sections intentionally stay collapsed so they don't interrupt the flow;
+  // users can open them here or add later in Edit Profile.
+  if (isSectionComplete('signupSectionBasic') && isSectionComplete('signupSectionAbout')) {
+    setSectionCollapsed('signupSectionTerms', false);
   }
 }
 
@@ -1048,17 +1082,13 @@ function resolveErrorElementId(fieldId) {
   return `${fieldId}Error`;
 }
 
-function setSubmitError(messages) {
+function setSubmitError() {
+  // The above-button summary was removed: per-field messages + the pulsing glow
+  // already convey what's wrong, so this box stays hidden to avoid redundancy.
   const submitError = document.getElementById('signupSubmitError');
   if (!submitError) return;
-  const normalized = Array.isArray(messages) ? messages.filter(Boolean) : [messages].filter(Boolean);
-  if (!normalized.length) {
-    submitError.textContent = '';
-    submitError.classList.remove('show');
-    return;
-  }
-  submitError.textContent = normalized.join(' • ');
-  submitError.classList.add('show');
+  submitError.textContent = '';
+  submitError.classList.remove('show');
 }
 
 function refreshSubmitErrorFromVisibleErrors() {
@@ -1072,26 +1102,39 @@ function refreshSubmitErrorFromVisibleErrors() {
   setSubmitError(uniqueMessages);
 }
 
+// Restart a CSS animation so it replays even if the element already has the
+// error class (e.g. the user presses Create Account again while still invalid).
+function retriggerPulse(el) {
+  if (!el) return;
+  el.style.animation = 'none';
+  // Force reflow so the browser registers the removal before re-applying.
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+
 // Show error message
 function showError(fieldId, message) {
   const errorElement = document.getElementById(resolveErrorElementId(fieldId));
   const inputElement = document.getElementById(fieldId);
   
-  if (errorElement && fieldId !== 'termsAccepted') {
+  if (errorElement) {
     errorElement.textContent = message;
     errorElement.classList.add('show');
+    retriggerPulse(errorElement);
   }
   setSubmitError(message);
   
   if (inputElement) {
     inputElement.classList.add('error');
+    retriggerPulse(inputElement);
   }
   
   // Special handling for photo preview error styling
   if (fieldId === 'profilePhoto') {
     const photoPreview = document.getElementById('photoPreview');
     if (photoPreview) {
-      photoPreview.style.border = '3px solid #ef4444';
+      photoPreview.classList.add('error');
+      retriggerPulse(photoPreview);
     }
   }
   refreshSubmitErrorFromVisibleErrors();
@@ -1102,7 +1145,7 @@ function clearError(fieldId) {
   const errorElement = document.getElementById(resolveErrorElementId(fieldId));
   const inputElement = document.getElementById(fieldId);
   
-  if (errorElement && fieldId !== 'termsAccepted') {
+  if (errorElement) {
     errorElement.classList.remove('show');
   }
   
@@ -1114,7 +1157,7 @@ function clearError(fieldId) {
   if (fieldId === 'profilePhoto') {
     const photoPreview = document.getElementById('photoPreview');
     if (photoPreview) {
-      photoPreview.style.border = '';
+      photoPreview.classList.remove('error');
     }
   }
   refreshSubmitErrorFromVisibleErrors();
@@ -1355,8 +1398,11 @@ function validateForm() {
     }
   });
   
-  // Validate profile photo is uploaded/taken in this form flow.
-  if (!selectedPhoto && !selectedPhotoDataUrl) {
+  // Validate a profile photo exists: either taken/uploaded in this flow, OR
+  // already provided by the OAuth provider (Google/Facebook avatar), which the
+  // submit step uses directly (see authenticatedUser.photoURL handling below).
+  const hasOAuthPhoto = !!(authenticatedUser && authenticatedUser.photoURL);
+  if (!selectedPhoto && !selectedPhotoDataUrl && !hasOAuthPhoto) {
     showError('profilePhoto', 'Please upload a profile photo');
     isValid = false;
     
@@ -1368,6 +1414,15 @@ function validateForm() {
   }
 
   if (!isValid) {
+    // Reveal any collapsed section that contains an invalid field, otherwise the
+    // glowing error border is hidden under a compact (collapsed) section.
+    SIGNUP_COLLAPSIBLE_FLOW.forEach((sectionId) => {
+      const section = document.getElementById(sectionId);
+      if (section && section.querySelector('.error, .form-error.show')) {
+        section.classList.remove('is-collapsed');
+      }
+    });
+
     const messages = Array.from(form.querySelectorAll('.form-error.show'))
       .map(el => (el.textContent || '').trim())
       .filter(Boolean);
@@ -1377,6 +1432,16 @@ function validateForm() {
     }
     const uniqueMessages = Array.from(new Set(messages));
     setSubmitError(uniqueMessages);
+
+    // Re-fire the pulse on every submit attempt. This must run AFTER the sections
+    // above are expanded — a field hidden inside a collapsed (display:none) section
+    // can't animate, which is why the pulse previously failed to replay there.
+    form.querySelectorAll('.form-input.error, .form-textarea.error, .form-select.error, .form-error.show')
+      .forEach(retriggerPulse);
+    const photoPreviewEl = document.getElementById('photoPreview');
+    if (photoPreviewEl && photoPreviewEl.classList.contains('error')) {
+      retriggerPulse(photoPreviewEl);
+    }
   }
   
   return isValid;

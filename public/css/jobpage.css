@@ -2034,6 +2034,264 @@ body::-webkit-scrollbar {
   box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5);
 }
 
+/* ===== Application-limit flow overlays (Confirm / Capacity) ===== */
+/* These reuse the centered .application-sent-* success shell, but their content can be
+   tall (count + note + language tabs + retract list). Pin them high and let them scroll
+   internally — mirroring the compose (.apply-job-*) modal — so nothing is cut off at the
+   bottom on phones. Overrides win on source order (declared after .application-sent-*). */
+.apply-flow-overlay {
+  align-items: flex-start;
+  padding: 100px 5% 0 5%;
+  box-sizing: border-box;
+}
+
+.apply-flow-modal {
+  width: 100%;
+  max-width: 500px;
+  max-height: 70vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.apply-flow-modal * {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.apply-flow-lang-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 6px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.apply-flow-lang-tab {
+  flex: 1;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 8px;
+  padding: 8px 6px;
+  background: rgba(30, 41, 59, 0.65);
+  color: #cbd5e1;
+  font-size: 0.73rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.apply-flow-lang-tab.active {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(2, 132, 199, 0.3));
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #e0f2fe;
+}
+
+.apply-flow-subnote {
+  color: #9fb3c8;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin: 0 0 20px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.apply-flow-link {
+  color: #7dd3fc;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.apply-flow-title {
+  color: #e5edf7;
+  letter-spacing: 1px;
+  font-size: 1.5rem;
+  text-shadow: 0 0 24px rgba(125, 211, 252, 0.35);
+}
+
+.apply-flow-points {
+  list-style: disc;
+  text-align: left;
+  margin: 0 0 22px;
+  padding: 0 0 0 22px;
+  color: #cbd5e1;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.apply-flow-points li { margin-bottom: 8px; }
+.apply-flow-points strong { color: #7dd3fc; }
+
+.apply-flow-count {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin: 6px 0 16px;
+}
+
+.apply-flow-count-value {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #7dd3fc;
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(125, 211, 252, 0.4);
+}
+
+.apply-flow-count-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #9dd6ff;
+}
+
+.apply-flow-count-spinner {
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(125, 211, 252, 0.25);
+  border-top-color: #7dd3fc;
+  border-radius: 50%;
+  animation: apply-flow-count-spin 0.8s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes apply-flow-count-spin {
+  to { transform: rotate(360deg); }
+}
+
+.apply-flow-note {
+  color: #cbd5e1;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin: 0 0 22px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.apply-flow-note-lead {
+  display: block;
+}
+
+.apply-flow-note-bullets {
+  list-style: disc;
+  text-align: left;
+  display: inline-block;
+  margin: 8px 0 0;
+  padding: 0 0 0 22px;
+}
+
+.apply-flow-note-bullets li {
+  margin-bottom: 4px;
+}
+
+.apply-flow-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.apply-flow-primary-btn,
+.apply-flow-secondary-btn {
+  border-radius: 10px;
+  padding: 14px 24px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: Arial, Helvetica, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  width: 100%;
+}
+
+.apply-flow-primary-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+}
+
+.apply-flow-primary-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.5);
+}
+
+.apply-flow-secondary-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  color: #cbd5e1;
+}
+
+.apply-flow-secondary-btn:hover {
+  background: rgba(148, 163, 184, 0.15);
+  color: #fff;
+}
+
+.apply-flow-active-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0 0 18px;
+  text-align: left;
+}
+
+.apply-flow-empty {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 14px 8px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.apply-flow-active-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.apply-flow-active-item-title {
+  color: #e5edf7;
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apply-flow-active-item-cancel {
+  flex-shrink: 0;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+}
+
+.apply-flow-active-item-cancel:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .apply-flow-title { font-size: 1.3rem; }
+  .apply-flow-count-value { font-size: 2rem; }
+  .apply-flow-points { font-size: 0.88rem; }
+}
+
 /* Validation Error Overlay */
 .validation-overlay {
   position: fixed;
@@ -2525,6 +2783,18 @@ body::-webkit-scrollbar {
   }
   
   .apply-job-modal {
+    max-height: 70vh;
+  }
+
+  /* Match the compose modal's high position on phones so the Confirm/Capacity
+     overlays don't get cut off at the bottom on small viewports. */
+  .apply-flow-overlay {
+    padding-top: 60px;
+  }
+
+  .apply-flow-modal {
+    width: 95%;
+    margin: 8px;
     max-height: 70vh;
   }
   

@@ -157,6 +157,14 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
             orphanApplications.push(applicationId);
             continue;
           }
+          // Getting hired frees the slot: an 'accepted' app only still holds while the gig is an
+          // unanswered offer (gig status 'hired'); once the worker is working (gig 'accepted') it
+          // no longer counts. Pending always holds.
+          const appStatusForHold = String(row.status || '').toLowerCase();
+          const jobStatusForHold = String((jobData || {}).status || '').toLowerCase();
+          const stillHolds = appStatusForHold === 'pending'
+            || ((appStatusForHold === 'accepted' || appStatusForHold === 'hired') && jobStatusForHold === 'hired');
+          if (!stillHolds) continue;
           heldByJob.add(jobId);
         }
         for (const orphanAppId of orphanApplications) {
@@ -178,7 +186,7 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
           orphanDetected: orphanApplications.length,
           heldJobIds: Array.from(heldByJob).slice(0, 8)
         });
-        if (normalized.current < expectedCurrent) {
+        if (normalized.current !== expectedCurrent) {
           await withFirestoreReadTimeout(
             updateUserApplicationCoinsViaFirestoreRest(safeUserId, expectedCurrent, normalized.max, restHeaders),
             9000
@@ -221,22 +229,80 @@ async function ensureApplicationCoinsForUser(userId, dbOverride = null) {
     return { current: DEFAULT_APPLICATION_COINS_MAX, max: DEFAULT_APPLICATION_COINS_MAX };
   }
   const normalized = normalizeApplicationCoins(userDoc.data() || {});
+
+  // Authoritative recompute: "applications remaining" is derived from the worker's own
+  // applications that still hold a slot (pending review, or an unanswered offer). Getting
+  // hired releases the slot, so working gigs no longer count. This keeps the stored number
+  // from drifting and self-heals any past mismatch (corrects both up and down).
+  let expectedCurrent = normalized.current;
+  try {
+    const appsSnapshot = await db.collection('applications')
+      .where('applicantId', '==', safeUserId)
+      .get();
+    let heldCount = 0;
+    // First pass (no I/O): pending always holds. Collect the ambiguous accepted/hired apps
+    // that need a gig-status check to decide (unanswered offer vs. already working).
+    const ambiguousJobIds = [];
+    const jobIdsToFetch = new Set();
+    for (const doc of appsSnapshot.docs) {
+      const app = doc.data() || {};
+      // A slot already returned never counts again.
+      if (app.coinHeld === false || app.coinReleasedAt) continue;
+      const status = String(app.status || '').toLowerCase();
+      if (status === 'pending') {
+        heldCount += 1;
+        continue;
+      }
+      if (status === 'accepted' || status === 'hired') {
+        // 'accepted' is ambiguous: an unanswered offer (gig still 'hired') holds a slot,
+        // but a gig the worker is already working (gig 'accepted') does not. Check the gig.
+        const jobId = String(app.jobId || '').trim();
+        if (!jobId) continue;
+        ambiguousJobIds.push(jobId);
+        jobIdsToFetch.add(jobId);
+      }
+    }
+    // Fetch every needed gig status in ONE parallel batch instead of sequential round-trips
+    // (was the source of multi-second apply/withdraw latency for accounts with many apps).
+    const jobStatusCache = new Map();
+    if (jobIdsToFetch.size > 0) {
+      const uniqueJobIds = Array.from(jobIdsToFetch);
+      const jobDocs = await Promise.all(
+        uniqueJobIds.map((jobId) => db.collection('jobs').doc(jobId).get().catch(() => null))
+      );
+      uniqueJobIds.forEach((jobId, index) => {
+        const jobDoc = jobDocs[index];
+        jobStatusCache.set(
+          jobId,
+          jobDoc && jobDoc.exists ? String((jobDoc.data() || {}).status || '').toLowerCase() : ''
+        );
+      });
+    }
+    for (const jobId of ambiguousJobIds) {
+      if (jobStatusCache.get(jobId) === 'hired') heldCount += 1; // still an unanswered offer
+    }
+    expectedCurrent = Math.max(0, Math.min(normalized.max, normalized.max - heldCount));
+  } catch (reconcileError) {
+    console.warn('⚠️ Coin reconcile skipped, using stored value:', reconcileError);
+    expectedCurrent = normalized.current;
+  }
+
   const existingData = userDoc.data() || {};
   const existingCurrent = Number(existingData.applicationCoinsCurrent);
   const existingMax = Number(existingData.applicationCoinsMax);
-  const needsNormalizationWrite = (
+  const needsWrite = (
     !Number.isFinite(existingCurrent)
     || !Number.isFinite(existingMax)
-    || existingCurrent !== normalized.current
+    || existingCurrent !== expectedCurrent
     || existingMax !== normalized.max
   );
-  if (needsNormalizationWrite) {
+  if (needsWrite) {
     await userRef.set({
-      applicationCoinsCurrent: normalized.current,
+      applicationCoinsCurrent: expectedCurrent,
       applicationCoinsMax: normalized.max
     }, { merge: true });
   }
-  return normalized;
+  return { current: expectedCurrent, max: normalized.max };
 }
 
 async function getUserApplicationCoinStatus(userId) {
@@ -540,6 +606,7 @@ async function createApplicationViaFirestoreRest(applicationData, headers = null
     fields: {
       jobId: { stringValue: safeJobId },
       applicantId: { stringValue: safeApplicantId },
+      gigOwnerId: { stringValue: String(applicationData && applicationData.gigOwnerId ? applicationData.gigOwnerId : '') },
       applicantName: { stringValue: String(applicationData && applicationData.applicantName ? applicationData.applicantName : '') },
       applicantThumbnail: { stringValue: String(applicationData && applicationData.applicantThumbnail ? applicationData.applicantThumbnail : '') },
       appliedAt: { timestampValue: new Date().toISOString() },
@@ -1795,9 +1862,15 @@ async function applyForJob(jobId, applicationData) {
       });
     }
     
-    const applicationCount = existingApplications.size;
+    // Withdrawn applications never reached the customer, so they do not consume
+    // a re-apply chance. Count only applications the customer can see or acted on.
+    const sortedExistingDocs = existingApplications.docs
+      .map((doc) => doc.data())
+      .sort((a, b) => toComparableMillis(b.appliedAt) - toComparableMillis(a.appliedAt));
+    const nonWithdrawnDocs = sortedExistingDocs.filter((data) => String(data.status || '') !== 'withdrawn');
+    const applicationCount = nonWithdrawnDocs.length;
     
-    console.log(`📊 Existing application count: ${applicationCount}`);
+    console.log(`📊 Existing application count (excluding withdrawn): ${applicationCount}`);
     
     // ═══════════════════════════════════════════════════════════════
     // RULE 1: Block if 2+ applications already exist
@@ -1814,9 +1887,7 @@ async function applyForJob(jobId, applicationData) {
     // RULE 2: Block if 1 application exists and it's pending or accepted
     // ═══════════════════════════════════════════════════════════════
     if (applicationCount === 1) {
-      const existingApp = existingApplications.docs
-        .map((doc) => doc.data())
-        .sort((a, b) => toComparableMillis(b.appliedAt) - toComparableMillis(a.appliedAt))[0];
+      const existingApp = nonWithdrawnDocs[0];
       console.log(`📊 Existing application status: ${existingApp.status}`);
       
       if (existingApp.status === 'pending') {
@@ -1909,7 +1980,7 @@ async function applyForJob(jobId, applicationData) {
     if (coinState.current <= 0) {
       return {
         success: false,
-        message: 'You have no G tokens left right now. Wait for a current application to close, or withdraw one pending application.'
+        message: 'You have no applications remaining right now. Wait for a current application to close, or withdraw a pending one.'
       };
     }
     emitIOSDataTrace('dynamic-job:apply', 'write:coin:start', {
@@ -1974,6 +2045,9 @@ async function applyForJob(jobId, applicationData) {
     const application = {
       jobId: jobId,
       applicantId: currentUser.uid,
+      // Denormalized gig owner (job poster) UID. Lets the applications read rule be
+      // tightened to "applicant or gig owner" without a per-read get() on the job doc.
+      gigOwnerId: (job && job.posterId) ? job.posterId : '',
       applicantName: applicantName,
       applicantThumbnail: applicantThumbnail,
       appliedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -2275,6 +2349,24 @@ async function acceptGigOfferInChat(jobId) {
       acceptedAt: firebase.firestore.FieldValue.serverTimestamp(),
       workerAccepted: true
     });
+
+    // Getting hired returns the worker's application slot (only pending/offer states hold one).
+    try {
+      const ownApps = await db.collection('applications')
+        .where('jobId', '==', safeJobId)
+        .where('applicantId', '==', currentUser.uid)
+        .get();
+      const releasePromises = ownApps.docs
+        .filter((doc) => {
+          const status = String((doc.data() || {}).status || '').toLowerCase();
+          return status === 'accepted' || status === 'hired' || status === 'pending';
+        })
+        .map((doc) => releaseApplicationCoinForApplication(doc.id, 'hired')
+          .catch((error) => console.warn('⚠️ Coin release on hire skipped:', error)));
+      await Promise.all(releasePromises);
+    } catch (hireReleaseError) {
+      console.warn('⚠️ Coin release on hire skipped:', hireReleaseError);
+    }
 
     try {
       const workerProfile = await getUserProfile(currentUser.uid);
@@ -3343,13 +3435,16 @@ async function deleteChatThreadForCurrentUser(threadId) {
 // ============================================================================
 const APPLICATION_CLOSURE_BATCH_WINDOW_MS = 6 * 60 * 60 * 1000;
 
-function buildGroupedApplicationClosureMessage(type, count) {
+// Unified "application slots reopened" type. Every closure reason (declined, not selected,
+// withdrawn, etc.) funnels into ONE batched card so the worker sees a single positive count
+// of how many slots reopened — never a rejection tally. Reason-neutral by design.
+const SLOTS_REOPENED_NOTIFICATION_TYPE = 'application_slots_reopened_batch';
+
+function buildSlotsReopenedMessage(count) {
   const safeCount = Math.max(1, Number(count) || 1);
-  const plural = safeCount === 1 ? '' : 's';
-  if (type === 'application_not_selected_batch') {
-    return `Application update: Your application${plural} to ${safeCount} gig${plural} were not selected this round. If a selected worker cannot continue, some gigs may reopen.`;
-  }
-  return `Application update: ${safeCount} of your application${plural} were declined by customers. Keep applying to other gigs-new matches open regularly.`;
+  return safeCount === 1
+    ? '1 application slot just opened — find your next gig!'
+    : `${safeCount} application slots just opened — find your next gigs!`;
 }
 
 function toMillis(value) {
@@ -3377,7 +3472,8 @@ const WORKER_NOTIFICATION_COUNTER_TYPES = new Set([
   'contract_voided',
   'interview_request',
   'application_not_selected_batch',
-  'application_rejected_batch'
+  'application_rejected_batch',
+  'application_slots_reopened_batch'
 ]);
 
 const CUSTOMER_NOTIFICATION_COUNTER_TYPES = new Set([
@@ -3422,7 +3518,10 @@ function buildUnreadCountersFromNotifications(notifications = []) {
 
 async function createGroupedApplicationClosureNotification(recipientId, options = {}) {
   const db = getFirestore();
-  const outcomeType = options.outcomeType === 'manual_reject' ? 'application_rejected_batch' : 'application_not_selected_batch';
+  // Reason (manual_reject / not_selected) is intentionally ignored for the card type now —
+  // all closures share ONE reason-neutral "slots reopened" card. options.outcomeType is still
+  // accepted for backward compatibility with callers but no longer changes the message.
+  const notificationType = SLOTS_REOPENED_NOTIFICATION_TYPE;
   const nowMs = Date.now();
   const windowEndsAt = new Date(nowMs + APPLICATION_CLOSURE_BATCH_WINDOW_MS);
   const jobId = String(options.jobId || '').trim();
@@ -3435,7 +3534,7 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
   try {
     const batchSnapshot = await db.collection('notifications')
       .where('recipientId', '==', recipientId)
-      .where('type', '==', outcomeType)
+      .where('type', '==', notificationType)
       .where('read', '==', false)
       .get();
 
@@ -3454,7 +3553,7 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
 
       await activeBatchDoc.ref.update({
         closureCount,
-        message: buildGroupedApplicationClosureMessage(outcomeType, closureCount),
+        message: buildSlotsReopenedMessage(closureCount),
         jobId: jobId || data.jobId || '',
         jobTitle: jobTitle || data.jobTitle || '',
         jobIds: existingIds.slice(0, 25),
@@ -3467,11 +3566,11 @@ async function createGroupedApplicationClosureNotification(recipientId, options 
 
     const notification = {
       recipientId: recipientId,
-      type: outcomeType,
+      type: notificationType,
       role: 'worker',
       jobId: jobId,
       jobTitle: jobTitle,
-      message: buildGroupedApplicationClosureMessage(outcomeType, 1),
+      message: buildSlotsReopenedMessage(1),
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       batchWindowEndsAt: firebase.firestore.Timestamp.fromDate(windowEndsAt),

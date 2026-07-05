@@ -1,8 +1,10 @@
 # Mock Data Removal Guide
 
-**Status:** DEFERRED - Keeping mock data for messages/communications development  
+**Status:** LARGELY COMPLETED — mock runtime fallback paths have been removed per the
+"no mock fallback" production policy. Residual dead mock code (e.g., orphaned chat-message
+generator functions in `messages.js`) is flagged for cleanup in the V1 hardening tasklist.  
 **Created:** 2026-02-09  
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-06-18
 
 ---
 

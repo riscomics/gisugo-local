@@ -199,15 +199,44 @@ function writeDynamicJobCache(cacheKey, job) {
   }
 }
 
-function scheduleDynamicJobPostRender(job, loadToken) {
-  if (!isActiveJobLoad(loadToken)) return;
-  const applyBtn = document.getElementById('jobApplyBtn');
-  const currentUser = firebase.auth ? firebase.auth().currentUser : null;
-  const postRenderTasks = [];
+// Resolve the signed-in Firebase user, waiting for auth to finish restoring if needed.
+// On a cold page load firebase.auth().currentUser can be null for a moment until the
+// persisted session is read back; reading it synchronously made the apply button wrongly
+// show "APPLY TO GIG" on refresh for users who had already applied (or owned the gig).
+function waitForFirebaseAuthUser(timeoutMs = 3500) {
+  return new Promise((resolve) => {
+    const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+    if (!auth) { resolve(null); return; }
+    if (auth.currentUser) { resolve(auth.currentUser); return; }
+    let settled = false;
+    let unsub = null;
+    let timer = null;
+    const finish = (user) => {
+      if (settled) return;
+      settled = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (typeof unsub === 'function') { try { unsub(); } catch (_) {} }
+      resolve(user || null);
+    };
+    try {
+      // The first onAuthStateChanged emission is authoritative — it fires only after the
+      // SDK has finished reading persisted auth state.
+      unsub = auth.onAuthStateChanged((user) => finish(user));
+    } catch (_) {
+      finish(auth.currentUser || null);
+      return;
+    }
+    timer = setTimeout(() => finish(auth.currentUser || null), timeoutMs);
+  });
+}
 
-  if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
-    applyBtn.style.display = 'none';
-  } else if (currentUser && job.posterId === currentUser.uid && applyBtn) {
+// Decide the apply button state AFTER auth has resolved (own gig vs already-applied vs open).
+async function resolveApplyButtonState(job, applyBtn, loadToken) {
+  if (!applyBtn) return;
+  const user = await waitForFirebaseAuthUser(3500);
+  // A newer job load may have started while we were waiting for auth — don't clobber it.
+  if (!isActiveJobLoad(loadToken)) return;
+  if (user && job.posterId === user.uid) {
     applyBtn.disabled = true;
     applyBtn.style.opacity = '0.5';
     applyBtn.style.cursor = 'not-allowed';
@@ -215,16 +244,28 @@ function scheduleDynamicJobPostRender(job, loadToken) {
     const span = applyBtn.querySelector('span');
     if (span) span.textContent = 'YOUR GIG';
     applyBtn.title = 'This is your own gig';
-  } else {
+    return;
+  }
+  await checkIfUserAlreadyApplied(job.jobId || job.id);
+}
+
+function scheduleDynamicJobPostRender(job, loadToken) {
+  if (!isActiveJobLoad(loadToken)) return;
+  const applyBtn = document.getElementById('jobApplyBtn');
+  const postRenderTasks = [];
+
+  if (['completed', 'hired', 'accepted'].includes(job.status) && applyBtn) {
+    applyBtn.style.display = 'none';
+  } else if (applyBtn) {
     setApplyButtonSyncState(applyBtn, true);
     postRenderTasks.push(
-      withDynamicJobTimeout(checkIfUserAlreadyApplied(job.jobId || job.id), 'checkIfUserAlreadyApplied', 4500)
+      withDynamicJobTimeout(resolveApplyButtonState(job, applyBtn, loadToken), 'applyButtonState', 6000)
         .then(() => {
           setApplyButtonSyncState(applyBtn, false);
         })
         .catch((error) => {
           setApplyButtonSyncState(applyBtn, false);
-          dynamicTrace('post:applyCheck:timeout', (error && error.message) ? error.message : String(error));
+          dynamicTrace('post:applyState:timeout', (error && error.message) ? error.message : String(error));
         })
     );
   }
@@ -1302,61 +1343,350 @@ function initializeMenu() {
   }
 }
 
-// Initialize apply job functionality
-function renderApplyTokenCaption(captionEl, isLowToken) {
-  if (!captionEl) return;
-  const guidanceText = 'Apply only if you are qualified and available.';
-  const lowTokenText = isLowToken ? '<span class="apply-coin-caption-low">You are low on tokens.</span>' : '';
-  captionEl.innerHTML = `<span class="apply-coin-caption-guidance">${guidanceText}</span><span class="apply-coin-caption-cost">Each time you Apply costs 1 Token.</span>${lowTokenText}`;
+// Applications-remaining state, fetched ONCE per apply attempt and reused across the
+// Confirm → Compose overlays so we never multiply reads (the count lives on the user doc).
+let lastApplyCoinStatus = null;
+// Confirm-overlay language (English / Bisaya / Tagalog), matched to My Applications.
+let applyConfirmLang = 'english';
+let applyConfirmCount = { current: 0, max: 10 };
+// True while the Confirm overlay is shown but the "applications remaining" number is still
+// being fetched — the count area shows a spinner instead of a stale/zero value.
+let applyConfirmLoading = false;
+
+const APPLY_CONFIRM_COPY = {
+  english: {
+    ofWord: 'of',
+    countLabel: 'applications remaining',
+    noteLead: 'This uses 1 application and comes back:',
+    noteBullets: ["If you're not hired by the customer", 'If you withdraw your application'],
+    withdraw: 'You can withdraw an application anytime on your {link} page.',
+    linkText: 'My Applications'
+  },
+  bisaya: {
+    ofWord: 'sa',
+    countLabel: 'nahabilin nga applications',
+    noteLead: 'Mogamit ni og 1 ka application ug mobalik:',
+    noteBullets: ['Kung dili ka ma-hire sa customer', 'Kung mo-withdraw ka sa imong application'],
+    withdraw: 'Pwede ka mo-withdraw og application bisan kanus-a sa imong {link} page.',
+    linkText: 'My Applications'
+  },
+  tagalog: {
+    ofWord: 'sa',
+    countLabel: 'natitirang applications',
+    noteLead: 'Gumagamit ito ng 1 application at babalik:',
+    noteBullets: ['Kung hindi ka na-hire ng customer', 'Kung i-withdraw mo ang iyong application'],
+    withdraw: 'Pwede kang mag-withdraw ng application kahit kailan sa iyong {link} page.',
+    linkText: 'My Applications'
+  }
+};
+
+function escapeApplyFlowText(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-async function refreshApplyCoinStatus() {
-  const statusBox = document.getElementById('applyCoinStatus');
-  const valueEl = document.getElementById('applyCoinValue');
-  const captionEl = document.getElementById('applyCoinCaption');
-  const submitBtn = document.getElementById('submitApplication');
+// One read of "applications remaining". Returns null when unavailable (no user),
+// { failed: true } on error, or { current, max } on success (also cached).
+async function fetchApplyCoinStatus() {
   const user = firebase?.auth ? firebase.auth().currentUser : null;
-  if (!statusBox || !valueEl || !captionEl || !submitBtn || !user?.uid || typeof getUserApplicationCoinStatus !== 'function') {
-    return { current: 0, max: 10 };
+  if (!user?.uid || typeof getUserApplicationCoinStatus !== 'function') {
+    return null;
   }
-
   try {
     const result = await getUserApplicationCoinStatus(user.uid);
     if (result && result.success === false) {
       throw new Error(result.message || 'coin_status_failed');
     }
-    const current = Number(result?.current ?? 0);
-    const max = Number(result?.max ?? 10);
-    valueEl.textContent = `${current} / ${max}`;
-    statusBox.classList.toggle('low', current <= 2);
-    renderApplyTokenCaption(captionEl, current <= 2);
-    submitBtn.disabled = current <= 0;
-    submitBtn.style.opacity = current <= 0 ? '0.65' : '';
-    if (current <= 0) {
-      submitBtn.textContent = 'NO TOKENS AVAILABLE';
-    } else {
-      submitBtn.textContent = 'APPLY TO GIG';
-    }
-    return { current, max };
+    const status = { current: Number(result?.current ?? 0), max: Number(result?.max ?? 10) };
+    lastApplyCoinStatus = status;
+    return status;
   } catch (error) {
-    console.warn('⚠️ Could not refresh apply token status:', error);
-    valueEl.textContent = '— / —';
-    statusBox.classList.remove('low');
-    renderApplyTokenCaption(captionEl, false);
+    console.warn('⚠️ Could not fetch applications remaining:', error);
+    return { current: 0, max: 10, failed: true };
+  }
+}
+
+// Gate the compose submit button from a given status. The visible count + explanation
+// now live in the Confirm overlay (which appears just before compose), so this only
+// keeps the submit button safe (disabled at 0 / on a failed check).
+function paintApplyCoinStatus(status) {
+  const submitBtn = document.getElementById('submitApplication');
+  if (!submitBtn) return;
+  if (!status) return; // unavailable (no user) — leave UI untouched
+  if (status.failed) {
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.65';
-    submitBtn.textContent = 'TOKEN CHECK FAILED — RETRY';
+    submitBtn.textContent = 'APPLICATION CHECK FAILED — RETRY';
     if (!submitBtn.dataset.retryHandlerBound) {
       submitBtn.dataset.retryHandlerBound = '1';
       submitBtn.addEventListener('click', function handleRetry(ev) {
-        if (submitBtn.textContent !== 'TOKEN CHECK FAILED — RETRY') return;
+        if (submitBtn.textContent !== 'APPLICATION CHECK FAILED — RETRY') return;
         ev.preventDefault();
         ev.stopPropagation();
-        submitBtn.textContent = 'CHECKING TOKENS...';
+        submitBtn.textContent = 'CHECKING APPLICATIONS...';
         Promise.resolve(refreshApplyCoinStatus()).catch(() => {});
       }, true);
     }
-    return { current: 0, max: 10, failed: true };
+    return;
+  }
+  const current = Number(status.current ?? 0);
+  submitBtn.disabled = current <= 0;
+  submitBtn.style.opacity = current <= 0 ? '0.65' : '';
+  submitBtn.textContent = current <= 0 ? 'NO APPLICATIONS REMAINING' : 'APPLY TO GIG';
+}
+
+// Fetch + paint (used when the compose box opens without a cached value, and by retry).
+async function refreshApplyCoinStatus() {
+  const status = await fetchApplyCoinStatus();
+  paintApplyCoinStatus(status);
+  return status || { current: 0, max: 10 };
+}
+
+// Entry point on APPLY tap: fetch the count ONCE, then branch to the right overlay.
+async function beginApplyFlow() {
+  const applyBtn = document.getElementById('jobApplyBtn');
+  if (applyBtn && applyBtn.dataset.flowBusy === '1') return;
+  if (applyBtn) applyBtn.dataset.flowBusy = '1';
+  try {
+    // Show the Confirm overlay INSTANTLY with a spinner where the count goes, so there's no
+    // dead space while "applications remaining" is fetched/reconciled (can take a few seconds).
+    openConfirmOverlay(null, { loading: true });
+    const status = await fetchApplyCoinStatus();
+    if (!status || status.failed) {
+      // Couldn't read the count — close confirm, fall back to compose (it self-retries).
+      closeConfirmOverlay();
+      openComposeOverlay(null);
+      return;
+    }
+    if (Number(status.current) <= 0) {
+      // No slots left — swap the (already-visible) confirm for the capacity overlay.
+      closeConfirmOverlay();
+      openCapacityOverlay(status);
+      return;
+    }
+    // Slots available — fill the real number into the already-open overlay.
+    fillConfirmOverlayCount(status);
+  } finally {
+    if (applyBtn) delete applyBtn.dataset.flowBusy;
+  }
+}
+
+// Paint the Confirm overlay's text for the currently selected language.
+function renderApplyConfirmContent() {
+  const copy = APPLY_CONFIRM_COPY[applyConfirmLang] || APPLY_CONFIRM_COPY.english;
+  const valueEl = document.getElementById('applyConfirmCountValue');
+  const labelEl = document.getElementById('applyConfirmCountLabel');
+  const noteEl = document.getElementById('applyConfirmNote');
+  const withdrawEl = document.getElementById('applyConfirmWithdrawNote');
+  if (valueEl) {
+    if (applyConfirmLoading) {
+      valueEl.innerHTML = '<span class="apply-flow-count-spinner" role="status" aria-label="Loading"></span>';
+    } else {
+      valueEl.textContent = `${Number(applyConfirmCount.current)} ${copy.ofWord} ${Number(applyConfirmCount.max)}`;
+    }
+  }
+  if (labelEl) labelEl.textContent = copy.countLabel;
+  if (noteEl) {
+    const bullets = (copy.noteBullets || [])
+      .map(function(b) { return `<li>${escapeApplyFlowText(b)}</li>`; })
+      .join('');
+    noteEl.innerHTML = `<span class="apply-flow-note-lead">${escapeApplyFlowText(copy.noteLead)}</span><ul class="apply-flow-note-bullets">${bullets}</ul>`;
+  }
+  if (withdrawEl) {
+    const link = `<a href="my-applications.html" class="apply-flow-link">${copy.linkText}</a>`;
+    withdrawEl.innerHTML = copy.withdraw.replace('{link}', link);
+  }
+  document.querySelectorAll('#applyConfirmLangTabs .apply-flow-lang-tab').forEach(function(tab) {
+    tab.classList.toggle('active', tab.getAttribute('data-lang') === applyConfirmLang);
+  });
+  // Block "Continue" until the real count has loaded (avoids advancing on a spinner).
+  const continueBtn = document.getElementById('applyConfirmContinue');
+  if (continueBtn) {
+    continueBtn.disabled = applyConfirmLoading;
+    continueBtn.style.opacity = applyConfirmLoading ? '0.6' : '';
+    continueBtn.style.cursor = applyConfirmLoading ? 'wait' : '';
+  }
+}
+
+function openConfirmOverlay(status, options) {
+  const opts = options || {};
+  if (opts.loading) {
+    applyConfirmLoading = true;
+  } else {
+    applyConfirmLoading = false;
+    const s = status || lastApplyCoinStatus || { current: 0, max: 10 };
+    applyConfirmCount = { current: Number(s.current), max: Number(s.max) };
+  }
+  renderApplyConfirmContent();
+  const ov = document.getElementById('applyConfirmOverlay');
+  if (ov) ov.classList.add('show');
+}
+
+// Fill the real count into an already-visible Confirm overlay (clears the loading spinner).
+function fillConfirmOverlayCount(status) {
+  applyConfirmLoading = false;
+  const s = status || lastApplyCoinStatus || { current: 0, max: 10 };
+  applyConfirmCount = { current: Number(s.current), max: Number(s.max) };
+  renderApplyConfirmContent();
+}
+
+function closeConfirmOverlay() {
+  applyConfirmLoading = false;
+  const ov = document.getElementById('applyConfirmOverlay');
+  if (ov) ov.classList.remove('show');
+}
+
+// "Application Sent!" success modal — trilingual, shares the language picked on the
+// Confirm overlay (applyConfirmLang) so the choice carries through the whole flow.
+const APPLICATION_SENT_COPY = {
+  english: {
+    title: 'APPLICATION SENT!',
+    subtitle: 'What happens next?',
+    step1: 'The Customer will review your application',
+    step2: "If accepted, you'll receive a message notification",
+    step3: 'Check your {link} for updates',
+    tip: "💡 Tip: You'll get this application back if you're not chosen.",
+    gotIt: 'GOT IT!'
+  },
+  bisaya: {
+    title: 'NAPADALA NA ANG APPLICATION!',
+    subtitle: 'Unsa sunod?',
+    step1: 'Repasohon sa Customer ang imong application',
+    step2: 'Kung dawaton, makadawat ka og message notification',
+    step3: 'Tan-awa ang imong {link} para sa updates',
+    tip: '💡 Tip: Mobalik ni nga application kung dili ka mapili.',
+    gotIt: 'SABOT NA!'
+  },
+  tagalog: {
+    title: 'NAIPADALA NA ANG APPLICATION!',
+    subtitle: 'Ano ang susunod?',
+    step1: 'Susuriin ng Customer ang iyong application',
+    step2: 'Kung tatanggapin, makakatanggap ka ng message notification',
+    step3: 'Tingnan ang iyong {link} para sa updates',
+    tip: '💡 Tip: Babalik ang application na ito kung hindi ka napili.',
+    gotIt: 'SIGE, GETS KO!'
+  }
+};
+
+function renderApplicationSentContent() {
+  const copy = APPLICATION_SENT_COPY[applyConfirmLang] || APPLICATION_SENT_COPY.english;
+  const titleEl = document.getElementById('applicationSentTitle');
+  const subtitleEl = document.getElementById('applicationSentSubtitle');
+  const step1El = document.getElementById('applicationSentStep1');
+  const step2El = document.getElementById('applicationSentStep2');
+  const step3El = document.getElementById('applicationSentStep3');
+  const tipEl = document.getElementById('applicationSentTip');
+  const gotItEl = document.getElementById('applicationSentClose');
+  if (titleEl) titleEl.textContent = copy.title;
+  if (subtitleEl) subtitleEl.textContent = copy.subtitle;
+  if (step1El) step1El.textContent = copy.step1;
+  if (step2El) step2El.textContent = copy.step2;
+  if (step3El) {
+    const link = '<a href="messages.html" class="messages-link">MESSAGES</a>';
+    step3El.innerHTML = copy.step3.replace('{link}', link);
+  }
+  if (tipEl) tipEl.textContent = copy.tip;
+  if (gotItEl) gotItEl.textContent = copy.gotIt;
+  document.querySelectorAll('#applicationSentLangTabs .apply-flow-lang-tab').forEach(function(tab) {
+    tab.classList.toggle('active', tab.getAttribute('data-lang') === applyConfirmLang);
+  });
+}
+
+// Open the message-composition modal. Reuses the already-fetched status (no extra read);
+// only re-reads if no good cached value was passed.
+function openComposeOverlay(status) {
+  const applyOverlay = document.getElementById('applyJobOverlay');
+  if (!applyOverlay) return;
+  window.scrollTo(0, 0);
+  applyOverlay.scrollTop = 0;
+  applyOverlay.classList.add('show');
+  if (status && !status.failed) {
+    paintApplyCoinStatus(status);
+  } else {
+    const submitBtn = document.getElementById('submitApplication');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.65';
+      submitBtn.textContent = 'CHECKING APPLICATIONS...';
+    }
+    Promise.resolve(refreshApplyCoinStatus()).catch((error) => {
+      console.warn('⚠️ Applications-remaining refresh failed after opening modal:', error);
+    });
+  }
+  const messageTextarea = document.getElementById('applyMessage');
+  if (messageTextarea) {
+    const focusTimeout = setTimeout(() => messageTextarea.focus(), 300);
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(focusTimeout);
+  }
+}
+
+function openCapacityOverlay(status) {
+  const s = status || lastApplyCoinStatus || { current: 0, max: 10 };
+  const maxEl = document.getElementById('applyCapacityMax');
+  if (maxEl) maxEl.textContent = String(Number(s.max) || 10);
+  const ov = document.getElementById('applyCapacityOverlay');
+  if (ov) ov.classList.add('show');
+  Promise.resolve(populateCapacityList()).catch(() => {});
+}
+
+async function populateCapacityList() {
+  const listEl = document.getElementById('applyCapacityList');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="apply-flow-empty">Loading…</div>';
+  const user = firebase?.auth ? firebase.auth().currentUser : null;
+  if (!user || typeof getWorkerApplications !== 'function') {
+    listEl.innerHTML = '<div class="apply-flow-empty">Unable to load your applications.</div>';
+    return;
+  }
+  let pending = [];
+  try {
+    pending = await getWorkerApplications(user.uid, { statuses: ['pending'] });
+  } catch (_) {
+    pending = [];
+  }
+  if (!pending.length) {
+    listEl.innerHTML = '<div class="apply-flow-empty">No pending applications to cancel right now.</div>';
+    return;
+  }
+  listEl.innerHTML = pending.map((app) => {
+    const title = escapeApplyFlowText(app.jobTitle || 'Untitled gig');
+    const id = escapeApplyFlowText(app.id || '');
+    return `<div class="apply-flow-active-item"><span class="apply-flow-active-item-title">${title}</span>`
+      + `<button class="apply-flow-active-item-cancel" data-app-id="${id}" type="button">Cancel</button></div>`;
+  }).join('');
+  listEl.querySelectorAll('.apply-flow-active-item-cancel').forEach((btn) => {
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(btn, 'click', function() {
+      handleCapacityWithdraw(btn.getAttribute('data-app-id'), btn);
+    });
+  });
+}
+
+async function handleCapacityWithdraw(appId, btn) {
+  if (!appId || typeof withdrawWorkerApplication !== 'function') return;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  let res;
+  try {
+    res = await withdrawWorkerApplication(appId);
+  } catch (error) {
+    res = { success: false, message: 'Could not cancel that application.' };
+  }
+  if (res && res.success) {
+    // A slot was freed — re-read once (a real write just happened) and advance to Confirm.
+    const status = await fetchApplyCoinStatus();
+    if (status && !status.failed && Number(status.current) > 0) {
+      const cap = document.getElementById('applyCapacityOverlay');
+      if (cap) cap.classList.remove('show');
+      openConfirmOverlay(status);
+    } else {
+      await populateCapacityList();
+    }
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancel'; }
+    alert((res && res.message) ? res.message : 'Could not cancel that application.');
   }
 }
 
@@ -1402,7 +1732,7 @@ function initializeApplyJob() {
       });
     }
     
-    // Show modal when apply button is clicked
+    // Start the apply flow when the apply button is clicked.
     DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(applyBtn, 'click', function(e) {
       e.preventDefault();
       
@@ -1419,25 +1749,12 @@ function initializeApplyJob() {
           return;
         }
       }
-      
-      // Scroll window to top to prevent Android keyboard positioning issues
-      window.scrollTo(0, 0);
-      applyOverlay.scrollTop = 0;
-      applyOverlay.classList.add('show');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.65';
-        submitBtn.textContent = 'CHECKING TOKENS...';
-      }
-      // Refresh token state after opening so modal appears instantly.
-      Promise.resolve(refreshApplyCoinStatus()).catch((error) => {
-        console.warn('⚠️ Delayed token refresh failed after opening modal:', error);
+
+      // Confirm intent (with count) first; compose comes after. See beginApplyFlow().
+      Promise.resolve(beginApplyFlow()).catch((error) => {
+        console.warn('⚠️ Apply flow failed to start, opening compose directly:', error);
+        openComposeOverlay(null);
       });
-      // Focus on message textarea for better UX
-      if (messageTextarea) {
-        const focusTimeout = setTimeout(() => messageTextarea.focus(), 300);
-        DYNAMIC_JOB_CLEANUP_REGISTRY.addTimeout(focusTimeout);
-      }
     });
     
     // Hide modal when cancel button is clicked
@@ -1473,6 +1790,77 @@ function initializeApplyJob() {
       }
     };
     DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', applyModalEscapeHandler);
+
+    // ===== Application-limit flow overlay handlers =====
+    const confirmLangTabs = document.getElementById('applyConfirmLangTabs');
+    if (confirmLangTabs) {
+      confirmLangTabs.querySelectorAll('.apply-flow-lang-tab').forEach(function(tab) {
+        DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(tab, 'click', function(e) {
+          e.preventDefault();
+          applyConfirmLang = tab.getAttribute('data-lang') || 'english';
+          renderApplyConfirmContent();
+        });
+      });
+    }
+
+    // "Application Sent!" success modal shares the same language state.
+    const sentLangTabs = document.getElementById('applicationSentLangTabs');
+    if (sentLangTabs) {
+      sentLangTabs.querySelectorAll('.apply-flow-lang-tab').forEach(function(tab) {
+        DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(tab, 'click', function(e) {
+          e.preventDefault();
+          applyConfirmLang = tab.getAttribute('data-lang') || 'english';
+          renderApplicationSentContent();
+        });
+      });
+    }
+
+    const confirmContinue = document.getElementById('applyConfirmContinue');
+    if (confirmContinue) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(confirmContinue, 'click', function(e) {
+        e.preventDefault();
+        const ov = document.getElementById('applyConfirmOverlay');
+        if (ov) ov.classList.remove('show');
+        openComposeOverlay(lastApplyCoinStatus);
+      });
+    }
+
+    const confirmCancel = document.getElementById('applyConfirmCancel');
+    if (confirmCancel) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(confirmCancel, 'click', function(e) {
+        e.preventDefault();
+        const ov = document.getElementById('applyConfirmOverlay');
+        if (ov) ov.classList.remove('show');
+      });
+    }
+
+    const capacityClose = document.getElementById('applyCapacityClose');
+    if (capacityClose) {
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(capacityClose, 'click', function(e) {
+        e.preventDefault();
+        const ov = document.getElementById('applyCapacityOverlay');
+        if (ov) ov.classList.remove('show');
+      });
+    }
+
+    // Dismiss any flow overlay by clicking its backdrop.
+    ['applyConfirmOverlay', 'applyCapacityOverlay'].forEach(function(id) {
+      const ov = document.getElementById(id);
+      if (!ov) return;
+      DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(ov, 'click', function(e) {
+        if (e.target === ov) ov.classList.remove('show');
+      });
+    });
+
+    // Escape closes any open flow overlay.
+    const applyFlowEscapeHandler = function(e) {
+      if (e.key !== 'Escape') return;
+      ['applyConfirmOverlay', 'applyCapacityOverlay'].forEach(function(id) {
+        const ov = document.getElementById(id);
+        if (ov && ov.classList.contains('show')) ov.classList.remove('show');
+      });
+    };
+    DYNAMIC_JOB_CLEANUP_REGISTRY.addEventListener(document, 'keydown', applyFlowEscapeHandler);
   }
 }
 
@@ -1505,7 +1893,7 @@ function handleJobApplication() {
 
   const submitBtn = document.getElementById('submitApplication');
   if (submitBtn && submitBtn.disabled) {
-    alert('You have no G tokens available right now.');
+    alert('You have no applications remaining right now.');
     return;
   }
   
@@ -1603,6 +1991,7 @@ function showApplicationSentOverlay() {
   const lightRaysContainer = document.getElementById('lightRaysContainer');
   
   if (applicationSentOverlay) {
+    renderApplicationSentContent();
     applicationSentOverlay.classList.add('show');
   }
   
@@ -2152,8 +2541,8 @@ async function checkIfUserAlreadyApplied(jobId) {
     return;
   }
   
-  // Get current user
-  const currentUser = firebase.auth().currentUser;
+  // Get current user — wait for auth to finish restoring before concluding "logged out".
+  const currentUser = await waitForFirebaseAuthUser(3500);
   if (!currentUser) {
     console.log('ℹ️ User not logged in, apply button remains enabled');
     return;
@@ -2184,10 +2573,15 @@ async function checkIfUserAlreadyApplied(jobId) {
       throw indexError;
     }
     
-    const applicationCount = existingApplications.size;
-    const mostRecentApp = existingApplications.empty ? null : existingApplications.docs[0].data();
+    // Withdrawn applications never reached the customer, so they do not consume a
+    // chance. Exclude them so a withdrawal re-enables the Apply button (not "ALREADY APPLIED").
+    const nonWithdrawnApps = existingApplications.docs
+      .map((doc) => doc.data())
+      .filter((data) => String(data.status || '') !== 'withdrawn');
+    const applicationCount = nonWithdrawnApps.length;
+    const mostRecentApp = applicationCount === 0 ? null : nonWithdrawnApps[0];
     
-    console.log(`📊 Application count: ${applicationCount}`);
+    console.log(`📊 Application count (excluding withdrawn): ${applicationCount}`);
     if (mostRecentApp) {
       console.log(`📊 Most recent status: ${mostRecentApp.status}`);
     }

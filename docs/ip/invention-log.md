@@ -45,7 +45,7 @@ Create a dated baseline of currently implemented platform mechanics before major
 
 - Entry ID: `GIS-INV-002`
 - Date (UTC): `2026-03-01T00:00:00Z`
-- Status: `Planned (not implemented)`
+- Status: `Implemented` (shipped to production; updated 2026-06-18)
 - Scope: `Trust layer extension`
 
 ### Problem/Need
@@ -56,13 +56,26 @@ Increase accountability and trust signals without blocking signup conversion.
 - Verification states visible in trust surfaces:
   - `UNVERIFIED`
   - `FACE VERIFIED`
-- Non-public-by-default media policy with contextual sharing in relevant gig interactions.
+- Contextual sharing in relevant gig interactions.
 
 ### Product Positioning Constraint
 - Transparency/accountability signal, not a guarantee of safety or identity certainty.
 
+### As-Implemented Notes (2026-06-18)
+- FVV is a **community trust tool**: members record a short selfie video pronouncing
+  their full name out loud as a greeting to the community, so users can "see" who they
+  are considering hiring or working for before meeting in person. This intentionally
+  counters the anonymity of avatar-only profile photos.
+- **Access policy is intentionally open to authenticated users** (not token-gated per
+  request) — documented in `docs/FV_OPTION_A_POLICY.md`.
+- Production pipeline includes: native capture/upload, ffmpeg server-side video
+  normalization (`normalizeFaceVerificationVideo`), media access control
+  (`getFaceVerificationMediaAccess`), and an audit/repair tool
+  (`auditAndRepairFaceVerification`).
+
 ### Evidence Links
 - Product direction notes and requirement discussions (internal).
+- `docs/FV_OPTION_A_POLICY.md`, `functions/index.js` (FV functions).
 
 ---
 
@@ -70,7 +83,7 @@ Increase accountability and trust signals without blocking signup conversion.
 
 - Entry ID: `GIS-INV-003`
 - Date (UTC): `2026-03-01T00:00:00Z`
-- Status: `Planned (not implemented)`
+- Status: `Implemented` (trust-reminder flows shipped at hire/accept decision points; updated 2026-06-18)
 - Scope: `Hire/accept decision points`
 
 ### Problem/Need
@@ -94,7 +107,7 @@ Ensure informed decisions when either party is not face verified, without forcin
 
 - Entry ID: `GIS-INV-004`
 - Date (UTC): `2026-03-01T00:00:00Z`
-- Status: `Planned (not implemented)`
+- Status: `Implemented` (capture + media handling shipped; updated 2026-06-18)
 - Scope: `Capture, media handling, and rollout controls`
 
 ### Problem/Need

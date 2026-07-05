@@ -835,7 +835,9 @@ const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received',
 const LEGACY_WORKER_ALERT_TYPES = ['interview_request'];
 
 // Additional worker status batches already supported by UI copy/localization.
-const BATCH_WORKER_ALERT_TYPES = ['application_not_selected_batch', 'application_rejected_batch'];
+// 'application_slots_reopened_batch' is the current unified type; the two older types are kept
+// so any pre-existing cards still render (with the same uniform abundance copy).
+const BATCH_WORKER_ALERT_TYPES = ['application_slots_reopened_batch', 'application_not_selected_batch', 'application_rejected_batch'];
 
 const WORKER_ALERT_TYPES = [
     ...PRODUCED_WORKER_ALERT_TYPES,
@@ -850,9 +852,9 @@ const ALERT_READ_HIDE_AFTER_DAYS = 50;
 
 function tAlertLang(key) {
     const copy = {
-        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined' },
-        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application' },
-        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application' }
+        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined', slotsOpen: 'Application Slots Open' },
+        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application', slotsOpen: 'Naabli nga Slots' },
+        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application', slotsOpen: 'Bukas na Slots' }
     };
     return copy[currentAlertsLang]?.[key] || copy.english[key] || key;
 }
@@ -861,7 +863,17 @@ function getLocalizedAlertMessage(notif, type) {
     const jobTitle = notif.jobTitle || 'Gig';
     const workerName = notif.workerName || 'Worker';
     const closureCount = Math.max(1, Number(notif.closureCount || 1));
-    const plural = closureCount === 1 ? '' : 's';
+    // Uniform, reason-neutral "slots reopened" copy. All three batch types (the unified one plus
+    // the two legacy ones still in the DB) render this same abundance message.
+    const slotsEn = closureCount === 1
+        ? '1 application slot just opened — find your next gig!'
+        : `${closureCount} application slots just opened — find your next gigs!`;
+    const slotsBi = closureCount === 1
+        ? 'Naabli na usab ang 1 ka application slot — pangitaa ang imong sunod nga gig!'
+        : `Naabli na usab ang ${closureCount} ka application slots — pangitaa ang sunod nimo nga mga gig!`;
+    const slotsTl = closureCount === 1
+        ? 'May 1 application slot nang bukas ulit — hanapin ang susunod mong gig!'
+        : `May ${closureCount} application slots nang bukas ulit — maghanap pa ng mga gig!`;
     const localeMap = {
         english: {
             offer_sent: `You've been offered the gig "${jobTitle}"! Check Gigs Manager > Offered tab to accept or decline.`,
@@ -875,8 +887,9 @@ function getLocalizedAlertMessage(notif, type) {
             offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
             worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
             worker_feedback_received: `You received feedback from your worker. Open Profile > Customer Reviews to read it.`,
-            application_not_selected_batch: `Application update: Your application${plural} to ${closureCount} gig${plural} were not selected this round. If a selected worker cannot continue, some gigs may reopen.`,
-            application_rejected_batch: `Application update: ${closureCount} of your application${plural} were declined by customers. Keep applying to other gigs-new matches open regularly.`
+            application_not_selected_batch: slotsEn,
+            application_rejected_batch: slotsEn,
+            application_slots_reopened_batch: slotsEn
         },
         bisaya: {
             offer_sent: `Na-offeran ka sa gig "${jobTitle}"! Tan-awa sa Gigs Manager > Offered para modawat o modili.`,
@@ -890,8 +903,9 @@ function getLocalizedAlertMessage(notif, type) {
             offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
             worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker. Tan-awa sa Profile > Customer Reviews.',
-            application_not_selected_batch: `Update sa application: Ang imong application${plural} sa ${closureCount} ka gig${plural} wala mapili karong round. Basin ma-reopen kung dili makapadayon ang napili.`,
-            application_rejected_batch: `Update sa application: ${closureCount} sa imong application${plural} gi-decline sa customers. Padayon lang ug apply sa ubang gigs.`
+            application_not_selected_batch: slotsBi,
+            application_rejected_batch: slotsBi,
+            application_slots_reopened_batch: slotsBi
         },
         tagalog: {
             offer_sent: `May offer ka sa gig na "${jobTitle}"! Tingnan sa Gigs Manager > Offered para tanggapin o tanggihan.`,
@@ -905,8 +919,9 @@ function getLocalizedAlertMessage(notif, type) {
             offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
             worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
             worker_feedback_received: 'May natanggap kang feedback mula sa worker mo. Buksan ang Profile > Customer Reviews para makita ito.',
-            application_not_selected_batch: `Update sa application: Ang application${plural} mo sa ${closureCount} gig${plural} ay hindi napili sa round na ito. Maaaring mag-reopen kung hindi makatuloy ang napili.`,
-            application_rejected_batch: `Update sa application: ${closureCount} sa application${plural} mo ay dinecline ng customers. Tuloy lang sa pag-apply sa ibang gigs.`
+            application_not_selected_batch: slotsTl,
+            application_rejected_batch: slotsTl,
+            application_slots_reopened_batch: slotsTl
         }
     };
     return localeMap[currentAlertsLang]?.[type] || localeMap.english[type] || notif.message || '';
@@ -3645,15 +3660,12 @@ function transformFirebaseNotification(notif) {
             iconClass = 'rating-icon';
             title = 'Worker Feedback Received';
             break;
+        case 'application_slots_reopened_batch':
         case 'application_not_selected_batch':
-            icon = '📌';
-            iconClass = 'system-icon';
-            title = tAlertLang('appUpdate');
-            break;
         case 'application_rejected_batch':
-            icon = '📭';
-            iconClass = 'warning-icon';
-            title = tAlertLang('appDeclined');
+            icon = '🔓';
+            iconClass = 'success-icon';
+            title = tAlertLang('slotsOpen');
             break;
     }
     
@@ -6489,328 +6501,10 @@ function initializeInputFocusElegance(messageThread) {
 }
 
 // ===== DYNAMIC MESSAGE ENTRY FUNCTIONALITY =====
-// BACKEND-READY: This functionality is purely frontend placeholder data
-// When backend is ready, replace the mock logic with API calls
-
-/**
- * Initialize dynamic message sending for a specific thread
- * @param {HTMLElement} messageThread - The message thread container
- */
-function initializeDynamicMessageSending(messageThread) {
-    const threadId = messageThread.getAttribute('data-thread-id');
-    const participantName = messageThread.getAttribute('data-participant-name');
-    const jobTitle = messageThread.getAttribute('data-job-title');
-    
-    const inputContainer = messageThread.querySelector('.message-input-container');
-    const messageInput = messageThread.querySelector('.message-input');
-    const sendButton = messageThread.querySelector('.message-send-btn');
-    const scrollContainer = messageThread.querySelector('.message-scroll-container');
-    
-    if (!inputContainer || !messageInput || !sendButton || !scrollContainer) {
-        console.warn(`Dynamic messaging: Missing elements for thread ${threadId}`);
-        return;
-    }
-    
-    // Handle send button click
-    sendButton.addEventListener('click', function() {
-        sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle);
-    });
-    
-    // Handle Enter key press (but not Shift+Enter for line breaks)
-    messageInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle);
-        }
-    });
-    
-    // Handle input expansion on focus and typing
-    messageInput.addEventListener('focus', function() {
-        this.classList.add('expanded');
-        inputContainer.classList.add('input-focused');
-        messageThread.classList.add('input-focused');
-    });
-    
-    messageInput.addEventListener('blur', function() {
-        // Only remove expanded if input is empty
-        if (this.value.trim() === '') {
-            this.classList.remove('expanded');
-        }
-        inputContainer.classList.remove('input-focused');
-        messageThread.classList.remove('input-focused');
-    });
-    
-    messageInput.addEventListener('input', function() {
-        // Keep expanded while typing
-        this.classList.add('expanded');
-    });
-    
-    console.log(`Dynamic messaging initialized for thread: ${threadId}`);
-}
-
-/**
- * Send a dynamic message and add it to the thread
- * BACKEND-READY: Replace this with actual API call
- * @param {string} threadId - Thread identifier
- * @param {HTMLElement} messageInput - Input element
- * @param {HTMLElement} scrollContainer - Scroll container for messages
- * @param {string} participantName - Name of the other participant
- * @param {string} jobTitle - Job title for context
- */
-async function sendDynamicMessage(threadId, messageInput, scrollContainer, participantName, jobTitle) {
-    const messageText = messageInput.value.trim();
-    
-    if (messageText === '') {
-        return; // Don't send empty messages
-    }
-    
-    // BACKEND PREPARATION: This is the payload structure you'll need
-    const newMessagePayload = {
-        threadId: threadId,
-        content: messageText,
-        senderId: 'current_user_id', // Replace with actual Firebase UID
-        senderName: 'You', // Replace with actual user name
-        senderType: 'employer', // Replace with actual user role
-        recipientId: extractParticipantId(threadId), // Extract from thread data
-        recipientName: participantName,
-        timestamp: new Date().toISOString(),
-        jobTitle: jobTitle,
-        // Additional backend fields you might need:
-        messageType: 'text',
-        readStatus: false,
-        priority: 'normal'
-    };
-    
-    // MOCK FRONTEND IMPLEMENTATION: Create message object for display
-    const newMessage = await createMockMessage(messageText, threadId);
-    
-    // Add message to the thread (at the top since newest are first)
-    addMessageToThread(newMessage, scrollContainer);
-    
-    // Clear input and reset state
-    messageInput.value = '';
-    messageInput.classList.remove('expanded');
-    messageInput.blur();
-    
-    // BACKEND TODO: Replace this console.log with actual API call
-    console.log('BACKEND PAYLOAD:', newMessagePayload);
-    console.log('Message sent successfully (mock)');
-    
-    // Simulate recipient response after 2-3 seconds (for demo purposes)
-    if (Math.random() > 0.3) { // 70% chance of auto-response
-        setTimeout(() => {
-            const responseMessage = createMockResponse(participantName, threadId);
-            addMessageToThread(responseMessage, scrollContainer);
-            
-            // Show notification for new message
-            showTemporaryNotification(`New message from ${participantName}`);
-        }, Math.random() * 2000 + 1500); // 1.5-3.5 seconds delay
-    }
-}
-
-/**
- * Helper function to get current user's avatar from Firestore
- * @returns {Promise<string>} User's profile photo URL or empty string
- */
-async function getCurrentUserAvatar() {
-    const currentUser = getCurrentUser ? getCurrentUser() : null;
-    
-    if (!currentUser) {
-        console.warn('⚠️ No authenticated user for avatar');
-        return '';
-    }
-    
-    try {
-        if (typeof getUserProfile === 'function') {
-            const profile = await getUserProfile(currentUser.uid);
-            if (profile && profile.profilePhoto) {
-                return profile.profilePhoto;
-            }
-        }
-        
-        // Fallback to Auth photoURL
-        return currentUser.photoURL || '';
-    } catch (error) {
-        console.error('❌ Error fetching user avatar:', error);
-        return currentUser.photoURL || '';
-    }
-}
-
-/**
- * Create a mock message object for frontend display
- * BACKEND-READY: This structure matches your existing message format
- * @param {string} content - Message content
- * @param {string} threadId - Thread identifier
- * @returns {Promise<Object>} Message object
- */
-async function createMockMessage(content, threadId) {
-    const now = new Date();
-    const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    const avatar = await getCurrentUserAvatar();
-    
-    return {
-        id: messageId,
-        threadId: threadId,
-        content: content,
-        senderId: 'current_user_id',
-        senderName: 'You',
-        senderType: 'employer',
-        direction: 'outgoing',
-        avatar: avatar, // Current user avatar from Firestore
-        timestamp: now.toISOString(),
-        timeDisplay: formatMessageTime(now),
-        read: true
-    };
-}
-
-/**
- * Create a mock response message (for demo purposes)
- * @param {string} participantName - Name of the participant
- * @param {string} threadId - Thread identifier
- * @returns {Object} Response message object
- */
-function createMockResponse(participantName, threadId) {
-    const responses = [
-        "Thanks for your message! I'll get back to you soon.",
-        "Sounds good! When would be a good time to discuss this?",
-        "I'm interested in learning more about this opportunity.",
-        "That works for me. Let me know the next steps.",
-        "I have some questions about the job requirements.",
-        "Perfect! I'm available for an interview anytime.",
-        "Thank you for considering my application!"
-    ];
-    
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    const now = new Date();
-    const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    return {
-        id: messageId,
-        threadId: threadId,
-        content: randomResponse,
-        senderId: extractParticipantId(threadId),
-        senderName: participantName,
-        senderType: 'worker',
-        direction: 'incoming',
-        avatar: getParticipantAvatar(threadId),
-        timestamp: now.toISOString(),
-        timeDisplay: formatMessageTime(now),
-        read: false
-    };
-}
-
-/**
- * Add a message to the thread display
- * @param {Object} message - Message object
- * @param {HTMLElement} scrollContainer - Scroll container
- */
-function addMessageToThread(message, scrollContainer) {
-    const messageHTML = generateMessageHTML(message);
-    
-    // Add to bottom since newest messages are last (chronological order)
-    scrollContainer.insertAdjacentHTML('beforeend', messageHTML);
-    
-    // Add entrance animation
-    const newMessageElement = scrollContainer.lastElementChild;
-    if (newMessageElement) {
-        newMessageElement.style.opacity = '0';
-        newMessageElement.style.transform = 'translateY(10px)';
-        
-        setTimeout(() => {
-            newMessageElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            newMessageElement.style.opacity = '1';
-            newMessageElement.style.transform = 'translateY(0)';
-        }, 50);
-        
-        // CRITICAL FIX: Initialize avatar overlay for newly added message
-        // This ensures dynamic messages (like mock responses) have clickable avatars
-        const newAvatar = newMessageElement.querySelector('.message-avatar');
-        if (newAvatar) {
-            initializeAvatarForOverlay(newAvatar);
-            console.log('🎯 Avatar overlay initialized for new dynamic message');
-        }
-    }
-    
-    // Scroll to bottom to show the new message
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-}
-
-/**
- * Format message time for display
- * @param {Date} date - Date object
- * @returns {string} Formatted time string
- */
-function formatMessageTime(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    
-    return date.toLocaleDateString();
-}
-
-/**
- * Extract participant ID from thread ID (mock implementation)
- * BACKEND: Replace with actual data extraction
- * @param {string} threadId - Thread identifier
- * @returns {string} Participant ID
- */
-function extractParticipantId(threadId) {
-    // Mock implementation - extract from existing thread data
-    const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
-    return threadElement ? threadElement.getAttribute('data-participant-id') || 'participant_123' : 'participant_123';
-}
-
-/**
- * Get participant avatar from thread data - CONSISTENT per participant
- * @param {string} threadId - Thread identifier
- * @returns {string} Avatar URL
- */
-function getParticipantAvatar(threadId) {
-    // CONSISTENT AVATAR: First try to get existing avatar from thread DOM - use specific selector
-    const threadElement = document.querySelector(`.message-thread[data-thread-id="${threadId}"]`);
-    if (threadElement) {
-        // Look for existing incoming message avatar in this thread
-        const existingAvatar = threadElement.querySelector('.message-card.incoming .message-avatar img');
-        if (existingAvatar && existingAvatar.src) {
-            // Extract just the path part that works for both local and online
-            const src = existingAvatar.src;
-            // Look for 'public/users/' in the URL and extract from there
-            const publicUsersIndex = src.indexOf('public/users/');
-            if (publicUsersIndex !== -1) {
-                return src.substring(publicUsersIndex);
-            }
-            // Fallback: try to extract relative path
-            return src.replace(window.location.origin + '/', '');
-        }
-    }
-    
-    // If no existing avatar found, assign one consistently based on threadId
-    const avatars = [
-        'public/users/User-03.jpg',
-        'public/users/User-06.jpg', 
-        'public/users/User-08.jpg',
-        'public/users/User-10.jpg'
-    ];
-    
-    // Use threadId to create consistent hash for avatar selection
-    let hash = 0;
-    const threadIdStr = String(threadId); // Ensure it's a string for consistent hashing
-    for (let i = 0; i < threadIdStr.length; i++) {
-        const char = threadIdStr.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-    }
-    
-    // Use absolute value and modulo to get consistent index
-    const avatarIndex = Math.abs(hash) % avatars.length;
-    return avatars[avatarIndex];
-}
+// (Removed 2026-06-18) The old mock inline-thread sender — initializeDynamicMessageSending,
+// sendDynamicMessage, createMockMessage, createMockResponse, getCurrentUserAvatar, and
+// addMessageToThread — was dead code from the pre-Firebase prototype and had no callers.
+// Live chat sends real messages via the chat modal (sendMessage() -> Firestore).
 
 /**
  * Show temporary notification for new messages

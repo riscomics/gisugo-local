@@ -8,10 +8,10 @@ const MY_APP_CAPTIONS = {
   pending: 'Your application is awaiting customer review.',
   rejected: 'This application is closed because another worker was selected or the customer declined your profile.',
   expired: 'This gig closed before hiring was completed.',
-  rejected_by_worker: 'You declined this offer. This application token has been returned.',
-  voided: 'This contract was ended by the customer. This application token has been returned.',
-  resigned: 'You ended this gig before completion. This application token has been returned.',
-  withdrawn: 'You withdrew this application and your token was returned.'
+  rejected_by_worker: 'You declined this offer. This application has been returned to you.',
+  voided: 'This contract was ended by the customer. This application has been returned to you.',
+  resigned: 'You ended this gig before completion. This application has been returned to you.',
+  withdrawn: 'You withdrew this application and it was returned to you.'
 };
 
 const MY_APP_STATUS_LABELS = {
@@ -45,20 +45,20 @@ const MY_APP_TAB_INTROS = {
     },
     bullets: {
       english: [
-        'You get 10 FREE Tokens always.',
-        'Tokens return if application is cancelled/closed.',
+        'You always have 10 applications.',
+        'Applications come back when cancelled or closed.',
         'You can withdraw to cancel applications.',
         'Apply only to Gigs you are available to do!'
       ],
       bisaya: [
-        'Makadawat ka ug 10 ka FREE Tokens kanunay.',
-        'Mobalik ang tokens kung na-cancel o na-close ang application.',
+        'Naa kay 10 ka applications kanunay.',
+        'Mobalik ang application kung na-cancel o na-close.',
         'Pwede ka mag-withdraw para i-cancel ang applications.',
         'Pag-apply lang sa Gigs nga available ka buhaton!'
       ],
       tagalog: [
-        'Lagi kang may 10 FREE Tokens.',
-        'Bumabalik ang tokens kapag cancelled/closed ang application.',
+        'Lagi kang may 10 applications.',
+        'Bumabalik ang application kapag cancelled/closed.',
         'Pwede kang mag-withdraw para i-cancel ang applications.',
         'Mag-apply lang sa Gigs na available mong gawin!'
       ]
@@ -89,17 +89,17 @@ const MY_APP_TAB_INTROS = {
     bullets: {
       english: [
         'Closed includes rejected, expired, or worker-declined outcomes.',
-        'Tokens return automatically when an application closes.',
+        'Applications return automatically when one closes.',
         'Use status labels to learn which gigs moved fastest.'
       ],
       bisaya: [
         'Ang Closed naglakip sa rejected, expired, ug declined sa worker.',
-        'Mobalik dayon ang tokens kung ma-close ang application.',
+        'Mobalik dayon ang application kung ma-close.',
         'Gamita ang status labels aron makita kung asa ka mas dali ma-hire.'
       ],
       tagalog: [
         'Kasama sa Closed ang rejected, expired, o worker-declined outcomes.',
-        'Awtomatikong bumabalik ang tokens kapag closed ang application.',
+        'Awtomatikong bumabalik ang application kapag closed.',
         'Gamitin ang status labels para makita kung saang gigs ka mas mabilis umusad.'
       ]
     },
@@ -129,18 +129,18 @@ const MY_APP_TAB_INTROS = {
     bullets: {
       english: [
         'Withdrawn applications are removed from active consideration.',
-        'Your held token is returned after withdrawal.',
-        'Use this to free tokens when you need to prioritize better opportunities.'
+        'Your application is returned to you after withdrawal.',
+        'Use this to free up applications when you need to prioritize better opportunities.'
       ],
       bisaya: [
         'Ang withdrawn applications dili na i-consider sa customer.',
-        'Mobalik ang imong token human sa withdrawal.',
-        'Gamita ni aron ma-free ang tokens para sa mas importante nga opportunities.'
+        'Mobalik ang imong application human sa withdrawal.',
+        'Gamita ni aron ma-free ang applications para sa mas importante nga opportunities.'
       ],
       tagalog: [
         'Ang withdrawn applications ay hindi na kasama sa active review ng customer.',
-        'Bumabalik ang token mo pagkatapos ng withdrawal.',
-        'Gamitin ito para mag-free ng tokens sa mas mahalagang opportunities.'
+        'Bumabalik ang application mo pagkatapos ng withdrawal.',
+        'Gamitin ito para mag-free ng applications sa mas mahalagang opportunities.'
       ]
     },
     footer: {
@@ -158,6 +158,7 @@ const MY_APP_TAB_INTROS = {
 
 let activeTab = 'active';
 let allApplications = [];
+let applicationsLoaded = false;
 let currentWorkerId = '';
 let activeTutorialLang = 'english';
 let tabsInitialized = false;
@@ -255,9 +256,7 @@ function renderTabIntro(container) {
         <div class="my-app-intro-title">${getLocalizedIntroCopy(intro, 'title')}</div>
       </div>
       <div class="my-app-intro-coin-banner">
-        <span class="rule-prefix">${activeTutorialLang === 'english' ? 'Each time you Apply costs 1' : activeTutorialLang === 'bisaya' ? 'Sa matag pag-Apply, mugasto og 1 ka' : 'Sa bawat pag-Apply, may cost na 1'}</span>
-        <span class="coin-dot coin-dot-g"><span class="coin-dot-letter">G</span></span>
-        <span class="rule-suffix"></span>
+        <span class="rule-prefix">${activeTutorialLang === 'english' ? 'You can have up to 10 active applications at a time.' : activeTutorialLang === 'bisaya' ? 'Pwede kay hangtod 10 ka active applications sa usa ka higayon.' : 'Pwede kang magkaroon ng hanggang 10 active applications sa isang pagkakataon.'}</span>
       </div>
       <div class="my-app-intro-subtitle">${getLocalizedIntroCopy(intro, 'subtitle')}</div>
       <ul class="my-app-intro-list">
@@ -330,20 +329,87 @@ async function navigateToGigPost(application) {
   window.location.href = `dynamic-job.html?category=${encodeURIComponent(category)}&jobId=${encodeURIComponent(jobId)}`;
 }
 
+function hideWithdrawOverlay() {
+  const overlay = document.getElementById('withdrawConfirmOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+  overlay.setAttribute('aria-hidden', 'true');
+  const card = overlay.querySelector('.my-app-confirm-card');
+  if (card) card.classList.remove('processing');
+}
+
+// Resolves true when the user confirms (overlay then switches to a spinner state
+// that the caller closes once the withdrawal finishes), false if dismissed.
+function openWithdrawConfirm() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById('withdrawConfirmOverlay');
+    const cancelBtn = document.getElementById('withdrawConfirmCancel');
+    const acceptBtn = document.getElementById('withdrawConfirmAccept');
+    const card = overlay ? overlay.querySelector('.my-app-confirm-card') : null;
+    if (!overlay || !cancelBtn || !acceptBtn || !card) {
+      resolve(window.confirm('Withdraw this application? It will be returned to you.'));
+      return;
+    }
+
+    const cleanup = () => {
+      cancelBtn.removeEventListener('click', onCancel);
+      acceptBtn.removeEventListener('click', onAccept);
+      overlay.removeEventListener('click', onBackdrop);
+      document.removeEventListener('keydown', onKey);
+    };
+    const onCancel = () => {
+      cleanup();
+      hideWithdrawOverlay();
+      resolve(false);
+    };
+    const onAccept = () => {
+      cleanup();
+      card.classList.add('processing');
+      resolve(true);
+    };
+    const onBackdrop = (event) => {
+      if (event.target === overlay) onCancel();
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape') onCancel();
+    };
+
+    cancelBtn.addEventListener('click', onCancel);
+    acceptBtn.addEventListener('click', onAccept);
+    overlay.addEventListener('click', onBackdrop);
+    document.addEventListener('keydown', onKey);
+
+    card.classList.remove('processing');
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+  });
+}
+
 async function handleWithdrawApplication(applicationId) {
   if (!applicationId) return;
-  const confirmWithdraw = window.confirm('Withdraw this application? Your token will be returned.');
+  const confirmWithdraw = await openWithdrawConfirm();
   if (!confirmWithdraw) return;
   if (typeof withdrawWorkerApplication !== 'function') {
+    hideWithdrawOverlay();
     alert('Withdraw function is unavailable right now.');
     return;
   }
-  const result = await withdrawWorkerApplication(applicationId);
+
+  let result;
+  try {
+    result = await withdrawWorkerApplication(applicationId);
+    if (result?.success) {
+      await Promise.all([loadCoinStatus(), loadApplications()]);
+    }
+  } catch (error) {
+    result = { success: false, message: error?.message };
+  } finally {
+    hideWithdrawOverlay();
+  }
+
   if (!result?.success) {
     alert(result?.message || 'Could not withdraw this application right now.');
-    return;
   }
-  await Promise.all([loadCoinStatus(), loadApplications()]);
 }
 
 function renderApplicationCards() {
@@ -367,6 +433,10 @@ function renderApplicationCards() {
     });
 
   if (records.length === 0) {
+    if (!applicationsLoaded) {
+      container.innerHTML = '<div class="my-app-loading"><div class="my-app-spinner"></div></div>';
+      return;
+    }
     const placeholder = MY_APP_EMPTY_PLACEHOLDERS[activeTab] || MY_APP_EMPTY_PLACEHOLDERS.active;
     container.innerHTML = `<div class="my-app-empty">${placeholder}</div>`;
     return;
@@ -419,6 +489,7 @@ function updateTabCounts() {
 async function loadApplications() {
   if (!currentWorkerId || typeof getWorkerApplications !== 'function') return;
   allApplications = await getWorkerApplications(currentWorkerId);
+  applicationsLoaded = true;
   updateTabCounts();
   renderApplicationCards();
 }
@@ -433,7 +504,7 @@ async function loadCoinStatus() {
     valueEl.textContent = String(cached.current);
     strip.classList.toggle('low', cached.current <= 2);
     captionEl.textContent = cached.current <= 2
-      ? 'Low tokens. Withdraw a pending application to recover one.'
+      ? 'Few applications remaining. Withdraw a pending one to free it up.'
       : '';
     valueEl.classList.remove('loading');
   } else {
@@ -445,7 +516,7 @@ async function loadCoinStatus() {
     valueEl.textContent = String(current);
     strip.classList.toggle('low', current <= 2);
     captionEl.textContent = current <= 2
-      ? 'Low tokens. Withdraw a pending application to recover one.'
+      ? 'Few applications remaining. Withdraw a pending one to free it up.'
       : '';
     writeCachedCoinStatus(currentWorkerId, current);
   } finally {
@@ -485,7 +556,7 @@ async function initializeMyApplicationsPage() {
   initializeTabs();
   // Render immediately (especially the Active tutorial) before network calls.
   renderApplicationCards();
-  // Prioritize token display first; applications list can fill in afterward.
+  // Prioritize the remaining-count display first; applications list can fill in afterward.
   Promise.resolve(loadCoinStatus()).catch((error) => {
     console.warn('⚠️ My Applications coin status load failed:', error);
   });

@@ -616,7 +616,7 @@ async function fetchFaceVerificationMediaAccess(targetUserId, context = {}) {
       });
   });
   try {
-    const callable = firebase.functions().httpsCallable('getFaceVerificationMediaAccess');
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('getFaceVerificationMediaAccess');
     const payload = {
       targetUserId,
       scope: context.scope || 'profile'
@@ -652,7 +652,7 @@ async function requestFaceVideoNormalization(userId, sourcePath = '') {
       });
   });
   try {
-    const callable = firebase.functions().httpsCallable('normalizeFaceVerificationVideo');
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('normalizeFaceVerificationVideo');
     const result = await withTimeout(callable({
       targetUserId: userId,
       sourcePath
@@ -2482,18 +2482,8 @@ function isUserLoggedIn() {
     console.log('📋 Firebase not connected, using fallback auth check');
   }
   
-  // Fallback to mock check for development AND demo purposes
-  // In development, we'll simulate a logged-in user
-  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  if (isDevelopment) {
-    return true; // Mock logged-in state for development
-  }
-  
-  // TEMPORARY: For live demo purposes, simulate logged-in user
-  // TODO: Remove this when real authentication is implemented
-  return true; // Allow Account button to show on live site for demo
-  
-  // Check session storage or other auth methods
+  // No authenticated Firebase user -> fall back to session check.
+  // (Demo "always logged in" bypass removed 2026-06-18; reports honest auth state now.)
   const sessionUser = sessionStorage.getItem('currentUserId');
   return sessionUser !== null && sessionUser !== 'undefined';
 }
@@ -5043,26 +5033,6 @@ function extractStoragePathFromDownloadUrl(url) {
   }
 }
 
-const LEGACY_PROFILE_PHONE_MIGRATION_FLAG = 'legacyProfilePhoneMigrationDoneV1';
-
-async function runLegacyProfilePhoneMigrationIfAdmin(user) {
-  if (!user || !user.uid) return;
-  if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
-  if (window.localStorage.getItem(LEGACY_PROFILE_PHONE_MIGRATION_FLAG) === '1') return;
-  if (typeof firebase === 'undefined' || !firebase.functions) return;
-
-  try {
-    const migrateLegacyProfilePhones = firebase.functions().httpsCallable('migrateLegacyProfilePhones');
-    const result = await migrateLegacyProfilePhones({});
-    const payload = result?.data || {};
-    window.localStorage.setItem(LEGACY_PROFILE_PHONE_MIGRATION_FLAG, '1');
-    console.log('✅ Legacy profile phone migration completed:', payload);
-  } catch (error) {
-    // Non-blocking: profile loading should continue even if migration is unavailable.
-    console.warn('⚠️ Legacy profile phone migration skipped:', error?.message || error);
-  }
-}
-
 async function waitForAuthAndLoadProfile() {
   // Hide profile content immediately to avoid template flash before loader decision.
   setProfileShellVisibility(false);
@@ -5116,7 +5086,6 @@ async function waitForAuthAndLoadProfile() {
       }
       
       console.log('🔥 User authenticated:', user.uid);
-      await runLegacyProfilePhoneMigrationIfAdmin(user);
       
       // ══════════════════════════════════════════════════════════════
       // INITIAL PROVIDER STATE LOGGING
