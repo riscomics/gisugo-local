@@ -795,6 +795,9 @@ async function loginWithFacebook() {
       errorMessage = 'Pop-up blocked. Please allow pop-ups for this site.';
     } else if (error.code === 'auth/account-exists-with-different-credential') {
       errorMessage = 'An account already exists with the same email. Try signing in with a different method.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      // Facebook provider isn't enabled in Firebase yet (pending Meta app review).
+      errorMessage = 'Facebook sign-in isn\'t available yet — please use Google for now.';
     }
     
     return {
@@ -1086,18 +1089,27 @@ async function updateUserProfile(userId, updates) {
   }
   
   try {
-    // 🔒 SECURITY: Block name changes for all users
-    // Users must know their real name upon signup
-    // Name changes require admin approval via support
-    if (updates.fullName) {
-      console.warn('🔒 Name change blocked: Requires admin approval');
-      return { 
-        success: false, 
-        message: 'Name changes require approval from Admin. Please contact support if you need to update your name.',
-        code: 'NAME_CHANGE_LOCKED'
-      };
+    // 🔒 SECURITY: Name changes require admin approval. Only block an ACTUAL change —
+    // saves that include the (unchanged) name must still go through, otherwise every
+    // profile save is rejected just because the payload carries the current name.
+    if (updates.fullName !== undefined && updates.fullName !== null) {
+      const currentSnap = await db.collection('users').doc(userId).get();
+      const currentName = (currentSnap.exists ? (currentSnap.data().fullName || '') : '').trim();
+      const requestedName = String(updates.fullName).trim();
+
+      if (requestedName !== currentName) {
+        console.warn('🔒 Name change blocked: Requires admin approval');
+        return {
+          success: false,
+          message: 'Name changes require approval from Admin. Please contact support if you need to update your name.',
+          code: 'NAME_CHANGE_LOCKED'
+        };
+      }
+
+      // Name unchanged — drop it so we never overwrite the stored value with a no-op.
+      delete updates.fullName;
     }
-    
+
     await db.collection('users').doc(userId).update({
       ...updates,
       lastModified: firebase.firestore.FieldValue.serverTimestamp()

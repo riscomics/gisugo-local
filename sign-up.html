@@ -118,6 +118,37 @@
     .form-hint {
       color: #9ca3af !important;
     }
+
+    .oauth-hint {
+      text-align: center;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    /* Inline notes under fields (phone note, consent, name-lock warning) */
+    .form-note {
+      margin-top: 8px;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      color: #cbd5e1;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.28);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .phone-consent-note {
+      color: #9ca3af;
+      background: rgba(148, 163, 184, 0.08);
+      border-color: rgba(148, 163, 184, 0.25);
+      font-size: 0.78rem;
+    }
+
+    .name-lock-note {
+      color: #fde68a;
+      background: rgba(120, 53, 15, 0.28);
+      border-color: rgba(251, 191, 36, 0.4);
+    }
     
     .character-counter {
       color: #6b7280 !important;
@@ -928,7 +959,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24">
               <path fill="#ffffff" d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
             </svg>
-            <span>Facebook</span>
+            <span>Facebook / Messenger</span>
           </button>
           
           <button type="button" class="oauth-square google-square" id="googleSignInBtn">
@@ -941,29 +972,29 @@
             <span>Google</span>
           </button>
         </div>
-        
-        <!-- OR divider -->
-        <div class="or-divider">
-          <span class="or-line"></span>
-          <span class="or-text" data-i18n="or">OR</span>
-          <span class="or-line"></span>
-        </div>
-        
-        <!-- Phone Sign-Up Button (horizontal rectangle) -->
-        <button type="button" class="oauth-btn phone-signup-btn" id="phoneSignUpBtn">
-          <span class="phone-icon">📱</span>
-          <span data-i18n="signupPhone">Sign up with Phone Number</span>
-        </button>
+        <div class="form-hint oauth-hint" data-i18n="oauthHint" style="margin-top: 12px;">Choose Facebook or Google to create your account. It's fast and secure.</div>
       </div>
       
-      <!-- Phone OTP Section (hidden until phone signup clicked) -->
-      <div class="form-section phone-otp-section" id="phoneOtpSection" style="display: none;">
-        <div class="form-section-header" data-i18n="phoneVerification">📱 Phone Verification</div>
+      <!-- Basic Information Section -->
+      <div class="form-section form-collapsible-section" id="signupSectionBasic">
+        <div class="form-section-header collapsible-header"><span data-i18n="basicInfo">Basic Information</span><span class="collapse-indicator">▼</span></div>
         
+        <!-- Full Name -->
         <div class="form-group">
-          <label for="phoneAuth" class="form-label" data-i18n="enterPhone">Enter Your Phone Number</label>
+          <label for="fullName" class="form-label" data-i18n="fullNameLabel">Full Name *</label>
+          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="25" autocomplete="off" required>
+          <div class="character-counter">
+            <span id="fullNameCounter">0</span>/25 characters
+          </div>
+          <div class="form-note name-lock-note" data-i18n="nameLockNote">⚠️ Enter your real name correctly — it can't be changed later without admin approval.</div>
+          <div class="form-error" id="fullNameError"></div>
+        </div>
+
+        <!-- Phone Number (required contact field) -->
+        <div class="form-group">
+          <label for="phone" class="form-label" data-i18n="phoneLabel">Phone Number *</label>
           <div class="phone-input-wrapper">
-            <select id="countryCodeAuth" class="country-code-select" aria-label="Country Code">
+            <select id="phone-country" name="phone-country" class="country-code-select" aria-label="Country Code">
               <option value="+63">🇵🇭 +63</option>
               <option value="+1">🇺🇸 +1</option>
               <option value="+44">🇬🇧 +44</option>
@@ -981,82 +1012,11 @@
               <option value="+86">🇨🇳 +86</option>
               <option value="+91">🇮🇳 +91</option>
             </select>
-            <input type="tel" id="phoneAuth" name="phoneAuth" class="form-input phone-input" placeholder="9123456789" maxlength="15" autocomplete="tel">
+            <input type="tel" id="phone" name="phone" class="form-input phone-input" placeholder="9123456789" maxlength="15" autocomplete="tel" required>
           </div>
-          <div class="form-error" id="phoneAuthError"></div>
-        </div>
-        
-        <button type="button" class="signup-submit-btn" id="sendOtpBtn">
-          <span data-i18n="sendCode">Send Verification Code</span>
-        </button>
-        
-        <!-- OTP Input (hidden until code sent) -->
-        <div class="otp-verify-section" id="otpVerifySection" style="display: none;">
-          <div class="form-group">
-            <label for="otpCode" class="form-label" data-i18n="enterOtp">Enter 6-Digit Code</label>
-            <input type="text" id="otpCode" name="otpCode" class="form-input otp-input" placeholder="000000" maxlength="6">
-            <div class="form-hint" data-i18n="codeSentHint">Code sent to your phone</div>
-            <div class="form-error" id="otpCodeError"></div>
-          </div>
-          <button type="button" class="signup-submit-btn verify-btn" id="verifyOtpBtn">
-            <span data-i18n="verifyContinue">Verify & Continue</span>
-          </button>
-          <button type="button" class="resend-btn" id="resendOtpBtn" data-i18n="resendCode">Resend Code</button>
-        </div>
-      </div>
-
-      <!-- OR divider before Email -->
-      <div class="form-section or-section" id="emailDivider">
-        <div class="or-divider">
-          <span class="or-line"></span>
-          <span class="or-text" data-i18n="or">OR</span>
-          <span class="or-line"></span>
-        </div>
-        <button type="button" class="email-toggle-btn" id="emailToggleBtn">
-          <span class="toggle-text" data-i18n="signupEmail">📧 Sign up with Email</span>
-          <span class="toggle-arrow">▼</span>
-        </button>
-      </div>
-      
-      <!-- Email Sign Up Section (collapsed by default) -->
-      <div class="form-section email-signup-section" id="emailSignupSection" style="display: none;">
-        <div class="form-section-header" data-i18n="emailSignup">Email Sign Up</div>
-        
-        <!-- Email -->
-        <div class="form-group">
-          <label for="email" class="form-label">Email Address</label>
-          <input type="email" id="email" name="email" class="form-input" placeholder="Enter your email address" autocomplete="off">
-          <div class="form-error" id="emailError"></div>
-        </div>
-
-        <!-- Password -->
-        <div class="form-group">
-          <label for="password" class="form-label">Password</label>
-          <input type="password" id="password" name="password" class="form-input" placeholder="Enter your password (min 6 characters)" minlength="6" autocomplete="new-password">
-          <div class="form-hint">Password must be at least 6 characters long</div>
-          <div class="form-error" id="passwordError"></div>
-        </div>
-
-        <!-- Confirm Password -->
-        <div class="form-group">
-          <label for="confirmPassword" class="form-label">Confirm Password</label>
-          <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" placeholder="Confirm your password" minlength="6" autocomplete="new-password">
-          <div class="form-error" id="confirmPasswordError"></div>
-        </div>
-      </div>
-
-      <!-- Basic Information Section -->
-      <div class="form-section form-collapsible-section" id="signupSectionBasic">
-        <div class="form-section-header collapsible-header"><span data-i18n="basicInfo">Basic Information</span><span class="collapse-indicator">▼</span></div>
-        
-        <!-- Full Name -->
-        <div class="form-group">
-          <label for="fullName" class="form-label" data-i18n="fullNameLabel">Full Name *</label>
-          <input type="text" id="fullName" name="fullName" class="form-input" placeholder="Enter your full name" maxlength="25" autocomplete="off" required>
-          <div class="character-counter">
-            <span id="fullNameCounter">0</span>/25 characters
-          </div>
-          <div class="form-error" id="fullNameError"></div>
+          <div class="form-note" data-i18n="phoneNote">📞 Required. Customers use this to contact you when you apply for or are hired for a gig.</div>
+          <div class="form-note phone-consent-note" data-i18n="phoneConsent">By continuing, you agree your phone number may be shared with a customer when you apply for or are hired for their gig.</div>
+          <div class="form-error" id="phoneError"></div>
         </div>
       </div>
 
@@ -1106,6 +1066,13 @@
       <div class="form-section form-collapsible-section" id="signupSectionSocial">
         <div class="form-section-header collapsible-header"><span data-i18n="socialOptional">Social Media (Optional)</span><span class="collapse-indicator">▼</span></div>
         <div class="form-hint" data-i18n="socialHint">Link your social media to build trust with customers</div>
+
+        <!-- Email (optional - stored on your profile, not a login method) -->
+        <div class="form-group">
+          <label for="email" class="form-label" data-i18n="emailOptionalLabel">Email Address (Optional)</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" autocomplete="email">
+          <div class="form-error" id="emailError"></div>
+        </div>
         
         <!-- Facebook -->
         <div class="form-group">
@@ -1309,270 +1276,18 @@
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js"></script>
-  <script src="public/js/firebase-auth.js?v=8"></script>
+  <script src="public/js/firebase-auth.js?v=9"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
-  <script src="public/js/sign-up.js?v=6.4"></script>
+  <script src="public/js/sign-up.js?v=6.5"></script>
   
   <script>
     // ===== SIGNUP FLOW MANAGEMENT =====
-    document.addEventListener('DOMContentLoaded', function() {
-      const phoneSignUpBtn = document.getElementById('phoneSignUpBtn');
-      const phoneOtpSection = document.getElementById('phoneOtpSection');
-      const emailDivider = document.getElementById('emailDivider');
-      const emailSignupSection = document.getElementById('emailSignupSection');
-      const sendOtpBtn = document.getElementById('sendOtpBtn');
-      const otpVerifySection = document.getElementById('otpVerifySection');
-      const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-      const resendOtpBtn = document.getElementById('resendOtpBtn');
-      const facebookBtn = document.getElementById('facebookSignInBtn');
-      const googleBtn = document.getElementById('googleSignInBtn');
-      
-      // Track signup method globally
-      window.signupMethod = null;
-      
-      // Helper to hide email section and toggle
-      function hideEmailSection() {
-        if (emailDivider) emailDivider.style.display = 'none';
-        if (emailSignupSection) emailSignupSection.style.display = 'none';
-        const emailToggleBtn = document.getElementById('emailToggleBtn');
-        if (emailToggleBtn) emailToggleBtn.classList.remove('active');
-      }
-      
-      // Facebook signup - just set method, don't hide other options
-      if (facebookBtn) {
-        facebookBtn.addEventListener('click', function() {
-          window.signupMethod = 'facebook';
-          console.log('📘 Facebook signup selected');
-          // The actual OAuth is handled by sign-up.js
-          // OAuth popup will appear - keep other options visible in case user cancels
-        });
-      }
-      
-      // Google signup - just set method, don't hide other options
-      if (googleBtn) {
-        googleBtn.addEventListener('click', function() {
-          window.signupMethod = 'google';
-          console.log('🔴 Google signup selected');
-          // The actual OAuth is handled by sign-up.js
-          // OAuth popup will appear - keep other options visible in case user cancels
-        });
-      }
-      
-      // Email toggle button - expand/collapse email section
-      const emailToggleBtn = document.getElementById('emailToggleBtn');
-      if (emailToggleBtn) {
-        emailToggleBtn.addEventListener('click', function() {
-          const isExpanded = emailSignupSection.style.display !== 'none';
-          
-          if (isExpanded) {
-            // Collapse
-            emailSignupSection.style.display = 'none';
-            emailToggleBtn.classList.remove('active');
-            window.signupMethod = null;
-            // Show phone button again
-            phoneSignUpBtn.style.display = 'flex';
-          } else {
-            // Expand
-            emailSignupSection.style.display = 'block';
-            emailToggleBtn.classList.add('active');
-            window.signupMethod = 'email';
-            // Collapse phone section but keep button visible
-            phoneOtpSection.style.display = 'none';
-            phoneSignUpBtn.style.display = 'flex';
-            // Scroll to email section
-            emailSignupSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Focus email input
-            setTimeout(() => document.getElementById('email')?.focus(), 300);
-            console.log('📧 Email signup selected');
-          }
-        });
-      }
-      
-      // Phone signup button click - show OTP section
-      if (phoneSignUpBtn) {
-        phoneSignUpBtn.addEventListener('click', function() {
-          window.signupMethod = 'phone';
-          phoneOtpSection.style.display = 'block';
-          phoneSignUpBtn.style.display = 'none';
-          // Collapse email section but keep toggle visible
-          if (emailSignupSection) emailSignupSection.style.display = 'none';
-          const emailToggleBtn = document.getElementById('emailToggleBtn');
-          if (emailToggleBtn) emailToggleBtn.classList.remove('active');
-          // Scroll to OTP section
-          phoneOtpSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-      }
-      
-      // Send OTP button click
-      if (sendOtpBtn) {
-        sendOtpBtn.addEventListener('click', async function() {
-          const phoneInput = document.getElementById('phoneAuth').value.trim().replace(/\D/g, '');
-          const countryCode = document.getElementById('countryCodeAuth').value;
-          
-          if (!phoneInput || phoneInput.length < 7) {
-            document.getElementById('phoneAuthError').textContent = 'Please enter a valid phone number';
-            document.getElementById('phoneAuthError').style.display = 'block';
-            return;
-          }
-          
-          const fullPhoneNumber = countryCode + phoneInput;
-          
-          sendOtpBtn.disabled = true;
-          sendOtpBtn.innerHTML = '<span>Sending...</span>';
-          
-          try {
-            // Call Firebase phone auth
-            if (typeof sendPhoneVerificationCode === 'function') {
-              const result = await sendPhoneVerificationCode(fullPhoneNumber, 'sendOtpBtn');
-              
-              if (result.success) {
-                otpVerifySection.style.display = 'block';
-                sendOtpBtn.style.display = 'none';
-                document.getElementById('otpCode').focus();
-                
-                startResendCountdown();
-              } else {
-                document.getElementById('phoneAuthError').textContent = result.message || 'Failed to send code';
-                document.getElementById('phoneAuthError').style.display = 'block';
-                sendOtpBtn.disabled = false;
-                sendOtpBtn.innerHTML = '<span>Send Verification Code</span>';
-              }
-            } else {
-              // Mock for development
-              console.log('📱 Mock OTP sent to:', fullPhoneNumber);
-              otpVerifySection.style.display = 'block';
-              sendOtpBtn.style.display = 'none';
-              
-              startResendCountdown();
-            }
-          } catch (error) {
-            console.error('Phone auth error:', error);
-            document.getElementById('phoneAuthError').textContent = 'Failed to send code. Try again.';
-            document.getElementById('phoneAuthError').style.display = 'block';
-            sendOtpBtn.disabled = false;
-            sendOtpBtn.innerHTML = '<span>Send Verification Code</span>';
-          }
-        });
-      }
-      
-      // Verify OTP button click
-      if (verifyOtpBtn) {
-        verifyOtpBtn.addEventListener('click', async function() {
-          const otpCode = document.getElementById('otpCode').value.trim();
-          
-          if (!otpCode || otpCode.length !== 6) {
-            document.getElementById('otpCodeError').textContent = 'Please enter the 6-digit code';
-            document.getElementById('otpCodeError').style.display = 'block';
-            return;
-          }
-          
-          verifyOtpBtn.disabled = true;
-          verifyOtpBtn.innerHTML = '<span>Verifying...</span>';
-          
-          try {
-            if (typeof verifyPhoneCode === 'function') {
-              const result = await verifyPhoneCode(otpCode);
-              
-              if (result.success) {
-                // Phone verified! Store authenticated user
-                if (typeof authenticatedUser !== 'undefined' && result.user) {
-                  authenticatedUser = {
-                    uid: result.user.uid,
-                    email: result.user.email || '',
-                    displayName: result.user.displayName || '',
-                    phoneNumber: result.user.phoneNumber || '',
-                    provider: result.user.providerData?.[0]?.providerId || 'phone'
-                  };
-                  console.log('📱 Authenticated user captured:', authenticatedUser.uid);
-                }
-                if (typeof showAuthenticatedState === 'function') {
-                  showAuthenticatedState('phone');
-                }
-                
-                // Mark section as complete
-                phoneOtpSection.innerHTML = '<div style="text-align:center;padding:20px;"><span style="font-size:2rem;">✅</span><p style="color:#10b981;font-weight:600;margin-top:10px;">Phone Verified!</p></div>';
-                console.log('✅ Phone verification successful');
-              } else {
-                document.getElementById('otpCodeError').textContent = result.message || 'Invalid code';
-                document.getElementById('otpCodeError').style.display = 'block';
-                verifyOtpBtn.disabled = false;
-                verifyOtpBtn.innerHTML = '<span>Verify & Continue</span>';
-              }
-            } else {
-              // Mock for development
-              console.log('📱 Mock OTP verified:', otpCode);
-              phoneOtpSection.innerHTML = '<div style="text-align:center;padding:20px;"><span style="font-size:2rem;">✅</span><p style="color:#10b981;font-weight:600;margin-top:10px;">Phone Verified!</p></div>';
-            }
-          } catch (error) {
-            console.error('OTP verification error:', error);
-            document.getElementById('otpCodeError').textContent = 'Verification failed. Try again.';
-            document.getElementById('otpCodeError').style.display = 'block';
-            verifyOtpBtn.disabled = false;
-            verifyOtpBtn.innerHTML = '<span>Verify & Continue</span>';
-          }
-        });
-      }
-      
-      // Resend OTP button click
-      if (resendOtpBtn) {
-        resendOtpBtn.addEventListener('click', async function() {
-          const phoneInput = document.getElementById('phoneAuth').value.trim().replace(/\D/g, '');
-          const countryCode = document.getElementById('countryCodeAuth').value;
-          const fullPhoneNumber = countryCode + phoneInput;
-          
-          resendOtpBtn.disabled = true;
-          resendOtpBtn.textContent = 'Sending...';
-          
-          try {
-            if (typeof sendPhoneVerificationCode === 'function') {
-              const result = await sendPhoneVerificationCode(fullPhoneNumber, 'sendOtpBtn');
-              
-              if (result.success) {
-                startResendCountdown();
-              } else {
-                document.getElementById('phoneAuthError').textContent = result.message || 'Failed to resend code';
-                document.getElementById('phoneAuthError').style.display = 'block';
-                resendOtpBtn.disabled = false;
-                resendOtpBtn.textContent = 'Resend Code';
-              }
-            } else {
-              // Mock for development
-              console.log('📱 Mock OTP resent to:', fullPhoneNumber);
-              startResendCountdown();
-            }
-          } catch (error) {
-            console.error('Resend error:', error);
-            document.getElementById('phoneAuthError').textContent = 'Failed to resend code';
-            document.getElementById('phoneAuthError').style.display = 'block';
-            resendOtpBtn.disabled = false;
-            resendOtpBtn.textContent = 'Resend Code';
-          }
-        });
-      }
-      
-      // Resend countdown
-      function startResendCountdown() {
-        let seconds = 60;
-        resendOtpBtn.disabled = true;
-        resendOtpBtn.textContent = `Resend Code (${seconds}s)`;
-        
-        const interval = setInterval(() => {
-          seconds--;
-          resendOtpBtn.textContent = `Resend Code (${seconds}s)`;
-          
-          if (seconds <= 0) {
-            clearInterval(interval);
-            resendOtpBtn.disabled = false;
-            resendOtpBtn.textContent = 'Resend Code';
-          }
-        }, 1000);
-      }
-      
-      console.log('📱 Phone signup flow initialized');
-    });
-    
+    // Phone + email/OTP signup rails were removed. Signup is now OAuth-only
+    // (Facebook / Google) and handled entirely in sign-up.js. Only the
+    // Terms of Service / Privacy Policy modal wiring remains below.
+
     // ===== TERMS OF SERVICE & PRIVACY POLICY MODALS =====
     const termsOfServiceLink = document.getElementById('termsOfServiceLink');
     const privacyPolicyLink = document.getElementById('privacyPolicyLink');

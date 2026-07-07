@@ -2004,6 +2004,22 @@ function populateEditProfileForm() {
     if (firstNameInput && profile.firstName) firstNameInput.value = profile.firstName;
     if (lastNameInput && profile.lastName) lastNameInput.value = profile.lastName;
   }
+
+  // 🔒 Names are admin-locked after signup (changes require approval). Lock the fields
+  // once a name has been entered so users can't edit into the block; brand-new /
+  // nameless profiles stay editable.
+  const hasEnteredName = !!(
+    (profile.fullName && profile.fullName.trim()) ||
+    (profile.firstName && profile.firstName.trim()) ||
+    (profile.lastName && profile.lastName.trim())
+  );
+  [firstNameInput, lastNameInput].forEach((input) => {
+    if (!input) return;
+    input.readOnly = hasEnteredName;
+    input.title = hasEnteredName ? 'Name is locked. Contact support to request a change.' : '';
+    input.style.opacity = hasEnteredName ? '0.6' : '';
+    input.style.cursor = hasEnteredName ? 'not-allowed' : '';
+  });
   
   if (dobInput && profile.dateOfBirth) {
     dobInput.value = profile.dateOfBirth;
@@ -2633,14 +2649,6 @@ function updateLoginMethodsUI() {
     // Update Facebook
     const facebookLinked = providerIds.includes('facebook.com');
     updateMethodUI('Facebook', facebookLinked, user.providerData.find(p => p.providerId === 'facebook.com')?.email);
-    
-    // Update Phone
-    const phoneLinked = providerIds.includes('phone');
-    updateMethodUI('Phone', phoneLinked, user.phoneNumber);
-    
-    // Update Email/Password
-    const emailLinked = providerIds.includes('password');
-    updateMethodUI('Email', emailLinked, user.email);
 
   } catch (error) {
     console.error('Error updating login methods UI:', error);
@@ -2654,7 +2662,6 @@ function updateMethodUI(methodName, isLinked, detail) {
   const statusEl = document.getElementById(`${methodName.toLowerCase()}MethodStatus`);
   const btnEl = document.getElementById(`link${methodName}Btn`);
   const itemEl = document.getElementById(`loginMethod${methodName}`);
-  const changePasswordBtn = document.getElementById('changePasswordBtn');
   
   if (statusEl) {
     if (isLinked) {
@@ -2685,15 +2692,6 @@ function updateMethodUI(methodName, isLinked, detail) {
       itemEl.classList.add('linked');
     } else {
       itemEl.classList.remove('linked');
-    }
-  }
-  
-  // Show/hide Change Password button for Email method
-  if (methodName === 'Email' && changePasswordBtn) {
-    if (isLinked) {
-      changePasswordBtn.style.display = 'inline-block';
-    } else {
-      changePasswordBtn.style.display = 'none';
     }
   }
 }
@@ -2728,59 +2726,9 @@ function closeLinkModal() {
   document.getElementById('linkModalOverlay').classList.remove('show');
 }
 
-// Phone linking modal functions
-function openPhoneLinkModal() {
-  const overlay = document.getElementById('phoneLinkModalOverlay');
-  overlay.classList.add('show');
-  document.getElementById('phoneLinkStep1').style.display = 'block';
-  document.getElementById('phoneLinkStep2').style.display = 'none';
-  document.getElementById('linkPhoneInput').value = '';
-  document.getElementById('linkPhoneOTPInput').value = '';
-  // Focus the input after a short delay
-  setTimeout(() => {
-    document.getElementById('linkPhoneInput').focus();
-  }, 100);
-}
-
-function closePhoneLinkModal() {
-  document.getElementById('phoneLinkModalOverlay').classList.remove('show');
-  // Clean up reCAPTCHA
-  if (window.phoneLinkRecaptcha) {
-    window.phoneLinkRecaptcha.clear();
-    window.phoneLinkRecaptcha = null;
-  }
-}
-
-function resetPhoneLinkModal() {
-  document.getElementById('phoneLinkStep1').style.display = 'block';
-  document.getElementById('phoneLinkStep2').style.display = 'none';
-}
-
-// Email linking modal functions
-function openEmailLinkModal() {
-  const overlay = document.getElementById('emailLinkModalOverlay');
-  overlay.classList.add('show');
-  document.getElementById('linkEmailInput').value = '';
-  document.getElementById('linkPasswordInput').value = '';
-  document.getElementById('linkConfirmPasswordInput').value = '';
-  // Focus the input after a short delay
-  setTimeout(() => {
-    document.getElementById('linkEmailInput').focus();
-  }, 100);
-}
-
-function closeEmailLinkModal() {
-  document.getElementById('emailLinkModalOverlay').classList.remove('show');
-}
-
 // Make modal functions globally accessible
 window.showLinkModal = showLinkModal;
 window.closeLinkModal = closeLinkModal;
-window.openPhoneLinkModal = openPhoneLinkModal;
-window.closePhoneLinkModal = closePhoneLinkModal;
-window.resetPhoneLinkModal = resetPhoneLinkModal;
-window.openEmailLinkModal = openEmailLinkModal;
-window.closeEmailLinkModal = closeEmailLinkModal;
 
 // Initialize link modal event handlers (prevent click-through)
 document.addEventListener('DOMContentLoaded', function() {
@@ -2793,7 +2741,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // Close modals when clicking overlay background
-  const overlays = ['linkModalOverlay', 'phoneLinkModalOverlay', 'emailLinkModalOverlay', 'changePasswordModalOverlay'];
+  const overlays = ['linkModalOverlay'];
   overlays.forEach(id => {
     const overlay = document.getElementById(id);
     if (overlay) {
@@ -2909,291 +2857,9 @@ async function linkFacebookAccount() {
   }
 }
 
-/**
- * Open phone linking modal
- */
-function linkPhoneNumber() {
-  if (typeof firebase === 'undefined' || !firebase.auth) {
-    showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
-    return;
-  }
-  
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
-    return;
-  }
-  
-  openPhoneLinkModal();
-}
-
-/**
- * Send verification code for phone linking
- */
-async function sendPhoneLinkCode() {
-  const phoneInput = document.getElementById('linkPhoneInput');
-  const phoneNumber = phoneInput.value.trim();
-  const sendBtn = document.getElementById('sendPhoneCodeBtn');
-  
-  if (!phoneNumber) {
-    showLinkModal('warning', 'Phone Required', 'Please enter your phone number with country code.');
-    return;
-  }
-  
-  if (!phoneNumber.startsWith('+')) {
-    showLinkModal('warning', 'Invalid Format', 'Please include the country code (e.g., +639123456789).');
-    return;
-  }
-  
-  try {
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Sending...';
-    
-    // Set up reCAPTCHA
-    if (!window.phoneLinkRecaptcha) {
-      window.phoneLinkRecaptcha = new firebase.auth.RecaptchaVerifier('phoneRecaptchaContainer', {
-        size: 'invisible',
-        callback: () => {}
-      });
-    }
-    
-    const provider = new firebase.auth.PhoneAuthProvider();
-    window.phoneLinkVerificationId = await provider.verifyPhoneNumber(phoneNumber, window.phoneLinkRecaptcha);
-    
-    // Show step 2
-    document.getElementById('phoneLinkStep1').style.display = 'none';
-    document.getElementById('phoneLinkStep2').style.display = 'block';
-    document.getElementById('phoneLinkNumber').textContent = phoneNumber;
-    document.getElementById('linkPhoneOTPInput').focus();
-    
-  } catch (error) {
-    console.error('❌ Error sending code:', error);
-    showLinkModal('error', 'Send Failed', error.message);
-  } finally {
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Send Verification Code';
-  }
-}
-
-/**
- * Verify OTP and link phone
- */
-async function verifyPhoneLinkCode() {
-  const otpInput = document.getElementById('linkPhoneOTPInput');
-  const code = otpInput.value.trim();
-  
-  if (!code || code.length !== 6) {
-    showLinkModal('warning', 'Invalid Code', 'Please enter the 6-digit verification code.');
-    return;
-  }
-  
-  try {
-    const user = firebase.auth().currentUser;
-    const credential = firebase.auth.PhoneAuthProvider.credential(window.phoneLinkVerificationId, code);
-    await user.linkWithCredential(credential);
-    
-    console.log('✅ Phone number linked successfully!');
-    closePhoneLinkModal();
-    showLinkModal('success', 'Phone Linked!', 'Your phone number has been linked successfully. You can now sign in with SMS.');
-    updateLoginMethodsUI();
-    
-  } catch (error) {
-    console.error('❌ Error verifying code:', error);
-    if (error.code === 'auth/invalid-verification-code') {
-      showLinkModal('error', 'Invalid Code', 'The verification code is incorrect. Please try again.');
-    } else if (error.code === 'auth/credential-already-in-use') {
-      closePhoneLinkModal();
-      showLinkModal('error', 'Already In Use', 'This phone number is already linked to another GISUGO account.');
-    } else if (error.code === 'auth/provider-already-linked') {
-      closePhoneLinkModal();
-      showLinkModal('warning', 'Already Linked', 'A phone number is already linked to your profile.');
-    } else {
-      showLinkModal('error', 'Verification Failed', error.message);
-    }
-  }
-}
-
-/**
- * Open email/password linking modal
- */
-function linkEmailPassword() {
-  if (typeof firebase === 'undefined' || !firebase.auth) {
-    showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
-    return;
-  }
-  
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
-    return;
-  }
-  
-  openEmailLinkModal();
-}
-
-/**
- * Submit email/password link
- */
-async function submitEmailLink() {
-  const email = document.getElementById('linkEmailInput').value.trim();
-  const password = document.getElementById('linkPasswordInput').value;
-  const confirmPassword = document.getElementById('linkConfirmPasswordInput').value;
-  
-  if (!email) {
-    showLinkModal('warning', 'Email Required', 'Please enter your email address.');
-    return;
-  }
-  
-  if (!password || password.length < 6) {
-    showLinkModal('warning', 'Password Too Short', 'Password must be at least 6 characters.');
-    return;
-  }
-  
-  if (password !== confirmPassword) {
-    showLinkModal('warning', 'Password Mismatch', 'Passwords do not match. Please try again.');
-    return;
-  }
-  
-  try {
-    const user = firebase.auth().currentUser;
-    const credential = firebase.auth.EmailAuthProvider.credential(email, password);
-    await user.linkWithCredential(credential);
-    
-    console.log('✅ Email/password linked successfully!');
-    closeEmailLinkModal();
-    showLinkModal('success', 'Email Linked!', 'Your email and password have been linked. You can now sign in with either method.');
-    updateLoginMethodsUI();
-    
-  } catch (error) {
-    console.error('❌ Error linking email/password:', error);
-    if (error.code === 'auth/credential-already-in-use' || error.code === 'auth/email-already-in-use') {
-      showLinkModal('error', 'Email In Use', 'This email is already linked to another account.');
-    } else if (error.code === 'auth/provider-already-linked') {
-      closeEmailLinkModal();
-      showLinkModal('warning', 'Already Linked', 'An email/password is already linked to your profile.');
-    } else if (error.code === 'auth/invalid-email') {
-      showLinkModal('warning', 'Invalid Email', 'Please enter a valid email address.');
-    } else {
-      showLinkModal('error', 'Link Failed', error.message);
-    }
-  }
-}
-
-// ===== CHANGE PASSWORD FUNCTIONS =====
-
-function openChangePasswordModal() {
-  const overlay = document.getElementById('changePasswordModalOverlay');
-  overlay.classList.add('show');
-  document.getElementById('currentPasswordInput').value = '';
-  document.getElementById('newPasswordInput').value = '';
-  document.getElementById('confirmNewPasswordInput').value = '';
-  setTimeout(() => {
-    document.getElementById('currentPasswordInput').focus();
-  }, 100);
-}
-
-function closeChangePasswordModal() {
-  document.getElementById('changePasswordModalOverlay').classList.remove('show');
-}
-
-/**
- * Submit password change
- */
-async function submitChangePassword() {
-  const currentPassword = document.getElementById('currentPasswordInput').value;
-  const newPassword = document.getElementById('newPasswordInput').value;
-  const confirmPassword = document.getElementById('confirmNewPasswordInput').value;
-  
-  if (!currentPassword) {
-    showLinkModal('warning', 'Current Password Required', 'Please enter your current password to verify your identity.');
-    return;
-  }
-  
-  if (!newPassword || newPassword.length < 6) {
-    showLinkModal('warning', 'Password Too Short', 'New password must be at least 6 characters.');
-    return;
-  }
-  
-  if (newPassword !== confirmPassword) {
-    showLinkModal('warning', 'Password Mismatch', 'New passwords do not match. Please try again.');
-    return;
-  }
-  
-  if (currentPassword === newPassword) {
-    showLinkModal('warning', 'Same Password', 'New password must be different from current password.');
-    return;
-  }
-  
-  try {
-    const user = firebase.auth().currentUser;
-    if (!user || !user.email) {
-      showLinkModal('error', 'Not Logged In', 'Please log in first.');
-      return;
-    }
-    
-    // Re-authenticate user first (required for sensitive operations)
-    const credential = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
-    await user.reauthenticateWithCredential(credential);
-    
-    // Now update the password
-    await user.updatePassword(newPassword);
-    
-    console.log('✅ Password changed successfully!');
-    closeChangePasswordModal();
-    showLinkModal('success', 'Password Updated!', 'Your password has been changed successfully.');
-    
-  } catch (error) {
-    console.error('❌ Error changing password:', error);
-    if (error.code === 'auth/wrong-password') {
-      showLinkModal('error', 'Wrong Password', 'The current password you entered is incorrect.');
-    } else if (error.code === 'auth/weak-password') {
-      showLinkModal('warning', 'Weak Password', 'Please choose a stronger password (at least 6 characters).');
-    } else if (error.code === 'auth/requires-recent-login') {
-      showLinkModal('error', 'Session Expired', 'For security, please log out and log back in, then try again.');
-    } else {
-      showLinkModal('error', 'Update Failed', error.message);
-    }
-  }
-}
-
-/**
- * Send password reset email
- */
-async function sendPasswordResetEmail() {
-  try {
-    const user = firebase.auth().currentUser;
-    if (!user || !user.email) {
-      showLinkModal('error', 'No Email', 'No email address found for your account.');
-      return;
-    }
-    
-    await firebase.auth().sendPasswordResetEmail(user.email);
-    
-    closeChangePasswordModal();
-    showLinkModal('success', 'Email Sent!', `A password reset link has been sent to ${user.email}. Check your inbox.`);
-    
-  } catch (error) {
-    console.error('❌ Error sending reset email:', error);
-    showLinkModal('error', 'Send Failed', error.message);
-  }
-}
-
-// Make change password functions globally accessible
-window.openChangePasswordModal = openChangePasswordModal;
-window.closeChangePasswordModal = closeChangePasswordModal;
-window.submitChangePassword = submitChangePassword;
-window.sendPasswordResetEmail = sendPasswordResetEmail;
-
-// Make linking functions globally accessible
-window.sendPhoneLinkCode = sendPhoneLinkCode;
-window.verifyPhoneLinkCode = verifyPhoneLinkCode;
-window.submitEmailLink = submitEmailLink;
-
 // Make functions globally accessible
 window.linkGoogleAccount = linkGoogleAccount;
 window.linkFacebookAccount = linkFacebookAccount;
-window.linkPhoneNumber = linkPhoneNumber;
-window.linkEmailPassword = linkEmailPassword;
 window.updateLoginMethodsUI = updateLoginMethodsUI;
 
 // Update badge and account button visibility based on auth and verification status

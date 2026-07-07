@@ -67,7 +67,13 @@ const SIGNUP_I18N = {
     authSignedInWith: '✅ Signed in with {provider}',
     authCompleteProfile: 'Complete your profile below to continue',
     useDifferentAccount: 'Not you? Use a different account',
-    fixHighlighted: 'Please complete the highlighted fields above'
+    fixHighlighted: 'Please complete the highlighted fields above',
+    oauthHint: "Choose Facebook or Google to create your account. It's fast and secure.",
+    nameLockNote: "⚠️ Enter your real name correctly — it can't be changed later without admin approval.",
+    phoneLabel: 'Phone Number *',
+    phoneNote: '📞 Required. Customers use this to contact you when you apply for or are hired for a gig.',
+    phoneConsent: 'By continuing, you agree your phone number may be shared with a customer when you apply for or are hired for their gig.',
+    emailOptionalLabel: 'Email Address (Optional)'
   },
   bisaya: {
     profilePhoto: 'Profile Photo',
@@ -103,7 +109,13 @@ const SIGNUP_I18N = {
     authSignedInWith: '✅ Signed in with {provider}',
     authCompleteProfile: 'Kompletoha ang imong profile sa ubos aron makapadayon',
     useDifferentAccount: 'Dili ikaw? Gamita ang laing account',
-    fixHighlighted: 'Palihug kompletoha ang mga gipasiugda nga field sa ibabaw'
+    fixHighlighted: 'Palihug kompletoha ang mga gipasiugda nga field sa ibabaw',
+    oauthHint: 'Pili og Facebook o Google para maghimo og account. Paspas ug luwas.',
+    nameLockNote: '⚠️ Isulat ug tama ang tinuod nimong ngalan — dili na ni mausab human mag-sign up gawas kung aprobahan sa admin.',
+    phoneLabel: 'Phone Number *',
+    phoneNote: '📞 Kinahanglan. Gamiton kini sa customer aron kontakon ka kung mo-apply ka o na-hire para sa gig.',
+    phoneConsent: 'Sa pagpadayon, mouyon ka nga ang imong phone number mahimong i-share sa customer kung mo-apply ka o na-hire para sa ilang gig.',
+    emailOptionalLabel: 'Email Address (Opsyonal)'
   },
   tagalog: {
     profilePhoto: 'Profile Photo',
@@ -139,7 +151,13 @@ const SIGNUP_I18N = {
     authSignedInWith: '✅ Signed in with {provider}',
     authCompleteProfile: 'Kumpletuhin ang profile mo sa ibaba para magpatuloy',
     useDifferentAccount: 'Hindi ikaw? Gumamit ng ibang account',
-    fixHighlighted: 'Pakikumpleto ang mga naka-highlight na field sa itaas'
+    fixHighlighted: 'Pakikumpleto ang mga naka-highlight na field sa itaas',
+    oauthHint: 'Pumili ng Facebook o Google para gumawa ng account. Mabilis at secure.',
+    nameLockNote: '⚠️ Ilagay nang tama ang totoong pangalan mo — hindi na ito mababago pagkatapos mag-sign up maliban kung aprubahan ng admin.',
+    phoneLabel: 'Phone Number *',
+    phoneNote: '📞 Kailangan. Ginagamit ito ng customer para kontakin ka kapag nag-apply ka o na-hire para sa isang gig.',
+    phoneConsent: 'Sa pagpapatuloy, sumasang-ayon ka na maaaring ibahagi ang phone number mo sa isang customer kapag nag-apply ka o na-hire para sa kanilang gig.',
+    emailOptionalLabel: 'Email Address (Opsyonal)'
   }
 };
 
@@ -239,7 +257,7 @@ function hasUnsupportedTextChars(value) {
     .some((char) => !isAllowedTextCharacter(char));
 }
 
-function showInputGuideHint(message) {
+function showInputGuideHint(message, title = 'SECURITY ALERT', emoji = '🚨') {
   let hint = document.getElementById('signup-input-guide');
   if (!hint) {
     hint = document.createElement('div');
@@ -271,8 +289,8 @@ function showInputGuideHint(message) {
 
   hint.innerHTML = `
     <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
-      <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
-      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+      <div style="font-size:30px; line-height:1; margin-bottom:6px;">${emoji}</div>
+      <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">${title}</div>
       <div style="font-size:14px; font-weight:600; line-height:1.38;">
         ${message}
       </div>
@@ -910,10 +928,8 @@ function validateField(field) {
   
   switch (fieldId) {
     case 'email':
-      if (!value) {
-        showError(fieldId, 'Email address is required');
-        return false;
-      }
+      // Email is now OPTIONAL (stored on the profile, not a login method).
+      if (!value) break;
       if (!isValidEmail(value)) {
         showError(fieldId, 'Please enter a valid email address');
         return false;
@@ -923,6 +939,21 @@ function validateField(field) {
         return false;
       }
       break;
+
+    case 'phone': {
+      if (!value) {
+        showError(fieldId, 'Phone number is required');
+        return false;
+      }
+      const countryCode = document.getElementById('phone-country')?.value || '+63';
+      if (!isValidPhone(value, countryCode)) {
+        showError(fieldId, countryCode === '+63'
+          ? 'Enter a valid PH mobile number (e.g. 9123456789)'
+          : 'Please enter a valid phone number');
+        return false;
+      }
+      break;
+    }
       
     case 'password':
       if (!value) {
@@ -1040,6 +1071,34 @@ function isValidUrl(string) {
 function isValidEmail(email) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
+}
+
+// Strip a phone number down to digits (drops spaces, dashes, parentheses).
+function getPhoneDigits(value) {
+  return String(value || '').replace(/\D/g, '');
+}
+
+// Basic phone validation. For PH (+63) we expect a 10-digit mobile starting
+// with 9 (a leading 0 is tolerated and stripped). Other countries just need a
+// plausible 7–15 digit number. This is a format check only — no SMS is sent.
+function isValidPhone(value, countryCode = '+63') {
+  let digits = getPhoneDigits(value);
+  if (!digits) return false;
+  if (countryCode === '+63') {
+    if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+    return digits.length === 10 && digits.startsWith('9');
+  }
+  return digits.length >= 7 && digits.length <= 15;
+}
+
+// Build the stored E.164-ish phone string from the country code + entered digits.
+function buildFullPhoneNumber() {
+  const countryCode = document.getElementById('phone-country')?.value || '+63';
+  let digits = getPhoneDigits(document.getElementById('phone')?.value);
+  if (countryCode === '+63' && digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  return digits ? `${countryCode}${digits}` : '';
 }
 
 const DISPOSABLE_EMAIL_DOMAINS = new Set([
@@ -1187,74 +1246,39 @@ async function handleFormSubmission(event) {
   const rateLimit = await checkSignupRateLimitGuard();
   if (!rateLimit.allowed) {
     hideLoadingOverlay();
+    isSigningUp = false;
     const retryMessage = rateLimit.retryAfterSec
       ? `${rateLimit.message || 'Too many attempts.'} Try again in about ${Math.ceil(rateLimit.retryAfterSec / 60)} minute(s).`
       : (rateLimit.message || 'Too many attempts. Please try again later.');
-    showError('email', retryMessage);
+    showInputGuideHint(retryMessage, 'PLEASE WAIT', '⏳');
     return;
   }
   
   try {
     // Collect profile data
     const profileData = collectFormData();
-    let requiresEmailVerification = false;
-    let emailVerificationMessage = '';
+    const requiresEmailVerification = false;
+    const emailVerificationMessage = '';
     
     let userId;
     
-    // Check if user is already authenticated (from OAuth or login redirect)
+    // Signup is OAuth-only: the user must already be authenticated with Facebook
+    // or Google before completing their profile here.
     if (authenticatedUser && authenticatedUser.uid) {
-      // User already authenticated - just create/update their profile
       userId = authenticatedUser.uid;
       console.log('📝 Creating profile for authenticated user:', userId);
       
-      // Add auth provider info
-      profileData.email = authenticatedUser.email || '';
+      // Prefer the optional email the user typed; fall back to the provider email.
+      profileData.email = profileData.email || authenticatedUser.email || '';
       profileData.authProvider = authenticatedUser.provider || 'oauth';
-      const providerId = String(profileData.authProvider || '').toLowerCase();
-      const isPasswordProvider = providerId === 'password' || providerId === 'email' || providerId === 'emaillink';
-      const currentAuthUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-      if (isPasswordProvider && currentAuthUser?.emailVerified === false) {
-        requiresEmailVerification = true;
-        emailVerificationMessage = 'Account created. Please verify your email to unlock full access. If you do not see the message, check Spam/Junk and mark it as Not Spam.';
-      }
-      
     } else {
-      // New email/password signup
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      
-      if (!email || !password) {
-        hideLoadingOverlay();
-        showError('email', 'Email and password are required');
-        return;
-      }
-      
-      console.log('🔐 Creating new email/password account...');
-      
-      // DON'T pass profileData to signUpWithEmail - it will create a basic profile
-      // We'll update it later with complete data including photo
-      const result = await signUpWithEmail(email, password, {
-        fullName: profileData.fullName,
-        email: email
-      });
-      
-      if (!result.success) {
-        hideLoadingOverlay();
-        showError('email', result.message);
-        console.error('❌ Account creation failed:', result.message);
-        return;
-      }
-
-      if (result.requiresEmailVerification) {
-        requiresEmailVerification = true;
-        emailVerificationMessage = result.message || 'Account created. Please verify your email to unlock full access. If you do not see it, check Spam/Junk and mark it as Not Spam.';
-      }
-      
-      userId = result.user?.uid;
-      profileData.email = email;
-      profileData.authProvider = 'email';
-      console.log('✅ Firebase Auth account created:', userId);
+      // No OAuth session yet — send them back to the Facebook/Google buttons.
+      hideLoadingOverlay();
+      isSigningUp = false;
+      showInputGuideHint('Please sign up with Facebook or Google first, then complete your profile below.', 'SIGN UP FIRST', 'ℹ️');
+      const methods = document.getElementById('signupMethodsSection');
+      if (methods) methods.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -1359,13 +1383,15 @@ async function handleFormSubmission(event) {
         }
 
         hideLoadingOverlay();
-        showError('email', 'Failed to save profile. Please try again.');
+        isSigningUp = false;
+        showInputGuideHint('Failed to save your profile. Please try again.', 'SIGN UP FAILED', '⚠️');
         return;
       }
     } else {
       console.error('❌ createUserProfile function not available!');
       hideLoadingOverlay();
-      showError('email', 'Profile save function not available. Please refresh and try again.');
+      isSigningUp = false;
+      showInputGuideHint('Profile save is unavailable. Please refresh and try again.', 'SIGN UP FAILED', '⚠️');
       return;
     }
     
@@ -1381,8 +1407,9 @@ async function handleFormSubmission(event) {
     
   } catch (error) {
     hideLoadingOverlay();
+    isSigningUp = false;
     console.error('❌ Account creation failed:', error);
-    showError('email', 'Failed to create account. Please try again.');
+    showInputGuideHint('Failed to create account. Please try again.', 'SIGN UP FAILED', '⚠️');
   }
 }
 
@@ -1452,6 +1479,8 @@ function collectFormData() {
   const formData = {
     // Basic Profile Information (matches profile.js structure)
     fullName: document.getElementById('fullName').value.trim(),
+    phoneNumber: buildFullPhoneNumber(),
+    email: document.getElementById('email')?.value.trim() || '',
     dateOfBirth: document.getElementById('dateOfBirth').value,
     educationLevel: document.getElementById('educationLevel').value,
     userSummary: document.getElementById('userSummary').value.trim(),
@@ -1548,14 +1577,14 @@ async function handleGoogleSignIn() {
       }
     } else {
       hideLoadingOverlay();
-      showError('email', result.message);
+      showInputGuideHint(result.message || 'Google sign-in failed. Please try again.', 'GOOGLE SIGN-IN', 'ℹ️');
       console.error('Google sign-in failed:', result.message);
     }
     
   } catch (error) {
     hideLoadingOverlay();
     console.error('Google sign-in error:', error);
-    showError('email', 'Google sign-in failed. Please try again.');
+    showInputGuideHint('Google sign-in failed. Please try again.', 'GOOGLE SIGN-IN', '⚠️');
   }
 }
 
@@ -1607,14 +1636,14 @@ async function handleFacebookSignIn() {
       }
     } else {
       hideLoadingOverlay();
-      showError('email', result.message);
+      showInputGuideHint(result.message || 'Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', 'ℹ️');
       console.error('Facebook sign-in failed:', result.message);
     }
     
   } catch (error) {
     hideLoadingOverlay();
     console.error('Facebook sign-in error:', error);
-    showError('email', 'Facebook sign-in failed. Please try again.');
+    showInputGuideHint('Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', '⚠️');
   }
 }
 

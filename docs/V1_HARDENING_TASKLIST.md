@@ -284,6 +284,7 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
 > Reordered after the Direct decision. Direct is small, high-leverage, and does NOT depend on the
 > dashboard or the Track B lockdown (phone served via ownership-checked callable). Dashboard is still
 > the ops/Support linchpin but is a bigger build, so Direct goes first.
+> **Detailed build plan for items 1–3:** `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`.
 
 0. ✅ Track A — done. ✅ Application-limit UX rework (Track D) — built/deployed; only Phase F
    admin-config (rides with dashboard) remains.
