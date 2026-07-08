@@ -15,7 +15,7 @@
 // Firebase configuration object - GISUGO PRODUCTION CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyC5w-ITUnCDaA-ZXTmwAwgGo1mErS-k-BE",
-  authDomain: "gisugo1.firebaseapp.com",
+  authDomain: "www.gisugo.com",
   projectId: "gisugo1",
   storageBucket: "gisugo1.firebasestorage.app",
   messagingSenderId: "380568649178",

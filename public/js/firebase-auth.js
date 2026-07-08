@@ -117,91 +117,25 @@ async function loginWithGoogle() {
   }
   
   try {
-    console.log('🔐 Starting Google sign-in...');
+    console.log('🔐 Starting Google sign-in (same-tab redirect)...');
     
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.addScope('email');
     provider.addScope('profile');
+    // Always show the account chooser so users aren't silently locked to one Google account.
+    provider.setCustomParameters({ prompt: 'select_account' });
     
-    const result = await auth.signInWithPopup(provider);
-    const user = result.user;
-    
-    // ══════════════════════════════════════════════════════════════
-    // DETAILED GOOGLE SIGN-IN LOGGING
-    // ══════════════════════════════════════════════════════════════
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('🔐 GOOGLE SIGN-IN RESULT');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('📌 User UID:', user.uid);
-    console.log('📌 User Email:', user.email);
-    console.log('📌 User Display Name:', user.displayName);
-    const additionalUserInfo = result && result.additionalUserInfo ? result.additionalUserInfo : {};
-    console.log('📌 Is New User (Firebase):', additionalUserInfo.isNewUser);
-    console.log('📌 Provider ID:', additionalUserInfo.providerId);
-    console.log('📌 Provider Count:', user.providerData.length);
-    user.providerData.forEach((p, i) => {
-      console.log(`   Provider ${i + 1}:`, {
-        providerId: p.providerId,
-        uid: p.uid,
-        email: p.email,
-        displayName: p.displayName
-      });
-    });
-    console.log('═══════════════════════════════════════════════════════');
-    
-    console.log('✅ Google sign-in successful:', user.uid);
-    
-    // DON'T auto-create profile here - let sign-up form handle it
-    // Just update last login if profile already exists
-    const db = getFirestore();
-    let hasFirestoreProfile = false;
-    if (db) {
-      const userDoc = await db.collection('users').doc(user.uid).get();
-      hasFirestoreProfile = userDoc.exists;
-      console.log('📋 Firestore profile exists:', hasFirestoreProfile);
-      
-      if (userDoc.exists) {
-        // Existing user - update last login
-        console.log('📋 Firestore profile data:', userDoc.data());
-        await db.collection('users').doc(user.uid).update({
-          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      // If profile doesn't exist, don't create it - redirect will send to sign-up
-    }
-    
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('🔐 GOOGLE SIGN-IN SUMMARY');
-    console.log('═══════════════════════════════════════════════════════');
-    console.log('📌 UID:', user.uid);
-    console.log('📌 Has Firestore Profile:', hasFirestoreProfile);
-    console.log('📌 Firebase Says New User:', additionalUserInfo.isNewUser);
-    console.log('📌 Decision: Will redirect to', hasFirestoreProfile ? 'index.html' : 'sign-up.html');
-    console.log('═══════════════════════════════════════════════════════');
-    
-    return {
-      success: true,
-      user: user,
-      isNewUser: additionalUserInfo.isNewUser || false,
-      message: additionalUserInfo.isNewUser ? 
-        'Welcome to GISUGO!' : 'Welcome back!'
-    };
+    // Same-tab redirect (no popup, so nothing to block). The signed-in user is
+    // handled on return by completeRedirectSignIn() when the page reloads.
+    await auth.signInWithRedirect(provider);
+    return { success: true, redirecting: true };
     
   } catch (error) {
     console.error('❌ Google sign-in error:', error);
-    
-    let errorMessage = 'Google sign-in failed. Please try again.';
-    
-    if (error.code === 'auth/popup-closed-by-user') {
-      errorMessage = 'Sign-in cancelled.';
-    } else if (error.code === 'auth/popup-blocked') {
-      errorMessage = 'Pop-up blocked. Please allow pop-ups for this site.';
-    }
-    
     return {
       success: false,
       error: error,
-      message: errorMessage
+      message: 'Could not start Google sign-in. Please try again.'
     };
   }
 }
@@ -225,52 +159,21 @@ async function loginWithFacebook() {
   }
   
   try {
-    console.log('🔐 Starting Facebook sign-in...');
+    console.log('🔐 Starting Facebook sign-in (same-tab redirect)...');
     
     const provider = new firebase.auth.FacebookAuthProvider();
     provider.addScope('email');
     provider.addScope('public_profile');
     
-    const result = await auth.signInWithPopup(provider);
-    const user = result.user;
-    
-    console.log('✅ Facebook sign-in successful:', user.uid);
-    
-    // DON'T auto-create profile here - let sign-up form handle it
-    // Just update last login if profile already exists
-    const db = getFirestore();
-    if (db) {
-      const userDoc = await db.collection('users').doc(user.uid).get();
-      
-      if (userDoc.exists) {
-        // Existing user - update last login
-        await db.collection('users').doc(user.uid).update({
-          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      // If profile doesn't exist, don't create it - redirect will send to sign-up
-    }
-    
-    return {
-      success: true,
-      user: user,
-      isNewUser: (result && result.additionalUserInfo && result.additionalUserInfo.isNewUser) || false,
-      message: (result && result.additionalUserInfo && result.additionalUserInfo.isNewUser) ? 
-        'Welcome to GISUGO!' : 'Welcome back!'
-    };
+    // Same-tab redirect. Result handled on return by completeRedirectSignIn().
+    await auth.signInWithRedirect(provider);
+    return { success: true, redirecting: true };
     
   } catch (error) {
     console.error('❌ Facebook sign-in error:', error);
     
-    let errorMessage = 'Facebook sign-in failed. Please try again.';
-    
-    if (error.code === 'auth/popup-closed-by-user') {
-      errorMessage = 'Sign-in cancelled.';
-    } else if (error.code === 'auth/popup-blocked') {
-      errorMessage = 'Pop-up blocked. Please allow pop-ups for this site.';
-    } else if (error.code === 'auth/account-exists-with-different-credential') {
-      errorMessage = 'An account already exists with the same email. Try signing in with a different method.';
-    } else if (error.code === 'auth/operation-not-allowed') {
+    let errorMessage = 'Could not start Facebook sign-in. Please try again.';
+    if (error.code === 'auth/operation-not-allowed') {
       // Facebook provider isn't enabled in Firebase yet (pending Meta app review).
       errorMessage = 'Facebook sign-in isn\'t available yet — please use Google for now.';
     }
@@ -281,6 +184,62 @@ async function loginWithFacebook() {
       message: errorMessage
     };
   }
+}
+
+// ============================================================================
+// REDIRECT SIGN-IN COMPLETION
+// ============================================================================
+
+/**
+ * Complete a same-tab OAuth sign-in after the browser returns from the provider.
+ * Call this once on pages that start sign-in (login.html, sign-up.html).
+ * @returns {Promise<Object>} - { success, user, isNewUser } on a completed
+ *   redirect; { pending: true } on a normal page load (no redirect in flight);
+ *   { success: false, message } if the provider returned an error.
+ */
+async function completeRedirectSignIn() {
+  const auth = getFirebaseAuth();
+  if (!auth) return { pending: true };
+  
+  let result;
+  try {
+    result = await auth.getRedirectResult();
+  } catch (error) {
+    console.error('❌ Redirect sign-in error:', error);
+    let message = 'Sign-in failed. Please try again.';
+    if (error.code === 'auth/account-exists-with-different-credential') {
+      message = 'An account already exists with the same email. Try a different sign-in method.';
+    } else if (error.code === 'auth/operation-not-allowed') {
+      message = 'That sign-in method isn\'t available yet — please use Google for now.';
+    }
+    return { success: false, error: error, message: message };
+  }
+  
+  if (!result || !result.user) {
+    // Normal page load — not returning from a sign-in redirect.
+    return { pending: true };
+  }
+  
+  const user = result.user;
+  console.log('✅ Redirect sign-in complete:', user.uid);
+  
+  // Update last login if a profile already exists (non-blocking to sign-in).
+  const db = getFirestore();
+  if (db) {
+    try {
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        await db.collection('users').doc(user.uid).update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    } catch (dbError) {
+      console.warn('⚠️ Could not update lastLogin:', (dbError && dbError.code) || dbError);
+    }
+  }
+  
+  const info = result.additionalUserInfo || {};
+  return { success: true, user: user, isNewUser: info.isNewUser || false };
 }
 
 // ============================================================================
@@ -904,6 +863,7 @@ window.getCurrentUserId = getCurrentUserId;
 window.isLoggedIn = isLoggedIn;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithFacebook = loginWithFacebook;
+window.completeRedirectSignIn = completeRedirectSignIn;
 window.logout = logout;
 window.createUserProfile = createUserProfile;
 window.getUserProfile = getUserProfile;

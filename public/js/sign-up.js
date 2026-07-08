@@ -1506,58 +1506,25 @@ function initializeGoogleSignIn() {
   }
 }
 
-// Handle Google Sign-In
+// Handle Google Sign-In (starts a same-tab redirect; the return is handled on
+// page load by checkExistingAuthUser()'s onAuthStateChanged listener).
 async function handleGoogleSignIn() {
   showLoadingOverlay();
   
   try {
     const result = await loginWithGoogle();
+    if (result && result.redirecting) return; // navigating away to Google
     
-    // Check if Firebase not configured (dev mode)
-    if (!result.success && result.message?.includes('configure Firebase')) {
-      hideLoadingOverlay();
-      console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
-      alert('Google Sign-In will be available once Firebase is configured for production.');
-      return;
-    }
-    
-    if (result.success) {
-      console.log('✅ Google sign-in successful:', result.user?.uid);
-      
-      // Check if user already has a complete profile
-      const { hasProfile } = await checkUserHasProfile(result.user.uid);
-      
-      if (hasProfile) {
-        // Existing complete user - redirect to home
-        console.log('👤 Existing user with profile - redirecting to home');
-        hideLoadingOverlay();
-        window.location.href = 'index.html';
+    hideLoadingOverlay();
+    if (result && !result.success) {
+      if (result.message && result.message.includes('configure Firebase')) {
+        console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
+        alert('Google Sign-In will be available once Firebase is configured for production.');
       } else {
-        // New or incomplete user - stay on sign-up page to complete profile
-        console.log('📝 New user - staying on sign-up to complete profile');
-        
-        // Store authenticated user info
-        authenticatedUser = {
-          uid: result.user.uid,
-          email: result.user.email || '',
-          displayName: result.user.displayName || '',
-          photoURL: result.user.photoURL || '',
-          phoneNumber: result.user.phoneNumber || '',
-          provider: 'google.com'
-        };
-        
-        // Pre-fill form with auth data
-        prefillFromAuth(authenticatedUser);
-        showAuthenticatedState('google.com');
-        
-        hideLoadingOverlay();
+        showInputGuideHint(result.message || 'Google sign-in failed. Please try again.', 'GOOGLE SIGN-IN', 'ℹ️');
+        console.error('Google sign-in failed:', result.message);
       }
-    } else {
-      hideLoadingOverlay();
-      showInputGuideHint(result.message || 'Google sign-in failed. Please try again.', 'GOOGLE SIGN-IN', 'ℹ️');
-      console.error('Google sign-in failed:', result.message);
     }
-    
   } catch (error) {
     hideLoadingOverlay();
     console.error('Google sign-in error:', error);
@@ -1565,58 +1532,25 @@ async function handleGoogleSignIn() {
   }
 }
 
-// Handle Facebook Sign-In
+// Handle Facebook Sign-In (starts a same-tab redirect; the return is handled on
+// page load by checkExistingAuthUser()'s onAuthStateChanged listener).
 async function handleFacebookSignIn() {
   showLoadingOverlay();
   
   try {
     const result = await loginWithFacebook();
+    if (result && result.redirecting) return; // navigating away to Facebook
     
-    // Check if Firebase not configured (dev mode)
-    if (!result.success && result.message?.includes('configure Firebase')) {
-      hideLoadingOverlay();
-      console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
-      alert('Facebook Sign-In will be available once Firebase is configured for production.');
-      return;
-    }
-    
-    if (result.success) {
-      console.log('✅ Facebook sign-in successful:', result.user?.uid);
-      
-      // Check if user already has a complete profile
-      const { hasProfile } = await checkUserHasProfile(result.user.uid);
-      
-      if (hasProfile) {
-        // Existing complete user - redirect to home
-        console.log('👤 Existing user with profile - redirecting to home');
-        hideLoadingOverlay();
-        window.location.href = 'index.html';
+    hideLoadingOverlay();
+    if (result && !result.success) {
+      if (result.message && result.message.includes('configure Firebase')) {
+        console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
+        alert('Facebook Sign-In will be available once Firebase is configured for production.');
       } else {
-        // New or incomplete user - stay on sign-up page to complete profile
-        console.log('📝 New user - staying on sign-up to complete profile');
-        
-        // Store authenticated user info
-        authenticatedUser = {
-          uid: result.user.uid,
-          email: result.user.email || '',
-          displayName: result.user.displayName || '',
-          photoURL: result.user.photoURL || '',
-          phoneNumber: result.user.phoneNumber || '',
-          provider: 'facebook.com'
-        };
-        
-        // Pre-fill form with auth data
-        prefillFromAuth(authenticatedUser);
-        showAuthenticatedState('facebook.com');
-        
-        hideLoadingOverlay();
+        showInputGuideHint(result.message || 'Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', 'ℹ️');
+        console.error('Facebook sign-in failed:', result.message);
       }
-    } else {
-      hideLoadingOverlay();
-      showInputGuideHint(result.message || 'Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', 'ℹ️');
-      console.error('Facebook sign-in failed:', result.message);
     }
-    
   } catch (error) {
     hideLoadingOverlay();
     console.error('Facebook sign-in error:', error);
