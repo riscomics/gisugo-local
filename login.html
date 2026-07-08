@@ -831,21 +831,30 @@
       }
       
       // If we're returning from a Google/Facebook redirect, finish the sign-in.
+      // Show the loader IMMEDIATELY (before getRedirectResult resolves) when a
+      // redirect was in flight, so the login buttons don't flash on the way back.
+      const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
+      if (oauthPending) loadingOverlay.classList.add('show');
       if (typeof completeRedirectSignIn === 'function') {
         try {
           const rr = await completeRedirectSignIn();
           if (rr && rr.success && rr.user) {
             console.log('✅ Redirect sign-in complete - routing...');
+            sessionStorage.removeItem('gisugo_oauth_pending');
             loadingOverlay.classList.add('show');
             showWelcomeAnimation();
             await new Promise(resolve => setTimeout(resolve, 1500));
             await handleAuthRedirect(rr.user);
             return;
           }
+          sessionStorage.removeItem('gisugo_oauth_pending');
+          if (oauthPending) loadingOverlay.classList.remove('show');
           if (rr && rr.success === false && rr.message) {
             showError('login', rr.message);
           }
         } catch (error) {
+          sessionStorage.removeItem('gisugo_oauth_pending');
+          if (oauthPending) loadingOverlay.classList.remove('show');
           console.error('Redirect completion error:', error);
         }
       }
@@ -853,12 +862,15 @@
       // Handle Google Sign-In (starts a same-tab redirect)
       googleSignInBtn.addEventListener('click', async function() {
         loadingOverlay.classList.add('show');
+        sessionStorage.setItem('gisugo_oauth_pending', '1');
         try {
           const result = await loginWithGoogle();
           if (result && result.redirecting) return; // navigating away to Google
+          sessionStorage.removeItem('gisugo_oauth_pending');
           loadingOverlay.classList.remove('show');
           showError('login', (result && result.message) || 'Google sign-in failed. Please try again.');
         } catch (error) {
+          sessionStorage.removeItem('gisugo_oauth_pending');
           loadingOverlay.classList.remove('show');
           showError('login', 'Google sign-in failed. Please try again.');
           console.error('Google sign-in error:', error);
@@ -868,12 +880,15 @@
       // Handle Facebook Sign-In (starts a same-tab redirect)
       facebookSignInBtn.addEventListener('click', async function() {
         loadingOverlay.classList.add('show');
+        sessionStorage.setItem('gisugo_oauth_pending', '1');
         try {
           const result = await loginWithFacebook();
           if (result && result.redirecting) return; // navigating away to Facebook
+          sessionStorage.removeItem('gisugo_oauth_pending');
           loadingOverlay.classList.remove('show');
           showError('login', (result && result.message) || 'Facebook sign-in failed. Please try again.');
         } catch (error) {
+          sessionStorage.removeItem('gisugo_oauth_pending');
           loadingOverlay.classList.remove('show');
           showError('login', 'Facebook sign-in failed. Please try again.');
           console.error('Facebook sign-in error:', error);
