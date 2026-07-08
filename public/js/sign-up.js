@@ -517,36 +517,13 @@ function prefillFromAuth(authData) {
  * Update UI to show user is already authenticated
  */
 function showAuthenticatedState(provider) {
-  // Hide auth-method selection area once the user is already authenticated.
+  // Hide the OAuth method selection area (buttons + hint) once authenticated.
   const signupMethodsSection = document.getElementById('signupMethodsSection');
-  const googleBtn = document.getElementById('googleSignInBtn');
-  const facebookBtn = document.getElementById('facebookSignInBtn');
-  const phoneSignUpBtn = document.getElementById('phoneSignUpBtn');
-  const emailToggleBtn = document.getElementById('emailToggleBtn');
-  
-  // Hide OAuth buttons
-  if (googleBtn) googleBtn.style.display = 'none';
-  if (facebookBtn) facebookBtn.style.display = 'none';
-  if (phoneSignUpBtn) phoneSignUpBtn.style.display = 'none';
-  if (emailToggleBtn) emailToggleBtn.style.display = 'none';
   if (signupMethodsSection) signupMethodsSection.style.display = 'none';
-  
-  // Hide email/password section since OAuth handled auth
-  const emailSection = document.getElementById('emailSignupSection');
-  if (emailSection) emailSection.style.display = 'none';
-  
-  // Hide phone OTP section
-  const phoneOtpSection = document.getElementById('phoneOtpSection');
-  if (phoneOtpSection) phoneOtpSection.style.display = 'none';
-  
-  // Hide the email divider section
-  const emailDivider = document.getElementById('emailDivider');
-  if (emailDivider) emailDivider.style.display = 'none';
   
   let providerLabel = provider;
   if (provider === 'google.com') providerLabel = 'Google';
   else if (provider === 'facebook.com') providerLabel = 'Facebook';
-  else if (provider === 'phone') providerLabel = 'phone';
   
   // Add/update message showing they're authenticated
   let authMessage = document.getElementById('authStatusMessage');

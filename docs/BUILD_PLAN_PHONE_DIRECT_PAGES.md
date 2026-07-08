@@ -152,11 +152,21 @@ verification** — see decision below.
 - **FB button relabel: DONE** on both `sign-up.html` and `login.html` ("Facebook / Messenger").
 - **G1 (cache-bust + deploy): DONE** — `firebase-auth.js ?v=8→9` across all 12 pages, `profile.js
   ?v=85→86`; `firebase deploy --only hosting` shipped to https://gisugo1.web.app.
-- **STILL OPEN:**
-  - **D1** — retire now-unused `sendPhoneVerificationCode` / `verifyPhoneCode` / email-password auth
-    fns in `firebase-auth.js` (grep first). *Deferred — harmless dead code; not blocking.*
-  - **H3** — backfill: existing accounts with empty `phoneNumber` → prompt to add one; gate apply/post.
-  - **G2** — mobile QA across FB/Google + trilingual tabs (user to verify on device).
+- **D1 (retire dead auth fns): DONE (2026-07-07)** — grepped repo first (only self-references), then
+  removed `signUpWithEmail`+`createMockUser`, `loginWithEmail`+`loginMockUser`, the whole phone block
+  (`initPhoneRecaptcha`/`sendPhoneVerificationCode`/`verifyPhoneCode`) and `sendPasswordReset`, plus
+  their `window.*` exports. Kept `getEmailVerificationActionSettings` (still used by the email-gate).
+  `firebase-auth.js ?v=9→10` across all 12 pages. Zero orphaned refs, no lint errors.
+- **H3 (phone backfill + gate): DONE (2026-07-07)** — new shared `public/js/phone-gate.js` exposes
+  `window.ensurePhoneOnFile()`: reads the profile once, and if `phoneNumber` is empty it opens a
+  self-contained modal (same validation as sign-up) that saves via `updateUserProfile`. Wired into
+  `beginApplyFlow()` (dynamic-job) and `postJob()` (new-post2) so apply/post is blocked until a phone
+  is on file. Loaded on `dynamic-job.html` + `new-post2.html`. Caches confirmation in-memory (0 extra
+  reads on repeat clicks); fails open on not-logged-in / transient read errors.
+- **G2 (QA):** code-level double-check DONE — no orphaned code (cleaned dead `showAuthenticatedState`
+  refs in sign-up.js), no listener/timer leaks (gate builds modal + binds listeners once), no cost
+  regressions (single cached read, one write on backfill). **Mobile device QA still on you:** verify
+  FB/Google + trilingual tabs + the phone-gate modal on a phone.
 
 ### STEP 0 — MIGRATE existing phone-login accounts FIRST (before removing any rail)
 - Removing UI does **not** sign anyone out (sessions persist LOCAL); active sessions survive. But a

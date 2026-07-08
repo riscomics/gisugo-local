@@ -1865,6 +1865,12 @@ function initializePreviewOverlay() {
 // ========================== POST JOB ==========================
 
 async function postJob() {
+  // Require a phone number on file before posting (backfill for older accounts).
+  if (typeof window.ensurePhoneOnFile === 'function') {
+    const hasPhone = await window.ensurePhoneOnFile();
+    if (!hasPhone) return;
+  }
+
   // Show loading modal
   const loadingOverlay = document.getElementById('loadingOverlay');
   const loadingText = document.getElementById('loadingText');

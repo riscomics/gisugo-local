@@ -1452,6 +1452,11 @@ async function beginApplyFlow() {
   if (applyBtn && applyBtn.dataset.flowBusy === '1') return;
   if (applyBtn) applyBtn.dataset.flowBusy = '1';
   try {
+    // Require a phone number on file before applying (backfill for older accounts).
+    if (typeof window.ensurePhoneOnFile === 'function') {
+      const hasPhone = await window.ensurePhoneOnFile();
+      if (!hasPhone) return;
+    }
     // Show the Confirm overlay INSTANTLY with a spinner where the count goes, so there's no
     // dead space while "applications remaining" is fetched/reconciled (can take a few seconds).
     openConfirmOverlay(null, { loading: true });
