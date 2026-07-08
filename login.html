@@ -775,6 +775,23 @@
 
       <div class="form-error" id="loginError" style="margin-top: 12px; text-align: center;"></div>
 
+      <!-- TEMP: Email/Password login for dev/testing access (works in embedded
+           browsers where OAuth popups/redirects fail). Remove before public launch. -->
+      <div class="email-login-temp" style="margin-top: 14px;">
+        <button type="button" id="emailToggleBtn" aria-expanded="false"
+          style="width:100%; box-sizing:border-box; padding:12px 14px; border:1px solid rgba(130,148,177,0.35); border-radius:10px; background:transparent; color:#f8fafc; font-size:1rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span>✉️</span><span>Sign in with Email</span>
+        </button>
+        <div id="emailLoginSection" style="display:none; margin-top:10px;">
+          <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"
+            style="width:70%; box-sizing:border-box; padding:12px 14px; margin:0 auto 8px; display:block; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
+          <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password"
+            style="width:70%; box-sizing:border-box; padding:12px 14px; margin:0 auto 8px; display:block; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
+          <button type="button" id="emailLoginBtn"
+            style="width:100%; padding:12px 14px; border:none; border-radius:10px; background:#2563eb; color:#fff; font-size:1rem; font-weight:700; cursor:pointer;">Sign in</button>
+        </div>
+      </div>
+
       <!-- OR divider -->
       <div class="or-divider">
         <span class="or-line"></span>
@@ -811,14 +828,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
   
   <!-- Firebase Helper Modules -->
-  <script src="public/js/firebase-config.js?v=20260708a"></script>
-  <script src="public/js/firebase-auth.js?v=11"></script>
+  <script src="public/js/firebase-config.js?v=20260708b"></script>
+  <script src="public/js/firebase-auth.js?v=16"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
   <script>
-    // Login Handler (OAuth-only, same-tab redirect)
-    document.addEventListener('DOMContentLoaded', async function() {
+    // Login Handler (OAuth-only, popup)
+    document.addEventListener('DOMContentLoaded', function() {
       const loadingOverlay = document.getElementById('loadingOverlay');
       const loadingText = document.getElementById('loadingText');
       const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -830,72 +847,79 @@
         loadingText.innerHTML = '<span>Welcome</span> <span>back!</span>';
       }
       
-      // If we're returning from a Google/Facebook redirect, finish the sign-in.
-      // Show the loader IMMEDIATELY (before getRedirectResult resolves) when a
-      // redirect was in flight, so the login buttons don't flash on the way back.
-      const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
-      if (oauthPending) loadingOverlay.classList.add('show');
-      if (typeof completeRedirectSignIn === 'function') {
+      // Route a signed-in user (welcome animation, then profile-based redirect).
+      async function routeSignedInUser(user) {
+        loadingOverlay.classList.add('show');
+        showWelcomeAnimation();
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await handleAuthRedirect(user);
+      }
+      
+      // Run an OAuth popup flow. Invoked synchronously from the click handler so
+      // the popup opens on the user gesture (browsers won't block it).
+      async function runOAuth(loginFn, label) {
+        loadingOverlay.classList.add('show');
         try {
-          const rr = await completeRedirectSignIn();
-          if (rr && rr.success && rr.user) {
-            console.log('✅ Redirect sign-in complete - routing...');
-            sessionStorage.removeItem('gisugo_oauth_pending');
-            loadingOverlay.classList.add('show');
-            showWelcomeAnimation();
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            await handleAuthRedirect(rr.user);
+          const result = await loginFn();
+          if (result && result.success && result.user) {
+            await routeSignedInUser(result.user);
             return;
           }
-          sessionStorage.removeItem('gisugo_oauth_pending');
-          if (oauthPending) loadingOverlay.classList.remove('show');
-          if (rr && rr.success === false && rr.message) {
-            showError('login', rr.message);
-          }
+          loadingOverlay.classList.remove('show');
+          if (result && result.cancelled) return; // user closed the popup — stay quiet
+          showError('login', (result && result.message) || (label + ' sign-in failed. Please try again.'));
         } catch (error) {
-          sessionStorage.removeItem('gisugo_oauth_pending');
-          if (oauthPending) loadingOverlay.classList.remove('show');
-          console.error('Redirect completion error:', error);
+          loadingOverlay.classList.remove('show');
+          console.error(label + ' sign-in error:', error);
+          showError('login', label + ' sign-in failed. Please try again.');
         }
       }
       
-      // Handle Google Sign-In (starts a same-tab redirect)
-      googleSignInBtn.addEventListener('click', async function() {
-        loadingOverlay.classList.add('show');
-        sessionStorage.setItem('gisugo_oauth_pending', '1');
-        try {
-          const result = await loginWithGoogle();
-          if (result && result.redirecting) return; // navigating away to Google
-          sessionStorage.removeItem('gisugo_oauth_pending');
-          loadingOverlay.classList.remove('show');
-          showError('login', (result && result.message) || 'Google sign-in failed. Please try again.');
-        } catch (error) {
-          sessionStorage.removeItem('gisugo_oauth_pending');
-          loadingOverlay.classList.remove('show');
-          showError('login', 'Google sign-in failed. Please try again.');
-          console.error('Google sign-in error:', error);
+      googleSignInBtn.addEventListener('click', function() { runOAuth(loginWithGoogle, 'Google'); });
+      facebookSignInBtn.addEventListener('click', function() { runOAuth(loginWithFacebook, 'Facebook'); });
+      
+      // TEMP: Email/Password sign-in (dev/testing). Remove before public launch.
+      const emailToggleBtn = document.getElementById('emailToggleBtn');
+      const emailLoginSection = document.getElementById('emailLoginSection');
+      const emailLoginBtn = document.getElementById('emailLoginBtn');
+      const loginEmailInput = document.getElementById('loginEmail');
+      const loginPasswordInput = document.getElementById('loginPassword');
+      if (emailToggleBtn && emailLoginSection) {
+        emailToggleBtn.addEventListener('click', function() {
+          const isOpen = emailLoginSection.style.display !== 'none';
+          emailLoginSection.style.display = isOpen ? 'none' : 'block';
+          emailToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+          if (!isOpen && loginEmailInput) loginEmailInput.focus();
+        });
+      }
+      async function doEmailLogin() {
+        const email = (loginEmailInput.value || '').trim();
+        const password = loginPasswordInput.value || '';
+        if (!email || !password) {
+          showError('login', 'Enter your email and password.');
+          return;
         }
+        loadingOverlay.classList.add('show');
+        try {
+          const result = await loginWithEmail(email, password);
+          if (result && result.success && result.user) {
+            await routeSignedInUser(result.user);
+            return;
+          }
+          loadingOverlay.classList.remove('show');
+          showError('login', (result && result.message) || 'Email sign-in failed. Please try again.');
+        } catch (error) {
+          loadingOverlay.classList.remove('show');
+          console.error('Email sign-in error:', error);
+          showError('login', 'Email sign-in failed. Please try again.');
+        }
+      }
+      if (emailLoginBtn) emailLoginBtn.addEventListener('click', doEmailLogin);
+      if (loginPasswordInput) loginPasswordInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); doEmailLogin(); }
       });
       
-      // Handle Facebook Sign-In (starts a same-tab redirect)
-      facebookSignInBtn.addEventListener('click', async function() {
-        loadingOverlay.classList.add('show');
-        sessionStorage.setItem('gisugo_oauth_pending', '1');
-        try {
-          const result = await loginWithFacebook();
-          if (result && result.redirecting) return; // navigating away to Facebook
-          sessionStorage.removeItem('gisugo_oauth_pending');
-          loadingOverlay.classList.remove('show');
-          showError('login', (result && result.message) || 'Facebook sign-in failed. Please try again.');
-        } catch (error) {
-          sessionStorage.removeItem('gisugo_oauth_pending');
-          loadingOverlay.classList.remove('show');
-          showError('login', 'Facebook sign-in failed. Please try again.');
-          console.error('Facebook sign-in error:', error);
-        }
-      });
-      
-      console.log('🔐 Login page initialized (OAuth-only, redirect)');
+      console.log('🔐 Login page initialized (OAuth + temp email/password)');
     });
     
     function showError(fieldId, message) {

@@ -521,9 +521,17 @@ function showAuthenticatedState(provider) {
   const signupMethodsSection = document.getElementById('signupMethodsSection');
   if (signupMethodsSection) signupMethodsSection.style.display = 'none';
   
-  let providerLabel = provider;
-  if (provider === 'google.com') providerLabel = 'Google';
-  else if (provider === 'facebook.com') providerLabel = 'Facebook';
+  // Prefer the method actually used to sign in this session over the account's
+  // first linked provider. A test account can have Google + email/password both
+  // linked; providerData[0] would wrongly say "Google" after an email login.
+  let sessionMethod = null;
+  try { sessionMethod = sessionStorage.getItem('gisugo_last_signin_method'); } catch (e) {}
+  const effectiveProvider = sessionMethod || provider;
+
+  let providerLabel = effectiveProvider;
+  if (effectiveProvider === 'google.com') providerLabel = 'Google';
+  else if (effectiveProvider === 'facebook.com') providerLabel = 'Facebook';
+  else if (effectiveProvider === 'password') providerLabel = 'Email';
   
   // Add/update message showing they're authenticated
   let authMessage = document.getElementById('authStatusMessage');
@@ -1506,24 +1514,25 @@ function initializeGoogleSignIn() {
   }
 }
 
-// Handle Google Sign-In (starts a same-tab redirect; the return is handled on
-// page load by checkExistingAuthUser()'s onAuthStateChanged listener).
+// Handle Google Sign-In (popup). On success, checkExistingAuthUser()'s
+// onAuthStateChanged listener routes: redirect home if a profile exists,
+// otherwise prefill this form for a new user.
 async function handleGoogleSignIn() {
   showLoadingOverlay();
   
   try {
     const result = await loginWithGoogle();
-    if (result && result.redirecting) return; // navigating away to Google
-    
     hideLoadingOverlay();
-    if (result && !result.success) {
-      if (result.message && result.message.includes('configure Firebase')) {
-        console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
-        alert('Google Sign-In will be available once Firebase is configured for production.');
-      } else {
-        showInputGuideHint(result.message || 'Google sign-in failed. Please try again.', 'GOOGLE SIGN-IN', 'ℹ️');
-        console.error('Google sign-in failed:', result.message);
-      }
+    
+    if (result && result.success) return; // onAuthStateChanged handles routing
+    if (result && result.cancelled) return; // user closed the popup — stay quiet
+    
+    if (result && result.message && result.message.includes('configure Firebase')) {
+      console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
+      alert('Google Sign-In will be available once Firebase is configured for production.');
+    } else {
+      showInputGuideHint((result && result.message) || 'Google sign-in failed. Please try again.', 'GOOGLE SIGN-IN', 'ℹ️');
+      console.error('Google sign-in failed:', result && result.message);
     }
   } catch (error) {
     hideLoadingOverlay();
@@ -1532,24 +1541,25 @@ async function handleGoogleSignIn() {
   }
 }
 
-// Handle Facebook Sign-In (starts a same-tab redirect; the return is handled on
-// page load by checkExistingAuthUser()'s onAuthStateChanged listener).
+// Handle Facebook Sign-In (popup). On success, checkExistingAuthUser()'s
+// onAuthStateChanged listener routes: redirect home if a profile exists,
+// otherwise prefill this form for a new user.
 async function handleFacebookSignIn() {
   showLoadingOverlay();
   
   try {
     const result = await loginWithFacebook();
-    if (result && result.redirecting) return; // navigating away to Facebook
-    
     hideLoadingOverlay();
-    if (result && !result.success) {
-      if (result.message && result.message.includes('configure Firebase')) {
-        console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
-        alert('Facebook Sign-In will be available once Firebase is configured for production.');
-      } else {
-        showInputGuideHint(result.message || 'Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', 'ℹ️');
-        console.error('Facebook sign-in failed:', result.message);
-      }
+    
+    if (result && result.success) return; // onAuthStateChanged handles routing
+    if (result && result.cancelled) return; // user closed the popup — stay quiet
+    
+    if (result && result.message && result.message.includes('configure Firebase')) {
+      console.log('⚠️ Firebase not configured - OAuth unavailable in dev mode');
+      alert('Facebook Sign-In will be available once Firebase is configured for production.');
+    } else {
+      showInputGuideHint((result && result.message) || 'Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', 'ℹ️');
+      console.error('Facebook sign-in failed:', result && result.message);
     }
   } catch (error) {
     hideLoadingOverlay();

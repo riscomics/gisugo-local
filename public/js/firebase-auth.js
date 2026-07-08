@@ -117,7 +117,7 @@ async function loginWithGoogle() {
   }
   
   try {
-    console.log('🔐 Starting Google sign-in (same-tab redirect)...');
+    console.log('🔐 Starting Google sign-in (popup)...');
     
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.addScope('email');
@@ -125,18 +125,13 @@ async function loginWithGoogle() {
     // Always show the account chooser so users aren't silently locked to one Google account.
     provider.setCustomParameters({ prompt: 'select_account' });
     
-    // Same-tab redirect (no popup, so nothing to block). The signed-in user is
-    // handled on return by completeRedirectSignIn() when the page reloads.
-    await auth.signInWithRedirect(provider);
-    return { success: true, redirecting: true };
+    // Popup keeps the app window open and receives the result directly, so it works
+    // on localhost and embedded browsers where the redirect storage handoff fails.
+    const result = await auth.signInWithPopup(provider);
+    return await finalizeOAuthSignIn(result, 'google.com');
     
   } catch (error) {
-    console.error('❌ Google sign-in error:', error);
-    return {
-      success: false,
-      error: error,
-      message: 'Could not start Google sign-in. Please try again.'
-    };
+    return mapOAuthSignInError(error, 'Google');
   }
 }
 
@@ -159,87 +154,131 @@ async function loginWithFacebook() {
   }
   
   try {
-    console.log('🔐 Starting Facebook sign-in (same-tab redirect)...');
+    console.log('🔐 Starting Facebook sign-in (popup)...');
     
     const provider = new firebase.auth.FacebookAuthProvider();
     provider.addScope('email');
     provider.addScope('public_profile');
     
-    // Same-tab redirect. Result handled on return by completeRedirectSignIn().
-    await auth.signInWithRedirect(provider);
-    return { success: true, redirecting: true };
+    // Popup keeps the app window open and receives the result directly.
+    const result = await auth.signInWithPopup(provider);
+    return await finalizeOAuthSignIn(result, 'facebook.com');
     
   } catch (error) {
-    console.error('❌ Facebook sign-in error:', error);
-    
-    let errorMessage = 'Could not start Facebook sign-in. Please try again.';
-    if (error.code === 'auth/operation-not-allowed') {
-      // Facebook provider isn't enabled in Firebase yet (pending Meta app review).
-      errorMessage = 'Facebook sign-in isn\'t available yet — please use Google for now.';
-    }
-    
-    return {
-      success: false,
-      error: error,
-      message: errorMessage
-    };
+    return mapOAuthSignInError(error, 'Facebook');
   }
 }
 
 // ============================================================================
-// REDIRECT SIGN-IN COMPLETION
+// EMAIL / PASSWORD SIGN-IN (TEMPORARY)
+// ----------------------------------------------------------------------------
+// Re-added as a dev/testing login that works in embedded browsers (Cursor) and
+// anywhere popups/redirects fail. Intended to be removed before public launch.
 // ============================================================================
 
 /**
- * Complete a same-tab OAuth sign-in after the browser returns from the provider.
- * Call this once on pages that start sign-in (login.html, sign-up.html).
- * @returns {Promise<Object>} - { success, user, isNewUser } on a completed
- *   redirect; { pending: true } on a normal page load (no redirect in flight);
- *   { success: false, message } if the provider returned an error.
+ * Sign in with email + password. Requires the account to have an email/password
+ * credential (set via signup or account linking).
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<Object>} - { success, user, isNewUser } or { success:false, message }
  */
-async function completeRedirectSignIn() {
+async function loginWithEmail(email, password) {
   const auth = getFirebaseAuth();
-  if (!auth) return { pending: true };
-  
-  let result;
+  if (!auth) {
+    return { success: false, message: 'Email sign-in requires Firebase. Please configure Firebase first.' };
+  }
   try {
-    result = await auth.getRedirectResult();
+    console.log('🔐 Starting email/password sign-in...');
+    const result = await auth.signInWithEmailAndPassword(email, password);
+    return await finalizeOAuthSignIn(result, 'password');
   } catch (error) {
-    console.error('❌ Redirect sign-in error:', error);
-    let message = 'Sign-in failed. Please try again.';
-    if (error.code === 'auth/account-exists-with-different-credential') {
-      message = 'An account already exists with the same email. Try a different sign-in method.';
-    } else if (error.code === 'auth/operation-not-allowed') {
-      message = 'That sign-in method isn\'t available yet — please use Google for now.';
+    const code = (error && error.code) || '';
+    console.error('❌ Email sign-in error:', code || error);
+    let message = 'Email sign-in failed. Please try again.';
+    if (code === 'auth/invalid-email') {
+      message = 'That email address looks invalid.';
+    } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      message = 'Incorrect email or password.';
+    } else if (code === 'auth/user-disabled') {
+      message = 'This account has been disabled.';
+    } else if (code === 'auth/too-many-requests') {
+      message = 'Too many attempts. Please wait a moment and try again.';
     }
     return { success: false, error: error, message: message };
   }
-  
-  if (!result || !result.user) {
-    // Normal page load — not returning from a sign-in redirect.
-    return { pending: true };
+}
+
+// ============================================================================
+// OAUTH SIGN-IN HELPERS (shared by the Google + Facebook popup flows)
+// ============================================================================
+
+/**
+ * Finalize a successful popup sign-in: refresh lastLogin (best-effort) and
+ * return a normalized result for callers to route on.
+ * @param {Object} result - The UserCredential from signInWithPopup.
+ * @param {string} [method] - The provider actually used this session
+ *   ('google.com' | 'facebook.com' | 'password'). Stored so the completion
+ *   page can show the real sign-in method rather than the account's first
+ *   linked provider.
+ * @returns {Promise<Object>} - { success, user, isNewUser }
+ */
+async function finalizeOAuthSignIn(result, method) {
+  const user = result && result.user;
+  if (!user) {
+    return { success: false, message: 'Sign-in failed. Please try again.' };
+  }
+  console.log('✅ OAuth sign-in complete:', user.uid);
+
+  if (method) {
+    try { sessionStorage.setItem('gisugo_last_signin_method', method); } catch (e) {}
   }
   
-  const user = result.user;
-  console.log('✅ Redirect sign-in complete:', user.uid);
-  
-  // Update last login if a profile already exists (non-blocking to sign-in).
+  // Best-effort lastLogin bump. Fire-and-forget (no await) so sign-in returns
+  // immediately, and update() — not set() — so we never create a partial doc for a
+  // brand-new user; a 'not-found' just means "no profile yet". Avoids a redundant
+  // read here since handleAuthRedirect() already fetches the profile to route.
   const db = getFirestore();
   if (db) {
-    try {
-      const userDoc = await db.collection('users').doc(user.uid).get();
-      if (userDoc.exists) {
-        await db.collection('users').doc(user.uid).update({
-          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-        });
+    db.collection('users').doc(user.uid).update({
+      lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(dbError) {
+      if (dbError && dbError.code !== 'not-found') {
+        console.warn('⚠️ Could not update lastLogin:', (dbError && dbError.code) || dbError);
       }
-    } catch (dbError) {
-      console.warn('⚠️ Could not update lastLogin:', (dbError && dbError.code) || dbError);
-    }
+    });
   }
   
   const info = result.additionalUserInfo || {};
   return { success: true, user: user, isNewUser: info.isNewUser || false };
+}
+
+/**
+ * Normalize an OAuth popup error. A user closing/double-triggering the popup is
+ * reported as { cancelled: true } (a silent no-op), not a real failure.
+ * @param {Object} error - The thrown Firebase auth error.
+ * @param {string} providerLabel - 'Google' or 'Facebook' (for messaging).
+ * @returns {Object} - { success: false, cancelled?, error?, message? }
+ */
+function mapOAuthSignInError(error, providerLabel) {
+  const code = (error && error.code) || '';
+  console.error(`❌ ${providerLabel} sign-in error:`, code || error);
+  
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return { success: false, cancelled: true };
+  }
+  
+  let message = `Could not complete ${providerLabel} sign-in. Please try again.`;
+  if (code === 'auth/popup-blocked') {
+    message = 'Your browser blocked the sign-in popup. Please allow popups for this site and try again.';
+  } else if (code === 'auth/account-exists-with-different-credential') {
+    message = 'An account already exists with the same email. Try a different sign-in method.';
+  } else if (code === 'auth/operation-not-allowed') {
+    message = `${providerLabel} sign-in isn't available yet — please use Google for now.`;
+  } else if (code === 'auth/unauthorized-domain') {
+    message = 'This domain isn\'t authorized for sign-in. Please use the live site or add it to Firebase authorized domains.';
+  }
+  return { success: false, error: error, message: message };
 }
 
 // ============================================================================
@@ -863,7 +902,7 @@ window.getCurrentUserId = getCurrentUserId;
 window.isLoggedIn = isLoggedIn;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithFacebook = loginWithFacebook;
-window.completeRedirectSignIn = completeRedirectSignIn;
+window.loginWithEmail = loginWithEmail;
 window.logout = logout;
 window.createUserProfile = createUserProfile;
 window.getUserProfile = getUserProfile;
