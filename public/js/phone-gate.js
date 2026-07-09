@@ -1,9 +1,9 @@
 /**
  * GISUGO Phone Gate
  * ------------------------------------------------------------------
- * Ensures a logged-in user has a `phoneNumber` on their Firestore profile
- * before they can APPLY to or POST a gig. This is the backfill path for
- * accounts created before the phone field was mandatory.
+ * Ensures a logged-in user has a phone number in their owner-only private
+ * storage (user_private) before they can APPLY to or POST a gig. This is the
+ * backfill path for accounts created before the phone field was mandatory.
  *
  * There is NO SMS / verification here — phone is a required contact field only
  * (customers use it to reach the worker). Same validation rules as sign-up.js.
@@ -175,9 +175,9 @@
     const userId = typeof window.getCurrentUserId === 'function' ? window.getCurrentUserId() : null;
     if (!userId) { finish(true); return; }
 
-    if (typeof window.updateUserProfile !== 'function') {
+    if (typeof window.savePrivatePhone !== 'function') {
       // No save path available — don't trap the user.
-      console.warn('\u26A0\uFE0F Phone gate: updateUserProfile unavailable, allowing through');
+      console.warn('\u26A0\uFE0F Phone gate: savePrivatePhone unavailable, allowing through');
       phoneConfirmed = true;
       finish(true);
       return;
@@ -187,7 +187,7 @@
     els.save.disabled = true;
     els.save.textContent = 'SAVING...';
     try {
-      const res = await window.updateUserProfile(userId, { phoneNumber: full });
+      const res = await window.savePrivatePhone(userId, full);
       if (res && res.success === false) {
         els.error.textContent = res.message || 'Could not save. Please try again.';
         return;
@@ -215,17 +215,17 @@
     } catch (_) {}
     if (!userId) return true; // not logged in — page's own auth handles it
 
-    let profile = null;
+    let phone = '';
     try {
-      if (typeof window.getUserProfile === 'function') {
-        profile = await window.getUserProfile(userId);
+      if (typeof window.getPrivatePhone === 'function') {
+        phone = await window.getPrivatePhone(userId);
       }
     } catch (err) {
-      console.warn('\u26A0\uFE0F Phone gate: profile read failed, allowing through:', err);
+      console.warn('\u26A0\uFE0F Phone gate: private phone read failed, allowing through:', err);
       return true; // fail open on transient error
     }
 
-    const phone = profile && typeof profile.phoneNumber === 'string' ? profile.phoneNumber.trim() : '';
+    phone = (typeof phone === 'string') ? phone.trim() : '';
     if (phone) { phoneConfirmed = true; return true; }
 
     // No phone on file → prompt and block until saved or dismissed.

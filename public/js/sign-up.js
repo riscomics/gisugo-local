@@ -1367,6 +1367,14 @@ async function handleFormSubmission(event) {
         console.log('📞 Calling createUserProfile...');
         await createUserProfile(userId, profileData);
         console.log('✅ Profile saved to Firestore successfully');
+
+        // Store the phone in owner-only private storage (kept off the public doc).
+        if (typeof savePrivatePhone === 'function') {
+          const phoneResult = await savePrivatePhone(userId, buildFullPhoneNumber());
+          if (!phoneResult || phoneResult.success === false) {
+            console.warn('⚠️ Could not save private phone at signup:', phoneResult && phoneResult.message);
+          }
+        }
       } catch (profileError) {
         // This is CRITICAL - profile save failed
         console.error('❌ CRITICAL: Failed to save profile to Firestore:', profileError);
@@ -1495,8 +1503,10 @@ function validateForm() {
 function collectFormData() {
   const formData = {
     // Basic Profile Information (matches profile.js structure)
+    // NOTE: phoneNumber is intentionally NOT stored here. The public users doc is
+    // world-readable; the phone goes to the owner-only user_private collection
+    // (see savePrivatePhone) so it can't be scraped.
     fullName: document.getElementById('fullName').value.trim(),
-    phoneNumber: buildFullPhoneNumber(),
     email: document.getElementById('email')?.value.trim() || '',
     dateOfBirth: document.getElementById('dateOfBirth').value,
     educationLevel: document.getElementById('educationLevel').value,

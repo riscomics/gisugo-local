@@ -1360,7 +1360,8 @@ const APPLY_CONFIRM_COPY = {
     noteLead: 'This uses 1 application and comes back:',
     noteBullets: ["If you're not hired by the customer", 'If you withdraw your application'],
     withdraw: 'You can withdraw an application anytime on your {link} page.',
-    linkText: 'My Applications'
+    linkText: 'My Applications',
+    consent: 'By applying, your phone number may be shared with the customer so they can contact you about this gig.'
   },
   bisaya: {
     ofWord: 'sa',
@@ -1368,7 +1369,8 @@ const APPLY_CONFIRM_COPY = {
     noteLead: 'Mogamit ni og 1 ka application ug mobalik:',
     noteBullets: ['Kung dili ka ma-hire sa customer', 'Kung mo-withdraw ka sa imong application'],
     withdraw: 'Pwede ka mo-withdraw og application bisan kanus-a sa imong {link} page.',
-    linkText: 'My Applications'
+    linkText: 'My Applications',
+    consent: 'Sa pag-apply, ang imong numero sa telepono mahimong ipaambit sa customer aron makontak ka bahin niini nga gig.'
   },
   tagalog: {
     ofWord: 'sa',
@@ -1376,7 +1378,8 @@ const APPLY_CONFIRM_COPY = {
     noteLead: 'Gumagamit ito ng 1 application at babalik:',
     noteBullets: ['Kung hindi ka na-hire ng customer', 'Kung i-withdraw mo ang iyong application'],
     withdraw: 'Pwede kang mag-withdraw ng application kahit kailan sa iyong {link} page.',
-    linkText: 'My Applications'
+    linkText: 'My Applications',
+    consent: 'Sa pag-apply, ang iyong numero ng telepono ay maaaring ibahagi sa customer para makontak ka tungkol sa gig na ito.'
   }
 };
 
@@ -1499,7 +1502,10 @@ function renderApplyConfirmContent() {
     const bullets = (copy.noteBullets || [])
       .map(function(b) { return `<li>${escapeApplyFlowText(b)}</li>`; })
       .join('');
-    noteEl.innerHTML = `<span class="apply-flow-note-lead">${escapeApplyFlowText(copy.noteLead)}</span><ul class="apply-flow-note-bullets">${bullets}</ul>`;
+    const consentHtml = copy.consent
+      ? `<div class="apply-flow-consent" style="margin-top:12px;color:#93c5fd;font-size:0.82rem;line-height:1.4;">\u{1F4DE} ${escapeApplyFlowText(copy.consent)}</div>`
+      : '';
+    noteEl.innerHTML = `<span class="apply-flow-note-lead">${escapeApplyFlowText(copy.noteLead)}</span><ul class="apply-flow-note-bullets">${bullets}</ul>${consentHtml}`;
   }
   if (withdrawEl) {
     const link = `<a href="my-applications.html" class="apply-flow-link">${copy.linkText}</a>`;

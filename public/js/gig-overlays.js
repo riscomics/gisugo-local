@@ -197,38 +197,19 @@
         }
 
         if (contactBtn) {
-            contactBtn.addEventListener('click', async function () {
-                const userId = String(data.userId || '').trim();
+            contactBtn.addEventListener('click', function () {
                 const userName = String(data.userName || '').trim();
                 const applicationId = String(data.applicationId || '').trim();
-                const jobId = String(data.jobId || '').trim();
-                if (!userId || !userName) return;
+                if (!applicationId) return;
 
-                try {
-                    if (window.ChatThreadService && typeof window.ChatThreadService.findExistingChatThreadId === 'function') {
-                        const existingThreadId = await window.ChatThreadService.findExistingChatThreadId({
-                            recipientId: userId,
-                            jobId: jobId,
-                            applicationId: applicationId
-                        });
-                        if (existingThreadId) {
-                            hideApplicationActionOverlay();
-                            window.ChatThreadService.navigateToExistingChatThread(existingThreadId, { role: 'customer' });
-                            return;
-                        }
-                    }
-                } catch (error) {
-                    console.warn('Thread pre-check failed before opening contact composer', error);
-                }
-
+                // Direct model: reveal the worker's phone (call/text) via the
+                // ownership-checked callable. Premium in-app chat waits in
+                // messages.html for later; no chat thread is created here.
                 hideApplicationActionOverlay();
-                if (typeof window.showContactMessageOverlay === 'function') {
-                    window.showContactMessageOverlay(
-                        userId,
-                        userName,
-                        data.jobId || null,
-                        data.applicationId || null
-                    );
+                if (typeof window.startDirectContactReveal === 'function') {
+                    window.startDirectContactReveal({ applicationId: applicationId, userName: userName });
+                } else {
+                    console.error('startDirectContactReveal is unavailable.');
                 }
             }, { signal: signal });
         }

@@ -549,6 +549,43 @@ async function updateUserProfile(userId, updates) {
   }
 }
 
+/**
+ * Store a user's phone number in the owner-only `user_private` collection.
+ * Phone is a contact field for the Direct-contact reveal flow; it must NOT live
+ * on the public `users` doc (world-readable) or it would be scrapable straight
+ * from the API. The reveal callable reads it from here on the server side.
+ */
+async function savePrivatePhone(userId, phoneNumber) {
+  const db = getFirestore();
+  if (!db || !userId) return { success: false, message: 'No database or user id' };
+  try {
+    await db.collection('user_private').doc(userId).set({
+      phoneNumber: phoneNumber || '',
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error saving private phone:', error);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * Read a user's phone from `user_private` (owner/admin readable only).
+ * Returns '' when absent or unreadable.
+ */
+async function getPrivatePhone(userId) {
+  const db = getFirestore();
+  if (!db || !userId) return '';
+  try {
+    const snap = await db.collection('user_private').doc(userId).get();
+    return (snap.exists && typeof snap.data().phoneNumber === 'string') ? snap.data().phoneNumber : '';
+  } catch (error) {
+    console.warn('⚠️ Could not read private phone:', (error && error.code) || error);
+    return '';
+  }
+}
+
 // Generate referral code
 function generateReferralCode(userId) {
   const shortId = userId.substring(0, 8).toUpperCase();
@@ -907,6 +944,8 @@ window.logout = logout;
 window.createUserProfile = createUserProfile;
 window.getUserProfile = getUserProfile;
 window.updateUserProfile = updateUserProfile;
+window.savePrivatePhone = savePrivatePhone;
+window.getPrivatePhone = getPrivatePhone;
 window.checkUserHasProfile = checkUserHasProfile;
 window.handleAuthRedirect = handleAuthRedirect;
 window.requireVerifiedEmailForPage = requireVerifiedEmailForPage;

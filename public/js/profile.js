@@ -2063,15 +2063,21 @@ function populateEditProfileForm() {
     educationSelect.value = profile.educationLevel;
   }
 
-  // Phone number (contact field). Split stored E.164 into country code + digits.
+  // Phone number (contact field) lives in owner-only private storage, not the
+  // public profile doc. Fetch it, then split the stored E.164 into code + digits.
   const phoneInput = document.getElementById('editPhone');
   const phoneCountrySelect = document.getElementById('editPhoneCountry');
-  if (phoneInput && phoneCountrySelect) {
-    const parsed = parseStoredPhoneNumber(profile.phoneNumber);
-    phoneCountrySelect.value = parsed.code;
-    // If the stored code isn't one of the options, keep default and full digits.
-    if (phoneCountrySelect.value !== parsed.code) phoneCountrySelect.value = '+63';
-    phoneInput.value = parsed.digits;
+  if (phoneInput && phoneCountrySelect && typeof getPrivatePhone === 'function') {
+    const uid = (typeof getCurrentUserId === 'function') ? getCurrentUserId() : null;
+    if (uid) {
+      getPrivatePhone(uid).then((stored) => {
+        const parsed = parseStoredPhoneNumber(stored);
+        phoneCountrySelect.value = parsed.code;
+        // If the stored code isn't one of the options, keep default and full digits.
+        if (phoneCountrySelect.value !== parsed.code) phoneCountrySelect.value = '+63';
+        phoneInput.value = parsed.digits;
+      }).catch(() => {});
+    }
   }
   if (aboutMeTextarea && profile.userSummary) {
     aboutMeTextarea.value = profile.userSummary;
@@ -2325,6 +2331,7 @@ async function saveProfileChanges() {
     profile.dateOfBirth = dob;
     profile.educationLevel = education;
     profile.userSummary = aboutMe;
+    // Phone is kept in private storage; hold it in memory but never on the public doc.
     profile.phoneNumber = phoneNumber;
     if (newPhotoUrl) {
       profile.profilePhoto = newPhotoUrl;
@@ -2349,7 +2356,9 @@ async function saveProfileChanges() {
         dateOfBirth: dob,
         educationLevel: education,
         userSummary: aboutMe,
-        phoneNumber,
+        // Purge any legacy phone from the public doc; the real value goes to
+        // owner-only private storage via savePrivatePhone below.
+        phoneNumber: firebase.firestore.FieldValue.delete(),
         socialUrls: {
           facebook: facebook || null,
           instagram: instagram || null,
@@ -2401,6 +2410,14 @@ async function saveProfileChanges() {
       
       if (result.success) {
         console.log('✅ Profile saved to Firestore!');
+
+        // Save the phone to owner-only private storage (never the public doc).
+        if (typeof savePrivatePhone === 'function') {
+          const phoneResult = await savePrivatePhone(userId, phoneNumber);
+          if (!phoneResult || phoneResult.success === false) {
+            console.warn('⚠️ Could not save private phone:', phoneResult && phoneResult.message);
+          }
+        }
         
         // ═══════════════════════════════════════════════════════════════
         // DELETE OLD PHOTO (LAST - after everything else succeeds)

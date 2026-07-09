@@ -27,6 +27,8 @@ const SIGNUP_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const SIGNUP_RATE_BLOCK_MS = 15 * 60 * 1000; // 15 minutes
 const SIGNUP_RATE_MAX_PER_IP = 25;
 const SIGNUP_RATE_MAX_PER_IP_DEVICE = 8;
+const CONTACT_REVEAL_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const CONTACT_REVEAL_MAX_PER_WINDOW = 30; // per gig owner, per hour
 const ALERT_RETENTION_DAYS = 50;
 const PUSH_TOKEN_SUBCOLLECTION = "notificationTokens";
 const PUSH_SEND_BATCH_SIZE = 500;
@@ -679,6 +681,94 @@ exports.getFaceVerificationMediaAccess = onCall(
       videoUrl,
       expiresAtMs
     };
+  }
+);
+
+/**
+ * Reveal a job applicant's phone number to the gig owner (Direct contact flow).
+ *
+ * The worker phone lives ONLY in the owner-only `user_private` collection, never on
+ * any world-readable doc, so it can't be scraped. This callable is the single
+ * server-side path that returns it, and only after verifying the caller owns the
+ * gig the application belongs to. Rate-limited per owner, and every reveal bumps a
+ * dashboard metric counter.
+ */
+exports.revealApplicantContact = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const requesterUid = request.auth?.uid || "";
+    if (!requesterUid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const applicationId = String(request.data?.applicationId || "").trim();
+    if (!applicationId) {
+      throw new HttpsError("invalid-argument", "applicationId is required.");
+    }
+
+    // Resolve application -> job and verify the caller owns the gig.
+    const appDoc = await db.collection("applications").doc(applicationId).get();
+    if (!appDoc.exists) {
+      throw new HttpsError("not-found", "Application not found.");
+    }
+    const app = appDoc.data() || {};
+    const jobId = app.jobId || "";
+    const applicantId = app.applicantId || "";
+    if (!jobId || !applicantId) {
+      throw new HttpsError("failed-precondition", "Application is missing job or applicant reference.");
+    }
+
+    const jobDoc = await db.collection("jobs").doc(jobId).get();
+    if (!jobDoc.exists) {
+      throw new HttpsError("not-found", "Job not found.");
+    }
+    const job = jobDoc.data() || {};
+    if (job.posterId !== requesterUid) {
+      throw new HttpsError("permission-denied", "Only the gig owner can reveal an applicant's contact.");
+    }
+
+    // Sliding-window rate limit per gig owner.
+    const limitRef = db.collection("contact_reveal_limits").doc(requesterUid);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(limitRef);
+      const now = Date.now();
+      const data = snap.exists ? (snap.data() || {}) : {};
+      const windowStart = typeof data.windowStart === "number" ? data.windowStart : 0;
+      const count = typeof data.count === "number" ? data.count : 0;
+      if (now - windowStart > CONTACT_REVEAL_WINDOW_MS) {
+        tx.set(limitRef, { windowStart: now, count: 1, updatedAt: now });
+        return;
+      }
+      if (count >= CONTACT_REVEAL_MAX_PER_WINDOW) {
+        throw new HttpsError("resource-exhausted", "Too many contact reveals right now. Please wait a bit and try again.");
+      }
+      tx.set(limitRef, { windowStart, count: count + 1, updatedAt: now }, { merge: true });
+    });
+
+    // Read the applicant's phone from owner-only private storage (admin bypasses rules).
+    const privateDoc = await db.collection("user_private").doc(applicantId).get();
+    const phoneNumber = privateDoc.exists
+      ? String((privateDoc.data() || {}).phoneNumber || "").trim()
+      : "";
+    if (!phoneNumber) {
+      throw new HttpsError("failed-precondition", "This applicant has no contact number on file.");
+    }
+
+    // Best-effort: bump the dashboard reveal counter + application audit fields.
+    try {
+      await db.collection("metrics").doc("contact_reveals").set({
+        total: admin.firestore.FieldValue.increment(1),
+        lastRevealAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      await appDoc.ref.set({
+        contactRevealCount: admin.firestore.FieldValue.increment(1),
+        contactLastRevealedAt: admin.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      logger.warn("Contact reveal counter update skipped", { applicationId, error: String(error) });
+    }
+
+    return { phoneNumber, applicantId };
   }
 );
 
