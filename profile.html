@@ -806,6 +806,31 @@
               <div class="form-hint" style="color: #fbbf24; font-size: 0.85rem; margin-top: 4px;">⚠️ Name changes require admin approval</div>
             </div>
             <div class="edit-profile-field">
+              <label class="edit-profile-label" for="editPhone">Phone Number</label>
+              <div style="display: flex; gap: 8px;">
+                <select class="edit-profile-select" id="editPhoneCountry" aria-label="Country Code" style="flex: 0 0 auto; width: auto; min-width: 96px;">
+                  <option value="+63">🇵🇭 +63</option>
+                  <option value="+1">🇺🇸 +1</option>
+                  <option value="+44">🇬🇧 +44</option>
+                  <option value="+61">🇦🇺 +61</option>
+                  <option value="+81">🇯🇵 +81</option>
+                  <option value="+82">🇰🇷 +82</option>
+                  <option value="+65">🇸🇬 +65</option>
+                  <option value="+60">🇲🇾 +60</option>
+                  <option value="+66">🇹🇭 +66</option>
+                  <option value="+84">🇻🇳 +84</option>
+                  <option value="+62">🇮🇩 +62</option>
+                  <option value="+971">🇦🇪 +971</option>
+                  <option value="+49">🇩🇪 +49</option>
+                  <option value="+33">🇫🇷 +33</option>
+                  <option value="+86">🇨🇳 +86</option>
+                  <option value="+91">🇮🇳 +91</option>
+                </select>
+                <input type="tel" class="edit-profile-input" id="editPhone" placeholder="9123456789" maxlength="15" autocomplete="tel" style="flex: 1 1 auto;">
+              </div>
+              <div class="form-hint" style="color: #9ca3af; font-size: 0.85rem; margin-top: 4px;">📞 Customers use this to contact you when you apply for or are hired for a gig.</div>
+            </div>
+            <div class="edit-profile-field">
               <label class="edit-profile-label" for="editDateOfBirth">Date of Birth (Private Only - Not Visible To Public)</label>
               <input type="date" class="edit-profile-input" id="editDateOfBirth" required>
             </div>
@@ -1307,7 +1332,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.2"></script>
   <script src="public/js/shared-menu.js?v=3.7"></script>
-  <script src="public/js/profile.js?v=86"></script>
+  <script src="public/js/profile.js?v=88"></script>
 
 </body>
 </html> 

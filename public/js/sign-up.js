@@ -568,18 +568,50 @@ function showAuthenticatedState(provider) {
 }
 
 /**
- * Sign out of the currently-authenticated (but profile-incomplete) account and
- * reload, so the user can sign up with a different account/method.
+ * Bail out of a profile-incomplete OAuth session so the user can sign up with a
+ * different account/method.
+ *
+ * An OAuth authorization (Google/Facebook) creates the Firebase Auth account the
+ * moment the user authorizes — before they finish the GISUGO profile. If they
+ * back out here, we DELETE that half-created account instead of only signing out,
+ * so it doesn't linger as an orphaned auth record holding the email/credential
+ * (which would later block linking that provider to another account).
+ *
+ * Safety: we re-check Firestore for a profile first and only delete when there is
+ * none. If the delete can't proceed (e.g. stale session), we fall back to sign-out.
  */
 async function handleUseDifferentAccount() {
+  const auth = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth() : null;
+  const user = auth ? auth.currentUser : null;
   try {
     sessionStorage.removeItem('gisugo_pending_auth');
+    sessionStorage.removeItem('gisugo_last_signin_method');
     authenticatedUser = null;
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-      await firebase.auth().signOut();
+
+    if (user) {
+      // Defensive: never delete an account that actually has a completed profile.
+      let hasProfile = false;
+      try {
+        const snap = await firebase.firestore().collection('users').doc(user.uid).get();
+        hasProfile = snap.exists;
+      } catch (readErr) {
+        hasProfile = true; // On uncertainty, don't risk deletion — just sign out.
+      }
+
+      if (!hasProfile) {
+        try {
+          await user.delete();
+          console.log('🗑️ Removed incomplete OAuth account:', user.uid);
+        } catch (delErr) {
+          console.warn('⚠️ Could not delete incomplete account, signing out instead:', (delErr && delErr.code) || delErr);
+          await auth.signOut();
+        }
+      } else {
+        await auth.signOut();
+      }
     }
   } catch (error) {
-    console.warn('⚠️ Sign-out before switching account failed:', error);
+    console.warn('⚠️ Switch-account cleanup failed:', error);
   } finally {
     window.location.reload();
   }

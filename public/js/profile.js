@@ -1975,6 +1975,41 @@ function closeEditProfileOverlay() {
 // Make closeEditProfileOverlay globally accessible
 window.closeEditProfileOverlay = closeEditProfileOverlay;
 
+// ── Phone helpers (mirror sign-up.js so the stored E.164 format stays consistent) ──
+const EDIT_PHONE_COUNTRY_CODES = ['+971', '+63', '+44', '+61', '+81', '+82', '+65', '+60', '+66', '+84', '+62', '+49', '+33', '+86', '+91', '+1'];
+
+// Split a stored "+639123456789" back into { code, digits } for the form fields.
+function parseStoredPhoneNumber(stored) {
+  const s = String(stored || '').trim();
+  if (!s) return { code: '+63', digits: '' };
+  const codes = EDIT_PHONE_COUNTRY_CODES.slice().sort((a, b) => b.length - a.length);
+  for (const code of codes) {
+    if (s.startsWith(code)) {
+      return { code, digits: s.slice(code.length).replace(/\D/g, '') };
+    }
+  }
+  return { code: '+63', digits: s.replace(/\D/g, '') };
+}
+
+// Rebuild the stored E.164-ish string from the edit form's country code + digits.
+function buildEditPhoneNumber() {
+  const code = document.getElementById('editPhoneCountry')?.value || '+63';
+  let digits = String(document.getElementById('editPhone')?.value || '').replace(/\D/g, '');
+  if (code === '+63' && digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+  return digits ? `${code}${digits}` : '';
+}
+
+// Format-only validation (no SMS). PH expects a 10-digit mobile starting with 9.
+function isValidEditPhone(value, code = '+63') {
+  let digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return false;
+  if (code === '+63') {
+    if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+    return digits.length === 10 && digits.startsWith('9');
+  }
+  return digits.length >= 7 && digits.length <= 15;
+}
+
 function populateEditProfileForm() {
   const profile = window.currentUserProfile;
   console.log('Populating edit profile form with:', profile);
@@ -2026,6 +2061,17 @@ function populateEditProfileForm() {
   }
   if (educationSelect && profile.educationLevel) {
     educationSelect.value = profile.educationLevel;
+  }
+
+  // Phone number (contact field). Split stored E.164 into country code + digits.
+  const phoneInput = document.getElementById('editPhone');
+  const phoneCountrySelect = document.getElementById('editPhoneCountry');
+  if (phoneInput && phoneCountrySelect) {
+    const parsed = parseStoredPhoneNumber(profile.phoneNumber);
+    phoneCountrySelect.value = parsed.code;
+    // If the stored code isn't one of the options, keep default and full digits.
+    if (phoneCountrySelect.value !== parsed.code) phoneCountrySelect.value = '+63';
+    phoneInput.value = parsed.digits;
   }
   if (aboutMeTextarea && profile.userSummary) {
     aboutMeTextarea.value = profile.userSummary;
@@ -2221,6 +2267,8 @@ async function saveProfileChanges() {
   const dob = document.getElementById('editDateOfBirth')?.value;
   const education = document.getElementById('editEducation')?.value;
   const aboutMe = document.getElementById('editAboutMe')?.value;
+  const phoneCountry = document.getElementById('editPhoneCountry')?.value || '+63';
+  const phoneRaw = document.getElementById('editPhone')?.value?.trim() || '';
   // Get usernames and build full URLs
   const facebookUsername = document.getElementById('editFacebook')?.value?.trim() || '';
   const instagramUsername = document.getElementById('editInstagram')?.value?.trim() || '';
@@ -2238,6 +2286,17 @@ async function saveProfileChanges() {
     showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
     return;
   }
+
+  // Validate phone format only when something is entered (not forced, so existing
+  // accounts editing other fields aren't blocked). Stored as E.164 like signup.
+  if (phoneRaw && !isValidEditPhone(phoneRaw, phoneCountry)) {
+    hideSavingModal();
+    showInputGuideHint(phoneCountry === '+63'
+      ? 'Enter a valid Philippine mobile number (e.g. 9123456789).'
+      : 'Enter a valid phone number.');
+    return;
+  }
+  const phoneNumber = buildEditPhoneNumber();
   
   // Build full URLs from usernames
   const facebook = facebookUsername ? `https://facebook.com/${facebookUsername}` : '';
@@ -2266,6 +2325,7 @@ async function saveProfileChanges() {
     profile.dateOfBirth = dob;
     profile.educationLevel = education;
     profile.userSummary = aboutMe;
+    profile.phoneNumber = phoneNumber;
     if (newPhotoUrl) {
       profile.profilePhoto = newPhotoUrl;
     }
@@ -2289,6 +2349,7 @@ async function saveProfileChanges() {
         dateOfBirth: dob,
         educationLevel: education,
         userSummary: aboutMe,
+        phoneNumber,
         socialUrls: {
           facebook: facebook || null,
           instagram: instagram || null,
@@ -2757,7 +2818,12 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Link Google account to current user
  */
+// Shared guard: a popup-based link/sign-in can only run one at a time. A second
+// linkWithPopup() while one is still open triggers auth/cancelled-popup-request.
+let authLinkInProgress = false;
+
 async function linkGoogleAccount() {
+  if (authLinkInProgress) return;
   try {
     if (typeof firebase === 'undefined' || !firebase.auth) {
       showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
@@ -2769,6 +2835,8 @@ async function linkGoogleAccount() {
       showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
       return;
     }
+    
+    authLinkInProgress = true;
     
     // ══════════════════════════════════════════════════════════════
     // PRE-LINK LOGGING
@@ -2810,11 +2878,13 @@ async function linkGoogleAccount() {
       showLinkModal('error', 'Already In Use', 'This Google account is already linked to another GISUGO account.');
     } else if (error.code === 'auth/provider-already-linked') {
       showLinkModal('warning', 'Already Linked', 'A Google account is already linked to your profile.');
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      // User closed popup, no error needed
+    } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      // User closed the popup or double-triggered it; no error needed.
     } else {
       showLinkModal('error', 'Link Failed', error.message);
     }
+  } finally {
+    authLinkInProgress = false;
   }
 }
 
@@ -2822,6 +2892,7 @@ async function linkGoogleAccount() {
  * Link Facebook account to current user
  */
 async function linkFacebookAccount() {
+  if (authLinkInProgress) return;
   try {
     if (typeof firebase === 'undefined' || !firebase.auth) {
       showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
@@ -2834,6 +2905,7 @@ async function linkFacebookAccount() {
       return;
     }
     
+    authLinkInProgress = true;
     const provider = new firebase.auth.FacebookAuthProvider();
     await user.linkWithPopup(provider);
     
@@ -2849,11 +2921,13 @@ async function linkFacebookAccount() {
       showLinkModal('warning', 'Already Linked', 'A Facebook account is already linked to your profile.');
     } else if (error.code === 'auth/operation-not-allowed') {
       showLinkModal('error', 'Not Enabled', 'Facebook sign-in is not enabled. Please contact support or enable it in Firebase Console.');
-    } else if (error.code === 'auth/popup-closed-by-user') {
-      // User closed popup, no error needed
+    } else if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+      // User closed the popup or double-triggered it; no error needed.
     } else {
       showLinkModal('error', 'Link Failed', error.message);
     }
+  } finally {
+    authLinkInProgress = false;
   }
 }
 
