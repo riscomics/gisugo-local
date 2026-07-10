@@ -33,7 +33,7 @@ node --check functions/index.js
 ```
 
 ### Deploying (hosting only — production frontend)
-**Cloud Agents do not deploy directly.** Hosting deploys run via GitHub Actions after merge.
+**Cloud Agents do not run `firebase deploy`.** Hosting goes live via GitHub Actions after a PR is merged to `main`.
 
 | Trigger | Workflow | Result |
 |---|---|---|
@@ -50,3 +50,22 @@ node --check functions/index.js
 ```bash
 firebase deploy --only hosting
 ```
+
+### Cloud Agent: how to ship changes (required behavior)
+
+When the user asks you to **deploy**, **publish**, **push live**, or **ship to production**:
+
+1. **Finish the code changes** on a feature branch (not `main`).
+2. **Open a Pull Request to `main`** (create one if it does not exist). Never push straight to `main`.
+3. **Do not run `firebase deploy`** from the Cloud Agent environment.
+4. **Tell the user clearly:**
+   - The **PR link**
+   - That a **preview URL** will appear as a comment on the PR in ~1–2 min (safe to check before going live)
+   - That going live = tap **Squash and merge** on the PR (this is the deploy button)
+   - That **https://gisugo.com** updates ~1–2 min after merge
+5. **Do not merge the PR yourself** unless the user explicitly says to merge it (e.g. "merge the PR", "squash and merge", "ship it now").
+
+**Example message to user after opening a PR:**
+> PR ready: [link]. A preview URL will be posted on the PR shortly. When you're happy with it, tap **Squash and merge** — that deploys to https://gisugo.com (hosting only).
+
+If the user only asked for changes **without** deploy language, still open a PR when work is done unless they say otherwise — but skip the merge instructions unless they asked to deploy.
