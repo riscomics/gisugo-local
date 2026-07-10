@@ -27,5 +27,6 @@ build/
 *serviceAccount*.json
 *service-account*.json
 *-firebase-adminsdk-*.json
+scripts/github-action-gisugo1-key.json
 secrets/
 admin-keys/
