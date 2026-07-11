@@ -1,0 +1,39 @@
+# Manual backend deploy — run from GitHub Actions tab or `gh workflow run` when you choose.
+name: Deploy Firebase Backend (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Firebase deploy --only targets'
+        required: true
+        default: 'functions,firestore:rules,firestore:indexes,storage'
+        type: choice
+        options:
+          - functions
+          - firestore:rules,firestore:indexes,storage
+          - functions,firestore:rules,firestore:indexes,storage
+
+jobs:
+  deploy_backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        if: contains(inputs.targets, 'functions')
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - run: npm ci
+        if: contains(inputs.targets, 'functions')
+        working-directory: functions
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GISUGO1 }}
+
+      - run: npm install -g firebase-tools
+
+      - run: firebase deploy --only ${{ inputs.targets }} --project gisugo1 --non-interactive

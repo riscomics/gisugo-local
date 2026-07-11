@@ -32,23 +32,29 @@ There is **no lint config, no test suite, and no build**. As a syntax/build prox
 node --check functions/index.js
 ```
 
-### Deploying (hosting only — production frontend)
-**Cloud Agents do not run `firebase deploy`.** Hosting goes live via GitHub Actions after a PR is merged to `main`.
+### Deploying (GitHub Actions → production)
 
-| Trigger | Workflow | Result |
-|---|---|---|
-| Open/update a PR to `main` | `.github/workflows/firebase-hosting-pull-request.yml` | Preview channel URL posted as a PR comment (not live) |
-| Merge/push to `main` | `.github/workflows/firebase-hosting-merge.yml` | Live deploy to **https://gisugo.com** |
+**Cloud Agents do not run `firebase deploy` locally.** All deploys go through GitHub Actions using secret `FIREBASE_SERVICE_ACCOUNT_GISUGO1`.
 
-**Mobile / remote workflow:** make changes in a Cloud Agent → open PR → (optional) check preview URL on the PR → merge from phone → live site updates automatically (~1–2 min).
+| What changed | Trigger | Workflow | Result |
+|---|---|---|---|
+| Frontend (HTML/CSS/JS) | PR to `main` | `firebase-hosting-pull-request.yml` | Preview URL on PR (not live) |
+| Frontend | Merge to `main` | `firebase-hosting-merge.yml` | Live **https://gisugo.com** |
+| `functions/**` | Merge to `main` | `firebase-functions-merge.yml` | Cloud Functions deploy |
+| Rules/indexes files | Merge to `main` | `firebase-rules-merge.yml` | Firestore rules, indexes, Storage rules |
+| Backend (your choice) | **Manual** — GitHub → Actions → **Deploy Firebase Backend (manual)** → Run workflow | `firebase-backend-manual.yml` | Pick: functions only, rules only, or both |
 
-**Scope:** CI deploys **hosting only** (`firebase deploy --only hosting` equivalent). Functions, Firestore rules, and Storage rules are **not** deployed by CI — change those from desktop with explicit intent.
+**Path-based backend deploys only run when those files change** — a frontend-only merge won't touch Functions or rules.
 
-**Secrets:** GitHub repo secret `FIREBASE_SERVICE_ACCOUNT_GISUGO1` (Firebase deploy service account JSON). Do not commit credentials to the repo.
+**Manual backend deploy (phone or desktop):** GitHub app or web → repo **Actions** → **Deploy Firebase Backend (manual)** → choose target → **Run workflow**. No PR merge required (use when code is already on `main`).
 
-**Manual deploy (desktop fallback):**
+**Mobile / remote workflow:** Cloud Agent → PR → merge when ready. Hosting always deploys on merge; Functions/rules deploy automatically **only if** those files were in the merge.
+
+**Desktop fallback:**
 ```bash
 firebase deploy --only hosting
+firebase deploy --only functions
+firebase deploy --only firestore:rules,firestore:indexes,storage
 ```
 
 ### Cloud Agent: how to ship changes (required behavior)
@@ -62,10 +68,12 @@ When the user asks you to **deploy**, **publish**, **push live**, or **ship to p
    - The **PR link**
    - That a **preview URL** will appear as a comment on the PR in ~1–2 min (safe to check before going live)
    - That going live = tap **Squash and merge** on the PR (this is the deploy button)
-   - That **https://gisugo.com** updates ~1–2 min after merge
+   - That **https://gisugo.com** updates ~1–2 min after merge (hosting)
+   - If the PR changed `functions/**` or rules files, backend workflows also run on merge (see deploy table above)
+   - For backend deploy without a new merge: tell user to run **Actions → Deploy Firebase Backend (manual)**
 5. **Do not merge the PR yourself** unless the user explicitly says to merge it (e.g. "merge the PR", "squash and merge", "ship it now").
 
 **Example message to user after opening a PR:**
-> PR ready: [link]. A preview URL will be posted on the PR shortly. When you're happy with it, tap **Squash and merge** — that deploys to https://gisugo.com (hosting only).
+> PR ready: [link]. Preview URL will post on the PR shortly. Tap **Squash and merge** when ready — hosting goes live on https://gisugo.com. Functions/rules deploy on merge only if those files changed; otherwise use **Actions → Deploy Firebase Backend (manual)**.
 
 If the user only asked for changes **without** deploy language, still open a PR when work is done unless they say otherwise — but skip the merge instructions unless they asked to deploy.

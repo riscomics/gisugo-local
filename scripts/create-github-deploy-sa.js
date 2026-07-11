@@ -62,10 +62,21 @@ async function ensureServiceAccount() {
 
 async function grantRoles() {
   const roles = [
+    // Hosting (existing)
     'roles/firebasehosting.admin',
     'roles/firebaseauth.admin',
     'roles/run.viewer',
     'roles/serviceusage.apiKeysViewer',
+    'roles/serviceusage.serviceUsageConsumer',
+    // Cloud Functions
+    'roles/cloudfunctions.developer',
+    'roles/cloudfunctions.admin',
+    'roles/iam.serviceAccountUser',
+    'roles/cloudbuild.builds.editor',
+    'roles/artifactregistry.writer',
+    // Firestore + Storage rules and indexes
+    'roles/firebaserules.admin',
+    'roles/datastore.indexAdmin',
   ];
 
   const policy = await api(`https://cloudresourcemanager.googleapis.com/v1/projects/${PROJECT_ID}:getIamPolicy`, {
@@ -113,8 +124,13 @@ async function createKey() {
 }
 
 (async () => {
+  const grantOnly = process.argv.includes('--grant-only');
   await ensureServiceAccount();
   await grantRoles();
+  if (grantOnly) {
+    console.log('DONE: roles granted (no new key created).');
+    return;
+  }
   const keyPath = await createKey();
   console.log('DONE:', keyPath);
 })().catch((err) => {

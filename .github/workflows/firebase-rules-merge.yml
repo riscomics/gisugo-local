@@ -1,0 +1,24 @@
+# Auto-deploy Firestore/Storage rules (and indexes) when they change on main.
+name: Deploy Firebase Rules (on merge)
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'firestore.rules'
+      - 'storage.rules'
+      - 'firestore.indexes.json'
+
+jobs:
+  deploy_rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GISUGO1 }}
+
+      - run: npm install -g firebase-tools
+
+      - run: firebase deploy --only firestore:rules,firestore:indexes,storage --project gisugo1 --non-interactive
