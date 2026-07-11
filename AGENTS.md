@@ -34,25 +34,37 @@ node --check functions/index.js
 
 ### Deploying (GitHub Actions → production)
 
-**Cloud Agents do not run `firebase deploy` locally.** All deploys go through GitHub Actions using secret `FIREBASE_SERVICE_ACCOUNT_GISUGO1`.
+**User-facing rule (always lead with this — never dump the table below on the user):**
 
-| What changed | Trigger | Workflow | Result |
-|---|---|---|---|
-| Frontend (HTML/CSS/JS) | PR to `main` | `firebase-hosting-pull-request.yml` | Preview URL on PR (not live) |
-| Frontend | Merge to `main` | `firebase-hosting-merge.yml` | Live **https://gisugo.com** |
-| `functions/**` | Merge to `main` | `firebase-functions-merge.yml` | Cloud Functions deploy |
-| Rules/indexes files | Merge to `main` | `firebase-rules-merge.yml` | Firestore rules, indexes, Storage rules |
-| Backend (pick targets) | **Manual** — **Deploy Firebase Backend (manual)** | `firebase-backend-manual.yml` | Desktop: choose targets in dropdown |
-| **Functions only** | **Manual** — **Deploy Functions (manual)** | `firebase-functions-manual.yml` | **Mobile-friendly** — just tap Run workflow |
-| **Rules/indexes only** | **Manual** — **Deploy Rules (manual)** | `firebase-rules-manual.yml` | **Mobile-friendly** — just tap Run workflow |
+> **Merge the PR = go live.** Tap **Squash and merge** on the PR. Everything in that PR deploys automatically (~1–2 min). The user does not need to open GitHub Actions or pick frontend vs backend.
 
-**Path-based backend deploys only run when those files change** — a frontend-only merge won't touch Functions or rules.
+**What to tell the user when they ask to deploy / ship / go live:**
 
-**Manual backend deploy (phone or desktop):** GitHub app or web → repo **Actions** → **Deploy Firebase Backend (manual)** → choose target → **Run workflow**. No PR merge required (use when code is already on `main`).
+1. **Start with one line:** e.g. *"PR ready — tap Squash and merge and everything in this PR goes live on gisugo.com (~2 min)."*
+2. **PR link** + optional note that a **preview URL** will comment on the PR shortly.
+3. **Only if they asked you to merge:** merge for them; otherwise stop at the PR.
+4. **Do not** explain workflows, path filters, or manual Actions unless a deploy **failed** or they explicitly ask how it works.
 
-**Mobile / remote workflow:** Cloud Agent → PR → merge when ready. Hosting always deploys on merge; Functions/rules deploy automatically **only if** those files were in the merge.
+**Example (good):**
+> PR ready: [link]. Tap **Squash and merge** when ready — goes live on https://gisugo.com in ~2 min.
 
-**Desktop fallback:**
+**Example (bad — never send this to the user):**
+> Hosting deploys on merge; functions only if functions/** changed; otherwise use Actions → Deploy Functions (manual)…
+
+---
+
+**Agent reference only** — merge to `main` triggers GitHub Actions automatically based on what changed. Cloud Agents never run `firebase deploy` locally; secret is `FIREBASE_SERVICE_ACCOUNT_GISUGO1`.
+
+| What changed | Workflow | Result |
+|---|---|---|
+| Frontend (HTML/CSS/JS) | `firebase-hosting-merge.yml` | Live **https://gisugo.com** |
+| `functions/**` | `firebase-functions-merge.yml` | Cloud Functions |
+| `firestore.rules`, `storage.rules`, `firestore.indexes.json` | `firebase-rules-merge.yml` | Firestore rules, indexes, Storage rules |
+| PR (any) | `firebase-hosting-pull-request.yml` | Preview URL on PR (not live) |
+
+Manual fallback (only mention if deploy failed or user asks): **Actions → Deploy Functions (manual)** or **Deploy Rules (manual)**. Desktop-only combined picker: **Deploy Firebase Backend (manual)**.
+
+**Desktop fallback (local CLI):**
 ```bash
 firebase deploy --only hosting
 firebase deploy --only functions
@@ -66,16 +78,7 @@ When the user asks you to **deploy**, **publish**, **push live**, or **ship to p
 1. **Finish the code changes** on a feature branch (not `main`).
 2. **Open a Pull Request to `main`** (create one if it does not exist). Never push straight to `main`.
 3. **Do not run `firebase deploy`** from the Cloud Agent environment.
-4. **Tell the user clearly:**
-   - The **PR link**
-   - That a **preview URL** will appear as a comment on the PR in ~1–2 min (safe to check before going live)
-   - That going live = tap **Squash and merge** on the PR (this is the deploy button)
-   - That **https://gisugo.com** updates ~1–2 min after merge (hosting)
-   - If the PR changed `functions/**` or rules files, backend workflows also run on merge (see deploy table above)
-   - For backend deploy without a new merge: tell user to run **Actions → Deploy Firebase Backend (manual)**
+4. **Reply to the user** using the short format above (TL;DR first, PR link, Squash and merge = live). Do not explain CI internals.
 5. **Do not merge the PR yourself** unless the user explicitly says to merge it (e.g. "merge the PR", "squash and merge", "ship it now").
 
-**Example message to user after opening a PR:**
-> PR ready: [link]. Preview URL will post on the PR shortly. Tap **Squash and merge** when ready — hosting goes live on https://gisugo.com. Functions/rules deploy on merge only if those files changed; otherwise use **Actions → Deploy Firebase Backend (manual)**.
-
-If the user only asked for changes **without** deploy language, still open a PR when work is done unless they say otherwise — but skip the merge instructions unless they asked to deploy.
+If the user only asked for changes **without** deploy language, still open a PR when work is done unless they say otherwise — but skip merge instructions unless they asked to deploy.
