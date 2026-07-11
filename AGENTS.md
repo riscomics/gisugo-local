@@ -36,20 +36,27 @@ node --check functions/index.js
 
 **User-facing rule (always lead with this — never dump the table below on the user):**
 
-> **Merge the PR = go live.** Tap **Squash and merge** on the PR. Everything in that PR deploys automatically (~1–2 min). The user does not need to open GitHub Actions or pick frontend vs backend.
+| User says | Agent does | Agent tells user |
+|---|---|---|
+| **Ship it** / **deploy** / **go live** / **deploy and merge** | Open PR (if needed) → **squash and merge for them** | *"Shipped — live on gisugo.com in ~2 min."* |
+| Changes only, no deploy words | Open PR, stop | *"PR ready: [link]. Say **ship it** when you want it live."* |
 
-**What to tell the user when they ask to deploy / ship / go live:**
+**The user should never tap anything when they said ship/deploy/go live.** Do not reply with "tap Squash and merge" if they already asked you to ship.
 
-1. **Start with one line:** e.g. *"PR ready — tap Squash and merge and everything in this PR goes live on gisugo.com (~2 min)."*
-2. **PR link** + optional note that a **preview URL** will comment on the PR shortly.
-3. **Only if they asked you to merge:** merge for them; otherwise stop at the PR.
-4. **Do not** explain workflows, path filters, or manual Actions unless a deploy **failed** or they explicitly ask how it works.
+**What to tell the user:**
 
-**Example (good):**
-> PR ready: [link]. Tap **Squash and merge** when ready — goes live on https://gisugo.com in ~2 min.
+1. **One line first** — shipped, or PR ready.
+2. **PR link** only if useful (e.g. they want to preview first).
+3. **Never** explain workflows, path filters, or GitHub Actions unless a deploy **failed**.
 
-**Example (bad — never send this to the user):**
-> Hosting deploys on merge; functions only if functions/** changed; otherwise use Actions → Deploy Functions (manual)…
+**Example (user said "ship it"):**
+> Shipped. Live on https://gisugo.com in ~2 min.
+
+**Example (user only asked for a fix, no deploy):**
+> PR ready: [link]. Say **ship it** when you want it live.
+
+**Example (bad — never send when user said ship):**
+> Tap Squash and merge when ready…
 
 ---
 
@@ -73,12 +80,8 @@ firebase deploy --only firestore:rules,firestore:indexes,storage
 
 ### Cloud Agent: how to ship changes (required behavior)
 
-When the user asks you to **deploy**, **publish**, **push live**, or **ship to production**:
+**Ship / deploy / go live** (including "deploy and merge") means: finish changes → open PR if needed → **squash and merge it yourself** → tell user *"Shipped — live in ~2 min."* Never push straight to `main` without a PR. Never run `firebase deploy` from the Cloud Agent environment.
 
-1. **Finish the code changes** on a feature branch (not `main`).
-2. **Open a Pull Request to `main`** (create one if it does not exist). Never push straight to `main`.
-3. **Do not run `firebase deploy`** from the Cloud Agent environment.
-4. **Reply to the user** using the short format above (TL;DR first, PR link, Squash and merge = live). Do not explain CI internals.
-5. **Do not merge the PR yourself** unless the user explicitly says to merge it (e.g. "merge the PR", "squash and merge", "ship it now").
+**Changes only** (no deploy language): open a PR when work is done; tell user they can say **ship it** to go live. Do not merge.
 
-If the user only asked for changes **without** deploy language, still open a PR when work is done unless they say otherwise — but skip merge instructions unless they asked to deploy.
+If merge fails (permissions, checks), say so in one line and give the PR link — that is the only case where the user may need to tap merge themselves.
