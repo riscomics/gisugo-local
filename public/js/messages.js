@@ -2229,9 +2229,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     // SAFETY CLEANUP: Ensure no lingering mobile input adjustments on page load
     cleanupMobileInputVisibility();
     
-    // MEMORY LEAK FIX: Register page unload cleanup
-    window.addEventListener('beforeunload', executeAllCleanups);
-    window.addEventListener('unload', executeAllCleanups);
+    // MEMORY LEAK FIX: Register page unload cleanup. Skip when only launching an
+    // external app (tel:/sms:/WhatsApp/Viber from contact-reveal) — that fires
+    // unload events without the page actually unloading.
+    window.addEventListener('beforeunload', guardedExecuteAllCleanups);
+    window.addEventListener('unload', guardedExecuteAllCleanups);
     
     // MEMORY LEAK FIX: Use tracked document listener for overlay clicks
     const overlayClickKey = addDocumentListener('click', function(e) {
@@ -2259,7 +2261,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Modular tab system initialized - only notifications loaded on startup');
 });
 
-window.addEventListener('pagehide', executeAllCleanups);
+function guardedExecuteAllCleanups() {
+    if (window.__gisugoExternalLaunch) return;
+    executeAllCleanups();
+}
+
+window.addEventListener('pagehide', guardedExecuteAllCleanups);
 window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
     requestMessagesPageLoadingOverlay(2200);

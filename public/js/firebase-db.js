@@ -2222,7 +2222,7 @@ async function getJobApplications(jobId) {
  * @param {string} applicationId - Application document ID
  * @returns {Promise<Object>} - Result object
  */
-async function hireWorker(jobId, applicationId) {
+async function hireWorker(jobId, applicationId, confirmedPrice) {
   const db = getFirestore();
   
   if (!db) {
@@ -2247,12 +2247,16 @@ async function hireWorker(jobId, applicationId) {
     
     const jobData = jobDoc.data();
     
-    // Determine agreed price: counter offer takes priority, otherwise use job's original price
-    const agreedPrice = appData.counterOffer || jobData.priceOffer;
+    // Determine agreed price. Priority: customer-confirmed price from the hire
+    // overlay (price-verify field) → worker counter offer → job's original price.
+    const parsedConfirmed = Number(confirmedPrice);
+    const hasConfirmed = Number.isFinite(parsedConfirmed) && parsedConfirmed > 0;
+    const agreedPrice = hasConfirmed ? parsedConfirmed : (appData.counterOffer || jobData.priceOffer);
     
     console.log('💰 Price negotiation:', {
       originalJobPrice: jobData.priceOffer,
       counterOffer: appData.counterOffer,
+      confirmedPrice: hasConfirmed ? parsedConfirmed : null,
       agreedPrice: agreedPrice
     });
     

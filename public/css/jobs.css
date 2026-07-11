@@ -1684,6 +1684,43 @@ body:has(.jobs-header) {
   gap: 14px;
 }
 
+/* HIRE — primary commitment CTA (opens the hire-confirmation overlay) */
+.hire-applicant-btn {
+  flex: 1;
+  border-radius: 12px;
+  padding: 15px 20px;
+  border: 2px solid #f6c453;
+  background: linear-gradient(135deg, #f6ad55 0%, #dd6b20 100%);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  animation: hire-cta-pulse 2.4s ease-in-out infinite;
+}
+
+.hire-applicant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(221, 107, 32, 0.4);
+}
+
+.hire-applicant-btn:active {
+  transform: translateY(0);
+}
+
+.hire-applicant-btn span {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+@keyframes hire-cta-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(246, 173, 85, 0.5), 0 4px 12px rgba(221, 107, 32, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(246, 173, 85, 0.85), 0 0 32px rgba(221, 107, 32, 0.35);
+  }
+}
+
 .reject-job-btn {
   flex: 1;
   border-radius: 12px;

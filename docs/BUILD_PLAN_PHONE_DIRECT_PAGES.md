@@ -316,3 +316,46 @@ item is the **user-facing page split only**.
 1. **Item 1** first (prerequisite; self-contained).
 2. **Item 2** next (needs Item 1; high user-value; small net-new surface).
 3. **Item 3** alongside/after (independent refactor; higher-touch on `messages.js`).
+
+---
+
+## DEFERRED BACKLOG (tracked 2026-07-11)
+
+> Running list so nothing slips. Item 1 DONE. Item 2 core (Direct contact reveal +
+> private phone storage + apply consent) DONE + deployed + pushed (commit 1cc839c).
+
+- **[USER] Add phone to both primary accounts** — Edit Profile → type number → Save.
+  Their old phone was on the public `users` doc; storage moved to `user_private`, so the
+  field shows blank until re-entered. No fallback (per user). Needed before reveal testing.
+- **[WAITING/external] Meta App Review** — on approval, flip app to Live so any Facebook
+  user can sign up; FB button already relabeled "Facebook / Messenger".
+- **Item 2 — HIRE button + price-verify at Hire: DONE (2026-07-11) + deployed.** Added a
+  HIRE button to the application action overlay (persistent overlay, independent of Contact)
+  and a "Confirm or Change Agreed Price" field in the hire-confirmation overlay. Confirmed
+  value flows to `agreedPrice` via `hireWorker(jobId, applicationId, confirmedPrice)` (blank →
+  job default). No new wiring/rules needed — `agreedPrice` was already stored at hire and
+  already drives earnings/spending/completion stats. Files: `jobs.html`, `public/css/jobs.css`,
+  `public/js/gig-overlays.js`, `public/js/firebase-db.js`, `public/js/jobs.js`.
+- **Hire overlay dead-code cleanup (DEFERRED, low priority)** — legacy duplication from when
+  the hire overlay was extracted into `gig-overlays.js`: (a) `jobs.js` `showHireConfirmationOverlay`
+  + `processHireConfirmation` are dead (nothing calls them) — safe delete; (b) `jobs.html` still
+  ships a **static** `#hireConfirmationOverlay` that `ensureHireConfirmationOverlay` reuses, while
+  `messages.html` builds it dynamically. Unify to one source (delete static markup, let
+  gig-overlays build it) so the overlay is only defined once. Re-test HIRE on jobs.html after.
+- **Surface reveal counter on Admin Dashboard** — `metrics/contact_reveals` (total +
+  lastRevealAt) written by `revealApplicantContact`. Also per-application
+  `contactRevealCount`. Wire into admin-dashboard.
+- **Firestore cleanup pass** — (a) stop the dead decrement-only writes to
+  `activeJobsCount` / `appliedJobsCount` (nothing reads them; drifted to -13 on one acct);
+  (b) one-time migration to strip legacy fields `rating`, `reviewCount`, and the
+  `socialMedia` dup (live pair is `averageRating`/`totalReviews`, saves write `socialUrls`);
+  (c) purge legacy public `users.phoneNumber` copies (now purged on next profile save).
+- **Privacy + Terms deep rewrite** — current `privacy.html` / `termsofservice.html` are
+  placeholder-grade for Meta review; rewrite to reflect the actual platform (Direct contact,
+  no commission/lead-gen stance, off-platform disputes, face verification, G-Coins, etc.).
+- **Verify/build in-app account deletion** — privacy policy promises it; Meta + users will
+  look for it. Confirm it exists in Profile settings or build it.
+- **Remove temporary email/password login** — added only for Cursor-browser dev testing;
+  strip once OAuth works everywhere post-approval.
+- **Item 3 — Alerts + Support → own pages** — `alerts.html`/`support.html` + menu links;
+  leave `messages.html` intact for premium chat. (See Item 3 section above.)

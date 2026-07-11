@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="public/images/Gisugo-icon.png">
     <!-- UNIFORM HEADER SYSTEM -->
     <link rel="stylesheet" href="public/css/header-uniform.css?v=2026_menu2">
-    <link rel="stylesheet" href="public/css/jobs.css?v=6.6">
+    <link rel="stylesheet" href="public/css/jobs.css?v=6.7">
     <link rel="stylesheet" href="public/css/shared-menu.css">
   </head>
 <body class="page-jobs">
@@ -522,8 +522,11 @@
                 <button class="reject-job-btn" id="rejectJobBtn" data-action="reject" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="">
                     <span>REJECT APPLICATION</span>
                 </button>
-                <button class="contact-btn contact-to-hire" id="contactBtn" data-action="contact_user" data-user-id="" data-user-name="">
+                <button class="contact-btn" id="contactBtn" data-action="contact_user" data-user-id="" data-user-name="">
                     <span>CONTACT</span>
+                </button>
+                <button class="hire-applicant-btn" id="hireApplicantBtn" data-action="hire" data-application-id="" data-user-id="" data-user-name="" data-job-id="" data-job-title="" data-price-offer="" data-price-type="">
+                    <span>HIRE</span>
                 </button>
                 <button class="application-close-btn" id="applicationActionCloseBtn" data-action="close_application_action" type="button" aria-label="Close application actions">✕</button>
             </div>
@@ -803,6 +806,10 @@
                     </div>
                 </div>
 
+                <div class="hire-price-verify" style="margin-top:16px;padding:12px 14px;background:rgba(31,41,55,0.6);border:1px solid rgba(246,173,85,0.35);border-radius:12px;text-align:center;">
+                    <label for="confirmHirePrice" style="display:block;color:#f6ad55;font-weight:700;font-size:0.9rem;margin-bottom:8px;">💰 Confirm or Change Agreed Price (₱)</label>
+                    <input type="number" id="confirmHirePrice" inputmode="numeric" min="1" step="1" placeholder="Amount" style="width:160px;max-width:100%;box-sizing:border-box;padding:11px 12px;background:#1f2937;border:1px solid #4b5563;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;">
+                </div>
             </div>
             
             <div class="hire-confirmation-footer">
@@ -1351,7 +1358,7 @@
     <script src="public/js/firebase-config.js?v=20260627a"></script>
     <script src="public/js/firebase-auth.js?v=17"></script>
     <script src="public/js/push-notifications.js?v=8"></script>
-    <script src="public/js/firebase-db.js?v=54"></script>
+    <script src="public/js/firebase-db.js?v=55"></script>
     <script src="public/js/firebase-storage.js?v=2"></script>
     
     <!-- UNIFORM HEADER SYSTEM -->
@@ -1360,8 +1367,8 @@
     <script src="public/js/header-uniform.js?v=1.2"></script>
     <script src="public/js/shared-menu.js?v=3.7"></script>
     <script src="public/js/chat-thread-service.js?v=1"></script>
-    <script src="public/js/contact-reveal.js?v=1"></script>
-    <script src="public/js/gig-overlays.js?v=2"></script>
-    <script src="public/js/jobs.js?v=144"></script>
+    <script src="public/js/contact-reveal.js?v=5"></script>
+    <script src="public/js/gig-overlays.js?v=5"></script>
+    <script src="public/js/jobs.js?v=146"></script>
 </body>
 </html> 

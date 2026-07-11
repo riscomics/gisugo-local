@@ -912,8 +912,14 @@ function removeDocumentListener(key) {
     }
 }
 
-// Register page unload cleanup
-window.addEventListener('beforeunload', executeAllCleanups);
+// Register page unload cleanup. Skip it when we're only launching an external app
+// (tel:/sms:/WhatsApp/Viber from the contact-reveal overlay) — that fires
+// `beforeunload` but the page doesn't actually unload, so tearing down overlay
+// handlers would leave the View Applications overlay stuck open.
+window.addEventListener('beforeunload', function () {
+    if (window.__gisugoExternalLaunch) return;
+    executeAllCleanups();
+});
 
 // ===== JOBS PAGE INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', async function() {
@@ -7923,6 +7929,8 @@ function initializeApplicationCardHandlers() {
         const applicationId = card.getAttribute('data-application-id');
         const jobTitle = card.getAttribute('data-job-title');
         const jobId = card.getAttribute('data-job-id');
+        const priceOffer = card.getAttribute('data-price-offer');
+        const priceType = card.getAttribute('data-price-type');
         
         console.log(`Opening application action overlay for ${userName} with ${userRating} star rating (${reviewCount} reviews)`);
         console.log(`Job context: ${jobTitle} (ID: ${jobId})`);
@@ -7936,7 +7944,9 @@ function initializeApplicationCardHandlers() {
                 userRating: userRating,
                 reviewCount: reviewCount,
                 jobId: jobId,
-                jobTitle: jobTitle
+                jobTitle: jobTitle,
+                priceOffer: priceOffer,
+                priceType: priceType
             });
             return;
         }

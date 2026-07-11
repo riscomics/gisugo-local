@@ -175,6 +175,7 @@
         const profileBtn = getElement('profileBtn');
         const contactBtn = getElement('contactBtn');
         const rejectBtn = getElement('rejectJobBtn');
+        const hireBtn = getElement('hireApplicantBtn');
         const closeBtn = getElement('applicationActionCloseBtn');
         if (!overlay) return;
 
@@ -214,6 +215,31 @@
             }, { signal: signal });
         }
 
+        if (hireBtn) {
+            hireBtn.addEventListener('click', function () {
+                const applicationId = String(data.applicationId || '').trim();
+                const jobId = String(data.jobId || '').trim();
+                if (!applicationId || !jobId) return;
+
+                // Hire is independent of Contact (persistent-overlay decision): the
+                // customer can send an offer whether or not they revealed the phone.
+                // Reuses the existing offer→accept hire overlay/flow unchanged, with
+                // an optional price-verify field prefilled from the offered amount.
+                hideApplicationActionOverlay();
+                showHireConfirmationOverlay({
+                    applicationId: applicationId,
+                    jobId: jobId,
+                    jobTitle: String(data.jobTitle || '').trim(),
+                    userId: String(data.userId || '').trim(),
+                    userName: String(data.userName || '').trim(),
+                    userPhoto: String(data.userPhoto || '').trim(),
+                    userRating: Number(data.userRating || 0),
+                    totalReviews: Number(data.reviewCount || 0),
+                    priceOffer: String(data.priceOffer || '').trim()
+                });
+            }, { signal: signal });
+        }
+
         if (rejectBtn) {
             rejectBtn.addEventListener('click', function () {
                 void handleReject(data);
@@ -248,6 +274,7 @@
         const profileBtn = getElement('profileBtn');
         const contactBtn = getElement('contactBtn');
         const rejectBtn = getElement('rejectJobBtn');
+        const hireBtn = getElement('hireApplicantBtn');
 
         if (!overlay || !profileName || !profileImage || !reviewCount) {
             console.error('Application action overlay elements not found');
@@ -262,7 +289,9 @@
             userRating: Number(data.userRating || 0),
             reviewCount: Number(data.reviewCount || 0),
             jobId: String(data.jobId || '').trim(),
-            jobTitle: String(data.jobTitle || '').trim()
+            jobTitle: String(data.jobTitle || '').trim(),
+            priceOffer: String(data.priceOffer || '').trim(),
+            priceType: String(data.priceType || '').trim()
         };
 
         profileName.textContent = normalized.userName || 'User';
@@ -293,6 +322,15 @@
             rejectBtn.setAttribute('data-user-name', normalized.userName);
             rejectBtn.setAttribute('data-job-id', normalized.jobId);
             rejectBtn.setAttribute('data-job-title', normalized.jobTitle);
+        }
+        if (hireBtn) {
+            hireBtn.setAttribute('data-application-id', normalized.applicationId);
+            hireBtn.setAttribute('data-user-id', normalized.userId);
+            hireBtn.setAttribute('data-user-name', normalized.userName);
+            hireBtn.setAttribute('data-job-id', normalized.jobId);
+            hireBtn.setAttribute('data-job-title', normalized.jobTitle);
+            hireBtn.setAttribute('data-price-offer', normalized.priceOffer);
+            hireBtn.setAttribute('data-price-type', normalized.priceType);
         }
 
         bindHandlers(normalized);
@@ -444,6 +482,10 @@
                                 <button type="button" class="verification-reminder-btn proceed" id="hireProceedAnywayBtn">Send Offer Anyway</button>
                             </div>
                         </div>
+                    </div>
+                    <div class="hire-price-verify" style="margin-top:16px;padding:12px 14px;background:rgba(31,41,55,0.6);border:1px solid rgba(246,173,85,0.35);border-radius:12px;text-align:center;">
+                        <label for="confirmHirePrice" style="display:block;color:#f6ad55;font-weight:700;font-size:0.9rem;margin-bottom:8px;">💰 Confirm or Change Agreed Price (₱)</label>
+                        <input type="number" id="confirmHirePrice" inputmode="numeric" min="1" step="1" placeholder="Amount" style="width:160px;max-width:100%;box-sizing:border-box;padding:11px 12px;background:#1f2937;border:1px solid #4b5563;border-radius:8px;color:#fff;font-size:1rem;font-weight:700;">
                     </div>
                 </div>
 
@@ -1262,8 +1304,16 @@
         const tabsContainer = getElement('confirmHireLangTabs');
         const confirmBtn = getElement('confirmHireBtn');
         const cancelBtn = getElement('cancelHireBtn');
+        const priceInput = getElement('confirmHirePrice');
 
         if (!overlay || !confirmBtn || !cancelBtn || !tabsContainer) return;
+
+        // Prefill the agreed price with the offered amount (counter-offer or job price).
+        // Blank is allowed — hireWorker falls back to the job's price server-side.
+        if (priceInput) {
+            const prefill = String(workerData.priceOffer || '').replace(/[^\d.]/g, '');
+            priceInput.value = prefill;
+        }
 
         if (state.hireController) {
             state.hireController.abort();
@@ -1344,6 +1394,24 @@
                 return;
             }
 
+            // Resolve the confirmed price: blank → let hireWorker use the job default;
+            // otherwise it must be a positive number.
+            let confirmedPrice;
+            if (priceInput) {
+                const raw = String(priceInput.value || '').trim();
+                if (raw !== '') {
+                    const parsed = Number(raw);
+                    if (!Number.isFinite(parsed) || parsed <= 0) {
+                        if (typeof window.showTemporaryNotification === 'function') {
+                            window.showTemporaryNotification('Enter a valid agreed price (a positive number).');
+                        }
+                        priceInput.focus();
+                        return;
+                    }
+                    confirmedPrice = parsed;
+                }
+            }
+
             confirmBtn.disabled = true;
             const originalLabel = confirmBtn.textContent;
             confirmBtn.textContent = 'Sending Offer...';
@@ -1351,7 +1419,7 @@
                 window.showLoadingOverlay('Sending offer...');
             }
             try {
-                const result = await window.hireWorker(jobId, applicationId);
+                const result = await window.hireWorker(jobId, applicationId, confirmedPrice);
                 if (result && result.success) {
                     hideHireConfirmationOverlay();
                     if (typeof window.showTemporaryNotification === 'function') {
