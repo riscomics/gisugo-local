@@ -68,12 +68,17 @@ async function grantRoles() {
     'roles/run.viewer',
     'roles/serviceusage.apiKeysViewer',
     'roles/serviceusage.serviceUsageConsumer',
-    // Cloud Functions
+    // Cloud Functions (Gen1 + Gen2 / Cloud Run)
     'roles/cloudfunctions.developer',
     'roles/cloudfunctions.admin',
     'roles/iam.serviceAccountUser',
     'roles/cloudbuild.builds.editor',
     'roles/artifactregistry.writer',
+    'roles/run.admin',
+    'roles/eventarc.admin',
+    'roles/cloudscheduler.admin',
+    'roles/pubsub.editor',
+    'roles/serviceusage.serviceUsageAdmin',
     // Firestore + Storage rules and indexes
     'roles/firebaserules.admin',
     'roles/datastore.indexAdmin',

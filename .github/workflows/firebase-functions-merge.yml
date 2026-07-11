@@ -25,7 +25,12 @@ jobs:
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GISUGO1 }}
+          create_credentials_file: true
+          export_environment_variables: true
 
       - run: npm install -g firebase-tools
+
+      - name: Verify Firebase auth
+        run: firebase projects:list --project gisugo1
 
       - run: firebase deploy --only functions --project gisugo1 --non-interactive
