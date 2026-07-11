@@ -77,6 +77,10 @@ async function grantRoles() {
     // Firestore + Storage rules and indexes
     'roles/firebaserules.admin',
     'roles/datastore.indexAdmin',
+    'roles/storage.admin',
+    // Often required for full `firebase deploy` (extensions inventory, etc.)
+    'roles/firebaseextensions.viewer',
+    'roles/firebase.developAdmin',
   ];
 
   const policy = await api(`https://cloudresourcemanager.googleapis.com/v1/projects/${PROJECT_ID}:getIamPolicy`, {
