@@ -42,7 +42,9 @@ node --check functions/index.js
 | Frontend | Merge to `main` | `firebase-hosting-merge.yml` | Live **https://gisugo.com** |
 | `functions/**` | Merge to `main` | `firebase-functions-merge.yml` | Cloud Functions deploy |
 | Rules/indexes files | Merge to `main` | `firebase-rules-merge.yml` | Firestore rules, indexes, Storage rules |
-| Backend (your choice) | **Manual** — GitHub → Actions → **Deploy Firebase Backend (manual)** → Run workflow | `firebase-backend-manual.yml` | Pick: functions only, rules only, or both |
+| Backend (pick targets) | **Manual** — **Deploy Firebase Backend (manual)** | `firebase-backend-manual.yml` | Desktop: choose targets in dropdown |
+| **Functions only** | **Manual** — **Deploy Functions (manual)** | `firebase-functions-manual.yml` | **Mobile-friendly** — just tap Run workflow |
+| **Rules/indexes only** | **Manual** — **Deploy Rules (manual)** | `firebase-rules-manual.yml` | **Mobile-friendly** — just tap Run workflow |
 
 **Path-based backend deploys only run when those files change** — a frontend-only merge won't touch Functions or rules.
 
