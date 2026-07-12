@@ -103,6 +103,42 @@ function isLoggedIn() {
 // ============================================================================
 
 const OAUTH_PENDING_KEY = 'gisugo_oauth_pending';
+const AUTH_DEBUG_LOG_KEY = 'gisugo_auth_debug_log';
+
+function gisugoAuthLog(message, detail) {
+  const entry = {
+    t: Date.now(),
+    msg: String(message || ''),
+    detail: detail == null ? '' : (typeof detail === 'string' ? detail : JSON.stringify(detail))
+  };
+  try {
+    const raw = sessionStorage.getItem(AUTH_DEBUG_LOG_KEY);
+    const log = raw ? JSON.parse(raw) : [];
+    log.push(entry);
+    while (log.length > 50) log.shift();
+    sessionStorage.setItem(AUTH_DEBUG_LOG_KEY, JSON.stringify(log));
+  } catch (e) {}
+  console.log('[GISUGO Auth]', entry.msg, entry.detail || '');
+  try {
+    window.dispatchEvent(new CustomEvent('gisugo-auth-log'));
+  } catch (e) {}
+}
+
+function isMobileOAuthEnvironment() {
+  try {
+    const ua = navigator.userAgent || '';
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  } catch (e) {
+    return false;
+  }
+}
+
+async function startOAuthRedirect(auth, provider, providerLabel) {
+  gisugoAuthLog(providerLabel + ': same-tab redirect');
+  try { sessionStorage.setItem(OAUTH_PENDING_KEY, '1'); } catch (e) {}
+  await auth.signInWithRedirect(provider);
+  return { success: true, redirecting: true };
+}
 
 function createGoogleAuthProvider() {
   const provider = new firebase.auth.GoogleAuthProvider();
@@ -129,17 +165,20 @@ function createFacebookAuthProvider() {
  * @returns {Promise<Object>}
  */
 async function signInWithPopupOrRedirect(auth, provider, method, providerLabel) {
+  if (isMobileOAuthEnvironment()) {
+    return startOAuthRedirect(auth, provider, providerLabel);
+  }
+
   try {
-    console.log(`🔐 Starting ${providerLabel} sign-in (popup)...`);
+    gisugoAuthLog(providerLabel + ': trying popup');
     const result = await auth.signInWithPopup(provider);
+    gisugoAuthLog(providerLabel + ': popup success', { uid: result.user && result.user.uid });
     return await finalizeOAuthSignIn(result, method);
   } catch (error) {
     const code = (error && error.code) || '';
+    gisugoAuthLog(providerLabel + ': popup error', { code: code, message: error && error.message });
     if (code === 'auth/popup-blocked') {
-      console.log(`🔐 ${providerLabel} popup blocked — falling back to same-tab redirect...`);
-      try { sessionStorage.setItem(OAUTH_PENDING_KEY, '1'); } catch (e) {}
-      await auth.signInWithRedirect(provider);
-      return { success: true, redirecting: true };
+      return startOAuthRedirect(auth, provider, providerLabel);
     }
     return mapOAuthSignInError(error, providerLabel);
   }
@@ -194,14 +233,15 @@ async function completeRedirectSignIn() {
 
   let wasPending = false;
   try { wasPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === '1'; } catch (e) {}
+  gisugoAuthLog('completeRedirectSignIn', { wasPending: wasPending, path: location.pathname });
 
   let result;
   try {
     result = await auth.getRedirectResult();
   } catch (error) {
     try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
-    console.error('❌ Redirect sign-in error:', error);
     const code = (error && error.code) || '';
+    gisugoAuthLog('redirect error', { code: code, message: error && error.message });
     let message = 'Sign-in failed. Please try again.';
     if (code === 'auth/account-exists-with-different-credential') {
       message = 'An account already exists with the same email. Try a different sign-in method.';
@@ -216,12 +256,15 @@ async function completeRedirectSignIn() {
   if (!result || !result.user) {
     if (wasPending) {
       try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+      gisugoAuthLog('redirect incomplete (no user)');
       return { success: false, message: 'Sign-in did not complete. Please try again.' };
     }
+    gisugoAuthLog('no pending redirect');
     return { pending: true };
   }
 
   try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+  gisugoAuthLog('redirect success', { uid: result.user.uid });
   const providerId = (result.additionalUserInfo && result.additionalUserInfo.providerId) ||
     (result.credential && result.credential.providerId) || '';
   const method = providerId === 'facebook.com' ? 'facebook.com' : 'google.com';
