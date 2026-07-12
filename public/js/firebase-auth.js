@@ -133,6 +133,21 @@ function isMobileOAuthEnvironment() {
   }
 }
 
+// iOS/iPadOS Safari + WebKit: same-tab redirect is the reliable path because
+// ITP breaks the popup postMessage handoff. Everything else (desktop + Android
+// Chrome) does popup-first — popups there are gesture-initiated and work, and it
+// avoids the signInWithRedirect stall we hit on some Android Chrome profiles.
+function isIOSOAuthEnvironment() {
+  try {
+    const ua = navigator.userAgent || '';
+    const iosUA = /iPhone|iPad|iPod/i.test(ua);
+    const touchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+    return iosUA || touchMac;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function startOAuthRedirect(auth, provider, providerLabel) {
   gisugoAuthLog(providerLabel + ': same-tab redirect');
   try {
@@ -208,19 +223,23 @@ function createFacebookAuthProvider() {
  * @returns {Promise<Object>}
  */
 async function signInWithPopupOrRedirect(auth, provider, method, providerLabel) {
-  if (isMobileOAuthEnvironment()) {
+  // iOS only: go straight to same-tab redirect (popups are unreliable under ITP).
+  if (isIOSOAuthEnvironment()) {
+    gisugoAuthLog(providerLabel + ': iOS -> same-tab redirect');
     return startOAuthRedirect(auth, provider, providerLabel);
   }
 
+  // Desktop + Android Chrome: popup first (inside the tap, so it isn't blocked),
+  // fall back to same-tab redirect only if the browser actually blocks the popup.
   try {
-    gisugoAuthLog(providerLabel + ': trying popup');
+    gisugoAuthLog(providerLabel + ': trying popup', { mobile: isMobileOAuthEnvironment() });
     const result = await auth.signInWithPopup(provider);
     gisugoAuthLog(providerLabel + ': popup success', { uid: result.user && result.user.uid });
     return await finalizeOAuthSignIn(result, method);
   } catch (error) {
     const code = (error && error.code) || '';
     gisugoAuthLog(providerLabel + ': popup error', { code: code, message: error && error.message });
-    if (code === 'auth/popup-blocked') {
+    if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
       return startOAuthRedirect(auth, provider, providerLabel);
     }
     return mapOAuthSignInError(error, providerLabel);
