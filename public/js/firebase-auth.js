@@ -271,6 +271,116 @@ async function loginWithFacebook() {
   return signInWithPopupOrRedirect(auth, createFacebookAuthProvider(), 'facebook.com', 'Facebook');
 }
 
+// ============================================================================
+// FACEBOOK SIGN-IN VIA FACEBOOK JS SDK (token -> signInWithCredential)
+// ----------------------------------------------------------------------------
+// Firebase's signInWithRedirect/signInWithPopup are broken specifically for
+// Facebook on Android Chrome (known, unfixed: firebase-js-sdk #4256 / #9256 —
+// "missing initial state"). This path gets the access token straight from
+// Facebook's own SDK in-page and hands it to Firebase, so Firebase's OAuth
+// handler + cross-tab sessionStorage (the thing that breaks) is never involved.
+// ============================================================================
+
+const FACEBOOK_APP_ID = '1027099963510428';
+const FACEBOOK_GRAPH_VERSION = 'v21.0';
+let facebookSdkPromise = null;
+
+/**
+ * Load + init the Facebook JS SDK once. Resolves with window.FB when ready.
+ * Call this on page load (preload) so FB.login() can run synchronously inside
+ * the click gesture (otherwise the login popup is blocked).
+ */
+function loadFacebookSDK() {
+  if (facebookSdkPromise) return facebookSdkPromise;
+  facebookSdkPromise = new Promise(function(resolve, reject) {
+    try {
+      if (window.FB && window.FB.login) { resolve(window.FB); return; }
+      window.fbAsyncInit = function() {
+        try {
+          window.FB.init({
+            appId: FACEBOOK_APP_ID,
+            cookie: true,
+            xfbml: false,
+            version: FACEBOOK_GRAPH_VERSION
+          });
+          gisugoAuthLog('Facebook: SDK initialized');
+          resolve(window.FB);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      if (document.getElementById('facebook-jssdk')) return; // script already injecting
+      const js = document.createElement('script');
+      js.id = 'facebook-jssdk';
+      js.async = true;
+      js.defer = true;
+      js.crossOrigin = 'anonymous';
+      js.src = 'https://connect.facebook.net/en_US/sdk.js';
+      js.onerror = function() { reject(new Error('Facebook SDK failed to load')); };
+      document.head.appendChild(js);
+    } catch (e) {
+      reject(e);
+    }
+  });
+  return facebookSdkPromise;
+}
+
+function preloadFacebookSDK() {
+  try { loadFacebookSDK().catch(function() {}); } catch (e) {}
+}
+
+/**
+ * Sign in with Facebook using the Facebook JS SDK access token, then exchange
+ * it for a Firebase session via signInWithCredential. Must be called directly
+ * from the click handler (FB.login opens a popup that needs the user gesture).
+ * @returns {Promise<Object>} - { success, user, isNewUser } | { cancelled } | { success:false, message }
+ */
+function loginWithFacebookToken() {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    return Promise.resolve({
+      success: false,
+      message: 'Facebook sign-in requires Firebase. Please configure Firebase first.'
+    });
+  }
+  if (typeof window.FB === 'undefined' || !window.FB.login) {
+    loadFacebookSDK(); // kick off load; keep the within-gesture rule by not awaiting
+    gisugoAuthLog('Facebook: SDK not ready yet');
+    return Promise.resolve({
+      success: false,
+      message: 'Facebook is still loading — tap the button again in a moment.'
+    });
+  }
+
+  gisugoAuthLog('Facebook: FB.login (token flow)');
+  return new Promise(function(resolve) {
+    try {
+      window.FB.login(function(response) {
+        const accessToken = response && response.authResponse && response.authResponse.accessToken;
+        if (!accessToken) {
+          gisugoAuthLog('Facebook: login not completed', { status: response && response.status });
+          resolve({ success: false, cancelled: true });
+          return;
+        }
+        gisugoAuthLog('Facebook: got token -> signInWithCredential');
+        const credential = firebase.auth.FacebookAuthProvider.credential(accessToken);
+        auth.signInWithCredential(credential)
+          .then(function(result) {
+            gisugoAuthLog('Facebook: credential sign-in success', { uid: result.user && result.user.uid });
+            resolve(finalizeOAuthSignIn(result, 'facebook.com'));
+          })
+          .catch(function(error) {
+            gisugoAuthLog('Facebook: credential error', { code: (error && error.code) || '' });
+            resolve(mapOAuthSignInError(error, 'Facebook'));
+          });
+      }, { scope: 'email,public_profile' });
+    } catch (e) {
+      gisugoAuthLog('Facebook: FB.login threw', { message: e && e.message });
+      resolve({ success: false, message: 'Could not start Facebook sign-in. Please try again.' });
+    }
+  });
+}
+
 /**
  * Complete a same-tab OAuth sign-in after the browser returns from the provider.
  * Call once on load for login.html and sign-up.html.
@@ -1100,6 +1210,8 @@ window.getCurrentUserId = getCurrentUserId;
 window.isLoggedIn = isLoggedIn;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithFacebook = loginWithFacebook;
+window.loginWithFacebookToken = loginWithFacebookToken;
+window.preloadFacebookSDK = preloadFacebookSDK;
 window.completeRedirectSignIn = completeRedirectSignIn;
 window.gisugoAuthLog = gisugoAuthLog;
 window.loginWithEmail = loginWithEmail;

@@ -1610,7 +1610,7 @@ async function handleFacebookSignIn() {
   showLoadingOverlay();
   
   try {
-    const result = await loginWithFacebook();
+    const result = await loginWithFacebookToken();
     if (result && result.redirecting) return; // same-tab redirect in progress
 
     hideLoadingOverlay();
@@ -1637,6 +1637,8 @@ function initializeFacebookSignIn() {
   const facebookBtn = document.getElementById('facebookSignInBtn');
   
   if (facebookBtn) {
+    // Preload the FB JS SDK so FB.login() fires synchronously inside the tap.
+    if (typeof preloadFacebookSDK === 'function') preloadFacebookSDK();
     facebookBtn.addEventListener('click', handleFacebookSignIn);
   }
 }
