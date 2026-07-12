@@ -32,35 +32,59 @@ There is **no lint config, no test suite, and no build**. As a syntax/build prox
 node --check functions/index.js
 ```
 
-### Deploying (GitHub Actions → production)
+### Deploying to production
 
-**User-facing rule (always lead with this — never dump the table below on the user):**
-
-| User says | Agent does | Agent tells user |
-|---|---|---|
-| **Ship it** / **deploy** / **go live** / **deploy and merge** | Open PR (if needed) → **squash and merge for them** | *"Shipped — live on gisugo.com in ~2 min."* |
-| Changes only, no deploy words | Open PR, stop | *"PR ready: [link]. Say **ship it** when you want it live."* |
-
-**The user should never tap anything when they said ship/deploy/go live.** Do not reply with "tap Squash and merge" if they already asked you to ship.
-
-**What to tell the user:**
-
-1. **One line first** — shipped, or PR ready.
-2. **PR link** only if useful (e.g. they want to preview first).
-3. **Never** explain workflows, path filters, or GitHub Actions unless a deploy **failed**.
-
-**Example (user said "ship it"):**
-> Shipped. Live on https://gisugo.com in ~2 min.
-
-**Example (user only asked for a fix, no deploy):**
-> PR ready: [link]. Say **ship it** when you want it live.
-
-**Example (bad — never send when user said ship):**
-> Tap Squash and merge when ready…
+> ⛔ **STOP — STEP 0 (MANDATORY, DO THIS FIRST). Detect your environment BEFORE any deploy/ship action.**
+> There are TWO completely different ship procedures. Using the wrong one is a known, repeated mistake — do not do it.
+>
+> **You are DESKTOP / LOCAL if:** you can run local `git` against a real local branch **and** a local `firebase` CLI exists (`firebase --version` works). This is Cursor Desktop on the user's machine.
+> **You are a CLOUD AGENT if:** you are a Cursor Cloud/remote agent and **cannot** run `firebase deploy` (no local CLI / no credentials).
+>
+> Quick check when unsure: run `firebase --version`. If it returns a version → **DESKTOP**. If it's missing/unavailable → **CLOUD**.
+>
+> **DESKTOP never opens a PR to ship. CLOUD never runs `firebase deploy`.** Pick the matching section below and follow ONLY that one.
 
 ---
 
-**Agent reference only** — merge to `main` triggers GitHub Actions automatically based on what changed. Cloud Agents never run `firebase deploy` locally; secret is `FIREBASE_SERVICE_ACCOUNT_GISUGO1`.
+#### 🖥️ DESKTOP / LOCAL — ship procedure (DEFAULT on the user's machine)
+
+**Ship / deploy / go live / ship it** means, directly:
+
+1. Commit the changes.
+2. `git push origin main` (push straight to `main` — this is expected on desktop).
+3. Run the matching local deploy:
+   ```bash
+   firebase deploy --only hosting                                   # frontend (HTML/CSS/JS)
+   firebase deploy --only functions                                # functions/**
+   firebase deploy --only firestore:rules,firestore:indexes,storage # rules / indexes / storage rules
+   ```
+   Frontend-only change = `--only hosting`.
+
+**Do NOT** open a PR, do NOT do squash-and-merge, do NOT tell the user to tap anything. That flow is CLOUD-only.
+
+Tell the user (one line): *"Shipped — live on https://gisugo.com now."*
+
+**Changes only** (no deploy language): commit locally, tell the user *"Ready. Say **ship it** to push live."* Do not push or deploy yet.
+
+---
+
+#### ☁️ CLOUD AGENT — ship procedure (ONLY when no local `firebase` CLI)
+
+**Ship / deploy / go live** (including "deploy and merge") means: finish changes → open PR if needed → **squash and merge it yourself** → tell user *"Shipped — live in ~2 min."* Never push straight to `main` without a PR. **Never run `firebase deploy`** from the Cloud Agent environment (merge to `main` triggers GitHub Actions, which deploys).
+
+**Changes only** (no deploy language): open a PR when work is done; tell user they can say **ship it** to go live. Do not merge.
+
+If merge fails (permissions, checks), say so in one line and give the PR link — that is the only case where the user may need to tap merge themselves.
+
+---
+
+**Talking to the user (both environments):**
+
+1. **One line first** — shipped, or ready/PR link.
+2. **Never** explain workflows, path filters, or GitHub Actions unless a deploy **failed**.
+3. The user should never tap anything when they said ship/deploy/go live.
+
+**Agent reference only** — on merge/push to `main`, GitHub Actions also deploys automatically based on what changed (secret `FIREBASE_SERVICE_ACCOUNT_GISUGO1`):
 
 | What changed | Workflow | Result |
 |---|---|---|
@@ -70,18 +94,3 @@ node --check functions/index.js
 | PR (any) | `firebase-hosting-pull-request.yml` | Preview URL on PR (not live) |
 
 Manual fallback (only mention if deploy failed or user asks): **Actions → Deploy Functions (manual)** or **Deploy Rules (manual)**. Desktop-only combined picker: **Deploy Firebase Backend (manual)**.
-
-**Desktop fallback (local CLI):**
-```bash
-firebase deploy --only hosting
-firebase deploy --only functions
-firebase deploy --only firestore:rules,firestore:indexes,storage
-```
-
-### Cloud Agent: how to ship changes (required behavior)
-
-**Ship / deploy / go live** (including "deploy and merge") means: finish changes → open PR if needed → **squash and merge it yourself** → tell user *"Shipped — live in ~2 min."* Never push straight to `main` without a PR. Never run `firebase deploy` from the Cloud Agent environment.
-
-**Changes only** (no deploy language): open a PR when work is done; tell user they can say **ship it** to go live. Do not merge.
-
-If merge fails (permissions, checks), say so in one line and give the PR link — that is the only case where the user may need to tap merge themselves.
