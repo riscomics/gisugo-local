@@ -828,9 +828,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
   
   <!-- Firebase Helper Modules -->
-  <script src="public/js/oauth-debug-panel.js?v=1"></script>
+  <script src="public/js/oauth-debug-panel.js?v=2"></script>
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=19"></script>
+  <script src="public/js/firebase-auth.js?v=20"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -850,15 +850,42 @@
       
       // Route a signed-in user (welcome animation, then profile-based redirect).
       async function routeSignedInUser(user) {
+        clearOverlayWatchdog();
         loadingOverlay.classList.add('show');
         showWelcomeAnimation();
         await new Promise(resolve => setTimeout(resolve, 1500));
+        gisugoAuthLog('routing signed-in user', { uid: user && user.uid });
         await handleAuthRedirect(user);
+      }
+
+      let overlayWatchdog = null;
+      function clearOverlayWatchdog() {
+        if (overlayWatchdog) {
+          clearTimeout(overlayWatchdog);
+          overlayWatchdog = null;
+        }
+      }
+      function armOverlayWatchdog() {
+        clearOverlayWatchdog();
+        overlayWatchdog = setTimeout(function() {
+          loadingOverlay.classList.remove('show');
+          try { sessionStorage.setItem('gisugo_oauth_debug', '1'); } catch (e) {}
+          if (typeof window.__gisugoRenderAuthDebugPanel === 'function') {
+            window.__gisugoRenderAuthDebugPanel();
+          }
+          if (typeof gisugoAuthLog === 'function') {
+            gisugoAuthLog('watchdog: sign-in timed out on loading screen');
+          }
+          showError('login', 'Sign-in timed out. Tap Log (top-right), copy the log, and try again.');
+        }, 20000);
       }
 
       // Finish same-tab OAuth when returning from Google/Facebook redirect.
       const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
-      if (oauthPending) loadingOverlay.classList.add('show');
+      if (oauthPending) {
+        loadingOverlay.classList.add('show');
+        armOverlayWatchdog();
+      }
       if (typeof completeRedirectSignIn === 'function') {
         try {
           const rr = await completeRedirectSignIn();
@@ -866,23 +893,35 @@
             await routeSignedInUser(rr.user);
             return;
           }
+          const auth = (typeof getFirebaseAuth === 'function') ? getFirebaseAuth() : null;
+          const currentUser = auth && auth.currentUser;
+          if (oauthPending && currentUser) {
+            gisugoAuthLog('login: currentUser present after redirect', { uid: currentUser.uid });
+            await routeSignedInUser(currentUser);
+            return;
+          }
+          clearOverlayWatchdog();
           if (oauthPending) loadingOverlay.classList.remove('show');
           if (rr && rr.success === false && rr.message) {
             showError('login', rr.message);
           }
         } catch (error) {
           sessionStorage.removeItem('gisugo_oauth_pending');
+          clearOverlayWatchdog();
           if (oauthPending) loadingOverlay.classList.remove('show');
           console.error('Redirect completion error:', error);
+          showError('login', 'Sign-in failed. Tap Log (top-right) for details.');
         }
       }
       
-      // Run OAuth sign-in (popup first; same-tab redirect if popup blocked).
+      // Run OAuth sign-in (popup on desktop; same-tab redirect on phones).
       async function runOAuth(loginFn, label) {
         loadingOverlay.classList.add('show');
+        armOverlayWatchdog();
         try {
           const result = await loginFn();
           if (result && result.redirecting) return; // navigating away in same tab
+          clearOverlayWatchdog();
           if (result && result.success && result.user) {
             await routeSignedInUser(result.user);
             return;
@@ -891,6 +930,7 @@
           if (result && result.cancelled) return; // user closed the popup — stay quiet
           showError('login', (result && result.message) || (label + ' sign-in failed. Please try again.'));
         } catch (error) {
+          clearOverlayWatchdog();
           loadingOverlay.classList.remove('show');
           console.error(label + ' sign-in error:', error);
           showError('login', label + ' sign-in failed. Please try again.');

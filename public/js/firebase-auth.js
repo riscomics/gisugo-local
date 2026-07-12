@@ -135,9 +135,52 @@ function isMobileOAuthEnvironment() {
 
 async function startOAuthRedirect(auth, provider, providerLabel) {
   gisugoAuthLog(providerLabel + ': same-tab redirect');
-  try { sessionStorage.setItem(OAUTH_PENDING_KEY, '1'); } catch (e) {}
-  await auth.signInWithRedirect(provider);
-  return { success: true, redirecting: true };
+  try {
+    sessionStorage.setItem(OAUTH_PENDING_KEY, '1');
+    sessionStorage.setItem('gisugo_oauth_debug', '1');
+  } catch (e) {}
+  try {
+    await auth.signInWithRedirect(provider);
+    return { success: true, redirecting: true };
+  } catch (error) {
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+    gisugoAuthLog(providerLabel + ': redirect start failed', {
+      code: (error && error.code) || '',
+      message: (error && error.message) || ''
+    });
+    return {
+      success: false,
+      message: 'Could not start sign-in. Please try again.'
+    };
+  }
+}
+
+function waitForAuthUser(auth, timeoutMs) {
+  return new Promise(function(resolve) {
+    if (!auth) return resolve(null);
+    if (auth.currentUser) return resolve(auth.currentUser);
+    let settled = false;
+    const timer = setTimeout(function() {
+      if (settled) return;
+      settled = true;
+      try { unsub(); } catch (e) {}
+      resolve(auth.currentUser || null);
+    }, timeoutMs);
+    const unsub = auth.onAuthStateChanged(function(user) {
+      if (!user || settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsub();
+      resolve(user);
+    });
+  });
+}
+
+function inferOAuthMethodFromUser(user) {
+  const providerId = user && user.providerData && user.providerData[0] && user.providerData[0].providerId;
+  if (providerId === 'facebook.com') return 'facebook.com';
+  if (providerId === 'google.com') return 'google.com';
+  return 'google.com';
 }
 
 function createGoogleAuthProvider() {
@@ -255,6 +298,16 @@ async function completeRedirectSignIn() {
 
   if (!result || !result.user) {
     if (wasPending) {
+      const fallbackUser = await waitForAuthUser(auth, 5000);
+      if (fallbackUser) {
+        const method = inferOAuthMethodFromUser(fallbackUser);
+        gisugoAuthLog('redirect: using currentUser fallback', { uid: fallbackUser.uid, method: method });
+        try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+        return await finalizeOAuthSignIn(
+          { user: fallbackUser, additionalUserInfo: { isNewUser: false } },
+          method
+        );
+      }
       try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
       gisugoAuthLog('redirect incomplete (no user)');
       return { success: false, message: 'Sign-in did not complete. Please try again.' };
@@ -750,15 +803,15 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
     return;
   }
   
-  console.log('🔄 Checking profile for redirect...');
-  
+  gisugoAuthLog('handleAuthRedirect: checking profile', { uid: user.uid });
+
   const { hasProfile, profile } = await checkUserHasProfile(user.uid);
-  
+
   if (hasProfile) {
-    console.log('✅ Profile found - redirecting to:', defaultRedirect);
+    gisugoAuthLog('handleAuthRedirect: go home');
     window.location.href = defaultRedirect;
   } else {
-    console.log('❌ No profile - redirecting to:', signupRedirect);
+    gisugoAuthLog('handleAuthRedirect: go sign-up');
     // Store auth info for sign-up page to use
     sessionStorage.setItem('gisugo_pending_auth', JSON.stringify({
       uid: user.uid,
@@ -1042,6 +1095,7 @@ window.isLoggedIn = isLoggedIn;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithFacebook = loginWithFacebook;
 window.completeRedirectSignIn = completeRedirectSignIn;
+window.gisugoAuthLog = gisugoAuthLog;
 window.loginWithEmail = loginWithEmail;
 window.logout = logout;
 window.createUserProfile = createUserProfile;

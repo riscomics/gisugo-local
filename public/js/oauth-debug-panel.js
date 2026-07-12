@@ -32,6 +32,26 @@
     return (time ? time + ' ' : '') + entry.msg + detail;
   }
 
+  function ensureFab() {
+    if (document.getElementById('gisugoAuthDebugFab')) return;
+    const fab = document.createElement('button');
+    fab.id = 'gisugoAuthDebugFab';
+    fab.type = 'button';
+    fab.textContent = 'Log';
+    fab.setAttribute('aria-label', 'Show OAuth debug log');
+    fab.style.cssText = [
+      'position:fixed;top:12px;right:12px;z-index:100002;',
+      'padding:8px 12px;border:0;border-radius:999px;',
+      'background:#f5a623;color:#111;font:700 12px/1 sans-serif;',
+      'box-shadow:0 2px 10px rgba(0,0,0,.35);'
+    ].join('');
+    fab.addEventListener('click', function() {
+      try { sessionStorage.setItem(ENABLED_KEY, '1'); } catch (e) {}
+      renderPanel();
+    });
+    document.body.appendChild(fab);
+  }
+
   function ensurePanel() {
     if (document.getElementById('gisugoAuthDebugPanel')) return;
 
@@ -107,7 +127,14 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+    ensureFab();
     if (isEnabled()) renderPanel();
+    try {
+      if (sessionStorage.getItem('gisugo_oauth_pending') === '1') {
+        sessionStorage.setItem(ENABLED_KEY, '1');
+        renderPanel();
+      }
+    } catch (e) {}
     bindLongPress(document.getElementById('loginHeaderTitle'));
     bindLongPress(document.getElementById('signupHeaderTitle'));
     window.addEventListener('gisugo-auth-log', renderPanel);
