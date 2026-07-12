@@ -829,13 +829,13 @@
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=17"></script>
+  <script src="public/js/firebase-auth.js?v=18"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
   <script>
-    // Login Handler (OAuth-only, popup)
-    document.addEventListener('DOMContentLoaded', function() {
+    // Login Handler (OAuth-only, popup with same-tab redirect fallback)
+    document.addEventListener('DOMContentLoaded', async function() {
       const loadingOverlay = document.getElementById('loadingOverlay');
       const loadingText = document.getElementById('loadingText');
       const googleSignInBtn = document.getElementById('googleSignInBtn');
@@ -854,13 +854,34 @@
         await new Promise(resolve => setTimeout(resolve, 1500));
         await handleAuthRedirect(user);
       }
+
+      // Finish same-tab OAuth when returning from Google/Facebook redirect.
+      const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
+      if (oauthPending) loadingOverlay.classList.add('show');
+      if (typeof completeRedirectSignIn === 'function') {
+        try {
+          const rr = await completeRedirectSignIn();
+          if (rr && rr.success && rr.user) {
+            await routeSignedInUser(rr.user);
+            return;
+          }
+          if (oauthPending) loadingOverlay.classList.remove('show');
+          if (rr && rr.success === false && rr.message) {
+            showError('login', rr.message);
+          }
+        } catch (error) {
+          sessionStorage.removeItem('gisugo_oauth_pending');
+          if (oauthPending) loadingOverlay.classList.remove('show');
+          console.error('Redirect completion error:', error);
+        }
+      }
       
-      // Run an OAuth popup flow. Invoked synchronously from the click handler so
-      // the popup opens on the user gesture (browsers won't block it).
+      // Run OAuth sign-in (popup first; same-tab redirect if popup blocked).
       async function runOAuth(loginFn, label) {
         loadingOverlay.classList.add('show');
         try {
           const result = await loginFn();
+          if (result && result.redirecting) return; // navigating away in same tab
           if (result && result.success && result.user) {
             await routeSignedInUser(result.user);
             return;

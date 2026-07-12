@@ -102,6 +102,49 @@ function isLoggedIn() {
 // GOOGLE SIGN-IN
 // ============================================================================
 
+const OAUTH_PENDING_KEY = 'gisugo_oauth_pending';
+
+function createGoogleAuthProvider() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('email');
+  provider.addScope('profile');
+  // Always show the account chooser so users aren't silently locked to one Google account.
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return provider;
+}
+
+function createFacebookAuthProvider() {
+  const provider = new firebase.auth.FacebookAuthProvider();
+  provider.addScope('email');
+  provider.addScope('public_profile');
+  return provider;
+}
+
+/**
+ * Try popup sign-in; if the browser blocks the popup, fall back to same-tab redirect.
+ * @param {Object} auth - Firebase auth instance.
+ * @param {Object} provider - Auth provider instance.
+ * @param {string} method - Provider id for finalizeOAuthSignIn.
+ * @param {string} providerLabel - 'Google' or 'Facebook' (for errors).
+ * @returns {Promise<Object>}
+ */
+async function signInWithPopupOrRedirect(auth, provider, method, providerLabel) {
+  try {
+    console.log(`🔐 Starting ${providerLabel} sign-in (popup)...`);
+    const result = await auth.signInWithPopup(provider);
+    return await finalizeOAuthSignIn(result, method);
+  } catch (error) {
+    const code = (error && error.code) || '';
+    if (code === 'auth/popup-blocked') {
+      console.log(`🔐 ${providerLabel} popup blocked — falling back to same-tab redirect...`);
+      try { sessionStorage.setItem(OAUTH_PENDING_KEY, '1'); } catch (e) {}
+      await auth.signInWithRedirect(provider);
+      return { success: true, redirecting: true };
+    }
+    return mapOAuthSignInError(error, providerLabel);
+  }
+}
+
 /**
  * Sign in with Google
  * @returns {Promise<Object>} - Result object with success status and user/error
@@ -116,23 +159,7 @@ async function loginWithGoogle() {
     };
   }
   
-  try {
-    console.log('🔐 Starting Google sign-in (popup)...');
-    
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('email');
-    provider.addScope('profile');
-    // Always show the account chooser so users aren't silently locked to one Google account.
-    provider.setCustomParameters({ prompt: 'select_account' });
-    
-    // Popup keeps the app window open and receives the result directly, so it works
-    // on localhost and embedded browsers where the redirect storage handoff fails.
-    const result = await auth.signInWithPopup(provider);
-    return await finalizeOAuthSignIn(result, 'google.com');
-    
-  } catch (error) {
-    return mapOAuthSignInError(error, 'Google');
-  }
+  return signInWithPopupOrRedirect(auth, createGoogleAuthProvider(), 'google.com', 'Google');
 }
 
 // ============================================================================
@@ -153,20 +180,52 @@ async function loginWithFacebook() {
     };
   }
   
+  return signInWithPopupOrRedirect(auth, createFacebookAuthProvider(), 'facebook.com', 'Facebook');
+}
+
+/**
+ * Complete a same-tab OAuth sign-in after the browser returns from the provider.
+ * Call once on load for login.html and sign-up.html.
+ * @returns {Promise<Object>}
+ */
+async function completeRedirectSignIn() {
+  const auth = getFirebaseAuth();
+  if (!auth) return { pending: true };
+
+  let wasPending = false;
+  try { wasPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === '1'; } catch (e) {}
+
+  let result;
   try {
-    console.log('🔐 Starting Facebook sign-in (popup)...');
-    
-    const provider = new firebase.auth.FacebookAuthProvider();
-    provider.addScope('email');
-    provider.addScope('public_profile');
-    
-    // Popup keeps the app window open and receives the result directly.
-    const result = await auth.signInWithPopup(provider);
-    return await finalizeOAuthSignIn(result, 'facebook.com');
-    
+    result = await auth.getRedirectResult();
   } catch (error) {
-    return mapOAuthSignInError(error, 'Facebook');
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+    console.error('❌ Redirect sign-in error:', error);
+    const code = (error && error.code) || '';
+    let message = 'Sign-in failed. Please try again.';
+    if (code === 'auth/account-exists-with-different-credential') {
+      message = 'An account already exists with the same email. Try a different sign-in method.';
+    } else if (code === 'auth/operation-not-allowed') {
+      message = 'That sign-in method isn\'t available yet — please use Google for now.';
+    } else if (code === 'auth/invalid-session-id') {
+      message = 'Sign-in session expired. Please try again.';
+    }
+    return { success: false, error: error, message: message };
   }
+
+  if (!result || !result.user) {
+    if (wasPending) {
+      try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+      return { success: false, message: 'Sign-in did not complete. Please try again.' };
+    }
+    return { pending: true };
+  }
+
+  try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+  const providerId = (result.additionalUserInfo && result.additionalUserInfo.providerId) ||
+    (result.credential && result.credential.providerId) || '';
+  const method = providerId === 'facebook.com' ? 'facebook.com' : 'google.com';
+  return await finalizeOAuthSignIn(result, method);
 }
 
 // ============================================================================
@@ -939,6 +998,7 @@ window.getCurrentUserId = getCurrentUserId;
 window.isLoggedIn = isLoggedIn;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithFacebook = loginWithFacebook;
+window.completeRedirectSignIn = completeRedirectSignIn;
 window.loginWithEmail = loginWithEmail;
 window.logout = logout;
 window.createUserProfile = createUserProfile;

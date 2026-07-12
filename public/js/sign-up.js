@@ -346,7 +346,25 @@ function blockUnsupportedCharsForInput(inputEl) {
 }
 
 // Initialize form when DOM loads
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
+  if (oauthPending) showLoadingOverlay();
+
+  if (typeof completeRedirectSignIn === 'function') {
+    try {
+      const rr = await completeRedirectSignIn();
+      if (rr && rr.success === false && rr.message) {
+        hideLoadingOverlay();
+        showInputGuideHint(rr.message, 'SIGN-IN', '⚠️');
+      }
+      // success: checkExistingAuthUser() routes via onAuthStateChanged
+    } catch (error) {
+      sessionStorage.removeItem('gisugo_oauth_pending');
+      if (oauthPending) hideLoadingOverlay();
+      console.error('Redirect completion error:', error);
+    }
+  }
+
   initializeSignupLanguageTabs();
   initializeForm();
   initializePhotoUpload();
@@ -1564,6 +1582,8 @@ async function handleGoogleSignIn() {
   
   try {
     const result = await loginWithGoogle();
+    if (result && result.redirecting) return; // same-tab redirect in progress
+
     hideLoadingOverlay();
     
     if (result && result.success) return; // onAuthStateChanged handles routing
@@ -1591,6 +1611,8 @@ async function handleFacebookSignIn() {
   
   try {
     const result = await loginWithFacebook();
+    if (result && result.redirecting) return; // same-tab redirect in progress
+
     hideLoadingOverlay();
     
     if (result && result.success) return; // onAuthStateChanged handles routing
