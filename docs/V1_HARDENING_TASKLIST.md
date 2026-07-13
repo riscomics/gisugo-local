@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-06-28
+> Status: **Active** · Last updated: 2026-07-12
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -288,12 +288,18 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
 
 0. ✅ Track A — done. ✅ Application-limit UX rework (Track D) — built/deployed; only Phase F
    admin-config (rides with dashboard) remains.
-1. **Mandatory verified phone at signup** (+ consent lines). Prerequisite for Direct AND a standalone
-   trust/safety win. Do first.
-2. **Direct contact route** (the renovation). Net-new: Contact reveal (tel:/sms:) in View Applications,
-   `revealApplicantContact` callable (+ reveal counter), price-verify at Hire, worker-apply consent.
-   Reuses the existing Gigs Manager hire lifecycle; no chat migration needed. See
-   `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`.
+1. ✅ **Mandatory phone at signup — DONE + deployed (2026-07-07).** OAuth-only rails (Google +
+   Facebook), required phone field in Basic Info, optional email, dead auth code removed, apply/post
+   phone-gate backfill. **Facebook Meta App Review APPROVED + Live (2026-07-12)** — real FB users can
+   now sign up. Both primary accounts have a phone on file. Detail in `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`.
+   ⚠️ **Open bug:** Chrome-mobile FB login handshake is flaky on some phones (redirect/third-party-storage
+   partitioning; Samsung Internet works). Root-cause + candidate fixes logged in the build-plan
+   deferred backlog — needs on-device verification.
+2. ✅ **Direct contact route — CORE DONE + deployed (2026-07-11).** Contact reveal (tel:/sms:) in View
+   Applications, `revealApplicantContact` callable (+ reveal counter), price-verify at Hire, worker-apply
+   consent — all shipped. Reused the existing Gigs Manager hire lifecycle; no chat migration. See
+   `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`. Remaining: surface the reveal counter on the Admin Dashboard
+   (rides with item 4) + hire-overlay dead-code cleanup (low priority).
 3. **Support and Alerts → their own pages** (decided). Split them out of the unified messages view
    into standalone pages, and **update the menu overlay button links** to point to the new pages.
    No longer folded inside `messages.html`; decouples Support from the dashboard timeline.

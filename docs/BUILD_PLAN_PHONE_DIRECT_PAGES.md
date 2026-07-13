@@ -324,11 +324,28 @@ item is the **user-facing page split only**.
 > Running list so nothing slips. Item 1 DONE. Item 2 core (Direct contact reveal +
 > private phone storage + apply consent) DONE + deployed + pushed (commit 1cc839c).
 
-- **[USER] Add phone to both primary accounts** — Edit Profile → type number → Save.
-  Their old phone was on the public `users` doc; storage moved to `user_private`, so the
-  field shows blank until re-entered. No fallback (per user). Needed before reveal testing.
-- **[WAITING/external] Meta App Review** — on approval, flip app to Live so any Facebook
-  user can sign up; FB button already relabeled "Facebook / Messenger".
+- **[USER] Add phone to both primary accounts — ✅ DONE (2026-07-12).** Both primary
+  accounts now have a phone number on file (re-entered after storage moved to
+  `user_private`). Reveal testing unblocked.
+- **[WAITING/external] Meta App Review — ✅ APPROVED + LIVE PUBLISHED (2026-07-12).** App
+  flipped to Live; any Facebook user can now sign up. FB button already relabeled
+  "Facebook / Messenger".
+- **[OPEN BUG] Chrome-mobile FB login handshake flaky (2026-07-12).** FB login works, but
+  on **some** Chrome-for-mobile phones the OAuth handshake fails, while other phones and
+  3rd-party browsers (e.g. Samsung Internet) sign in fine. Mobile already uses
+  `signInWithRedirect` (`firebase-auth.js` `isMobileOAuthEnvironment` → `startOAuthRedirect`),
+  so this is NOT a literal popup-blocker — it's the redirect handshake. Leading hypothesis:
+  Firebase Auth `signInWithRedirect` (SDK 10.7.0) is degraded on Chromium builds that enforce
+  **third-party storage partitioning** unless the app is served from the SAME origin as
+  `authDomain` (`gisugo.com`). If a user lands on **www.gisugo.com** (or any origin ≠
+  `gisugo.com`), the auth handler at `gisugo.com/__/auth/handler` is cross-site and Chrome
+  blocks the state/credential storage → stuck handshake; Samsung Internet's older/looser
+  partitioning still works. Candidate fixes (need on-device verification, do not ship blind):
+  (a) force **www→apex origin consistency** so the app origin always matches `authDomain`
+  (hosting/DNS redirect, no auth-code change — safest); (b) flip mobile back to **popup-first
+  with redirect fallback** (popup is Firebase's now-recommended primary and is gesture-safe on
+  modern mobile Chrome). Also confirm the FB app's Valid OAuth Redirect URI includes
+  `https://gisugo.com/__/auth/handler`.
 - **Item 2 — HIRE button + price-verify at Hire: DONE (2026-07-11) + deployed.** Added a
   HIRE button to the application action overlay (persistent overlay, independent of Contact)
   and a "Confirm or Change Agreed Price" field in the hire-confirmation overlay. Confirmed
