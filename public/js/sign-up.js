@@ -446,8 +446,26 @@ async function checkExistingAuthUser() {
       if (user && !authenticatedUser) {
         console.log('🔍 Found existing Firebase Auth user:', user.uid);
 
-        // Check if they already have a complete profile
-        if (typeof checkUserHasProfile === 'function') {
+        // Trust the write-probe verdict from finalizeOAuthSignIn first (it's
+        // server-acked, so it's immune to the flaky profile read that was
+        // keeping existing users stuck on sign-up). '1' = profile exists.
+        let knownExists = null;
+        try {
+          const v = sessionStorage.getItem('gisugo_profile_exists');
+          if (v === '1') knownExists = true;
+          else if (v === '0') knownExists = false;
+        } catch (e) {}
+
+        if (knownExists === true) {
+          try { sessionStorage.removeItem('gisugo_profile_exists'); } catch (e) {}
+          console.log('✅ Profile exists (write probe), redirecting to home');
+          window.location.href = 'index.html';
+          return;
+        }
+
+        // Only fall back to the read when the probe was inconclusive. If the
+        // probe already said "new user" (0), skip the read and go to sign-up.
+        if (knownExists === null && typeof checkUserHasProfile === 'function') {
           const { hasProfile } = await checkUserHasProfile(user.uid);
           
           if (hasProfile) {
@@ -457,6 +475,7 @@ async function checkExistingAuthUser() {
             return;
           }
         }
+        try { sessionStorage.removeItem('gisugo_profile_exists'); } catch (e) {}
         
         // No profile yet - capture this user and pre-fill form
         console.log('📝 User authenticated but no profile - capturing for sign-up');

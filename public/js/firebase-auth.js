@@ -656,24 +656,39 @@ async function finalizeOAuthSignIn(result, method) {
   if (method) {
     try { sessionStorage.setItem('gisugo_last_signin_method', method); } catch (e) {}
   }
-  
-  // Best-effort lastLogin bump. Fire-and-forget (no await) so sign-in returns
-  // immediately, and update() — not set() — so we never create a partial doc for a
-  // brand-new user; a 'not-found' just means "no profile yet". Avoids a redundant
-  // read here since handleAuthRedirect() already fetches the profile to route.
+
+  // Probe profile existence via the lastLogin write itself. update() (not set())
+  // succeeds ONLY if the profile doc already exists; 'not-found' means a brand-new
+  // user. This is our most reliable existence signal for routing: the write path
+  // is server-acked and works on fresh sessions even when a source:'server' READ
+  // flakily returns empty — which was misrouting real users (with a real profile)
+  // to sign-up. We stash the verdict for handleAuthRedirect(). Raced with a
+  // timeout so a slow/offline network never hangs the sign-in.
+  let profileExists = null; // null = unknown/inconclusive
   const db = getFirestore();
   if (db) {
-    db.collection('users').doc(user.uid).update({
-      lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-    }).catch(function(dbError) {
-      if (dbError && dbError.code !== 'not-found') {
-        console.warn('⚠️ Could not update lastLogin:', (dbError && dbError.code) || dbError);
-      }
-    });
+    try {
+      await Promise.race([
+        db.collection('users').doc(user.uid).update({
+          lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function() {
+          profileExists = true;
+        }).catch(function(dbError) {
+          const code = (dbError && dbError.code) || '';
+          if (code === 'not-found') profileExists = false;
+          else console.warn('⚠️ lastLogin probe inconclusive:', code || dbError);
+        }),
+        new Promise(function(resolve) { setTimeout(resolve, 4000); })
+      ]);
+    } catch (e) {}
   }
-  
+  try {
+    sessionStorage.setItem('gisugo_profile_exists', profileExists === null ? '' : (profileExists ? '1' : '0'));
+  } catch (e) {}
+  gisugoAuthLog('finalizeOAuthSignIn: existence probe', { profileExists: profileExists });
+
   const info = result.additionalUserInfo || {};
-  return { success: true, user: user, isNewUser: info.isNewUser || false };
+  return { success: true, user: user, isNewUser: info.isNewUser || false, profileExists: profileExists };
 }
 
 /**
@@ -1083,6 +1098,11 @@ async function confirmProfileFromServer(userId, attempts = 3) {
       const doc = await db.collection('users').doc(userId).get({ source: 'server' });
       const data = doc.exists ? doc.data() : null;
       const hasProfile = !!(data && data.fullName && String(data.fullName).trim() !== '');
+      gisugoAuthLog('confirmProfileFromServer read', {
+        exists: doc.exists,
+        fromCache: !!(doc.metadata && doc.metadata.fromCache),
+        hasFullName: !!(data && data.fullName)
+      });
       return { hasProfile: hasProfile, errored: false };
     } catch (error) {
       gisugoAuthLog('confirmProfileFromServer attempt failed', {
@@ -1105,8 +1125,30 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
   
   gisugoAuthLog('handleAuthRedirect: checking profile', { uid: user.uid });
 
-  // Authoritative server read first. A transient/cache miss here previously
-  // misrouted existing users (with a real profile) to sign-up.
+  // Most reliable signal first: the write-probe verdict from finalizeOAuthSignIn.
+  // update() only succeeds if the profile doc exists, so this is server-truth and
+  // immune to the flaky source:'server' read that was bouncing real users to
+  // sign-up on fresh sessions (write succeeds, read wrongly returns "empty").
+  let known = null;
+  try {
+    const v = sessionStorage.getItem('gisugo_profile_exists');
+    if (v === '1') known = true;
+    else if (v === '0') known = false;
+    sessionStorage.removeItem('gisugo_profile_exists');
+  } catch (e) {}
+
+  if (known === true) {
+    gisugoAuthLog('handleAuthRedirect: profile exists (write probe) -> go home');
+    window.location.href = defaultRedirect;
+    return;
+  }
+  if (known === false) {
+    gisugoAuthLog('handleAuthRedirect: no profile (write probe) -> go sign-up');
+    routeAuthedUserToSignup(user, signupRedirect);
+    return;
+  }
+
+  // Probe was inconclusive (offline/timeout) — fall back to the server read.
   const serverCheck = await confirmProfileFromServer(user.uid);
   let hasProfile = serverCheck.hasProfile;
 
@@ -1128,7 +1170,16 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
     window.location.href = defaultRedirect;
   } else {
     gisugoAuthLog('handleAuthRedirect: go sign-up');
-    // Store auth info for sign-up page to use
+    routeAuthedUserToSignup(user, signupRedirect);
+  }
+}
+
+/**
+ * Stash the authenticated user's info for the sign-up page to prefill, then send
+ * them there to finish creating their profile.
+ */
+function routeAuthedUserToSignup(user, signupRedirect) {
+  try {
     sessionStorage.setItem('gisugo_pending_auth', JSON.stringify({
       uid: user.uid,
       email: user.email || '',
@@ -1137,8 +1188,8 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
       phoneNumber: user.phoneNumber || '',
       provider: (Array.isArray(user.providerData) && user.providerData[0] && user.providerData[0].providerId) || 'unknown'
     }));
-    window.location.href = signupRedirect;
-  }
+  } catch (e) {}
+  window.location.href = signupRedirect;
 }
 
 // ============================================================================
