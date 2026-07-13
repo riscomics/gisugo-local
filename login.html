@@ -830,7 +830,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/oauth-debug-panel.js?v=2"></script>
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=25"></script>
+  <script src="public/js/firebase-auth.js?v=26"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -881,7 +881,10 @@
       }
 
       // Finish same-tab OAuth when returning from Google/Facebook redirect.
-      const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
+      // Also treat a Facebook token in the URL fragment as pending, so the
+      // overlay shows even if the FB app returned us into a fresh tab.
+      const hasFbFragment = (window.location.hash || '').indexOf('access_token=') !== -1;
+      const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1' || hasFbFragment;
       if (oauthPending) {
         loadingOverlay.classList.add('show');
         armOverlayWatchdog();
@@ -938,11 +941,11 @@
       }
       
       googleSignInBtn.addEventListener('click', function() { runOAuth(loginWithGoogle, 'Google'); });
-      // Facebook uses the FB JS SDK token flow (bypasses Firebase's OAuth handler,
-      // which is broken for Facebook on Android Chrome). Preload the SDK now so
-      // FB.login() can fire synchronously inside the tap.
-      if (typeof preloadFacebookSDK === 'function') preloadFacebookSDK();
-      facebookSignInBtn.addEventListener('click', function() { runOAuth(loginWithFacebookToken, 'Facebook'); });
+      // Facebook uses a full-page redirect to Facebook's own OAuth dialog (a
+      // top-level tab). This lets the Facebook app surface for login approval on
+      // Android Chrome (avoiding the popup dead-end), and the access token comes
+      // back in the URL fragment — Firebase's broken redirect handler is bypassed.
+      facebookSignInBtn.addEventListener('click', function() { runOAuth(startFacebookRedirect, 'Facebook'); });
       
       // TEMP: Email/Password sign-in (dev/testing). Remove before public launch.
       const emailToggleBtn = document.getElementById('emailToggleBtn');

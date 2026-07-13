@@ -347,7 +347,8 @@ function blockUnsupportedCharsForInput(inputEl) {
 
 // Initialize form when DOM loads
 document.addEventListener('DOMContentLoaded', async function() {
-  const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1';
+  const hasFbFragment = (window.location.hash || '').indexOf('access_token=') !== -1;
+  const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1' || hasFbFragment;
   if (oauthPending) showLoadingOverlay();
 
   if (typeof completeRedirectSignIn === 'function') {
@@ -1603,15 +1604,15 @@ async function handleGoogleSignIn() {
   }
 }
 
-// Handle Facebook Sign-In (popup). On success, checkExistingAuthUser()'s
-// onAuthStateChanged listener routes: redirect home if a profile exists,
-// otherwise prefill this form for a new user.
+// Handle Facebook Sign-In (full-page redirect). On return, completeRedirectSignIn()
+// exchanges the token and checkExistingAuthUser()'s onAuthStateChanged listener
+// routes: redirect home if a profile exists, otherwise prefill this form.
 async function handleFacebookSignIn() {
   showLoadingOverlay();
   
   try {
-    const result = await loginWithFacebookToken();
-    if (result && result.redirecting) return; // same-tab redirect in progress
+    const result = await startFacebookRedirect();
+    if (result && result.redirecting) return; // navigating away to Facebook
 
     hideLoadingOverlay();
     
@@ -1637,8 +1638,6 @@ function initializeFacebookSignIn() {
   const facebookBtn = document.getElementById('facebookSignInBtn');
   
   if (facebookBtn) {
-    // Preload the FB JS SDK so FB.login() fires synchronously inside the tap.
-    if (typeof preloadFacebookSDK === 'function') preloadFacebookSDK();
     facebookBtn.addEventListener('click', handleFacebookSignIn);
   }
 }

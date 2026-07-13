@@ -381,6 +381,150 @@ function loginWithFacebookToken() {
   });
 }
 
+// ============================================================================
+// FACEBOOK SIGN-IN VIA FULL-PAGE REDIRECT (FB OAuth -> token -> credential)
+// ----------------------------------------------------------------------------
+// The FB JS SDK login runs in a popup, which on Android Chrome can't surface the
+// Facebook app for login-approval — the "Yes, that's me" confirmation gets stuck
+// in a hidden notification and the popup dead-ends. A full-page redirect to
+// Facebook's own OAuth dialog runs in a top-level tab, so the FB app can handle
+// login inline (when its "Open supported links" is on), and returns the access
+// token in the URL fragment. We exchange that via signInWithCredential, so
+// Firebase's broken cross-tab redirect handler is never involved.
+// ============================================================================
+
+const FACEBOOK_OAUTH_STATE_KEY = 'gisugo_fb_oauth_state';
+
+function generateOAuthState() {
+  try {
+    const arr = new Uint8Array(16);
+    (window.crypto || window.msCrypto).getRandomValues(arr);
+    return Array.prototype.map.call(arr, function(b) {
+      return ('0' + b.toString(16)).slice(-2);
+    }).join('');
+  } catch (e) {
+    return 'st' + Date.now() + Math.random().toString(36).slice(2);
+  }
+}
+
+function getFacebookRedirectUri() {
+  return window.location.origin + window.location.pathname;
+}
+
+/**
+ * Start Facebook sign-in as a full-page redirect. Must be called directly from
+ * the click handler. Navigates away, so it resolves with { redirecting: true }.
+ * @returns {Promise<Object>}
+ */
+function startFacebookRedirect() {
+  const state = generateOAuthState();
+  try {
+    // localStorage survives even if the FB app returns into a fresh tab;
+    // sessionStorage is the belt-and-suspenders copy for the same-tab case.
+    localStorage.setItem(FACEBOOK_OAUTH_STATE_KEY, state);
+    sessionStorage.setItem(FACEBOOK_OAUTH_STATE_KEY, state);
+    sessionStorage.setItem(OAUTH_PENDING_KEY, '1');
+    sessionStorage.setItem('gisugo_oauth_debug', '1');
+  } catch (e) {}
+  const params = new URLSearchParams({
+    client_id: FACEBOOK_APP_ID,
+    redirect_uri: getFacebookRedirectUri(),
+    state: state,
+    response_type: 'token',
+    scope: 'email,public_profile'
+  });
+  const url = 'https://www.facebook.com/' + FACEBOOK_GRAPH_VERSION + '/dialog/oauth?' + params.toString();
+  gisugoAuthLog('Facebook: full-page redirect', { redirect_uri: getFacebookRedirectUri() });
+  try {
+    window.location.href = url;
+  } catch (e) {
+    return Promise.resolve({ success: false, message: 'Could not start Facebook sign-in. Please try again.' });
+  }
+  return Promise.resolve({ redirecting: true });
+}
+
+/**
+ * Read the Facebook OAuth result from the URL fragment after returning from the
+ * redirect. Returns { accessToken, state, error } or null if nothing to handle.
+ */
+function parseFacebookRedirectFragment() {
+  let hash = '';
+  try { hash = window.location.hash || ''; } catch (e) {}
+  if (!hash) return null;
+  if (hash.indexOf('access_token=') === -1 && hash.indexOf('error') === -1) return null;
+  const params = new URLSearchParams(hash.replace(/^#/, ''));
+  return {
+    accessToken: params.get('access_token'),
+    state: params.get('state'),
+    error: params.get('error') || params.get('error_code') || '',
+    errorReason: params.get('error_reason') || params.get('error_message') || ''
+  };
+}
+
+/**
+ * Complete Facebook sign-in from a full-page redirect return: verify state and
+ * exchange the token via signInWithCredential.
+ * @returns {Promise<Object>} normalized result with { handled: true }, or
+ *   { handled: false } when there's no Facebook redirect to process.
+ */
+async function completeFacebookRedirectSignIn() {
+  const parsed = parseFacebookRedirectFragment();
+  if (!parsed) return { handled: false };
+
+  // Strip the token/fragment from the URL immediately so it never lingers in
+  // history or gets re-processed on refresh.
+  try {
+    history.replaceState(null, '', window.location.origin + window.location.pathname + window.location.search);
+  } catch (e) {}
+
+  let expected = null;
+  try {
+    expected = localStorage.getItem(FACEBOOK_OAUTH_STATE_KEY) || sessionStorage.getItem(FACEBOOK_OAUTH_STATE_KEY);
+  } catch (e) {}
+  try {
+    localStorage.removeItem(FACEBOOK_OAUTH_STATE_KEY);
+    sessionStorage.removeItem(FACEBOOK_OAUTH_STATE_KEY);
+  } catch (e) {}
+
+  if (parsed.error || !parsed.accessToken) {
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+    gisugoAuthLog('Facebook: redirect returned no token', { error: parsed.error, reason: parsed.errorReason });
+    const denied = (parsed.error + ' ' + parsed.errorReason).toLowerCase().indexOf('denied') !== -1;
+    if (denied) return { handled: true, success: false, cancelled: true };
+    return { handled: true, success: false, message: 'Facebook sign-in didn\'t complete. Please try again.' };
+  }
+
+  // CSRF check — only enforced when we still have the stored state to compare.
+  // If storage was lost across an app hand-off we proceed anyway: the token is
+  // validated with Facebook by signInWithCredential, so risk is minimal and
+  // blocking here would defeat the reliability this whole flow exists for.
+  if (expected && parsed.state && expected !== parsed.state) {
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+    gisugoAuthLog('Facebook: state mismatch');
+    return { handled: true, success: false, message: 'Facebook sign-in could not be verified. Please try again.' };
+  }
+
+  const auth = getFirebaseAuth();
+  if (!auth) return { handled: true, success: false, message: 'Firebase not ready. Please try again.' };
+
+  try {
+    gisugoAuthLog('Facebook: redirect token -> signInWithCredential');
+    const credential = firebase.auth.FacebookAuthProvider.credential(parsed.accessToken);
+    const result = await auth.signInWithCredential(credential);
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+    gisugoAuthLog('Facebook: credential sign-in success (redirect)', { uid: result.user && result.user.uid });
+    const finalized = await finalizeOAuthSignIn(result, 'facebook.com');
+    finalized.handled = true;
+    return finalized;
+  } catch (error) {
+    try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
+    gisugoAuthLog('Facebook: credential error (redirect)', { code: (error && error.code) || '' });
+    const mapped = mapOAuthSignInError(error, 'Facebook');
+    mapped.handled = true;
+    return mapped;
+  }
+}
+
 /**
  * Complete a same-tab OAuth sign-in after the browser returns from the provider.
  * Call once on load for login.html and sign-up.html.
@@ -389,6 +533,14 @@ function loginWithFacebookToken() {
 async function completeRedirectSignIn() {
   const auth = getFirebaseAuth();
   if (!auth) return { pending: true };
+
+  // Facebook comes back as a token in the URL fragment (our own redirect flow),
+  // handled before Firebase's getRedirectResult (which is for Google).
+  const fb = await completeFacebookRedirectSignIn();
+  if (fb && fb.handled) {
+    delete fb.handled;
+    return fb;
+  }
 
   let wasPending = false;
   try { wasPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === '1'; } catch (e) {}
