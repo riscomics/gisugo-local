@@ -913,6 +913,38 @@ function getMissingProfileFields(profile) {
  * @param {string} defaultRedirect - Where to redirect if profile exists (default: index.html)
  * @param {string} signupRedirect - Where to redirect if no profile (default: sign-up.html)
  */
+/**
+ * Authoritative profile existence check for LOGIN ROUTING. Reads from the
+ * server (not the local cache) so a cold/empty IndexedDB cache can't wrongly
+ * report "no profile" and bounce an existing user to sign-up.
+ * @returns {Promise<{hasProfile:boolean, errored:boolean}>}
+ */
+async function confirmProfileFromServer(userId, attempts = 3) {
+  const db = getFirestore();
+  if (!db) return { hasProfile: false, errored: true };
+  // Retry the server read: right after the Facebook popup/app hand-off the
+  // Firestore realtime connection can be briefly down, and a single read would
+  // throw (or fall back to a cold cache). Retrying lets the connection recover
+  // so we get the authoritative answer instead of a false "no profile".
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const doc = await db.collection('users').doc(userId).get({ source: 'server' });
+      const data = doc.exists ? doc.data() : null;
+      const hasProfile = !!(data && data.fullName && String(data.fullName).trim() !== '');
+      return { hasProfile: hasProfile, errored: false };
+    } catch (error) {
+      gisugoAuthLog('confirmProfileFromServer attempt failed', {
+        attempt: i + 1,
+        code: (error && error.code) || ''
+      });
+      if (i < attempts - 1) {
+        await new Promise(function(resolve) { setTimeout(resolve, 500 * (i + 1)); });
+      }
+    }
+  }
+  return { hasProfile: false, errored: true };
+}
+
 async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRedirect = 'sign-up.html') {
   if (!user) {
     console.log('⚠️ No user provided for redirect');
@@ -921,7 +953,23 @@ async function handleAuthRedirect(user, defaultRedirect = 'index.html', signupRe
   
   gisugoAuthLog('handleAuthRedirect: checking profile', { uid: user.uid });
 
-  const { hasProfile, profile } = await checkUserHasProfile(user.uid);
+  // Authoritative server read first. A transient/cache miss here previously
+  // misrouted existing users (with a real profile) to sign-up.
+  const serverCheck = await confirmProfileFromServer(user.uid);
+  let hasProfile = serverCheck.hasProfile;
+
+  if (serverCheck.errored) {
+    // Server read failed — fall back to the cache-capable check.
+    const fallback = await checkUserHasProfile(user.uid);
+    hasProfile = fallback.hasProfile;
+    if (!hasProfile) {
+      // Still unconfirmed, but the user IS authenticated. Never bounce an
+      // existing user to sign-up on an unreliable read — send them home.
+      gisugoAuthLog('handleAuthRedirect: profile read unreliable, defaulting home');
+      window.location.href = defaultRedirect;
+      return;
+    }
+  }
 
   if (hasProfile) {
     gisugoAuthLog('handleAuthRedirect: go home');
