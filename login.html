@@ -830,7 +830,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/oauth-debug-panel.js?v=2"></script>
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=27"></script>
+  <script src="public/js/firebase-auth.js?v=28"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -880,6 +880,38 @@
         }, 20000);
       }
 
+      // Run OAuth sign-in (popup on desktop; same-tab redirect on phones).
+      async function runOAuth(loginFn, label) {
+        loadingOverlay.classList.add('show');
+        armOverlayWatchdog();
+        try {
+          const result = await loginFn();
+          if (result && result.redirecting) return; // navigating away in same tab
+          clearOverlayWatchdog();
+          if (result && result.success && result.user) {
+            await routeSignedInUser(result.user);
+            return;
+          }
+          loadingOverlay.classList.remove('show');
+          if (result && result.cancelled) return; // user closed the popup — stay quiet
+          showError('login', (result && result.message) || (label + ' sign-in failed. Please try again.'));
+        } catch (error) {
+          clearOverlayWatchdog();
+          loadingOverlay.classList.remove('show');
+          console.error(label + ' sign-in error:', error);
+          showError('login', label + ' sign-in failed. Please try again.');
+        }
+      }
+
+      // Wire the buttons FIRST — before any await — so they're always clickable
+      // even if completeRedirectSignIn() below is slow/hangs (old iOS Safari).
+      googleSignInBtn.addEventListener('click', function() { runOAuth(loginWithGoogle, 'Google'); });
+      // Facebook uses a full-page redirect to Facebook's own OAuth dialog (a
+      // top-level tab). This lets the Facebook app surface for login approval on
+      // Android Chrome (avoiding the popup dead-end), and the access token comes
+      // back in the URL fragment — Firebase's broken redirect handler is bypassed.
+      facebookSignInBtn.addEventListener('click', function() { runOAuth(startFacebookRedirect, 'Facebook'); });
+
       // Finish same-tab OAuth when returning from Google/Facebook redirect.
       // Also treat a Facebook token in the URL fragment as pending, so the
       // overlay shows even if the FB app returned us into a fresh tab.
@@ -916,36 +948,6 @@
           showError('login', 'Sign-in failed. Tap Log (top-right) for details.');
         }
       }
-      
-      // Run OAuth sign-in (popup on desktop; same-tab redirect on phones).
-      async function runOAuth(loginFn, label) {
-        loadingOverlay.classList.add('show');
-        armOverlayWatchdog();
-        try {
-          const result = await loginFn();
-          if (result && result.redirecting) return; // navigating away in same tab
-          clearOverlayWatchdog();
-          if (result && result.success && result.user) {
-            await routeSignedInUser(result.user);
-            return;
-          }
-          loadingOverlay.classList.remove('show');
-          if (result && result.cancelled) return; // user closed the popup — stay quiet
-          showError('login', (result && result.message) || (label + ' sign-in failed. Please try again.'));
-        } catch (error) {
-          clearOverlayWatchdog();
-          loadingOverlay.classList.remove('show');
-          console.error(label + ' sign-in error:', error);
-          showError('login', label + ' sign-in failed. Please try again.');
-        }
-      }
-      
-      googleSignInBtn.addEventListener('click', function() { runOAuth(loginWithGoogle, 'Google'); });
-      // Facebook uses a full-page redirect to Facebook's own OAuth dialog (a
-      // top-level tab). This lets the Facebook app surface for login approval on
-      // Android Chrome (avoiding the popup dead-end), and the access token comes
-      // back in the URL fragment — Firebase's broken redirect handler is bypassed.
-      facebookSignInBtn.addEventListener('click', function() { runOAuth(startFacebookRedirect, 'Facebook'); });
       
       // TEMP: Email/Password sign-in (dev/testing). Remove before public launch.
       const emailToggleBtn = document.getElementById('emailToggleBtn');

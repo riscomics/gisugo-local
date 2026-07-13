@@ -351,6 +351,20 @@ document.addEventListener('DOMContentLoaded', async function() {
   const oauthPending = sessionStorage.getItem('gisugo_oauth_pending') === '1' || hasFbFragment;
   if (oauthPending) showLoadingOverlay();
 
+  // Wire the form + sign-in buttons FIRST — before any await — so they always
+  // work even if completeRedirectSignIn() below is slow/hangs (old iOS Safari).
+  initializeSignupLanguageTabs();
+  initializeForm();
+  initializePhotoUpload();
+  initializeCharacterCounter();
+  initializeTextInputProtection();
+  initializeValidation();
+  initializeCollapsibleSections();
+  initializeGoogleSignIn();
+  initializeFacebookSignIn();
+  checkPendingAuth(); // Check if redirected from login with pending auth
+  checkExistingAuthUser(); // Check if user is already authenticated
+
   if (typeof completeRedirectSignIn === 'function') {
     try {
       const rr = await completeRedirectSignIn();
@@ -365,18 +379,6 @@ document.addEventListener('DOMContentLoaded', async function() {
       console.error('Redirect completion error:', error);
     }
   }
-
-  initializeSignupLanguageTabs();
-  initializeForm();
-  initializePhotoUpload();
-  initializeCharacterCounter();
-  initializeTextInputProtection();
-  initializeValidation();
-  initializeCollapsibleSections();
-  initializeGoogleSignIn();
-  initializeFacebookSignIn();
-  checkPendingAuth(); // Check if redirected from login with pending auth
-  checkExistingAuthUser(); // Check if user is already authenticated
   
   console.log('🔥 Sign-up form initialized with Firebase integration');
 });

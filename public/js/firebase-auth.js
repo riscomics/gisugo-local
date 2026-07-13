@@ -548,7 +548,21 @@ async function completeRedirectSignIn() {
 
   let result;
   try {
-    result = await auth.getRedirectResult();
+    // getRedirectResult() can HANG on old iOS Safari (storage partitioning),
+    // which would block the caller forever — freezing the loading overlay and
+    // (on login.html) preventing the sign-in buttons from ever being wired.
+    // Race it with a timeout so this function always returns.
+    const REDIRECT_RESULT_TIMEOUT_MS = 8000;
+    result = await Promise.race([
+      auth.getRedirectResult(),
+      new Promise(function(resolve) {
+        setTimeout(function() { resolve({ __timedOut: true }); }, REDIRECT_RESULT_TIMEOUT_MS);
+      })
+    ]);
+    if (result && result.__timedOut) {
+      gisugoAuthLog('getRedirectResult timed out');
+      result = null; // fall through to the currentUser fallback / clean exit below
+    }
   } catch (error) {
     try { sessionStorage.removeItem(OAUTH_PENDING_KEY); } catch (e) {}
     const code = (error && error.code) || '';
