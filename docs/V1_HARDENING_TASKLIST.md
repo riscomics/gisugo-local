@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-13
+> Status: **Active** · Last updated: 2026-07-14
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -302,17 +302,50 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
       button) and looped the loading overlay. Buttons are now wired **before** any await on both
       `login.html` and `sign-up.js`, and `getRedirectResult()` is capped at an 8s timeout.
       Current live versions: `firebase-auth.js?v=28`, `sign-up.js?v=7.6`.
-- [ ] **KNOWN LIMITATION (Facebook + iOS / legacy device) — not fixable in the web app.**
-      On **cold iOS Safari** (no active facebook.com session) Facebook forces a passkey/"approve on
-      another device" flow. iOS Safari and the Facebook **app** are sandboxed, so approving in the app
-      never hands back to Safari → login dead-ends. Confirmed via log: Safari never receives a token
-      (`Facebook: redirect token` line never appears), i.e. Facebook's page never completes — nothing
-      our code can force. Additionally, **iPhone 7 maxes at iOS 15 and cannot do passkeys at all**
-      (passkeys need iOS 16+), so facebook.com login itself fails there (reproduced on facebook.com
-      directly, independent of GISUGO). Mitigations: (a) users with an active facebook.com Safari
-      session get instant "Continue as"; (b) modern iOS (16+) can complete passkey; (c) the real cure
-      for the FB-heavy PH base is **phone + password below** and eventually the V2 native app (native
-      FB SDK does true app-to-app login). See `docs/IOS_LEGACY_DEVICE_COMPATIBILITY_NOTE_2026-03-12.md`.
+- [x] **~~KNOWN LIMITATION~~ → SOLVED via Facebook DEVICE LOGIN (2026-07-14, deployed).**
+      The passkey dead-end (below) is now rescued by **Facebook's device-code flow**
+      (`facebook.com/device`, the smart-TV mechanism): the page fetches a short code from the Graph
+      API, the user confirms it **inside the Facebook app** (where they're already logged in), and the
+      page POLLS Facebook for the access token → `signInWithCredential`. Nothing ever has to hand back
+      through the browser, so the sandbox/passkey wall is bypassed entirely.
+      **Verified end-to-end on the iPhone 7 (iOS 15) AND on an untrusted Android phone** — the wall
+      turned out to be account/device-trust based, NOT iOS-only (a brand-new/untrusted device gets
+      walled on any OS when the browser has no facebook.com session and the FB app doesn't intercept
+      the OAuth link).
+      Implementation (all in `firebase-auth.js` + wired in `login.html`/`sign-up.js`):
+      • `loginWithFacebookDevice()` / `runFacebookDeviceLogin()` — overlay with numbered steps, big
+        code, **"Copy code & open Facebook"** one-tap button (copies + opens
+        `facebook.com/device?user_code=…`), 5s polling (Facebook-mandated), auto-renewing expired
+        codes, cancellable. On approval flips to a ✅ "Approved! Signing you in…" spinner state.
+      • `resumeFacebookDeviceLoginIfPending()` — resumes a mid-flight device login if the page
+        reloads / returns in a fresh tab (state in localStorage).
+      • **iOS version gate** (`getIOSMajorVersion()`): iOS 16+ verified working with the normal
+        redirect (iPhone 12 test — FB's own "With the Facebook App" handoff returns to Safari fine)
+        → NO modal, straight through like Android. iOS ≤15 gets a modal: login page leads with
+        "Log in with the Facebook app" (device flow); signup page steers to Google/Phone.
+      • **Failure rescue on ALL mobile:** a Facebook attempt that returns tokenless (back button or
+        stuck at the wall) fails fast and auto-opens the device-login overlay (`offerDeviceLogin`).
+      • **Back-button fix:** `pageshow` (bfcache) handler clears the previously-stuck "Signing in…"
+        spinner instantly and offers the rescue on mobile.
+      • `finalizeOAuthSignIn` existence-probe timeout 4s → 8s (probe returned inconclusive on a cold
+        iPhone 12 session, pushing routing onto the flaky read fallback).
+      • **Meta config changes:** "Login from Devices" = Yes (Facebook Login → Settings); client token
+        embedded in `firebase-auth.js` (public by design, pairs with app id for device endpoints);
+        **iOS platform added** (Settings → Basic → Bundle ID `com.gisugo.app`, placeholder — required
+        or facebook.com/device errors "Given URL is not allowed by the Application configuration").
+        Android platform NOT addable yet (Meta verifies the package against Google Play; needs V2).
+      • Known cosmetic quirks (Facebook's, unfixable): the in-app approval screen gives no success
+        feedback + ignores the `?user_code=` prefill (hence copy-code); the FB "How do you want to
+        log in" chooser is FB's page (our modal copy tells users to pick "With the Facebook App").
+      Live versions: `firebase-auth.js?v=35`, `sign-up.js?v=8.1`.
+      Device-class matrix after all fixes: iPhone 7/old-iOS cold → device flow ✅; iPhone 12/iOS 16+
+      cold → normal redirect ✅ (no modal); trusted Android → normal ✅; untrusted Android → wall →
+      auto-rescue ✅; desktop → unchanged ✅.
+      Historical detail of the original dead-end preserved in
+      `docs/IOS_LEGACY_DEVICE_COMPATIBILITY_NOTE_2026-03-12.md` (updated 2026-07-14).
+      Follow-ups (not urgent): remove the OAuth debug log panel from login/sign-up once stable;
+      device login also serves as **account recovery** for FB-locked-out users (partial answer to the
+      cross-provider-duplicate gap below).
 - [x] **Phone + Password login (OAuth-independent fallback) — BUILT (2026-07-13, pending live test).**
       Works on every device/browser (incl. the iPhone 7), so no user is blocked by a FB/Google/OS quirk.
       Implementation:
@@ -337,7 +370,7 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
 
 ---
 
-## Next task — Phone + Password login (OAuth-independent fallback)
+## Phone + Password login — build notes (COMPLETED 2026-07-13; kept for the decisions log)
 
 **Goal:** a password login that works on every device/browser (incl. the iPhone 7), so no user is ever
 blocked by Facebook/Google/OS quirks. Sits **alongside** the existing FB/Google buttons.

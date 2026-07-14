@@ -93,8 +93,22 @@
 - **Phone + password login** (OAuth-independent) — works on the iPhone 7 and everywhere else.
 - V2 native app uses the native Facebook SDK (true app-to-app login), which sidesteps this entirely.
 
+## Update 2026-07-14 — SOLVED via Facebook Device Login (deployed)
+
+The "won't-fix" verdict below is superseded. The passkey dead-end is now bypassed with
+**Facebook's device-code login** (`facebook.com/device`): the page fetches a short code, the
+user confirms it inside the Facebook APP (already logged in there), and the page polls the
+Graph API for the access token → `signInWithCredential`. No handoff back through the browser
+is ever needed, so the iOS sandbox/passkey wall never enters the flow.
+
+- **Verified end-to-end on the iPhone 7 (iOS 15)** — the device this note declared unrescuable.
+- Also verified on an **untrusted Android phone**: the wall is account/device-trust based, not
+  iOS-only. The rescue now auto-offers on any mobile Facebook attempt that returns tokenless.
+- iOS 16+ confirmed fine with the normal redirect (iPhone 12 test) → no modal there.
+- Full implementation details: `docs/V1_HARDENING_TASKLIST.md` → Track G.
+
 ## Decision Status
-- Documented only.
-- Implementation deferred to a separate dedicated chat/task.
-- Facebook-login-on-legacy-iOS: **won't-fix on web** (device/OS + Facebook limitation); covered by
-  phone+password fallback and the V2 native app.
+- Facebook-login-on-legacy-iOS: **SOLVED on web via device login** (2026-07-14). Phone+password
+  fallback and the V2 native app remain as additional paths.
+- The OTHER two issues in this note (iPad mini header layout; legacy-iPhone data-loading stalls)
+  remain **documented only / deferred** (see V1 tasklist Track E "iOS legacy-device issues").
