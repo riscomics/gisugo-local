@@ -777,6 +777,22 @@ function runFacebookDeviceLogin(existingState) {
     const codeEl = card.querySelector('#gisugoFbDeviceCode');
     const copiedEl = card.querySelector('#gisugoFbDeviceCopied');
 
+    // Once Facebook confirms approval, swap the card to an unmissable
+    // "signing you in" state so the user knows to wait (token exchange +
+    // profile check take a few seconds).
+    function showSigningInState() {
+      try {
+        const style = document.createElement('style');
+        style.textContent = '@keyframes gisugoFbSpin{to{transform:rotate(360deg)}}';
+        card.innerHTML =
+          '<div style="font-size:2rem;line-height:1;margin-bottom:12px;">✅</div>' +
+          '<div style="font-size:1.2rem;font-weight:800;margin-bottom:8px;">Approved!</div>' +
+          '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:16px;">Signing you in&hellip; this takes a few seconds.<br>Please stay on this page.</div>' +
+          '<div style="width:34px;height:34px;margin:0 auto;border:4px solid rgba(130,148,177,0.3);border-top-color:#1877f2;border-radius:50%;animation:gisugoFbSpin 0.9s linear infinite;"></div>';
+        card.appendChild(style);
+      } catch (e) {}
+    }
+
     function finish(result) {
       if (finished) return;
       finished = true;
@@ -875,7 +891,7 @@ function runFacebookDeviceLogin(existingState) {
         if (data && data.access_token) {
           gisugoAuthLog('FB device: access token received');
           clearFacebookDeviceState();
-          statusEl.textContent = 'Approved! Signing you in\u2026';
+          showSigningInState();
           signInWithFacebookAccessToken(data.access_token).then(finish);
           return;
         }
