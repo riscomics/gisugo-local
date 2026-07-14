@@ -855,7 +855,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/oauth-debug-panel.js?v=2"></script>
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=33"></script>
+  <script src="public/js/firebase-auth.js?v=34"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -967,6 +967,27 @@
       if (typeof resumeFacebookDeviceLoginIfPending === 'function') {
         resumeFacebookDeviceLoginIfPending();
       }
+
+      // Back-button fix: when the user backs out of Facebook/Google mid-flow,
+      // the browser restores this page from the back/forward cache still showing
+      // the "Signing in..." spinner with stale timers — previously stuck until a
+      // long watchdog. Clear it immediately; if the abandoned attempt was
+      // Facebook on a mobile device, offer the FB-app rescue (cancellable).
+      window.addEventListener('pageshow', function(e) {
+        if (!e.persisted) return;
+        clearOverlayWatchdog();
+        loadingOverlay.classList.remove('show');
+        let fbPending = false;
+        try {
+          fbPending = !!(localStorage.getItem('gisugo_fb_oauth_state') || sessionStorage.getItem('gisugo_fb_oauth_state'));
+          sessionStorage.removeItem('gisugo_oauth_pending');
+          localStorage.removeItem('gisugo_fb_oauth_state');
+          sessionStorage.removeItem('gisugo_fb_oauth_state');
+        } catch (err) {}
+        if (fbPending && typeof isMobileOAuthEnvironment === 'function' && isMobileOAuthEnvironment()) {
+          runDeviceLogin();
+        }
+      });
 
       // Finish same-tab OAuth when returning from Google/Facebook redirect.
       // Also treat a Facebook token in the URL fragment as pending, so the

@@ -394,6 +394,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     resumeFacebookDeviceLoginIfPending();
   }
 
+  // Back-button fix: when the user backs out of Facebook/Google mid-flow, the
+  // browser restores this page from the back/forward cache still showing the
+  // loading overlay with stale timers. Clear it immediately; if the abandoned
+  // attempt was Facebook on a mobile device, offer the FB-app rescue.
+  window.addEventListener('pageshow', function(e) {
+    if (!e.persisted) return;
+    hideLoadingOverlay();
+    let fbPending = false;
+    try {
+      fbPending = !!(localStorage.getItem('gisugo_fb_oauth_state') || sessionStorage.getItem('gisugo_fb_oauth_state'));
+      sessionStorage.removeItem('gisugo_oauth_pending');
+      localStorage.removeItem('gisugo_fb_oauth_state');
+      sessionStorage.removeItem('gisugo_fb_oauth_state');
+    } catch (err) {}
+    if (fbPending && typeof isMobileOAuthEnvironment === 'function' && isMobileOAuthEnvironment()) {
+      runFacebookDeviceSignIn();
+    }
+  });
+
   if (typeof completeRedirectSignIn === 'function') {
     try {
       const rr = await completeRedirectSignIn();

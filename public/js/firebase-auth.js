@@ -138,6 +138,10 @@ async function startOAuthRedirect(auth, provider, providerLabel) {
   try {
     sessionStorage.setItem(OAUTH_PENDING_KEY, '1');
     sessionStorage.setItem('gisugo_oauth_debug', '1');
+    // Clear any stale Facebook state from an earlier abandoned FB attempt, so
+    // this (Google) redirect isn't misread as a failed Facebook return.
+    localStorage.removeItem('gisugo_fb_oauth_state');
+    sessionStorage.removeItem('gisugo_fb_oauth_state');
   } catch (e) {}
   try {
     await auth.signInWithRedirect(provider);
@@ -614,12 +618,12 @@ async function completeFacebookRedirectSignIn() {
     gisugoAuthLog('Facebook: redirect returned no token', { error: parsed.error, reason: parsed.errorReason });
     const denied = (parsed.error + ' ' + parsed.errorReason).toLowerCase().indexOf('denied') !== -1;
     if (denied) return { handled: true, success: false, cancelled: true };
-    // On iOS the redirect usually dies at Facebook's passkey wall — offer the
-    // Facebook-app device login as the rescue path.
+    // On mobile the redirect often dies at Facebook's passkey wall (verified on
+    // iOS AND Android) — offer the Facebook-app device login as the rescue.
     return {
       handled: true,
       success: false,
-      offerDeviceLogin: isLikelyIOS(),
+      offerDeviceLogin: isMobileOAuthEnvironment(),
       message: 'Facebook sign-in didn\'t complete. Please try again.'
     };
   }
@@ -942,6 +946,28 @@ async function completeRedirectSignIn() {
   try { wasPending = sessionStorage.getItem(OAUTH_PENDING_KEY) === '1'; } catch (e) {}
   gisugoAuthLog('completeRedirectSignIn', { wasPending: wasPending, path: location.pathname });
 
+  // A pending FACEBOOK attempt that returned with no token in the fragment
+  // failed outright (back button, or stuck at Facebook's passkey wall — seen on
+  // both iOS and Android). Fail fast instead of waiting on getRedirectResult
+  // (that's Google's mechanism), and offer the FB-app device login on mobile.
+  let fbStatePending = false;
+  try {
+    fbStatePending = !!(localStorage.getItem(FACEBOOK_OAUTH_STATE_KEY) || sessionStorage.getItem(FACEBOOK_OAUTH_STATE_KEY));
+  } catch (e) {}
+  if (wasPending && fbStatePending) {
+    try {
+      sessionStorage.removeItem(OAUTH_PENDING_KEY);
+      localStorage.removeItem(FACEBOOK_OAUTH_STATE_KEY);
+      sessionStorage.removeItem(FACEBOOK_OAUTH_STATE_KEY);
+    } catch (e) {}
+    gisugoAuthLog('Facebook: returned without token (back button / stuck at Facebook)');
+    return {
+      success: false,
+      offerDeviceLogin: isMobileOAuthEnvironment(),
+      message: 'Facebook sign-in didn\'t complete. Please try again.'
+    };
+  }
+
   let result;
   try {
     // getRedirectResult() can HANG on old iOS Safari (storage partitioning),
@@ -1231,7 +1257,10 @@ async function finalizeOAuthSignIn(result, method) {
           if (code === 'not-found') profileExists = false;
           else console.warn('⚠️ lastLogin probe inconclusive:', code || dbError);
         }),
-        new Promise(function(resolve) { setTimeout(resolve, 4000); })
+        // 8s cap: 4s was timing out on cold first connections (probe returned
+        // "inconclusive" on a fresh session — seen on iPhone 12, 2026-07-14),
+        // pushing routing onto the flakier server-read fallback.
+        new Promise(function(resolve) { setTimeout(resolve, 8000); })
       ]);
     } catch (e) {}
   }
@@ -2023,6 +2052,7 @@ window.signUpWithPhonePassword = signUpWithPhonePassword;
 window.loginWithPhonePassword = loginWithPhonePassword;
 window.normalizePhoneNumber = normalizePhoneNumber;
 window.isLikelyIOS = isLikelyIOS;
+window.isMobileOAuthEnvironment = isMobileOAuthEnvironment;
 window.confirmFacebookOnIOS = confirmFacebookOnIOS;
 window.loginWithFacebookDevice = loginWithFacebookDevice;
 window.resumeFacebookDeviceLoginIfPending = resumeFacebookDeviceLoginIfPending;
