@@ -432,22 +432,46 @@ function isLikelyIOS() {
 }
 
 /**
- * On iOS, show a soft warning before starting Facebook login (it often gets
- * stuck on iPhone/iPad). The copy/buttons differ by context:
- *   'login'  — existing users; leads with "Log in with the Facebook app"
- *              (device login escape hatch), browser attempt secondary.
- *   'signup' — new users; short steer to Google / Phone + Password only.
+ * Parse the iOS major version from the user agent (e.g. "iPhone OS 15_8" -> 15).
+ * Returns null when unknown — including iPadOS 13+ masquerading as macOS, which
+ * we treat as modern.
+ * @returns {number|null}
+ */
+function getIOSMajorVersion() {
+  try {
+    const m = (navigator.userAgent || '').match(/(?:iPhone|iPad|iPod).+?OS (\d+)_/);
+    if (m) return parseInt(m[1], 10);
+  } catch (e) {}
+  return null;
+}
+
+/**
+ * Gate Facebook login on iOS.
+ *
+ * Verified on real devices (2026-07-14): on iOS 16+ the normal browser redirect
+ * completes even on a cold Facebook session (iPhone 12 — Facebook's own
+ * "With the Facebook App" handoff returns to Safari correctly), so modern iOS
+ * proceeds straight through with NO modal, same as Android. On iOS 15 and older
+ * (iPhone 7) the redirect dead-ends at Facebook's passkey wall, so those devices
+ * get a modal steering them to the working paths instead:
+ *   'login'  — leads with "Log in with the Facebook app" (device login escape
+ *              hatch; works on every device), no browser attempt offered.
+ *   'signup' — short steer to Google / Phone + Password.
  * Resolves with the user's choice:
- *   'facebook' — proceed with the normal Facebook redirect anyway
+ *   'facebook' — proceed with the normal Facebook redirect
  *   'device'   — use the Facebook-app device login (iOS escape hatch)
  *   false      — cancel (caller lets the user pick Google / Phone + Password)
- * On non-iOS it resolves 'facebook' immediately with no modal. Must be awaited
- * from the FB button click handler BEFORE calling startFacebookRedirect().
+ * Must be awaited from the FB button click handler BEFORE calling
+ * startFacebookRedirect().
  * @param {string} context - 'login' | 'signup'
  * @returns {Promise<string|false>}
  */
 function confirmFacebookOnIOS(context) {
   if (!isLikelyIOS()) return Promise.resolve('facebook');
+  // iOS 16+ (or unknown version): the normal redirect works — no modal. The
+  // redirect-failure rescue still auto-offers device login if it ever stalls.
+  const iosVersion = getIOSMajorVersion();
+  if (iosVersion === null || iosVersion >= 16) return Promise.resolve('facebook');
   const isLogin = context === 'login';
   return new Promise(function(resolve) {
     // Guard against stacking modals if tapped twice.
@@ -467,8 +491,8 @@ function confirmFacebookOnIOS(context) {
       '<div style="font-size:2rem;line-height:1;margin-bottom:10px;">📱</div>' +
       '<div style="font-size:1.15rem;font-weight:800;margin-bottom:10px;">Using an iPhone or iPad?</div>' +
       (isLogin
-        ? '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook login often gets stuck in this browser. The <strong>Facebook app</strong> works best.</div>'
-        : '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook sign-up often gets stuck on iPhone and iPad. <strong>Google</strong> or <strong>Phone &amp; Password</strong> is faster.</div>');
+        ? '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook login gets stuck in this browser on your device. Use the <strong>Facebook app</strong> instead.</div>'
+        : '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook sign-up gets stuck on this device. <strong>Google</strong> or <strong>Phone &amp; Password</strong> is faster.</div>');
 
     function makeButton(text, primary) {
       const btn = document.createElement('button');
@@ -487,14 +511,13 @@ function confirmFacebookOnIOS(context) {
     overlay.addEventListener('click', function(e) { if (e.target === overlay) close(false); });
 
     if (isLogin) {
+      // No "try in browser" option: on the old-iOS devices that see this modal,
+      // the browser redirect is a verified dead-end (passkey wall).
       const useDevice = makeButton('Log in with the Facebook app', true);
-      const goFb = makeButton('Try in this browser anyway', false);
       const useOther = makeButton('Use another method', false);
       useDevice.addEventListener('click', function() { close('device'); });
-      goFb.addEventListener('click', function() { close('facebook'); });
       useOther.addEventListener('click', function() { close(false); });
       card.appendChild(useDevice);
-      card.appendChild(goFb);
       card.appendChild(useOther);
     } else {
       const useOther = makeButton("OK, I'll use another method", true);
