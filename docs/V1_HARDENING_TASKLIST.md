@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-06-28
+> Status: **Active** · Last updated: 2026-07-13
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -277,6 +277,100 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
       `console.warn` filter in `firebase-config.js` that drops ONLY the
       `enableMultiTabIndexedDbPersistence` message (all other warnings still log). The real fix
       (migrate to the new cache config API) still rides with a future Firebase SDK upgrade.
+
+## Track G — Authentication / mobile OAuth login
+- [x] **Facebook Login taken live + made to work across mobile browsers** (2026-07-12/13, deployed).
+      Multi-day effort. Root problem: Firebase's own OAuth redirect/popup handler is broken for
+      Facebook on Android Chrome ("missing initial state", firebase-js-sdk #4256/#9256) and popups
+      dead-end on mobile. Final architecture:
+      • **Facebook now uses a full-page redirect to Facebook's OWN OAuth dialog** (`startFacebookRedirect`
+        → `www.facebook.com/<ver>/dialog/oauth?response_type=token`), token returns in the URL
+        fragment, exchanged via `signInWithCredential`. Firebase's flaky cross-tab handler is never
+        involved. Replaced the earlier FB JS SDK popup (which couldn't surface the FB app on Android).
+      • **Meta config:** Valid OAuth Redirect URIs = `https://gisugo.com/{login,sign-up}.html` +
+        `https://www.gisugo.com/{login,sign-up}.html` (both www + non-www, since the site serves both);
+        Client + Web OAuth Login on; app is Live.
+      • Verified working: **Android Chrome, Samsung Internet, desktop** all log in via Facebook.
+- [x] **Fixed login misroute (existing users bounced to sign-up)** (2026-07-13, deployed).
+      Root cause: a `get({source:'server'})` profile read flakily returns "empty" on cold browser
+      sessions, so real users (with a profile) were sent to create-account. Fix: `finalizeOAuthSignIn`
+      now uses the **server-acked `lastLogin` write** as the existence signal (`update()` succeeds only
+      if the doc exists; `not-found` = new user), stashed for `handleAuthRedirect` /
+      `checkExistingAuthUser` to trust first; the flaky read is only a fallback. Applies to Google too.
+- [x] **Fixed iOS Safari stuck login page** (2026-07-13, deployed). On old iOS Safari
+      `getRedirectResult()` can hang, which blocked the sign-in buttons from ever wiring (dead FB
+      button) and looped the loading overlay. Buttons are now wired **before** any await on both
+      `login.html` and `sign-up.js`, and `getRedirectResult()` is capped at an 8s timeout.
+      Current live versions: `firebase-auth.js?v=28`, `sign-up.js?v=7.6`.
+- [ ] **KNOWN LIMITATION (Facebook + iOS / legacy device) — not fixable in the web app.**
+      On **cold iOS Safari** (no active facebook.com session) Facebook forces a passkey/"approve on
+      another device" flow. iOS Safari and the Facebook **app** are sandboxed, so approving in the app
+      never hands back to Safari → login dead-ends. Confirmed via log: Safari never receives a token
+      (`Facebook: redirect token` line never appears), i.e. Facebook's page never completes — nothing
+      our code can force. Additionally, **iPhone 7 maxes at iOS 15 and cannot do passkeys at all**
+      (passkeys need iOS 16+), so facebook.com login itself fails there (reproduced on facebook.com
+      directly, independent of GISUGO). Mitigations: (a) users with an active facebook.com Safari
+      session get instant "Continue as"; (b) modern iOS (16+) can complete passkey; (c) the real cure
+      for the FB-heavy PH base is **phone + password below** and eventually the V2 native app (native
+      FB SDK does true app-to-app login). See `docs/IOS_LEGACY_DEVICE_COMPATIBILITY_NOTE_2026-03-12.md`.
+- [x] **Phone + Password login (OAuth-independent fallback) — BUILT (2026-07-13, pending live test).**
+      Works on every device/browser (incl. the iPhone 7), so no user is blocked by a FB/Google/OS quirk.
+      Implementation:
+      • `firebase-auth.js`: `normalizePhoneNumber()` (canonical E.164, shared by signup+login so a user
+        can never be locked out by mismatched formatting), `phoneToSyntheticEmail()` (maps the phone to a
+        hidden `<digits>@phone.gisugo.app` mailbox — never real, never emailed), `signUpWithPhonePassword()`
+        and `loginWithPhonePassword()` driving Firebase's native email/password engine underneath.
+      • **1 phone : 1 account** enforced free: the synthetic email is deterministic, so a duplicate signup
+        fails with `auth/email-already-in-use` → "This phone number is already registered."
+      • `login.html`: "Sign in with Phone & Password" toggle (country code + phone + password), Forgot
+        password → "Contact support" (mailto). Replaced the temp email-login UI (`loginWithEmail` kept in
+        JS for admin/test).
+      • `sign-up.html` / `sign-up.js`: "Sign Up with Phone & Password" toggle reveals password + confirm
+        fields; the account is created at submit time from the phone + password, then the normal profile
+        write runs. Rollback now deletes the just-created phone/password Auth user if the profile write
+        fails (so a number is never stranded as "registered" with no profile). Live versions:
+        `firebase-auth.js?v=29`, `sign-up.js?v=7.7`.
+      **Accepted gaps (access-first, revisit with Admin/Support):** phone is UNVERIFIED (no SMS OTP yet);
+      no self-serve password reset (synthetic email) → contact support; cross-provider dupes still possible
+      (someone with an FB/Google account could also make a phone account with a *different* number).
+      Carries over to the V2 native app (same Firebase Auth).
+
+---
+
+## Next task — Phone + Password login (OAuth-independent fallback)
+
+**Goal:** a password login that works on every device/browser (incl. the iPhone 7), so no user is ever
+blocked by Facebook/Google/OS quirks. Sits **alongside** the existing FB/Google buttons.
+
+**Decisions locked with the user:**
+- **1 phone : 1 account** — phone number is the unique identity/contact key (higher priority than email
+  in-app). Anyone signing up via FB/Google must still provide a phone, checked against the same
+  uniqueness rule ("this number's already registered").
+- **Default forgot-password (for now):** show a "contact support" message. No SMS OTP yet (cost +
+  reCAPTCHA), no email reset (see gap below). Revisit when Admin Dashboard/Support exists.
+- Keep FB + Google; add phone + password as another option (do NOT remove OAuth).
+
+**Approach (Firebase has NO native phone+password provider):**
+- Map the normalized phone to a **hidden synthetic email** (e.g. `+63XXXXXXXXXX@phone.gisugo.local`)
+  and use Firebase's native **email/password** engine under the hood. Store the real phone in the
+  profile as the contact field.
+- **Signup:** phone + password (+ existing profile fields) → normalize phone to canonical `+63…` →
+  create the synthetic-email/password Firebase user → write profile (phone as key).
+- **Login:** phone + password → normalize → `signInWithEmailAndPassword(syntheticEmail, password)`.
+- **Uniqueness:** reject a second signup for an already-registered normalized phone.
+
+**Honest gaps to flag in-code (accepted "access first"):**
+- Phone is **unverified** until SMS OTP is added later (spam/fake-account risk).
+- **No email-based password reset** (synthetic email) → "contact support" until SMS OTP or real email.
+- **Normalization must be identical** at signup + login or users get locked out — single shared helper.
+- **Duplicate-person risk:** someone with an existing FB/Google account could make a separate
+  phone+password account; the 1:phone rule blocks same-phone dupes but not cross-provider dupes.
+
+**Touchpoints:** `public/js/firebase-auth.js` (new `signUpWithPhonePassword` / `loginWithPhonePassword`
++ phone normalizer), `login.html` (add phone+password UI, promote from the temp email login),
+`sign-up.html` / `sign-up.js` (phone+password signup path alongside OAuth), profile write (phone as key).
+Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** — align the phone field
++ normalizer so both land together.
 
 ---
 

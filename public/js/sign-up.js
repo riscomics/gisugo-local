@@ -10,6 +10,10 @@ let selectedPhotoDataUrl = null;
 
 // Track authenticated user (from OAuth or login redirect)
 let authenticatedUser = null;
+// Signup method chosen by the user: 'oauth' (Facebook/Google) or 'phone_password'.
+// Controls whether the password fields are shown/validated and which account-
+// creation path the submit handler takes.
+let signupMode = 'oauth';
 let isSigningUp = false; // Flag to prevent race conditions during signup
 let currentSignupLang = 'english';
 let signupSuccessMode = 'default';
@@ -69,6 +73,12 @@ const SIGNUP_I18N = {
     useDifferentAccount: 'Not you? Use a different account',
     fixHighlighted: 'Please complete the highlighted fields above',
     oauthHint: "Choose Facebook or Google to create your account. It's fast and secure.",
+    or: 'OR',
+    phonePasswordSignup: 'Sign Up with Phone & Password',
+    createPassword: 'Create a Password',
+    createPasswordHint: "You'll sign in with your phone number and this password. No Facebook or Google needed.",
+    passwordLabel: 'Password *',
+    confirmPasswordLabel: 'Confirm Password *',
     nameLockNote: "⚠️ Enter your real name correctly — it can't be changed later without admin approval.",
     phoneLabel: 'Phone Number *',
     phoneNote: '📞 Required. Customers use this to contact you when you apply for or are hired for a gig.',
@@ -111,6 +121,12 @@ const SIGNUP_I18N = {
     useDifferentAccount: 'Dili ikaw? Gamita ang laing account',
     fixHighlighted: 'Palihug kompletoha ang mga gipasiugda nga field sa ibabaw',
     oauthHint: 'Pili og Facebook o Google para maghimo og account. Paspas ug luwas.',
+    or: 'O',
+    phonePasswordSignup: 'Mag-Sign Up gamit ang Phone & Password',
+    createPassword: 'Paghimo og Password',
+    createPasswordHint: 'Mo-sign in ka gamit ang imong phone number ug kini nga password. Dili kinahanglan ang Facebook o Google.',
+    passwordLabel: 'Password *',
+    confirmPasswordLabel: 'Kumpirmaha ang Password *',
     nameLockNote: '⚠️ Isulat ug tama ang tinuod nimong ngalan — dili na ni mausab human mag-sign up gawas kung aprobahan sa admin.',
     phoneLabel: 'Phone Number *',
     phoneNote: '📞 Kinahanglan. Gamiton kini sa customer aron kontakon ka kung mo-apply ka o na-hire para sa gig.',
@@ -153,6 +169,12 @@ const SIGNUP_I18N = {
     useDifferentAccount: 'Hindi ikaw? Gumamit ng ibang account',
     fixHighlighted: 'Pakikumpleto ang mga naka-highlight na field sa itaas',
     oauthHint: 'Pumili ng Facebook o Google para gumawa ng account. Mabilis at secure.',
+    or: 'O',
+    phonePasswordSignup: 'Mag-Sign Up gamit ang Phone & Password',
+    createPassword: 'Gumawa ng Password',
+    createPasswordHint: 'Mag-si-sign in ka gamit ang iyong phone number at password na ito. Hindi na kailangan ng Facebook o Google.',
+    passwordLabel: 'Password *',
+    confirmPasswordLabel: 'Kumpirmahin ang Password *',
     nameLockNote: '⚠️ Ilagay nang tama ang totoong pangalan mo — hindi na ito mababago pagkatapos mag-sign up maliban kung aprubahan ng admin.',
     phoneLabel: 'Phone Number *',
     phoneNote: '📞 Kailangan. Ginagamit ito ng customer para kontakin ka kapag nag-apply ka o na-hire para sa isang gig.',
@@ -362,6 +384,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   initializeCollapsibleSections();
   initializeGoogleSignIn();
   initializeFacebookSignIn();
+  initializePhonePasswordSignup();
   checkPendingAuth(); // Check if redirected from login with pending auth
   checkExistingAuthUser(); // Check if user is already authenticated
 
@@ -1319,20 +1342,57 @@ async function handleFormSubmission(event) {
     
     let userId;
     
-    // Signup is OAuth-only: the user must already be authenticated with Facebook
-    // or Google before completing their profile here.
     if (authenticatedUser && authenticatedUser.uid) {
+      // OAuth (Facebook/Google): already authenticated before completing profile.
       userId = authenticatedUser.uid;
       console.log('📝 Creating profile for authenticated user:', userId);
       
       // Prefer the optional email the user typed; fall back to the provider email.
       profileData.email = profileData.email || authenticatedUser.email || '';
       profileData.authProvider = authenticatedUser.provider || 'oauth';
+    } else if (signupMode === 'phone_password') {
+      // Phone + Password: create the Firebase account NOW from the phone +
+      // password on this form (OAuth-independent). Uniqueness (1 phone : 1
+      // account) is enforced by signUpWithPhonePassword via the synthetic email.
+      const countryCode = document.getElementById('phone-country')?.value || '+63';
+      const rawPhone = document.getElementById('phone')?.value || '';
+      const password = document.getElementById('password')?.value || '';
+
+      if (typeof signUpWithPhonePassword !== 'function') {
+        hideLoadingOverlay();
+        isSigningUp = false;
+        showInputGuideHint('Account creation is unavailable. Please refresh and try again.', 'SIGN UP FAILED', '⚠️');
+        return;
+      }
+
+      const created = await signUpWithPhonePassword(rawPhone, password, countryCode);
+      if (!created || !created.success) {
+        hideLoadingOverlay();
+        isSigningUp = false;
+        if (created && created.code === 'auth/email-already-in-use') {
+          showError('phone', 'This phone number is already registered.');
+          const phoneEl = document.getElementById('phone');
+          if (phoneEl) phoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        showInputGuideHint((created && created.message) || 'Could not create your account. Please try again.', 'SIGN UP', 'ℹ️');
+        return;
+      }
+
+      authenticatedUser = {
+        uid: created.user.uid,
+        email: '',
+        provider: 'password',
+        photoURL: null
+      };
+      userId = created.user.uid;
+      profileData.email = profileData.email || '';
+      profileData.authProvider = 'password';
+      console.log('📝 Phone+password account created, saving profile:', userId);
     } else {
-      // No OAuth session yet — send them back to the Facebook/Google buttons.
+      // No auth method chosen — point the user at the sign-up options.
       hideLoadingOverlay();
       isSigningUp = false;
-      showInputGuideHint('Please sign up with Facebook or Google first, then complete your profile below.', 'SIGN UP FIRST', 'ℹ️');
+      showInputGuideHint('Choose Facebook, Google, or Phone & Password to create your account.', 'SIGN UP FIRST', 'ℹ️');
       const methods = document.getElementById('signupMethodsSection');
       if (methods) methods.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -1434,8 +1494,11 @@ async function handleFormSubmission(event) {
           }
         }
         
-        // Delete Auth user ONLY if email/password (OAuth users already logged in elsewhere)
-        if (profileData.authProvider === 'email' && typeof firebase !== 'undefined' && firebase.auth) {
+        // Delete Auth user ONLY if we just created it here (phone/email password).
+        // Leaving it would strand the phone number as "already registered" with no
+        // profile. OAuth users are logged in elsewhere, so we never delete those.
+        if ((profileData.authProvider === 'email' || profileData.authProvider === 'password') &&
+            typeof firebase !== 'undefined' && firebase.auth) {
           try {
             const currentUser = firebase.auth().currentUser;
             if (currentUser) {
@@ -1489,6 +1552,15 @@ function validateForm() {
       isValid = false;
     }
   });
+
+  // Password fields aren't `required` in the markup (they're hidden for OAuth
+  // signups), so validate them explicitly when the user chose phone + password.
+  if (signupMode === 'phone_password') {
+    const passwordInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirmPassword');
+    if (passwordInput && !validateField(passwordInput)) isValid = false;
+    if (confirmInput && !validateField(confirmInput)) isValid = false;
+  }
   
   // Validate a profile photo exists: either taken/uploaded in this flow, OR
   // already provided by the OAuth provider (Google/Facebook avatar), which the
@@ -1661,6 +1733,39 @@ function initializeFacebookSignIn() {
   if (facebookBtn) {
     facebookBtn.addEventListener('click', handleFacebookSignIn);
   }
+}
+
+// Initialize the "Sign Up with Phone & Password" toggle. Reveals the password
+// fields and switches the signup into phone_password mode. The account itself is
+// created at submit time (see handleFormSubmission) from the phone + password.
+function initializePhonePasswordSignup() {
+  const toggleBtn = document.getElementById('phoneSignupToggleBtn');
+  const passwordGroup = document.getElementById('passwordSignupGroup');
+  if (!toggleBtn || !passwordGroup) return;
+
+  toggleBtn.addEventListener('click', function() {
+    const enabling = passwordGroup.style.display === 'none';
+    passwordGroup.style.display = enabling ? 'block' : 'none';
+    toggleBtn.setAttribute('aria-expanded', String(enabling));
+    toggleBtn.classList.toggle('is-active', enabling);
+    signupMode = enabling ? 'phone_password' : 'oauth';
+
+    if (enabling) {
+      // Make sure the phone number (its credential) is visible too, then bring
+      // the new "Create a Password" section into view.
+      const basic = document.getElementById('signupSectionBasic');
+      if (basic) basic.classList.remove('is-collapsed');
+      passwordGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      // Leaving phone mode: clear password fields + any errors.
+      const pw = document.getElementById('password');
+      const cpw = document.getElementById('confirmPassword');
+      if (pw) pw.value = '';
+      if (cpw) cpw.value = '';
+      clearError('password');
+      clearError('confirmPassword');
+    }
+  });
 }
 
 // Utility functions for overlays

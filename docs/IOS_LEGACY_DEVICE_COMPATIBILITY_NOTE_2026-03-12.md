@@ -65,6 +65,36 @@
 - Fixes should be surgical to avoid regressions on modern devices.
 - Prefer compatibility guards/fallbacks over broad architecture changes in first pass.
 
+## Update 2026-07-13 — Facebook login dead-ends on iPhone 7 (NOT app-side)
+
+### Observed
+- On **iPhone 7 (iOS 15, Safari and Chrome)**, Facebook login (GISUGO's full-page redirect flow)
+  reaches Facebook, then stalls on Facebook's **passkey / "approve on another device"** screen.
+- Approving the request in the **Facebook app** does nothing for the browser — iOS Safari and the
+  FB app are sandboxed, so the approval never hands back to the Safari tab.
+- Reproduced **directly on facebook.com** (a fresh Safari tab, no GISUGO involved): the same account
+  cannot even log into facebook.com on this device. This **exonerates GISUGO** — the failure is
+  upstream, inside Facebook's own authentication.
+- Debug log confirms GISUGO's side is fine: it logs `Facebook: full-page redirect` but **never**
+  `Facebook: redirect token -> signInWithCredential`, i.e. Facebook never returns a token to Safari.
+
+### Root cause
+- **iPhone 7 tops out at iOS 15; Apple passkeys require iOS 16+.** When Facebook forces passkey
+  verification (which it does for cold/unrecognized sessions), the device physically cannot complete
+  it, so the flow dead-ends. This is a **device/OS ceiling + Facebook policy**, not a GISUGO bug and
+  not fixable from the web app.
+
+### Not a broad-user problem
+- Modern iPhones (iOS 16+) can complete passkey.
+- Users already signed into facebook.com **in Safari** skip passkey (instant "Continue as").
+- The dead-end = old device + cold FB Safari session + FB forcing passkey.
+
+### Mitigation (tracked in `docs/V1_HARDENING_TASKLIST.md` → Track G)
+- **Phone + password login** (OAuth-independent) — works on the iPhone 7 and everywhere else.
+- V2 native app uses the native Facebook SDK (true app-to-app login), which sidesteps this entirely.
+
 ## Decision Status
 - Documented only.
 - Implementation deferred to a separate dedicated chat/task.
+- Facebook-login-on-legacy-iOS: **won't-fix on web** (device/OS + Facebook limitation); covered by
+  phone+password fallback and the V2 native app.

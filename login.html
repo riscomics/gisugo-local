@@ -775,20 +775,45 @@
 
       <div class="form-error" id="loginError" style="margin-top: 12px; text-align: center;"></div>
 
-      <!-- TEMP: Email/Password login for dev/testing access (works in embedded
-           browsers where OAuth popups/redirects fail). Remove before public launch. -->
-      <div class="email-login-temp" style="margin-top: 14px;">
-        <button type="button" id="emailToggleBtn" aria-expanded="false"
+      <!-- Phone + Password login: OAuth-independent fallback that works on every
+           device/browser (incl. legacy iPhones where Facebook's passkey flow
+           dead-ends). Phone is the account's unique identity. -->
+      <div class="phone-login-section" style="margin-top: 14px;">
+        <button type="button" id="phoneToggleBtn" aria-expanded="false"
           style="width:100%; box-sizing:border-box; padding:12px 14px; border:1px solid rgba(130,148,177,0.35); border-radius:10px; background:transparent; color:#f8fafc; font-size:1rem; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-          <span>✉️</span><span>Sign in with Email</span>
+          <span>📱</span><span>Sign in with Phone &amp; Password</span>
         </button>
-        <div id="emailLoginSection" style="display:none; margin-top:10px;">
-          <input type="email" id="loginEmail" placeholder="Email" autocomplete="username"
-            style="width:70%; box-sizing:border-box; padding:12px 14px; margin:0 auto 8px; display:block; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
+        <div id="phoneLoginSection" style="display:none; margin-top:10px;">
+          <div style="display:flex; gap:8px; width:80%; margin:0 auto 8px;">
+            <select id="loginPhoneCountry" aria-label="Country code"
+              style="flex:0 0 auto; padding:12px 8px; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
+              <option value="+63">🇵🇭 +63</option>
+              <option value="+1">🇺🇸 +1</option>
+              <option value="+44">🇬🇧 +44</option>
+              <option value="+61">🇦🇺 +61</option>
+              <option value="+81">🇯🇵 +81</option>
+              <option value="+82">🇰🇷 +82</option>
+              <option value="+65">🇸🇬 +65</option>
+              <option value="+60">🇲🇾 +60</option>
+              <option value="+66">🇹🇭 +66</option>
+              <option value="+84">🇻🇳 +84</option>
+              <option value="+62">🇮🇩 +62</option>
+              <option value="+971">🇦🇪 +971</option>
+              <option value="+49">🇩🇪 +49</option>
+              <option value="+33">🇫🇷 +33</option>
+              <option value="+86">🇨🇳 +86</option>
+              <option value="+91">🇮🇳 +91</option>
+            </select>
+            <input type="tel" id="loginPhone" placeholder="9123456789" autocomplete="tel" inputmode="numeric" maxlength="15"
+              style="flex:1 1 auto; min-width:0; box-sizing:border-box; padding:12px 14px; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
+          </div>
           <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password"
-            style="width:70%; box-sizing:border-box; padding:12px 14px; margin:0 auto 8px; display:block; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
-          <button type="button" id="emailLoginBtn"
+            style="width:80%; box-sizing:border-box; padding:12px 14px; margin:0 auto 8px; display:block; border-radius:10px; border:1px solid rgba(130,148,177,0.35); background:#0f172a; color:#f8fafc; font-size:1rem;">
+          <button type="button" id="phoneLoginBtn"
             style="width:100%; padding:12px 14px; border:none; border-radius:10px; background:#2563eb; color:#fff; font-size:1rem; font-weight:700; cursor:pointer;">Sign in</button>
+          <div style="text-align:center; margin-top:8px; font-size:0.82rem; color:#94a3b8;">
+            Forgot your password? <a href="mailto:support@gisugo.com" style="color:#93c5fd; text-decoration:underline;">Contact support</a>
+          </div>
         </div>
       </div>
 
@@ -830,7 +855,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/oauth-debug-panel.js?v=2"></script>
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=28"></script>
+  <script src="public/js/firebase-auth.js?v=29"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -949,48 +974,50 @@
         }
       }
       
-      // TEMP: Email/Password sign-in (dev/testing). Remove before public launch.
-      const emailToggleBtn = document.getElementById('emailToggleBtn');
-      const emailLoginSection = document.getElementById('emailLoginSection');
-      const emailLoginBtn = document.getElementById('emailLoginBtn');
-      const loginEmailInput = document.getElementById('loginEmail');
+      // Phone + Password sign-in (OAuth-independent fallback).
+      const phoneToggleBtn = document.getElementById('phoneToggleBtn');
+      const phoneLoginSection = document.getElementById('phoneLoginSection');
+      const phoneLoginBtn = document.getElementById('phoneLoginBtn');
+      const loginPhoneCountry = document.getElementById('loginPhoneCountry');
+      const loginPhoneInput = document.getElementById('loginPhone');
       const loginPasswordInput = document.getElementById('loginPassword');
-      if (emailToggleBtn && emailLoginSection) {
-        emailToggleBtn.addEventListener('click', function() {
-          const isOpen = emailLoginSection.style.display !== 'none';
-          emailLoginSection.style.display = isOpen ? 'none' : 'block';
-          emailToggleBtn.setAttribute('aria-expanded', String(!isOpen));
-          if (!isOpen && loginEmailInput) loginEmailInput.focus();
+      if (phoneToggleBtn && phoneLoginSection) {
+        phoneToggleBtn.addEventListener('click', function() {
+          const isOpen = phoneLoginSection.style.display !== 'none';
+          phoneLoginSection.style.display = isOpen ? 'none' : 'block';
+          phoneToggleBtn.setAttribute('aria-expanded', String(!isOpen));
+          if (!isOpen && loginPhoneInput) loginPhoneInput.focus();
         });
       }
-      async function doEmailLogin() {
-        const email = (loginEmailInput.value || '').trim();
+      async function doPhoneLogin() {
+        const phone = (loginPhoneInput.value || '').trim();
         const password = loginPasswordInput.value || '';
-        if (!email || !password) {
-          showError('login', 'Enter your email and password.');
+        const countryCode = (loginPhoneCountry && loginPhoneCountry.value) || '+63';
+        if (!phone || !password) {
+          showError('login', 'Enter your phone number and password.');
           return;
         }
         loadingOverlay.classList.add('show');
         try {
-          const result = await loginWithEmail(email, password);
+          const result = await loginWithPhonePassword(phone, password, countryCode);
           if (result && result.success && result.user) {
             await routeSignedInUser(result.user);
             return;
           }
           loadingOverlay.classList.remove('show');
-          showError('login', (result && result.message) || 'Email sign-in failed. Please try again.');
+          showError('login', (result && result.message) || 'Sign-in failed. Please try again.');
         } catch (error) {
           loadingOverlay.classList.remove('show');
-          console.error('Email sign-in error:', error);
-          showError('login', 'Email sign-in failed. Please try again.');
+          console.error('Phone sign-in error:', error);
+          showError('login', 'Sign-in failed. Please try again.');
         }
       }
-      if (emailLoginBtn) emailLoginBtn.addEventListener('click', doEmailLogin);
+      if (phoneLoginBtn) phoneLoginBtn.addEventListener('click', doPhoneLogin);
       if (loginPasswordInput) loginPasswordInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); doEmailLogin(); }
+        if (e.key === 'Enter') { e.preventDefault(); doPhoneLogin(); }
       });
       
-      console.log('🔐 Login page initialized (OAuth + temp email/password)');
+      console.log('🔐 Login page initialized (OAuth + phone/password)');
     });
     
     function showError(fieldId, message) {

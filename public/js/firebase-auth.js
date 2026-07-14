@@ -647,6 +647,149 @@ async function loginWithEmail(email, password) {
 }
 
 // ============================================================================
+// PHONE + PASSWORD SIGN-IN / SIGN-UP (OAuth-independent fallback)
+// ----------------------------------------------------------------------------
+// Firebase has no native "phone + password" provider, so we map a normalized
+// phone number to a hidden synthetic email and drive Firebase's email/password
+// engine underneath. The real phone is stored on the profile (owner-only
+// user_private) as the contact field; the synthetic email is never shown to the
+// user and never receives mail. This works on EVERY device/browser (incl. the
+// iPhone 7), so no one is ever blocked by a Facebook/Google/OS quirk.
+//
+// Uniqueness (1 phone : 1 account) is enforced for free: the synthetic email is
+// deterministic from the phone, so a second signup for the same number fails
+// with auth/email-already-in-use.
+//
+// IMPORTANT: normalization MUST be identical at signup + login or a user gets
+// locked out. Both paths go through normalizePhoneNumber() — do not inline.
+// ============================================================================
+
+// Never a real, deliverable domain — these mailboxes are synthetic identifiers.
+const PHONE_SYNTHETIC_EMAIL_DOMAIN = 'phone.gisugo.app';
+
+/**
+ * Normalize a phone number to canonical E.164 ("+63XXXXXXXXXX" for PH).
+ * The SAME output must be produced at signup and login. Returns null if the
+ * number is not plausibly valid for the given country.
+ * @param {string} phone - Raw digits the user typed (may include 0/63/+63/spaces).
+ * @param {string} [countryCode='+63'] - Selected country dial code, e.g. '+63'.
+ * @returns {string|null} canonical '+<cc><national>' or null when invalid.
+ */
+function normalizePhoneNumber(phone, countryCode) {
+  let digits = String(phone == null ? '' : phone).replace(/\D/g, '');
+  const ccDigits = String(countryCode || '+63').replace(/\D/g, '') || '63';
+  if (!digits) return null;
+
+  if (ccDigits === '63') {
+    // Philippines mobile: 10 national digits starting with 9.
+    if (digits.length === 12 && digits.startsWith('63')) digits = digits.slice(2);
+    if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+    if (digits.length !== 10 || !digits.startsWith('9')) return null;
+    return '+63' + digits;
+  }
+
+  // Other countries: strip a leading country code or trunk 0, then sanity-check length.
+  if (digits.startsWith(ccDigits)) digits = digits.slice(ccDigits.length);
+  digits = digits.replace(/^0+/, '');
+  if (digits.length < 5 || digits.length > 15) return null;
+  return '+' + ccDigits + digits;
+}
+
+/**
+ * Map a canonical E.164 phone to its hidden synthetic login email.
+ * @param {string} e164Phone - Output of normalizePhoneNumber (e.g. '+639171234567').
+ * @returns {string|null} e.g. '639171234567@phone.gisugo.app'
+ */
+function phoneToSyntheticEmail(e164Phone) {
+  const digits = String(e164Phone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  return digits + '@' + PHONE_SYNTHETIC_EMAIL_DOMAIN;
+}
+
+/**
+ * Create a phone + password account (OAuth-independent). Enforces 1 phone : 1
+ * account via the deterministic synthetic email. Does NOT write the Firestore
+ * profile — the signup form does that next (savePrivatePhone + createUserProfile).
+ * @param {string} phone
+ * @param {string} password
+ * @param {string} [countryCode='+63']
+ * @returns {Promise<Object>} { success, user, phone } or { success:false, code, message }
+ */
+async function signUpWithPhonePassword(phone, password, countryCode) {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    return { success: false, message: 'Sign-up requires Firebase. Please try again in a moment.' };
+  }
+  const normalized = normalizePhoneNumber(phone, countryCode);
+  if (!normalized) {
+    return { success: false, code: 'invalid-phone', message: 'Please enter a valid phone number.' };
+  }
+  if (!password || String(password).length < 6) {
+    return { success: false, code: 'weak-password', message: 'Password must be at least 6 characters.' };
+  }
+  const syntheticEmail = phoneToSyntheticEmail(normalized);
+  try {
+    gisugoAuthLog('phone signup: creating account', { phone: normalized });
+    const result = await auth.createUserWithEmailAndPassword(syntheticEmail, password);
+    // Brand-new phone+password account: no profile doc yet.
+    try { sessionStorage.setItem('gisugo_profile_exists', '0'); } catch (e) {}
+    try { sessionStorage.setItem('gisugo_last_signin_method', 'password'); } catch (e) {}
+    return { success: true, user: result.user, phone: normalized };
+  } catch (error) {
+    const code = (error && error.code) || '';
+    console.error('❌ Phone sign-up error:', code || error);
+    let message = 'Could not create your account. Please try again.';
+    if (code === 'auth/email-already-in-use') {
+      message = 'This phone number is already registered. Try signing in instead.';
+    } else if (code === 'auth/weak-password') {
+      message = 'Password must be at least 6 characters.';
+    } else if (code === 'auth/too-many-requests') {
+      message = 'Too many attempts. Please wait a moment and try again.';
+    }
+    return { success: false, code: code || 'unknown', error: error, message: message };
+  }
+}
+
+/**
+ * Sign in with phone + password. Mirrors signUpWithPhonePassword normalization.
+ * @param {string} phone
+ * @param {string} password
+ * @param {string} [countryCode='+63']
+ * @returns {Promise<Object>} { success, user, isNewUser } or { success:false, message }
+ */
+async function loginWithPhonePassword(phone, password, countryCode) {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    return { success: false, message: 'Sign-in requires Firebase. Please try again in a moment.' };
+  }
+  const normalized = normalizePhoneNumber(phone, countryCode);
+  if (!normalized) {
+    return { success: false, code: 'invalid-phone', message: 'Please enter a valid phone number.' };
+  }
+  if (!password) {
+    return { success: false, code: 'missing-password', message: 'Please enter your password.' };
+  }
+  const syntheticEmail = phoneToSyntheticEmail(normalized);
+  try {
+    gisugoAuthLog('phone login: signing in', { phone: normalized });
+    const result = await auth.signInWithEmailAndPassword(syntheticEmail, password);
+    return await finalizeOAuthSignIn(result, 'password');
+  } catch (error) {
+    const code = (error && error.code) || '';
+    console.error('❌ Phone sign-in error:', code || error);
+    let message = 'Sign-in failed. Please try again.';
+    if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      message = 'Incorrect phone number or password.';
+    } else if (code === 'auth/user-disabled') {
+      message = 'This account has been disabled.';
+    } else if (code === 'auth/too-many-requests') {
+      message = 'Too many attempts. Please wait a moment and try again.';
+    }
+    return { success: false, code: code || 'unknown', error: error, message: message };
+  }
+}
+
+// ============================================================================
 // OAUTH SIGN-IN HELPERS (shared by the Google + Facebook popup flows)
 // ============================================================================
 
@@ -1480,6 +1623,9 @@ window.preloadFacebookSDK = preloadFacebookSDK;
 window.completeRedirectSignIn = completeRedirectSignIn;
 window.gisugoAuthLog = gisugoAuthLog;
 window.loginWithEmail = loginWithEmail;
+window.signUpWithPhonePassword = signUpWithPhonePassword;
+window.loginWithPhonePassword = loginWithPhonePassword;
+window.normalizePhoneNumber = normalizePhoneNumber;
 window.logout = logout;
 window.createUserProfile = createUserProfile;
 window.getUserProfile = getUserProfile;
