@@ -433,16 +433,22 @@ function isLikelyIOS() {
 
 /**
  * On iOS, show a soft warning before starting Facebook login (it often gets
- * stuck on iPhone/iPad). Resolves with the user's choice:
+ * stuck on iPhone/iPad). The copy/buttons differ by context:
+ *   'login'  — existing users; leads with "Log in with the Facebook app"
+ *              (device login escape hatch), browser attempt secondary.
+ *   'signup' — new users; short steer to Google / Phone + Password only.
+ * Resolves with the user's choice:
  *   'facebook' — proceed with the normal Facebook redirect anyway
  *   'device'   — use the Facebook-app device login (iOS escape hatch)
  *   false      — cancel (caller lets the user pick Google / Phone + Password)
  * On non-iOS it resolves 'facebook' immediately with no modal. Must be awaited
  * from the FB button click handler BEFORE calling startFacebookRedirect().
+ * @param {string} context - 'login' | 'signup'
  * @returns {Promise<string|false>}
  */
-function confirmFacebookOnIOS() {
+function confirmFacebookOnIOS(context) {
   if (!isLikelyIOS()) return Promise.resolve('facebook');
+  const isLogin = context === 'login';
   return new Promise(function(resolve) {
     // Guard against stacking modals if tapped twice.
     if (document.getElementById('gisugoIOSFbWarn')) {
@@ -460,35 +466,46 @@ function confirmFacebookOnIOS() {
     card.innerHTML =
       '<div style="font-size:2rem;line-height:1;margin-bottom:10px;">📱</div>' +
       '<div style="font-size:1.15rem;font-weight:800;margin-bottom:10px;">Using an iPhone or iPad?</div>' +
-      '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook login often gets stuck on iPhone and iPad. For the smoothest experience, use <strong>Google</strong> or <strong>Phone &amp; Password</strong> instead.<br><br>Already have a GISUGO account tied to Facebook? Use the <strong>Facebook app</strong> option below.</div>';
+      (isLogin
+        ? '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook login often gets stuck in this browser. The <strong>Facebook app</strong> works best.</div>'
+        : '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook sign-up often gets stuck on iPhone and iPad. <strong>Google</strong> or <strong>Phone &amp; Password</strong> is faster.</div>');
 
-    const useOther = document.createElement('button');
-    useOther.type = 'button';
-    useOther.textContent = "OK, I'll use another method";
-    useOther.style.cssText = 'width:100%;padding:13px 14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;';
-
-    const useDevice = document.createElement('button');
-    useDevice.type = 'button';
-    useDevice.textContent = 'Log in with the Facebook app';
-    useDevice.style.cssText = 'width:100%;padding:13px 14px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:10px;';
-
-    const goFb = document.createElement('button');
-    goFb.type = 'button';
-    goFb.textContent = 'Continue with Facebook anyway';
-    goFb.style.cssText = 'width:100%;padding:12px 14px;border:1px solid rgba(130,148,177,0.35);border-radius:10px;background:transparent;color:#93c5fd;font-size:0.92rem;font-weight:700;cursor:pointer;';
+    function makeButton(text, primary) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = text;
+      btn.style.cssText = primary
+        ? 'width:100%;padding:13px 14px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;'
+        : 'width:100%;padding:12px 14px;border:1px solid rgba(130,148,177,0.35);border-radius:10px;background:transparent;color:#93c5fd;font-size:0.92rem;font-weight:700;cursor:pointer;margin-bottom:10px;';
+      return btn;
+    }
 
     function close(result) {
       try { overlay.remove(); } catch (e) {}
       resolve(result);
     }
-    useOther.addEventListener('click', function() { close(false); });
-    useDevice.addEventListener('click', function() { close('device'); });
-    goFb.addEventListener('click', function() { close('facebook'); });
     overlay.addEventListener('click', function(e) { if (e.target === overlay) close(false); });
 
-    card.appendChild(useOther);
-    card.appendChild(useDevice);
-    card.appendChild(goFb);
+    if (isLogin) {
+      const useDevice = makeButton('Log in with the Facebook app', true);
+      const goFb = makeButton('Try in this browser anyway', false);
+      const useOther = makeButton('Use another method', false);
+      useDevice.addEventListener('click', function() { close('device'); });
+      goFb.addEventListener('click', function() { close('facebook'); });
+      useOther.addEventListener('click', function() { close(false); });
+      card.appendChild(useDevice);
+      card.appendChild(goFb);
+      card.appendChild(useOther);
+    } else {
+      const useOther = makeButton("OK, I'll use another method", true);
+      useOther.style.background = '#2563eb';
+      const goFb = makeButton('Continue with Facebook anyway', false);
+      useOther.addEventListener('click', function() { close(false); });
+      goFb.addEventListener('click', function() { close('facebook'); });
+      card.appendChild(useOther);
+      card.appendChild(goFb);
+    }
+
     overlay.appendChild(card);
     document.body.appendChild(overlay);
   });

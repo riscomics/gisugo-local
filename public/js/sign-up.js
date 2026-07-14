@@ -1716,7 +1716,7 @@ async function handleFacebookSignIn() {
   // the user can pick Google / Phone + Password, the FB-app device login
   // (works even on cold-session iOS), or the normal redirect.
   if (typeof confirmFacebookOnIOS === 'function') {
-    const choice = await confirmFacebookOnIOS();
+    const choice = await confirmFacebookOnIOS('signup');
     if (!choice) return;
     if (choice === 'device') { runFacebookDeviceSignIn(); return; }
   }
