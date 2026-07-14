@@ -388,10 +388,21 @@ document.addEventListener('DOMContentLoaded', async function() {
   checkPendingAuth(); // Check if redirected from login with pending auth
   checkExistingAuthUser(); // Check if user is already authenticated
 
+  // If a Facebook-app device login was mid-flight when this page (re)loaded
+  // (e.g. returned from the FB app into a fresh tab), resume it.
+  if (typeof resumeFacebookDeviceLoginIfPending === 'function') {
+    resumeFacebookDeviceLoginIfPending();
+  }
+
   if (typeof completeRedirectSignIn === 'function') {
     try {
       const rr = await completeRedirectSignIn();
-      if (rr && rr.success === false && rr.message) {
+      if (rr && rr.success === false && rr.offerDeviceLogin) {
+        // The Facebook redirect died mid-handshake on iOS (passkey wall).
+        // Offer the FB-app device login right at the moment of failure.
+        hideLoadingOverlay();
+        runFacebookDeviceSignIn();
+      } else if (rr && rr.success === false && rr.message) {
         hideLoadingOverlay();
         showInputGuideHint(rr.message, 'SIGN-IN', '⚠️');
       }
@@ -1701,6 +1712,15 @@ async function handleGoogleSignIn() {
 // exchanges the token and checkExistingAuthUser()'s onAuthStateChanged listener
 // routes: redirect home if a profile exists, otherwise prefill this form.
 async function handleFacebookSignIn() {
+  // On iOS, Facebook login frequently dead-ends (passkey sandbox). Warn first:
+  // the user can pick Google / Phone + Password, the FB-app device login
+  // (works even on cold-session iOS), or the normal redirect.
+  if (typeof confirmFacebookOnIOS === 'function') {
+    const choice = await confirmFacebookOnIOS();
+    if (!choice) return;
+    if (choice === 'device') { runFacebookDeviceSignIn(); return; }
+  }
+
   showLoadingOverlay();
   
   try {
@@ -1723,6 +1743,21 @@ async function handleFacebookSignIn() {
     hideLoadingOverlay();
     console.error('Facebook sign-in error:', error);
     showInputGuideHint('Facebook sign-in failed. Please try again.', 'FACEBOOK SIGN-IN', '⚠️');
+  }
+}
+
+// Facebook device login (iOS escape hatch): confirm in the FB app, we poll for
+// the token. Has its own overlay. On success, checkExistingAuthUser()'s
+// onAuthStateChanged listener routes (home if profile exists, else prefill).
+async function runFacebookDeviceSignIn() {
+  try {
+    const result = await loginWithFacebookDevice();
+    if (result && result.success) return; // onAuthStateChanged handles routing
+    if (result && result.cancelled) return;
+    showInputGuideHint((result && result.message) || 'Facebook app login failed. Please try again.', 'FACEBOOK SIGN-IN', '⚠️');
+  } catch (error) {
+    console.error('Facebook device login error:', error);
+    showInputGuideHint('Facebook app login failed. Please try again.', 'FACEBOOK SIGN-IN', '⚠️');
   }
 }
 

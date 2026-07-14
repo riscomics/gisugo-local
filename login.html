@@ -855,7 +855,7 @@
   <!-- Firebase Helper Modules -->
   <script src="public/js/oauth-debug-panel.js?v=2"></script>
   <script src="public/js/firebase-config.js?v=20260708b"></script>
-  <script src="public/js/firebase-auth.js?v=29"></script>
+  <script src="public/js/firebase-auth.js?v=31"></script>
   <script src="public/js/firebase-db.js"></script>
   <script src="public/js/firebase-storage.js"></script>
   
@@ -928,6 +928,23 @@
         }
       }
 
+      // Facebook device login (iOS escape hatch): confirm in the FB app, we
+      // poll for the token. Has its own overlay, so no loading overlay here.
+      async function runDeviceLogin() {
+        try {
+          const result = await loginWithFacebookDevice();
+          if (result && result.success && result.user) {
+            await routeSignedInUser(result.user);
+            return;
+          }
+          if (result && result.cancelled) return;
+          showError('login', (result && result.message) || 'Facebook app login failed. Please try again.');
+        } catch (error) {
+          console.error('Facebook device login error:', error);
+          showError('login', 'Facebook app login failed. Please try again.');
+        }
+      }
+
       // Wire the buttons FIRST — before any await — so they're always clickable
       // even if completeRedirectSignIn() below is slow/hangs (old iOS Safari).
       googleSignInBtn.addEventListener('click', function() { runOAuth(loginWithGoogle, 'Google'); });
@@ -935,7 +952,21 @@
       // top-level tab). This lets the Facebook app surface for login approval on
       // Android Chrome (avoiding the popup dead-end), and the access token comes
       // back in the URL fragment — Firebase's broken redirect handler is bypassed.
-      facebookSignInBtn.addEventListener('click', function() { runOAuth(startFacebookRedirect, 'Facebook'); });
+      facebookSignInBtn.addEventListener('click', async function() {
+        // On iOS, Facebook login frequently dead-ends (passkey sandbox). Warn
+        // first: user can pick Google / Phone + Password, the FB-app device
+        // login (works even on cold-session iOS), or the normal redirect.
+        const choice = await confirmFacebookOnIOS();
+        if (!choice) return;
+        if (choice === 'device') { runDeviceLogin(); return; }
+        runOAuth(startFacebookRedirect, 'Facebook');
+      });
+
+      // If a Facebook-app device login was mid-flight when this page (re)loaded
+      // (e.g. returned from the FB app into a fresh tab), resume it.
+      if (typeof resumeFacebookDeviceLoginIfPending === 'function') {
+        resumeFacebookDeviceLoginIfPending();
+      }
 
       // Finish same-tab OAuth when returning from Google/Facebook redirect.
       // Also treat a Facebook token in the URL fragment as pending, so the
@@ -962,7 +993,11 @@
           }
           clearOverlayWatchdog();
           if (oauthPending) loadingOverlay.classList.remove('show');
-          if (rr && rr.success === false && rr.message) {
+          if (rr && rr.success === false && rr.offerDeviceLogin) {
+            // The Facebook redirect died mid-handshake on iOS (passkey wall).
+            // Offer the FB-app device login right at the moment of failure.
+            runDeviceLogin();
+          } else if (rr && rr.success === false && rr.message) {
             showError('login', rr.message);
           }
         } catch (error) {

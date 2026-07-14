@@ -282,6 +282,8 @@ async function loginWithFacebook() {
 // ============================================================================
 
 const FACEBOOK_APP_ID = '1027099963510428';
+// Client token (public by design — pairs with the app id for device login).
+const FACEBOOK_CLIENT_TOKEN = '2dbd136c5fec90f2c8ab4611558bf9b1';
 const FACEBOOK_GRAPH_VERSION = 'v21.0';
 let facebookSdkPromise = null;
 
@@ -412,6 +414,87 @@ function getFacebookRedirectUri() {
 }
 
 /**
+ * Detect iPhone / iPad (incl. iOS Chrome/Firefox, which all run WebKit, and
+ * iPadOS which reports as "MacIntel" with touch). Used to warn before Facebook
+ * login, which frequently dead-ends on iOS (Facebook's passkey/"approve on
+ * another device" flow is sandboxed away from Safari — see
+ * docs/IOS_LEGACY_DEVICE_COMPATIBILITY_NOTE_2026-03-12.md).
+ * @returns {boolean}
+ */
+function isLikelyIOS() {
+  try {
+    const ua = navigator.userAgent || '';
+    if (/iPad|iPhone|iPod/.test(ua)) return true;
+    // iPadOS 13+ masquerades as macOS Safari; distinguish by touch support.
+    if (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1) return true;
+  } catch (e) {}
+  return false;
+}
+
+/**
+ * On iOS, show a soft warning before starting Facebook login (it often gets
+ * stuck on iPhone/iPad). Resolves with the user's choice:
+ *   'facebook' — proceed with the normal Facebook redirect anyway
+ *   'device'   — use the Facebook-app device login (iOS escape hatch)
+ *   false      — cancel (caller lets the user pick Google / Phone + Password)
+ * On non-iOS it resolves 'facebook' immediately with no modal. Must be awaited
+ * from the FB button click handler BEFORE calling startFacebookRedirect().
+ * @returns {Promise<string|false>}
+ */
+function confirmFacebookOnIOS() {
+  if (!isLikelyIOS()) return Promise.resolve('facebook');
+  return new Promise(function(resolve) {
+    // Guard against stacking modals if tapped twice.
+    if (document.getElementById('gisugoIOSFbWarn')) {
+      resolve(false);
+      return;
+    }
+    const overlay = document.createElement('div');
+    overlay.id = 'gisugoIOSFbWarn';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,23,0.72);';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'max-width:360px;width:100%;box-sizing:border-box;background:#0f172a;border:1px solid rgba(130,148,177,0.35);border-radius:16px;padding:22px 20px;color:#f8fafc;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;font-family:inherit;';
+    card.innerHTML =
+      '<div style="font-size:2rem;line-height:1;margin-bottom:10px;">📱</div>' +
+      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:10px;">Using an iPhone or iPad?</div>' +
+      '<div style="font-size:0.95rem;line-height:1.5;color:#cbd5e1;margin-bottom:18px;">Facebook login often gets stuck on iPhone and iPad. For the smoothest experience, use <strong>Google</strong> or <strong>Phone &amp; Password</strong> instead.<br><br>Already have a GISUGO account tied to Facebook? Use the <strong>Facebook app</strong> option below.</div>';
+
+    const useOther = document.createElement('button');
+    useOther.type = 'button';
+    useOther.textContent = "OK, I'll use another method";
+    useOther.style.cssText = 'width:100%;padding:13px 14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;';
+
+    const useDevice = document.createElement('button');
+    useDevice.type = 'button';
+    useDevice.textContent = 'Log in with the Facebook app';
+    useDevice.style.cssText = 'width:100%;padding:13px 14px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:10px;';
+
+    const goFb = document.createElement('button');
+    goFb.type = 'button';
+    goFb.textContent = 'Continue with Facebook anyway';
+    goFb.style.cssText = 'width:100%;padding:12px 14px;border:1px solid rgba(130,148,177,0.35);border-radius:10px;background:transparent;color:#93c5fd;font-size:0.92rem;font-weight:700;cursor:pointer;';
+
+    function close(result) {
+      try { overlay.remove(); } catch (e) {}
+      resolve(result);
+    }
+    useOther.addEventListener('click', function() { close(false); });
+    useDevice.addEventListener('click', function() { close('device'); });
+    goFb.addEventListener('click', function() { close('facebook'); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) close(false); });
+
+    card.appendChild(useOther);
+    card.appendChild(useDevice);
+    card.appendChild(goFb);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+  });
+}
+
+/**
  * Start Facebook sign-in as a full-page redirect. Must be called directly from
  * the click handler. Navigates away, so it resolves with { redirecting: true }.
  * @returns {Promise<Object>}
@@ -491,7 +574,14 @@ async function completeFacebookRedirectSignIn() {
     gisugoAuthLog('Facebook: redirect returned no token', { error: parsed.error, reason: parsed.errorReason });
     const denied = (parsed.error + ' ' + parsed.errorReason).toLowerCase().indexOf('denied') !== -1;
     if (denied) return { handled: true, success: false, cancelled: true };
-    return { handled: true, success: false, message: 'Facebook sign-in didn\'t complete. Please try again.' };
+    // On iOS the redirect usually dies at Facebook's passkey wall — offer the
+    // Facebook-app device login as the rescue path.
+    return {
+      handled: true,
+      success: false,
+      offerDeviceLogin: isLikelyIOS(),
+      message: 'Facebook sign-in didn\'t complete. Please try again.'
+    };
   }
 
   // CSRF check — only enforced when we still have the stored state to compare.
@@ -523,6 +613,272 @@ async function completeFacebookRedirectSignIn() {
     mapped.handled = true;
     return mapped;
   }
+}
+
+// ============================================================================
+// FACEBOOK DEVICE LOGIN (facebook.com/device) — iOS escape hatch
+// ----------------------------------------------------------------------------
+// On a cold Safari session, iOS can't finish ANY browser-based Facebook OAuth:
+// Facebook's passkey/"approve on another device" step is sandboxed away from
+// Safari, so the handshake never returns. Device login sidesteps the handshake
+// entirely — we fetch a short code from the Graph API, the user confirms it
+// inside the Facebook APP (where they're already logged in), and we POLL
+// Facebook for the access token. Nothing has to come back through Safari.
+// Verified end-to-end on iPhone 7 / iOS 15 (2026-07-14). Note: the in-app
+// "login requests" screen ignores the ?user_code= prefill, so the user must
+// paste/type the code — hence the copy-code button.
+// ============================================================================
+
+const FACEBOOK_DEVICE_STATE_KEY = 'gisugo_fb_device_login';
+
+function fbDeviceGraphPost(path, params) {
+  const body = new URLSearchParams(params).toString();
+  return fetch('https://graph.facebook.com/' + FACEBOOK_GRAPH_VERSION + '/' + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body
+  }).then(function(res) { return res.json(); });
+}
+
+function loadFacebookDeviceState() {
+  try {
+    const raw = localStorage.getItem(FACEBOOK_DEVICE_STATE_KEY);
+    const state = raw ? JSON.parse(raw) : null;
+    if (state && state.code && Date.now() < state.expiresAt) return state;
+  } catch (e) {}
+  return null;
+}
+
+function clearFacebookDeviceState() {
+  try { localStorage.removeItem(FACEBOOK_DEVICE_STATE_KEY); } catch (e) {}
+}
+
+/**
+ * Exchange a Facebook access token (from device login) for a Firebase session.
+ * Same finalize path as the redirect flow, so routing behaves identically.
+ */
+async function signInWithFacebookAccessToken(accessToken) {
+  const auth = getFirebaseAuth();
+  if (!auth) return { success: false, message: 'Firebase not ready. Please try again.' };
+  try {
+    gisugoAuthLog('FB device: token -> signInWithCredential');
+    const credential = firebase.auth.FacebookAuthProvider.credential(accessToken);
+    const result = await auth.signInWithCredential(credential);
+    gisugoAuthLog('FB device: credential sign-in success', { uid: result.user && result.user.uid });
+    return await finalizeOAuthSignIn(result, 'facebook.com');
+  } catch (error) {
+    gisugoAuthLog('FB device: credential error', { code: (error && error.code) || '' });
+    return mapOAuthSignInError(error, 'Facebook');
+  }
+}
+
+/**
+ * Show the device-login overlay and run the poll loop until sign-in completes,
+ * the user cancels, or the code expires. Resolves with the same result shape as
+ * loginWithFacebook: { success, user, ... } | { cancelled: true } |
+ * { success: false, message }.
+ * @param {Object|null} existingState - resume a pending device login, or null
+ *   to request a fresh code.
+ */
+function runFacebookDeviceLogin(existingState) {
+  return new Promise(function(resolve) {
+    if (document.getElementById('gisugoFbDeviceOverlay')) {
+      resolve({ cancelled: true });
+      return;
+    }
+
+    let state = existingState || null;
+    let pollTimer = null;
+    let finished = false;
+
+    const overlay = document.createElement('div');
+    overlay.id = 'gisugoFbDeviceOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:100001;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(2,6,23,0.78);';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'max-width:380px;width:100%;box-sizing:border-box;background:#0f172a;border:1px solid rgba(130,148,177,0.35);border-radius:16px;padding:22px 20px;color:#f8fafc;box-shadow:0 20px 60px rgba(0,0,0,0.5);text-align:center;font-family:inherit;';
+    card.innerHTML =
+      '<div style="font-size:1.15rem;font-weight:800;margin-bottom:10px;">Log in with the Facebook app</div>' +
+      '<div style="font-size:0.92rem;line-height:1.55;color:#cbd5e1;text-align:left;margin-bottom:14px;">' +
+      '1. Tap the button below — it copies your code and opens Facebook.<br>' +
+      '2. If asked, choose <strong>With the Facebook App</strong> (not "With this Browser").<br>' +
+      '3. Paste or type the code, approve, then come back to this tab.</div>' +
+      '<div id="gisugoFbDeviceCode" style="font-size:1.7rem;letter-spacing:0.25rem;font-weight:800;color:#fbbf24;margin-bottom:6px;min-height:2rem;">&hellip;</div>' +
+      '<div id="gisugoFbDeviceCopied" style="font-size:0.8rem;color:#34d399;min-height:1.1rem;margin-bottom:8px;"></div>';
+
+    const openBtn = document.createElement('a');
+    openBtn.id = 'gisugoFbDeviceOpen';
+    openBtn.target = '_blank';
+    openBtn.rel = 'noopener';
+    openBtn.textContent = 'Copy code & open Facebook';
+    openBtn.style.cssText = 'display:block;width:100%;box-sizing:border-box;padding:13px 14px;border:none;border-radius:10px;background:#1877f2;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:10px;opacity:0.5;pointer-events:none;';
+
+    const statusEl = document.createElement('div');
+    statusEl.style.cssText = 'font-size:0.88rem;color:#93c5fd;margin-bottom:12px;min-height:1.2rem;';
+    statusEl.textContent = 'Getting your code from Facebook\u2026';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = 'width:100%;padding:11px 14px;border:1px solid rgba(130,148,177,0.35);border-radius:10px;background:transparent;color:#cbd5e1;font-size:0.92rem;font-weight:700;cursor:pointer;';
+
+    card.appendChild(openBtn);
+    card.appendChild(statusEl);
+    card.appendChild(cancelBtn);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    const codeEl = card.querySelector('#gisugoFbDeviceCode');
+    const copiedEl = card.querySelector('#gisugoFbDeviceCopied');
+
+    function finish(result) {
+      if (finished) return;
+      finished = true;
+      if (pollTimer) clearTimeout(pollTimer);
+      document.removeEventListener('visibilitychange', onVisible);
+      try { overlay.remove(); } catch (e) {}
+      resolve(result);
+    }
+
+    function onVisible() {
+      // iOS throttles background-tab timers; poll the moment the user returns.
+      if (document.visibilityState === 'visible' && state && !finished) pollOnce();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+
+    cancelBtn.addEventListener('click', function() {
+      clearFacebookDeviceState();
+      gisugoAuthLog('FB device: cancelled by user');
+      finish({ cancelled: true });
+    });
+
+    openBtn.addEventListener('click', function() {
+      // Copy inside the tap gesture (fire-and-forget) while the anchor's
+      // default navigation opens Facebook.
+      if (!state) return;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(state.userCode).then(function() {
+            copiedEl.textContent = 'Code copied \u2014 paste it in the Facebook app';
+          }).catch(function() {});
+        }
+      } catch (e) {}
+      statusEl.textContent = 'Waiting for you to approve in the Facebook app\u2026';
+    });
+
+    function activate(freshState) {
+      state = freshState;
+      codeEl.textContent = state.userCode;
+      openBtn.href = 'https://www.facebook.com/device?user_code=' + encodeURIComponent(state.userCode);
+      openBtn.style.opacity = '1';
+      openBtn.style.pointerEvents = 'auto';
+      statusEl.textContent = 'Waiting for approval\u2026 this page finishes by itself.';
+      schedulePoll(state.intervalMs);
+    }
+
+    function requestCode() {
+      statusEl.textContent = 'Getting your code from Facebook\u2026';
+      fbDeviceGraphPost('device/login', {
+        access_token: FACEBOOK_APP_ID + '|' + FACEBOOK_CLIENT_TOKEN,
+        scope: 'public_profile'
+      }).then(function(data) {
+        if (finished) return;
+        if (!data || data.error || !data.code) {
+          gisugoAuthLog('FB device: code request failed', { error: data && data.error && data.error.message });
+          finish({ success: false, message: 'Could not start Facebook app login. Please try again.' });
+          return;
+        }
+        const fresh = {
+          code: data.code,
+          userCode: data.user_code,
+          expiresAt: Date.now() + (data.expires_in * 1000),
+          intervalMs: Math.max(5000, (data.interval || 5) * 1000)
+        };
+        try { localStorage.setItem(FACEBOOK_DEVICE_STATE_KEY, JSON.stringify(fresh)); } catch (e) {}
+        gisugoAuthLog('FB device: code issued', { userCode: fresh.userCode });
+        activate(fresh);
+      }).catch(function(err) {
+        if (finished) return;
+        gisugoAuthLog('FB device: code request network error', { message: err && err.message });
+        finish({ success: false, message: 'Could not reach Facebook. Check your connection and try again.' });
+      });
+    }
+
+    function schedulePoll(delayMs) {
+      if (pollTimer) clearTimeout(pollTimer);
+      pollTimer = setTimeout(pollOnce, delayMs);
+    }
+
+    function pollOnce() {
+      if (finished || !state) return;
+      if (Date.now() > state.expiresAt) {
+        gisugoAuthLog('FB device: code expired, requesting a new one');
+        clearFacebookDeviceState();
+        state = null;
+        openBtn.style.opacity = '0.5';
+        openBtn.style.pointerEvents = 'none';
+        copiedEl.textContent = '';
+        requestCode();
+        return;
+      }
+      fbDeviceGraphPost('device/login_status', {
+        access_token: FACEBOOK_APP_ID + '|' + FACEBOOK_CLIENT_TOKEN,
+        code: state.code
+      }).then(function(data) {
+        if (finished) return;
+        if (data && data.access_token) {
+          gisugoAuthLog('FB device: access token received');
+          clearFacebookDeviceState();
+          statusEl.textContent = 'Approved! Signing you in\u2026';
+          signInWithFacebookAccessToken(data.access_token).then(finish);
+          return;
+        }
+        const sub = data && data.error && data.error.error_subcode;
+        if (sub === 1349174) { schedulePoll(state.intervalMs); return; } // pending
+        if (sub === 1349172) { schedulePoll(state.intervalMs * 2); return; } // slow down
+        gisugoAuthLog('FB device: poll failed', { error: data && data.error && data.error.message, subcode: sub });
+        clearFacebookDeviceState();
+        finish({ success: false, message: 'Facebook app login didn\'t complete. Please try again.' });
+      }).catch(function() {
+        if (!finished) schedulePoll(state.intervalMs); // transient network blip — keep polling
+      });
+    }
+
+    if (state) {
+      gisugoAuthLog('FB device: resuming pending login', { userCode: state.userCode });
+      activate(state);
+      pollOnce();
+    } else {
+      requestCode();
+    }
+  });
+}
+
+/**
+ * Start Facebook device login (fresh code). Entry point for the iOS escape
+ * hatch. Resolves like loginWithFacebook.
+ * @returns {Promise<Object>}
+ */
+function loginWithFacebookDevice() {
+  return runFacebookDeviceLogin(loadFacebookDeviceState());
+}
+
+/**
+ * If a device login was in progress and this page (re)loaded before it
+ * finished (e.g. the user returned via a fresh tab), reopen the overlay and
+ * resume polling. On success, routes the user like any completed sign-in.
+ * Call once on load for login.html and sign-up.html. Never throws.
+ */
+function resumeFacebookDeviceLoginIfPending() {
+  const state = loadFacebookDeviceState();
+  if (!state) return;
+  runFacebookDeviceLogin(state).then(function(result) {
+    if (result && result.success && result.user && typeof handleAuthRedirect === 'function') {
+      handleAuthRedirect(result.user);
+    }
+  }).catch(function() {});
 }
 
 /**
@@ -1626,6 +1982,10 @@ window.loginWithEmail = loginWithEmail;
 window.signUpWithPhonePassword = signUpWithPhonePassword;
 window.loginWithPhonePassword = loginWithPhonePassword;
 window.normalizePhoneNumber = normalizePhoneNumber;
+window.isLikelyIOS = isLikelyIOS;
+window.confirmFacebookOnIOS = confirmFacebookOnIOS;
+window.loginWithFacebookDevice = loginWithFacebookDevice;
+window.resumeFacebookDeviceLoginIfPending = resumeFacebookDeviceLoginIfPending;
 window.logout = logout;
 window.createUserProfile = createUserProfile;
 window.getUserProfile = getUserProfile;
