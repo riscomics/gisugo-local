@@ -2435,7 +2435,7 @@ async function saveProfileChanges() {
                 console.log('✅ Phone login moved to new number');
                 if (typeof updateLoginMethodsUI === 'function') updateLoginMethodsUI();
                 if (typeof showLinkModal === 'function') {
-                  showLinkModal('success', 'Phone Login Updated', 'Your phone & password login now uses your NEW number. Your password is unchanged.');
+                  showLinkModal('success', 'Phone Login Updated', 'Your phone & password login now uses your NEW number. Your password is the same.');
                 }
               }
             } catch (syncError) {
