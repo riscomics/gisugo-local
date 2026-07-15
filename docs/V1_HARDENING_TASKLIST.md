@@ -343,8 +343,20 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
       auto-rescue ✅; desktop → unchanged ✅.
       Historical detail of the original dead-end preserved in
       `docs/IOS_LEGACY_DEVICE_COMPATIBILITY_NOTE_2026-03-12.md` (updated 2026-07-14).
-      Follow-ups (not urgent): remove the OAuth debug log panel from login/sign-up once stable;
-      device login also serves as **account recovery** for FB-locked-out users (partial answer to the
+      Follow-up done: **OAuth debug panel removed from live pages (2026-07-14).** How to restore if
+      login debugging is ever needed again:
+        1. The panel code is KEPT at `public/js/oauth-debug-panel.js` (untouched, still deployed).
+        2. Re-add `<script src="public/js/oauth-debug-panel.js?v=2"></script>` in `login.html` and
+           `sign-up.html`, right above the `firebase-config.js` tag (a comment marks the exact spot).
+        3. That's it — `gisugoAuthLog` still records every auth step to sessionStorage
+           (`gisugo_auth_debug_log`, last 50 entries) + console, and the redirect starters still set
+           the `gisugo_oauth_debug` auto-show flag, so the panel lights up with full history the
+           moment the script is back. (Long-press the page title 2s also toggles it.)
+        Also removed with it: the watchdog's panel auto-open + "Tap Log (top-right)" error copy in
+        `login.html` (now plain "Please try again." messages) — restore those lines from git history
+        (commit that removed the panel) if wanted, or just re-add the script tag (enough for field
+        debugging: console + long-press remain).
+      Device login also serves as **account recovery** for FB-locked-out users (partial answer to the
       cross-provider-duplicate gap below).
 - [x] **Phone + Password login (OAuth-independent fallback) — BUILT (2026-07-13, pending live test).**
       Works on every device/browser (incl. the iPhone 7), so no user is blocked by a FB/Google/OS quirk.

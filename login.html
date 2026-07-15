@@ -853,7 +853,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
   
   <!-- Firebase Helper Modules -->
-  <script src="public/js/oauth-debug-panel.js?v=2"></script>
+  <!-- OAuth debug panel removed 2026-07-14 (kept at public/js/oauth-debug-panel.js;
+       restore steps in docs/V1_HARDENING_TASKLIST.md Track G) -->
   <script src="public/js/firebase-config.js?v=20260708b"></script>
   <script src="public/js/firebase-auth.js?v=35"></script>
   <script src="public/js/firebase-db.js"></script>
@@ -894,14 +895,10 @@
         clearOverlayWatchdog();
         overlayWatchdog = setTimeout(function() {
           loadingOverlay.classList.remove('show');
-          try { sessionStorage.setItem('gisugo_oauth_debug', '1'); } catch (e) {}
-          if (typeof window.__gisugoRenderAuthDebugPanel === 'function') {
-            window.__gisugoRenderAuthDebugPanel();
-          }
           if (typeof gisugoAuthLog === 'function') {
             gisugoAuthLog('watchdog: sign-in timed out on loading screen');
           }
-          showError('login', 'Sign-in timed out. Tap Log (top-right), copy the log, and try again.');
+          showError('login', 'Sign-in timed out. Please try again.');
         }, 20000);
       }
 
@@ -1026,7 +1023,7 @@
           clearOverlayWatchdog();
           if (oauthPending) loadingOverlay.classList.remove('show');
           console.error('Redirect completion error:', error);
-          showError('login', 'Sign-in failed. Tap Log (top-right) for details.');
+          showError('login', 'Sign-in failed. Please try again.');
         }
       }
       
