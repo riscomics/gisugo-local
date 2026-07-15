@@ -2154,6 +2154,10 @@ async function resolveCurrentAuthUser(timeoutMs = 4500) {
 function userNeedsEmailVerification(user) {
   if (!user) return false;
   if (!user.email) return false;
+  // Synthetic phone-login mailboxes (…@phone.gisugo.app) are not real inboxes —
+  // they can NEVER receive a verification email, so gating them would lock out
+  // every phone+password user permanently.
+  if (isSyntheticPhoneEmail(user.email)) return false;
   const providerIds = Array.isArray(user.providerData)
     ? user.providerData.map((provider) => provider && provider.providerId).filter(Boolean)
     : [];
