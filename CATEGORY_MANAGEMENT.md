@@ -1,5 +1,9 @@
 # Category Management System - Complete Guide
 
+> **Agent rule:** category lists in HTML/JS are authoritative over this doc — grep category
+> pages and `shared-menu.js` before reporting what categories exist live. See `AGENTS.md` §
+> "verify production data."
+
 ## Overview
 This document outlines the complete architecture for managing job/gig categories in the GISUGO platform. It identifies all files that need updates when adding or modifying categories, and provides a roadmap for streamlining the process.
 

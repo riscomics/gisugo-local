@@ -3,6 +3,10 @@
 **Date:** February 10, 2026  
 **Commit:** 2a94947
 
+> **Agent rule:** security findings here are point-in-time — re-verify `firestore.rules`,
+> `profile.js`, and production data before reporting current posture. See `AGENTS.md` §
+> "verify production data."
+
 ## Issues Identified
 
 ### 1. Back Button Behavior ✅ (No Action Needed)

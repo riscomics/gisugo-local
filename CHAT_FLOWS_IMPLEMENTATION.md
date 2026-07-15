@@ -1,5 +1,9 @@
 # 💬 Chat Thread Implementation - Complete Flow Documentation
 
+> **Agent rule:** chat is background/premium path — verify current product direction in
+> `docs/V1_HARDENING_TASKLIST.md` and live `messages.js` before citing this doc as active UX.
+> See `AGENTS.md` § "verify production data."
+
 ## Overview
 Two distinct contact flows create chat threads in `messages.html`, visible in role-specific tabs based on user context.
 

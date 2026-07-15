@@ -2,6 +2,8 @@
 
 > Status: **Direction decided, build parked behind V1 hardening**
 > Created: 2026-06-18
+> **Agent rule:** V2 is parked — do not cite this plan as current V1 status without checking
+> `docs/V1_HARDENING_TASKLIST.md` and production data. See `AGENTS.md` § "verify production data."
 > Owner: solo build (designer/PM + AI-paired development)
 
 This is the forward-looking reference for GISUGO V2: the dedicated cross-platform

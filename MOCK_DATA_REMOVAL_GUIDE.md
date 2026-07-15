@@ -6,6 +6,9 @@ generator functions in `messages.js`) is flagged for cleanup in the V1 hardening
 **Created:** 2026-02-09  
 **Last Updated:** 2026-06-18
 
+**Agent rule:** grep the repo and spot-check production behavior before claiming mock paths are
+gone. Docs age; code + Firestore are authoritative. See `AGENTS.md` § "verify production data."
+
 ---
 
 ## Overview

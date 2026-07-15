@@ -2,6 +2,9 @@
 
 > Status: **BUILT — Phases A–D done; deploy + Phase E verify pending.**
 > Last updated: 2026-06-23 3:14 PM (UTC-4)
+> **Agent rule:** "BUILT/DEPLOYED/SIGNED OFF" claims here must be cross-checked against live
+> code (`?v=` bumps), production Firestore slot/coin fields, and user-visible behavior — not
+> repeated from this doc alone. See `AGENTS.md` § "verify production data."
 > Goal: replace the "token/coin currency" framing with a plain **"Applications Remaining"**
 > allowance, delivered at the decision moment, so the `my-applications` page is no longer
 > *needed* (kept only as an afterthought to withdraw/free an application). No money/currency/

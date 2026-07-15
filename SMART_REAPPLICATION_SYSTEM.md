@@ -1,5 +1,9 @@
 # Smart Reapplication System - Documentation
 
+> **Agent rule:** slot/cap policy may have changed since this doc — verify `firebase-db.js`,
+> live coin reconcile, and production `applications` before citing limits. See `AGENTS.md` §
+> "verify production data."
+
 ## Overview
 
 Workers can now apply to a gig **up to 2 times maximum**, with the following rules:

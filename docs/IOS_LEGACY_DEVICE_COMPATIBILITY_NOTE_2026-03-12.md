@@ -1,5 +1,9 @@
 # iOS Legacy Device Compatibility Note (Observed 2026-03-12)
 
+> **Agent rule:** device/login compatibility claims must be verified against current
+> `public/js/firebase-auth.js` and live https://gisugo.com — not this note alone.
+> Facebook device-login rescue shipped 2026-07-14. See `AGENTS.md` § "verify production data."
+
 ## Scope
 - Document known issues seen on older iOS devices before implementation work.
 - No code changes are included in this note.

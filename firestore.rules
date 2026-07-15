@@ -107,17 +107,6 @@ service cloud.firestore {
         && request.resource.data.status == 'completed';
     }
     
-    // Check if only updating appliedJobsCount (for job deletion cleanup)
-    function isUpdatingAppliedJobsCount() {
-      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      let oldCount = intOrZero(resource.data.appliedJobsCount);
-      let newCount = intOrZero(request.resource.data.appliedJobsCount);
-      return affectedKeys.hasOnly(['appliedJobsCount'])
-        && request.resource.data.appliedJobsCount is int
-        && newCount >= 0
-        && (newCount == oldCount - 1 || newCount == oldCount + 1);
-    }
-    
     // Check if only updating statistics fields (for job completion)
     function isUpdatingStatistics() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
@@ -192,13 +181,11 @@ service cloud.firestore {
         && request.resource.data.userId == userId;
       
       // Only the owner can update their own profile
-      // OR authenticated users can update appliedJobsCount (for job deletion cleanup)
       // OR authenticated users can update statistics (for job completion)
       // OR authenticated users can update review stats (averageRating, totalReviews)
       allow update: if (isOwner(userId)
         && isValidProfile()
         && request.resource.data.userId == userId)
-        || (isAuthenticated() && isUpdatingAppliedJobsCount())
         || (isAuthenticated() && isUpdatingStatistics())
         || (isAuthenticated() && isUpdatingReviewStats());
       

@@ -1,5 +1,9 @@
 # Notification Types - Complete Reference
 
+> **Agent rule:** notification types/copy/push routing change in code — grep `functions/index.js`
+> and `messages.js` and spot-check live `notifications` before citing this table as current.
+> See `AGENTS.md` § "verify production data."
+
 ## Worker Alerts Tab
 Shows notifications **TO WORKERS** about their applications and gigs:
 

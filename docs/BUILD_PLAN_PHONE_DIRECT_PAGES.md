@@ -1,9 +1,12 @@
 # GISUGO — Build Plan: Phone-at-Signup · Direct Route · Alerts/Support Pages
 
-> Status: **Active plan** · Created 2026-07-04
+> Status: **Active plan** · Created 2026-07-04 · Last verified against production: 2026-07-15
 > Covers recommended-order items **1, 2, 3** from `docs/V1_HARDENING_TASKLIST.md`.
 > Companion: `docs/DIRECT_CONTACT_LISTINGS_STUDY.md` (full Direct rationale).
-> Norm: verify in code before each step; deploy hosting after mobile-facing changes; bump `?v=`.
+> Norm: **verify in code AND live Firestore before each step and before any status report**
+> (`node scripts/verify-production-data.js`); deploy hosting after mobile-facing changes; bump `?v=`.
+> **Never** treat `[USER]` backlog lines or doc timestamps as current without a production check.
+> See `AGENTS.md` § "verify production data."
 
 ---
 
@@ -324,9 +327,11 @@ item is the **user-facing page split only**.
 > Running list so nothing slips. Item 1 DONE. Item 2 core (Direct contact reveal +
 > private phone storage + apply consent) DONE + deployed + pushed (commit 1cc839c).
 
-- **[USER] Add phone to both primary accounts** — Edit Profile → type number → Save.
-  Their old phone was on the public `users` doc; storage moved to `user_private`, so the
-  field shows blank until re-entered. No fallback (per user). Needed before reveal testing.
+- **[RESOLVED 2026-07-15 — verified against live Firestore]** Primary accounts already have
+  phones in `user_private`: **Peter J. Ang** (`+19…7393`) and **Android Samsung** (`+18…9957`).
+  No accounts still have a public-only legacy copy; the July-11 "re-enter phone" note is obsolete.
+  Four other test accounts (Chris Casas, iPhone Firefox, New Model iPhone, Real Interface Studios)
+  still have no phone on file — add via Edit Profile only if you still use those for testing.
 - **[WAITING/external] Meta App Review** — on approval, flip app to Live so any Facebook
   user can sign up; FB button already relabeled "Facebook / Messenger".
 - **Item 2 — HIRE button + price-verify at Hire: DONE (2026-07-11) + deployed.** Added a
@@ -345,11 +350,16 @@ item is the **user-facing page split only**.
 - **Surface reveal counter on Admin Dashboard** — `metrics/contact_reveals` (total +
   lastRevealAt) written by `revealApplicantContact`. Also per-application
   `contactRevealCount`. Wire into admin-dashboard.
-- **Firestore cleanup pass** — (a) stop the dead decrement-only writes to
-  `activeJobsCount` / `appliedJobsCount` (nothing reads them; drifted to -13 on one acct);
+- **Firestore cleanup pass** — (a) ✅ DONE 2026-07-15: stopped dead decrement-only writes to
+  `activeJobsCount` / `appliedJobsCount` (never incremented, never read; had drifted to -13/-6);
+  removed signup init + Firestore rules helper; deleted fields from all live user docs.
   (b) one-time migration to strip legacy fields `rating`, `reviewCount`, and the
   `socialMedia` dup (live pair is `averageRating`/`totalReviews`, saves write `socialUrls`);
   (c) purge legacy public `users.phoneNumber` copies (now purged on next profile save).
+- **Ghost-hire jobs (from 2026-07-15 test-account deletion)** — ✅ DONE 2026-07-15: 3 `accepted`
+  jobs with deleted worker as `hiredWorkerId` reopened to `active` (hire fields cleared,
+  `voidedWorkerId` set, same shape as client void/relist). History on completed/active jobs
+  left alone.
 - **Privacy + Terms deep rewrite** — current `privacy.html` / `termsofservice.html` are
   placeholder-grade for Meta review; rewrite to reflect the actual platform (Direct contact,
   no commission/lead-gen stance, off-platform disputes, face verification, G-Coins, etc.).

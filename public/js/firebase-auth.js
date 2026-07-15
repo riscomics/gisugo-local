@@ -1671,9 +1671,7 @@ async function createUserProfile(userId, profileData) {
         gCoinsEarned: 0
       },
       
-      // Job Statistics
-      appliedJobsCount: 0,
-      activeJobsCount: 0,
+      // Application coins (profile stats live under statistics.*)
       applicationCoinsCurrent: 10,
       applicationCoinsMax: 10,
       

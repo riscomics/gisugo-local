@@ -1,5 +1,8 @@
 # iOS Data Path Risks (2026-03-27)
 
+> **Agent rule:** iOS REST-path behavior must be verified in current `firebase-db.js` and on
+> real devices — not from this note alone. See `AGENTS.md` § "verify production data."
+
 ## Context
 
 iOS WebKit devices (Safari and iOS Chrome) showed repeated Firestore SDK read timeouts on:

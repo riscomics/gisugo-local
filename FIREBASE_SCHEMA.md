@@ -1,5 +1,10 @@
 # 🔥 FIREBASE SCHEMA - GISUGO JOBS PLATFORM
 
+> **Agent rule:** this schema describes intended/live structure — not a substitute for querying
+> production. Before reporting account counts, field presence, or migration status, run
+> `node scripts/verify-production-data.js` and/or an Admin SDK read against project `gisugo1`.
+> See `AGENTS.md` § "verify production data."
+
 ## **FIRESTORE COLLECTIONS**
 
 ### **0. `users` + `user_private` Split (Face Verification Architecture)**

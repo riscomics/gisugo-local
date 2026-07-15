@@ -4,6 +4,9 @@
 **Date:** 2026-01-14  
 **Status:** IMPLEMENTED — core photo management (compression, Storage↔Firestore sync, error recovery) shipped to production. Spec retained as reference. _(Status updated 2026-06-18.)_
 
+> **Agent rule:** verify `profile.js` / Storage paths in code before citing implementation
+> status. See `AGENTS.md` § "verify production data."
+
 ---
 
 ## 🎯 EXECUTIVE SUMMARY

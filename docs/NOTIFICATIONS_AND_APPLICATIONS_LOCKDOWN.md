@@ -4,6 +4,11 @@
 > Last updated: 2026-06-19
 > READ THIS FIRST whenever notifications or application-access rules come up. It exists so
 > the full scope is known up front and we never "discover walls" mid-change again.
+>
+> **Agent rule:** before citing counts, backfill status, or "what's deployed" from this doc,
+> verify live Firestore + `firestore.rules` + `functions/index.js` in the repo. Use
+> `node scripts/verify-production-data.js summary` and query `applications` for `gigOwnerId`
+> stamps. See `AGENTS.md` § "verify production data."
 
 ---
 

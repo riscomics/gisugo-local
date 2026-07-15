@@ -1,5 +1,8 @@
 # Applications System - Firebase Integration Complete
 
+> **Agent rule:** before citing integration/status from this doc, verify live Firestore
+> (`applications`, `jobs`) and current code paths. See `AGENTS.md` § "verify production data."
+
 ## Overview
 Successfully integrated Firebase for the job applications workflow. Workers can now apply for gigs, customers can view applications, and hire workers - all data persists in Firestore.
 

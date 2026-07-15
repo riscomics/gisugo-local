@@ -1,5 +1,8 @@
 # Applications System - Complete Explanation
 
+> **Agent rule:** application behavior claims must match live code + production Firestore —
+> not this doc alone. See `AGENTS.md` § "verify production data."
+
 ## How Applications Are Saved in Backend
 
 When a worker clicks "Apply" on a gig, here's what happens:

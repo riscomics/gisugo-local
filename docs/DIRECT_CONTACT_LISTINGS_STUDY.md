@@ -1,9 +1,11 @@
 # GISUGO — "Direct" Contact-Only Listings (Design Study)
 
-> Status: **Idea / parked for later** · Created 2026-07-03
-> Decision so far: **Platform-first stands.** This is a possible *future* opt-in mode, not a
-> committed feature. Written up so we can pick it back up without re-deriving the reasoning.
+> Status: **Core Direct route SHIPPED (2026-07-11)** · Study created 2026-07-03
+> Decision: **Direct is the model.** Contact reveal + HIRE shipped; chat is future premium.
 > Companion: `docs/V1_HARDENING_TASKLIST.md`, `FIREBASE_SCHEMA.md`.
+>
+> **Agent rule:** verify `revealApplicantContact`, `user_private.phoneNumber`, and live HIRE/CONTACT
+> UI in code + production before citing status from this doc. See `AGENTS.md` § "verify production data."
 
 ---
 

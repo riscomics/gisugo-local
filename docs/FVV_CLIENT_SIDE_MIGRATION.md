@@ -5,6 +5,10 @@
 
 **Created:** 2026-06-27
 
+**Agent rule:** "verified working" dates here are historical — confirm `normalizeFaceVerificationVideo`
+region/callable health via `firebase functions:list` + a live FVV read before citing. See `AGENTS.md`
+§ "verify production data."
+
 ---
 
 ## 1. Goal

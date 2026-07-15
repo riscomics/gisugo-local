@@ -1462,13 +1462,15 @@ async function deleteJob(jobId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // STEP 2: Delete associated applications & update applicant statistics
+    // STEP 2: Delete associated applications & release held coins
+    // (Legacy appliedJobsCount / activeJobsCount increments were removed —
+    //  they were decrement-only leftovers nothing reads; profile stats use
+    //  statistics.* instead.)
     // ═══════════════════════════════════════════════════════════════
     if (jobData.applicationIds && jobData.applicationIds.length > 0) {
       console.log(`🗑️ Deleting ${jobData.applicationIds.length} associated applications...`);
       
-      // First, get applicant IDs before deleting (we need this data for statistics)
-      const applicantIds = [];
+      // First, get applicants that still hold an application coin so we can release it.
       const coinReleaseCandidates = [];
       try {
         const appPromises = jobData.applicationIds.map(appId => 
@@ -1480,21 +1482,16 @@ async function deleteJob(jobId) {
           if (appDoc.exists) {
             const appData = appDoc.data() || {};
             const applicantId = appData.applicantId;
-            if (applicantId) {
-              applicantIds.push(applicantId);
-              if (appData.coinHeld !== false && !appData.coinReleasedAt) {
-                coinReleaseCandidates.push({
-                  applicantId,
-                  applicationId: appDoc.id
-                });
-              }
+            if (applicantId && appData.coinHeld !== false && !appData.coinReleasedAt) {
+              coinReleaseCandidates.push({
+                applicantId,
+                applicationId: appDoc.id
+              });
             }
           }
         });
-        
-        console.log(`📊 Found ${applicantIds.length} applicants to update statistics for`);
       } catch (fetchError) {
-        console.error('⚠️ Error fetching applicant IDs:', fetchError);
+        console.error('⚠️ Error fetching applications for coin release:', fetchError);
         // Continue with deletion even if we can't get IDs
       }
       
@@ -1511,30 +1508,6 @@ async function deleteJob(jobId) {
       } catch (appError) {
         console.error('❌ Error deleting applications:', appError);
         // Continue with job deletion even if applications fail
-      }
-      
-      // Update applicant statistics (decrement their application counts)
-      if (applicantIds.length > 0) {
-        console.log('📊 Updating applicant statistics...');
-        try {
-          const userBatch = db.batch();
-          
-          // Remove duplicates (in case user applied multiple times)
-          const uniqueApplicantIds = [...new Set(applicantIds)];
-          
-          for (const applicantId of uniqueApplicantIds) {
-            const userRef = db.collection('users').doc(applicantId);
-            userBatch.update(userRef, {
-              appliedJobsCount: firebase.firestore.FieldValue.increment(-1)
-            });
-          }
-          
-          await userBatch.commit();
-          console.log(`✅ Updated statistics for ${uniqueApplicantIds.length} applicants`);
-        } catch (statsError) {
-          console.error('⚠️ Error updating applicant statistics:', statsError);
-          // Non-critical - continue with deletion
-        }
       }
 
       if (coinReleaseCandidates.length > 0) {
@@ -1570,22 +1543,7 @@ async function deleteJob(jobId) {
     // ═══════════════════════════════════════════════════════════════
     await db.collection('jobs').doc(jobId).delete();
     
-    // ═══════════════════════════════════════════════════════════════
-    // STEP 5: Update poster statistics (decrement their job counts)
-    // ═══════════════════════════════════════════════════════════════
-    console.log('📊 Updating poster statistics...');
-    try {
-      const posterRef = db.collection('users').doc(jobData.posterId);
-      await posterRef.update({
-        activeJobsCount: firebase.firestore.FieldValue.increment(-1)
-      });
-      console.log('✅ Poster statistics updated');
-    } catch (posterError) {
-      console.error('⚠️ Error updating poster statistics:', posterError);
-      // Non-critical - job is already deleted
-    }
-    
-    console.log(`✅ Job ${jobId} deleted completely (Firestore + Storage + Applications + Statistics)`);
+    console.log(`✅ Job ${jobId} deleted completely (Firestore + Storage + Applications)`);
     return { 
       success: true, 
       message: 'Job deleted successfully',
