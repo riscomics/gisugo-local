@@ -1389,6 +1389,13 @@ async function linkPhonePasswordToCurrentUser(password) {
  * Keep the phone+password credential pointed at the user's CURRENT profile
  * phone. Call after the profile phone is saved; no-ops for accounts without a
  * synthetic phone login. Password is left unchanged.
+ *
+ * The actual email change runs in the syncPhoneLoginEmail Cloud Function:
+ * client-side updateEmail() is rejected with auth/operation-not-allowed
+ * because Email Enumeration Protection is enabled on the project. The
+ * function reads the phone from the caller's own user_private doc (already
+ * saved by this point), so no phone value crosses the wire.
+ *
  * @param {string} newPhoneStored - The phone as saved to user_private ("+639…").
  * @returns {Promise<Object>} { success, skipped?, unchanged?, phone? } or
  *   { success:false, code, message }
@@ -1419,35 +1426,31 @@ async function syncPhonePasswordOnPhoneChange(newPhoneStored) {
     return { success: true, unchanged: true };
   }
 
-  async function doUpdate() {
-    await user.updateEmail(newSyntheticEmail);
-  }
-
   try {
     gisugoAuthLog('phone sync: repointing login to new number', { phone: normalized });
-    try {
-      await doUpdate();
-    } catch (error) {
-      if (error && error.code === 'auth/requires-recent-login') {
-        const re = await reauthenticateForSensitiveOp();
-        if (!re.success) {
-          return { success: false, code: 'reauth-failed', message: 'Phone saved, but we could not confirm your identity to move your login. Phone login stays on your OLD number for now.' };
-        }
-        await doUpdate();
-      } else {
-        throw error;
-      }
+    const callable = firebase.app().functions('asia-southeast1').httpsCallable('syncPhoneLoginEmail');
+    const response = await callable({});
+    const status = response && response.data && response.data.status;
+
+    if (status === 'moved') {
+      // Refresh the cached user so user.email reflects the new mailbox.
+      try { await user.reload(); } catch (e) {}
+      gisugoAuthLog('phone sync: success', { phone: normalized });
+      return { success: true, phone: normalized };
     }
-    gisugoAuthLog('phone sync: success', { phone: normalized });
-    return { success: true, phone: normalized };
+    if (status === 'unchanged' || status === 'skipped') {
+      return { success: true, unchanged: status === 'unchanged', skipped: status === 'skipped' };
+    }
+    if (status === 'collision') {
+      return { success: false, code: 'email-already-in-use', message: 'Phone number saved, but that number is already used for login by another GISUGO account — so your phone LOGIN still uses your OLD number (same password).' };
+    }
+    // no-phone / invalid-phone / anything unexpected
+    console.warn('⚠️ Phone+password sync unexpected status:', status);
+    return { success: false, code: status || 'unknown', message: 'Phone number saved, but your phone LOGIN could not be updated — it still uses your OLD number (same password).' };
   } catch (error) {
     const code = (error && error.code) || '';
     console.error('❌ Phone+password sync error:', code || error);
-    let message = 'Phone saved, but phone login could not be moved. It stays on your OLD number.';
-    if (code === 'auth/email-already-in-use') {
-      message = 'Phone saved, but that number is already registered to another GISUGO account — phone login stays on your OLD number.';
-    }
-    return { success: false, code: code || 'unknown', error: error, message: message };
+    return { success: false, code: code || 'unknown', error: error, message: 'Phone number saved, but your phone LOGIN could not be updated — it still uses your OLD number (same password).' };
   }
 }
 

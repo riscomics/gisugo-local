@@ -2429,11 +2429,14 @@ async function saveProfileChanges() {
               if (syncResult && syncResult.success === false) {
                 console.warn('⚠️ Phone login sync failed:', syncResult.code, syncResult.message);
                 if (typeof showLinkModal === 'function' && syncResult.message) {
-                  showLinkModal('warning', 'Phone Login Not Moved', syncResult.message);
+                  showLinkModal('warning', 'Login Still On Old Number', syncResult.message);
                 }
               } else if (syncResult && syncResult.success && !syncResult.skipped && !syncResult.unchanged) {
                 console.log('✅ Phone login moved to new number');
                 if (typeof updateLoginMethodsUI === 'function') updateLoginMethodsUI();
+                if (typeof showLinkModal === 'function') {
+                  showLinkModal('success', 'Phone Login Updated', 'Your phone & password login now uses your NEW number. Your password is unchanged.');
+                }
               }
             } catch (syncError) {
               console.warn('⚠️ Phone login sync error:', syncError);

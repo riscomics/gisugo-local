@@ -550,6 +550,94 @@ exports.checkSignupRateLimit = onCall(
   }
 );
 
+// ---------------------------------------------------------------------------
+// Phone+password login email sync.
+// The client cannot call updateEmail() because Email Enumeration Protection is
+// enabled on the project (auth/operation-not-allowed), so re-pointing the
+// synthetic login mailbox (<digits>@phone.gisugo.app) at the user's new profile
+// phone must happen here with the Admin SDK. The phone is read from the
+// caller's OWN user_private doc — never from client input.
+// ---------------------------------------------------------------------------
+
+const PHONE_SYNTHETIC_EMAIL_DOMAIN = "phone.gisugo.app";
+// Mirrors the login/profile dropdowns and firebase-auth.js.
+const PHONE_COUNTRY_CODES = ["+971", "+63", "+44", "+61", "+81", "+82", "+65", "+60", "+66", "+84", "+62", "+49", "+33", "+86", "+91", "+1"];
+
+// Mirrors normalizePhoneNumber() in public/js/firebase-auth.js — the outputs
+// MUST match or a login created client-side could never be synced here.
+function normalizePhoneForLogin(stored) {
+  const s = String(stored || "").trim();
+  if (!s) return null;
+  let code = "+63";
+  let rest = s;
+  const codes = PHONE_COUNTRY_CODES.slice().sort((a, b) => b.length - a.length);
+  for (const c of codes) {
+    if (s.startsWith(c)) { code = c; rest = s.slice(c.length); break; }
+  }
+  let digits = rest.replace(/\D/g, "");
+  const ccDigits = code.replace(/\D/g, "");
+  if (!digits) return null;
+  if (ccDigits === "63") {
+    if (digits.length === 12 && digits.startsWith("63")) digits = digits.slice(2);
+    if (digits.length === 11 && digits.startsWith("0")) digits = digits.slice(1);
+    if (digits.length !== 10 || !digits.startsWith("9")) return null;
+    return "+63" + digits;
+  }
+  if (digits.startsWith(ccDigits)) digits = digits.slice(ccDigits.length);
+  digits = digits.replace(/^0+/, "");
+  if (digits.length < 5 || digits.length > 15) return null;
+  return "+" + ccDigits + digits;
+}
+
+exports.syncPhoneLoginEmail = onCall(
+  { region: "asia-southeast1", cors: true },
+  async (request) => {
+    const uid = request.auth?.uid || "";
+    if (!uid) {
+      throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    const user = await admin.auth().getUser(uid);
+    const hasPassword = (user.providerData || []).some((p) => p.providerId === "password");
+    const isSynthetic = String(user.email || "").toLowerCase().endsWith("@" + PHONE_SYNTHETIC_EMAIL_DOMAIN);
+    if (!hasPassword || !isSynthetic) {
+      // No phone+password login on this account (or a legacy real-email one) —
+      // nothing to move.
+      return { status: "skipped" };
+    }
+
+    const privateSnap = await db.collection("user_private").doc(uid).get();
+    const storedPhone = privateSnap.exists ? String(privateSnap.data().phoneNumber || "") : "";
+    if (!storedPhone) {
+      return { status: "no-phone" };
+    }
+    const normalized = normalizePhoneForLogin(storedPhone);
+    if (!normalized) {
+      return { status: "invalid-phone" };
+    }
+    const newEmail = normalized.replace(/\D/g, "") + "@" + PHONE_SYNTHETIC_EMAIL_DOMAIN;
+    if (String(user.email).toLowerCase() === newEmail.toLowerCase()) {
+      return { status: "unchanged" };
+    }
+
+    try {
+      // emailVerified:true — synthetic mailboxes have no inbox, so they can
+      // never verify; marking verified keeps every email gate out of the way.
+      await admin.auth().updateUser(uid, { email: newEmail, emailVerified: true });
+    } catch (error) {
+      if (error && error.code === "auth/email-already-exists") {
+        logger.warn("syncPhoneLoginEmail collision", { uid, phone: normalized });
+        return { status: "collision" };
+      }
+      logger.error("syncPhoneLoginEmail failed", { uid, code: error && error.code });
+      throw new HttpsError("internal", "Could not update the phone login.");
+    }
+
+    logger.info("syncPhoneLoginEmail moved", { uid, phone: normalized });
+    return { status: "moved", phone: normalized };
+  }
+);
+
 exports.getFaceVerificationMediaAccess = onCall(
   { region: "asia-southeast1", cors: true },
   async (request) => {
