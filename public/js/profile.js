@@ -1991,6 +1991,10 @@ function parseStoredPhoneNumber(stored) {
   return { code: '+63', digits: s.replace(/\D/g, '') };
 }
 
+// Phone on file when the edit form was opened — compared at save time so the
+// phone+password login credential is re-pointed only on a REAL number change.
+let editProfileLoadedPhone = '';
+
 // Rebuild the stored E.164-ish string from the edit form's country code + digits.
 function buildEditPhoneNumber() {
   const code = document.getElementById('editPhoneCountry')?.value || '+63';
@@ -2071,6 +2075,7 @@ function populateEditProfileForm() {
     const uid = (typeof getCurrentUserId === 'function') ? getCurrentUserId() : null;
     if (uid) {
       getPrivatePhone(uid).then((stored) => {
+        editProfileLoadedPhone = stored || '';
         const parsed = parseStoredPhoneNumber(stored);
         phoneCountrySelect.value = parsed.code;
         // If the stored code isn't one of the options, keep default and full digits.
@@ -2416,6 +2421,24 @@ async function saveProfileChanges() {
           const phoneResult = await savePrivatePhone(userId, phoneNumber);
           if (!phoneResult || phoneResult.success === false) {
             console.warn('⚠️ Could not save private phone:', phoneResult && phoneResult.message);
+          } else if (phoneNumber !== editProfileLoadedPhone && typeof syncPhonePasswordOnPhoneChange === 'function') {
+            // Number actually changed: re-point the phone+password login
+            // credential at the new number (no-op for accounts without one).
+            try {
+              const syncResult = await syncPhonePasswordOnPhoneChange(phoneNumber);
+              if (syncResult && syncResult.success === false) {
+                console.warn('⚠️ Phone login sync failed:', syncResult.code, syncResult.message);
+                if (typeof showLinkModal === 'function' && syncResult.message) {
+                  showLinkModal('warning', 'Phone Login Not Moved', syncResult.message);
+                }
+              } else if (syncResult && syncResult.success && !syncResult.skipped && !syncResult.unchanged) {
+                console.log('✅ Phone login moved to new number');
+                if (typeof updateLoginMethodsUI === 'function') updateLoginMethodsUI();
+              }
+            } catch (syncError) {
+              console.warn('⚠️ Phone login sync error:', syncError);
+            }
+            editProfileLoadedPhone = phoneNumber;
           }
         }
         
@@ -2728,9 +2751,27 @@ function updateLoginMethodsUI() {
     const facebookLinked = providerIds.includes('facebook.com');
     updateMethodUI('Facebook', facebookLinked, user.providerData.find(p => p.providerId === 'facebook.com')?.email);
 
+    // Update Phone & Password: linked only when the password provider uses one
+    // of our synthetic phone mailboxes (…@phone.gisugo.app). A legacy account
+    // with a REAL email+password must not show as phone-linked.
+    const phoneLinked = providerIds.includes('password') &&
+      (typeof isSyntheticPhoneEmail === 'function' && isSyntheticPhoneEmail(user.email));
+    updateMethodUI('Phone', phoneLinked, phoneLinked ? maskPhoneFromSyntheticEmail(user.email) : null);
+
   } catch (error) {
     console.error('Error updating login methods UI:', error);
   }
+}
+
+/**
+ * Recover a masked phone from the synthetic login email for display,
+ * e.g. "639171234567@phone.gisugo.app" → "+639•••••4567".
+ */
+function maskPhoneFromSyntheticEmail(email) {
+  const digits = String(email || '').split('@')[0].replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.length <= 7) return '+' + digits;
+  return '+' + digits.slice(0, 3) + '•'.repeat(digits.length - 7) + digits.slice(-4);
 }
 
 /**
@@ -2948,10 +2989,132 @@ async function linkFacebookAccount() {
   }
 }
 
+// ===== PHONE + PASSWORD LINK MODAL =====
+
+let phoneLinkBusy = false;
+
+/**
+ * Open the set-password modal for phone+password linking. The phone shown is
+ * the PROFILE phone (read-only) — users change it via Edit Profile, not here.
+ */
+async function openPhoneLinkModal() {
+  if (authLinkInProgress || phoneLinkBusy) return;
+  try {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      showLinkModal('error', 'Connection Error', 'Firebase not available. Please try again later.');
+      return;
+    }
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      showLinkModal('error', 'Not Logged In', 'Please log in first to link accounts.');
+      return;
+    }
+
+    const providerIds = user.providerData.map(p => p.providerId);
+    if (providerIds.includes('password')) {
+      if (typeof isSyntheticPhoneEmail === 'function' && isSyntheticPhoneEmail(user.email)) {
+        showLinkModal('warning', 'Already Linked', 'Phone & password login is already set up on this account.');
+      } else {
+        showLinkModal('warning', 'Password Already Set', 'This account already signs in with an email & password.');
+      }
+      return;
+    }
+
+    const stored = (typeof getPrivatePhone === 'function')
+      ? await getPrivatePhone(user.uid)
+      : '';
+    if (!stored) {
+      showLinkModal('info', 'Add Your Phone First', 'Enter your phone number in Edit Profile and save, then come back here to set a password.');
+      return;
+    }
+
+    const phoneDisplay = document.getElementById('phoneLinkPhoneDisplay');
+    const passwordInput = document.getElementById('phoneLinkPassword');
+    const confirmInput = document.getElementById('phoneLinkPasswordConfirm');
+    const errorEl = document.getElementById('phoneLinkError');
+    if (phoneDisplay) phoneDisplay.value = stored;
+    if (passwordInput) passwordInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+    if (errorEl) { errorEl.style.display = 'none'; errorEl.textContent = ''; }
+
+    document.getElementById('phoneLinkModalOverlay').classList.add('show');
+  } catch (error) {
+    console.error('❌ Error opening phone link modal:', error);
+    showLinkModal('error', 'Something Went Wrong', 'Could not open the phone link form. Please try again.');
+  }
+}
+
+function closePhoneLinkModal() {
+  if (phoneLinkBusy) return;
+  document.getElementById('phoneLinkModalOverlay').classList.remove('show');
+}
+
+function showPhoneLinkError(message) {
+  const errorEl = document.getElementById('phoneLinkError');
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+}
+
+async function submitPhoneLink() {
+  if (phoneLinkBusy) return;
+  const password = document.getElementById('phoneLinkPassword')?.value || '';
+  const confirm = document.getElementById('phoneLinkPasswordConfirm')?.value || '';
+
+  if (password.length < 6) {
+    showPhoneLinkError('Password must be at least 6 characters.');
+    return;
+  }
+  if (password !== confirm) {
+    showPhoneLinkError('Passwords do not match.');
+    return;
+  }
+  if (typeof linkPhonePasswordToCurrentUser !== 'function') {
+    showPhoneLinkError('Linking is unavailable right now. Please refresh and try again.');
+    return;
+  }
+
+  const submitBtn = document.getElementById('phoneLinkSubmitBtn');
+  phoneLinkBusy = true;
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Linking…'; }
+  try {
+    const result = await linkPhonePasswordToCurrentUser(password);
+    if (result && result.success) {
+      phoneLinkBusy = false;
+      closePhoneLinkModal();
+      showLinkModal('success', 'Phone & Password Linked!', 'You can now log in with your phone number and this password.');
+      updateLoginMethodsUI();
+    } else {
+      showPhoneLinkError((result && result.message) || 'Could not set up phone & password login. Please try again.');
+    }
+  } catch (error) {
+    console.error('❌ Phone link submit error:', error);
+    showPhoneLinkError('Something went wrong. Please try again.');
+  } finally {
+    phoneLinkBusy = false;
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Set Password'; }
+  }
+}
+
+// Close the phone-link modal on background click (matches linkModalOverlay,
+// but never mid-link).
+document.addEventListener('DOMContentLoaded', function() {
+  const overlay = document.getElementById('phoneLinkModalOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closePhoneLinkModal();
+    });
+  }
+});
+
 // Make functions globally accessible
 window.linkGoogleAccount = linkGoogleAccount;
 window.linkFacebookAccount = linkFacebookAccount;
 window.updateLoginMethodsUI = updateLoginMethodsUI;
+window.openPhoneLinkModal = openPhoneLinkModal;
+window.closePhoneLinkModal = closePhoneLinkModal;
+window.submitPhoneLink = submitPhoneLink;
 
 // Update badge and account button visibility based on auth and verification status
 function updateBadgeVisibility(userProfile) {

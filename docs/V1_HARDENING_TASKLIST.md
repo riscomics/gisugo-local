@@ -371,7 +371,7 @@ See `AGENTS.md` § "verify production data."
         debugging: console + long-press remain).
       Device login also serves as **account recovery** for FB-locked-out users (partial answer to the
       cross-provider-duplicate gap below).
-- [ ] **PLANNED — Phone+Password LINKING in profile Login Methods (micro-tasklist, 2026-07-15).**
+- [ ] **BUILT 2026-07-15 (pending deploy + live test) — Phone+Password LINKING in profile Login Methods.**
       Goal: an FB/Google user can add phone+password to their EXISTING account (lockout insurance +
       closes the duplicate-account path: the desire for phone login lands on the same account instead
       of forking a new one). Design locked with user: the row lives in Profile → Account → LOGIN
@@ -379,35 +379,46 @@ See `AGENTS.md` § "verify production data."
       typing)**; editing the profile phone later auto-repoints the credential (password unchanged).
       No unlink UI (deliberate — revisit with admin/support tooling).
       **A. `firebase-auth.js`**
-      - [ ] A1 `linkPhonePasswordToCurrentUser(password)`: `getPrivatePhone(uid)` →
-            `normalizePhoneNumber` → `phoneToSyntheticEmail` →
-            `EmailAuthProvider.credential` → `user.linkWithCredential`. Map errors:
+      - [x] A1 `linkPhonePasswordToCurrentUser(password)`: `getPrivatePhone(uid)` →
+            `normalizeStoredPhone` (splits the stored "+cc…" with the shared country-code list, then
+            `normalizePhoneNumber`) → `phoneToSyntheticEmail` →
+            `EmailAuthProvider.credential` → `user.linkWithCredential`. Errors mapped:
             `auth/email-already-in-use` / `auth/credential-already-in-use` → "already registered to
             another account"; `auth/weak-password`; `auth/requires-recent-login` → A3 then retry.
-      - [ ] A2 `syncPhonePasswordOnPhoneChange(newE164)`: only when the user has the `password`
-            provider AND their auth email ends `@phone.gisugo.app` (skip legacy/dev email accounts) →
-            `user.updateEmail(newSyntheticEmail)`. On `email-already-in-use`: keep the phone save but
-            surface "login stays on your OLD number" warning (collision = another account owns it).
-            On `requires-recent-login`: A3 then retry.
-      - [ ] A3 `reauthenticateForSensitiveOp()`: `reauthenticateWithPopup` (Google/FB, whichever is
-            linked) or password re-entry for phone-only accounts. One shared guard with
-            `authLinkInProgress`.
+            Also refuses when a `password` provider already exists (synthetic → "already linked";
+            real email → "already signs in with email & password").
+      - [x] A2 `syncPhonePasswordOnPhoneChange(newPhoneStored)`: only when the user has the
+            `password` provider AND their auth email ends `@phone.gisugo.app` (skips legacy/dev
+            email accounts, and skips phone REMOVAL so no one is stranded) →
+            `user.updateEmail(newSyntheticEmail)`. On `email-already-in-use`: phone save kept,
+            returns "login stays on your OLD number" warning. On `requires-recent-login`: A3 then
+            retry once.
+      - [x] A3 `reauthenticateForSensitiveOp(currentPassword?)`: `reauthenticateWithPopup`
+            (Google first, then FB) or `reauthenticateWithCredential` with the supplied password
+            for phone-only accounts. Exposed on `window` with `isSyntheticPhoneEmail`.
       **B. `profile.html`**
-      - [ ] B1 Add row `loginMethodPhone` (📱 "Phone & Password", `phoneMethodStatus`,
-            `linkPhoneBtn`) after the Facebook row (IDs must match `updateMethodUI('Phone', …)`
-            casing: `phoneMethodStatus`/`linkPhoneBtn`/`loginMethodPhone`).
-      - [ ] B2 Set-password modal: read-only phone display + password + confirm + error slot
-            (match the existing link-modal styling).
+      - [x] B1 Row `loginMethodPhone` (📱 "Phone & Password", `phoneMethodStatus`, `linkPhoneBtn`
+            → `openPhoneLinkModal()`) added after the Facebook row.
+      - [x] B2 Set-password modal `phoneLinkModalOverlay`: read-only phone display + password +
+            confirm + inline error slot, reusing the link-modal styling.
       **C. `profile.js`**
-      - [ ] C1 `updateLoginMethodsUI()`: linked = `password` provider present AND email is synthetic
-            (`@phone.gisugo.app`) → `updateMethodUI('Phone', true, masked phone)`; else "Link".
-      - [ ] C2 `openPhoneLinkModal()`: no phone on file → guide to Edit Profile first; else validate
-            (≥6 chars, match) → A1 → success modal + UI refresh.
-      - [ ] C3 In the Edit-Profile save path (right after `savePrivatePhone`, ~L2415): if the number
-            actually CHANGED → call A2; show its warning/error states. No-op when unchanged.
+      - [x] C1 `updateLoginMethodsUI()`: linked = `password` provider AND synthetic email →
+            `updateMethodUI('Phone', true, masked phone)` (masked via
+            `maskPhoneFromSyntheticEmail`, e.g. "+639•••••4567"); else "Link".
+      - [x] C2 `openPhoneLinkModal()` / `submitPhoneLink()`: no phone on file → info modal steering
+            to Edit Profile; already-has-password → warning modal; validates ≥6 chars + match →
+            A1 → success modal + UI refresh. `phoneLinkBusy` guard; background click can't close
+            mid-link.
+      - [x] C3 Edit-Profile save path: `editProfileLoadedPhone` captured when the form populates;
+            after `savePrivatePhone` succeeds AND the number changed → A2; failure surfaces as a
+            "Phone Login Not Moved" warning modal; success refreshes the Login Methods UI.
       **D. Ship**
-      - [ ] D1 Bump `profile.js?v=` + `firebase-auth.js?v=` on `profile.html` (and keep
-            login/sign-up versions in sync), deploy hosting.
+      - [x] D1 Bumped `firebase-auth.js?v=36` (profile/login/sign-up) + `profile.js?v=90`.
+      - [ ] D2 Deploy hosting, then run the live test steps below.
+      **Watch-out for live test:** if the project has Email Enumeration Protection enabled,
+      `updateEmail()` (test step 4, phone-change sync) can fail with `auth/operation-not-allowed`;
+      the UI degrades to the "login stays on your OLD number" warning. If that happens, either
+      relax the protection or move the email change into an admin Cloud Function.
       **Test steps (live, after deploy):**
       1. Google-linked account with phone on file → Login Methods shows "Phone & Password / Link" →
          set password (test mismatch + short-password errors first) → row flips ✓ Linked (masked number).

@@ -925,6 +925,20 @@
                 </button>
               </div>
               
+              <!-- Phone & Password -->
+              <div class="login-method-item" id="loginMethodPhone">
+                <div class="login-method-icon">
+                  <span style="font-size: 22px; line-height: 1;">📱</span>
+                </div>
+                <div class="login-method-info">
+                  <div class="login-method-name">Phone &amp; Password</div>
+                  <div class="login-method-status" id="phoneMethodStatus">Not linked</div>
+                </div>
+                <button type="button" class="login-method-btn login-method-link" id="linkPhoneBtn" onclick="openPhoneLinkModal()">
+                  Link
+                </button>
+              </div>
+              
             </div>
             
             <div class="login-methods-note">
@@ -949,6 +963,32 @@
       <div class="link-modal-title" id="linkModalTitle">Success!</div>
       <div class="link-modal-message" id="linkModalMessage">Your account has been linked.</div>
       <button class="link-modal-btn" id="linkModalBtn" onclick="closeLinkModal()">OK</button>
+    </div>
+  </div>
+
+  <!-- Phone & Password Link Modal (set password for phone login) -->
+  <div class="link-modal-overlay" id="phoneLinkModalOverlay">
+    <div class="link-modal-container">
+      <div class="link-modal-icon">📱</div>
+      <div class="link-modal-title">Set a Password</div>
+      <div class="link-modal-message">You'll be able to log in with your phone number and this password.</div>
+      <div style="text-align: left; margin-bottom: 16px;">
+        <label class="edit-profile-label">Phone Number</label>
+        <input type="text" class="edit-profile-input" id="phoneLinkPhoneDisplay" readonly
+               style="opacity: 0.7; cursor: not-allowed; margin-bottom: 12px;">
+        <label class="edit-profile-label" for="phoneLinkPassword">New Password</label>
+        <input type="password" class="edit-profile-input" id="phoneLinkPassword"
+               placeholder="At least 6 characters" autocomplete="new-password" style="margin-bottom: 12px;">
+        <label class="edit-profile-label" for="phoneLinkPasswordConfirm">Confirm Password</label>
+        <input type="password" class="edit-profile-input" id="phoneLinkPasswordConfirm"
+               placeholder="Re-enter password" autocomplete="new-password">
+        <div id="phoneLinkError" style="display: none; color: #f87171; font-size: 0.85rem; margin-top: 10px;"></div>
+      </div>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button type="button" class="link-modal-btn" id="phoneLinkCancelBtn"
+                style="background: rgba(255, 255, 255, 0.12);" onclick="closePhoneLinkModal()">Cancel</button>
+        <button type="button" class="link-modal-btn" id="phoneLinkSubmitBtn" onclick="submitPhoneLink()">Set Password</button>
+      </div>
     </div>
   </div>
 
@@ -1322,7 +1362,7 @@
   
   <!-- Firebase Helper Modules -->
   <script src="public/js/firebase-config.js?v=20260627a"></script>
-  <script src="public/js/firebase-auth.js?v=17"></script>
+  <script src="public/js/firebase-auth.js?v=36"></script>
   <script src="public/js/push-notifications.js?v=8"></script>
   <script src="public/js/firebase-db.js?v=40"></script>
   <script src="public/js/firebase-storage.js?v=2"></script>
@@ -1332,7 +1372,7 @@
   <script src="public/js/data-service.js"></script>
   <script src="public/js/header-uniform.js?v=1.2"></script>
   <script src="public/js/shared-menu.js?v=3.7"></script>
-  <script src="public/js/profile.js?v=89"></script>
+  <script src="public/js/profile.js?v=90"></script>
 
 </body>
 </html> 

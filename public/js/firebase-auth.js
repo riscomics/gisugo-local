@@ -1228,6 +1228,230 @@ async function loginWithPhonePassword(phone, password, countryCode) {
 }
 
 // ============================================================================
+// PHONE + PASSWORD LINKING (Profile → Login Methods)
+//
+// Lets an existing FB/Google user ADD phone+password to the SAME account
+// (lockout insurance), and keeps that credential pointed at the profile phone
+// when the user later edits their number. The credential is always keyed to
+// the phone stored in user_private — never a free-typed number — so login
+// and profile can't drift apart.
+// ============================================================================
+
+// Must stay in sync with the login/profile country-code dropdowns so a stored
+// "+<cc><digits>" splits back to the same cc the user would pick at login.
+const KNOWN_PHONE_COUNTRY_CODES = ['+971', '+63', '+44', '+61', '+81', '+82', '+65', '+60', '+66', '+84', '+62', '+49', '+33', '+86', '+91', '+1'];
+
+/**
+ * Split a stored E.164-ish phone ("+639171234567") into its dial code and rest.
+ * @returns {{code:string, rest:string}} defaults to +63 when no code matches.
+ */
+function splitStoredPhone(stored) {
+  const s = String(stored || '').trim();
+  const codes = KNOWN_PHONE_COUNTRY_CODES.slice().sort(function(a, b) { return b.length - a.length; });
+  for (let i = 0; i < codes.length; i++) {
+    if (s.startsWith(codes[i])) return { code: codes[i], rest: s.slice(codes[i].length) };
+  }
+  return { code: '+63', rest: s };
+}
+
+/**
+ * True when an auth email is one of our hidden phone-login mailboxes
+ * (…@phone.gisugo.app) — as opposed to a real email on a legacy/dev account.
+ */
+function isSyntheticPhoneEmail(email) {
+  return typeof email === 'string' && email.toLowerCase().endsWith('@' + PHONE_SYNTHETIC_EMAIL_DOMAIN);
+}
+
+/**
+ * Normalize the phone stored in user_private to canonical E.164 by re-running
+ * it through the shared login normalizer with its own dial code.
+ * @returns {string|null}
+ */
+function normalizeStoredPhone(stored) {
+  const parts = splitStoredPhone(stored);
+  return normalizePhoneNumber(parts.rest, parts.code);
+}
+
+/**
+ * Re-authenticate the current user for sensitive Auth operations (linking a
+ * credential, changing the login email). Uses the OAuth popup for Google/FB
+ * accounts; phone-only accounts must supply their current password.
+ * @param {string} [currentPassword] - Only needed for password-only accounts.
+ * @returns {Promise<Object>} { success } or { success:false, code, message }
+ */
+async function reauthenticateForSensitiveOp(currentPassword) {
+  const auth = getFirebaseAuth();
+  const user = auth && auth.currentUser;
+  if (!user) return { success: false, message: 'Please log in first.' };
+  const providerIds = (user.providerData || []).map(function(p) { return p.providerId; });
+  try {
+    if (providerIds.includes('google.com')) {
+      await user.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+      return { success: true };
+    }
+    if (providerIds.includes('facebook.com')) {
+      await user.reauthenticateWithPopup(new firebase.auth.FacebookAuthProvider());
+      return { success: true };
+    }
+    if (providerIds.includes('password')) {
+      if (!currentPassword) {
+        return { success: false, code: 'needs-password', message: 'Please enter your current password to continue.' };
+      }
+      const cred = firebase.auth.EmailAuthProvider.credential(user.email, currentPassword);
+      await user.reauthenticateWithCredential(cred);
+      return { success: true };
+    }
+    return { success: false, code: 'no-method', message: 'No supported re-authentication method on this account.' };
+  } catch (error) {
+    const code = (error && error.code) || '';
+    console.warn('⚠️ Re-authentication failed:', code || error);
+    let message = 'Could not confirm your identity. Please try again.';
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      message = 'Confirmation was cancelled.';
+    } else if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+      message = 'Incorrect password.';
+    }
+    return { success: false, code: code || 'unknown', message: message };
+  }
+}
+
+/**
+ * Link phone+password sign-in to the CURRENT (FB/Google) account. The phone is
+ * read from user_private — the profile phone, not a free-typed one.
+ * @param {string} password - New password (min 6 chars).
+ * @returns {Promise<Object>} { success, phone } or { success:false, code, message }
+ */
+async function linkPhonePasswordToCurrentUser(password) {
+  const auth = getFirebaseAuth();
+  const user = auth && auth.currentUser;
+  if (!user) return { success: false, message: 'Please log in first.' };
+  if (!password || String(password).length < 6) {
+    return { success: false, code: 'weak-password', message: 'Password must be at least 6 characters.' };
+  }
+
+  const providerIds = (user.providerData || []).map(function(p) { return p.providerId; });
+  if (providerIds.includes('password')) {
+    // Synthetic email → phone login already set up. Real email → a legacy
+    // email/password account; a second password credential can't be linked.
+    return isSyntheticPhoneEmail(user.email)
+      ? { success: false, code: 'already-linked', message: 'Phone & password login is already set up on this account.' }
+      : { success: false, code: 'has-real-email', message: 'This account already signs in with an email & password.' };
+  }
+
+  const stored = await getPrivatePhone(user.uid);
+  if (!stored) {
+    return { success: false, code: 'no-phone', message: 'Add your phone number in Edit Profile first, then set a password.' };
+  }
+  const normalized = normalizeStoredPhone(stored);
+  if (!normalized) {
+    return { success: false, code: 'invalid-phone', message: 'Your saved phone number looks invalid. Please re-save it in Edit Profile.' };
+  }
+  const syntheticEmail = phoneToSyntheticEmail(normalized);
+
+  async function doLink() {
+    const credential = firebase.auth.EmailAuthProvider.credential(syntheticEmail, password);
+    await user.linkWithCredential(credential);
+  }
+
+  try {
+    gisugoAuthLog('phone link: linking password credential', { phone: normalized });
+    try {
+      await doLink();
+    } catch (error) {
+      if (error && error.code === 'auth/requires-recent-login') {
+        const re = await reauthenticateForSensitiveOp();
+        if (!re.success) return re;
+        await doLink();
+      } else {
+        throw error;
+      }
+    }
+    gisugoAuthLog('phone link: success', { phone: normalized });
+    return { success: true, phone: normalized };
+  } catch (error) {
+    const code = (error && error.code) || '';
+    console.error('❌ Phone+password link error:', code || error);
+    let message = 'Could not set up phone & password login. Please try again.';
+    if (code === 'auth/email-already-in-use' || code === 'auth/credential-already-in-use') {
+      message = 'This phone number is already registered to another GISUGO account.';
+    } else if (code === 'auth/weak-password') {
+      message = 'Password must be at least 6 characters.';
+    } else if (code === 'auth/provider-already-linked') {
+      message = 'A password is already set on this account.';
+    } else if (code === 'auth/too-many-requests') {
+      message = 'Too many attempts. Please wait a moment and try again.';
+    }
+    return { success: false, code: code || 'unknown', error: error, message: message };
+  }
+}
+
+/**
+ * Keep the phone+password credential pointed at the user's CURRENT profile
+ * phone. Call after the profile phone is saved; no-ops for accounts without a
+ * synthetic phone login. Password is left unchanged.
+ * @param {string} newPhoneStored - The phone as saved to user_private ("+639…").
+ * @returns {Promise<Object>} { success, skipped?, unchanged?, phone? } or
+ *   { success:false, code, message }
+ */
+async function syncPhonePasswordOnPhoneChange(newPhoneStored) {
+  const auth = getFirebaseAuth();
+  const user = auth && auth.currentUser;
+  if (!user) return { success: false, message: 'Please log in first.' };
+
+  const providerIds = (user.providerData || []).map(function(p) { return p.providerId; });
+  // Only synthetic phone mailboxes follow the profile phone; legacy/dev
+  // email+password accounts keep their real email untouched.
+  if (!providerIds.includes('password') || !isSyntheticPhoneEmail(user.email)) {
+    return { success: true, skipped: true };
+  }
+
+  if (!newPhoneStored) {
+    // Phone removed from the profile: keep the credential on the old number so
+    // the user is never locked out. (Deliberate — no unlink UI in V1.)
+    return { success: true, skipped: true };
+  }
+  const normalized = normalizeStoredPhone(newPhoneStored);
+  if (!normalized) {
+    return { success: false, code: 'invalid-phone', message: 'Phone saved, but it could not be used for login. Your phone login stays on the old number.' };
+  }
+  const newSyntheticEmail = phoneToSyntheticEmail(normalized);
+  if (String(user.email || '').toLowerCase() === newSyntheticEmail.toLowerCase()) {
+    return { success: true, unchanged: true };
+  }
+
+  async function doUpdate() {
+    await user.updateEmail(newSyntheticEmail);
+  }
+
+  try {
+    gisugoAuthLog('phone sync: repointing login to new number', { phone: normalized });
+    try {
+      await doUpdate();
+    } catch (error) {
+      if (error && error.code === 'auth/requires-recent-login') {
+        const re = await reauthenticateForSensitiveOp();
+        if (!re.success) {
+          return { success: false, code: 'reauth-failed', message: 'Phone saved, but we could not confirm your identity to move your login. Phone login stays on your OLD number for now.' };
+        }
+        await doUpdate();
+      } else {
+        throw error;
+      }
+    }
+    gisugoAuthLog('phone sync: success', { phone: normalized });
+    return { success: true, phone: normalized };
+  } catch (error) {
+    const code = (error && error.code) || '';
+    console.error('❌ Phone+password sync error:', code || error);
+    let message = 'Phone saved, but phone login could not be moved. It stays on your OLD number.';
+    if (code === 'auth/email-already-in-use') {
+      message = 'Phone saved, but that number is already registered to another GISUGO account — phone login stays on your OLD number.';
+    }
+    return { success: false, code: code || 'unknown', error: error, message: message };
+  }
+}
+
+// ============================================================================
 // OAUTH SIGN-IN HELPERS (shared by the Google + Facebook popup flows)
 // ============================================================================
 
@@ -2067,6 +2291,10 @@ window.loginWithEmail = loginWithEmail;
 window.signUpWithPhonePassword = signUpWithPhonePassword;
 window.loginWithPhonePassword = loginWithPhonePassword;
 window.normalizePhoneNumber = normalizePhoneNumber;
+window.linkPhonePasswordToCurrentUser = linkPhonePasswordToCurrentUser;
+window.syncPhonePasswordOnPhoneChange = syncPhonePasswordOnPhoneChange;
+window.reauthenticateForSensitiveOp = reauthenticateForSensitiveOp;
+window.isSyntheticPhoneEmail = isSyntheticPhoneEmail;
 window.isLikelyIOS = isLikelyIOS;
 window.isMobileOAuthEnvironment = isMobileOAuthEnvironment;
 window.confirmFacebookOnIOS = confirmFacebookOnIOS;
