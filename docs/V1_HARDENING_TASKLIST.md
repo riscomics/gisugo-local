@@ -1,12 +1,25 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-14
+> Status: **Active** · Last updated: 2026-07-15
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
 This is the working tasklist for getting GISUGO web production-solid. Resume here after
 any break. Linchpin insight: **the Admin Dashboard is the unlock** for Support email,
 disputes, and admin notifications — and it needs an architecture/cost study first.
+
+### ⛔ Agent rule — verify production data before reporting status
+**Hard gate:** run the matching script in the **same turn** before answering. No script output → no claim.
+
+| Topic | Command |
+|---|---|
+| Login / auth methods | `node scripts/verify-production-data.js users-auth` |
+| Phone on file | `node scripts/verify-production-data.js users-phone` |
+| Counts / backlog status | `node scripts/verify-production-data.js summary` |
+
+`providerId=password` is **not** phone+password unless credential email ends with `@phone.gisugo.app`.
+
+See `AGENTS.md` § "verify production data."
 
 ---
 
@@ -358,6 +371,58 @@ disputes, and admin notifications — and it needs an architecture/cost study fi
         debugging: console + long-press remain).
       Device login also serves as **account recovery** for FB-locked-out users (partial answer to the
       cross-provider-duplicate gap below).
+- [ ] **PLANNED — Phone+Password LINKING in profile Login Methods (micro-tasklist, 2026-07-15).**
+      Goal: an FB/Google user can add phone+password to their EXISTING account (lockout insurance +
+      closes the duplicate-account path: the desire for phone login lands on the same account instead
+      of forking a new one). Design locked with user: the row lives in Profile → Account → LOGIN
+      METHODS; the credential is keyed to the **profile phone (read-only in the modal — no free
+      typing)**; editing the profile phone later auto-repoints the credential (password unchanged).
+      No unlink UI (deliberate — revisit with admin/support tooling).
+      **A. `firebase-auth.js`**
+      - [ ] A1 `linkPhonePasswordToCurrentUser(password)`: `getPrivatePhone(uid)` →
+            `normalizePhoneNumber` → `phoneToSyntheticEmail` →
+            `EmailAuthProvider.credential` → `user.linkWithCredential`. Map errors:
+            `auth/email-already-in-use` / `auth/credential-already-in-use` → "already registered to
+            another account"; `auth/weak-password`; `auth/requires-recent-login` → A3 then retry.
+      - [ ] A2 `syncPhonePasswordOnPhoneChange(newE164)`: only when the user has the `password`
+            provider AND their auth email ends `@phone.gisugo.app` (skip legacy/dev email accounts) →
+            `user.updateEmail(newSyntheticEmail)`. On `email-already-in-use`: keep the phone save but
+            surface "login stays on your OLD number" warning (collision = another account owns it).
+            On `requires-recent-login`: A3 then retry.
+      - [ ] A3 `reauthenticateForSensitiveOp()`: `reauthenticateWithPopup` (Google/FB, whichever is
+            linked) or password re-entry for phone-only accounts. One shared guard with
+            `authLinkInProgress`.
+      **B. `profile.html`**
+      - [ ] B1 Add row `loginMethodPhone` (📱 "Phone & Password", `phoneMethodStatus`,
+            `linkPhoneBtn`) after the Facebook row (IDs must match `updateMethodUI('Phone', …)`
+            casing: `phoneMethodStatus`/`linkPhoneBtn`/`loginMethodPhone`).
+      - [ ] B2 Set-password modal: read-only phone display + password + confirm + error slot
+            (match the existing link-modal styling).
+      **C. `profile.js`**
+      - [ ] C1 `updateLoginMethodsUI()`: linked = `password` provider present AND email is synthetic
+            (`@phone.gisugo.app`) → `updateMethodUI('Phone', true, masked phone)`; else "Link".
+      - [ ] C2 `openPhoneLinkModal()`: no phone on file → guide to Edit Profile first; else validate
+            (≥6 chars, match) → A1 → success modal + UI refresh.
+      - [ ] C3 In the Edit-Profile save path (right after `savePrivatePhone`, ~L2415): if the number
+            actually CHANGED → call A2; show its warning/error states. No-op when unchanged.
+      **D. Ship**
+      - [ ] D1 Bump `profile.js?v=` + `firebase-auth.js?v=` on `profile.html` (and keep
+            login/sign-up versions in sync), deploy hosting.
+      **Test steps (live, after deploy):**
+      1. Google-linked account with phone on file → Login Methods shows "Phone & Password / Link" →
+         set password (test mismatch + short-password errors first) → row flips ✓ Linked (masked number).
+      2. Log out → login page → Phone & Password rail → profile phone + new password → lands in the
+         SAME account (check profile name), not a new one.
+      3. Duplicate guard: from a DIFFERENT account, link the SAME phone → clear "already registered"
+         error, nothing linked.
+      4. Phone-change sync: Edit Profile → change number → save (complete the reauth popup if
+         prompted) → log out → OLD number + password FAILS, NEW number + same password WORKS.
+      5. Existing phone+password signup account → Phone row shows ✓ Linked automatically; Google/FB
+         still linkable on it.
+      6. Account with NO phone on file → Link prompts to add the phone in Edit Profile first.
+      7. Regression: Google/FB link buttons unaffected; profile save WITHOUT phone change triggers no
+         sync; a legacy (non-synthetic) email/password test account does NOT show Phone as linked.
+      Cost: zero — Auth credential ops are free; reuses the single private-phone read.
 - [x] **Phone + Password login (OAuth-independent fallback) — BUILT (2026-07-13, pending live test).**
       Works on every device/browser (incl. the iPhone 7), so no user is blocked by a FB/Google/OS quirk.
       Implementation:
@@ -449,6 +514,8 @@ Also live: the **DEFERRED BACKLOG** list at the bottom of `docs/BUILD_PLAN_PHONE
 deletion, hire-overlay dead-code cleanup, orphaned-applications cleanup).
 
 ## Key reminders
+- **Auth/login claims → `users-auth` first.** `password` provider ≠ phone+password without `@phone.gisugo.app` email.
+- **Status/backlog → `summary` / `users-phone` as needed.** No script output, no claim.
 - After any mobile-facing change → deploy hosting and report live result.
 - Do not commit unless explicitly asked.
 - Local server still hits PRODUCTION Firebase data.
