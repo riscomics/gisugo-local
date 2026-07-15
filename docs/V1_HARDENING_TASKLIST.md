@@ -419,34 +419,34 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 
 ---
 
-## Recommended order (re-synced 2026-07-03)
-> Reordered after the Direct decision. Direct is small, high-leverage, and does NOT depend on the
-> dashboard or the Track B lockdown (phone served via ownership-checked callable). Dashboard is still
-> the ops/Support linchpin but is a bigger build, so Direct goes first.
-> **Detailed build plan for items 1–3:** `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`.
+## Recommended order (re-synced 2026-07-14)
+> Items 1 and 2 of the build plan are DONE (see `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` — Item 1
+> account-creation redesign shipped 2026-07-07; Item 2 Direct contact reveal + HIRE/price-verify
+> shipped 2026-07-11). Track G login/auth (Facebook everywhere incl. device-login rescue, phone+
+> password fallback) closed 2026-07-14. Next up is Item 3, then the dashboard.
 
 0. ✅ Track A — done. ✅ Application-limit UX rework (Track D) — built/deployed; only Phase F
-   admin-config (rides with dashboard) remains.
-1. **Mandatory verified phone at signup** (+ consent lines). Prerequisite for Direct AND a standalone
-   trust/safety win. Do first.
-2. **Direct contact route** (the renovation). Net-new: Contact reveal (tel:/sms:) in View Applications,
-   `revealApplicantContact` callable (+ reveal counter), price-verify at Hire, worker-apply consent.
-   Reuses the existing Gigs Manager hire lifecycle; no chat migration needed. See
-   `docs/DIRECT_CONTACT_LISTINGS_STUDY.md`.
-3. **Support and Alerts → their own pages** (decided). Split them out of the unified messages view
-   into standalone pages, and **update the menu overlay button links** to point to the new pages.
-   No longer folded inside `messages.html`; decouples Support from the dashboard timeline.
-4. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes,
-   admin notifications, gig-report moderation, the deferred lockdown, and displays the Direct reveal
-   counter. (Also builds the Support **responder/admin side**; the user-facing Support page from #3
-   feeds into it.)
-5. **Block-user feature** (Track C #9). After the dashboard study (confirms admin vs user-only plumbing).
-6. **Backend security lockdown** (Track B — see `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`).
-   Folds into the dashboard server work; includes the single `functions` deploy that also clears the
-   already-deleted `migrateLegacyProfilePhones`.
-7. **Final cross-device QA pass** + remaining Track E items before release.
+   admin-config (rides with dashboard) remains. ✅ Mandatory phone at signup (plain field, no SMS —
+   Item 1). ✅ Direct contact route core (Item 2). ✅ Track G auth saga (2026-07-14).
+1. **Support and Alerts → their own pages** (Item 3, decided). Split them out of the unified
+   messages view into standalone `alerts.html` / `support.html`, update the menu overlay links,
+   repoint push deep-links. `messages.html` stays intact (premium chat later).
+2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes,
+   admin notifications, gig-report moderation, the deferred lockdown, the Support responder/admin
+   side, and displays the Direct reveal counter.
+3. **Phone VERIFICATION fast-follow (Semaphore OTP, ~$0.02/send vs Firebase's ~$0.15)** — plan +
+   research in `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 1 APPENDIX. Gated on business
+   registration (PH telco sender-ID approval), NOT on code. Also the durable fix for the
+   cross-provider duplicate-phone gap (verify + link phone on all accounts).
+4. **Block-user feature** (Track C #9). After the dashboard study (confirms admin vs user-only plumbing).
+5. **Backend security lockdown** (Track B — see `docs/NOTIFICATIONS_AND_APPLICATIONS_LOCKDOWN.md`).
+   Folds into the dashboard server work.
+6. **Final cross-device QA pass** + remaining Track E items (incl. iPad-mini header layout +
+   legacy-iPhone data-loading stalls) before release.
 
-Free cleanups (anytime, ~no risk): delete the 2 orphaned applications (parent gig deleted).
+Also live: the **DEFERRED BACKLOG** list at the bottom of `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md`
+(reveal counter on dashboard, Firestore cleanup pass, Privacy/Terms rewrite, in-app account
+deletion, hire-overlay dead-code cleanup, orphaned-applications cleanup).
 
 ## Key reminders
 - After any mobile-facing change → deploy hosting and report live result.
