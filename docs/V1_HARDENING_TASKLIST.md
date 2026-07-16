@@ -8,12 +8,16 @@ This is the working tasklist for getting GISUGO web production-solid. Resume her
 any break. Linchpin insight: **the Admin Dashboard is the unlock** for Support email,
 disputes, and admin notifications — and it needs an architecture/cost study first.
 
-### Where we are (2026-07-15 evening)
+### Where we are (2026-07-15 evening — post-push)
 **Track G (login / auth) is CLOSED** — Facebook device-login rescue, phone+password signup/login,
 profile phone+password linking, phone-change sync via Cloud Function, email-verify gate exemption,
-legacy test-account cleanup + orphan sweep, dead `activeJobsCount`/`appliedJobsCount` removed.
-Live accounts: **3** (Android Samsung, Peter J. Ang, Chris Casas). Both primaries have working
-phone+password. **Next up:** Support + Alerts pages (Item 3).
+legacy test-account cleanup + orphan sweep, dead `activeJobsCount`/`appliedJobsCount` removed,
+ghost-hire jobs reopened. Live accounts (verified): **3** — Android Samsung + Peter J. Ang
+(phone+password YES), Chris Casas (Google only). **Nothing from the login cleanup still needs
+doing now.** **Next up:** Support + Alerts pages (Item 3).
+**Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
+Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
+(user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
 
 ### ⛔ Agent rule — verify production data before reporting status
 **Hard gate:** run the matching script in the **same turn** before answering. No script output → no claim.

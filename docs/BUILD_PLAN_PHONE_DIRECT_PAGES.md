@@ -330,10 +330,12 @@ item is the **user-facing page split only**.
 - **[RESOLVED 2026-07-15 — verified against live Firestore]** Primary accounts already have
   phones in `user_private`: **Peter J. Ang** (`+19…7393`) and **Android Samsung** (`+18…9957`).
   No accounts still have a public-only legacy copy; the July-11 "re-enter phone" note is obsolete.
-  Four other test accounts (Chris Casas, iPhone Firefox, New Model iPhone, Real Interface Studios)
-  still have no phone on file — add via Edit Profile only if you still use those for testing.
-- **[WAITING/external] Meta App Review** — on approval, flip app to Live so any Facebook
-  user can sign up; FB button already relabeled "Facebook / Messenger".
+  Live users now: those two + **Chris Casas** (Google only, no phone — fine). Deleted 2026-07-15:
+  iPhone Firefox, New Model iPhone, Real Interface Studios (+ orphan sweep).
+- **[DONE ~2026-07 — Meta app Live]** Facebook app published Live (user-confirmed 2026-07-15).
+  Evidence: non-owner Facebook logins work in the wild (friend iPhone test + both primary
+  accounts have distinct FB providers in Auth). Docs previously still said WAITING — stale.
+  FB button already labeled "Facebook / Messenger".
 - **Item 2 — HIRE button + price-verify at Hire: DONE (2026-07-11) + deployed.** Added a
   HIRE button to the application action overlay (persistent overlay, independent of Contact)
   and a "Confirm or Change Agreed Price" field in the hire-confirmation overlay. Confirmed
