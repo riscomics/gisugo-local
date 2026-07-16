@@ -477,16 +477,86 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 
 ---
 
+## NEXT — Item 3: Support & Alerts → own pages (micro-tasklist, 2026-07-15)
+
+> Source of truth also: `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 3.
+> **Not started.** Say go when ready to build. User commits in VS Code; agent **Deploy** only.
+
+### Locked decisions
+- **Copy/extract**, do **not** tear down `messages.html` / `messages.js` (premium chat stays wired).
+- New pages: `alerts.html` + `alerts.js`, `support.html` + `support.js`.
+- Menu: show **Alerts** + **Support**; **hide Messages** until premium (page stays reachable for
+  `?threadId=` / chat deep-links).
+- Push deep-links: alert-type pushes → `/alerts.html` (not `/messages.html`).
+- Support **admin responder** is **out of scope** (Admin Dashboard). User page can be empty until then.
+- Submit path (`contacts.html` → `support_requests`) unchanged.
+
+### Defaults to confirm before/at build start
+| Topic | Proposed default |
+|---|---|
+| CSS | Link existing `messages.css` on both new pages first (faster); split later if needed |
+| Menu badges | Alerts card → notification unread counters; Support → support unread if easy, else no badge until dashboard; chat unread bridge kept in code but unused while Messages is hidden |
+| Push URL | `/alerts.html?role=worker\|customer` using existing role infer helper |
+| Back from jobs | Alert card navigations use `from=alerts` (not `from=messages`) |
+| Home overlay | Update `index.html` Messages card → Alerts (+ Support) same as shared-menu |
+
+### A. Alerts page
+- [ ] A1 Scaffold `alerts.html` — header "Alerts", WORKER/CUSTOMER role tabs, ENGLISH/BISAYA/TAGALOG
+      lang tabs, alerts content containers, loading overlay. Script stack: Firebase + auth/db +
+      header-uniform + shared-menu. **No** chat-thread-service / gig-overlays / contact-reveal.
+- [ ] A2 `alerts.js` — extract/copy from `messages.js`: alerts stream
+      (`ensureAlertsRealtimeStream` / `subscribeToUserNotifications`), render, pagination/infinite
+      scroll, lang tabs, `handleNotificationTypeNavigation`, mark-as-read, role switch. Init only
+      the alerts path (no chats/support).
+- [ ] A3 Auth gate → `login.html?redirect=alerts.html`. Support `?role=worker|customer` for push.
+- [ ] A4 Smoke: stream renders both roles; card tap → jobs/profile; read persists; lang tabs work.
+
+### B. Support page
+- [ ] B1 Scaffold `support.html` — header "Support", copy unified Support markup + detail/reply
+      overlays from `messages.html`.
+- [ ] B2 `support.js` — extract/copy: `ensureSupportResponsesRealtimeStream`,
+      `mapSupportRecordToUnifiedMessage`, list/detail render, filters/`messageStates`, overlays.
+      Include `support-taxonomy.js`.
+- [ ] B3 Auth gate → `login.html?redirect=support.html`. Keep honest empty state (no admin replies yet).
+- [ ] B4 Smoke: `support_requests` for current user list; detail opens; empty state OK.
+
+### C. Menu, badges, cross-links
+- [ ] C1 `shared-menu.js` — replace Messages with Alerts + Support; update `FULL_ROW_MENU_TEXTS`
+      + badge wiring (Alerts = notification counters).
+- [ ] C2 `index.html` home overlay — same menu swap + badge selectors (today hardcode `messages`).
+- [ ] C3 `listing.js` + `header-uniform.js` — badge label matchers; `from=messages` → `from=alerts`
+      for alert→jobs back navigation.
+- [ ] C4 Optional copy: dynamic-job "Check your MESSAGES" → "ALERTS" (product polish).
+- [ ] C5 Confirm `messages.html` still works via direct URL / chat deep-link (not in menu).
+
+### D. Push deep-links (hosting + functions)
+- [ ] D1 `functions/index.js` `buildPushPayloadFromNotification` — alert types → `/alerts.html?role=…`
+      (reserve `/support.html` for a future support-reply push type when dashboard ships).
+- [ ] D2 `firebase-messaging-sw.js` — default click/fallback → `/alerts.html`.
+- [ ] D3 Cache-bust new JS; **Deploy** hosting + functions.
+
+### E. Live test checklist
+1. Menu shows Alerts + Support; Messages hidden.
+2. Alerts page loads real notifications; role + lang tabs work.
+3. Support page loads (likely empty until admin responder).
+4. Push tap opens `alerts.html` (not messages).
+5. Direct `messages.html?threadId=…` still opens chat.
+6. `contacts.html` submit still creates `support_requests` (appears on Support when replied later).
+7. Regression: jobs/profile navigation from an alert card; back returns to Alerts.
+
+### Out of scope (do not fold into Item 3)
+- Admin Support queue / reply writer
+- Premium chat UX / re-showing Messages in menu
+- Shortening push tray title/body copy (separate optimization)
+
+---
+
 ## Recommended order (re-synced 2026-07-15 evening)
-> Items 1–2 DONE. **Track G auth FULLY CLOSED 2026-07-15** (device login, phone+password,
-> linking, sync Cloud Function, gate fix, account/orphan cleanup, dead counters removed).
-> Next up is Item 3, then the dashboard.
+> Items 1–2 DONE. **Track G auth FULLY CLOSED 2026-07-15**. Meta FB app Live. Next = Item 3.
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
-   ✅ Item 2 Direct contact. ✅ **Track G login/auth (2026-07-15).**
-1. **Support and Alerts → their own pages** (Item 3, decided). Split them out of the unified
-   messages view into standalone `alerts.html` / `support.html`, update the menu overlay links,
-   repoint push deep-links. `messages.html` stays intact (premium chat later).
+   ✅ Item 2 Direct contact. ✅ **Track G login/auth (2026-07-15).** ✅ Meta FB app Live.
+1. **Support and Alerts → their own pages** (Item 3) — micro-tasklist above. Not started.
 2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes,
    admin notifications, gig-report moderation, the deferred lockdown, the Support responder/admin
    side, and displays the Direct reveal counter.
