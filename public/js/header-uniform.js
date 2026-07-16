@@ -308,9 +308,10 @@ function initializeMenuItems(menuOverlay) {
     const defaultMenuItems = [
         { href: 'index.html', img: 'public/icons/Home.png', text: 'Home' },
         { href: 'new-post2.html', img: 'public/icons/Post.png', text: 'Post' },
-        { href: 'messages.html', img: 'public/icons/Messages.png', text: 'Messages' },
+        { href: 'alerts.html', img: 'public/icons/Messages.png', text: 'Alerts' },
         { href: 'jobs.html', img: 'public/icons/Jobs.png', text: 'Gigs' },
-        { href: 'profile.html', img: 'public/icons/Profile.png', text: 'Profile' }
+        { href: 'profile.html', img: 'public/icons/Profile.png', text: 'Profile' },
+        { href: 'support.html', img: 'public/icons/Messages.png', text: 'Support' }
     ];
 
     const menuHTML = defaultMenuItems.map(item => `
@@ -363,6 +364,10 @@ function initializeUniformBackButton() {
             }
             
             // Deterministic return path for alert-driven deep links.
+            if (fromParam === 'alerts') {
+                window.location.href = 'alerts.html';
+                return;
+            }
             if (fromParam === 'messages') {
                 window.location.href = 'messages.html';
                 return;

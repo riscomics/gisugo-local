@@ -342,7 +342,7 @@ function ensureListingOverlayMessagesBadge() {
     const icon = card.querySelector('.home-menu-card-icon');
     if (!label || !icon) return;
     const labelText = (label.textContent || '').toLowerCase();
-    if (!labelText.includes('messages')) return;
+    if (!labelText.includes('alerts') && !labelText.includes('messages')) return;
 
     // Migrate legacy badge placement (older shared-menu versions put it under label).
     const legacyBadges = label.querySelectorAll('.shared-menu-messages-badge');

@@ -283,11 +283,13 @@ or the dashboard.
 **Goal:** split ALERTS and SUPPORT out of the unified messages view into standalone pages; update
 the menu overlay links.
 
+**Status (2026-07-16):** Code ready (`alerts.html`/`alerts.js`, `support.html`/`support.js`, menu
+swap, G2 chat-listener gate, push → `/alerts.html?role=…`). Smoke + Deploy still open. Micro-tasklist
+in `docs/V1_HARDENING_TASKLIST.md` → “NEXT — Item 3”.
+
 **Current state (traced):**
-- `messages.html` has role-scoped tabs: **ALERTS / CHATS / SUPPORT** (worker + customer). Logic in
-  `messages.js` (large, intertwined): Alerts stream = `notifications`; Support stream =
-  `support_requests` (`ensureSupportResponsesRealtimeStream`).
-- Menu (`shared-menu.js` `MENU_ITEMS`) has a single **"Messages"** entry → `messages.html`.
+- `messages.html` still has role-scoped tabs: **ALERTS / CHATS / SUPPORT** (left intact for premium).
+- Standalone pages are the user-facing UX; menu shows **Alerts** + **Support** (Messages hidden).
 
 **LOCKED (2026-07-05):** **Leave `messages.html` as-is** — it stays intact so "premium" chat is
 already wired when rolled out. Alerts + Support become **separate standalone pages/links** that are

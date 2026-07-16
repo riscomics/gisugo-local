@@ -22,7 +22,7 @@ messaging.onBackgroundMessage((payload) => {
   }
   const title = payload?.notification?.title || 'GISUGO Alert';
   const body = payload?.notification?.body || 'You have a new notification.';
-  const link = payload?.fcmOptions?.link || payload?.data?.click_action || '/messages.html';
+  const link = payload?.fcmOptions?.link || payload?.data?.click_action || '/alerts.html';
 
   self.registration.showNotification(title, {
     body,
@@ -37,7 +37,7 @@ self.addEventListener('notificationclick', (event) => {
   const rawLink =
     event.notification?.data?.link ||
     event.notification?.data?.click_action ||
-    '/messages.html';
+    '/alerts.html';
   const targetUrl = new URL(String(rawLink), self.location.origin).href;
 
   event.waitUntil((async () => {

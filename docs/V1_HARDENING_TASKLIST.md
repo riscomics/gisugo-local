@@ -1,6 +1,6 @@
 # GISUGO V1 — Production Hardening Tasklist
 
-> Status: **Active** · Last updated: 2026-07-15 (evening)
+> Status: **Active** · Last updated: 2026-07-16
 > Mode: production-hardening. Policy: no mock fallback / fail clearly. No platform rewrite.
 > Companion docs: `docs/V2_NATIVE_APP_PLAN.md` (future app), `FIREBASE_SCHEMA.md` (data model).
 
@@ -8,13 +8,10 @@ This is the working tasklist for getting GISUGO web production-solid. Resume her
 any break. Linchpin insight: **the Admin Dashboard is the unlock** for Support email,
 disputes, and admin notifications — and it needs an architecture/cost study first.
 
-### Where we are (2026-07-15 evening — post-push)
-**Track G (login / auth) is CLOSED** — Facebook device-login rescue, phone+password signup/login,
-profile phone+password linking, phone-change sync via Cloud Function, email-verify gate exemption,
-legacy test-account cleanup + orphan sweep, dead `activeJobsCount`/`appliedJobsCount` removed,
-ghost-hire jobs reopened. Live accounts (verified): **3** — Android Samsung + Peter J. Ang
-(phone+password YES), Chris Casas (Google only). **Nothing from the login cleanup still needs
-doing now.** **Next up:** Support + Alerts pages (Item 3).
+### Where we are (2026-07-16)
+**Track G (login / auth) is CLOSED.** **Item 3 in progress:** Alerts page ready; Support merged with
+Contact (Write overlay + unified topic taxonomy). Menu: Alerts + Support (no Contact/Messages).
+Smoke + Deploy still open.
 **Meta Facebook app:** Live (published ~days before 2026-07-15) — not waiting on App Review.
 Agents cannot see the Meta dashboard; treat Live as confirmed when non-role users can FB-login
 (user + friend-device tests) and Auth shows multiple distinct `facebook.com` providers.
@@ -480,7 +477,7 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 ## NEXT — Item 3: Support & Alerts → own pages (micro-tasklist, 2026-07-15)
 
 > Source of truth also: `docs/BUILD_PLAN_PHONE_DIRECT_PAGES.md` ITEM 3.
-> **Not started.** Say go when ready to build. User commits in VS Code; agent **Deploy** only.
+> **IN PROGRESS 2026-07-16.** User commits in VS Code; agent **Deploy** only.
 
 ### Locked decisions
 - **Copy/extract**, do **not** tear down `messages.html` / `messages.js` (premium chat stays wired).
@@ -490,50 +487,54 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 - Push deep-links: alert-type pushes → `/alerts.html` (not `/messages.html`).
 - Support **admin responder** is **out of scope** (Admin Dashboard). User page can be empty until then.
 - Submit path (`contacts.html` → `support_requests`) unchanged.
+- **UI (locked 2026-07-16):** same `messages.css` look. Drop ALERTS|CHATS|SUPPORT section tabs
+  (page title replaces them). **Alerts** keeps WORKER|CUSTOMER + ENGLISH|BISAYA|TAGALOG.
+  **Support** has no role tabs (unified inbox). Messages page unchanged if opened by URL.
 
-### Defaults to confirm before/at build start
-| Topic | Proposed default |
+### Defaults (confirmed)
+| Topic | Default |
 |---|---|
-| CSS | Link existing `messages.css` on both new pages first (faster); split later if needed |
-| Menu badges | Alerts card → notification unread counters; Support → support unread if easy, else no badge until dashboard; chat unread bridge kept in code but unused while Messages is hidden |
-| Push URL | `/alerts.html?role=worker\|customer` using existing role infer helper |
-| Back from jobs | Alert card navigations use `from=alerts` (not `from=messages`) |
-| Home overlay | Update `index.html` Messages card → Alerts (+ Support) same as shared-menu |
+| CSS | Link existing `messages.css` on both new pages first |
+| Menu badges | Alerts card → notification unread; Support → badge if easy, else none until dashboard; chat unread listener **gated off** while Messages hidden (G2) |
+| Push URL | `/alerts.html?role=worker\|customer` |
+| Back from jobs | `from=alerts` |
+| Home overlay | Same swap as shared-menu |
 
 ### A. Alerts page
-- [ ] A1 Scaffold `alerts.html` — header "Alerts", WORKER/CUSTOMER role tabs, ENGLISH/BISAYA/TAGALOG
+- [x] A1 Scaffold `alerts.html` — header "Alerts", WORKER/CUSTOMER role tabs, ENGLISH/BISAYA/TAGALOG
       lang tabs, alerts content containers, loading overlay. Script stack: Firebase + auth/db +
       header-uniform + shared-menu. **No** chat-thread-service / gig-overlays / contact-reveal.
-- [ ] A2 `alerts.js` — extract/copy from `messages.js`: alerts stream
+- [x] A2 `alerts.js` — extract/copy from `messages.js`: alerts stream
       (`ensureAlertsRealtimeStream` / `subscribeToUserNotifications`), render, pagination/infinite
       scroll, lang tabs, `handleNotificationTypeNavigation`, mark-as-read, role switch. Init only
       the alerts path (no chats/support).
-- [ ] A3 Auth gate → `login.html?redirect=alerts.html`. Support `?role=worker|customer` for push.
+- [x] A3 Auth gate → `login.html?redirect=alerts.html`. Support `?role=worker|customer` for push.
 - [ ] A4 Smoke: stream renders both roles; card tap → jobs/profile; read persists; lang tabs work.
 
 ### B. Support page
-- [ ] B1 Scaffold `support.html` — header "Support", copy unified Support markup + detail/reply
+- [x] B1 Scaffold `support.html` — header "Support", copy unified Support markup + detail/reply
       overlays from `messages.html`.
-- [ ] B2 `support.js` — extract/copy: `ensureSupportResponsesRealtimeStream`,
+- [x] B2 `support.js` — extract/copy: `ensureSupportResponsesRealtimeStream`,
       `mapSupportRecordToUnifiedMessage`, list/detail render, filters/`messageStates`, overlays.
       Include `support-taxonomy.js`.
-- [ ] B3 Auth gate → `login.html?redirect=support.html`. Keep honest empty state (no admin replies yet).
+- [x] B3 Auth gate → `login.html?redirect=support.html`. Keep honest empty state (no admin replies yet).
 - [ ] B4 Smoke: `support_requests` for current user list; detail opens; empty state OK.
 
 ### C. Menu, badges, cross-links
-- [ ] C1 `shared-menu.js` — replace Messages with Alerts + Support; update `FULL_ROW_MENU_TEXTS`
+- [x] C1 `shared-menu.js` — replace Messages with Alerts + Support; update `FULL_ROW_MENU_TEXTS`
       + badge wiring (Alerts = notification counters).
-- [ ] C2 `index.html` home overlay — same menu swap + badge selectors (today hardcode `messages`).
-- [ ] C3 `listing.js` + `header-uniform.js` — badge label matchers; `from=messages` → `from=alerts`
+- [x] C2 `index.html` home overlay — same menu swap + badge selectors (today hardcode `messages`).
+- [x] C3 `listing.js` + `header-uniform.js` — badge label matchers; `from=messages` → `from=alerts`
       for alert→jobs back navigation.
-- [ ] C4 Optional copy: dynamic-job "Check your MESSAGES" → "ALERTS" (product polish).
+- [x] C4 Optional copy: dynamic-job "Check your MESSAGES" → "ALERTS" (product polish).
 - [ ] C5 Confirm `messages.html` still works via direct URL / chat deep-link (not in menu).
 
 ### D. Push deep-links (hosting + functions)
-- [ ] D1 `functions/index.js` `buildPushPayloadFromNotification` — alert types → `/alerts.html?role=…`
+- [x] D1 `functions/index.js` `buildPushPayloadFromNotification` — alert types → `/alerts.html?role=…`
       (reserve `/support.html` for a future support-reply push type when dashboard ships).
-- [ ] D2 `firebase-messaging-sw.js` — default click/fallback → `/alerts.html`.
-- [ ] D3 Cache-bust new JS; **Deploy** hosting + functions.
+- [x] D2 `firebase-messaging-sw.js` — default click/fallback → `/alerts.html`.
+- [x] D3 Cache-bust new JS (`shared-menu` v4.0, `header-uniform` v1.3, `listing`/`dynamic-job`).
+      **Deploy** hosting + functions still open (say **Deploy**).
 
 ### E. Live test checklist
 1. Menu shows Alerts + Support; Messages hidden.
@@ -544,10 +545,37 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 6. `contacts.html` submit still creates `support_requests` (appears on Support when replied later).
 7. Regression: jobs/profile navigation from an alert card; back returns to Alerts.
 
+### Guardrails — messages.html must NOT keep "running" in the background
+> User concern (2026-07-15): leaving `messages.html` intact must not mean chat/alerts keep
+> updating via overlapping scripts after Contact/Hire, or while only Alerts/Support are in the menu.
+
+**How it works today (verified in code):**
+- `messages.js` loads **only** on `messages.html` — not on jobs/profile/index. Opening Alerts/Support
+  pages must **not** include `messages.js`.
+- **Direct Contact** (`gig-overlays.js` → `startDirectContactReveal`) does **not** create chat
+  threads (phone reveal only; comment in code says premium chat waits in messages.html).
+- Legacy `jobs.js` `handleSendContactMessage` **can** create `chat_threads` + `chat_messages`, but
+  `showContactMessageOverlay` has **no live callers** after Direct Contact shipped (dead path for now).
+- **Hire** does not create chat threads.
+- What *does* still run site-wide: `shared-menu.js` **chat_threads unread onSnapshot** (reads for the
+  Messages badge) on every page with the menu — not writes, but real background Firestore listeners.
+
+**Must do in Item 3 (add to C/D):**
+- [x] G1 Alerts/Support pages: do **not** load `messages.js` or `chat-thread-service.js`.
+- [x] G2 While Messages is hidden from the menu: **stop / gate** the shared-menu `chat_threads`
+      unread listener (and chat unread override) so hiding Messages also stops that background read.
+      Keep notification-counter listener for the Alerts badge. (`MENU_CHAT_UNREAD_ENABLED` /
+      `HOME_CHAT_UNREAD_ENABLED` = false).
+- [x] G3 Confirm Contact + Hire paths still do not call chat-create / `navigateToExistingChatThread`
+      (except an explicit "Open Chat" on legacy offers if that UI still exists — document it).
+      Direct Contact = phone reveal only (`gig-overlays.js`).
+- [x] G4 Do **not** delete `messages.html` code; do **not** wire new features into it during Item 3.
+
 ### Out of scope (do not fold into Item 3)
 - Admin Support queue / reply writer
 - Premium chat UX / re-showing Messages in menu
 - Shortening push tray title/body copy (separate optimization)
+- Killing every legacy chat code path inside `jobs.js`/`messages.js` (dead code cleanup later)
 
 ---
 
@@ -556,7 +584,7 @@ Note synergy with recommended-order **#1 "Mandatory verified phone at signup"** 
 
 0. ✅ Track A. ✅ Track D (except Phase F admin-config with dashboard). ✅ Item 1 phone field.
    ✅ Item 2 Direct contact. ✅ **Track G login/auth (2026-07-15).** ✅ Meta FB app Live.
-1. **Support and Alerts → their own pages** (Item 3) — micro-tasklist above. Not started.
+1. **Support and Alerts → their own pages** (Item 3) — code ready; smoke + Deploy left.
 2. **Admin Dashboard architecture + cost study** (Track C #8), then **build**. Unblocks disputes,
    admin notifications, gig-report moderation, the deferred lockdown, the Support responder/admin
    side, and displays the Direct reveal counter.

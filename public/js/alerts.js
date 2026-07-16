@@ -1,0 +1,11484 @@
+// GISUGO Alerts Page JavaScript
+// Standalone extract based on messages.js (alerts path). Loaded only on alerts.html.
+// Do NOT load messages.js on this page.
+
+/*
+=== FIREBASE INTEGRATION SUMMARY ===
+
+✅ FIRESTORE-OPTIMIZED DATA STRUCTURES:
+- Document IDs: Firebase auto-generated format (e.g., 'notif_xKj9mL2pQ8vR4sW7nC1e')
+- User IDs: Firebase UID format (28-character strings)
+- Timestamps: Date objects ready for firebase.firestore.Timestamp conversion
+- Collections: /notifications, /applications, /jobs, /contracts, /users, /analytics
+- Denormalized data for faster reads (user profiles embedded in applications)
+- Flat document structure for better indexing and security rules
+
+✅ FIREBASE AUTHENTICATION READY:
+- currentUser.uid integration points mapped
+- Custom claims support for roles (employer, worker, admin)
+- Security rules compatible data access patterns
+
+✅ FIRESTORE BATCH OPERATIONS:
+- Multi-document updates in single transaction
+- Atomic hire/reject operations with contract creation
+- Real-time listener update paths documented
+- Error handling and rollback strategies planned
+
+✅ FIREBASE CLOUD FUNCTIONS TRIGGERS:
+- Push notification sending via FCM
+- Email notifications with templates
+- Analytics event tracking
+- Recommendation engine updates
+- Automatic status synchronization
+
+✅ FIREBASE STORAGE INTEGRATION:
+- User photos: gs://gisugo-storage/users/{uid}/profile.jpg
+- Job images: gs://gisugo-storage/jobs/{jobId}/images/
+- Automatic URL transformation for display
+
+✅ REAL-TIME LISTENERS MAPPED:
+- /notifications/{recipientUid} - Live notification updates
+- /applications/{applicationId} - REMOVED (applications moved to jobs.html)
+- /jobs/{jobId} - Job status and assignment updates
+- /contracts/{contractId} - Contract creation and updates
+
+✅ ANALYTICS & PERFORMANCE:
+- Daily analytics aggregation with FieldValue.increment()
+- Compound indexes planned for complex queries
+- Pagination with startAfter/limit for large datasets
+- Optimized for mobile offline capabilities
+
+🔧 IMPLEMENTATION READY FOR:
+- Firebase SDK v9+ modular syntax
+- Firestore security rules
+- Cloud Functions deployment
+- FCM push notifications
+- Firebase Storage file handling
+- Real-time synchronization
+*/
+
+/*
+=== BACKEND INTEGRATION DOCUMENTATION ===
+
+This modular tab system provides comprehensive data structures for backend integration:
+
+1. NOTIFICATIONS TAB:
+   - Data: notifications data store (line ~1200)
+   - Structure: notification objects with full metadata
+   - Actions: mark_read, reply_message, view_application, review_applications
+   - Required Endpoints: GET /notifications, PUT /notifications/{id}/read, POST /notifications/action
+
+2. MESSAGES TAB:
+   - Data: messages data store (line ~1550)
+   - Structure: threaded conversations with full message history
+   - Actions: send_message, expand_thread, keyboard_handling
+   - Required Endpoints: GET /messages, POST /messages, PUT /messages/{threadId}/read
+
+3. MESSAGES TAB (formerly Applications):
+   - Data: Static HTML for admin communications
+   - Structure: Inbox/details layout for admin messages and broadcasts
+   - Actions: read_message, reply_to_admin, mark_read
+   - Required Endpoints: GET /admin-messages, POST /admin-messages/reply
+
+4. BACKEND DATA PAYLOADS:
+   - All action handlers prepare complete backend payload objects
+   - Includes user IDs, timestamps, notification data, analytics
+   - Check console.log outputs for exact data structures needed
+
+5. MODULAR LOADING:
+   - Only active tab loads content (eliminates 67% initial load)
+   - Each tab has independent scroll containers
+   - No shared state or background resource consumption
+
+6. DATA ATTRIBUTES:
+   - All UI elements include comprehensive data-* attributes
+   - Enables easy data extraction for API calls
+   - Maintains referential integrity between related objects
+*/
+
+/*
+=== FIREBASE INTEGRATION DOCUMENTATION ===
+
+This modular tab system is optimized for Firebase (Firestore + Authentication):
+
+1. FIRESTORE COLLECTIONS STRUCTURE:
+   /notifications/{notificationId} - Individual notification documents
+   /messages/{threadId} - Message thread documents with subcollection
+   /messages/{threadId}/messages/{messageId} - Individual messages
+   /jobs/{jobId} - Job documents
+   /applications/{applicationId} - REMOVED (applications moved to jobs.html)
+   /users/{uid} - User profile documents
+
+2. FIREBASE AUTHENTICATION:
+   - Uses Firebase UID format (28-character strings)
+   - currentUser.uid for authenticated user
+   - Custom claims for roles (employer, worker, admin)
+
+3. FIRESTORE TIMESTAMP FORMAT:
+   - firebase.firestore.Timestamp.now() for server timestamps
+   - firebase.firestore.FieldValue.serverTimestamp() for auto timestamps
+   - Properly indexed timestamp fields for queries
+
+4. FIRESTORE QUERIES READY:
+   - Compound indexes for complex filtering
+   - Pagination with startAfter/limit
+   - Real-time listeners for live updates
+   - Security rules compatible structure
+
+5. FIREBASE CLOUD FUNCTIONS:
+   - Notification triggers on document changes
+   - Application status change handlers
+   - Email/SMS notification workflows
+   - Data validation and sanitization
+
+6. FIREBASE STORAGE:
+   - User photos in /users/{uid}/profile.jpg
+   - Job images in /jobs/{jobId}/images/
+   - Message attachments in /messages/{threadId}/attachments/
+*/
+
+// ===== MEMORY LEAK PREVENTION SYSTEM =====
+
+// Global registry for tracking all event listeners and cleanup functions
+const CLEANUP_REGISTRY = {
+    documentListeners: new Map(), // Track document-level listeners
+    elementListeners: new WeakMap(), // Track element-specific listeners
+    activeControllers: new Set(), // Track AbortControllers
+    intervals: new Set(), // Track setInterval/setTimeout
+    cleanupFunctions: new Set() // Track custom cleanup functions
+};
+
+// Global registry for Firebase real-time listeners
+const ACTIVE_LISTENERS = {
+    notifications: null,
+    threads: null,
+    activeThreadMessages: null,
+    supportResponses: null
+};
+
+const MESSAGES_IOS_TRACE_STATE = {
+    maxLines: 20
+};
+const MESSAGES_RUNTIME_DEBUG = false;
+const GIG_TIPS_ACK_STORAGE_KEY = 'gisugo_gig_tips_ack_v1';
+const GIG_TIPS_LANG_DEFAULT = 'en';
+
+const GIG_TIPS_CONTENT = {
+    en: {
+        title: 'Be CLEAR with your Instructions!',
+        subtitle: 'Before starting the Gig:',
+        acknowledge: 'I Understand',
+        close: 'Close',
+        points: [
+            'Confirm final price, date, and time of gig.',
+            'Discuss any changes in chat first!',
+            'Take before-and-after photos.',
+            'Prioritize a safe work environment.',
+            'Mark completed only after both sides confirm.'
+        ]
+    },
+    tl: {
+        title: 'Maging CLEAR sa iyong Instructions!',
+        subtitle: 'Bago simulan ang Gig:',
+        acknowledge: 'Naiintindihan Ko',
+        close: 'Isara',
+        points: [
+            'I-confirm ninyong pareho ang presyo, petsa, oras, at detalye.',
+            'Sa chat ilagay lahat ng updates at kasunduan.',
+            'Magkuha ng before-and-after photos.',
+            'Panatilihing ligtas ang work environment.',
+            'I-mark na completed lang kapag parehong panig ay confirmed.'
+        ]
+    },
+    ceb: {
+        title: 'Pagka CLEAR sa imong Instructions!',
+        subtitle: 'Sa dili pa sugdan ang Gig:',
+        acknowledge: 'Nasabtan Ko',
+        close: 'Isira',
+        points: [
+            'Kumpirmaha ninyo ang bayad, petsa, oras, ug detalye sa trabaho.',
+            'Ibutang sa chat ang tanang updates ug sabot.',
+            'Kuhaa ang before-and-after photos.',
+            'Siguroa nga luwas ang work environment.',
+            'I-mark nga completed kung pareho na mong confirmed.'
+        ]
+    }
+};
+
+function isMessagesIOSTraceEnabled() {
+    try {
+        const ua = navigator.userAgent || '';
+        return /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    } catch (_) {
+        return false;
+    }
+}
+
+function ensureMessagesTraceOverlay() {
+    if (!isMessagesIOSTraceEnabled()) return null;
+    let panel = document.getElementById('messagesIosTracePanel');
+    if (panel) return panel;
+    panel = document.createElement('div');
+    panel.id = 'messagesIosTracePanel';
+    panel.style.cssText = [
+        'position:fixed',
+        'left:8px',
+        'right:8px',
+        'bottom:8px',
+        'max-height:34vh',
+        'overflow:auto',
+        'padding:8px',
+        'border:1px solid rgba(255,255,255,0.28)',
+        'border-radius:10px',
+        'background:rgba(5,8,20,0.90)',
+        'color:#d8f5ff',
+        'font:11px/1.35 monospace',
+        'z-index:2147483647',
+        'white-space:pre-wrap',
+        'word-break:break-word',
+        'pointer-events:none'
+    ].join(';');
+    document.body.appendChild(panel);
+    return panel;
+}
+
+function messagesTrace(event, details) {
+    if (!isMessagesIOSTraceEnabled()) return;
+    const panel = ensureMessagesTraceOverlay();
+    if (!panel) return;
+    const time = new Date().toISOString().slice(11, 19);
+    const detailText = details === undefined
+        ? ''
+        : (typeof details === 'string' ? details : JSON.stringify(details));
+    const line = `[${time}] ${event}${detailText ? ` | ${detailText}` : ''}`;
+    const rows = panel.textContent ? panel.textContent.split('\n') : [];
+    rows.push(line);
+    if (rows.length > MESSAGES_IOS_TRACE_STATE.maxLines) {
+        rows.splice(0, rows.length - MESSAGES_IOS_TRACE_STATE.maxLines);
+    }
+    panel.textContent = rows.join('\n');
+    panel.scrollTop = panel.scrollHeight;
+}
+
+function messagesDebug(...args) {
+    if (!MESSAGES_RUNTIME_DEBUG) return;
+    console.log(...args);
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getGigTipsAckMap() {
+    try {
+        const raw = localStorage.getItem(GIG_TIPS_ACK_STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function getGigTipsAckCacheKey(threadId, userId) {
+    const safeThreadId = String(threadId || '').trim();
+    const safeUserId = String(userId || '').trim() || 'anon';
+    if (!safeThreadId) return '';
+    return `${safeUserId}::${safeThreadId}`;
+}
+
+function getGigTipsAckCacheValue(threadId, userId) {
+    const cacheKey = getGigTipsAckCacheKey(threadId, userId);
+    if (!cacheKey) return false;
+    const map = getGigTipsAckMap();
+    return map[cacheKey] === true;
+}
+
+function setGigTipsAckCacheValue(threadId, userId, value = true) {
+    const cacheKey = getGigTipsAckCacheKey(threadId, userId);
+    if (!cacheKey) return;
+    const map = getGigTipsAckMap();
+    map[cacheKey] = value === true;
+    try {
+        localStorage.setItem(GIG_TIPS_ACK_STORAGE_KEY, JSON.stringify(map));
+    } catch (_) {
+        // Ignore storage write failures.
+    }
+}
+
+async function hasAcknowledgedGigTips(threadId, userId) {
+    const safeThreadId = String(threadId || '').trim();
+    if (!safeThreadId) return false;
+    const safeUserId = String(userId || '').trim() || 'anon';
+
+    if (getGigTipsAckCacheValue(safeThreadId, safeUserId)) {
+        return true;
+    }
+
+    if (typeof hasGigTipsAcknowledgementForThread === 'function') {
+        try {
+            const acknowledged = await hasGigTipsAcknowledgementForThread(safeThreadId);
+            if (acknowledged) {
+                setGigTipsAckCacheValue(safeThreadId, safeUserId, true);
+                return true;
+            }
+        } catch (error) {
+            console.warn('⚠️ Gig Tips acknowledgement check failed:', error);
+        }
+    }
+
+    return false;
+}
+
+async function setAcknowledgedGigTips(threadId, userId) {
+    const safeThreadId = String(threadId || '').trim();
+    const safeUserId = String(userId || '').trim() || 'anon';
+    if (!safeThreadId) return false;
+
+    setGigTipsAckCacheValue(safeThreadId, safeUserId, true);
+
+    if (typeof acknowledgeGigTipsForThread === 'function') {
+        try {
+            const result = await acknowledgeGigTipsForThread(safeThreadId);
+            if (!result || result.success !== true) {
+                setGigTipsAckCacheValue(safeThreadId, safeUserId, false);
+                return false;
+            }
+        } catch (error) {
+            console.warn('⚠️ Gig Tips acknowledgement save failed:', error);
+            setGigTipsAckCacheValue(safeThreadId, safeUserId, false);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function setChatInteractionLockedForGigTips(modalOverlay, locked) {
+    if (!modalOverlay) return;
+    const targets = modalOverlay.querySelectorAll('.chat-input, .chat-send-btn, .chat-photo-btn, .chat-photo-input, .chat-modal-menu');
+    targets.forEach((element) => {
+        if ('disabled' in element) {
+            element.disabled = !!locked;
+        }
+    });
+    modalOverlay.classList.toggle('gig-tips-gated', !!locked);
+}
+
+async function resolveGigTipsCategory(jobId, seedCategory = '') {
+    const safeSeed = String(seedCategory || '').trim().toLowerCase();
+    if (safeSeed) return safeSeed;
+    const safeJobId = String(jobId || '').trim();
+    if (!safeJobId || typeof getJobById !== 'function') return '';
+    try {
+        const job = await getJobById(safeJobId);
+        return String(job?.category || '').trim().toLowerCase();
+    } catch (error) {
+        console.warn('⚠️ Unable to resolve category for Gig Tips:', error);
+        return '';
+    }
+}
+
+function getGigTipsLanguagePack(lang) {
+    const safeLang = String(lang || '').toLowerCase();
+    return GIG_TIPS_CONTENT[safeLang] || GIG_TIPS_CONTENT[GIG_TIPS_LANG_DEFAULT];
+}
+
+function renderGigTipsBody(container, lang) {
+    if (!container) return;
+    const pack = getGigTipsLanguagePack(lang);
+    const tipsItems = pack.points.map((point) => `<li>${point}</li>`).join('');
+    container.innerHTML = `
+        <h3 class="gig-tips-title">${pack.title}</h3>
+        <p class="gig-tips-subtitle">${pack.subtitle}</p>
+        <ul class="gig-tips-list">${tipsItems}</ul>
+    `;
+}
+
+function openGigTipsModal({
+    modalOverlay,
+    threadId,
+    jobId,
+    jobTitle,
+    category = '',
+    requireAcknowledge = false
+} = {}) {
+    if (!modalOverlay) return Promise.resolve(false);
+    const safeThreadId = String(threadId || '').trim();
+    const safeJobId = String(jobId || '').trim();
+    const safeJobTitle = escapeHtml(String(jobTitle || 'Gig').trim() || 'Gig');
+
+    const existing = modalOverlay.querySelector('.gig-tips-overlay');
+    if (existing) {
+        existing.remove();
+    }
+
+    const tipsOverlay = document.createElement('div');
+    tipsOverlay.className = 'gig-tips-overlay';
+    tipsOverlay.innerHTML = `
+        <div class="gig-tips-modal" role="dialog" aria-modal="true" aria-label="Gig tips">
+            <div class="gig-tips-header">
+                <div class="gig-tips-heading-wrap">
+                    <div class="gig-tips-heading">READ GIG TIPS</div>
+                    <div class="gig-tips-job-title">${safeJobTitle}</div>
+                </div>
+                ${requireAcknowledge ? '' : '<button class="gig-tips-close-btn" type="button" aria-label="Close gig tips">✕</button>'}
+            </div>
+            <div class="gig-tips-lang-tabs" role="tablist" aria-label="Gig tips language">
+                <button class="gig-tips-lang-tab active" type="button" data-lang="en">English</button>
+                <button class="gig-tips-lang-tab" type="button" data-lang="ceb">Bisaya</button>
+                <button class="gig-tips-lang-tab" type="button" data-lang="tl">Tagalog</button>
+            </div>
+            <div class="gig-tips-body"></div>
+            <div class="gig-tips-footer">
+                ${requireAcknowledge ? '<button class="gig-tips-ack-btn" type="button"></button>' : '<button class="gig-tips-close-footer-btn" type="button"></button>'}
+            </div>
+        </div>
+    `;
+
+    modalOverlay.querySelector('.chat-modal-container')?.appendChild(tipsOverlay);
+
+    const bodyEl = tipsOverlay.querySelector('.gig-tips-body');
+    const langTabs = Array.from(tipsOverlay.querySelectorAll('.gig-tips-lang-tab'));
+    let activeLang = GIG_TIPS_LANG_DEFAULT;
+    renderGigTipsBody(bodyEl, activeLang);
+
+    const ackBtn = tipsOverlay.querySelector('.gig-tips-ack-btn');
+    const closeFooterBtn = tipsOverlay.querySelector('.gig-tips-close-footer-btn');
+    if (ackBtn) {
+        ackBtn.textContent = getGigTipsLanguagePack(activeLang).acknowledge;
+    }
+    if (closeFooterBtn) {
+        closeFooterBtn.textContent = getGigTipsLanguagePack(activeLang).close;
+    }
+
+    setChatInteractionLockedForGigTips(modalOverlay, requireAcknowledge);
+    tipsOverlay.classList.add('show');
+
+    return new Promise((resolve) => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+        const closeButton = tipsOverlay.querySelector('.gig-tips-close-btn');
+
+        const cleanup = (acknowledged) => {
+            controller.abort();
+            setChatInteractionLockedForGigTips(modalOverlay, false);
+            tipsOverlay.classList.remove('show');
+            setTimeout(() => {
+                if (tipsOverlay.parentNode) tipsOverlay.parentNode.removeChild(tipsOverlay);
+                resolve(acknowledged === true);
+            }, 150);
+        };
+
+        langTabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const selected = String(tab.getAttribute('data-lang') || GIG_TIPS_LANG_DEFAULT).toLowerCase();
+                activeLang = selected;
+                langTabs.forEach((entry) => entry.classList.toggle('active', entry === tab));
+                renderGigTipsBody(bodyEl, activeLang);
+                if (ackBtn) ackBtn.textContent = getGigTipsLanguagePack(activeLang).acknowledge;
+                if (closeFooterBtn) closeFooterBtn.textContent = getGigTipsLanguagePack(activeLang).close;
+            }, { signal });
+        });
+
+        if (ackBtn) {
+            ackBtn.addEventListener('click', async () => {
+                if (ackBtn.disabled) return;
+                ackBtn.disabled = true;
+                ackBtn.classList.add('is-submitting');
+                const originalLabel = ackBtn.textContent;
+                ackBtn.textContent = `${originalLabel}...`;
+                const saved = await setAcknowledgedGigTips(safeThreadId, getCurrentUserId());
+                if (!saved) {
+                    console.warn('⚠️ Gig tips acknowledgement could not be persisted; closing gate to avoid trapping chat.');
+                    showToast('Confirmation saved locally. You can continue chatting.');
+                }
+                cleanup(true);
+            }, { signal });
+        }
+
+        if (!requireAcknowledge) {
+            if (closeButton) {
+                closeButton.addEventListener('click', () => cleanup(false), { signal });
+            }
+            if (closeFooterBtn) {
+                closeFooterBtn.addEventListener('click', () => cleanup(false), { signal });
+            }
+            tipsOverlay.addEventListener('click', (event) => {
+                if (event.target === tipsOverlay) cleanup(false);
+            }, { signal });
+        }
+
+        // No eager prefetch here to avoid extra Firestore reads; category is passed when available.
+    });
+}
+
+async function enforceGigTipsGateOnChatOpen(modalOverlay) {
+    if (!modalOverlay) return;
+    const threadId = String(modalOverlay.getAttribute('data-thread-id') || '').trim();
+    const currentUserId = String(getCurrentUserId() || '').trim();
+    if (!threadId) return;
+    const alreadyAcknowledged = await hasAcknowledgedGigTips(threadId, currentUserId);
+    if (alreadyAcknowledged) return;
+
+    await openGigTipsModal({
+        modalOverlay,
+        threadId,
+        jobId: modalOverlay.getAttribute('data-job-id'),
+        jobTitle: modalOverlay.querySelector('.chat-modal-title')?.textContent || 'Gig',
+        category: modalOverlay.getAttribute('data-job-category') || '',
+        requireAcknowledge: true
+    });
+}
+
+// MEMORY LEAK FIX: Enhanced cleanup utility
+function registerCleanup(type, key, cleanupFn) {
+    if (type === 'function') {
+        CLEANUP_REGISTRY.cleanupFunctions.add(cleanupFn);
+    } else if (type === 'controller') {
+        CLEANUP_REGISTRY.activeControllers.add(cleanupFn);
+    } else if (type === 'interval') {
+        CLEANUP_REGISTRY.intervals.add(cleanupFn);
+    }
+    console.log(`🧹 Registered cleanup for ${type}: ${key || 'anonymous'}`);
+}
+
+// MEMORY LEAK FIX: Execute all registered cleanup functions
+function executeAllCleanups() {
+    console.log('🧹 EXECUTING COMPREHENSIVE CLEANUP...');
+    
+    // Clean up Firebase real-time listeners
+    if (ACTIVE_LISTENERS.notifications) {
+        console.log('🧹 Cleaning up notifications listener');
+        stopAlertsRealtimeStream('execute_all_cleanups');
+    }
+    if (ACTIVE_LISTENERS.threads) {
+        console.log('🧹 Cleaning up threads listener');
+        stopChatsRealtimeStream('execute_all_cleanups');
+    }
+    if (ACTIVE_LISTENERS.activeThreadMessages) {
+        console.log('🧹 Cleaning up active thread messages listener');
+        ACTIVE_LISTENERS.activeThreadMessages();
+        ACTIVE_LISTENERS.activeThreadMessages = null;
+    }
+    if (ACTIVE_LISTENERS.supportResponses) {
+        console.log('🧹 Cleaning up support responses listener');
+        stopSupportResponsesRealtimeStream('execute_all_cleanups');
+    }
+    
+    // Clean up document listeners
+    CLEANUP_REGISTRY.documentListeners.forEach((listener, key) => {
+        const [event, handler, options] = listener;
+        document.removeEventListener(event, handler, options);
+        console.log(`🧹 Removed document listener: ${key}`);
+    });
+    CLEANUP_REGISTRY.documentListeners.clear();
+    
+    // Abort all active controllers
+    CLEANUP_REGISTRY.activeControllers.forEach(controller => {
+        if (controller && typeof controller.abort === 'function') {
+            controller.abort();
+        }
+    });
+    CLEANUP_REGISTRY.activeControllers.clear();
+    
+    // Clear all intervals/timeouts
+    CLEANUP_REGISTRY.intervals.forEach(id => {
+        clearTimeout(id);
+        clearInterval(id);
+    });
+    CLEANUP_REGISTRY.intervals.clear();
+    
+    // Execute custom cleanup functions
+    CLEANUP_REGISTRY.cleanupFunctions.forEach(fn => {
+        try {
+            fn();
+        } catch (error) {
+            console.warn('Cleanup function error:', error);
+        }
+    });
+    CLEANUP_REGISTRY.cleanupFunctions.clear();
+    
+    console.log('✅ COMPREHENSIVE CLEANUP COMPLETED');
+}
+
+// MEMORY LEAK FIX: Safe document event listener with automatic tracking
+function addDocumentListener(event, handler, options = false) {
+    const key = `${event}_${Date.now()}_${Math.random()}`;
+    document.addEventListener(event, handler, options);
+    CLEANUP_REGISTRY.documentListeners.set(key, [event, handler, options]);
+    return key; // Return key for manual removal if needed
+}
+
+// MEMORY LEAK FIX: Remove specific document listener
+function removeDocumentListener(key) {
+    const listener = CLEANUP_REGISTRY.documentListeners.get(key);
+    if (listener) {
+        const [event, handler, options] = listener;
+        document.removeEventListener(event, handler, options);
+        CLEANUP_REGISTRY.documentListeners.delete(key);
+        console.log(`🧹 Removed tracked document listener: ${key}`);
+    }
+}
+
+// MEMORY LEAK FIX: Helper function to track timeouts for automatic cleanup
+function trackTimeout(callback, delay) {
+    const timeoutId = setTimeout(() => {
+        CLEANUP_REGISTRY.intervals.delete(timeoutId);
+        callback();
+    }, delay);
+    CLEANUP_REGISTRY.intervals.add(timeoutId);
+    return timeoutId;
+}
+
+// MEMORY LEAK FIX: Helper function to track intervals for automatic cleanup
+function trackInterval(callback, delay) {
+    const intervalId = setInterval(callback, delay);
+    CLEANUP_REGISTRY.intervals.add(intervalId);
+    return intervalId;
+}
+
+// MEMORY LEAK FIX: Manual timeout/interval cleanup for immediate cancellation
+function clearTrackedTimeout(timeoutId) {
+    clearTimeout(timeoutId);
+    CLEANUP_REGISTRY.intervals.delete(timeoutId);
+}
+
+function clearTrackedInterval(intervalId) {
+    clearInterval(intervalId);
+    CLEANUP_REGISTRY.intervals.delete(intervalId);
+}
+
+// ===== INPUT SECURITY GUARDRAILS (MESSAGES) =====
+function isAllowedTextCharacter(char) {
+    if (!char) return true;
+    if (/[\p{L}\p{N}\p{M}\p{Zs}\r\n]/u.test(char)) return true;
+    if (/[.,!?'"()\/$&@₱%+=-]/.test(char)) return true;
+    if (/[’‘]/.test(char)) return true;
+    if (/[\p{Extended_Pictographic}\u200D\uFE0F]/u.test(char)) return true;
+    return false;
+}
+
+function sanitizeTextInput(value) {
+    return Array.from(String(value || ''))
+        .filter(isAllowedTextCharacter)
+        .join('');
+}
+
+function hasUnsupportedTextChars(value) {
+    return Array.from(String(value || ''))
+        .some((char) => !isAllowedTextCharacter(char));
+}
+
+function showInputGuideHint(message) {
+    let hint = document.getElementById('messages-input-guide');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'messages-input-guide';
+        hint.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: min(88vw, 360px);
+            padding: 8px;
+            border-radius: 16px;
+            background: repeating-linear-gradient(135deg, #facc15 0 10px, #111827 10px 20px);
+            color: #fee2e2;
+            text-align: center;
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.55), 0 20px 40px rgba(0,0,0,0.45);
+            z-index: 11000;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+            overflow: hidden;
+        `;
+        document.body.appendChild(hint);
+    }
+
+    hint.innerHTML = `
+        <div style="background:linear-gradient(180deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.98)); border:1px solid rgba(248,113,113,0.7); border-radius:12px; padding:12px 14px 14px;">
+            <div style="font-size:30px; line-height:1; margin-bottom:6px;">🚨</div>
+            <div style="font-size:12px; font-weight:800; letter-spacing:0.08em; margin-bottom:8px;">SECURITY ALERT</div>
+            <div style="font-size:14px; font-weight:600; line-height:1.38;">${message}</div>
+        </div>
+    `;
+    hint.style.opacity = '1';
+    hint.style.transform = 'translate(-50%, -50%) scale(1)';
+    clearTimeout(window.__messagesInputGuideTimer);
+    window.__messagesInputGuideTimer = setTimeout(() => {
+        hint.style.opacity = '0';
+        hint.style.transform = 'translate(-50%, -50%) scale(0.98)';
+    }, 3200);
+}
+
+function blockUnsupportedCharsForInput(inputEl) {
+    if (!inputEl || inputEl.dataset.markupCharsBlocked === 'true') return;
+    inputEl.dataset.markupCharsBlocked = 'true';
+
+    const showGuide = () => {
+        const now = Date.now();
+        const lastShownAt = Number(inputEl.dataset.inputGuideShownAt || 0);
+        if (now - lastShownAt < 1500) return;
+        inputEl.dataset.inputGuideShownAt = String(now);
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+    };
+
+    inputEl.addEventListener('keydown', function(e) {
+        if (e.key.length === 1 && !isAllowedTextCharacter(e.key)) {
+            e.preventDefault();
+            showGuide();
+        }
+    });
+
+    inputEl.addEventListener('paste', function(e) {
+        const pastedText = e.clipboardData ? e.clipboardData.getData('text') : '';
+        if (!hasUnsupportedTextChars(pastedText)) return;
+        e.preventDefault();
+        showGuide();
+        const cleaned = sanitizeTextInput(pastedText);
+        const start = inputEl.selectionStart ?? inputEl.value.length;
+        const end = inputEl.selectionEnd ?? inputEl.value.length;
+        inputEl.setRangeText(cleaned, start, end, 'end');
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    inputEl.addEventListener('input', function() {
+        const sanitized = sanitizeTextInput(inputEl.value);
+        if (sanitized !== inputEl.value) {
+            inputEl.value = sanitized;
+            showGuide();
+        }
+    });
+}
+
+function isAllowedImageFile(file) {
+    return !!(file && typeof file.type === 'string' && file.type.toLowerCase().startsWith('image/'));
+}
+
+// Role-specific tab initialization functions
+async function initializeWorkerAlertsTab() {
+    console.log('📋 Initializing worker alerts tab');
+    // Load worker-specific notifications
+    await loadWorkerNotifications();
+}
+
+async function initializeWorkerChatsTab() {
+    console.log('💬 Initializing worker chats tab');
+    // Load worker-specific chats
+    loadWorkerChats();
+}
+
+async function initializeWorkerMessagesTab() {
+    console.log('📧 Initializing worker messages tab');
+    // Initialize worker admin messages functionality
+    loadWorkerMessages();
+    setupMessageFiltering('worker');
+    setupMessageDetailHandlers('worker');
+    
+    // Force update the Messages tab counter when initializing
+    setTimeout(() => {
+        updateMessageCounts('worker');
+        updateMainMessagesTabCount(); // Update main tab count
+    }, 100);
+}
+
+async function initializeCustomerAlertsTab() {
+    console.log('📋 Initializing customer alerts tab');
+    // Load customer-specific notifications
+    await loadCustomerNotifications();
+}
+
+async function initializeCustomerInterviewsTab() {
+    console.log('🎯 Initializing customer interviews tab');
+    // Load customer interview chats
+    loadCustomerInterviews();
+}
+
+async function initializeUnifiedMessagesTab() {
+    console.log('📧 Initializing unified messages tab');
+    await ensureSupportResponsesRealtimeStream();
+    // Initialize unified admin messages functionality using customer data
+    loadUnifiedMessages();
+    setupMessageFiltering('unified');
+    setupMessageDetailHandlers('unified');
+    
+    // Force update the Messages tab counter when initializing
+    setTimeout(() => {
+        updateMainMessagesTabCount(); // Update main tab count
+    }, 100);
+}
+
+async function initializeCustomerMessagesTab() {
+    console.log('📧 Initializing customer messages tab');
+    // Initialize customer admin messages functionality
+    loadCustomerMessages();
+    setupMessageFiltering('customer');
+    setupMessageDetailHandlers('customer');
+    
+    // Force update the Messages tab counter when initializing
+    setTimeout(() => {
+        updateMessageCounts('customer');
+        updateMainMessagesTabCount(); // Update main tab count
+    }, 100);
+}
+
+// Source-of-truth alert types currently emitted by backend flows (jobs.js + firebase-db.js).
+const PRODUCED_WORKER_ALERT_TYPES = ['offer_sent', 'job_completed', 'feedback_received', 'contract_voided'];
+const PRODUCED_CUSTOMER_ALERT_TYPES = ['offer_accepted', 'application_received', 'application_milestone', 'gig_auto_paused', 'offer_rejected', 'worker_resigned', 'worker_feedback_received'];
+
+// Retained for compatibility with legacy datasets and planned interview workflow.
+// NOTE: No current producer emits this type in the active backend flow.
+const LEGACY_WORKER_ALERT_TYPES = ['interview_request'];
+
+// Additional worker status batches already supported by UI copy/localization.
+// 'application_slots_reopened_batch' is the current unified type; the two older types are kept
+// so any pre-existing cards still render (with the same uniform abundance copy).
+const BATCH_WORKER_ALERT_TYPES = ['application_slots_reopened_batch', 'application_not_selected_batch', 'application_rejected_batch'];
+
+const WORKER_ALERT_TYPES = [
+    ...PRODUCED_WORKER_ALERT_TYPES,
+    ...LEGACY_WORKER_ALERT_TYPES,
+    ...BATCH_WORKER_ALERT_TYPES
+];
+const CUSTOMER_ALERT_TYPES = [...PRODUCED_CUSTOMER_ALERT_TYPES];
+const KNOWN_ALERT_TYPES = new Set([...WORKER_ALERT_TYPES, ...CUSTOMER_ALERT_TYPES]);
+const LOGGED_UNMAPPED_ALERT_TYPES = new Set();
+let currentAlertsLang = 'english';
+const ALERT_READ_HIDE_AFTER_DAYS = 50;
+
+function tAlertLang(key) {
+    const copy = {
+        english: { offerAccepted: 'Offer Accepted', offerDeclined: 'Offer Declined', appUpdate: 'Application Update', appDeclined: 'Application Declined', slotsOpen: 'Application Slots Open' },
+        bisaya: { offerAccepted: 'Gi-dawat ang Offer', offerDeclined: 'Gi-balibaran ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Gi-decline ang Application', slotsOpen: 'Naabli nga Slots' },
+        tagalog: { offerAccepted: 'Tinanggap ang Offer', offerDeclined: 'Tinanggihan ang Offer', appUpdate: 'Update sa Application', appDeclined: 'Tinanggihan ang Application', slotsOpen: 'Bukas na Slots' }
+    };
+    return copy[currentAlertsLang]?.[key] || copy.english[key] || key;
+}
+
+function getLocalizedAlertMessage(notif, type) {
+    const jobTitle = notif.jobTitle || 'Gig';
+    const workerName = notif.workerName || 'Worker';
+    const closureCount = Math.max(1, Number(notif.closureCount || 1));
+    // Uniform, reason-neutral "slots reopened" copy. All three batch types (the unified one plus
+    // the two legacy ones still in the DB) render this same abundance message.
+    const slotsEn = closureCount === 1
+        ? '1 application slot just opened — find your next gig!'
+        : `${closureCount} application slots just opened — find your next gigs!`;
+    const slotsBi = closureCount === 1
+        ? 'Naabli na usab ang 1 ka application slot — pangitaa ang imong sunod nga gig!'
+        : `Naabli na usab ang ${closureCount} ka application slots — pangitaa ang sunod nimo nga mga gig!`;
+    const slotsTl = closureCount === 1
+        ? 'May 1 application slot nang bukas ulit — hanapin ang susunod mong gig!'
+        : `May ${closureCount} application slots nang bukas ulit — maghanap pa ng mga gig!`;
+    const localeMap = {
+        english: {
+            offer_sent: `You've been offered the gig "${jobTitle}"! Check Gigs Manager > Offered tab to accept or decline.`,
+            offer_accepted: `${workerName} has accepted your gig offer for "${jobTitle}"!`,
+            job_completed: `Gig "${jobTitle}" has been marked completed.`,
+            feedback_received: `You received new feedback from a customer. Leave your feedback in Gigs Manager > Completed, then open Profile > Worker Reviews to see what they wrote.`,
+            contract_voided: `Your contract for "${jobTitle}" has been voided.`,
+            application_received: `Your gig "${jobTitle}" has received an application. Review it in Gigs Manager.`,
+            application_milestone: `Your gig "${jobTitle}" has 5+ applications pending review.`,
+            gig_auto_paused: `Your gig "${jobTitle}" is auto-paused at 10 applications. Review applications to proceed.`,
+            offer_rejected: `${workerName} has rejected your offer for "${jobTitle}".`,
+            worker_resigned: `${workerName} has resigned from "${jobTitle}".`,
+            worker_feedback_received: `You received feedback from your worker. Open Profile > Customer Reviews to read it.`,
+            application_not_selected_batch: slotsEn,
+            application_rejected_batch: slotsEn,
+            application_slots_reopened_batch: slotsEn
+        },
+        bisaya: {
+            offer_sent: `Na-offeran ka sa gig "${jobTitle}"! Tan-awa sa Gigs Manager > Offered para modawat o modili.`,
+            offer_accepted: `${workerName} nidawat sa imong gig offer para sa "${jobTitle}"!`,
+            job_completed: `Ang gig "${jobTitle}" gimarkahan na nga completed.`,
+            feedback_received: 'Nakadawat ka ug bag-ong feedback gikan sa customer. Bilin sad sa imong feedback sa Gigs Manager > Completed, unya tan-awa sa Profile > Worker Reviews ang ilang gisulat.',
+            contract_voided: `Ang imong kontrata para sa "${jobTitle}" gi-void.`,
+            application_received: `Ang imong gig "${jobTitle}" nakadawat ug application. I-review sa Gigs Manager.`,
+            application_milestone: `Ang imong gig "${jobTitle}" naa nay 5+ ka pending applications.`,
+            gig_auto_paused: `Ang imong gig "${jobTitle}" gi-auto pause sa 10 ka applications. I-review aron makapadayon.`,
+            offer_rejected: `${workerName} midili sa imong offer para sa "${jobTitle}".`,
+            worker_resigned: `${workerName} ni-resign sa "${jobTitle}".`,
+            worker_feedback_received: 'Nakadawat ka ug feedback gikan sa imong worker. Tan-awa sa Profile > Customer Reviews.',
+            application_not_selected_batch: slotsBi,
+            application_rejected_batch: slotsBi,
+            application_slots_reopened_batch: slotsBi
+        },
+        tagalog: {
+            offer_sent: `May offer ka sa gig na "${jobTitle}"! Tingnan sa Gigs Manager > Offered para tanggapin o tanggihan.`,
+            offer_accepted: `${workerName} ay tinanggap ang gig offer mo para sa "${jobTitle}"!`,
+            job_completed: `Ang gig na "${jobTitle}" ay minarkahan nang completed.`,
+            feedback_received: 'May bago kang feedback mula sa customer. Mag-iwan ka rin ng feedback sa Gigs Manager > Completed, tapos tingnan sa Profile > Worker Reviews ang iniwan nila.',
+            contract_voided: `Na-void ang kontrata mo para sa "${jobTitle}".`,
+            application_received: `Ang gig mo na "${jobTitle}" ay may natanggap na application. I-review sa Gigs Manager.`,
+            application_milestone: `Ang gig mo na "${jobTitle}" ay may 5+ pending applications.`,
+            gig_auto_paused: `Auto-paused ang gig mo na "${jobTitle}" sa 10 applications. I-review para makapagpatuloy.`,
+            offer_rejected: `${workerName} ay tinanggihan ang offer mo para sa "${jobTitle}".`,
+            worker_resigned: `${workerName} ay nag-resign sa "${jobTitle}".`,
+            worker_feedback_received: 'May natanggap kang feedback mula sa worker mo. Buksan ang Profile > Customer Reviews para makita ito.',
+            application_not_selected_batch: slotsTl,
+            application_rejected_batch: slotsTl,
+            application_slots_reopened_batch: slotsTl
+        }
+    };
+    return localeMap[currentAlertsLang]?.[type] || localeMap.english[type] || notif.message || '';
+}
+
+function setTabNotificationCount(tabSelector, count) {
+    const countElement = document.querySelector(`${tabSelector} .notification-count`);
+    if (!countElement) return;
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    const nextText = String(safeCount);
+    const nextDisplay = 'inline-flex';
+    if (countElement.textContent !== nextText) {
+        countElement.textContent = nextText;
+    }
+    if (countElement.style.display !== nextDisplay) {
+        countElement.style.display = nextDisplay;
+    }
+}
+
+function setRoleNotificationCount(roleSelector, count) {
+    const countElement = document.querySelector(`${roleSelector} .role-notification-count`);
+    if (!countElement) return;
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    const nextText = safeCount > 99 ? '99+' : String(safeCount);
+    const nextDisplay = safeCount > 0 ? 'inline-flex' : 'none';
+    if (countElement.textContent !== nextText) {
+        countElement.textContent = nextText;
+    }
+    if (countElement.style.display !== nextDisplay) {
+        countElement.style.display = nextDisplay;
+    }
+}
+
+function filterNotificationsForAlertRole(notifications, role) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    const allowedTypes = role === 'worker' ? WORKER_ALERT_TYPES : CUSTOMER_ALERT_TYPES;
+    return source.filter((notif) => {
+        const type = notif.type || notif.notificationType || '';
+        return allowedTypes.includes(type);
+    });
+}
+
+function traceUnmappedAlertTypes(notifications) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    source.forEach((notif) => {
+        const type = String(notif?.type || notif?.notificationType || '').trim();
+        if (!type || KNOWN_ALERT_TYPES.has(type) || LOGGED_UNMAPPED_ALERT_TYPES.has(type)) {
+            return;
+        }
+        LOGGED_UNMAPPED_ALERT_TYPES.add(type);
+        console.warn(`⚠️ Unmapped alert type received: ${type}`);
+        messagesTrace('alerts:unmapped_type', type);
+    });
+}
+
+function updateAlertTabBadgeCounts(notifications) {
+    const workerNotifications = filterNotificationsForAlertRole(notifications, 'worker');
+    const customerNotifications = filterNotificationsForAlertRole(notifications, 'customer');
+    const workerUnread = workerNotifications.filter((n) => !n.read).length;
+    const customerUnread = customerNotifications.filter((n) => !n.read).length;
+    setTabNotificationCount('#workerAlertsTab', workerUnread);
+    setTabNotificationCount('#customerAlertsTab', customerUnread);
+    updateRoleTopUnreadCounts();
+}
+
+function resetTabBadgeCounts() {
+    setTabNotificationCount('#workerAlertsTab', 0);
+    setTabNotificationCount('#customerAlertsTab', 0);
+    setTabNotificationCount('#workerChatsTab', 0);
+    setTabNotificationCount('#customerInterviewsTab', 0);
+    setTabNotificationCount('#unifiedMessagesTab', 0);
+    setTabNotificationCount('#unifiedMessagesTabWorker', 0);
+    setRoleNotificationCount('#workerRoleTab', 0);
+    setRoleNotificationCount('#customerRoleTab', 0);
+}
+
+const ALERTS_STREAM_STATE = {
+    uid: '',
+    notifications: [],
+    started: false,
+    hasSnapshot: false
+};
+
+const SUPPORT_RESPONSES_STREAM_STATE = {
+    uid: '',
+    messages: [],
+    started: false,
+    hasSnapshot: false,
+    limit: 50
+};
+const ALERTS_LOAD_STATE = {
+    requestId: 0
+};
+
+function resetAlertsStreamState() {
+    ALERTS_STREAM_STATE.uid = '';
+    ALERTS_STREAM_STATE.notifications = [];
+    ALERTS_STREAM_STATE.started = false;
+    ALERTS_STREAM_STATE.hasSnapshot = false;
+}
+
+function stopAlertsRealtimeStream(reason = 'unspecified') {
+    if (ACTIVE_LISTENERS.notifications) {
+        try {
+            ACTIVE_LISTENERS.notifications();
+        } catch (error) {
+            console.warn('⚠️ Failed to unsubscribe alerts listener:', error);
+        }
+        ACTIVE_LISTENERS.notifications = null;
+    }
+    resetAlertsStreamState();
+    resetAlertsPaginationState();
+    messagesTrace('fetch:alerts:stop', reason);
+}
+
+function resetSupportResponsesStreamState() {
+    SUPPORT_RESPONSES_STREAM_STATE.uid = '';
+    SUPPORT_RESPONSES_STREAM_STATE.messages = [];
+    SUPPORT_RESPONSES_STREAM_STATE.started = false;
+    SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = false;
+}
+
+function stopSupportResponsesRealtimeStream(reason = 'unspecified') {
+    if (ACTIVE_LISTENERS.supportResponses) {
+        try {
+            ACTIVE_LISTENERS.supportResponses();
+        } catch (error) {
+            console.warn('⚠️ Failed to unsubscribe support responses listener:', error);
+        }
+        ACTIVE_LISTENERS.supportResponses = null;
+    }
+    resetSupportResponsesStreamState();
+    messagesTrace('fetch:support:stop', reason);
+}
+
+function beginAlertsLoadRequest(role) {
+    ALERTS_LOAD_STATE.requestId += 1;
+    const requestId = ALERTS_LOAD_STATE.requestId;
+    messagesTrace('render:alerts:request_start', { role, requestId });
+    return requestId;
+}
+
+function isAlertsLoadRequestStale(requestId, role) {
+    if (requestId !== ALERTS_LOAD_STATE.requestId) {
+        return true;
+    }
+    const activeRole = getActiveAlertsRole();
+    return !!activeRole && !!role && activeRole !== role;
+}
+
+const ALERTS_PAGINATION_STATE = {
+    olderNotifications: [],
+    nextCursor: null,
+    loading: false,
+    exhausted: false
+};
+
+const MESSAGES_PAGE_LOADING_STATE = {
+    hidden: false,
+    showTimerId: null,
+    hideTimerId: null,
+    serverSnapshotReady: false
+};
+
+function showMessagesPageLoadingOverlay() {
+    const overlay = document.getElementById('messagesPageLoadingOverlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.classList.remove('hidden');
+    MESSAGES_PAGE_LOADING_STATE.hidden = false;
+    MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = false;
+}
+
+function requestMessagesPageLoadingOverlay(delayMs = 1800) {
+    if (MESSAGES_PAGE_LOADING_STATE.showTimerId) {
+        clearTimeout(MESSAGES_PAGE_LOADING_STATE.showTimerId);
+        MESSAGES_PAGE_LOADING_STATE.showTimerId = null;
+    }
+    const safeDelay = Math.max(0, Number(delayMs) || 0);
+    MESSAGES_PAGE_LOADING_STATE.showTimerId = setTimeout(() => {
+        MESSAGES_PAGE_LOADING_STATE.showTimerId = null;
+        showMessagesPageLoadingOverlay();
+    }, safeDelay);
+}
+
+function hideMessagesPageLoadingOverlay() {
+    if (MESSAGES_PAGE_LOADING_STATE.showTimerId) {
+        clearTimeout(MESSAGES_PAGE_LOADING_STATE.showTimerId);
+        MESSAGES_PAGE_LOADING_STATE.showTimerId = null;
+    }
+    if (MESSAGES_PAGE_LOADING_STATE.hidden) return;
+    if (MESSAGES_PAGE_LOADING_STATE.hideTimerId) {
+        clearTimeout(MESSAGES_PAGE_LOADING_STATE.hideTimerId);
+        MESSAGES_PAGE_LOADING_STATE.hideTimerId = null;
+    }
+    const overlay = document.getElementById('messagesPageLoadingOverlay');
+    if (!overlay) return;
+    MESSAGES_PAGE_LOADING_STATE.hidden = true;
+    overlay.classList.add('hidden');
+    // Remove from layout shortly after fade to avoid intercepting input.
+    setTimeout(() => {
+        if (overlay.classList.contains('hidden')) {
+            overlay.style.display = 'none';
+        }
+    }, 220);
+}
+
+function markMessagesServerSnapshotReady(meta) {
+    if (MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady) return;
+    // UX-first behavior: hide page loader on the first alerts snapshot
+    // (cache or server) so users don't wait on cache->server transitions.
+    // Data will still refresh in-place as server snapshots arrive.
+    MESSAGES_PAGE_LOADING_STATE.serverSnapshotReady = true;
+    hideMessagesPageLoadingOverlay();
+}
+
+function isMessagesPageLoadingOverlayVisible() {
+    const overlay = document.getElementById('messagesPageLoadingOverlay');
+    if (!overlay) return false;
+    if (overlay.style.display === 'none') return false;
+    return !overlay.classList.contains('hidden');
+}
+
+function dedupeNotificationsById(notifications) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    return Array.from(new Map(source.map((n) => [n.notificationId || n.id, n])).values());
+}
+
+function toMillisSafe(value) {
+    if (!value) return 0;
+    if (typeof value?.toMillis === 'function') return Number(value.toMillis()) || 0;
+    if (typeof value?.toDate === 'function') return Number(value.toDate().getTime()) || 0;
+    const parsed = Number(new Date(value).getTime());
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function applyAlertsRetentionFilter(notifications) {
+    const source = Array.isArray(notifications) ? notifications : [];
+    const cutoffMs = Date.now() - (ALERT_READ_HIDE_AFTER_DAYS * 24 * 60 * 60 * 1000);
+    return source.filter((notif) => {
+        const read = notif?.read === true || notif?.read === 'true';
+        if (!read) return true;
+        const createdMs = toMillisSafe(notif?.createdAt || notif?.timestamp);
+        return !createdMs || createdMs >= cutoffMs;
+    });
+}
+
+function getOldestCreatedAt(notifications) {
+    const list = Array.isArray(notifications) ? notifications : [];
+    if (!list.length) return null;
+    return list[list.length - 1]?.createdAt || null;
+}
+
+function resetAlertsPaginationState() {
+    ALERTS_PAGINATION_STATE.olderNotifications = [];
+    ALERTS_PAGINATION_STATE.nextCursor = null;
+    ALERTS_PAGINATION_STATE.loading = false;
+    ALERTS_PAGINATION_STATE.exhausted = false;
+}
+
+function getCombinedAlertsNotifications() {
+    return applyAlertsRetentionFilter(dedupeNotificationsById([
+        ...(Array.isArray(ALERTS_STREAM_STATE.notifications) ? ALERTS_STREAM_STATE.notifications : []),
+        ...(Array.isArray(ALERTS_PAGINATION_STATE.olderNotifications) ? ALERTS_PAGINATION_STATE.olderNotifications : [])
+    ]));
+}
+
+function openJobsManager(role, tab, jobId = '') {
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (tab) params.set('tab', tab);
+    if (jobId) params.set('jobId', jobId);
+    params.set('from', 'alerts');
+    window.location.href = `jobs.html?${params.toString()}`;
+}
+
+function openProfileFeedbackTab(tab = '') {
+    const params = new URLSearchParams();
+    if (tab) params.set('tab', tab);
+    params.set('from', 'alerts');
+    window.location.href = `profile.html?${params.toString()}`;
+}
+
+function readThreadDeepLinkFromUrl() {
+    const params = new URLSearchParams(window.location.search || '');
+    const threadId = String(params.get('threadId') || '').trim();
+    if (!threadId) return null;
+
+    const role = String(params.get('role') || '').trim().toLowerCase();
+    const tab = String(params.get('tab') || '').trim();
+    return { threadId, role, tab };
+}
+
+function clearThreadDeepLinkFromUrl() {
+    try {
+        const nextParams = new URLSearchParams(window.location.search || '');
+        nextParams.delete('threadId');
+        nextParams.delete('role');
+        nextParams.delete('tab');
+        const query = nextParams.toString();
+        const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash || ''}`;
+        window.history.replaceState({}, '', nextUrl);
+    } catch (error) {
+        console.warn('⚠️ Could not clear thread deep-link params:', error);
+    }
+}
+
+async function applyThreadDeepLinkFromUrl() {
+    const deepLink = readThreadDeepLinkFromUrl();
+    if (!deepLink) return;
+
+    const { threadId, role, tab } = deepLink;
+    try {
+        if (role === 'customer') {
+            await switchToRole('customer');
+            await switchToCustomerTab(tab || 'customer-interviews');
+        } else {
+            await switchToRole('worker');
+            await switchToWorkerTab(tab || 'worker-chats');
+        }
+        navigateToMessageThread(threadId, { preserveContextTab: true });
+    } catch (error) {
+        console.warn('⚠️ Failed to apply thread deep-link, falling back to default tab:', error);
+        navigateToMessageThread(threadId, { preserveContextTab: true });
+    } finally {
+        clearThreadDeepLinkFromUrl();
+    }
+}
+
+async function resolveWorkerOfferRouteByCurrentStatus(jobId) {
+    const safeJobId = String(jobId || '').trim();
+    const fallback = { role: 'worker', tab: 'offered', jobId: safeJobId };
+    if (!safeJobId || typeof getJobById !== 'function') return fallback;
+
+    try {
+        const job = await getJobById(safeJobId);
+        const status = String(job?.status || '').toLowerCase();
+        if (status === 'accepted') {
+            return { role: 'worker', tab: 'accepted', jobId: safeJobId };
+        }
+        if (status === 'completed') {
+            return { role: 'worker', tab: 'worker-completed', jobId: safeJobId };
+        }
+        // Includes "hired" and unknown transitional states.
+        return fallback;
+    } catch (error) {
+        console.warn('⚠️ Offer route status lookup failed, using fallback:', error);
+        return fallback;
+    }
+}
+
+async function getCurrentJobStatus(jobId) {
+    const safeJobId = String(jobId || '').trim();
+    if (!safeJobId || typeof getJobById !== 'function') return '';
+    try {
+        const job = await getJobById(safeJobId);
+        return String(job?.status || '').toLowerCase();
+    } catch (error) {
+        console.warn('⚠️ Job status lookup failed:', error);
+        return '';
+    }
+}
+
+async function resolveWorkerCompletedRouteByCurrentStatus(jobId, fallbackTab = 'worker-completed') {
+    const safeJobId = String(jobId || '').trim();
+    const fallback = { role: 'worker', tab: fallbackTab, jobId: safeJobId };
+    if (!safeJobId) return fallback;
+    const status = await getCurrentJobStatus(safeJobId);
+    if (status === 'completed') return { role: 'worker', tab: 'worker-completed', jobId: safeJobId };
+    if (status === 'accepted') return { role: 'worker', tab: 'accepted', jobId: safeJobId };
+    if (status === 'hired') return { role: 'worker', tab: 'offered', jobId: safeJobId };
+    return fallback;
+}
+
+async function resolveCustomerRouteByCurrentStatus(jobId, fallbackTab = 'listings') {
+    const safeJobId = String(jobId || '').trim();
+    const fallback = { role: 'customer', tab: fallbackTab, jobId: safeJobId };
+    if (!safeJobId) return fallback;
+    const status = await getCurrentJobStatus(safeJobId);
+    if (status === 'completed') return { role: 'customer', tab: 'previous', jobId: safeJobId };
+    if (status === 'hired' || status === 'accepted') return { role: 'customer', tab: 'hiring', jobId: safeJobId };
+    if (status === 'active' || status === 'paused' || status === 'expired') {
+        return { role: 'customer', tab: 'listings', jobId: safeJobId };
+    }
+    return fallback;
+}
+
+async function handleNotificationTypeNavigation(notificationItem) {
+    if (!notificationItem) return false;
+    const type = String(notificationItem.dataset.notificationType || '').trim();
+    const jobId = String(notificationItem.dataset.jobId || '').trim();
+    if (!type) return false;
+
+    switch (type) {
+        case 'feedback_received':
+            openProfileFeedbackTab('reviews-worker');
+            return true;
+        case 'worker_feedback_received':
+            openProfileFeedbackTab('reviews-customer');
+            return true;
+        case 'offer_sent':
+            {
+                const route = await resolveWorkerOfferRouteByCurrentStatus(jobId);
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'job_completed':
+            {
+                const route = await resolveWorkerCompletedRouteByCurrentStatus(jobId, 'worker-completed');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'offer_accepted':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'hiring');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'offer_rejected':
+        case 'worker_resigned':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'contract_voided':
+            // Worker equivalent of "active hiring/working" is the accepted tab.
+            {
+                const route = await resolveWorkerCompletedRouteByCurrentStatus(jobId, 'accepted');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        case 'application_received':
+        case 'application_milestone':
+        case 'gig_auto_paused':
+            {
+                const route = await resolveCustomerRouteByCurrentStatus(jobId, 'listings');
+                openJobsManager(route.role, route.tab, route.jobId);
+            }
+            return true;
+        default:
+            return false;
+    }
+}
+
+function isElementActiveAndVisible(el) {
+    return !!el && el.classList.contains('active') && window.getComputedStyle(el).display !== 'none';
+}
+
+function getActiveAlertsRole() {
+    const workerAlertsContent = document.getElementById('worker-alerts-content');
+    const customerAlertsContent = document.getElementById('customer-alerts-content');
+    if (isElementActiveAndVisible(workerAlertsContent)) return 'worker';
+    if (isElementActiveAndVisible(customerAlertsContent)) return 'customer';
+    return null;
+}
+
+function renderWorkerAlertsUI(container, notifications) {
+    if (!container) return;
+    const workerNotifications = filterNotificationsForAlertRole(notifications, 'worker');
+    const uniqueNotifications = dedupeNotificationsById(workerNotifications);
+
+    if (uniqueNotifications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">🎯</div>
+                <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                    Interview requests will appear here when<br>customers want to chat about your applications.
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
+}
+
+function renderCustomerAlertsUI(container, notifications) {
+    if (!container) return;
+    const customerNotifications = filterNotificationsForAlertRole(notifications, 'customer');
+    const uniqueNotifications = dedupeNotificationsById(customerNotifications);
+
+    if (uniqueNotifications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.8;">✨</div>
+                <div style="font-size: 18px; font-weight: 600; color: #e0e0e0; margin-bottom: 10px;">No New Alerts Yet!</div>
+                <div style="font-size: 14px; color: #a0a0a0; line-height: 1.6;">
+                    Alerts about applications, hires, and completions<br>will show up here when they arrive.
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = uniqueNotifications.map(generateNotificationHTML).join('');
+}
+
+function renderAllAlertsViews(notifications, options = {}) {
+    const workerContainer = document.querySelector('#worker-alerts-content .notifications-container');
+    const customerContainer = document.querySelector('#customer-alerts-content .notifications-container');
+    const activeRole = options.forceRole || getActiveAlertsRole();
+    traceUnmappedAlertTypes(notifications);
+
+    // Optimization: only render the alerts pane currently visible to the user.
+    if (activeRole === 'worker') {
+        renderWorkerAlertsUI(workerContainer, notifications);
+        initializeNotifications(workerContainer);
+    } else if (activeRole === 'customer') {
+        renderCustomerAlertsUI(customerContainer, notifications);
+        initializeNotifications(customerContainer);
+    }
+
+    updateAlertTabBadgeCounts(notifications);
+}
+
+async function loadMoreAlertsIfNeeded() {
+    if (ALERTS_PAGINATION_STATE.loading || ALERTS_PAGINATION_STATE.exhausted) return;
+    if (typeof getUserNotificationsPage !== 'function') return;
+    if (!ALERTS_PAGINATION_STATE.nextCursor) return;
+    const activeRole = getActiveAlertsRole();
+    if (!activeRole) return;
+
+    ALERTS_PAGINATION_STATE.loading = true;
+    try {
+        const result = await getUserNotificationsPage({
+            unreadOnly: false,
+            limit: 25,
+            startAfterCreatedAt: ALERTS_PAGINATION_STATE.nextCursor
+        });
+
+        const page = Array.isArray(result?.notifications) ? result.notifications : [];
+        if (page.length === 0) {
+            ALERTS_PAGINATION_STATE.exhausted = true;
+            return;
+        }
+
+        ALERTS_PAGINATION_STATE.olderNotifications = dedupeNotificationsById(
+            ALERTS_PAGINATION_STATE.olderNotifications.concat(page)
+        );
+        ALERTS_PAGINATION_STATE.nextCursor = result?.nextCursor || getOldestCreatedAt(page);
+        if (result?.hasMore === false || page.length < 25) {
+            ALERTS_PAGINATION_STATE.exhausted = true;
+        }
+
+        renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: activeRole });
+    } catch (error) {
+        console.warn('⚠️ Failed loading more alerts:', error);
+    } finally {
+        ALERTS_PAGINATION_STATE.loading = false;
+    }
+}
+
+function initializeAlertsInfiniteScroll() {
+    const containers = [
+        document.querySelector('#worker-alerts-content .tab-scroll-container'),
+        document.querySelector('#customer-alerts-content .tab-scroll-container')
+    ];
+
+    containers.forEach((container) => {
+        if (!container || container.dataset.alertsInfiniteBound === '1') return;
+        container.dataset.alertsInfiniteBound = '1';
+        container.addEventListener('scroll', () => {
+            if (ALERTS_PAGINATION_STATE.loading || ALERTS_PAGINATION_STATE.exhausted) return;
+            const remaining = container.scrollHeight - (container.scrollTop + container.clientHeight);
+            if (remaining <= 280) {
+                loadMoreAlertsIfNeeded();
+            }
+        }, { passive: true });
+    });
+}
+
+function updateAlertsLanguageTabsVisibility() {
+    // Standalone alerts page: language tabs always visible.
+    const tabs = document.getElementById('alertsLangTabs');
+    if (!tabs) return;
+    tabs.style.display = 'flex';
+    document.body.classList.add('alerts-lang-visible');
+}
+
+function applyAlertsLanguage(lang) {
+    if (!['english', 'bisaya', 'tagalog'].includes(lang)) return;
+    currentAlertsLang = lang;
+    document.querySelectorAll('#alertsLangTabs .alerts-lang-tab').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.alertsLang === lang);
+    });
+    if (ALERTS_STREAM_STATE.notifications.length > 0 && getActiveAlertsRole()) {
+        renderAllAlertsViews(getCombinedAlertsNotifications());
+    }
+}
+
+function initializeAlertsLanguageTabs() {
+    const tabs = document.getElementById('alertsLangTabs');
+    if (!tabs) return;
+    tabs.addEventListener('click', (event) => {
+        const tab = event.target.closest('.alerts-lang-tab');
+        if (!tab) return;
+        applyAlertsLanguage(tab.dataset.alertsLang || 'english');
+    });
+    applyAlertsLanguage('english');
+    updateAlertsLanguageTabsVisibility();
+}
+
+async function ensureAlertsRealtimeStream(currentUser) {
+    if (!currentUser || !currentUser.uid || typeof subscribeToUserNotifications !== 'function') {
+        return;
+    }
+
+    if (ALERTS_STREAM_STATE.started && ALERTS_STREAM_STATE.uid === currentUser.uid) {
+        messagesTrace('fetch:alerts:stream_reuse', currentUser.uid);
+        return;
+    }
+
+    stopAlertsRealtimeStream('switch_user_or_restart');
+    ALERTS_STREAM_STATE.uid = currentUser.uid;
+    ALERTS_STREAM_STATE.started = true;
+    messagesTrace('fetch:alerts:stream_start', currentUser.uid);
+
+    ACTIVE_LISTENERS.notifications = subscribeToUserNotifications(currentUser, (notifications, snapshotMeta) => {
+        const source = snapshotMeta && snapshotMeta.source ? snapshotMeta.source : 'sdk-snapshot';
+        messagesTrace('fetch:alerts:mode', source);
+        if (snapshotMeta && snapshotMeta.error) {
+            messagesTrace('fetch:alerts:error', source);
+        }
+        ALERTS_STREAM_STATE.notifications = Array.isArray(notifications) ? notifications : [];
+        ALERTS_STREAM_STATE.hasSnapshot = true;
+        if (!ALERTS_PAGINATION_STATE.olderNotifications.length) {
+            ALERTS_PAGINATION_STATE.nextCursor = getOldestCreatedAt(ALERTS_STREAM_STATE.notifications);
+            ALERTS_PAGINATION_STATE.exhausted = ALERTS_STREAM_STATE.notifications.length < 50;
+        }
+        renderAllAlertsViews(getCombinedAlertsNotifications());
+        messagesTrace('render:alerts:success', { count: ALERTS_STREAM_STATE.notifications.length, source });
+        markMessagesServerSnapshotReady(snapshotMeta);
+    });
+}
+
+function waitForAuthStateWithTimeout(timeoutMs = 7000) {
+    return new Promise((resolve) => {
+        // Fast path: if auth state is already hydrated, don't wait on listener callback.
+        try {
+            const immediateUser = firebase.auth().currentUser;
+            if (immediateUser) {
+                resolve(immediateUser);
+                return;
+            }
+        } catch (error) {
+            // Fall through to listener-based path.
+        }
+
+        let resolved = false;
+        let unsubscribe = null;
+        let timeoutId = null;
+
+        const settle = (user) => {
+            if (resolved) return;
+            resolved = true;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            if (unsubscribe) unsubscribe();
+            resolve(user || null);
+        };
+
+        try {
+            unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+                settle(user);
+            });
+        } catch (error) {
+            console.warn('⚠️ Auth listener setup failed:', error);
+            settle(null);
+            return;
+        }
+
+        timeoutId = setTimeout(() => {
+            console.warn(`⚠️ Auth state wait timed out after ${timeoutMs}ms`);
+            settle(firebase.auth().currentUser || null);
+        }, timeoutMs);
+    });
+}
+
+// Load segregated notifications based on role
+function getAlertsRoleConfig(role) {
+    const normalizedRole = role === 'customer' ? 'customer' : 'worker';
+    return {
+        role: normalizedRole,
+        containerSelector: normalizedRole === 'customer'
+            ? '#customer-alerts-content .notifications-container'
+            : '#worker-alerts-content .notifications-container',
+        authTraceReason: normalizedRole === 'customer'
+            ? 'customer_not_authenticated'
+            : 'worker_not_authenticated'
+    };
+}
+
+async function loadAlertsForRole(role) {
+    const config = getAlertsRoleConfig(role);
+    const requestId = beginAlertsLoadRequest(config.role);
+    const container = document.querySelector(config.containerSelector);
+    if (!container) return;
+
+    // Avoid double loader on refresh: if full-page overlay is visible, don't also render inline loader.
+    if (!isMessagesPageLoadingOverlayVisible()) {
+        container.innerHTML = '<div class="loading-state" style="text-align: center; padding: 40px; color: #666;">Loading alerts...</div>';
+    }
+    messagesTrace('route:messages/alerts', { role: config.role });
+    messagesTrace('render:alerts:loading', config.role);
+
+    // Check if Firebase available
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined'
+        ? APP_CONFIG.useFirebaseData()
+        : true;
+
+    if (!shouldUseFirebase || typeof subscribeToUserNotifications !== 'function') {
+        stopAlertsRealtimeStream('alerts_backend_unavailable');
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'backend_unavailable' });
+            return;
+        }
+        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">⚠️<br><br>Alerts backend unavailable</div>';
+        messagesTrace('render:alerts:error', { role: config.role, reason: 'backend_unavailable' });
+        updateAlertTabBadgeCounts([]);
+        hideMessagesPageLoadingOverlay();
+        return;
+    }
+
+    try {
+        // Wait for Firebase auth state to be ready
+        const currentUser = await waitForAuthStateWithTimeout();
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'after_auth' });
+            return;
+        }
+
+        if (!currentUser) {
+            // Not logged in - show empty state with login prompt
+            stopAlertsRealtimeStream(config.authTraceReason);
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view alerts</div>';
+            messagesTrace('render:alerts:error', config.authTraceReason);
+            updateAlertTabBadgeCounts([]);
+            return;
+        }
+
+        console.log(`✅ ${config.role} alerts: User authenticated as`, currentUser.uid);
+
+        await ensureAlertsRealtimeStream(currentUser);
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'after_subscribe' });
+            return;
+        }
+        if (ALERTS_STREAM_STATE.hasSnapshot) {
+            renderAllAlertsViews(getCombinedAlertsNotifications(), { forceRole: config.role });
+            messagesTrace('render:alerts:success', { role: config.role, count: ALERTS_STREAM_STATE.notifications.length });
+        }
+
+    } catch (error) {
+        if (isAlertsLoadRequestStale(requestId, config.role)) {
+            messagesTrace('render:alerts:request_stale', { role: config.role, requestId, stage: 'error_path' });
+            return;
+        }
+        console.error(`❌ Error loading ${config.role} alerts:`, error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load alerts. Please refresh the page.</div>';
+        messagesTrace('render:alerts:error', (error && error.message) ? error.message : String(error));
+    }
+}
+
+async function loadWorkerNotifications() {
+    await loadAlertsForRole('worker');
+}
+
+async function loadCustomerNotifications() {
+    await loadAlertsForRole('customer');
+}
+
+const CHATS_STREAM_STATE = {
+    uid: '',
+    threads: [],
+    started: false
+};
+const CHATS_RENDER_STATE = {
+    workerSignature: '',
+    customerSignature: '',
+    streamSignature: ''
+};
+const CHATS_LOCAL_UNREAD_SUPPRESS = new Map();
+const CHATS_READ_SYNC_STATE = {
+    inFlight: new Set(),
+    lastAttemptByThread: new Map()
+};
+
+const CHATS_LOAD_STATE = {
+    requestId: 0
+};
+
+function resetChatsStreamState() {
+    CHATS_STREAM_STATE.uid = '';
+    CHATS_STREAM_STATE.threads = [];
+    CHATS_STREAM_STATE.started = false;
+    CHATS_RENDER_STATE.workerSignature = '';
+    CHATS_RENDER_STATE.customerSignature = '';
+    CHATS_RENDER_STATE.streamSignature = '';
+    CHATS_LOCAL_UNREAD_SUPPRESS.clear();
+    CHATS_READ_SYNC_STATE.inFlight.clear();
+    CHATS_READ_SYNC_STATE.lastAttemptByThread.clear();
+}
+
+function stopChatsRealtimeStream(reason = 'unspecified') {
+    if (ACTIVE_LISTENERS.threads) {
+        try {
+            ACTIVE_LISTENERS.threads();
+        } catch (error) {
+            console.warn('⚠️ Failed to unsubscribe threads listener:', error);
+        }
+        ACTIVE_LISTENERS.threads = null;
+    }
+    resetChatsStreamState();
+    messagesTrace('fetch:chats:stop', reason);
+}
+
+function beginChatsLoadRequest(role) {
+    CHATS_LOAD_STATE.requestId += 1;
+    const requestId = CHATS_LOAD_STATE.requestId;
+    messagesTrace('render:chats:request_start', { role, requestId });
+    return requestId;
+}
+
+function isChatsLoadRequestStale(requestId, role) {
+    if (requestId !== CHATS_LOAD_STATE.requestId) return true;
+    if (role === 'worker') {
+        const isActive = isElementActiveAndVisible(document.getElementById('worker-chats-content'));
+        return !isActive;
+    }
+    if (role === 'customer') {
+        const isActive = isElementActiveAndVisible(document.getElementById('customer-interviews-content'));
+        return !isActive;
+    }
+    return false;
+}
+
+function getThreadId(thread) {
+    return thread?.id || thread?.threadId || '';
+}
+
+function toMillis(value) {
+    if (!value) return 0;
+    if (typeof value.toDate === 'function') {
+        const dt = value.toDate();
+        return dt instanceof Date ? dt.getTime() : 0;
+    }
+    if (value instanceof Date) return value.getTime();
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getRawUnreadCountForThread(thread, currentUserId) {
+    return Math.max(0, Number(thread?.unreadCount?.[currentUserId]) || 0);
+}
+
+function getEffectiveUnreadCountForThread(thread, currentUserId) {
+    const unread = getRawUnreadCountForThread(thread, currentUserId);
+    if (unread <= 0) {
+        CHATS_LOCAL_UNREAD_SUPPRESS.delete(getThreadId(thread));
+        return 0;
+    }
+    const threadId = getThreadId(thread);
+    const suppressUntil = CHATS_LOCAL_UNREAD_SUPPRESS.get(threadId);
+    if (!suppressUntil) return unread;
+
+    const lastMessageMillis = toMillis(thread?.lastMessageTime || thread?.createdAt);
+    if (lastMessageMillis <= suppressUntil) {
+        return 0;
+    }
+
+    // New activity happened after local read mark, so unread can surface again.
+    CHATS_LOCAL_UNREAD_SUPPRESS.delete(threadId);
+    return unread;
+}
+
+function serializeThreadsForSignature(threads, currentUserId) {
+    const source = Array.isArray(threads) ? threads : [];
+    return source.map((thread) => {
+        const threadId = getThreadId(thread);
+        return [
+            threadId,
+            getThreadCurrentUserRole(thread, currentUserId),
+            thread?.participant1?.userId || '',
+            thread?.participant1?.userName || '',
+            thread?.participant2?.userId || '',
+            thread?.participant2?.userName || '',
+            thread?.jobId || '',
+            thread?.jobTitle || '',
+            thread?.threadOrigin || '',
+            thread?.applicationId || '',
+            getEffectiveUnreadCountForThread(thread, currentUserId),
+            toMillis(thread?.lastMessageTime || thread?.createdAt),
+            thread?.lastMessagePreview || ''
+        ].join('|');
+    }).join('||');
+}
+
+function serializeRenderedThreadsForSignature(threads) {
+    const source = Array.isArray(threads) ? threads : [];
+    return source.map((thread) => ([
+        thread?.threadId || '',
+        thread?.jobId || '',
+        thread?.jobTitle || '',
+        thread?.participantId || '',
+        thread?.participantName || '',
+        thread?.threadOrigin || '',
+        thread?.applicationId || '',
+        thread?.currentUserRole || '',
+        thread?.isNew ? 1 : 0,
+        toMillis(thread?.lastMessageTime),
+        thread?.lastMessagePreview || ''
+    ].join('|'))).join('||');
+}
+
+function getThreadCurrentUserRole(thread, currentUserId) {
+    if (thread && typeof thread.currentUserRole === 'string') {
+        return thread.currentUserRole === 'worker' ? 'worker' : 'customer';
+    }
+    if (thread && thread.currentUserRole && typeof thread.currentUserRole === 'object' && currentUserId) {
+        const mappedRole = String(thread.currentUserRole[currentUserId] || '').toLowerCase();
+        if (mappedRole === 'worker' || mappedRole === 'customer') return mappedRole;
+    }
+    if (thread?.participant1?.userId === currentUserId) {
+        return thread?.participant1?.role === 'worker' ? 'worker' : 'customer';
+    }
+    if (thread?.participant2?.userId === currentUserId) {
+        return thread?.participant2?.role === 'worker' ? 'worker' : 'customer';
+    }
+    return 'customer';
+}
+
+function transformFirebaseThreadToChatThread(thread, currentUserId) {
+    const threadId = thread?.id || thread?.threadId || '';
+    const participantIds = Array.isArray(thread?.participantIds) ? thread.participantIds : [];
+    const otherParticipantId = participantIds.find((id) => id !== currentUserId) || '';
+    const isParticipant1CurrentUser = thread?.participant1?.userId === currentUserId;
+    const isParticipant2CurrentUser = thread?.participant2?.userId === currentUserId;
+    let otherParticipant = null;
+    if (isParticipant1CurrentUser) {
+        otherParticipant = thread?.participant2 || null;
+    } else if (isParticipant2CurrentUser) {
+        otherParticipant = thread?.participant1 || null;
+    } else {
+        otherParticipant = thread?.participant2 || thread?.participant1 || null;
+    }
+
+    const role = getThreadCurrentUserRole(thread, currentUserId);
+    const unreadCount = getEffectiveUnreadCountForThread(thread, currentUserId);
+    const lastMessageTime = thread?.lastMessageTime?.toDate
+        ? thread.lastMessageTime.toDate().toISOString()
+        : (thread?.lastMessageTime || thread?.createdAt?.toDate?.()?.toISOString() || new Date().toISOString());
+
+    return {
+        threadId: threadId,
+        jobId: thread?.jobId || '',
+        jobTitle: thread?.jobTitle || 'Chat',
+        participantId: otherParticipant?.userId || otherParticipantId || '',
+        participantName: otherParticipant?.userName || 'User',
+        threadOrigin: thread?.threadOrigin || (thread?.applicationId ? 'application' : 'job'),
+        applicationId: thread?.applicationId || '',
+        currentUserRole: role,
+        isNew: unreadCount > 0,
+        lastMessageTime: lastMessageTime,
+        lastMessagePreview: thread?.lastMessagePreview || 'Start a conversation...',
+        messages: []
+    };
+}
+
+function filterThreadsForRole(threads, role) {
+    const source = Array.isArray(threads) ? threads : [];
+    return source.filter((thread) => {
+        const normalizedRole = getThreadCurrentUserRole(thread, getCurrentUserId());
+        return normalizedRole === role;
+    });
+}
+
+async function ensureChatsRealtimeStream(currentUser) {
+    if (!currentUser || !currentUser.uid || typeof subscribeToUserThreads !== 'function') {
+        return;
+    }
+    if (CHATS_STREAM_STATE.started && CHATS_STREAM_STATE.uid === currentUser.uid) {
+        messagesTrace('fetch:chats:stream_reuse', currentUser.uid);
+        return;
+    }
+
+    stopChatsRealtimeStream('switch_user_or_restart');
+    CHATS_STREAM_STATE.uid = currentUser.uid;
+    CHATS_STREAM_STATE.started = true;
+    messagesTrace('fetch:chats:stream_start', currentUser.uid);
+
+    ACTIVE_LISTENERS.threads = subscribeToUserThreads(currentUser, (threads) => {
+        const nextThreads = Array.isArray(threads) ? threads : [];
+        const streamSignature = serializeThreadsForSignature(nextThreads, currentUser.uid);
+        if (streamSignature === CHATS_RENDER_STATE.streamSignature) {
+            return;
+        }
+        CHATS_RENDER_STATE.streamSignature = streamSignature;
+        CHATS_STREAM_STATE.threads = nextThreads;
+
+        // Prevent local unread suppression map from growing with stale thread ids.
+        const activeThreadIds = new Set(nextThreads.map((thread) => getThreadId(thread)).filter(Boolean));
+        for (const threadId of CHATS_LOCAL_UNREAD_SUPPRESS.keys()) {
+            if (!activeThreadIds.has(threadId)) {
+                CHATS_LOCAL_UNREAD_SUPPRESS.delete(threadId);
+            }
+        }
+
+        messagesTrace('render:chats:stream_update', { count: CHATS_STREAM_STATE.threads.length });
+        renderChatsViewsFromStream();
+    });
+}
+
+function renderChatsViewsFromStream() {
+    const currentUserId = getCurrentUserId();
+    const workerContainer = document.querySelector('#worker-chats-content .messages-container');
+    const customerContainer = document.querySelector('#customer-interviews-content .messages-container');
+    const workerThreads = filterThreadsForRole(CHATS_STREAM_STATE.threads, 'worker')
+        .map((thread) => transformFirebaseThreadToChatThread(thread, currentUserId));
+    const customerThreads = filterThreadsForRole(CHATS_STREAM_STATE.threads, 'customer')
+        .map((thread) => transformFirebaseThreadToChatThread(thread, currentUserId));
+
+    if (workerContainer && isElementActiveAndVisible(document.getElementById('worker-chats-content'))) {
+        const workerSignature = serializeRenderedThreadsForSignature(workerThreads);
+        if (workerSignature !== CHATS_RENDER_STATE.workerSignature) {
+            workerContainer.innerHTML = workerThreads.map(generateMessageThreadHTML).join('');
+            initializeMessages(workerContainer);
+            CHATS_RENDER_STATE.workerSignature = workerSignature;
+        }
+    }
+    if (customerContainer && isElementActiveAndVisible(document.getElementById('customer-interviews-content'))) {
+        const customerSignature = serializeRenderedThreadsForSignature(customerThreads);
+        if (customerSignature !== CHATS_RENDER_STATE.customerSignature) {
+            customerContainer.innerHTML = customerThreads.map(generateMessageThreadHTML).join('');
+            initializeMessages(customerContainer);
+            CHATS_RENDER_STATE.customerSignature = customerSignature;
+        }
+    }
+
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
+}
+
+function getUnreadThreadCountForRole(role) {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId || !Array.isArray(CHATS_STREAM_STATE.threads)) return 0;
+    return filterThreadsForRole(CHATS_STREAM_STATE.threads, role).reduce((count, thread) => {
+        const unreadForUser = getEffectiveUnreadCountForThread(thread, currentUserId);
+        return count + (unreadForUser > 0 ? 1 : 0);
+    }, 0);
+}
+
+function getFallbackUnreadThreadCountForRole(role) {
+    if (role === 'worker') {
+        const workerContainer = document.querySelector('#worker-chats-content .messages-container');
+        const newTags = workerContainer ? workerContainer.querySelectorAll('.thread-new-tag') : [];
+        return newTags.length;
+    }
+    if (role === 'customer') {
+        const customerContainer = document.querySelector('#customer-interviews-content .messages-container');
+        const newTags = customerContainer ? customerContainer.querySelectorAll('.thread-new-tag') : [];
+        return newTags.length;
+    }
+    return 0;
+}
+
+function getUnreadAlertCountForRole(role) {
+    if (ALERTS_STREAM_STATE.started) {
+        const roleNotifications = filterNotificationsForAlertRole(ALERTS_STREAM_STATE.notifications, role);
+        return roleNotifications.filter((notification) => !notification.read).length;
+    }
+    if (role === 'worker') {
+        return document.querySelectorAll('#worker-alerts-content .notification-item:not(.read)').length;
+    }
+    if (role === 'customer') {
+        return document.querySelectorAll('#customer-alerts-content .notification-item:not(.read)').length;
+    }
+    return 0;
+}
+
+function updateRoleTopUnreadCounts() {
+    // Alerts page: role badges show alerts unread only (no chat).
+    setRoleNotificationCount('#workerRoleTab', getUnreadAlertCountForRole('worker'));
+    setRoleNotificationCount('#customerRoleTab', getUnreadAlertCountForRole('customer'));
+}
+
+function publishMessagesUnreadCounterUpdate() {
+    const workerUnread = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('worker')
+        : getFallbackUnreadThreadCountForRole('worker');
+    const customerUnread = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('customer')
+        : getFallbackUnreadThreadCountForRole('customer');
+    const totalUnread = Math.max(0, workerUnread + customerUnread);
+
+    try {
+        document.dispatchEvent(new CustomEvent('gisugo:messages-unread-counter-update', {
+            detail: { workerUnread, customerUnread, totalUnread }
+        }));
+    } catch (error) {
+        messagesDebug('Failed to publish messages unread counter update', error);
+    }
+    updateRoleTopUnreadCounts();
+}
+
+function clearThreadUnreadLocally(threadId) {
+    const currentUserId = getCurrentUserId();
+    if (!currentUserId || !threadId || !Array.isArray(CHATS_STREAM_STATE.threads)) return;
+
+    CHATS_LOCAL_UNREAD_SUPPRESS.set(threadId, Date.now());
+    CHATS_STREAM_STATE.threads = CHATS_STREAM_STATE.threads.map((thread) => {
+        const candidateId = thread?.id || thread?.threadId;
+        if (candidateId !== threadId) return thread;
+        const unreadCount = { ...(thread?.unreadCount || {}) };
+        unreadCount[currentUserId] = 0;
+        return { ...thread, unreadCount };
+    });
+    CHATS_RENDER_STATE.streamSignature = '';
+    CHATS_RENDER_STATE.workerSignature = '';
+    CHATS_RENDER_STATE.customerSignature = '';
+}
+
+function markThreadAsRead(threadId) {
+    if (!threadId) return;
+
+    const currentUserId = getCurrentUserId();
+    const thread = (CHATS_STREAM_STATE.threads || []).find((entry) => {
+        const candidateId = entry?.id || entry?.threadId;
+        return candidateId === threadId;
+    });
+    const unreadBefore = getRawUnreadCountForThread(thread, currentUserId);
+    const suppressUntil = Math.max(Date.now(), toMillis(thread?.lastMessageTime || thread?.createdAt));
+    CHATS_LOCAL_UNREAD_SUPPRESS.set(threadId, suppressUntil);
+
+    clearThreadUnreadLocally(threadId);
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+
+    if (unreadBefore > 0 && typeof markChatThreadRead === 'function') {
+        void markChatThreadRead(threadId).catch((error) => {
+            console.warn('⚠️ Failed to persist thread read state:', error);
+        });
+    }
+}
+
+function requestThreadReadSync(threadId, options = {}) {
+    if (!threadId) return;
+    const forcePersist = options.force === true;
+
+    clearThreadUnreadLocally(threadId);
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
+
+    if (typeof markChatThreadRead !== 'function') return;
+    if (CHATS_READ_SYNC_STATE.inFlight.has(threadId)) return;
+
+    const now = Date.now();
+    const lastAttempt = CHATS_READ_SYNC_STATE.lastAttemptByThread.get(threadId) || 0;
+    if (!forcePersist && now - lastAttempt < 800) return;
+
+    CHATS_READ_SYNC_STATE.lastAttemptByThread.set(threadId, now);
+    CHATS_READ_SYNC_STATE.inFlight.add(threadId);
+    void markChatThreadRead(threadId)
+        .catch((error) => {
+            console.warn('⚠️ Failed to sync active-thread read state:', error);
+        })
+        .finally(() => {
+            CHATS_READ_SYNC_STATE.inFlight.delete(threadId);
+        });
+}
+
+// Load segregated chats based on role
+async function loadRoleChats(role) {
+    const isWorkerRole = role === 'worker';
+    const roleName = isWorkerRole ? 'worker' : 'customer';
+    const containerSelector = isWorkerRole
+        ? '#worker-chats-content .messages-container'
+        : '#customer-interviews-content .messages-container';
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+    const requestId = beginChatsLoadRequest(roleName);
+
+    const shouldUseFirebase = typeof APP_CONFIG !== 'undefined'
+        ? APP_CONFIG.useFirebaseData()
+        : true;
+    const canUseFirebaseChats = shouldUseFirebase
+        && typeof getUserChatThreads === 'function'
+        && typeof subscribeToUserThreads === 'function'
+        && typeof isFirebaseOnline === 'function'
+        && isFirebaseOnline();
+
+    if (!canUseFirebaseChats) {
+        container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>Chats are temporarily unavailable. Please refresh and try again.</div>';
+        if (isWorkerRole) {
+            setTabNotificationCount('#workerChatsTab', 0);
+        } else {
+            setTabNotificationCount('#customerInterviewsTab', 0);
+        }
+        updateMainMessagesTabCount();
+        console.warn(`⚠️ ${roleName} chats unavailable: Firebase chat path not ready`);
+        return;
+    }
+
+    try {
+        const currentUser = await waitForAuthStateWithTimeout();
+        if (isChatsLoadRequestStale(requestId, roleName)) {
+            messagesTrace('render:chats:request_stale', { role: roleName, requestId, stage: 'after_auth' });
+            return;
+        }
+
+        if (!currentUser) {
+            stopChatsRealtimeStream(`${roleName}_not_authenticated`);
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">📭<br><br>Please log in to view chats</div>';
+            return;
+        }
+
+        await ensureChatsRealtimeStream(currentUser);
+        if (isChatsLoadRequestStale(requestId, roleName)) {
+            messagesTrace('render:chats:request_stale', { role: roleName, requestId, stage: 'after_subscribe' });
+            return;
+        }
+
+        // Render immediately from current stream cache for snappy tab switches.
+        renderChatsViewsFromStream();
+    } catch (error) {
+        console.error(`❌ Error loading ${roleName} chats:`, error);
+        container.innerHTML = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load chats. Please refresh the page.</div>';
+    }
+}
+
+async function loadWorkerChats() {
+    await loadRoleChats('worker');
+}
+
+async function loadCustomerInterviews() {
+    await loadRoleChats('customer');
+}
+
+// Initialize the Messages app when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+    if (isMessagesIOSTraceEnabled()) {
+        window.__GISUGO_IOS_TRACE = function(payload) {
+            const route = String(payload && payload.route ? payload.route : '');
+            if (!route.startsWith('messages:') && !route.startsWith('alerts:')) return;
+            messagesTrace(`${route}:${payload && payload.stage ? payload.stage : 'event'}`, payload ? payload.details : null);
+        };
+    }
+    // One loader only: inline "Loading alerts..." in the list. The delayed full-page
+    // overlay ("Loading your alerts...") raced with it and stacked both on first paint.
+    MESSAGES_PAGE_LOADING_STATE.hidden = true;
+    hideMessagesPageLoadingOverlay();
+
+    if (typeof window.requireVerifiedEmailForPage === 'function') {
+        const accessAllowed = await window.requireVerifiedEmailForPage({
+            pageName: 'Alerts',
+            redirectOnUnauth: 'login.html?redirect=alerts.html'
+        });
+        if (!accessAllowed) {
+            return;
+        }
+    }
+
+    console.log('🚀 Alerts page initializing...');
+
+    initializeRoles();
+    resetTabBadgeCounts();
+    initializeAlertsLanguageTabs();
+    initializeAlertsInfiniteScroll();
+    void flushPendingNotificationReads();
+
+    // Push / deep-link: alerts.html?role=worker|customer (default worker)
+    const roleParam = new URLSearchParams(window.location.search || '').get('role');
+    if (roleParam === 'customer') {
+        await switchToRole('customer');
+    } else {
+        await switchToRole('worker');
+    }
+
+    window.addEventListener('beforeunload', guardedExecuteAllCleanups);
+    window.addEventListener('unload', guardedExecuteAllCleanups);
+
+    console.log('✅ Alerts page ready');
+});
+
+function guardedExecuteAllCleanups() {
+    if (window.__gisugoExternalLaunch) return;
+    executeAllCleanups();
+}
+
+window.addEventListener('pagehide', guardedExecuteAllCleanups);
+window.addEventListener('pageshow', (event) => {
+    if (!event.persisted) return;
+    requestMessagesPageLoadingOverlay(2200);
+    initializeWorkerAlertsTab()
+        .catch((error) => {
+            console.warn('⚠️ pageshow alerts refresh failed:', error);
+        })
+        .finally(() => {
+            hideMessagesPageLoadingOverlay();
+        });
+});
+
+// MODULAR APPROACH: Initialize only the specified tab's content
+function initializeActiveTab(tabType) {
+    console.log(`Loading tab content for: ${tabType}`);
+    
+    switch(tabType) {
+        case 'notifications':
+            loadNotificationsTab();
+            break;
+        case 'messages':
+            loadMessagesTab();
+            break;
+        case 'applications':
+            loadApplicationsTab();
+            break;
+        default:
+            console.warn(`Unknown tab type: ${tabType}`);
+    }
+}
+
+function initializeMenu() {
+    const menuBtn = document.getElementById('messagesMenuBtn');
+    const menuOverlay = document.getElementById('messagesMenuOverlay');
+    
+    if (menuBtn && menuOverlay) {
+        menuBtn.addEventListener('click', function() {
+            menuOverlay.classList.toggle('show');
+        });
+        
+        // Close menu when clicking outside
+        menuOverlay.addEventListener('click', function(e) {
+            if (e.target === menuOverlay) {
+                menuOverlay.classList.remove('show');
+            }
+        });
+    }
+}
+
+// Role Management - NEW TOP LEVEL ROLE SWITCHING
+function initializeRoles() {
+    const roleButtons = document.querySelectorAll('.role-tab-btn');
+    
+    roleButtons.forEach(button => {
+        button.addEventListener('click', async function() {
+            const roleType = this.getAttribute('data-role');
+            
+            // Update role button states
+            roleButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Switch to the selected role
+            await switchToRole(roleType);
+        });
+    });
+}
+
+async function switchToRole(roleType) {
+    console.log(`🔄 Switching to role: ${roleType}`);
+    const normalizedRole = roleType === 'customer' ? 'customer' : 'worker';
+    const activeRoleBtn = document.querySelector('.role-tab-btn.active');
+    const activeRole = String(activeRoleBtn?.dataset?.role || '').trim().toLowerCase();
+    const activeContentId = normalizedRole === 'customer' ? 'customer-alerts-content' : 'worker-alerts-content';
+    const activeAlertsContent = document.getElementById(activeContentId);
+
+    // Same role already marked active in HTML (default WORKER on first paint).
+    // Still must initialize the stream — early-return here left Alerts empty until a tab click.
+    if (!(activeRole === normalizedRole && activeAlertsContent?.classList.contains('active'))) {
+        document.querySelectorAll('.role-tab-btn').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.role === normalizedRole);
+        });
+
+        document.querySelectorAll('.tab-content-wrapper').forEach((wrapper) => {
+            wrapper.style.display = 'none';
+            wrapper.classList.remove('active');
+        });
+
+        if (activeAlertsContent) {
+            activeAlertsContent.style.display = 'block';
+            activeAlertsContent.classList.add('active');
+        }
+    }
+
+    if (normalizedRole === 'customer') {
+        await initializeCustomerAlertsTab();
+    } else {
+        await initializeWorkerAlertsTab();
+    }
+    updateAlertsLanguageTabsVisibility();
+}
+
+// Tab Management - UPDATED FOR ROLE-BASED TABS
+function initializeTabs() {
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const tabType = this.getAttribute('data-tab');
+            
+            // Check if this is the unified Messages tab
+            if (tabType === 'unified-messages') {
+                await switchToUnifiedMessages();
+                return;
+            }
+            
+            // Determine if this is a customer or worker tab
+            const isCustomerTab = this.closest('.customer-tabs');
+            const isWorkerTab = this.closest('.worker-tabs');
+            
+            if (isCustomerTab) {
+                await switchToCustomerTab(tabType);
+            } else if (isWorkerTab) {
+                await switchToWorkerTab(tabType);
+            }
+        });
+    });
+}
+
+async function switchToUnifiedMessages() {
+    console.log('🔄 Switching to unified Messages tab');
+    stopChatsRealtimeStream('switch_to_unified_messages');
+    document.body.classList.remove('alerts-lang-visible');
+    const alertsLangTabs = document.getElementById('alertsLangTabs');
+    if (alertsLangTabs) {
+        alertsLangTabs.style.display = 'none';
+    }
+    
+    // CLEANUP: Close all message threads when switching tabs
+    closeAllMessageThreads();
+    
+    // CLEANUP: Cancel any active selections when switching tabs
+    cancelSelection();
+    
+    // Hide all content first
+    document.querySelectorAll('.tab-content-wrapper').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    // Show unified messages content
+    const unifiedContent = document.getElementById('unified-messages-content');
+    if (unifiedContent) {
+        unifiedContent.style.display = 'block';
+        unifiedContent.classList.add('active');
+    }
+    
+    // Update tab button states - both customer and worker Messages tabs should be active
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById('unifiedMessagesTab')?.classList.add('active');
+    document.getElementById('unifiedMessagesTabWorker')?.classList.add('active');
+    
+    // Initialize unified messages tab content
+    try {
+        await initializeUnifiedMessagesTab();
+    } finally {
+        updateAlertsLanguageTabsVisibility();
+    }
+}
+
+async function switchToCustomerTab(tabType) {
+    // CLEANUP: Close all message threads when switching tabs
+    closeAllMessageThreads();
+    
+    // CLEANUP: Cancel any active selections when switching tabs
+    cancelSelection();
+    
+    // CLEANUP: Hide avatar overlay when switching tabs
+    hideAvatarOverlay();
+    
+    // Update customer tab states
+    document.querySelectorAll('.customer-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeTabBtn = document.querySelector(`.customer-tabs [data-tab="${tabType}"]`);
+    if (activeTabBtn) {
+        activeTabBtn.classList.add('active');
+    }
+    
+    // Update customer content visibility
+    document.querySelectorAll('.customer-content').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    // Ensure unified messages content is hidden when switching away
+    const unifiedContentCustomerScope = document.getElementById('unified-messages-content');
+    if (unifiedContentCustomerScope) {
+        unifiedContentCustomerScope.style.display = 'none';
+        unifiedContentCustomerScope.classList.remove('active');
+    }
+    
+    // Remove active state from unified Messages tabs (both roles)
+    document.getElementById('unifiedMessagesTab')?.classList.remove('active');
+    document.getElementById('unifiedMessagesTabWorker')?.classList.remove('active');
+    
+    const activeWrapper = document.getElementById(`${tabType}-content`);
+    if (activeWrapper) {
+        activeWrapper.style.display = 'block';
+        activeWrapper.classList.add('active');
+    }
+    
+    console.log(`🔄 Switched to customer tab: ${tabType}`);
+    if (tabType !== 'customer-interviews') {
+        stopChatsRealtimeStream('switch_away_from_customer_interviews');
+    }
+    stopSupportResponsesRealtimeStream('switch_away_from_unified_messages_customer');
+    
+    // Load customer content
+    if (tabType === 'customer-alerts') {
+        await initializeCustomerAlertsTab();
+    } else if (tabType === 'customer-interviews') {
+        await initializeCustomerInterviewsTab();
+    } else if (tabType === 'customer-messages') {
+        await initializeCustomerMessagesTab();
+    }
+    updateAlertsLanguageTabsVisibility();
+}
+
+async function switchToWorkerTab(tabType) {
+    // CLEANUP: Close all message threads when switching tabs
+    closeAllMessageThreads();
+    
+    // CLEANUP: Cancel any active selections when switching tabs
+    cancelSelection();
+    
+    // CLEANUP: Hide avatar overlay when switching tabs
+    hideAvatarOverlay();
+    
+    // Update worker tab states
+    document.querySelectorAll('.worker-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    const activeTabBtn = document.querySelector(`.worker-tabs [data-tab="${tabType}"]`);
+    if (activeTabBtn) {
+        activeTabBtn.classList.add('active');
+    }
+    
+    // Update worker content visibility
+    document.querySelectorAll('.worker-content').forEach(wrapper => {
+        wrapper.style.display = 'none';
+        wrapper.classList.remove('active');
+    });
+    
+    // Ensure unified messages content is hidden when switching away
+    const unifiedContentWorkerScope = document.getElementById('unified-messages-content');
+    if (unifiedContentWorkerScope) {
+        unifiedContentWorkerScope.style.display = 'none';
+        unifiedContentWorkerScope.classList.remove('active');
+    }
+    
+    // Remove active state from unified Messages tabs (both roles)
+    document.getElementById('unifiedMessagesTab')?.classList.remove('active');
+    document.getElementById('unifiedMessagesTabWorker')?.classList.remove('active');
+    
+    const activeWrapper = document.getElementById(`${tabType}-content`);
+    if (activeWrapper) {
+        activeWrapper.style.display = 'block';
+        activeWrapper.classList.add('active');
+    }
+    
+    console.log(`🔄 Switched to worker tab: ${tabType}`);
+    if (tabType !== 'worker-chats') {
+        stopChatsRealtimeStream('switch_away_from_worker_chats');
+    }
+    stopSupportResponsesRealtimeStream('switch_away_from_unified_messages_worker');
+    
+    // Load worker content
+    if (tabType === 'worker-alerts') {
+        await initializeWorkerAlertsTab();
+    } else if (tabType === 'worker-chats') {
+        await initializeWorkerChatsTab();
+    } else if (tabType === 'worker-messages') {
+        await initializeWorkerMessagesTab();
+    }
+    updateAlertsLanguageTabsVisibility();
+}
+
+// Title management removed - header always shows "COMMUNICATIONS"
+
+// MEMORY LEAK FIX: Cleanup job listing event listeners before reinitializing
+function cleanupJobListingListeners() {
+    const jobHeaders = document.querySelectorAll('.job-header');
+    
+    jobHeaders.forEach(header => {
+        // Clone and replace node to remove ALL event listeners
+        if (header && header.parentNode) {
+            const newHeader = header.cloneNode(true);
+            header.parentNode.replaceChild(newHeader, header);
+        }
+    });
+    
+    console.log('🧹 Cleaned up job listing event listeners');
+}
+
+// Job Listings Management
+function initializeJobListings() {
+    // CRITICAL FIX: Clean up existing event listeners before re-initializing
+    cleanupJobListingListeners();
+    
+    const jobHeaders = document.querySelectorAll('.job-header');
+    
+    jobHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const jobId = this.getAttribute('data-job-id');
+            const jobListing = this.closest('.job-listing');
+            const applicationsList = document.getElementById('applications-' + jobId);
+            const expandIcon = this.querySelector('.expand-icon');
+            
+            if (applicationsList && expandIcon) {
+                const isExpanded = jobListing.classList.contains('expanded');
+                
+                if (isExpanded) {
+                    // Collapse current listing
+                    jobListing.classList.remove('expanded');
+                    applicationsList.style.display = 'none';
+                    expandIcon.textContent = '▼';
+                } else {
+                    // First, close all other expanded listings
+                    closeAllJobListings();
+                    
+                    // Then expand the current listing
+                    jobListing.classList.add('expanded');
+                    applicationsList.style.display = 'block';
+                    expandIcon.textContent = '▲';
+                    
+                    // Smooth scroll to center the expanded job listing
+                    setTimeout(() => {
+                        scrollToJobListing(jobListing);
+                    }, 100); // Small delay to allow expansion animation
+                }
+            }
+        });
+    });
+}
+
+// Helper function to close all expanded job listings
+function closeAllJobListings() {
+    const allJobListings = document.querySelectorAll('.job-listing');
+    
+    allJobListings.forEach(listing => {
+        const jobHeader = listing.querySelector('.job-header');
+        const jobId = jobHeader.getAttribute('data-job-id');
+        const applicationsList = document.getElementById('applications-' + jobId);
+        const expandIcon = jobHeader.querySelector('.expand-icon');
+        
+        if (listing.classList.contains('expanded')) {
+            listing.classList.remove('expanded');
+            if (applicationsList) {
+                applicationsList.style.display = 'none';
+            }
+            if (expandIcon) {
+                expandIcon.textContent = '▼';
+            }
+        }
+    });
+}
+
+// Smooth scroll to center an expanded job listing for optimal UX
+function scrollToJobListing(jobListing) {
+    // Find the applications tab scroll container
+    const applicationsTab = document.querySelector('#applications-content');
+    const scrollContainer = applicationsTab?.querySelector('.tab-scroll-container');
+    
+    if (!scrollContainer || !jobListing) {
+        console.warn('Scroll container or job listing not found for auto-scroll');
+        return;
+    }
+    
+    // Calculate the position to center the job listing
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const jobRect = jobListing.getBoundingClientRect();
+    
+    // Get current scroll position
+    const currentScrollTop = scrollContainer.scrollTop;
+    
+    // Calculate where the job listing currently is relative to the scroll container
+    const jobOffsetFromTop = jobRect.top - containerRect.top + currentScrollTop;
+    
+    // Calculate the scroll position to center the job listing
+    const containerHeight = containerRect.height;
+    const jobHeight = jobRect.height;
+    
+    // Position job listing in the center of the visible area
+    // Account for the expanded height by adding some extra space
+    const targetScrollTop = jobOffsetFromTop - (containerHeight / 2) + (jobHeight / 2);
+    
+    // Ensure we don't scroll past the top
+    const finalScrollTop = Math.max(0, targetScrollTop);
+    
+    // Smooth scroll animation
+    scrollContainer.scrollTo({
+        top: finalScrollTop,
+        behavior: 'smooth'
+    });
+    
+    console.log(`Auto-scrolling to center job listing at position ${finalScrollTop}`);
+}
+
+// Check if there are any applications and show/hide placeholder accordingly
+function checkApplicationsContent() {
+    const applicationsContainer = document.getElementById('applicationsContainer');
+    const applicationsPlaceholder = document.getElementById('applicationsPlaceholder');
+    
+    if (applicationsContainer && applicationsPlaceholder) {
+        const jobListings = applicationsContainer.querySelectorAll('.job-listing');
+        const hasApplications = jobListings.length > 0;
+        
+        if (hasApplications) {
+            // Show job listings, hide placeholder
+            applicationsContainer.style.display = 'block';
+            applicationsPlaceholder.style.display = 'none';
+        } else {
+            // Show placeholder, hide job listings
+            applicationsContainer.style.display = 'none';
+            applicationsPlaceholder.style.display = 'block';
+        }
+    }
+}
+
+// Function to be called when applications are added/removed dynamically
+function updateApplicationsDisplay() {
+    checkApplicationsContent();
+}
+
+// Confirmation Overlay Functions
+function showConfirmationOverlay(type, title, message) {
+    const overlay = document.getElementById('confirmationOverlay');
+    const icon = document.getElementById('confirmationIcon');
+    const titleElement = document.getElementById('confirmationTitle');
+    const messageElement = document.getElementById('confirmationMessage');
+    
+    if (overlay && icon && titleElement && messageElement) {
+        // Set content
+        titleElement.textContent = title;
+        messageElement.textContent = message;
+        
+        // Set icon and styling based on type
+        if (type === 'success') {
+            icon.textContent = '✓';
+            icon.className = 'confirmation-icon success';
+        } else if (type === 'reject') {
+            icon.textContent = '✗';
+            icon.className = 'confirmation-icon reject';
+        }
+        
+        // Show overlay
+        overlay.classList.add('show');
+    }
+}
+
+function closeConfirmationOverlay() {
+    const overlay = document.getElementById('confirmationOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
+// Initialize confirmation overlay
+function initializeConfirmationOverlay() {
+    const overlay = document.getElementById('confirmationOverlay');
+    const confirmBtn = document.getElementById('confirmationBtn');
+    if (!overlay || overlay.dataset.confirmationInitBound === '1') return;
+    overlay.dataset.confirmationInitBound = '1';
+    
+    // Close overlay when clicking OK button
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', closeConfirmationOverlay);
+    }
+    
+    // Close overlay when clicking outside
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeConfirmationOverlay();
+            }
+        });
+    }
+    
+    // Close with Escape key - MEMORY LEAK FIX: Store reference for cleanup
+    const escapeHandler = function(e) {
+        if (e.key === 'Escape' && overlay && overlay.classList.contains('show')) {
+            closeConfirmationOverlay();
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+    
+    // Store reference for global cleanup during page teardown
+    overlay._escapeHandler = escapeHandler;
+    registerCleanup('function', 'confirmationEscapeCleanup', () => {
+        document.removeEventListener('keydown', escapeHandler);
+    });
+}
+
+// Notifications Management
+function initializeNotifications(scopeRoot = document) {
+    const root = scopeRoot && typeof scopeRoot.querySelectorAll === 'function' ? scopeRoot : document;
+    // Bind once per element to avoid duplicate listeners and expensive cloneNode churn.
+    const freshNotificationItems = root.querySelectorAll('.notification-item');
+    const freshActionBtns = root.querySelectorAll('.notification-action-btn');
+    
+    freshActionBtns.forEach(btn => {
+        if (btn.dataset.notificationActionBound === '1') return;
+        btn.dataset.notificationActionBound = '1';
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent notification item click
+            
+            const notificationItem = this.closest('.notification-item');
+            if (!notificationItem) return;
+            
+            // Mark notification as read when any action button is clicked
+            void markNotificationAsRead(notificationItem);
+
+            const actionName = String(this.getAttribute('data-action') || '').trim().toLowerCase();
+            void dispatchNotificationAction(actionName, notificationItem, this);
+        });
+    });
+    
+    freshNotificationItems.forEach((item, index) => {
+        if (item.dataset.notificationItemBound === '1') return;
+        item.dataset.notificationItemBound = '1';
+
+        // Add debugging for first notification item
+        if (index === 0) {
+            messagesDebug('First notification item initialized:', item);
+            item.setAttribute('data-first-item', 'true');
+            messagesDebug('First item identification applied');
+        }
+        
+        // Initialize long press selection for each notification
+        initializeLongPressSelection(item);
+        
+        // Add click handler with immediate binding
+        const clickHandler = function(e) {
+            console.log(`Notification clicked - Index: ${index}, First item: ${this.hasAttribute('data-first-item')}`);
+
+            // Ignore the synthetic/follow-up click that commonly fires right after long-press.
+            if (this.dataset.suppressNextSelectionClick === '1') {
+                this.dataset.suppressNextSelectionClick = '0';
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Ignored post-long-press click to preserve selection state');
+                return;
+            }
+            
+            // Check if we're in selection mode by looking for selection controls
+            const selectionBar = document.getElementById('selectionControls');
+            const isInSelectionMode = selectionBar && selectionBar.style.display === 'flex';
+            
+            if (isInSelectionMode) {
+                // Prevent normal action in selection mode
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Additional debugging for first item
+                if (this.hasAttribute('data-first-item')) {
+                    console.log('*** FIRST NOTIFICATION ITEM CLICKED IN SELECTION MODE ***');
+                }
+                
+                // Toggle selection
+                this.classList.toggle('selected');
+                updateSelectionControls();
+                console.log('Toggled selection for notification');
+            } else {
+                // Normal click - mark as read only if not in selection mode
+                void markNotificationAsRead(this);
+                void handleNotificationTypeNavigation(this);
+            }
+        };
+        
+        item.addEventListener('click', clickHandler);
+        
+        // Store reference for debugging
+        item._clickHandler = clickHandler;
+    });
+}
+
+async function dispatchNotificationAction(actionName, notificationItem, actionButton) {
+    const normalizedAction = String(actionName || '').trim().toLowerCase();
+    const handlerMap = {
+        review_applications: () => handleReviewApplications(notificationItem),
+        view_application: () => handleViewApplication(notificationItem),
+        reply_message: () => handleReplyMessage(notificationItem, actionButton),
+        // Route "rate_worker" through type-based navigation while completed flow remains in jobs/profile.
+        rate_worker: () => handleNotificationTypeNavigation(notificationItem)
+    };
+
+    const handler = handlerMap[normalizedAction];
+    if (handler) {
+        await handler();
+        return;
+    }
+
+    const notificationTitle = notificationItem.querySelector('.notification-title')?.textContent || 'Unknown';
+    const buttonText = actionButton?.textContent?.trim() || '';
+    console.log(`Unhandled notification action "${normalizedAction}" (${buttonText}) for: ${notificationTitle}`);
+    messagesTrace('alerts:action_unhandled', normalizedAction || 'missing');
+}
+
+function handleReviewApplications(notificationItem) {
+    // Extract job info from notification
+    const message = notificationItem.querySelector('.notification-message').textContent;
+    
+    // REMOVED: Switch to applications tab - applications moved to jobs.html
+    // const applicationsTab = document.getElementById('applicationsTab');
+    // if (applicationsTab) {
+    //     applicationsTab.click();
+    // }
+    
+    // Show confirmation that we're navigating
+    showConfirmationOverlay(
+        'success',
+        'Navigating to Applications',
+        'Taking you to review your job applications.'
+    );
+    
+    console.log('Backend action: Navigate to applications for job review - REMOVED');
+}
+
+function handleViewApplication(notificationItem) {
+    const message = notificationItem.querySelector('.notification-message').textContent;
+    const applicantMatch = message.match(/\*\*(.*?)\*\*/);
+    const applicantName = applicantMatch ? applicantMatch[1] : 'Unknown';
+    
+    // REMOVED: Extract application data - applications moved to jobs.html
+    const jobId = notificationItem.getAttribute('data-job-id');
+    const jobTitle = notificationItem.getAttribute('data-job-title');
+    
+    if (jobId) {
+        // REMOVED: navigateToApplicationCard call - applications moved to jobs.html
+        try {
+            console.log('REMOVED: navigateToApplicationCard call - applications moved to jobs.html');
+        } catch (error) {
+            // Backend-ready error handling
+            console.warn('Navigation failed, using fallback:', error);
+            // REMOVED: Switch to applications tab - applications moved to jobs.html
+            showTemporaryNotification('Application view functionality moved to jobs.html');
+        }
+    } else {
+        // REMOVED: Fallback tab switch - applications moved to jobs.html
+        console.warn('Missing job ID - application functionality moved to jobs.html');
+        showTemporaryNotification('Application view functionality moved to jobs.html');
+    }
+    
+    console.log('Backend action: Navigate to specific application for:', applicantName, '- REMOVED');
+}
+
+function handleReplyMessage(notificationItem, actionButton = null) {
+    const message = notificationItem.querySelector('.notification-message').textContent;
+    const senderMatch = message.match(/\*\*(.*?)\*\*/);
+    const senderName = senderMatch ? senderMatch[1] : 'Unknown';
+    
+    // Get the threadId from the Reply button's data attributes
+    const replyButton = actionButton || notificationItem.querySelector('[data-action="reply_message"]');
+    const threadId = replyButton ? replyButton.getAttribute('data-thread-id') : null;
+    
+    if (threadId) {
+        // Navigate to specific thread
+        navigateToMessageThread(threadId);
+    } else {
+        // Fallback: just switch to messages tab
+        const messagesTab = document.getElementById('messagesTab');
+        if (messagesTab) {
+            messagesTab.click();
+        }
+    }
+    
+    console.log('Backend action: Open message thread with:', senderName, 'ThreadID:', threadId);
+}
+
+function navigateToMessageThread(threadId, options = {}) {
+    const safeThreadId = String(threadId || '').trim();
+    if (!safeThreadId) return;
+
+    const preserveContextTab = options && options.preserveContextTab === true;
+    if (!preserveContextTab) {
+        const workerTabs = document.querySelector('.worker-tabs');
+        const customerTabs = document.querySelector('.customer-tabs');
+        const workerChatsTab = document.getElementById('workerChatsTab');
+        const customerInterviewsTab = document.getElementById('customerInterviewsTab');
+        const customerMessagesTab = document.getElementById('unifiedMessagesTab');
+        const workerMessagesTab = document.getElementById('unifiedMessagesTabWorker');
+
+        const workerVisible = !!(workerTabs && workerTabs.offsetParent !== null);
+        const customerVisible = !!(customerTabs && customerTabs.offsetParent !== null);
+
+        // Prefer role-native chat tabs first. Fallback to unified messages only
+        // if a native chat tab is not available in the current context.
+        if (workerVisible && workerChatsTab) {
+            workerChatsTab.click();
+        } else if (customerVisible && customerInterviewsTab) {
+            customerInterviewsTab.click();
+        } else if (customerMessagesTab?.offsetParent !== null) {
+            customerMessagesTab.click();
+        } else if (workerMessagesTab) {
+            workerMessagesTab.click();
+        }
+    }
+
+    // Use multiple attempts with increasing delays to find the thread
+    const attemptToFindThread = (attempt = 1, maxAttempts = 4) => {
+        const messageThread = document.querySelector(`.message-thread[data-thread-id="${safeThreadId}"]`);
+
+        if (messageThread) {
+            const threadHeader = messageThread.querySelector('.message-thread-header');
+
+            if (threadHeader) {
+                const isExpanded = messageThread.classList.contains('expanded');
+
+                if (!isExpanded) {
+                    threadHeader.click();
+                }
+
+                messageThread.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                    inline: 'nearest'
+                });
+            }
+        } else if (attempt < maxAttempts) {
+            setTimeout(() => attemptToFindThread(attempt + 1, maxAttempts), attempt * 140);
+        }
+    };
+
+    setTimeout(() => attemptToFindThread(), 120);
+}
+
+// Update notification count (would be called when new notifications arrive)
+function updateNotificationCount(count) {
+    // Legacy compatibility wrapper: maintain role/tab badge consistency for current layout.
+    const safeCount = Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
+    setTabNotificationCount('#workerAlertsTab', safeCount);
+    setTabNotificationCount('#customerAlertsTab', safeCount);
+    setRoleNotificationCount('#workerRoleTab', safeCount);
+    setRoleNotificationCount('#customerRoleTab', safeCount);
+} 
+
+const PENDING_NOTIFICATION_READS_KEY = 'gisugo_pending_notification_reads';
+
+function getPendingNotificationReadIds() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(PENDING_NOTIFICATION_READS_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (error) {
+        console.warn('⚠️ Could not parse pending notification reads:', error);
+        return [];
+    }
+}
+
+function setPendingNotificationReadIds(ids) {
+    const unique = Array.from(new Set((Array.isArray(ids) ? ids : []).map((id) => String(id || '').trim()).filter(Boolean)));
+    localStorage.setItem(PENDING_NOTIFICATION_READS_KEY, JSON.stringify(unique));
+}
+
+function queuePendingNotificationRead(notificationId) {
+    const id = String(notificationId || '').trim();
+    if (!id) return;
+    const pending = getPendingNotificationReadIds();
+    if (pending.includes(id)) return;
+    pending.push(id);
+    setPendingNotificationReadIds(pending);
+}
+
+function dequeuePendingNotificationRead(notificationId) {
+    const id = String(notificationId || '').trim();
+    if (!id) return;
+    const pending = getPendingNotificationReadIds().filter((item) => item !== id);
+    setPendingNotificationReadIds(pending);
+}
+
+async function flushPendingNotificationReads() {
+    if (typeof markNotificationRead !== 'function') return;
+    const pending = getPendingNotificationReadIds();
+    if (!pending.length) return;
+    for (const notificationId of pending) {
+        try {
+            await markNotificationRead(notificationId);
+            dequeuePendingNotificationRead(notificationId);
+        } catch (error) {
+            console.warn('⚠️ Pending notification read flush failed:', notificationId, error);
+        }
+    }
+}
+
+// Mark notification as read functionality
+async function markNotificationAsRead(notificationItem, options = {}) {
+    const {
+        waitForPersistence = false,
+        persistTimeoutMs = 1200
+    } = options || {};
+
+    if (!notificationItem.classList.contains('read')) {
+        notificationItem.classList.add('read');
+        
+        // Add a read indicator
+        let readIndicator = notificationItem.querySelector('.read-indicator');
+        if (!readIndicator) {
+            readIndicator = document.createElement('div');
+            readIndicator.className = 'read-indicator';
+            readIndicator.innerHTML = '✓ Read';
+            notificationItem.appendChild(readIndicator);
+        }
+        
+        // Update Firebase
+        const notificationId = notificationItem.dataset.notificationId;
+        if (notificationId && typeof markNotificationRead === 'function') {
+            queuePendingNotificationRead(notificationId);
+            const persistPromise = markNotificationRead(notificationId).then(() => {
+                dequeuePendingNotificationRead(notificationId);
+                notificationItem.dataset.read = 'true';
+                console.log('✅ Notification marked as read in Firebase:', notificationId);
+                return true;
+            }).catch((error) => {
+                console.error('❌ Error marking notification as read:', error);
+                return false;
+            });
+            try {
+                if (waitForPersistence) {
+                    await Promise.race([
+                        persistPromise,
+                        new Promise((resolve) => {
+                            setTimeout(() => resolve(false), Math.max(300, Number(persistTimeoutMs) || 1200));
+                        })
+                    ]);
+                } else {
+                    void persistPromise;
+                }
+            } catch (_error) {
+                // no-op; optimistic UI remains and pending queue will retry on next page load
+            }
+        }
+        
+        // Update the notifications count
+        updateNotificationsCount();
+        
+        const notificationTitle = notificationItem.querySelector('.notification-title')?.textContent || 'Unknown';
+        console.log('Notification marked as read:', notificationTitle);
+    }
+}
+
+// Long press selection functionality
+function initializeLongPressSelection(notificationItem) {
+    let longPressTimer;
+    let isLongPress = false;
+    let touchStartTime = 0;
+    
+    // Debug logging for first item
+    if (notificationItem.hasAttribute('data-first-item')) {
+        messagesDebug('Initializing long press for FIRST notification item');
+        messagesDebug('First item element:', notificationItem);
+        messagesDebug('First item position:', notificationItem.getBoundingClientRect());
+    }
+    
+    // Remove any existing event listeners first (cleanup)
+    const events = ['touchstart', 'touchend', 'touchmove', 'mousedown', 'mouseup', 'mouseleave'];
+    events.forEach(eventType => {
+        notificationItem.removeEventListener(eventType, notificationItem[`_${eventType}Handler`]);
+    });
+    
+    // Touch events for mobile
+    notificationItem.addEventListener('touchstart', handleTouchStart, { passive: true });
+    notificationItem.addEventListener('touchend', handleTouchEnd, { passive: true });
+    notificationItem.addEventListener('touchmove', handleTouchMove, { passive: true });
+    
+    // Mouse events for desktop
+    notificationItem.addEventListener('mousedown', handleMouseStart);
+    notificationItem.addEventListener('mouseup', handleMouseEnd);
+    notificationItem.addEventListener('mouseleave', handleMouseEnd);
+    
+    // Store event handler references for cleanup
+    notificationItem._touchstartHandler = handleTouchStart;
+    notificationItem._touchendHandler = handleTouchEnd;
+    notificationItem._touchmoveHandler = handleTouchMove;
+    notificationItem._mousedownHandler = handleMouseStart;
+    notificationItem._mouseupHandler = handleMouseEnd;
+    notificationItem._mouseleaveHandler = handleMouseEnd;
+    
+    function handleTouchStart(e) {
+        // Debug logging for first item
+        if (notificationItem.hasAttribute('data-first-item')) {
+            console.log('*** FIRST ITEM TOUCH START ***');
+        }
+        
+        isLongPress = false;
+        touchStartTime = Date.now();
+        
+        longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            notificationItem.dataset.suppressNextSelectionClick = '1';
+            if (notificationItem.hasAttribute('data-first-item')) {
+                console.log('*** FIRST ITEM LONG PRESS TRIGGERED ***');
+            }
+            startSelectionMode(notificationItem);
+        }, 500); // 500ms long press
+    }
+    
+    function handleTouchMove(e) {
+        // Cancel long press if user moves finger
+        clearTimeout(longPressTimer);
+        isLongPress = false;
+    }
+    
+    function handleTouchEnd(e) {
+        clearTimeout(longPressTimer);
+        
+        // If it was a long press, prevent the click event
+        if (isLongPress || (Date.now() - touchStartTime > 450)) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        isLongPress = false;
+    }
+    
+    function handleMouseStart(e) {
+        if (e.button !== 0) return; // Only left mouse button
+        
+        // Debug logging for first item
+        if (notificationItem.hasAttribute('data-first-item')) {
+            console.log('*** FIRST ITEM MOUSE START ***');
+        }
+        
+        isLongPress = false;
+        touchStartTime = Date.now();
+        
+        longPressTimer = setTimeout(() => {
+            isLongPress = true;
+            notificationItem.dataset.suppressNextSelectionClick = '1';
+            if (notificationItem.hasAttribute('data-first-item')) {
+                console.log('*** FIRST ITEM MOUSE LONG PRESS TRIGGERED ***');
+            }
+            startSelectionMode(notificationItem);
+        }, 500);
+    }
+    
+    function handleMouseEnd(e) {
+        clearTimeout(longPressTimer);
+        
+        // If it was a long press, prevent the click event
+        if (isLongPress || (Date.now() - touchStartTime > 450)) {
+            if (e && typeof e.preventDefault === 'function') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
+        
+        isLongPress = false;
+    }
+}
+
+function startSelectionMode(notificationItem) {
+    // Add vibration feedback on mobile
+    if (navigator.vibrate) {
+        navigator.vibrate(50);
+    }
+    
+    // Debug logging for first item
+    if (notificationItem.hasAttribute('data-first-item')) {
+        console.log('*** STARTING SELECTION MODE FOR FIRST ITEM ***');
+    }
+    
+    // Add selection class to the notification
+    notificationItem.classList.add('selected');
+    
+    // Show selection controls
+    showSelectionControls();
+    
+    console.log('Selection mode activated');
+}
+
+function showSelectionControls() {
+    let selectionBar = document.getElementById('selectionControls');
+    
+    if (!selectionBar) {
+        // Create selection controls bar
+        selectionBar = document.createElement('div');
+        selectionBar.id = 'selectionControls';
+        selectionBar.className = 'selection-controls';
+        selectionBar.innerHTML = `
+            <div class="selection-info">
+                <span id="selectionCount">1</span> selected
+            </div>
+            <div class="selection-actions">
+                <button class="selection-btn cancel-btn" id="cancelSelectionBtn">Cancel</button>
+                <button class="selection-btn delete-btn" id="deleteSelectionBtn">Delete</button>
+            </div>
+        `;
+        
+        // Add event listeners immediately after DOM insertion
+        const cancelBtn = selectionBar.querySelector('.cancel-btn');
+        const deleteBtn = selectionBar.querySelector('.delete-btn');
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Cancel button clicked');
+                cancelSelection();
+            });
+            console.log('Cancel button event listener added');
+        }
+        
+        if (deleteBtn) {
+            // Simple, direct click handler
+            deleteBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                void deleteSelectedNotifications();
+                return false;
+            };
+            
+            console.log('Delete button direct onclick handler added');
+        }
+        
+        // Insert after the tabs but before the messages content
+        const messagesContent = document.querySelector('.messages-content');
+        const tabsContainer = document.querySelector('.messages-tabs');
+        
+        // Insert after tabs container
+        if (tabsContainer && tabsContainer.nextSibling) {
+            tabsContainer.parentNode.insertBefore(selectionBar, tabsContainer.nextSibling);
+        } else {
+            // Fallback to before messages content
+            messagesContent.parentNode.insertBefore(selectionBar, messagesContent);
+        }
+        
+        console.log('Created selection controls bar');
+    }
+    
+    // Ensure visibility with animated entrance
+    selectionBar.style.display = 'flex';
+    selectionBar.style.position = 'fixed';
+    selectionBar.style.zIndex = '998';
+    
+    // Trigger entrance animation
+    setTimeout(() => {
+        selectionBar.style.opacity = '1';
+        selectionBar.style.transform = 'translateY(0)';
+    }, 10);
+    
+    // Add class to adjust content in independent tabs
+    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+    if (activeTabWrapper) {
+        activeTabWrapper.classList.add('selection-active');
+    }
+    
+    console.log('Selection controls shown with smooth animation');
+    updateSelectionControls();
+}
+
+function hideSelectionControls() {
+    const selectionBar = document.getElementById('selectionControls');
+    if (selectionBar) {
+        selectionBar.style.opacity = '0';
+        selectionBar.style.transform = 'translateY(-100%)';
+        setTimeout(() => {
+            selectionBar.style.display = 'none';
+        }, 300);
+    }
+
+    // Remove selection class from active tab wrapper immediately.
+    const activeTabWrapper = document.querySelector('.tab-content-wrapper.active');
+    if (activeTabWrapper) {
+        activeTabWrapper.classList.remove('selection-active');
+    }
+}
+
+function updateSelectionControls() {
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    const selectionCount = document.getElementById('selectionCount');
+    
+    if (selectedItems.length === 0) {
+        hideSelectionControls();
+        console.log('No items selected - selection controls hidden');
+    } else {
+        if (selectionCount) {
+            selectionCount.textContent = selectedItems.length;
+        }
+        console.log(`Updated selection count: ${selectedItems.length}`);
+    }
+}
+
+function cancelSelection() {
+    // Remove selection from all items
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    selectedItems.forEach(item => {
+        item.classList.remove('selected');
+    });
+    
+    // Hide selection controls and remove layout offset.
+    hideSelectionControls();
+    
+    messagesDebug('Selection cancelled with smooth animation');
+}
+
+// Add debouncing to prevent multiple calls
+let deletionInProgress = false;
+
+async function deleteSelectedNotifications() {
+    console.log('Delete function called');
+    
+    if (deletionInProgress) {
+        console.log('Deletion already in progress, skipping');
+        return;
+    }
+    
+    deletionInProgress = true;
+    
+    const selectedItems = document.querySelectorAll('.notification-item.selected');
+    console.log(`Found ${selectedItems.length} selected items`);
+    
+    if (selectedItems.length === 0) {
+        console.log('No items selected, returning');
+        deletionInProgress = false;
+        return;
+    }
+
+    if (typeof deleteNotification !== 'function') {
+        console.warn('⚠️ Notification delete API unavailable');
+        showToast('Delete is unavailable right now. Please refresh and try again.');
+        deletionInProgress = false;
+        return;
+    }
+    
+    // Store references in an array to avoid NodeList issues
+    const itemsToDelete = Array.from(selectedItems);
+    console.log(`Converted to array: ${itemsToDelete.length} items`);
+
+    const persistedIds = [];
+    for (const item of itemsToDelete) {
+        const notificationId = String(item.dataset.notificationId || '').trim();
+        if (!notificationId) continue;
+        try {
+            const result = await deleteNotification(notificationId);
+            if (result && result.success === true) {
+                persistedIds.push(notificationId);
+            } else {
+                console.warn('⚠️ Failed to persist notification delete:', notificationId, result);
+            }
+        } catch (error) {
+            console.warn('⚠️ Notification delete request failed:', notificationId, error);
+        }
+    }
+
+    if (persistedIds.length === 0) {
+        showToast('Unable to delete selected notification(s).');
+        deletionInProgress = false;
+        return;
+    }
+
+    const persistedIdSet = new Set(persistedIds);
+    const persistedItemsToDelete = itemsToDelete.filter((item) => {
+        const notificationId = String(item.dataset.notificationId || '').trim();
+        return persistedIdSet.has(notificationId);
+    });
+
+    ALERTS_STREAM_STATE.notifications = (Array.isArray(ALERTS_STREAM_STATE.notifications) ? ALERTS_STREAM_STATE.notifications : [])
+        .filter((notification) => !persistedIdSet.has(String(notification?.id || notification?.notificationId || '').trim()));
+    ALERTS_PAGINATION_STATE.olderNotifications = (Array.isArray(ALERTS_PAGINATION_STATE.olderNotifications) ? ALERTS_PAGINATION_STATE.olderNotifications : [])
+        .filter((notification) => !persistedIdSet.has(String(notification?.id || notification?.notificationId || '').trim()));
+    
+    // Add removing animation to selected items
+    persistedItemsToDelete.forEach((item, index) => {
+        console.log(`Adding removing class to item ${index + 1}`);
+        item.classList.add('removing');
+    });
+    
+    // Force immediate deletion if animation doesn't work
+    const forceDelete = () => {
+        console.log('Force deleting items');
+        persistedItemsToDelete.forEach((item, index) => {
+            if (item.parentNode) {
+                console.log(`Force removing item ${index + 1} from DOM`);
+                item.remove();
+            }
+        });
+        
+        // Update notifications count
+        updateNotificationsCount();
+        
+        hideSelectionControls();
+        
+        console.log(`${persistedItemsToDelete.length} notifications successfully deleted`);
+        if (persistedItemsToDelete.length < itemsToDelete.length) {
+            showToast('Some notifications could not be deleted. Please try again.');
+        }
+        
+        // Reset deletion flag
+        deletionInProgress = false;
+    };
+    
+    // Try animation first, but force delete as backup
+    let deleted = false;
+    
+    // Animation approach
+    setTimeout(() => {
+        if (!deleted) {
+            console.log('Animation timeout - removing items');
+            deleted = true;
+            forceDelete();
+        }
+    }, 350);
+    
+    // Also add a much faster backup in case console timing affects things
+    setTimeout(() => {
+        if (!deleted) {
+            console.log('Fast backup delete triggered');
+            deleted = true;
+            forceDelete();
+        }
+    }, 50);
+}
+
+// ===== PHASE 1: LEGACY DATA AND TEMPLATES =====
+
+// Generate Notification HTML
+function generateNotificationHTML(notification) {
+    // Transform Firebase notification into display format
+    const transformed = transformFirebaseNotification(notification);
+    
+    // Use the actual read status from Firebase
+    const isRead = transformed.read === true || transformed.read === 'true';
+    
+    const dataAttributes = [
+        `data-notification-id="${transformed.id}"`,
+        `data-notification-type="${transformed.notificationType}"`,
+        `data-read="${isRead}"`,
+        `data-timestamp="${transformed.timestamp}"`
+    ];
+
+    // Add conditional data attributes - check both top-level and relatedDocuments
+    const jobId = transformed.jobId || transformed.relatedDocuments?.jobId;
+    // REMOVED: applicationId - applications moved to jobs.html
+    const threadId = transformed.threadId || transformed.relatedDocuments?.threadId;
+    
+    if (jobId) dataAttributes.push(`data-job-id="${jobId}"`);
+    if (transformed.jobTitle) dataAttributes.push(`data-job-title="${transformed.jobTitle}"`);
+    // REMOVED: applicationId data attribute - applications moved to jobs.html
+    if (threadId) dataAttributes.push(`data-thread-id="${threadId}"`);
+    if (transformed.userId) dataAttributes.push(`data-user-id="${transformed.userId}"`);
+    if (transformed.userName) dataAttributes.push(`data-user-name="${transformed.userName}"`);
+
+    const actionsHTML = (transformed.actions || []).map(action => {
+        const actionDataAttrs = [`data-action="${action.action}"`];
+        // Use actionData for button-specific attributes
+        if (action.actionData?.jobId) actionDataAttrs.push(`data-job-id="${action.actionData.jobId}"`);
+        // REMOVED: applicationId action data - applications moved to jobs.html
+        if (action.actionData?.threadId) actionDataAttrs.push(`data-thread-id="${action.actionData.threadId}"`);
+        
+        return `<button class="notification-action-btn ${action.type}" ${actionDataAttrs.join(' ')}>${action.text}</button>`;
+    }).join('');
+
+    // Add theme class based on notification type
+    let themeClass = '';
+    const notifType = transformed.type || '';
+    if (notifType === 'application_milestone') {
+        themeClass = 'theme-attention'; // Yellow/orange for 5+ applications
+    } else if (notifType === 'gig_auto_paused') {
+        themeClass = 'theme-alert'; // Red for auto-paused gigs
+    }
+    
+    // Add 'read' class if notification has been read
+    const readClass = isRead ? 'read' : '';
+
+    return `
+        <div class="notification-item ${transformed.type} ${themeClass} ${readClass}" ${dataAttributes.join(' ')}>
+            <div class="notification-icon ${transformed.iconClass}">${transformed.icon}</div>
+            <div class="notification-content">
+                <div class="notification-title">${transformed.title}</div>
+                <div class="notification-message">${transformed.message}</div>
+                <div class="notification-meta">
+                    <span class="notification-time">${transformed.timeDisplay}</span>
+                    <span class="notification-date">${transformed.dateDisplay}</span>
+                </div>
+                ${actionsHTML ? `<div class="notification-actions">${actionsHTML}</div>` : ''}
+            </div>
+            ${isRead ? '<div class="read-indicator">✓ Read</div>' : ''}
+        </div>
+    `;
+}
+
+// Transform Firebase notification into display format with icon, title, timestamps
+function transformFirebaseNotification(notif) {
+    const type = notif.type || '';
+    let icon = '🔔';
+    let iconClass = 'system-icon';
+    let title = 'Notification';
+    
+    // Map notification types to icons and titles
+    switch(type) {
+        case 'offer_sent':
+            icon = '💼';
+            iconClass = 'job-icon';
+            title = 'Gig Offer Received';
+            break;
+        case 'offer_accepted':
+            icon = '🎉';
+            iconClass = 'success-icon';
+            title = tAlertLang('offerAccepted');
+            break;
+        case 'interview_request':
+            icon = '💬';
+            iconClass = 'message-icon';
+            title = 'Interview Request';
+            break;
+        case 'job_completed':
+            icon = '✅';
+            iconClass = 'success-icon';
+            title = 'Gig Completed';
+            break;
+        case 'feedback_received':
+            icon = '⭐';
+            iconClass = 'rating-icon';
+            title = 'Feedback Received';
+            break;
+        case 'contract_voided':
+            icon = '🔄';
+            iconClass = 'warning-icon';
+            title = 'Contract Voided - Gig Relisted';
+            break;
+        case 'application_received':
+            icon = '📝';
+            iconClass = 'application-icon';
+            title = 'New Application';
+            break;
+        case 'application_milestone':
+            icon = '📊';
+            iconClass = 'milestone-icon';
+            title = 'Applications Update';
+            break;
+        case 'gig_auto_paused':
+            icon = '🛑';
+            iconClass = 'alert-icon';
+            title = 'Gig Auto-Paused';
+            break;
+        case 'offer_rejected':
+            icon = '❌';
+            iconClass = 'reject-icon';
+            title = tAlertLang('offerDeclined');
+            break;
+        case 'worker_resigned':
+            icon = '🚪';
+            iconClass = 'resign-icon';
+            title = 'Worker Resigned';
+            break;
+        case 'worker_feedback_received':
+            icon = '⭐';
+            iconClass = 'rating-icon';
+            title = 'Worker Feedback Received';
+            break;
+        case 'application_slots_reopened_batch':
+        case 'application_not_selected_batch':
+        case 'application_rejected_batch':
+            icon = '🔓';
+            iconClass = 'success-icon';
+            title = tAlertLang('slotsOpen');
+            break;
+    }
+    
+    // Format timestamp using user's local timezone
+    let timeDisplay = 'Just now';
+    let dateDisplay = 'Today';
+    
+    if (notif.createdAt) {
+        // Convert Firestore timestamp to local Date object
+        const createdDate = notif.createdAt.toDate ? notif.createdAt.toDate() : new Date(notif.createdAt);
+        const now = new Date();
+        
+        // Calculate difference in user's local time
+        const diffMs = now - createdDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) {
+            timeDisplay = 'Just now';
+        } else if (diffMins < 60) {
+            timeDisplay = `${diffMins}m ago`;
+        } else if (diffHours < 24) {
+            timeDisplay = `${diffHours}h ago`;
+        } else if (diffDays === 1) {
+            timeDisplay = 'Yesterday';
+        } else if (diffDays < 7) {
+            timeDisplay = `${diffDays} days ago`;
+        } else {
+            // Use user's locale for longer periods
+            timeDisplay = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        }
+        
+        // Format date in user's local timezone
+        dateDisplay = createdDate.toLocaleDateString(undefined, { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric'
+        });
+    }
+    
+    return {
+        ...notif,
+        icon,
+        iconClass,
+        title,
+        message: getLocalizedAlertMessage(notif, type),
+        timeDisplay,
+        dateDisplay,
+        notificationType: type,
+        timestamp: notif.createdAt
+    };
+}
+
+// Generate All Notifications Content
+function generateNotificationsContent() {
+    const notifications = typeof getCombinedAlertsNotifications === 'function'
+        ? getCombinedAlertsNotifications()
+        : (Array.isArray(ALERTS_STREAM_STATE.notifications) ? ALERTS_STREAM_STATE.notifications : []);
+    return notifications.map((notification) => generateNotificationHTML(notification)).join('');
+}
+
+// Load Notifications Tab
+function loadNotificationsTab() {
+    const container = document.querySelector('#notifications-content .notifications-container');
+    if (container) {
+        const notificationsMarkup = generateNotificationsContent();
+        if (!notificationsMarkup) {
+            container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">🔔<br><br>No alerts yet.</div>';
+        } else {
+            container.innerHTML = notificationsMarkup;
+            // Reinitialize event handlers for the dynamically loaded content
+            initializeNotifications();
+            // TEMPORARY FIX: Force-enable selection for first item
+            fixFirstNotificationSelection();
+        }
+        
+        // Update notification count badge
+        updateNotificationsCount();
+        
+        console.log('Notifications tab content loaded independently');
+    } else {
+        console.error('Notifications container not found');
+    }
+}
+
+// TEMPORARY FIX: Force selection capability for first notification item
+function fixFirstNotificationSelection() {
+    const firstItem = document.querySelector('#notifications-content .notification-item:first-child');
+    if (firstItem) {
+        if (firstItem.dataset.selectionFixBound === '1') {
+            return;
+        }
+        firstItem.dataset.selectionFixBound = '1';
+        console.log('Applying first item selection fix');
+        
+        // Force-add selection capability with highest priority event listeners
+        const forceSelectionHandler = function(e) {
+            console.log('FORCE SELECTION HANDLER TRIGGERED for first item');
+            
+            const selectionBar = document.getElementById('selectionControls');
+            const isInSelectionMode = selectionBar && selectionBar.style.display === 'flex';
+            
+            if (isInSelectionMode) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Force toggle selection
+                this.classList.toggle('selected');
+                updateSelectionControls();
+                console.log('FORCED selection toggle for first notification');
+                
+                return false; // Stop all other processing
+            }
+        };
+        
+        // Add with capture = true to get first priority
+        firstItem.addEventListener('click', forceSelectionHandler, true);
+        
+        // Add visual indicator this fix is applied
+        firstItem.style.boxShadow = '0 0 5px rgba(255, 165, 0, 0.8)';
+        firstItem.setAttribute('data-selection-fixed', 'true');
+        
+        console.log('First item selection fix applied');
+    }
+}
+
+// ===== FIREBASE DATA MAPPING DOCUMENTATION =====
+/*
+COMPREHENSIVE MESSAGE SYSTEM FIREBASE INTEGRATION MAPPING
+
+This legacy data structure is designed for direct Firebase Firestore integration.
+All fields and relationships are mapped for production backend implementation.
+
+COLLECTIONS STRUCTURE:
+1. conversations/ - Main conversation threads
+2. conversations/{conversationId}/messages/ - Individual messages
+3. users/{userId}/conversations/ - User conversation indexes
+4. applications/{applicationId} - Referenced applications
+5. jobs/{jobId} - Referenced job posts
+
+CONVERSATION DOCUMENT SCHEMA:
+{
+  conversationId: string (auto-generated or threadId),
+  participants: [userId1, userId2], // Array for easy querying
+  participantDetails: {
+    userId1: { name: string, avatar: string, role: 'customer'|'worker' },
+    userId2: { name: string, avatar: string, role: 'customer'|'worker' }
+  },
+  jobId: string, // Reference to jobs collection
+  jobTitle: string, // Denormalized for performance
+  threadOrigin: 'application'|'job', // How the conversation started
+  applicationId: string|null, // Reference to applications collection if origin is 'application'
+  currentUserRole: { // Per-user role mapping
+    userId1: 'customer'|'worker',
+    userId2: 'customer'|'worker'
+  },
+  status: 'active'|'archived'|'deleted',
+  isNew: { // Per-user new status
+    userId1: boolean,
+    userId2: boolean
+  },
+  lastMessage: {
+    content: string,
+    senderId: string,
+    timestamp: timestamp,
+    messageId: string
+  },
+  lastActivity: timestamp,
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  // Privacy and moderation
+  blockedBy: { userId: blockedUserId }, // If conversation is blocked by user
+  hiddenFor: { userId: boolean }, // If conversation is hidden for user
+  deletedFor: { userId: timestamp }, // Soft delete per user
+  reportedBy: [userId], // Moderation flags
+  // Firebase security rules support
+  readPermissions: [userId1, userId2],
+  writePermissions: [userId1, userId2]
+}
+
+MESSAGE DOCUMENT SCHEMA:
+{
+  messageId: string (auto-generated),
+  conversationId: string, // Parent conversation reference
+  senderId: string, // Reference to users collection
+  senderName: string, // Denormalized for performance
+  senderType: 'customer'|'worker', // Role in this conversation
+  recipientId: string, // Other participant
+  content: string,
+  timestamp: timestamp,
+  read: boolean,
+  readAt: timestamp|null,
+  direction: 'incoming'|'outgoing', // Relative to current user
+  messageType: 'text'|'image'|'file'|'system', // Future extensibility
+  // Moderation and privacy
+  deletedFor: { userId: timestamp }, // Soft delete per user
+  hiddenFor: { userId: boolean },
+  edited: boolean,
+  editedAt: timestamp|null,
+  reportedBy: [userId],
+  // Firebase security
+  readPermissions: [senderId, recipientId],
+  writePermissions: [senderId] // Only sender can edit/delete
+}
+
+CONVERSATION CREATION RULES:
+1. APPLICATION-BASED THREADS (threadOrigin: 'application'):
+   - Created when customer contacts worker's application via "Contact" button
+   - applicationId must be provided and valid
+   - currentUserRole determines user permissions  
+   - Customer and Worker roles have different overlay options
+   - "View Application" button removed since applications moved to jobs.html
+
+2. JOB-BASED THREADS (threadOrigin: 'job'):
+   - Created when worker contacts customer's job post via "Contact" button
+   - applicationId is null
+   - All participants can view job post via "View Job Post" button
+   - Essential for workers to reference original job requirements
+
+AVATAR OVERLAY PERMISSIONS:
+- Current user's own avatars: NO overlay (prevents self-actions)
+- Other participants' avatars: Full overlay with context-aware buttons
+- View Application: Only for customers in application threads
+- View Job Post: Available for all participants in all threads
+- Profile/Block/Delete: Available for all other participants
+
+FIREBASE SECURITY RULES LOGIC:
+- Users can only read/write conversations they participate in
+- Messages inherit parent conversation permissions
+- Soft deletes preserve data for the other participant
+- Block functionality hides conversations without deleting
+- All user actions are logged with timestamps for moderation
+
+INDEXING REQUIREMENTS:
+- conversations: participants array, lastActivity desc
+- messages: conversationId, timestamp desc
+- users conversations: userId, lastActivity desc
+- applications: applicantUid, jobId
+- jobs: customerId, createdAt desc
+
+REAL-TIME LISTENERS:
+- Conversation list: Listen to user's active conversations
+- Message thread: Listen to specific conversation messages
+- Notification system: Listen to new messages and conversation updates
+- Online status: Track participant availability (future feature)
+
+WORKER PERSPECTIVE EXAMPLES (Threads 4 & 5):
+Thread 4 - Peter as Worker receiving Interview Request:
+- Janice (customer) contacted Peter's application
+- Peter sees "Application Interview with Janice Legaspi"
+- "View Application" button removed (applications moved to jobs.html)
+- "View Job Post" button available to reference original job
+- Critical for Peter to understand what job Janice is hiring for
+
+Thread 5 - Peter as Worker inquiring about Job:
+- Peter (worker) contacted Chris's job post
+- Peter sees "Direct Message with Chris Vicente"
+- No response yet from Chris (realistic scenario)
+- "View Job Post" button essential for Peter to reference job details
+- Helps Peter follow up appropriately when Chris eventually responds
+
+BACKEND INTEGRATION POINTS:
+1. Authentication: getCurrentUserId() → Firebase Auth
+2. Real-time: Firestore listeners for live updates
+3. Notifications: Cloud Functions for push notifications
+4. Moderation: Automated content filtering + manual review
+5. Analytics: Conversation success rates, response times
+6. Search: Full-text search on conversation content (future)
+
+DETAILED THREAD AVATAR OVERLAY MAPPING:
+
+Thread 1 (Miguel Torres - Plumber):
+- threadOrigin: 'job', currentUserRole: 'customer', applicationId: null
+- Miguel's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- Peter's Avatar: NO overlay (current user)
+
+Thread 2 (Ana Rodriguez - Cleaner):
+- threadOrigin: 'application', currentUserRole: 'customer', applicationId: 'app_kT3nH7mR8qX2bS9jL6'
+- Ana's Avatar Overlay: View Profile, View Job Post, VIEW APPLICATION, Block, Delete, Close
+- Peter's Avatar: NO overlay (current user)
+
+Thread 3 (Carlos Mendoza - Gardener):
+- threadOrigin: 'job', currentUserRole: 'customer', applicationId: null
+- Carlos's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- Peter's Avatar: NO overlay (current user)
+
+Thread 4 (Janice Legaspi - Customer seeking Programmer):
+- threadOrigin: 'application', currentUserRole: 'worker', applicationId: 'app_nK5jT7mR8pL3wQ2xF6'
+- Janice's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- NO "View Application" (worker perspective - can't view own application)
+- Peter's Avatar: NO overlay (current user)
+
+Thread 5 (Chris Vicente - Customer needing App Development):
+- threadOrigin: 'job', currentUserRole: 'worker', applicationId: null
+- Chris's Avatar Overlay: View Profile, View Job Post, Block, Delete, Close
+- CRITICAL: View Job Post essential for Peter to reference original requirements
+- Peter's Avatar: NO overlay (current user)
+
+NAVIGATION IMPORTANCE:
+- Thread 4: Peter needs "View Job Post" to understand what position Janice is hiring for
+- Thread 5: Peter needs "View Job Post" to reference his inquiry and follow up appropriately
+- All worker perspective threads benefit from easy job post access for context
+*/
+
+// Generate Message Card HTML
+function generateMessageHTML(message) {
+    const messageDataAttrs = [
+        `data-message-id="${message.id}"`,
+        `data-thread-id="${message.threadId}"`,
+        `data-sender-id="${message.senderId}"`,
+        `data-sender-name="${message.senderName}"`,
+        `data-sender-type="${message.senderType}"`,
+        `data-timestamp="${message.timestamp}"`,
+        `data-read="${message.read}"`
+    ].join(' ');
+
+    const isImageMessage = message.messageType === 'image' && (message.thumbnailUrl || message.fullSizeUrl);
+    const messageBody = isImageMessage
+        ? `
+            <div class="message-photo" onclick="showPhotoLightbox('${message.fullSizeUrl || message.thumbnailUrl}')">
+                <img src="${message.thumbnailUrl || message.fullSizeUrl}" alt="Shared photo" class="photo-thumbnail" data-full-size="${message.fullSizeUrl || message.thumbnailUrl}" loading="eager" decoding="async">
+            </div>
+        `
+        : `
+            <div class="message-bubble ${message.direction}">
+                ${message.content}
+            </div>
+        `;
+
+    return `
+        <div class="message-card ${message.direction}" ${messageDataAttrs}>
+            <div class="message-header">
+                ${message.direction === 'outgoing' ? `
+                    <div class="message-info">
+                        <div class="message-sender">${message.senderName}</div>
+                        <div class="message-timestamp">${message.timeDisplay}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <img src="${message.avatar}" alt="${message.senderName}">
+                    </div>
+                ` : `
+                    <div class="message-avatar">
+                        <img src="${message.avatar}" alt="${message.senderName}">
+                    </div>
+                    <div class="message-info">
+                        <div class="message-sender">${message.senderName}</div>
+                        <div class="message-timestamp">${message.timeDisplay}</div>
+                    </div>
+                `}
+            </div>
+            ${messageBody}
+        </div>
+    `;
+}
+
+function formatChatModalTimestamp(rawTimestamp) {
+    const dateValue = rawTimestamp?.toDate
+        ? rawTimestamp.toDate()
+        : new Date(rawTimestamp || Date.now());
+    if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) {
+        return new Date().toLocaleString();
+    }
+    return dateValue.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+}
+
+function normalizeFirebaseChatMessage(message, currentUserId, options = {}) {
+    const senderId = String(message?.senderId || '').trim();
+    const direction = senderId && senderId === currentUserId ? 'outgoing' : 'incoming';
+    const senderType = String(message?.senderType || (direction === 'outgoing' ? 'worker' : 'customer')).toLowerCase();
+    const incomingSenderNameOverride = String(options?.incomingSenderName || '').trim();
+    const normalizedDate = message?.timestamp?.toDate
+        ? message.timestamp.toDate()
+        : new Date(message?.timestamp || message?.createdAt || Date.now());
+    const safeDate = Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate;
+
+    const messageType = String(message?.messageType || 'text').toLowerCase() === 'image' ? 'image' : 'text';
+    const thumbnailUrl = String(message?.thumbnailUrl || message?.photoData?.thumbnailUrl || '').trim();
+    const fullSizeUrl = String(message?.fullSizeUrl || message?.photoData?.fullSizeUrl || thumbnailUrl).trim();
+    const rawAvatar = String(message?.senderAvatar || message?.avatar || 'public/icons/unknown.jpg').trim();
+    const avatarCacheKey = senderId || rawAvatar;
+    let normalizedAvatar = rawAvatar || 'public/icons/unknown.jpg';
+    if (avatarCacheKey && THREAD_AVATAR_URL_CACHE.has(avatarCacheKey)) {
+        normalizedAvatar = THREAD_AVATAR_URL_CACHE.get(avatarCacheKey) || normalizedAvatar;
+    } else {
+        normalizedAvatar = normalizeAvatarUrlForRender(normalizedAvatar);
+        if (avatarCacheKey) {
+            THREAD_AVATAR_URL_CACHE.set(avatarCacheKey, normalizedAvatar);
+        }
+    }
+
+    return {
+        id: message?.id || message?.messageId || `${safeDate.getTime()}`,
+        threadId: message?.threadId || '',
+        senderId: senderId || 'unknown',
+        senderName: direction === 'outgoing'
+            ? 'You'
+            : (incomingSenderNameOverride || String(message?.senderName || '').trim() || 'User'),
+        senderType: senderType === 'worker' || senderType === 'customer' ? senderType : (direction === 'outgoing' ? 'worker' : 'customer'),
+        timestamp: safeDate.toISOString(),
+        timeDisplay: formatChatModalTimestamp(message?.timestamp || message?.createdAt || safeDate),
+        read: message?.read === true,
+        direction: direction,
+        avatar: normalizedAvatar,
+        content: String(message?.content || ''),
+        messageType: messageType,
+        thumbnailUrl: thumbnailUrl,
+        fullSizeUrl: fullSizeUrl
+    };
+}
+
+const THREAD_MESSAGES_CACHE = new Map();
+const THREAD_AVATAR_URL_CACHE = new Map();
+const GIG_STATUS_VISIBILITY_CACHE = new Map();
+const GIG_STATUS_VISIBILITY_INFLIGHT = new Map();
+const GIG_STATUS_VISIBILITY_TTL_MS = 30000;
+
+function buildChatJobOverlayStateFromJob(job, currentUserId) {
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!job || typeof job !== 'object' || !safeCurrentUserId) {
+        return { allowGigStatus: false, allowHireChecklist: false, category: '', status: '', jobData: null };
+    }
+    const status = String(job.status || '').trim().toLowerCase();
+    const category = String(job.category || '').trim().toLowerCase();
+    const hasOfferSentOrLocked = status === 'hired' || status === 'accepted' || status === 'completed';
+    const hasLockedContract = status === 'accepted' || status === 'completed';
+    const isPoster = String(job.posterId || '').trim() === safeCurrentUserId;
+    const isHiredWorker = String(job.hiredWorkerId || '').trim() === safeCurrentUserId;
+    return {
+        allowGigStatus: hasLockedContract && (isPoster || isHiredWorker),
+        allowHireChecklist: isPoster && !hasOfferSentOrLocked,
+        category: category,
+        status: status,
+        jobData: job
+    };
+}
+
+function setCachedChatJobOverlayState(jobId, currentUserId, value) {
+    const safeJobId = String(jobId || '').trim();
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeJobId || !safeCurrentUserId || !value) return;
+    const cacheKey = `${safeJobId}::${safeCurrentUserId}`;
+    GIG_STATUS_VISIBILITY_CACHE.set(cacheKey, { savedAt: Date.now(), value });
+}
+
+function getCachedChatJobOverlayState(jobId, currentUserId) {
+    const safeJobId = String(jobId || '').trim();
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeJobId || !safeCurrentUserId) return null;
+    const cacheKey = `${safeJobId}::${safeCurrentUserId}`;
+    const cached = GIG_STATUS_VISIBILITY_CACHE.get(cacheKey);
+    if (!cached) return null;
+    const ageMs = Date.now() - Number(cached.savedAt || 0);
+    if (ageMs >= GIG_STATUS_VISIBILITY_TTL_MS) return null;
+    return cached.value || null;
+}
+
+async function resolveChatJobOverlayState(jobId, currentUserId) {
+    const safeJobId = String(jobId || '').trim();
+    const safeCurrentUserId = String(currentUserId || '').trim();
+    if (!safeJobId || !safeCurrentUserId || typeof getJobById !== 'function') {
+        return { allowGigStatus: false, allowHireChecklist: false, category: '', status: '', jobData: null };
+    }
+
+    const cacheKey = `${safeJobId}::${safeCurrentUserId}`;
+    const now = Date.now();
+    const cached = GIG_STATUS_VISIBILITY_CACHE.get(cacheKey);
+    if (cached && (now - Number(cached.savedAt || 0)) < GIG_STATUS_VISIBILITY_TTL_MS) {
+        return cached.value;
+    }
+    if (GIG_STATUS_VISIBILITY_INFLIGHT.has(cacheKey)) {
+        return GIG_STATUS_VISIBILITY_INFLIGHT.get(cacheKey);
+    }
+
+    const inflight = (async () => {
+        let job = null;
+        try {
+            job = await getJobById(safeJobId);
+        } catch (error) {
+            console.warn('⚠️ Failed to resolve gig status visibility:', error);
+        }
+
+        if (!job || typeof job !== 'object') {
+            const fallback = { allowGigStatus: false, allowHireChecklist: false, category: '', status: '', jobData: null };
+            GIG_STATUS_VISIBILITY_CACHE.set(cacheKey, { savedAt: Date.now(), value: fallback });
+            return fallback;
+        }
+
+        const value = buildChatJobOverlayStateFromJob(job, safeCurrentUserId);
+        GIG_STATUS_VISIBILITY_CACHE.set(cacheKey, { savedAt: Date.now(), value: value });
+        return value;
+    })();
+    GIG_STATUS_VISIBILITY_INFLIGHT.set(cacheKey, inflight);
+    try {
+        return await inflight;
+    } finally {
+        GIG_STATUS_VISIBILITY_INFLIGHT.delete(cacheKey);
+    }
+}
+
+function normalizeAvatarUrlForRender(url) {
+    const safeUrl = String(url || '').trim();
+    if (!safeUrl) return 'public/icons/unknown.jpg';
+
+    try {
+        const parsed = new URL(safeUrl, window.location.origin);
+        const cacheBustKeys = ['cb', 'cacheBust', '_cb', 'ts', '_ts', 't', 'time', 'timestamp'];
+        cacheBustKeys.forEach((key) => parsed.searchParams.delete(key));
+        if (parsed.origin === window.location.origin) {
+            return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+        }
+        return parsed.toString();
+    } catch (_) {
+        return safeUrl;
+    }
+}
+
+function renderThreadMessagesInModal(modalOverlay, messages, options = {}) {
+    const shouldAutoscroll = options.autoScroll !== false;
+    const incomingSenderName = String(options.incomingSenderName || '').trim();
+    const messagesContainer = modalOverlay?.querySelector('.chat-messages-container');
+    if (!messagesContainer) return;
+    const currentUserId = getCurrentUserId();
+    const normalizedMessages = (Array.isArray(messages) ? messages : [])
+        .map((message) => normalizeFirebaseChatMessage(message, currentUserId, { incomingSenderName }));
+    const messageSignature = normalizedMessages.map((message) => [
+        message.id,
+        message.timestamp,
+        message.senderId,
+        message.senderName,
+        message.avatar,
+        message.messageType,
+        message.content,
+        message.thumbnailUrl,
+        message.fullSizeUrl
+    ].join('|')).join('||');
+    if (modalOverlay.dataset.lastRenderedMessageSignature === messageSignature) {
+        if (shouldAutoscroll) scrollMessagesContainerToBottom(messagesContainer);
+        return;
+    }
+
+    const threadId = String(modalOverlay.getAttribute('data-thread-id') || '').trim();
+    if (threadId) {
+        THREAD_MESSAGES_CACHE.set(threadId, {
+            messages: normalizedMessages,
+            signature: messageSignature,
+            cachedAt: Date.now()
+        });
+    }
+
+    messagesContainer.innerHTML = normalizedMessages.map((message) => generateMessageHTML(message)).join('');
+    modalOverlay.dataset.lastRenderedMessageSignature = messageSignature;
+    initializeAvatarOverlays(modalOverlay);
+    if (shouldAutoscroll) {
+        scrollMessagesContainerToBottom(messagesContainer);
+        const photoThumbs = messagesContainer.querySelectorAll('.photo-thumbnail');
+        photoThumbs.forEach((img) => {
+            if (img.complete) return;
+            img.addEventListener('load', () => {
+                scrollMessagesContainerToBottom(messagesContainer, 2);
+            }, { once: true });
+        });
+    }
+}
+
+function buildChatCardJobUrl(modalOverlay, jobData) {
+    const safeJobId = encodeURIComponent(String(jobData?.jobId || modalOverlay?.getAttribute('data-job-id') || '').trim());
+    const safeCategory = encodeURIComponent(String(jobData?.category || modalOverlay?.getAttribute('data-job-category') || '').trim().toLowerCase());
+    if (!safeJobId || !safeCategory) return '';
+    return `dynamic-job.html?djv=43&category=${safeCategory}&jobId=${safeJobId}`;
+}
+
+async function renderGigFlowCardForThread(modalOverlay) {
+    if (!modalOverlay) return;
+    const chatBody = modalOverlay.querySelector('.chat-modal-body');
+    if (!chatBody) return;
+
+    if (typeof modalOverlay._gigFlowCardCleanup === 'function') {
+        modalOverlay._gigFlowCardCleanup();
+        modalOverlay._gigFlowCardCleanup = null;
+    }
+    const existingCard = chatBody.querySelector('.chat-gig-flow-card');
+    if (existingCard) existingCard.remove();
+
+    const jobId = String(modalOverlay.getAttribute('data-job-id') || '').trim();
+    const currentUserId = String(getCurrentUserId() || '').trim();
+    const role = String(modalOverlay.getAttribute('data-current-user-role') || '').trim().toLowerCase();
+    if (!jobId || !currentUserId || typeof getJobById !== 'function') return;
+
+    let jobData = getCachedChatJobOverlayState(jobId, currentUserId)?.jobData || null;
+    if (!jobData) {
+        const overlayState = await resolveChatJobOverlayState(jobId, currentUserId);
+        jobData = overlayState?.jobData || null;
+    }
+    if (!jobData || typeof jobData !== 'object') return;
+    setCachedChatJobOverlayState(jobId, currentUserId, buildChatJobOverlayStateFromJob(jobData, currentUserId));
+
+    const status = String(jobData.status || '').trim().toLowerCase();
+    const isWorkerOwner = String(jobData.hiredWorkerId || '').trim() === currentUserId;
+    const isCustomerOwner = String(jobData.posterId || '').trim() === currentUserId;
+    const priceText = String(jobData.agreedPrice || jobData.priceOffer || '').trim();
+
+    let cardMode = '';
+    if (status === 'hired' && role === 'worker' && isWorkerOwner) {
+        cardMode = 'worker-offer-pending';
+    } else {
+        return;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'chat-gig-flow-card';
+
+    let title = 'Gig Offer';
+    let subtitle = '';
+    let actionsHtml = '';
+
+    if (cardMode === 'worker-offer-pending') {
+        title = 'Gig Offer Pending';
+        subtitle = `You received a hire offer for "${escapeHtml(String(jobData.title || 'Gig'))}".`;
+        actionsHtml = `
+            <div class="chat-gig-flow-actions">
+                <button class="chat-gig-flow-btn primary" type="button" data-action="accept-offer">Accept Offer</button>
+                <button class="chat-gig-flow-btn danger" type="button" data-action="reject-offer">Reject Offer</button>
+                <button class="chat-gig-flow-btn ghost" type="button" data-action="view-gig">View Gig Post</button>
+            </div>
+        `;
+    }
+
+    card.innerHTML = `
+        <div class="chat-gig-flow-top">
+            <div class="chat-gig-flow-title">${title}</div>
+            ${priceText ? `<div class="chat-gig-flow-price">PHP ${escapeHtml(priceText)}</div>` : ''}
+        </div>
+        <div class="chat-gig-flow-subtitle">${subtitle}</div>
+        ${actionsHtml}
+    `;
+
+    const messagesContainer = chatBody.querySelector('.chat-messages-container');
+    if (messagesContainer) {
+        chatBody.insertBefore(card, messagesContainer);
+    } else {
+        chatBody.appendChild(card);
+    }
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+    modalOverlay._gigFlowCardCleanup = () => controller.abort();
+
+    card.querySelector('[data-action="view-gig"]')?.addEventListener('click', () => {
+        const destination = buildChatCardJobUrl(modalOverlay, jobData);
+        if (destination) window.location.href = destination;
+    }, { signal });
+
+    const setWorkerCardBusy = (busy) => {
+        card.querySelectorAll('.chat-gig-flow-btn').forEach((btn) => {
+            btn.disabled = !!busy;
+        });
+    };
+
+    card.querySelector('[data-action="accept-offer"]')?.addEventListener('click', async () => {
+        if (typeof acceptGigOfferInChat !== 'function') {
+            showToast('Offer action unavailable right now.');
+            return;
+        }
+        setWorkerCardBusy(true);
+        try {
+            const result = await acceptGigOfferInChat(jobId);
+            if (!result?.success) {
+                showToast(result?.message || 'Failed to accept offer');
+                return;
+            }
+            showToast('Offer accepted');
+            await renderGigFlowCardForThread(modalOverlay);
+        } finally {
+            setWorkerCardBusy(false);
+        }
+    }, { signal });
+
+    card.querySelector('[data-action="reject-offer"]')?.addEventListener('click', async () => {
+        if (typeof rejectGigOfferInChat !== 'function') {
+            showToast('Offer action unavailable right now.');
+            return;
+        }
+        setWorkerCardBusy(true);
+        try {
+            const result = await rejectGigOfferInChat(jobId);
+            if (!result?.success) {
+                showToast(result?.message || 'Failed to reject offer');
+                return;
+            }
+            showToast('Offer rejected');
+            await renderGigFlowCardForThread(modalOverlay);
+        } finally {
+            setWorkerCardBusy(false);
+        }
+    }, { signal });
+}
+
+let chatModalOpenCount = 0;
+
+function lockBodyScrollForChatModal() {
+    if (chatModalOpenCount === 0) {
+        document.body.dataset.chatModalPrevOverflow = document.body.style.overflow || '';
+        document.body.dataset.chatModalPrevTouchAction = document.body.style.touchAction || '';
+        document.body.style.overflow = 'hidden';
+        document.body.style.touchAction = 'none';
+    }
+    chatModalOpenCount += 1;
+}
+
+function unlockBodyScrollForChatModal() {
+    chatModalOpenCount = Math.max(0, chatModalOpenCount - 1);
+    if (chatModalOpenCount > 0) return;
+
+    document.body.style.overflow = document.body.dataset.chatModalPrevOverflow || '';
+    document.body.style.touchAction = document.body.dataset.chatModalPrevTouchAction || '';
+    delete document.body.dataset.chatModalPrevOverflow;
+    delete document.body.dataset.chatModalPrevTouchAction;
+}
+
+function scrollMessagesContainerToBottom(messagesContainer, attempts = 4) {
+    if (!messagesContainer) return;
+    const settle = () => {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    settle();
+    for (let index = 1; index <= attempts; index += 1) {
+        requestAnimationFrame(() => {
+            settle();
+            setTimeout(settle, index * 40);
+        });
+    }
+}
+
+async function bindRealtimeThreadMessages(modalOverlay, threadId) {
+    if (!modalOverlay || !threadId) return;
+    const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+    const incomingSenderName = String(modalOverlay.getAttribute('data-participant-name') || '').trim();
+    const cachedThread = THREAD_MESSAGES_CACHE.get(threadId);
+    if (messagesContainer && cachedThread && Array.isArray(cachedThread.messages) && cachedThread.messages.length > 0) {
+        const currentUserId = String(getCurrentUserId() || '').trim();
+        const hydratedCachedMessages = cachedThread.messages.map((message) => {
+            const senderId = String(message?.senderId || '').trim();
+            const isOutgoing = !!currentUserId && senderId === currentUserId;
+            if (isOutgoing || !incomingSenderName) return message;
+            return { ...message, senderName: incomingSenderName };
+        });
+        messagesContainer.innerHTML = hydratedCachedMessages.map((message) => generateMessageHTML(message)).join('');
+        const hydratedSignature = hydratedCachedMessages.map((message) => [
+            message.id,
+            message.timestamp,
+            message.senderId,
+            message.senderName,
+            message.avatar,
+            message.messageType,
+            message.content,
+            message.thumbnailUrl,
+            message.fullSizeUrl
+        ].join('|')).join('||');
+        modalOverlay.dataset.lastRenderedMessageSignature = hydratedSignature;
+        initializeAvatarOverlays(modalOverlay);
+        scrollMessagesContainerToBottom(messagesContainer, 2);
+    } else if (messagesContainer) {
+        messagesContainer.innerHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
+    }
+
+    if (ACTIVE_LISTENERS.activeThreadMessages) {
+        ACTIVE_LISTENERS.activeThreadMessages();
+        ACTIVE_LISTENERS.activeThreadMessages = null;
+    }
+
+    if (typeof subscribeToThreadMessages === 'function') {
+        ACTIVE_LISTENERS.activeThreadMessages = subscribeToThreadMessages(threadId, (messages) => {
+            renderThreadMessagesInModal(modalOverlay, messages, {
+                autoScroll: true,
+                incomingSenderName
+            });
+            const lastMessage = Array.isArray(messages) && messages.length > 0
+                ? messages[messages.length - 1]
+                : null;
+            const lastMessageId = String(lastMessage?.id || lastMessage?.messageId || '').trim();
+            const previousLastMessageId = String(modalOverlay.dataset.lastSnapshotMessageId || '').trim();
+            if (lastMessageId && lastMessageId !== previousLastMessageId) {
+                modalOverlay.dataset.lastSnapshotMessageId = lastMessageId;
+                const currentUserId = String(getCurrentUserId() || '');
+                const lastSenderId = String(lastMessage?.senderId || '').trim();
+                if (currentUserId && lastSenderId && lastSenderId !== currentUserId) {
+                    // While thread is open, treat new incoming messages as read immediately.
+                    requestThreadReadSync(threadId, { force: true });
+                }
+            }
+        });
+    } else if (typeof getThreadMessages === 'function') {
+        // Fallback path only when realtime listener is unavailable.
+        try {
+            const initialMessages = await getThreadMessages(threadId, 100);
+            renderThreadMessagesInModal(modalOverlay, initialMessages, {
+                autoScroll: true,
+                incomingSenderName
+            });
+        } catch (error) {
+            console.warn('⚠️ Failed to load thread messages:', error);
+        }
+    }
+}
+
+// Helper function to generate participant text based on user perspective
+function generateParticipantText(thread) {
+    const participantName = thread.participantName;
+    
+    if (thread.threadOrigin === 'application') {
+        // Application Interview - always shows "Application Interview with [name]"
+        return `Application Interview with ${participantName}`;
+    } else {
+        // Direct Message - depends on current user role
+        if (thread.currentUserRole === 'worker') {
+            // Worker perspective: "You contacted [customer name]"
+            return `You contacted ${participantName}`;
+        } else {
+            // Customer perspective: "[worker name] contacted you"
+            return `${participantName} contacted you`;
+        }
+    }
+}
+
+// Generate Message Thread HTML
+function generateMessageThreadHTML(thread) {
+    const threadDataAttrs = [
+        `data-thread-id="${thread.threadId}"`,
+        `data-job-id="${thread.jobId}"`,
+        `data-job-category="${thread.jobCategory || ''}"`,
+        `data-job-title="${thread.jobTitle}"`,
+        `data-participant-id="${thread.participantId}"`,
+        `data-participant-name="${thread.participantName}"`,
+        `data-thread-origin="${thread.threadOrigin}"`, // NEW: Track thread origin
+        `data-application-id="${thread.applicationId || ''}"`, // NEW: Application ID for application-based threads
+        `data-is-new="${thread.isNew}"`,
+        `data-last-message-time="${thread.lastMessageTime}"`,
+        `data-current-user-role="${thread.currentUserRole || 'customer'}"` // NEW: Track current user's role in this thread
+    ].join(' ');
+
+    // CHRONOLOGICAL MESSAGE ORDER: Oldest messages at top, newest at bottom
+    const messagesHTML = thread.messages
+        .slice()  // Create copy to avoid mutating original
+        .map(message => generateMessageHTML(message))
+        .join('');
+
+    return `
+        <div class="message-thread" ${threadDataAttrs}>
+            <div class="message-thread-header" data-thread-id="${thread.threadId}">
+                <div class="thread-info">
+                    <div class="thread-job-title">${thread.jobTitle}</div>
+                    <div class="thread-participant">${generateParticipantText(thread)}</div>
+                </div>
+                <div class="thread-status">
+                    ${thread.isNew ? '<span class="thread-new-tag">new</span>' : ''}
+                    <div class="expand-icon">▼</div>
+                </div>
+            </div>
+            <div class="message-thread-content" id="thread-${thread.threadId}" style="display: none;">
+                <!-- MODAL CONTAINER - Wraps the entire chat window -->
+                <div class="message-thread-modal">
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <div class="modal-thread-info">
+                            <div class="modal-job-title">${thread.jobTitle}</div>
+                            <div class="modal-participant">${generateParticipantText(thread)}</div>
+                        </div>
+                        <button class="modal-close-btn">×</button>
+                    </div>
+                    
+                    <!-- Modal Body -->
+                    <div class="modal-body">
+                        <!-- Messages area - scrollable -->
+                        <div class="message-scroll-container">
+                            ${messagesHTML}
+                        </div>
+                        
+                        <!-- Message input at bottom -->
+                        <div class="message-input-container">
+                            <textarea class="message-input" placeholder="Type a message..." maxlength="200"></textarea>
+                            <button class="message-send-btn">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Load Messages Tab
+async function loadMessagesTab() {
+    const container = document.querySelector('#messages-content .messages-container');
+    if (container) {
+        // SAFETY CLEANUP: Ensure we start with a clean state
+        // This prevents the bug where expanded threads cause empty content
+        closeAllMessageThreads();
+        
+        // Firebase Integration - load threads from backend only.
+        let messagesContent = '';
+        
+        if (typeof getUserChatThreads === 'function' && typeof isFirebaseOnline === 'function' && isFirebaseOnline()) {
+            try {
+                console.log('🔥 Loading chat threads from Firebase...');
+                const threads = await getUserChatThreads();
+                
+                if (threads && threads.length > 0) {
+                    console.log(`✅ Firebase: Found ${threads.length} chat threads`);
+                    messagesContent = threads.map(thread => generateMessageThreadHTMLFromFirebase(thread)).join('');
+                } else {
+                    messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">💬<br><br>No chats yet.</div>';
+                }
+            } catch (error) {
+                console.error('❌ Firebase error while loading chats:', error);
+                messagesContent = '<div class="error-state" style="text-align: center; padding: 40px; color: #e74c3c;">Failed to load chats. Please refresh the page.</div>';
+            }
+        } else {
+            messagesContent = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;">⚠️<br><br>Chats backend unavailable.</div>';
+        }
+        
+        container.innerHTML = messagesContent;
+        
+        // Initialize event handlers for the dynamically loaded content
+        initializeMessages(container);
+        
+        // Update message count badge
+        updateMessageCount();
+        
+        console.log('Messages tab content loaded independently');
+    } else {
+        console.error('Messages container not found');
+    }
+}
+
+// Generate HTML for a Firebase chat thread
+function generateMessageThreadHTMLFromFirebase(thread) {
+    // Convert Firebase thread structure to UI-friendly format
+    const currentUserId = typeof getCurrentUserId === 'function' ? getCurrentUserId() : 'current_user';
+    const otherParticipant = thread.participantIds?.find(id => id !== currentUserId);
+    
+    const mockThread = {
+        threadId: thread.id || thread.threadId,
+        jobId: thread.jobId || '',
+        jobCategory: thread.jobCategory || '',
+        jobTitle: thread.jobTitle || 'Chat',
+        applicationId: thread.applicationId || '',
+        threadOrigin: 'chat',
+        currentUserRole: 'worker',
+        participant: {
+            id: otherParticipant || thread.participant2?.userId || 'user',
+            name: thread.participant2?.userName || 'User',
+            avatar: thread.participant2?.userThumbnail || 'public/icons/unknown.jpg'
+        },
+        messages: [],
+        unreadCount: thread.unreadCount?.[currentUserId] || 0,
+        isNew: (thread.unreadCount?.[currentUserId] || 0) > 0,
+        lastActivity: thread.lastMessageTime?.toDate?.()?.toISOString() || 
+                     thread.lastMessageTime || 
+                     new Date().toISOString(),
+        threadStatus: 'active',
+        isMuted: false,
+        isPinned: false,
+        isArchived: false,
+        lastMessagePreview: thread.lastMessagePreview || 'Start a conversation...'
+    };
+    
+    return generateMessageThreadHTML(mockThread);
+}
+
+// ===== END PHASE 1 TEMPLATES =====
+
+// Messages Management
+function initializeMessages(container = document) {
+    const messageThreadHeaders = container.querySelectorAll('.message-thread-header');
+    
+    messageThreadHeaders.forEach(header => {
+        if (header.dataset.messagesHeaderBound === '1') {
+            return;
+        }
+        header.dataset.messagesHeaderBound = '1';
+
+        header.addEventListener('click', function(e) {
+            const threadId = this.getAttribute('data-thread-id');
+            const messageThread = this.closest('.message-thread');
+            const threadContent = document.getElementById('thread-' + threadId);
+            const expandIcon = this.querySelector('.expand-icon');
+            
+            if (threadContent && expandIcon) {
+                const isExpanded = messageThread.classList.contains('expanded');
+                // Find the correct messages container based on active role and tab
+                const messagesContainer = document.querySelector('.tab-content-wrapper.active .messages-container') || 
+                                         document.querySelector('.messages-container');
+                
+                // IMPROVED UX: Different behavior for expanded threads
+                if (isExpanded) {
+                    // Check if the click was on the expand icon (X button)
+                    const clickedOnExpandIcon = e.target.closest('.expand-icon');
+                    
+                    if (clickedOnExpandIcon) {
+                        // Collapse current thread
+                        messageThread.classList.remove('expanded', 'show');
+                        threadContent.style.display = 'none';
+                        expandIcon.textContent = '▼';
+                        
+                        // Remove thread-active class and overlay from container
+                        messagesContainer.classList.remove('thread-active', 'show-overlay');
+                        
+                        // Clean up mobile input visibility handlers
+                        cleanupMobileInputVisibility();
+                    } else {
+                        // If clicked elsewhere on header when expanded, open overlay
+                        const userData = {
+                            threadId: messageThread.getAttribute('data-thread-id'),
+                            senderId: messageThread.getAttribute('data-participant-id'),
+                            senderName: messageThread.getAttribute('data-participant-name'),
+                            threadOrigin: messageThread.getAttribute('data-thread-origin'),
+                            applicationId: messageThread.getAttribute('data-application-id'),
+                            jobId: messageThread.getAttribute('data-job-id'),
+                            jobTitle: messageThread.getAttribute('data-job-title'),
+                            currentUserRole: messageThread.getAttribute('data-current-user-role'),
+                            // Firebase integration fields
+                            currentUserId: getCurrentUserId(),
+                            conversationRef: `conversations/${messageThread.getAttribute('data-thread-id')}`,
+                            participantIds: [getCurrentUserId(), messageThread.getAttribute('data-participant-id')],
+                            lastActivity: new Date().toISOString()
+                        };
+                        
+                        console.log('🔍 Thread header clicked (expanded), opening overlay:', userData);
+                        showAvatarOverlay(e, userData);
+                    }
+                    return;
+                } else {
+                    // First, close all other expanded threads
+                    closeAllMessageThreads();
+                    
+                    // Create and show the chat modal overlay
+                    showChatModal(messageThread, threadContent);
+                    expandIcon.textContent = '✕';
+                    
+                    // Mark thread as active (for styling purposes)
+                    messagesContainer.classList.add('thread-active');
+                    
+                    // Remove "new" tag when opening thread
+                    const newTag = this.querySelector('.thread-new-tag');
+                    if (newTag) {
+                        newTag.remove();
+                        
+                        // Update count based on which container this thread is in
+                        const isWorkerChats = this.closest('#worker-chats-content');
+                        const isCustomerInterviews = this.closest('#customer-interviews-content');
+                        const isMainMessages = this.closest('#messages-content');
+                        
+                        if (isWorkerChats) {
+                            updateWorkerChatsCount();
+                        } else if (isCustomerInterviews) {
+                            updateCustomerInterviewsCount();
+                        } else if (isMainMessages) {
+                            updateMessageCount();
+                        }
+                    }
+                    markThreadAsRead(threadId);
+                    
+                    // Modal initialization is handled in showChatModal function
+                }
+            }
+        });
+    });
+}
+
+
+
+function closeAllMessageThreads() {
+    // Close any open chat modals
+    const openModals = document.querySelectorAll('.chat-modal-overlay');
+    openModals.forEach(modal => {
+        closeChatModal(modal);
+    });
+    
+    // Reset all thread states and remove greyed out appearance
+    const allMessageThreads = document.querySelectorAll('.message-thread');
+    allMessageThreads.forEach(thread => {
+        const header = thread.querySelector('.message-thread-header');
+        const threadId = header?.getAttribute('data-thread-id');
+        const threadContent = document.getElementById('thread-' + threadId);
+        const expandIcon = header?.querySelector('.expand-icon');
+        
+        // Reset thread state
+        thread.classList.remove('expanded', 'show');
+        if (threadContent) {
+            threadContent.style.display = 'none';
+        }
+        if (expandIcon) {
+            expandIcon.textContent = '▼';
+        }
+        
+        // CRITICAL: Reset thread appearance - remove greyed out state
+        thread.style.opacity = '';
+        thread.style.transform = '';
+        thread.style.pointerEvents = '';
+        
+        // Clean up avatar overlays
+        cleanupAvatarOverlays(thread);
+    });
+    
+    // Find all messages containers and remove active state
+    const messagesContainers = document.querySelectorAll('.messages-container');
+    messagesContainers.forEach(container => {
+        container.classList.remove('thread-active', 'show-overlay');
+    });
+    
+    // Clean up avatar overlay and mobile handlers
+    hideAvatarOverlay();
+    cleanupMobileInputVisibility();
+    
+    messagesDebug('✅ All message threads closed and cleaned up');
+}
+
+function scrollToThreadTop() {
+    // Scroll page to top under tabs to give room for message scroll container
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+
+function updateMessageCount() {
+    // Legacy compatibility wrapper: refresh current role-based chat/message counters.
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
+}
+
+function updateWorkerChatsCount() {
+    const remainingCount = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('worker')
+        : getFallbackUnreadThreadCountForRole('worker');
+
+    setTabNotificationCount('#workerChatsTab', remainingCount);
+    publishMessagesUnreadCounterUpdate();
+}
+
+function updateCustomerInterviewsCount() {
+    const remainingCount = CHATS_STREAM_STATE.started
+        ? getUnreadThreadCountForRole('customer')
+        : getFallbackUnreadThreadCountForRole('customer');
+
+    setTabNotificationCount('#customerInterviewsTab', remainingCount);
+    publishMessagesUnreadCounterUpdate();
+}
+
+function updateApplicationsCount() {
+    // Applications tab was removed from messages page; keep function as no-op compatibility hook.
+    updateMainMessagesTabCount();
+}
+
+function updateJobHeaderCounts() {
+    // Update each individual job header count based on remaining application cards
+    const jobListings = document.querySelectorAll('.job-listing');
+    
+    jobListings.forEach(jobListing => {
+        const applicationCards = jobListing.querySelectorAll('.application-card');
+        const countElement = jobListing.querySelector('.application-count');
+        
+        if (countElement) {
+            const currentCount = applicationCards.length;
+            countElement.textContent = currentCount;
+            
+            // If no applications left, the job listing will be removed elsewhere
+            // This just ensures the count is accurate while visible
+        }
+    });
+}
+
+function updateAllTabCounts() {
+    // Calculate and update all tab counts from current runtime state.
+
+    // Notifications count - keep existing count logic
+    updateNotificationsCount();
+
+    // Chats counters from stream state
+    updateWorkerChatsCount();
+    updateCustomerInterviewsCount();
+    updateMainMessagesTabCount();
+
+    console.log('All tab counts updated on page load');
+}
+
+function updateNotificationsCount() {
+    // Keep alert badge IDs aligned with current role-based layout.
+    const workerUnread = document.querySelectorAll('#worker-alerts-content .notification-item:not(.read)').length;
+    const customerUnread = document.querySelectorAll('#customer-alerts-content .notification-item:not(.read)').length;
+    setTabNotificationCount('#workerAlertsTab', workerUnread);
+    setTabNotificationCount('#customerAlertsTab', customerUnread);
+    updateRoleTopUnreadCounts();
+}
+
+// Contact Message Overlay Functions
+function showContactMessageOverlay(userId, userName, applicationId = null) {
+    const overlay = document.getElementById('contactMessageOverlay');
+    const userNameElement = document.getElementById('contactUserName');
+    const messageInput = document.getElementById('contactMessageInput');
+    
+    if (overlay && userNameElement && messageInput) {
+        // Set user information
+        userNameElement.textContent = userName;
+        
+        // Set data attributes
+        overlay.setAttribute('data-user-id', userId);
+        overlay.setAttribute('data-user-name', userName);
+        if (applicationId) {
+            overlay.setAttribute('data-application-id', applicationId);
+        }
+        
+        messageInput.setAttribute('data-user-id', userId);
+        messageInput.setAttribute('data-user-name', userName);
+        if (applicationId) {
+            messageInput.setAttribute('data-application-id', applicationId);
+        }
+        
+        // Clear previous message
+        messageInput.value = '';
+        
+        // Show overlay
+        overlay.classList.add('show');
+        
+        // Focus on input
+        setTimeout(() => {
+            messageInput.focus();
+        }, 300);
+    }
+}
+
+function closeContactMessageOverlay() {
+    const overlay = document.getElementById('contactMessageOverlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+    }
+}
+
+// ===== CLEAN MOBILE INPUT VISIBILITY SOLUTION =====
+// Targeted fix for problematic browsers where keyboard hides input field
+
+let mobileInputListeners = [];
+let scrollTimeouts = [];
+
+function initializeMobileInputVisibility(messageThread) {
+    // DISABLED: Reverting to simpler UI restructure approach
+    // Input will be moved to top of thread to avoid keyboard entirely
+    console.log('✓ Mobile input visibility - using top-input layout approach');
+    return;
+}
+
+function cleanupMobileInputVisibility() {
+    // Clear any pending scroll operations
+    scrollTimeouts.forEach(id => clearTimeout(id));
+    scrollTimeouts = [];
+    
+    // Remove all event listeners
+    mobileInputListeners.forEach(({ target, event, listener }) => {
+        if (target && typeof target.removeEventListener === 'function') {
+            target.removeEventListener(event, listener);
+        }
+    });
+    mobileInputListeners = [];
+    
+    messagesDebug('🧹 Mobile input visibility cleanup completed');
+}
+
+function initializeContactMessageOverlay() {
+    const overlay = document.getElementById('contactMessageOverlay');
+    const closeBtn = document.getElementById('contactCloseBtn');
+    const cancelBtn = document.getElementById('contactCancelBtn');
+    const sendBtn = document.getElementById('contactSendBtn');
+    const messageInput = document.getElementById('contactMessageInput');
+    
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeContactMessageOverlay);
+    }
+    
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeContactMessageOverlay);
+    }
+    
+    // Send button
+    if (sendBtn && messageInput) {
+        blockUnsupportedCharsForInput(messageInput);
+        sendBtn.addEventListener('click', function() {
+            const message = messageInput.value.trim();
+            const userId = messageInput.getAttribute('data-user-id');
+            const userName = messageInput.getAttribute('data-user-name');
+            const applicationId = messageInput.getAttribute('data-application-id');
+
+            if (hasUnsupportedTextChars(message)) {
+                showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+                return;
+            }
+            
+            if (message && userId && userName) {
+                // Here you would send the message to backend
+                console.log('Backend data to send:', {
+                    action: 'send_contact_message',
+                    senderId: 'current_user_id', // In real app, get from authentication
+                    senderName: 'Current User', // In real app, get from authentication
+                    recipientId: userId,
+                    recipientName: userName,
+                    applicationId: applicationId,
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    messageType: 'contact_inquiry',
+                    messageLength: message.length,
+                    channelType: 'application_inquiry'
+                });
+                
+                // Close contact overlay
+                closeContactMessageOverlay();
+                
+                // Show confirmation
+                showConfirmationOverlay(
+                    'success',
+                    'Message Sent!',
+                    `Your message has been sent to ${userName}. They will be notified and can respond through the messages tab.`
+                );
+                
+                // Clear the input
+                messageInput.value = '';
+            } else {
+                // Show error if message is empty
+                messageInput.style.borderColor = '#e53e3e';
+                setTimeout(() => {
+                    messageInput.style.borderColor = '#4a5568';
+                }, 2000);
+            }
+        });
+    }
+    
+    // Click outside to close
+    if (overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeContactMessageOverlay();
+            }
+        });
+    }
+    
+    // Enable/disable send button based on input
+    if (messageInput && sendBtn) {
+        messageInput.addEventListener('input', function() {
+            const message = this.value.trim();
+            if (message.length > 0) {
+                sendBtn.disabled = false;
+            } else {
+                sendBtn.disabled = true;
+            }
+        });
+        
+        // Initially disable send button
+        sendBtn.disabled = true;
+    }
+}
+
+// Make functions globally accessible for onclick handlers
+window.cancelSelection = cancelSelection;
+window.deleteSelectedNotifications = deleteSelectedNotifications;
+
+// Removed: legacy applications array - Applications data moved to jobs.html overlay system
+// The Messages tab (3rd tab) now contains admin communications, not application cards
+// const LEGACY_APPLICATIONS = [
+    /*{
+        jobId: 'job_gT5nM8xK2jS6wF3eA9', // Firebase document ID format
+        jobTitle: 'Home cleaning service - 3 bedroom house deep clean',
+        employerUid: 'user_currentUserUid', // Job owner
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-18T10:00:00Z'),
+        updatedAt: new Date('2025-12-22T14:45:00Z'),
+        
+        // Denormalized for better Firestore performance
+        applications: [
+            {
+                applicationId: 'app_dH9kL3mN7pR2vX8qY4t',
+                applicantUid: 'user_mR8nT4kX2qJ5wP9sC7',
+                jobId: 'job_gT5nM8xK2jS6wF3eA9',
+                status: 'pending',
+                
+                // Firestore timestamp format
+                appliedAt: new Date('2025-12-20T14:45:00Z'),
+                updatedAt: new Date('2025-12-20T14:45:00Z'),
+                
+                // Denormalized user data for faster reads
+                applicantProfile: {
+                    displayName: 'Mario Santos',
+                    photoURL: 'public/users/User-02.jpg', // Fixed local path
+                    averageRating: 5.0,
+                    totalReviews: 50,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T12:00:00Z')
+                },
+                
+                // Application-specific data
+                pricing: {
+                    offeredAmount: 550,
+                    originalAmount: 600,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi Sir! Please hire me for this job, I have 10 years experience in professional cleaning of offices and hotels. I won\'t let you down!',
+                
+                // Worker qualifications (denormalized for quick access)
+                qualifications: {
+                    experience: '10 years',
+                    specializations: ['professional cleaning', 'offices', 'hotels'],
+                    availability: 'immediate',
+                    equipment: 'own equipment',
+                    languages: ['English', 'Filipino']
+                },
+                
+                // For display formatting
+                displayData: {
+                    appliedDate: '2025-12-20',
+                    appliedTime: '2:45 PM',
+                    formattedPrice: '₱550 Per Job'
+                },
+                
+                // Firestore metadata
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_kT3nH7mR8qX2bS9jL6',
+                applicantUid: 'user_qX5nK8mT3jR7wS2nC9',
+                jobId: 'job_gT5nM8xK2jS6wF3eA9',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T10:15:00Z'),
+                updatedAt: new Date('2025-12-21T10:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Ana Rodriguez',
+                    photoURL: 'public/users/User-03.jpg', // Fixed local path - matches message thread
+                    averageRating: 4.0,
+                    totalReviews: 32,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T09:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 600,
+                    originalAmount: 600,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I\'m available for your cleaning job. I specialize in deep cleaning and have excellent references.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['deep cleaning', 'residential'],
+                    availability: 'flexible',
+                    references: 'available upon request',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '10:15 AM',
+                    formattedPrice: '₱600 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_wR4nM7xT9qK2jP5sL8',
+        jobTitle: 'Plumbing repair - kitchen sink leak',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2, // Reduced for Firebase demo
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-19T08:00:00Z'),
+        updatedAt: new Date('2025-12-22T11:00:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_nR6mK3qT8jX2wS7nL9',
+                applicantUid: 'user_bM9nR4kX8qT2jW5sP3',
+                jobId: 'job_wR4nM7xT9qK2jP5sL8',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T08:30:00Z'),
+                updatedAt: new Date('2025-12-22T08:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Miguel Torres',
+                    photoURL: 'public/users/User-06.jpg', // Fixed local path
+                    averageRating: 5.0,
+                    totalReviews: 67,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T08:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 800,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'I can fix your sink today! 8 years experience in plumbing repairs. I have all necessary tools and parts.',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['plumbing repairs', 'sink', 'pipes'],
+                    availability: 'today',
+                    equipment: 'complete plumbing toolkit',
+                    certifications: ['licensed plumber'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '8:30 AM',
+                    formattedPrice: '₱800 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_lP4nX7mR9qK2jT8sW5',
+                applicantUid: 'user_sW6nM3rT8qJ2kX9nL4',
+                jobId: 'job_wR4nM7xT9qK2jP5sL8',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T11:00:00Z'),
+                updatedAt: new Date('2025-12-22T11:00:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carlos Mendoza',
+                    photoURL: 'public/users/User-07.jpg', // Fixed local path
+                    averageRating: 4.0,
+                    totalReviews: 28,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T10:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 750,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Licensed plumber available today. Quick and reliable service with 1-year warranty on repairs.',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['licensed plumbing', 'repairs'],
+                    availability: 'today',
+                    warranty: '1-year warranty',
+                    certifications: ['government licensed'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '11:00 AM',
+                    formattedPrice: '₱750 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+        jobTitle: 'Grocery shopping and delivery - weekly service',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-19T08:30:00Z'),
+        updatedAt: new Date('2025-12-22T16:20:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_nK7jM3xQ9rT6wL4sB8',
+                applicantUid: 'user_wL9kR5mT8qX3jN6sP2',
+                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T09:20:00Z'),
+                updatedAt: new Date('2025-12-21T09:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Miguel Cruz',
+                    photoURL: 'public/users/User-04.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 23,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T15:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 150,
+                    originalAmount: 180,
+                    currency: 'PHP',
+                    paymentType: 'per_trip',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I can do your weekly grocery shopping. I have my own vehicle and know all the best markets for fresh produce.',
+                
+                qualifications: {
+                    experience: '3 years',
+                    specializations: ['grocery shopping', 'delivery'],
+                    availability: 'weekends',
+                    transportation: 'own vehicle',
+                    languages: ['English', 'Filipino', 'Cebuano']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '9:20 AM',
+                    formattedPrice: '₱150 Per Trip'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rT8kN4xM7qW9jL3sC6',
+                applicantUid: 'user_jL3kN7mR9qT5wX8sB4',
+                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T11:45:00Z'),
+                updatedAt: new Date('2025-12-21T11:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Ana Reyes',
+                    photoURL: 'public/users/User-05.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 41,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T14:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 180,
+                    originalAmount: 180,
+                    currency: 'PHP',
+                    paymentType: 'per_trip',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I\'m very experienced with grocery shopping and always choose the freshest items. I can start immediately.',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['grocery shopping', 'fresh produce selection'],
+                    availability: 'flexible schedule',
+                    references: 'excellent customer feedback',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '11:45 AM',
+                    formattedPrice: '₱180 Per Trip'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_xW5kL8mQ2rT7jN9sK3',
+                applicantUid: 'user_qT6kW9mL3rX7jN4sC8',
+                jobId: 'job_bN6kT9xR3mJ8wQ2sH5',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T07:15:00Z'),
+                updatedAt: new Date('2025-12-22T07:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Roberto Silva',
+                    photoURL: 'public/users/User-06.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 18,
+                    verified: false,
+                    lastActive: new Date('2025-12-22T16:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 120,
+                    originalAmount: 180,
+                    currency: 'PHP',
+                    paymentType: 'per_trip',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'I can help with your grocery needs. I\'m new to the platform but very reliable and hardworking.',
+                
+                qualifications: {
+                    experience: '1 year',
+                    specializations: ['delivery', 'shopping assistance'],
+                    availability: 'morning hours',
+                    transportation: 'motorcycle',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '7:15 AM',
+                    formattedPrice: '₱120 Per Trip'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_sH2kM6xT4qR9wN7jL3',
+        jobTitle: 'Garden maintenance - lawn mowing and plant care',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-20T13:15:00Z'),
+        updatedAt: new Date('2025-12-22T17:30:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_mQ4kT7xN2rW8jL5sH9',
+                applicantUid: 'user_rW8kQ4mT7xN2jL5sH9',
+                jobId: 'job_sH2kM6xT4qR9wN7jL3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T14:30:00Z'),
+                updatedAt: new Date('2025-12-21T14:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Juan Flores',
+                    photoURL: 'public/users/User-07.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 37,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T13:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 400,
+                    originalAmount: 450,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'I have 8 years experience in landscaping and garden maintenance. I bring my own tools and equipment.',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['landscaping', 'lawn care', 'plant maintenance'],
+                    availability: 'weekdays',
+                    equipment: 'professional tools included',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '2:30 PM',
+                    formattedPrice: '₱400 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_tL9kX3mR6qW2jN8sK4',
+                applicantUid: 'user_xN8kL9mR6qW2jT3sK4',
+                jobId: 'job_sH2kM6xT4qR9wN7jL3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-21T16:10:00Z'),
+                updatedAt: new Date('2025-12-21T16:10:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Elena Morales',
+                    photoURL: 'public/users/User-08.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 29,
+                    verified: true,
+                    lastActive: new Date('2025-12-22T11:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 450,
+                    originalAmount: 450,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'I specialize in organic gardening and plant care. Your garden will be in excellent hands with me!',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['organic gardening', 'plant care', 'lawn maintenance'],
+                    availability: 'flexible',
+                    certifications: 'organic gardening certified',
+                    languages: ['English', 'Filipino', 'Spanish']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-21',
+                    appliedTime: '4:10 PM',
+                    formattedPrice: '₱450 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_wK6kR9mT3xQ7jL2sN5',
+                applicantUid: 'user_mT3kW6rQ9xL7jN2sK5',
+                jobId: 'job_sH2kM6xT4qR9wN7jL3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T08:45:00Z'),
+                updatedAt: new Date('2025-12-22T08:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carlos Mendoza',
+                    photoURL: 'public/users/User-09.jpg',
+                    averageRating: 3.5,
+                    totalReviews: 14,
+                    verified: false,
+                    lastActive: new Date('2025-12-22T17:15:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 350,
+                    originalAmount: 450,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'I can take care of your garden at a good price. I\'m starting out but very motivated to do excellent work.',
+                
+                qualifications: {
+                    experience: '2 years',
+                    specializations: ['basic lawn care', 'weeding'],
+                    availability: 'weekends',
+                    transportation: 'bicycle',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '8:45 AM',
+                    formattedPrice: '₱350 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_xP8kL9mR2qT5wN3jH6',
+        jobTitle: 'Babysitting - weekend childcare for 2 kids',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-21T10:00:00Z'),
+        updatedAt: new Date('2025-12-23T09:30:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_bN7mK4xR8qT2wL9sP5',
+                applicantUid: 'user_sP6nK3mR7qX8jL2wT9',
+                jobId: 'job_xP8kL9mR2qT5wN3jH6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T13:20:00Z'),
+                updatedAt: new Date('2025-12-22T13:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Maria Santos',
+                    photoURL: 'public/users/User-08.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 89,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T08:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 200,
+                    originalAmount: 250,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I have 12 years experience taking care of children. I am a licensed teacher and first aid certified. Your kids will be safe with me!',
+                
+                qualifications: {
+                    experience: '12 years',
+                    specializations: ['childcare', 'education'],
+                    availability: 'weekends',
+                    certifications: ['licensed teacher', 'first aid'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '1:20 PM',
+                    formattedPrice: '₱200 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rT6kN9mX4qL7wS3jP8',
+                applicantUid: 'user_jL8kT5mR9qW3nX6sB2',
+                jobId: 'job_xP8kL9mR2qT5wN3jH6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T16:45:00Z'),
+                updatedAt: new Date('2025-12-22T16:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Elena Rodriguez',
+                    photoURL: 'public/users/User-09.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 34,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T07:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 250,
+                    originalAmount: 250,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good afternoon! I love working with children and have experience with ages 3-10. I can help with homework and activities.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['homework help', 'activities'],
+                    availability: 'flexible weekends',
+                    references: 'available',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '4:45 PM',
+                    formattedPrice: '₱250 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_wS5kJ7mQ9rT3xN8lP4',
+                applicantUid: 'user_nP9kS6mT4qL8wR3jX7',
+                jobId: 'job_xP8kL9mR2qT5wN3jH6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T08:15:00Z'),
+                updatedAt: new Date('2025-12-23T08:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Grace Lim',
+                    photoURL: 'public/users/User-10.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 15,
+                    verified: false,
+                    lastActive: new Date('2025-12-23T09:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 180,
+                    originalAmount: 250,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi! I\'m new to the platform but very responsible. I have younger siblings so I understand children well.',
+                
+                qualifications: {
+                    experience: '2 years',
+                    specializations: ['sibling care', 'playtime'],
+                    availability: 'Saturday mornings',
+                    references: 'family references',
+                    languages: ['English', 'Filipino', 'Chinese']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '8:15 AM',
+                    formattedPrice: '₱180 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_qH4nL7mX9rK2jT8sW6',
+        jobTitle: 'Car washing and detailing - monthly service',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-20T16:30:00Z'),
+        updatedAt: new Date('2025-12-23T11:15:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_mK8jL4xN9qR5wT2sH7',
+                applicantUid: 'user_wT9nK6mL4qR8jX3sP5',
+                jobId: 'job_qH4nL7mX9rK2jT8sW6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T09:30:00Z'),
+                updatedAt: new Date('2025-12-22T09:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Rico Fernandez',
+                    photoURL: 'public/users/User-11.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 78,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T10:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 400,
+                    originalAmount: 500,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Professional car detailing service! I have my own equipment and premium cleaning products. Your car will look brand new!',
+                
+                qualifications: {
+                    experience: '8 years',
+                    specializations: ['car detailing', 'premium service'],
+                    availability: 'flexible schedule',
+                    equipment: 'professional grade',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '9:30 AM',
+                    formattedPrice: '₱400 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_xL5nK8mR2qT7jW4sP9',
+                applicantUid: 'user_sP7kL4mT9qR6wX8nJ3',
+                jobId: 'job_qH4nL7mX9rK2jT8sW6',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T07:45:00Z'),
+                updatedAt: new Date('2025-12-23T07:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'John Martinez',
+                    photoURL: 'public/users/User-02.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 22,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T11:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 500,
+                    originalAmount: 500,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good morning! I can wash and detail your car monthly. I\'m very thorough and always on time.',
+                
+                qualifications: {
+                    experience: '4 years',
+                    specializations: ['car washing', 'interior cleaning'],
+                    availability: 'monthly schedule',
+                    equipment: 'basic tools',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '7:45 AM',
+                    formattedPrice: '₱500 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_tN9kR3mX6qL8wS2jP7',
+        jobTitle: 'Tutoring - high school math and science',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-21T14:20:00Z'),
+        updatedAt: new Date('2025-12-23T12:45:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_bL7nK5mR9qX4wT8sJ2',
+                applicantUid: 'user_jT6nL9mK4qR8wX3sP7',
+                jobId: 'job_tN9kR3mX6qL8wS2jP7',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T11:30:00Z'),
+                updatedAt: new Date('2025-12-22T11:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Prof. Anna Cruz',
+                    photoURL: 'public/users/User-03.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 156,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T12:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 300,
+                    originalAmount: 350,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I\'m a licensed Math teacher with 15 years experience. I specialize in making difficult concepts easy to understand.',
+                
+                qualifications: {
+                    experience: '15 years',
+                    specializations: ['mathematics', 'physics', 'chemistry'],
+                    availability: 'afternoons and weekends',
+                    certifications: ['licensed teacher', 'masters degree'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '11:30 AM',
+                    formattedPrice: '₱300 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rW8kN3mL7qT5jX9sK4',
+                applicantUid: 'user_kX8nW5mT2qL9jR6sP3',
+                jobId: 'job_tN9kR3mX6qL8wS2jP7',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T15:15:00Z'),
+                updatedAt: new Date('2025-12-22T15:15:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Mark Gonzales',
+                    photoURL: 'public/users/User-04.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 67,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T11:45:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 350,
+                    originalAmount: 350,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Hi! I\'m an engineering student and have been tutoring high school students for 3 years. Great with math and science!',
+                
+                qualifications: {
+                    experience: '3 years',
+                    specializations: ['algebra', 'calculus', 'physics'],
+                    availability: 'evenings',
+                    education: 'engineering student',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '3:15 PM',
+                    formattedPrice: '₱350 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_sJ6nM9mK3qR7wL5tX8',
+                applicantUid: 'user_wL4nJ8mR6qT9kX2sP5',
+                jobId: 'job_tN9kR3mX6qL8wS2jP7',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T09:20:00Z'),
+                updatedAt: new Date('2025-12-23T09:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Sarah Valdez',
+                    photoURL: 'public/users/User-05.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 29,
+                    verified: false,
+                    lastActive: new Date('2025-12-23T12:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 250,
+                    originalAmount: 350,
+                    currency: 'PHP',
+                    paymentType: 'per_hour',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I just graduated with a science degree and love helping students understand math and science concepts.',
+                
+                qualifications: {
+                    experience: '1 year',
+                    specializations: ['basic math', 'general science'],
+                    availability: 'flexible',
+                    education: 'science graduate',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '9:20 AM',
+                    formattedPrice: '₱250 Per Hour'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_wK7nL2mX9qR5jT8sP3',
+        jobTitle: 'House painting - living room and kitchen',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-22T08:45:00Z'),
+        updatedAt: new Date('2025-12-23T13:30:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_nT5kW8mL3qR7jX2sK9',
+                applicantUid: 'user_jX9nT4mW8qL5kR2sP6',
+                jobId: 'job_wK7nL2mX9qR5jT8sP3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T14:10:00Z'),
+                updatedAt: new Date('2025-12-22T14:10:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Pablo Ramirez',
+                    photoURL: 'public/users/User-06.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 94,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T13:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 2500,
+                    originalAmount: 3000,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Professional painter with 10+ years experience. I use high-quality paints and guarantee perfect finish. Free color consultation!',
+                
+                qualifications: {
+                    experience: '10+ years',
+                    specializations: ['interior painting', 'color consultation'],
+                    availability: 'this week',
+                    equipment: 'professional tools and paints',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '2:10 PM',
+                    formattedPrice: '₱2500 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_kR6nS9mL4qT8wX3jP7',
+                applicantUid: 'user_sP3nK7mR9qL4wT8jX6',
+                jobId: 'job_wK7nL2mX9qR5jT8sP3',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T10:25:00Z'),
+                updatedAt: new Date('2025-12-23T10:25:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Dante Silva',
+                    photoURL: 'public/users/User-07.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 38,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T13:15:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 3000,
+                    originalAmount: 3000,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good day! I can paint your living room and kitchen. I\'m very careful with furniture and clean up after work.',
+                
+                qualifications: {
+                    experience: '5 years',
+                    specializations: ['residential painting', 'clean work'],
+                    availability: 'next week',
+                    equipment: 'own brushes and rollers',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '10:25 AM',
+                    formattedPrice: '₱3000 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_rS8nK5mX2qT9wL6jP4',
+        jobTitle: 'Computer repair - laptop not starting up',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 3,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-22T11:30:00Z'),
+        updatedAt: new Date('2025-12-23T14:20:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_mX7kR4nL9qT6wS3jP8',
+                applicantUid: 'user_wS6nX9mR4qL7kT3jP5',
+                jobId: 'job_rS8nK5mX2qT9wL6jP4',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-22T16:20:00Z'),
+                updatedAt: new Date('2025-12-22T16:20:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Tech Mike Santos',
+                    photoURL: 'public/users/User-08.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 112,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T14:00:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 500,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Computer technician with 12 years experience. I can diagnose and fix your laptop today. Free diagnosis if I can\'t fix it!',
+                
+                qualifications: {
+                    experience: '12 years',
+                    specializations: ['laptop repair', 'hardware troubleshooting'],
+                    availability: 'same day service',
+                    certifications: ['A+ certified', 'authorized technician'],
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-22',
+                    appliedTime: '4:20 PM',
+                    formattedPrice: '₱500 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_lK9nT6mS3qR8wX4jL7',
+                applicantUid: 'user_jL4nK8mT6qS9wR3xP7',
+                jobId: 'job_rS8nK5mX2qT9wL6jP4',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T08:45:00Z'),
+                updatedAt: new Date('2025-12-23T08:45:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Ryan Tech',
+                    photoURL: 'public/users/User-09.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 56,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T13:50:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 800,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Hello! I\'m an IT professional and can fix laptop issues. I have diagnostic tools and replacement parts if needed.',
+                
+                qualifications: {
+                    experience: '7 years',
+                    specializations: ['IT support', 'hardware repair'],
+                    availability: 'today or tomorrow',
+                    equipment: 'diagnostic tools',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '8:45 AM',
+                    formattedPrice: '₱800 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_wP5nL8mK4qR7jT9sX3',
+                applicantUid: 'user_sX7nP3mL9qK4wR8jT6',
+                jobId: 'job_rS8nK5mX2qT9wL6jP4',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T12:10:00Z'),
+                updatedAt: new Date('2025-12-23T12:10:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Carl Mendoza',
+                    photoURL: 'public/users/User-10.jpg',
+                    averageRating: 4.0,
+                    totalReviews: 21,
+                    verified: false,
+                    lastActive: new Date('2025-12-23T14:05:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 600,
+                    originalAmount: 800,
+                    currency: 'PHP',
+                    paymentType: 'per_job',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hi! I study computer science and repair laptops as part-time work. I can check your laptop this afternoon.',
+                
+                qualifications: {
+                    experience: '2 years',
+                    specializations: ['basic repairs', 'software troubleshooting'],
+                    availability: 'afternoon',
+                    education: 'computer science student',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '12:10 PM',
+                    formattedPrice: '₱600 Per Job'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    },
+    {
+        jobId: 'job_nL6kT4mR9qX8wS5jP2',
+        jobTitle: 'Dog walking - daily walks for 2 small dogs',
+        employerUid: 'user_currentUserUid',
+        applicationCount: 2,
+        jobStatus: 'active',
+        createdAt: new Date('2025-12-22T15:15:00Z'),
+        updatedAt: new Date('2025-12-23T15:45:00Z'),
+        
+        applications: [
+            {
+                applicationId: 'app_kS9nL5mT8qR4wX7jP3',
+                applicantUid: 'user_wX4nS8mL9qT5kR7jP6',
+                jobId: 'job_nL6kT4mR9qX8wS5jP2',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T07:30:00Z'),
+                updatedAt: new Date('2025-12-23T07:30:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Luna Pet Care',
+                    photoURL: 'public/users/User-11.jpg',
+                    averageRating: 5.0,
+                    totalReviews: 73,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T15:20:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 100,
+                    originalAmount: 150,
+                    currency: 'PHP',
+                    paymentType: 'per_walk',
+                    isCounterOffer: true
+                },
+                
+                applicationMessage: 'Hello! I absolutely love dogs and have been walking pets for 6 years. Your dogs will get exercise and lots of love!',
+                
+                qualifications: {
+                    experience: '6 years',
+                    specializations: ['dog walking', 'pet care'],
+                    availability: 'daily morning and evening',
+                    insurance: 'pet care insured',
+                    languages: ['English', 'Filipino']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '7:30 AM',
+                    formattedPrice: '₱100 Per Walk'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            },
+            {
+                applicationId: 'app_rT7nK3mS9qL6wX8jP4',
+                applicantUid: 'user_jP8nT5mK9qS6wL3rX7',
+                jobId: 'job_nL6kT4mR9qX8wS5jP2',
+                status: 'pending',
+                
+                appliedAt: new Date('2025-12-23T13:55:00Z'),
+                updatedAt: new Date('2025-12-23T13:55:00Z'),
+                
+                applicantProfile: {
+                    displayName: 'Jose Animal Lover',
+                    photoURL: 'public/users/User-02.jpg',
+                    averageRating: 4.5,
+                    totalReviews: 42,
+                    verified: true,
+                    lastActive: new Date('2025-12-23T15:30:00Z')
+                },
+                
+                pricing: {
+                    offeredAmount: 150,
+                    originalAmount: 150,
+                    currency: 'PHP',
+                    paymentType: 'per_walk',
+                    isCounterOffer: false
+                },
+                
+                applicationMessage: 'Good afternoon! I have 2 dogs myself and understand how important daily exercise is. I can walk your dogs every day!',
+                
+                qualifications: {
+                    experience: '4 years',
+                    specializations: ['small dogs', 'daily routine'],
+                    availability: 'morning preferred',
+                    equipment: 'own leashes and poop bags',
+                    languages: ['Filipino', 'English']
+                },
+                
+                displayData: {
+                    appliedDate: '2025-12-23',
+                    appliedTime: '1:55 PM',
+                    formattedPrice: '₱150 Per Walk'
+                },
+                
+                metadata: {
+                    source: 'mobile_app',
+                    version: '1.0',
+                    indexed: true
+                }
+            }
+        ]
+    }*/
+// ]; // End of removed legacy applications array
+
+// REMOVED: Generate Application Card HTML - FIREBASE DATA-DRIVEN
+// REMOVED: generateApplicationCardHTML() function - obsolete since applications moved to jobs.html
+
+// REMOVED: generateJobListingHTML() function - obsolete since applications moved to jobs.html
+
+/*
+🔥 FIREBASE MIGRATION INSTRUCTIONS - CRITICAL REFACTOR NEEDED 🔥
+
+CURRENT STATE: Legacy full DOM regeneration
+TARGET STATE: Real-time Firebase with granular updates
+
+🚨 BEFORE IMPLEMENTING FIREBASE, REFACTOR THIS ARCHITECTURE:
+
+1. **REPLACE FULL REGENERATION WITH GRANULAR UPDATES:**
+   Current: container.innerHTML = generateApplicationsContent() // Destroys all state
+   Needed: Individual card add/remove functions that preserve user state
+
+2. **IMPLEMENT REAL-TIME LISTENER PATTERN:**
+   onSnapshot(collection('applications'), (snapshot) => {
+     snapshot.docChanges().forEach((change) => {
+       if (change.type === 'added') addApplicationCard(change.doc.data());
+       if (change.type === 'removed') removeApplicationCard(change.doc.id);
+       if (change.type === 'modified') updateApplicationCard(change.doc.data());
+     });
+     updatePlaceholderVisibility(); // Check if placeholder should show
+   });
+
+3. **PRESERVE USER STATE DURING UPDATES:**
+   - Save scroll position before updates
+   - Maintain expanded job states
+   - Preserve selection states
+   - Restore after granular updates
+
+4. **IMPLEMENT OPTIMISTIC UI:**
+   - Update UI immediately on user actions (HIRE/REJECT)
+   - Show loading states during Firebase operations
+   - Rollback on Firebase errors with user feedback
+
+5. **CRITICAL PLACEHOLDER CONSIDERATIONS:**
+   - Placeholder must persist through real-time updates
+   - Only show/hide based on actual application count
+   - Handle race conditions between user actions and incoming data
+
+6. **PERFORMANCE OPTIMIZATIONS:**
+   - Implement virtual scrolling for large datasets
+   - Use document references instead of full data transfer
+   - Batch multiple Firebase operations
+   - Add proper cleanup for real-time listeners
+
+7. **ERROR HANDLING & OFFLINE SUPPORT:**
+   - Handle network failures gracefully
+   - Implement retry mechanisms
+   - Show appropriate offline indicators
+   - Cache data for offline viewing
+
+🎯 START HERE: Replace generateApplicationsContent() with granular functions
+📋 MAINTAIN: Current placeholder logic but adapt for real-time updates
+⚡ PRIORITY: State preservation and optimistic UI patterns
+
+DO NOT proceed with Firebase integration until this architecture is refactored!
+*/
+
+// Applications Content Generation - NOW DATA-DRIVEN
+function generateApplicationsContent() {
+    // Generate placeholder HTML
+    const placeholderHTML = `
+        <!-- Applications Placeholder - Shows when no applications present -->
+        <div class="content-placeholder" id="applications-placeholder" style="display: none;">
+            📋<br>
+            No job applications yet<br>
+            <span style="font-size: 0.9em; color: #8a92a5; margin-top: 8px; display: block;">Applications from job seekers will appear here when you post job listings</span>
+        </div>
+    `;
+    return placeholderHTML;
+}
+
+function loadApplicationsTab() {
+    // UPDATED: This tab now shows the new Messages UI (inbox/details layout)
+    // The content is now static HTML, so no dynamic loading needed
+    console.log('📧 Messages tab loaded - using static HTML content');
+    
+    // The new Messages UI is already in the HTML, so we don't need to generate content
+    // Future: This is where we'll add JavaScript for message functionality
+}
+
+// INPUT FOCUS ELEGANCE: Dim surrounding content when input is focused
+function initializeInputFocusElegance(messageThread) {
+    const inputField = messageThread.querySelector('.message-input');
+    const inputContainer = messageThread.querySelector('.message-input-container');
+    
+    if (inputField && inputContainer) {
+        console.log('Initializing input focus elegance for thread');
+        
+        // Focus event - add dimming classes with slight delay for smooth effect
+        inputField.addEventListener('focus', function() {
+            console.log('Input focused - applying elegance effect');
+            setTimeout(() => {
+                inputContainer.classList.add('input-focused');
+                messageThread.classList.add('input-focused');
+            }, 100);
+        });
+        
+        // Blur event - remove dimming classes
+        inputField.addEventListener('blur', function() {
+            console.log('Input blurred - removing elegance effect');
+            inputContainer.classList.remove('input-focused');
+            messageThread.classList.remove('input-focused');
+        });
+        
+        // Input field expands on focus via CSS :focus, but also needs to expand when typing
+        inputField.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                // Add expanded class when user starts typing (in addition to focus expansion)
+                this.classList.add('expanded');
+            } else {
+                // Remove expanded class when empty (fall back to focus-only expansion)
+                this.classList.remove('expanded');
+            }
+        });
+        
+        
+        console.log('Input focus elegance initialized successfully');
+    } else {
+        console.warn('Input field or container not found for focus elegance');
+    }
+}
+
+// ===== DYNAMIC MESSAGE ENTRY FUNCTIONALITY =====
+// (Removed 2026-06-18) The old mock inline-thread sender — initializeDynamicMessageSending,
+// sendDynamicMessage, createMockMessage, createMockResponse, getCurrentUserAvatar, and
+// addMessageToThread — was dead code from the pre-Firebase prototype and had no callers.
+// Live chat sends real messages via the chat modal (sendMessage() -> Firestore).
+
+/**
+ * Show temporary notification for new messages
+ * @param {string} message - Notification message
+ */
+function showTemporaryNotification(message) {
+    // Create temporary notification element
+    const notification = document.createElement('div');
+    notification.className = 'temp-notification';
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: #48bb78;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        z-index: 9999;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Animate out and remove
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// ===== AVATAR OVERLAY FUNCTIONALITY =====
+
+// SHARED DEBOUNCING: Prevent rapid successive clicks across all avatars
+let globalAvatarClickProcessing = false;
+
+// MEMORY LEAK FIX: Track avatar listeners for proper cleanup
+const avatarListeners = new WeakMap(); // WeakMap prevents memory leaks for DOM elements
+
+function initializeAvatarForOverlay(avatar) {
+    // Skip if already initialized (prevent duplicate handlers)
+    if (avatar.hasAttribute('data-overlay-initialized')) {
+        return;
+    }
+    
+    // Get message data to check if this is the current user's avatar
+    const messageCard = avatar.closest('.message-card');
+    if (messageCard) {
+        const senderId = messageCard.getAttribute('data-sender-id');
+        const currentUserId = getCurrentUserId();
+        
+        // Skip overlay initialization for current user's own avatar
+        // Convert both to strings for comparison since DOM attributes are strings
+        if (String(senderId) === String(currentUserId) || senderId === '1') {
+            messagesDebug(`🚫 Skipping avatar overlay for current user (ID: ${senderId})`);
+            return;
+        }
+    }
+    
+    // Mark as initialized
+    avatar.setAttribute('data-overlay-initialized', 'true');
+    
+    // MEMORY LEAK FIX: Create named functions for proper cleanup
+    const clickHandler = function(e) {
+        e.stopPropagation(); // Prevent thread toggle
+        
+        // CRITICAL FIX: Debounce rapid clicks to prevent overlay stacking
+        if (globalAvatarClickProcessing) {
+            messagesDebug('Avatar click ignored - still processing previous click');
+            return;
+        }
+        
+        globalAvatarClickProcessing = true;
+        
+        // Reset debounce flag after processing
+        setTimeout(() => {
+            globalAvatarClickProcessing = false;
+        }, 300); // 300ms debounce window
+        
+        // Get message data from the parent message card
+        const messageCard = this.closest('.message-card');
+        if (messageCard) {
+            const senderId = messageCard.getAttribute('data-sender-id');
+            const senderName = messageCard.getAttribute('data-sender-name');
+            const threadId = messageCard.getAttribute('data-thread-id');
+            
+            // Get job information from the thread
+            const threadElement = messageCard.closest('.message-thread');
+            const jobId = threadElement.getAttribute('data-job-id');
+            const jobTitle = threadElement.getAttribute('data-job-title');
+            const threadOrigin = threadElement.getAttribute('data-thread-origin'); // NEW
+            const applicationId = threadElement.getAttribute('data-application-id'); // NEW
+            const currentUserRole = threadElement.getAttribute('data-current-user-role'); // NEW
+            
+                            // Show avatar overlay
+                showAvatarOverlay(e, {
+                    senderId: senderId,
+                    senderName: senderName,
+                    threadId: threadId,
+                    jobId: jobId,
+                    jobTitle: jobTitle,
+                    threadOrigin: threadOrigin, // NEW: Include thread origin
+                    applicationId: applicationId, // NEW: Include application ID
+                    currentUserRole: currentUserRole, // NEW: Include current user role
+                    avatar: this.querySelector('img').src
+                });
+            }
+        };
+        
+        const mouseEnterHandler = function() {
+            this.style.transform = 'scale(1.05)';
+        };
+        
+        const mouseLeaveHandler = function() {
+            this.style.transform = 'scale(1)';
+        };
+        
+        // Add all event listeners
+        avatar.addEventListener('click', clickHandler);
+        avatar.addEventListener('mouseenter', mouseEnterHandler);
+        avatar.addEventListener('mouseleave', mouseLeaveHandler);
+        
+        // MEMORY LEAK FIX: Store listener references for cleanup
+        avatarListeners.set(avatar, {
+            click: clickHandler,
+            mouseenter: mouseEnterHandler,
+            mouseleave: mouseLeaveHandler
+        });
+        
+        // Add touch-friendly styling
+        avatar.style.cursor = 'pointer';
+        avatar.style.transition = 'transform 0.2s ease';
+    }
+
+function initializeAvatarOverlays(messageThread) {
+    // Find all message avatars in this thread
+    const avatars = messageThread.querySelectorAll('.message-avatar');
+    
+    // Initialize each avatar for overlay functionality
+    avatars.forEach(avatar => {
+        initializeAvatarForOverlay(avatar);
+    });
+    
+    messagesDebug(`🎯 Initialized avatar overlays for ${avatars.length} avatars in thread`);
+}
+
+// Create and show chat modal overlay - TRUE MODAL SYSTEM
+function showChatModal(messageThread, threadContent) {
+    // Get thread data
+    const threadId = messageThread.getAttribute('data-thread-id');
+    const jobTitle = messageThread.querySelector('.thread-job-title').textContent;
+    
+    const messagesHTML = '<div class="loading-state" style="text-align:center; padding:16px; color:#999;">Loading messages...</div>';
+    
+    // Create modal overlay - append to body for proper z-index
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'chat-modal-overlay';
+    modalOverlay.id = `chat-modal-${threadId}`;
+    
+    // Add data attributes for message sending
+    modalOverlay.setAttribute('data-thread-id', threadId);
+    modalOverlay.setAttribute('data-participant-id', messageThread.getAttribute('data-participant-id'));
+    modalOverlay.setAttribute('data-participant-name', messageThread.getAttribute('data-participant-name') || '');
+    modalOverlay.setAttribute('data-job-id', messageThread.getAttribute('data-job-id'));
+    modalOverlay.setAttribute('data-job-category', messageThread.getAttribute('data-job-category') || '');
+    modalOverlay.setAttribute('data-thread-origin', messageThread.getAttribute('data-thread-origin'));
+    modalOverlay.setAttribute('data-application-id', messageThread.getAttribute('data-application-id'));
+    modalOverlay.setAttribute('data-current-user-role', messageThread.getAttribute('data-current-user-role'));
+    
+    modalOverlay.innerHTML = `
+        <div class="chat-modal-container">
+            <div class="chat-modal-header">
+                <div class="chat-modal-info">
+                    <div class="chat-modal-title">${jobTitle}</div>
+                </div>
+                <button class="chat-modal-menu uniform-header-btn menu" type="button" aria-label="Menu">
+                    <span class="btn-emoji">📋</span>
+                    <span>Menu</span>
+                </button>
+            </div>
+            <div class="chat-modal-body">
+                <div class="chat-messages-container">
+                    ${messagesHTML}
+                </div>
+                <div class="chat-input-container">
+                    <textarea class="chat-input" placeholder="Type a message..." maxlength="200"></textarea>
+                    <button class="chat-photo-btn" type="button" title="Attach Photo">
+                        <svg class="photo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21,15 16,10 5,21"/>
+                        </svg>
+                    </button>
+                    <input type="file" class="chat-photo-input" accept="image/*" style="display: none;">
+                    <button class="chat-send-btn">Send</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append to body for proper layering
+    document.body.appendChild(modalOverlay);
+    lockBodyScrollForChatModal();
+    
+    // Initialize modal functionality
+    initializeChatModal(modalOverlay, messageThread, threadId);
+    void enforceGigTipsGateOnChatOpen(modalOverlay);
+    void renderGigFlowCardForThread(modalOverlay);
+    
+    // Show modal with animation
+    setTimeout(() => {
+        modalOverlay.classList.add('show');
+        
+        // Scroll to bottom to show latest messages (chronological order)
+        const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+        if (messagesContainer) {
+            scrollMessagesContainerToBottom(messagesContainer);
+        }
+    }, 10);
+    
+    messagesDebug(`✅ Chat modal created for thread ${threadId}`);
+}
+
+// Initialize chat modal functionality
+function initializeChatModal(modalOverlay, messageThread, threadId) {
+    const menuBtn = modalOverlay.querySelector('.chat-modal-menu');
+    const chatHeader = modalOverlay.querySelector('.chat-modal-header');
+    const modalContainer = modalOverlay.querySelector('.chat-modal-container');
+    
+    // ===== VISUAL VIEWPORT API - Auto-resize for mobile keyboard =====
+    let viewportHandler = null;
+    const originalHeight = window.innerHeight;
+    let keyboardOpen = false;
+    
+    if (window.visualViewport) {
+        viewportHandler = () => {
+            const viewport = window.visualViewport;
+            const viewportHeight = viewport.height;
+            
+            // Calculate if keyboard is likely open (significant height reduction)
+            const heightDiff = originalHeight - viewportHeight;
+            const keyboardLikelyOpen = heightDiff > 120;
+            if (keyboardLikelyOpen !== keyboardOpen) {
+                keyboardOpen = keyboardLikelyOpen;
+                modalOverlay.classList.toggle('keyboard-open', keyboardOpen);
+                if (keyboardOpen) {
+                    const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+                    scrollMessagesContainerToBottom(messagesContainer, 2);
+                }
+            }
+        };
+        
+        // Listen to both resize and scroll events on visualViewport
+        window.visualViewport.addEventListener('resize', viewportHandler);
+        window.visualViewport.addEventListener('scroll', viewportHandler);
+        
+        messagesDebug('📱 Visual Viewport API initialized for keyboard handling');
+    } else {
+        console.log('⚠️ Visual Viewport API not available - using fallback');
+    }
+    // ===== END VISUAL VIEWPORT API =====
+    
+    // Menu handler - show options overlay (triggered by header or menu button)
+    const menuHandler = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        messagesDebug('🔍 Menu button clicked, event target:', e.target);
+        messagesDebug('🔍 Menu button position:', e.target.getBoundingClientRect());
+        
+        // Get thread data for avatar overlay - extract participant name properly
+        const senderName = String(messageThread.getAttribute('data-participant-name') || '').trim()
+            || messageThread.querySelector('.thread-participant').textContent
+                .replace('Direct Message with ', '')
+                .replace('Application Interview with ', '')
+                .replace('You contacted ', '')
+                .replace(' contacted you', '')
+                .trim();
+        
+        // Get thread data for avatar overlay
+        const threadData = {
+            senderId: messageThread.getAttribute('data-participant-id') || '2', // Default if not found
+            senderName: senderName,
+            threadId: threadId,
+            jobId: messageThread.getAttribute('data-job-id'),
+            jobCategory: messageThread.getAttribute('data-job-category') || '',
+            jobTitle: messageThread.querySelector('.thread-job-title').textContent,
+            threadOrigin: messageThread.getAttribute('data-thread-origin') || 'direct',
+            applicationId: messageThread.getAttribute('data-application-id'),
+            currentUserRole: messageThread.getAttribute('data-current-user-role') || 'customer',
+            avatar: '', // Will be populated by avatar system
+            participantIds: [getCurrentUserId(), messageThread.getAttribute('data-participant-id')],
+            lastActivity: new Date().toISOString()
+        };
+        
+        messagesDebug('🔍 Opening chat options for:', threadData);
+        
+        // Ensure showAvatarOverlay function exists before calling
+        if (typeof showAvatarOverlay === 'function') {
+            showAvatarOverlay(e, threadData);
+        } else {
+            console.error('❌ showAvatarOverlay function not found');
+        }
+    };
+    
+    // Click outside to close
+    const outsideClickHandler = (e) => {
+        if (modalOverlay.classList.contains('gig-tips-gated')) {
+            return;
+        }
+        if (e.target === modalOverlay) {
+            closeChatModal(modalOverlay);
+        }
+    };
+    
+    // Escape key to close
+    const escapeHandler = (e) => {
+        if (modalOverlay.classList.contains('gig-tips-gated')) {
+            return;
+        }
+        if (e.key === 'Escape') {
+            closeChatModal(modalOverlay);
+        }
+    };
+    
+    // Add event listeners - both header and menu button trigger options
+    menuBtn.addEventListener('click', menuHandler);
+    chatHeader.addEventListener('click', menuHandler);
+    modalOverlay.addEventListener('click', outsideClickHandler);
+    document.addEventListener('keydown', escapeHandler);
+    
+    // Initialize chat functionality with proper selectors
+    initializeChatInputFunctionality(modalOverlay);
+    void bindRealtimeThreadMessages(modalOverlay, threadId);
+    
+    // Store cleanup functions
+    modalOverlay._cleanup = () => {
+        menuBtn.removeEventListener('click', menuHandler);
+        chatHeader.removeEventListener('click', menuHandler);
+        modalOverlay.removeEventListener('click', outsideClickHandler);
+        document.removeEventListener('keydown', escapeHandler);
+        
+        // Clean up Visual Viewport listeners
+        if (window.visualViewport && viewportHandler) {
+            window.visualViewport.removeEventListener('resize', viewportHandler);
+            window.visualViewport.removeEventListener('scroll', viewportHandler);
+            messagesDebug('🧹 Visual Viewport listeners cleaned up');
+        }
+
+        if (ACTIVE_LISTENERS.activeThreadMessages) {
+            ACTIVE_LISTENERS.activeThreadMessages();
+            ACTIVE_LISTENERS.activeThreadMessages = null;
+        }
+        if (typeof modalOverlay._gigFlowCardCleanup === 'function') {
+            modalOverlay._gigFlowCardCleanup();
+            modalOverlay._gigFlowCardCleanup = null;
+        }
+    };
+}
+
+// Initialize chat input functionality for modal
+function initializeChatInputFunctionality(modalOverlay) {
+    const inputField = modalOverlay.querySelector('.chat-input');
+    const sendBtn = modalOverlay.querySelector('.chat-send-btn');
+    const photoBtn = modalOverlay.querySelector('.chat-photo-btn');
+    const photoInput = modalOverlay.querySelector('.chat-photo-input');
+    const inputContainer = modalOverlay.querySelector('.chat-input-container');
+    
+    if (!inputField || !sendBtn || !photoBtn || !photoInput) {
+        console.error('❌ Chat input elements not found');
+        return;
+    }
+
+    blockUnsupportedCharsForInput(inputField);
+    
+    // Track listeners for cleanup
+    const listeners = [];
+    
+    // Helper to add tracked listener
+    const addTrackedListener = (element, event, handler) => {
+        element.addEventListener(event, handler);
+        listeners.push({ element, event, handler });
+    };
+    
+    // Focus handler with scrollIntoView safety net for mobile keyboards
+    const focusHandler = function() {
+        this.classList.add('expanded');
+        inputContainer.classList.add('input-focused');
+    };
+    
+    // Blur handler
+    const blurHandler = function() {
+        // Only remove expanded if input is empty
+        if (this.value.trim() === '') {
+            this.classList.remove('expanded');
+        }
+        inputContainer.classList.remove('input-focused');
+    };
+    
+    // Input handler
+    const inputHandler = function() {
+        // Keep expanded while typing
+        this.classList.add('expanded');
+    };
+    
+    // Add tracked listeners
+    addTrackedListener(inputField, 'focus', focusHandler);
+    addTrackedListener(inputField, 'blur', blurHandler);
+    addTrackedListener(inputField, 'input', inputHandler);
+    
+    // Store cleanup function on modal for later removal
+    modalOverlay._inputCleanup = () => {
+        listeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        messagesDebug('🧹 Chat input listeners cleaned up');
+    };
+    
+    // Send message functionality
+    const sendMessageHandler = async () => {
+        const rawMessage = inputField.value;
+        const message = rawMessage.trim();
+        if (message) {
+            if (hasUnsupportedTextChars(message)) {
+                showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+                return;
+            }
+
+            const safeMessage = sanitizeTextInput(message);
+            const threadId = modalOverlay.getAttribute('data-thread-id');
+            if (!threadId) {
+                showToast('Unable to send message: missing thread.');
+                return;
+            }
+            
+            if (sendBtn.disabled) return;
+            sendBtn.disabled = true;
+
+            // Clear immediately for snappy UX; realtime listener renders the sent bubble.
+            inputField.value = '';
+            inputField.classList.remove('expanded');
+            inputContainer.classList.remove('input-focused');
+            try {
+                if (typeof sendMessage === 'function') {
+                    const recipientId = String(modalOverlay.getAttribute('data-participant-id') || '').trim();
+                    const result = await sendMessage(threadId, safeMessage, recipientId);
+                    if (!result || result.success !== true) {
+                        const reason = result?.message || 'Unable to send message';
+                        showToast(reason);
+                        // Restore user text if backend rejected the send.
+                        inputField.value = rawMessage;
+                        inputField.classList.add('expanded');
+                        inputContainer.classList.add('input-focused');
+                        inputField.focus();
+                        return;
+                    }
+                } else {
+                    showToast('Messaging backend is unavailable.');
+                    inputField.value = rawMessage;
+                    inputField.classList.add('expanded');
+                    inputContainer.classList.add('input-focused');
+                    inputField.focus();
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ Failed to send chat message:', error);
+                showToast('Failed to send message. Please try again.');
+                inputField.value = rawMessage;
+                inputField.classList.add('expanded');
+                inputContainer.classList.add('input-focused');
+                inputField.focus();
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+    };
+    
+    // Send button click
+    sendBtn.addEventListener('click', () => {
+        void sendMessageHandler();
+    });
+    
+    // Enter key to send (Shift+Enter for new line)
+    inputField.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            void sendMessageHandler();
+        }
+    });
+
+    // Photo upload functionality
+    photoBtn.addEventListener('click', () => {
+        if (!photoBtn.classList.contains('loading')) {
+            photoInput.click();
+        }
+    });
+
+    photoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (isAllowedImageFile(file)) {
+            handlePhotoUpload(file, modalOverlay);
+        } else if (file) {
+            showToast('Only image files are allowed for attachments.');
+        }
+        // Reset input so same file can be selected again
+        photoInput.value = '';
+    });
+    
+    messagesDebug('✅ Chat input functionality initialized');
+}
+
+/**
+ * Handle photo upload in chat
+ * @param {File} file - Selected image file
+ * @param {HTMLElement} modalOverlay - Chat modal overlay
+ */
+function processChatImageAsync(file) {
+    return new Promise((resolve, reject) => {
+        processChatImage(file, resolve, reject);
+    });
+}
+
+function buildChatPhotoBasePath(threadId, currentUserId, participantId) {
+    const safeThreadId = String(threadId || '').trim();
+    const uidA = String(currentUserId || '').trim();
+    const uidB = String(participantId || '').trim();
+    if (!safeThreadId || !uidA || !uidB) {
+        throw new Error('Missing thread/participant identity for chat photo path');
+    }
+    const ordered = [uidA, uidB].sort();
+    return `chat_photos/${safeThreadId}/${ordered[0]}/${ordered[1]}`;
+}
+
+async function uploadChatPhotoVariants(processedImage, threadId, participantId) {
+    let thumbnailUrl = processedImage.thumbnailURL;
+    let fullSizeUrl = processedImage.fullSizeURL;
+
+    if (typeof uploadWithProgress !== 'function' || typeof dataUrlToFile !== 'function') {
+        return { thumbnailUrl, fullSizeUrl };
+    }
+
+    const uniquePrefix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const basePath = buildChatPhotoBasePath(threadId, getCurrentUserId(), participantId);
+    const thumbPath = `${basePath}/${uniquePrefix}_thumb.jpg`;
+    const fullPath = `${basePath}/${uniquePrefix}_full.jpg`;
+    const thumbFile = dataUrlToFile(processedImage.thumbnailURL, `${uniquePrefix}_thumb.jpg`);
+    const fullFile = dataUrlToFile(processedImage.fullSizeURL, `${uniquePrefix}_full.jpg`);
+
+    const [thumbUpload, fullUpload] = await Promise.all([
+        uploadWithProgress(thumbPath, thumbFile, () => {}),
+        uploadWithProgress(fullPath, fullFile, () => {})
+    ]);
+
+    if (!thumbUpload?.success || !fullUpload?.success) {
+        throw new Error('Failed to upload chat photo assets');
+    }
+
+    thumbnailUrl = String(thumbUpload.url || '').trim() || thumbnailUrl;
+    fullSizeUrl = String(fullUpload.url || '').trim() || fullSizeUrl;
+    return { thumbnailUrl, fullSizeUrl };
+}
+
+async function handlePhotoUpload(file, modalOverlay) {
+    const photoBtn = modalOverlay.querySelector('.chat-photo-btn');
+    if (!photoBtn) return;
+
+    photoBtn.classList.add('loading');
+    
+    console.log('📸 Processing photo for chat...');
+
+    try {
+        const processedImage = await processChatImageAsync(file);
+        const threadId = modalOverlay.getAttribute('data-thread-id');
+        const participantId = modalOverlay.getAttribute('data-participant-id');
+        if (!threadId) {
+            throw new Error('Missing threadId for photo send');
+        }
+
+        const uploadedAssets = await uploadChatPhotoVariants(processedImage, threadId, participantId);
+        const photoMessageData = {
+            threadId: threadId,
+            senderId: getCurrentUserId(),
+            receiverId: participantId,
+            content: '[image]',
+            thumbnailUrl: uploadedAssets.thumbnailUrl,
+            fullSizeUrl: uploadedAssets.fullSizeUrl,
+            messageType: 'image',
+            timestamp: new Date().toISOString(),
+            dimensions: processedImage.dimensions,
+            aspectRatio: processedImage.aspectRatio,
+            fileSizes: {
+                thumbnail: processedImage.thumbnailSize,
+                fullSize: processedImage.fullSizeSize
+            }
+        };
+
+        if (typeof sendImageMessage !== 'function') {
+            throw new Error('Image messaging backend is unavailable');
+        }
+
+        const sendResult = await sendImageMessage(threadId, photoMessageData, participantId);
+        if (!sendResult || sendResult.success !== true) {
+            throw new Error(sendResult?.message || 'Failed to send image');
+        }
+
+        const originalSize = Math.round(processedImage.originalFile.size / 1024); // KB
+        const thumbnailSizeKB = Math.round(processedImage.thumbnailSize / 1024); // KB  
+        const fullSizeSizeKB = Math.round(processedImage.fullSizeSize / 1024); // KB
+        const bandwidthSavings = Math.round(((fullSizeSizeKB - thumbnailSizeKB) / fullSizeSizeKB) * 100);
+        
+        console.log('📸 Photo Upload Performance:');
+        console.log(`   Original: ${originalSize} KB`);
+        console.log(`   Full-size: ${fullSizeSizeKB} KB`);
+        console.log(`   Thumbnail: ${thumbnailSizeKB} KB`);
+        console.log(`   💰 Bandwidth savings: ${bandwidthSavings}% (${fullSizeSizeKB - thumbnailSizeKB} KB saved)`);
+        console.log('✅ Photo message sent:', photoMessageData);
+    } catch (error) {
+        console.error('❌ Photo processing failed in handlePhotoUpload:', error);
+        showToast('Failed to send photo. Please try again.');
+    } finally {
+        photoBtn.classList.remove('loading');
+    }
+}
+
+// Close chat modal
+function closeChatModal(modalOverlay) {
+    if (modalOverlay && modalOverlay.parentNode) {
+        const openThreadId = String(modalOverlay.getAttribute('data-thread-id') || '').trim();
+        if (openThreadId) {
+            // Final read sync on close prevents stale "new" tags after active viewing.
+            requestThreadReadSync(openThreadId, { force: true });
+        }
+
+        // === AGGRESSIVE CLEANUP START ===
+        
+        // 1. Cleanup general event listeners
+        if (modalOverlay._cleanup) {
+            modalOverlay._cleanup();
+        }
+        
+        // 2. Cleanup input-specific event listeners (focus, blur, input)
+        if (modalOverlay._inputCleanup) {
+            modalOverlay._inputCleanup();
+        }
+        
+        // 3. Blur any focused input to dismiss keyboard
+        const activeInput = modalOverlay.querySelector('.chat-input');
+        if (activeInput && document.activeElement === activeInput) {
+            activeInput.blur();
+        }
+        
+        // 4. Reset any inline styles on modal elements
+        const inputContainer = modalOverlay.querySelector('.chat-input-container');
+        if (inputContainer) {
+            inputContainer.style.cssText = '';
+            inputContainer.classList.remove('input-focused');
+        }
+        if (activeInput) {
+            activeInput.style.cssText = '';
+            activeInput.classList.remove('expanded');
+        }
+        
+        // 5. Reset scroll positions within modal
+        const messagesContainer = modalOverlay.querySelector('.chat-messages-container');
+        if (messagesContainer) {
+            messagesContainer.scrollTop = 0;
+        }
+        
+        // 6. Call mobile input visibility cleanup
+        cleanupMobileInputVisibility();
+        
+        // === AGGRESSIVE CLEANUP END ===
+        
+        // Reset all thread states and remove greyed out appearance
+        const allMessageThreads = document.querySelectorAll('.message-thread');
+        allMessageThreads.forEach(thread => {
+            const header = thread.querySelector('.message-thread-header');
+            const expandIcon = header?.querySelector('.expand-icon');
+            
+            // CRITICAL: Reset thread appearance - remove greyed out state
+            thread.style.opacity = '';
+            thread.style.transform = '';
+            thread.style.pointerEvents = '';
+            
+            // Reset expand icon to downarrow
+            if (expandIcon) {
+                expandIcon.textContent = '▼';
+            }
+            
+            // Remove expanded state
+            thread.classList.remove('expanded', 'show');
+        });
+        
+        // Find all messages containers and remove active state
+        const messagesContainers = document.querySelectorAll('.messages-container');
+        messagesContainers.forEach(container => {
+            container.classList.remove('thread-active', 'show-overlay');
+        });
+        
+        // Fade out animation
+        modalOverlay.classList.remove('show');
+        
+        // Remove from DOM after animation
+        setTimeout(() => {
+            if (modalOverlay.parentNode) {
+                modalOverlay.parentNode.removeChild(modalOverlay);
+            }
+            unlockBodyScrollForChatModal();
+        }, 300);
+        
+        messagesDebug('✅ Chat modal closed with aggressive cleanup');
+    }
+}
+
+// MEMORY LEAK FIX: Cleanup function for avatar listeners
+function cleanupAvatarOverlays(container) {
+    const avatars = container.querySelectorAll('.message-avatar[data-overlay-initialized="true"]');
+    
+    avatars.forEach(avatar => {
+        const listeners = avatarListeners.get(avatar);
+        if (listeners) {
+            // Remove all event listeners
+            avatar.removeEventListener('click', listeners.click);
+            avatar.removeEventListener('mouseenter', listeners.mouseenter);
+            avatar.removeEventListener('mouseleave', listeners.mouseleave);
+            
+            // Remove from tracking
+            avatarListeners.delete(avatar);
+            
+            // Reset initialization flag
+            avatar.removeAttribute('data-overlay-initialized');
+            
+            // Reset styling
+            avatar.style.cursor = '';
+            avatar.style.transition = '';
+            avatar.style.transform = '';
+        }
+    });
+    
+    if (avatars.length > 0) {
+        messagesDebug(`🧹 Cleaned up avatar overlays for ${avatars.length} avatars`);
+    }
+}
+
+async function showAvatarOverlay(event, userData) {
+    if (showAvatarOverlay._pending) {
+        return;
+    }
+    showAvatarOverlay._pending = true;
+    try {
+    const anchorElement = event?.currentTarget || event?.target || null;
+    // CRITICAL FIX: Prevent rapid clicking from creating multiple overlays
+    if (document.getElementById('avatarOverlay')) {
+        messagesDebug('Avatar overlay already exists, ignoring rapid click');
+        return; // Exit early if overlay already exists
+    }
+    
+    // CRITICAL FIX: Always clean up existing listeners first
+    // This prevents the stacking listener bug that causes stuck overlays
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+    
+    // Remove any existing overlay (redundant safety check)
+    hideAvatarOverlay();
+    
+    // Create overlay element
+    const overlay = document.createElement('div');
+    overlay.className = 'avatar-overlay';
+    overlay.id = 'avatarOverlay';
+    
+    // Debug traces kept behind runtime flag to avoid production console noise.
+    messagesDebug(`🔍 DEBUG: Avatar overlay userData:`, userData);
+    messagesDebug(`🔍 DEBUG: threadOrigin = "${userData.threadOrigin}"`);
+    messagesDebug(`🔍 DEBUG: applicationId = "${userData.applicationId}"`);
+    messagesDebug(`🔍 DEBUG: jobId = "${userData.jobId}"`);
+    
+    // REMOVED: "View Application" button - no longer needed since applications moved to jobs.html
+    const viewApplicationButton = ''; // Always empty now
+
+    overlay.innerHTML = `
+        <div class="avatar-overlay-actions">
+            <div class="avatar-overlay-dynamic-actions"></div>
+            <div class="avatar-overlay-row two-col">
+                <button class="avatar-action-btn profile" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
+                    <span>VIEW PROFILE</span>
+                </button>
+                <button class="avatar-action-btn job" data-job-id="${userData.jobId}" data-job-title="${userData.jobTitle}">
+                    <span>GIG POST</span>
+                </button>
+            </div>
+            <button class="avatar-action-btn tips" data-thread-id="${userData.threadId || ''}" data-job-id="${userData.jobId || ''}" data-job-title="${escapeHtml(String(userData.jobTitle || 'Gig'))}" data-job-category="${escapeHtml(String(userData.jobCategory || ''))}">
+                <span>📘</span>
+                <span>READ GIG TIPS</span>
+            </button>
+            ${viewApplicationButton}
+            <button class="avatar-action-btn block" data-user-id="${userData.senderId}" data-user-name="${userData.senderName}">
+                <span>🚫</span>
+                <span>BLOCK USER</span>
+            </button>
+            <button class="avatar-action-btn delete" data-thread-id="${userData.threadId || 'unknown'}" data-user-name="${userData.senderName}">
+                <span>🗑️</span>
+                <span>DELETE CONVERSATION</span>
+            </button>
+            <button class="avatar-action-btn close" data-thread-id="${userData.threadId || 'unknown'}">
+                <span>EXIT CHAT</span>
+                <span>🚪</span>
+            </button>
+        </div>
+        <button class="avatar-options-close-x outside" type="button" aria-label="Close options">✕</button>
+    `;
+    
+    // Create backdrop for subtle shadow and click-to-close functionality
+    const backdrop = document.createElement('div');
+    backdrop.className = 'avatar-overlay-backdrop';
+    backdrop.id = 'avatarOverlayBackdrop';
+    
+    // Add backdrop click handler to close modal
+    backdrop.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideAvatarOverlay();
+    });
+    
+    // Add backdrop and overlay to page
+    document.body.appendChild(backdrop);
+    document.body.appendChild(overlay);
+    
+    // Position overlay near the clicked avatar
+    positionAvatarOverlay(overlay, event, anchorElement);
+    
+    // Show backdrop and overlay with animation - MEMORY LEAK FIX: Use tracked timeout
+    trackTimeout(() => {
+        backdrop.classList.add('show');
+        overlay.classList.add('show');
+    }, 10);
+    
+    // Add action handlers
+    initializeAvatarOverlayActions(overlay, userData);
+    void hydrateAvatarOverlayGigActions(overlay, userData);
+    
+    // IMPROVED LISTENER MANAGEMENT: Add single listener with proper timing and tracking
+    // Wait for the overlay to be fully rendered before adding outside click detection
+    // MEMORY LEAK FIX: Use tracked timeout
+    trackTimeout(() => {
+        // Initialize listener count if not exists
+        if (!window.avatarOverlayListenerCount) {
+            window.avatarOverlayListenerCount = 0;
+        }
+        
+        // Store reference for proper cleanup
+        window.avatarOverlayClickHandler = hideAvatarOverlayOnOutsideClick;
+        document.addEventListener('click', window.avatarOverlayClickHandler, true);
+        window.avatarOverlayListenerCount++;
+        
+        messagesDebug(`📌 Avatar overlay listener added (count: ${window.avatarOverlayListenerCount})`);
+    }, 150); // Increased delay to ensure overlay is fully positioned
+    } finally {
+        showAvatarOverlay._pending = false;
+    }
+}
+
+function renderAvatarOverlayGigActions(userData, overlayState) {
+    const actions = [];
+    const safeJobId = String(userData.jobId || '').trim();
+    const safeRole = String(userData.currentUserRole || '').trim();
+    const resolvedJobCategory = String(userData.jobCategory || overlayState.category || '').trim();
+    const canShowHire = safeRole === 'customer' && !!userData.applicationId && !!overlayState.allowHireChecklist;
+    if (overlayState.allowGigStatus) {
+        actions.push(`
+            <button class="avatar-action-btn status"
+                data-job-id="${safeJobId}"
+                data-job-category="${escapeHtml(resolvedJobCategory)}"
+                data-current-user-role="${safeRole}">
+                <span>📊</span>
+                <span>GIG STATUS</span>
+            </button>
+        `);
+    }
+    if (canShowHire) {
+        actions.push(`
+            <button class="avatar-action-btn hire"
+                data-application-id="${userData.applicationId}"
+                data-job-id="${safeJobId}"
+                data-worker-name="${escapeHtml(String(userData.senderName || ''))}"
+                data-state="ready">
+                <span>💼</span>
+                <span>OPEN HIRE CHECKLIST</span>
+            </button>
+        `);
+    }
+    return actions.join('');
+}
+
+async function hydrateAvatarOverlayGigActions(overlay, userData) {
+    if (!overlay || !overlay.isConnected) return;
+    const dynamicContainer = overlay.querySelector('.avatar-overlay-dynamic-actions');
+    if (!dynamicContainer) return;
+
+    const currentUserId = String(userData.currentUserId || getCurrentUserId() || '').trim();
+    const overlayState = await resolveChatJobOverlayState(userData.jobId, currentUserId);
+    if (!overlay.isConnected) return;
+
+    dynamicContainer.innerHTML = renderAvatarOverlayGigActions(userData, overlayState);
+    overlay._chatJobOverlayState = overlayState;
+
+    const resolvedCategory = String(overlayState?.category || '').trim();
+    const tipsBtn = overlay.querySelector('.avatar-action-btn.tips');
+    if (tipsBtn && resolvedCategory) {
+        tipsBtn.setAttribute('data-job-category', resolvedCategory);
+    }
+    const jobBtn = overlay.querySelector('.avatar-action-btn.job');
+    if (jobBtn && resolvedCategory) {
+        jobBtn.setAttribute('data-job-category', resolvedCategory);
+    }
+
+    const signal = overlay?._abortController?.signal;
+    if (signal) {
+        bindDynamicAvatarOverlayActions(overlay, userData, signal, overlayState);
+    }
+}
+
+function positionAvatarOverlay(overlay, event, anchorElement = null) {
+    const targetElement = anchorElement || event?.currentTarget || event?.target;
+    if (!targetElement || typeof targetElement.getBoundingClientRect !== 'function') {
+        return;
+    }
+    const rect = targetElement.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let top = rect.bottom + 10;
+    let left = rect.left + (rect.width / 2) - (200 / 2); // Center on avatar
+    
+    // Adjust for viewport boundaries
+    if (left + 200 > viewportWidth - 20) {
+        left = viewportWidth - 220; // 200 + 20 margin
+    }
+    if (left < 20) {
+        left = 20;
+    }
+    
+    // If overlay would go below viewport, position above avatar
+    if (top + 150 > viewportHeight - 20) {
+        top = rect.top - 150 - 10;
+    }
+    
+    // Ensure it doesn't go above viewport
+    if (top < 20) {
+        top = 20;
+    }
+    
+    overlay.style.top = `${top}px`;
+    overlay.style.left = `${left}px`;
+}
+
+function bindDynamicAvatarOverlayActions(overlay, userData, signal, prefetchedState = null) {
+    const statusBtn = overlay.querySelector('.avatar-action-btn.status');
+    if (statusBtn && statusBtn.dataset.bound !== '1') {
+        statusBtn.dataset.bound = '1';
+        statusBtn.addEventListener('click', async function() {
+            const jobId = String(this.getAttribute('data-job-id') || '').trim();
+            const jobCategory = String(this.getAttribute('data-job-category') || '').trim();
+            const role = String(this.getAttribute('data-current-user-role') || '').trim().toLowerCase();
+            if (!jobId) {
+                showTemporaryNotification('Gig status is unavailable for this conversation.');
+                return;
+            }
+
+            const visibility = prefetchedState && prefetchedState.jobData
+                ? prefetchedState
+                : await resolveChatJobOverlayState(jobId, String(getCurrentUserId() || '').trim());
+            if (!visibility.allowGigStatus) {
+                showTemporaryNotification('Gig Status unlocks after the offer is accepted by both sides.');
+                return;
+            }
+
+            if (window.GigOverlays && typeof window.GigOverlays.showGigStatusOverlay === 'function') {
+                setAvatarOverlaySuspended(true);
+                window.GigOverlays.showGigStatusOverlay({
+                    jobId: jobId,
+                    jobCategory: jobCategory || visibility.category || '',
+                    jobData: visibility.jobData || null,
+                    currentUserRole: role === 'worker' ? 'worker' : 'customer',
+                    onClose: function () {
+                        setAvatarOverlaySuspended(false);
+                    },
+                    onUpdated: function() {
+                        const threadId = String(userData.threadId || '').trim();
+                        const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
+                        if (modalOverlay) {
+                            void renderGigFlowCardForThread(modalOverlay);
+                        }
+                    }
+                });
+                return;
+            }
+            setAvatarOverlaySuspended(false);
+            showTemporaryNotification('Gig status modal is unavailable right now.');
+        }, { signal });
+    }
+
+    const hireBtn = overlay.querySelector('.avatar-action-btn.hire');
+    if (hireBtn && hireBtn.dataset.bound !== '1') {
+        hireBtn.dataset.bound = '1';
+        hireBtn.addEventListener('click', function () {
+            const applicationId = this.getAttribute('data-application-id');
+            const jobId = this.getAttribute('data-job-id');
+            const workerName = this.getAttribute('data-worker-name');
+
+            if (!applicationId || !jobId) {
+                showTemporaryNotification('Hire data is incomplete. Please try again from Gigs Manager.');
+                return;
+            }
+
+            if (window.GigOverlays && typeof window.GigOverlays.showHireConfirmationOverlay === 'function') {
+                hideAvatarOverlay();
+                window.GigOverlays.showHireConfirmationOverlay({
+                    applicationId: applicationId,
+                    userId: userData.senderId,
+                    userName: workerName,
+                    jobId: jobId,
+                    jobTitle: userData.jobTitle || '',
+                    userRating: Number(userData.userRating || 0),
+                    userPhoto: userData.avatar || '',
+                    totalReviews: Number(userData.totalReviews || 0)
+                });
+                return;
+            }
+
+            showTemporaryNotification('Hire checklist is temporarily unavailable. Please try again.');
+        }, { signal });
+    }
+}
+
+function initializeAvatarOverlayActions(overlay, userData) {
+    // MEMORY LEAK FIX: Create AbortController for proper cleanup
+    const controller = new AbortController();
+    const signal = controller.signal;
+    
+    // Store controller reference on overlay for cleanup
+    overlay._abortController = controller;
+    
+    // MEMORY LEAK FIX: Track controller in global registry
+    CLEANUP_REGISTRY.activeControllers.add(controller);
+
+    // VIEW PROFILE button
+    const profileBtn = overlay.querySelector('.avatar-action-btn.profile');
+    if (profileBtn) {
+        profileBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            if (!userId) {
+                showTemporaryNotification('Profile is unavailable for this user.');
+                return;
+            }
+            hideAvatarOverlay();
+            window.location.href = `profile.html?userId=${encodeURIComponent(userId)}`;
+        }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
+    }
+    
+    // VIEW JOB POST button
+    const jobBtn = overlay.querySelector('.avatar-action-btn.job');
+    if (jobBtn) {
+        jobBtn.addEventListener('click', async function() {
+            const jobId = this.getAttribute('data-job-id');
+            const seededCategory = String(this.getAttribute('data-job-category') || '').trim().toLowerCase();
+            if (!jobId) {
+                showTemporaryNotification('Gig post is unavailable for this conversation.');
+                return;
+            }
+            hideAvatarOverlay();
+            try {
+                let category = seededCategory;
+                if (!category && typeof getJobById === 'function') {
+                    const job = await getJobById(jobId);
+                    category = String(job?.category || '').trim().toLowerCase();
+                }
+                if (category) {
+                    window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}&category=${encodeURIComponent(category)}`;
+                    return;
+                }
+                // Fallback keeps previous behavior if category lookup is unavailable.
+                window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}`;
+            } catch (error) {
+                console.warn('⚠️ Failed to resolve gig category for chat action:', error);
+                window.location.href = `dynamic-job.html?jobId=${encodeURIComponent(jobId)}`;
+            }
+        }, { signal }); // MEMORY LEAK FIX: Use AbortController signal
+    }
+    
+    // VIEW APPLICATION button (only for application-based threads)
+    const applicationBtn = overlay.querySelector('.avatar-action-btn.application');
+    if (applicationBtn) {
+        messagesDebug(`🔍 DEBUG: View Application button found:`, applicationBtn);
+        messagesDebug(`🔍 DEBUG: Button data attributes:`, {
+            applicationId: applicationBtn.getAttribute('data-application-id'),
+            jobId: applicationBtn.getAttribute('data-job-id')
+        });
+        
+        // REMOVED: View Application button click handler - no longer needed
+        messagesDebug(`🔍 DEBUG: View Application button functionality removed`);
+    } else {
+        messagesDebug(`🔍 DEBUG: No View Application button found in overlay (expected - removed)`);
+    }
+
+    // READ GIG TIPS button
+    const tipsBtn = overlay.querySelector('.avatar-action-btn.tips');
+    if (tipsBtn) {
+        tipsBtn.addEventListener('click', async function() {
+            const threadId = String(this.getAttribute('data-thread-id') || '').trim();
+            const jobId = String(this.getAttribute('data-job-id') || '').trim();
+            const jobTitle = String(this.getAttribute('data-job-title') || 'Gig').trim();
+            const jobCategory = String(this.getAttribute('data-job-category') || '').trim();
+
+            const modalOverlay = threadId ? document.getElementById(`chat-modal-${threadId}`) : null;
+            if (!modalOverlay) {
+                showTemporaryNotification('Open the conversation first to read gig tips.');
+                return;
+            }
+            setAvatarOverlaySuspended(true);
+            try {
+                await openGigTipsModal({
+                    modalOverlay,
+                    threadId,
+                    jobId,
+                    jobTitle,
+                    category: jobCategory,
+                    requireAcknowledge: false
+                });
+            } finally {
+                setAvatarOverlaySuspended(false);
+            }
+        }, { signal });
+    }
+
+    bindDynamicAvatarOverlayActions(overlay, userData, signal, overlay?._chatJobOverlayState || null);
+
+    // BLOCK USER button
+    const blockBtn = overlay.querySelector('.avatar-action-btn.block');
+    if (blockBtn) {
+        blockBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            console.log(`🚫 Blocking user: ${userName} (ID: ${userId})`);
+            
+            // Show custom confirmation dialog
+            showCustomConfirmation(
+                'Block User',
+                `Are you sure you want to block ${userName}? This will prevent them from contacting you and hide this conversation.`,
+                'Block',
+                'Cancel',
+                async () => {
+                    // Confirmed - block the user with Firebase integration
+                    console.log(`🚫 Initiating block for user: ${userName} (ID: ${userId})`);
+                    
+                    try {
+                        // Get current user ID for Firebase operations
+                        const currentUserId = getCurrentUserId();
+                        
+                        // Show loading state
+                        showTemporaryNotification(`Blocking ${userName}...`);
+                        
+                        // Firebase: Block user operation
+                        const result = await blockUserInFirebase(currentUserId, userId, userName);
+                        
+                        if (result.success) {
+                            // Success - update UI
+                            console.log(`✅ Firebase: User ${userName} successfully blocked`);
+                            showTemporaryNotification(`${userName} has been blocked`);
+                            
+                            // Hide overlay
+                            hideAvatarOverlay();
+                            
+                            // Close the expanded thread since user is blocked
+                            closeAllMessageThreads();
+                            
+                            // Refresh conversations list to hide blocked user's conversations
+                            await refreshConversationsList();
+                            
+                        } else {
+                            // Firebase operation failed
+                            console.error(`❌ Firebase: Failed to block ${userName}:`, result.error);
+                            showTemporaryNotification(`Failed to block ${userName}. Please try again.`);
+                        }
+                        
+                    } catch (error) {
+                        // Network or unexpected error
+                        console.error(`❌ Block user error:`, error);
+                        showTemporaryNotification(`Network error. Please check your connection and try again.`);
+                    }
+                },
+                () => {
+                    // Cancelled - do nothing
+                    console.log(`❌ Block cancelled for ${userName}`);
+                }
+            );
+        }, { signal });
+    }
+    
+    // DELETE CONVERSATION button
+    const deleteBtn = overlay.querySelector('.avatar-action-btn.delete');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            const threadId = this.getAttribute('data-thread-id');
+            const userName = this.getAttribute('data-user-name');
+            
+            console.log(`🗑️ Deleting conversation with: ${userName} (Thread ID: ${threadId})`);
+            
+            // Show custom confirmation dialog
+            showCustomConfirmation(
+                'Delete Conversation',
+                `Delete this conversation from your inbox only? The other user will still keep their copy.`,
+                'Delete',
+                'Cancel',
+                async () => {
+                    // Confirmed - delete the conversation with Firebase integration
+                    console.log(`🗑️ Initiating delete for conversation: ${threadId} with ${userName}`);
+                    
+                    try {
+                        // Get current user ID for Firebase operations
+                        const currentUserId = getCurrentUserId();
+                        
+                        // Show loading state
+                        showTemporaryNotification(`Deleting conversation with ${userName}...`);
+                        
+                        // Firebase: Delete conversation operation
+                        const result = await deleteConversationInFirebase(currentUserId, threadId, userName);
+                        
+                        if (result.success) {
+                            // Success - update UI
+                            console.log(`✅ Firebase: Conversation with ${userName} successfully deleted`);
+                            showTemporaryNotification(`Conversation with ${userName} deleted`);
+                            
+                            // Hide overlay
+                            hideAvatarOverlay();
+                            
+                            // Close the expanded thread and remove it from the list
+                            closeAllMessageThreads();
+                            
+                            // Remove the thread from the DOM immediately for better UX
+                            const threadElement = document.querySelector(`[data-thread-id="${threadId}"]`);
+                            if (threadElement) {
+                                // Fade out animation before removal
+                                threadElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                                threadElement.style.opacity = '0';
+                                threadElement.style.transform = 'translateX(-20px)';
+                                
+                                // MEMORY LEAK FIX: Use tracked timeout
+                                trackTimeout(() => {
+                                    if (threadElement.parentNode) {
+                                        threadElement.remove();
+                                    }
+                                    // Update message count after removal
+                                    updateMessageCount();
+                                }, 300);
+                            }
+                            
+                            // Refresh conversations list to reflect Firebase changes
+                            // MEMORY LEAK FIX: Use tracked timeout
+                            trackTimeout(async () => {
+                                await refreshConversationsList();
+                            }, 500);
+                            
+                        } else {
+                            // Firebase operation failed
+                            console.error(`❌ Firebase: Failed to delete conversation with ${userName}:`, result.error);
+                            showTemporaryNotification(`Failed to delete conversation. Please try again.`);
+                        }
+                        
+                    } catch (error) {
+                        // Network or unexpected error
+                        console.error(`❌ Delete conversation error:`, error);
+                        showTemporaryNotification(`Network error. Please check your connection and try again.`);
+                    }
+                },
+                () => {
+                    // Cancelled - do nothing
+                    console.log(`❌ Delete cancelled for conversation with ${userName}`);
+                }
+            );
+        }, { signal });
+    }
+    
+    // EXIT CHAT button (closes chat thread)
+    const closeBtn = overlay.querySelector('.avatar-action-btn.close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            const threadId = this.getAttribute('data-thread-id');
+            messagesDebug(`✕ Closing chat (Thread ID: ${threadId})`);
+            hideAvatarOverlay();
+            closeAllMessageThreads();
+        }, { signal });
+    }
+
+    // CLOSE OPTIONS button (dismisses options modal only)
+    const closeOptionsBtn = overlay.querySelector('.avatar-options-close-x');
+    if (closeOptionsBtn) {
+        closeOptionsBtn.addEventListener('click', function () {
+            hideAvatarOverlay();
+        }, { signal });
+    }
+}
+
+function hideAvatarOverlay() {
+    const existingOverlay = document.getElementById('avatarOverlay');
+    const existingBackdrop = document.getElementById('avatarOverlayBackdrop');
+    
+    if (existingOverlay) {
+        // MEMORY LEAK FIX: Cleanup action button listeners before removing overlay
+        if (existingOverlay._abortController) {
+            existingOverlay._abortController.abort();
+            // MEMORY LEAK FIX: Remove from global registry
+            CLEANUP_REGISTRY.activeControllers.delete(existingOverlay._abortController);
+            existingOverlay._abortController = null;
+        }
+        
+        existingOverlay.classList.remove('show');
+        existingOverlay.classList.remove('avatar-overlay-suspended');
+        // MEMORY LEAK FIX: Use tracked timeout
+        trackTimeout(() => {
+            if (existingOverlay.parentNode) {
+                existingOverlay.parentNode.removeChild(existingOverlay);
+            }
+        }, 200);
+    }
+    
+    if (existingBackdrop) {
+        existingBackdrop.classList.remove('show');
+        existingBackdrop.classList.remove('avatar-overlay-backdrop-suspended');
+        // MEMORY LEAK FIX: Use tracked timeout
+        trackTimeout(() => {
+            if (existingBackdrop.parentNode) {
+                existingBackdrop.parentNode.removeChild(existingBackdrop);
+            }
+        }, 200);
+    }
+
+    // CRITICAL FIX: Complete listener cleanup with multiple strategies
+    // Strategy 1: Remove using stored reference
+    if (window.avatarOverlayClickHandler) {
+        document.removeEventListener('click', window.avatarOverlayClickHandler, true);
+        document.removeEventListener('click', window.avatarOverlayClickHandler, false);
+        window.avatarOverlayClickHandler = null;
+    }
+    
+    // Strategy 2: Remove using function reference (fallback)
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+    document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+    
+    // Strategy 3: Clear any possible duplicate listeners by redefining the function
+    // This nuclear option ensures no listeners can survive
+    if (window.avatarOverlayListenerCount > 0) {
+        for (let i = 0; i < window.avatarOverlayListenerCount; i++) {
+            document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+            document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+        }
+        window.avatarOverlayListenerCount = 0;
+    }
+    
+    messagesDebug('🧹 Avatar overlay cleanup completed');
+}
+
+function setAvatarOverlaySuspended(suspended) {
+    const overlay = document.getElementById('avatarOverlay');
+    const backdrop = document.getElementById('avatarOverlayBackdrop');
+    if (overlay) {
+        overlay.classList.toggle('avatar-overlay-suspended', !!suspended);
+    }
+    if (backdrop) {
+        backdrop.classList.toggle('avatar-overlay-backdrop-suspended', !!suspended);
+    }
+}
+
+function hideAvatarOverlayOnOutsideClick(event) {
+    const overlay = document.getElementById('avatarOverlay');
+    if (overlay && !overlay.contains(event.target)) {
+        if (document.getElementById('customConfirmationOverlay')) {
+            return;
+        }
+        if (overlay.classList.contains('avatar-overlay-suspended')) {
+            return;
+        }
+        // ENHANCED SAFETY: Extra checks to prevent stuck overlays
+        const isAvatarClick = event.target.closest('.message-avatar');
+        const isOverlayAction = event.target.closest('.avatar-action-btn');
+        
+        // Don't close if clicking on an avatar (new overlay will replace) or action button
+        if (!isAvatarClick && !isOverlayAction) {
+            console.log('🎯 Outside click detected, hiding avatar overlay');
+            hideAvatarOverlay();
+        }
+    }
+}
+
+/*
+ * FIREBASE INTEGRATION DOCUMENTATION
+ * 
+ * Required Firestore Collections Structure:
+ * 
+ * /users/{userId}
+ *   - blockedUsers: [array] - List of blocked user IDs for quick lookup
+ *   - activeConversations: [array] - List of active conversation IDs
+ *   - deletedConversations: [array] - List of deleted conversation IDs
+ *   - lastActivity: [timestamp] - Last user activity timestamp
+ * 
+ * /users/{userId}/blockedUsers/{blockedUserId}
+ *   - blockedUserId: [string] - ID of blocked user
+ *   - blockedUserName: [string] - Name of blocked user
+ *   - blockedAt: [timestamp] - When user was blocked
+ *   - reason: [string] - Reason for blocking ('user_initiated', etc.)
+ * 
+ * /conversations/{conversationId}
+ *   - participants: [array] - Array of participant user IDs
+ *   - hiddenFor: [object] - Map of userId -> boolean for hidden conversations
+ *   - deletedFor: [object] - Map of userId -> timestamp for deleted conversations
+ *   - blockedBy: [object] - Map of userId -> blockedUserId for blocked conversations
+ *   - lastActivity: [object] - Map of userId -> timestamp for activity tracking
+ * 
+ * /conversations/{conversationId}/messages/{messageId}
+ *   - senderId: [string] - ID of message sender
+ *   - content: [string] - Message content
+ *   - timestamp: [timestamp] - When message was sent
+ *   - deletedFor: [object] - Map of userId -> timestamp for deleted messages
+ *   - hiddenFor: [object] - Map of userId -> boolean for hidden messages
+ * 
+ * Required Firestore Security Rules:
+ * 
+ * rules_version = '2';
+ * service cloud.firestore {
+ *   match /databases/{database}/documents {
+ *     // Users can only access their own data
+ *     match /users/{userId} {
+ *       allow read, write: if request.auth != null && request.auth.uid == userId;
+ *       
+ *       // Blocked users subcollection
+ *       match /blockedUsers/{blockedUserId} {
+ *         allow read, write: if request.auth != null && request.auth.uid == userId;
+ *       }
+ *     }
+ *     
+ *     // Conversations - only participants can access
+ *     match /conversations/{conversationId} {
+ *       allow read, write: if request.auth != null && 
+ *         request.auth.uid in resource.data.participants &&
+ *         !isUserBlocked(request.auth.uid, resource.data);
+ *       
+ *       // Messages subcollection
+ *       match /messages/{messageId} {
+ *         allow read, write: if request.auth != null && 
+ *           request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+ *       }
+ *     }
+ *   }
+ *   
+ *   // Helper function to check if user is blocked
+ *   function isUserBlocked(userId, conversationData) {
+ *     return conversationData.blockedBy != null && 
+ *            conversationData.blockedBy[userId] != null;
+ *   }
+ * }
+ */
+
+// Firebase Helper Functions
+function getCurrentUserId() {
+    // Get current user ID strictly from Firebase Auth.
+    try {
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+                return currentUser.uid;
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Unable to resolve current user ID from Firebase auth:', e);
+    }
+    return '';
+}
+
+function checkFirebaseConnection() {
+    // Check if Firebase is available and properly initialized
+    if (typeof firebase === 'undefined') {
+        console.warn('⚠️ Firebase not loaded');
+        return { connected: false, error: 'Firebase not loaded' };
+    }
+    
+    if (typeof db === 'undefined') {
+        console.warn('⚠️ Firestore not initialized');
+        return { connected: false, error: 'Firestore not initialized' };
+    }
+    
+    // Check authentication
+    const currentUser = getCurrentUserId();
+    if (!currentUser || currentUser === 'current_user_id') {
+        console.warn('⚠️ User not authenticated');
+        return { connected: false, error: 'User not authenticated' };
+    }
+    
+    return { connected: true };
+}
+
+async function blockUserInFirebase(currentUserId, blockedUserId, blockedUserName) {
+    try {
+        console.log(`🔥 Firebase: Blocking user ${blockedUserName} (${blockedUserId})`);
+        
+        // Check Firebase connection first
+        const connectionCheck = checkFirebaseConnection();
+        if (!connectionCheck.connected) {
+            throw new Error(`Firebase connection failed: ${connectionCheck.error}`);
+        }
+        
+        // Initialize Firestore batch
+        const batch = db.batch();
+        
+        // 1. Add to blocked users subcollection
+        const blockedUserRef = db.collection('users').doc(currentUserId)
+                                .collection('blockedUsers').doc(blockedUserId);
+        batch.set(blockedUserRef, {
+            blockedUserId: blockedUserId,
+            blockedUserName: blockedUserName,
+            blockedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            reason: 'user_initiated'
+        });
+        
+        // 2. Update user's blocked list array for quick lookups
+        const userRef = db.collection('users').doc(currentUserId);
+        batch.update(userRef, {
+            blockedUsers: firebase.firestore.FieldValue.arrayUnion(blockedUserId),
+            lastActivity: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // 3. Hide all conversations with blocked user
+        const conversationsQuery = await db.collection('conversations')
+            .where('participants', 'array-contains', currentUserId)
+            .get();
+        
+        const conversationsToUpdate = [];
+        conversationsQuery.forEach(doc => {
+            const participants = doc.data().participants || [];
+            if (participants.includes(blockedUserId)) {
+                conversationsToUpdate.push(doc.ref);
+            }
+        });
+        
+        conversationsToUpdate.forEach(conversationRef => {
+            batch.update(conversationRef, {
+                [`hiddenFor.${currentUserId}`]: true,
+                [`blockedBy.${currentUserId}`]: blockedUserId,
+                [`lastActivity.${currentUserId}`]: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        // 4. Commit all changes atomically
+        await batch.commit();
+        
+        console.log(`✅ Firebase: Successfully blocked user ${blockedUserName}`);
+        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Firebase: Block user failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function deleteConversationInFirebase(currentUserId, threadId, participantName) {
+    try {
+        console.log(`🔥 Firebase: Deleting conversation ${threadId} for user ${currentUserId}`);
+        if (typeof deleteChatThreadForCurrentUser !== 'function') {
+            throw new Error('Delete conversation backend is unavailable');
+        }
+
+        const result = await deleteChatThreadForCurrentUser(threadId);
+        if (!result || result.success !== true) {
+            throw new Error(result?.message || 'Delete conversation failed');
+        }
+
+        console.log(`✅ Firebase: Successfully deleted conversation with ${participantName}`);
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Firebase: Delete conversation failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function refreshConversationsList() {
+    try {
+        console.log('🔄 Firebase: Refreshing conversations list...');
+        
+        // Re-load the messages tab to reflect changes
+        const messagesTab = document.querySelector('.tab-btn[data-tab="messages"]');
+        if (messagesTab && messagesTab.classList.contains('active')) {
+            loadMessagesTab();
+        }
+        
+        // Update message count
+        updateMessageCount();
+        
+        console.log('✅ Firebase: Conversations list refreshed');
+        
+    } catch (error) {
+        console.error('❌ Firebase: Failed to refresh conversations:', error);
+    }
+}
+
+// Custom Confirmation Dialog System
+function showCustomConfirmation(title, message, confirmText, cancelText, onConfirm, onCancel) {
+    // Remove any existing custom confirmation
+    const existingConfirm = document.getElementById('customConfirmationOverlay');
+    if (existingConfirm) {
+        existingConfirm.remove();
+    }
+    
+    // Create confirmation overlay
+    const confirmOverlay = document.createElement('div');
+    confirmOverlay.id = 'customConfirmationOverlay';
+    confirmOverlay.className = 'custom-confirmation-overlay';
+    confirmOverlay.innerHTML = `
+        <div class="custom-confirmation-modal">
+            <div class="custom-confirmation-title">${title}</div>
+            <div class="custom-confirmation-message">${message}</div>
+            <div class="custom-confirmation-buttons">
+                <button class="custom-confirmation-btn cancel" id="customCancelBtn">${cancelText}</button>
+                <button class="custom-confirmation-btn confirm" id="customConfirmBtn">${confirmText}</button>
+            </div>
+        </div>
+    `;
+    
+    // Add to page
+    document.body.appendChild(confirmOverlay);
+    
+    // Show with animation - MEMORY LEAK FIX: Use tracked timeout
+    trackTimeout(() => {
+        confirmOverlay.classList.add('show');
+    }, 10);
+    
+    // Handle button clicks
+    const confirmBtn = confirmOverlay.querySelector('#customConfirmBtn');
+    const cancelBtn = confirmOverlay.querySelector('#customCancelBtn');
+    
+    let isClosed = false;
+    const cleanup = () => {
+        if (isClosed) return;
+        isClosed = true;
+        document.removeEventListener('keydown', escapeHandler);
+        confirmOverlay.classList.remove('show');
+        // MEMORY LEAK FIX: Use tracked timeout
+        trackTimeout(() => {
+            if (confirmOverlay.parentNode) {
+                confirmOverlay.parentNode.removeChild(confirmOverlay);
+            }
+        }, 200);
+    };
+    
+    confirmBtn.addEventListener('click', () => {
+        cleanup();
+        if (onConfirm) onConfirm();
+    });
+    
+    cancelBtn.addEventListener('click', () => {
+        cleanup();
+        if (onCancel) onCancel();
+    });
+    
+    // Close on outside click
+    confirmOverlay.addEventListener('click', (e) => {
+        if (e.target === confirmOverlay) {
+            cleanup();
+            if (onCancel) onCancel();
+        }
+    });
+    
+    // Close on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            cleanup();
+            if (onCancel) onCancel();
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+}
+
+// NUCLEAR OPTION: Global reset function for stuck overlays
+// This can be called manually or triggered by specific events
+// REMOVED: navigateToApplicationCard() function - no longer needed since applications moved to jobs.html
+// function navigateToApplicationCard(applicationId, jobId) {
+    /*console.log(`🎯 Navigating to application: ${applicationId} in job: ${jobId}`);
+    
+    // 1. Switch to Applications tab
+    const applicationsTab = document.querySelector('.tab-btn[data-tab="applications"]');
+    console.log(`📱 Applications tab found:`, applicationsTab);
+    console.log(`📱 Applications tab active:`, applicationsTab?.classList.contains('active'));
+    
+    if (applicationsTab && !applicationsTab.classList.contains('active')) {
+        console.log(`🔄 Switching to applications tab...`);
+        applicationsTab.click(); // This will load the applications content
+        
+        // 2. Wait for content to load, then find and expand the specific application
+        setTimeout(() => {
+            console.log(`🔍 Looking for job listing with data-job-id="${jobId}"`);
+            
+            // SCOPED SELECTOR: Only search within applications container for job listings
+            const applicationsContainer = document.querySelector('#applications-content .applications-container');
+            console.log(`📦 Applications container found:`, applicationsContainer);
+            
+            if (!applicationsContainer) {
+                console.error(`❌ Applications container not found!`);
+                return;
+            }
+            
+            // Debug: Show all job listings in the applications container only
+            const allJobListings = applicationsContainer.querySelectorAll('.job-listing[data-job-id]');
+            console.log(`📊 Found ${allJobListings.length} job listings in applications container:`, 
+                Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
+            
+            // Find the job listing that contains this application (scoped to applications container)
+            const targetJobListing = applicationsContainer.querySelector(`.job-listing[data-job-id="${jobId}"]`);
+            console.log(`🎯 Target job listing found:`, targetJobListing);
+            
+            if (targetJobListing) {
+                console.log(`📂 Job listing found, checking if expanded...`);
+                console.log(`📂 Is expanded:`, targetJobListing.classList.contains('expanded'));
+                
+                // Expand the job listing if not already expanded
+                if (!targetJobListing.classList.contains('expanded')) {
+                    console.log(`🔽 Manually expanding job listing...`);
+                    
+                    // First, close all other expanded listings (same as job click handler)
+                    const allJobListings = document.querySelectorAll('.job-listing');
+                    allJobListings.forEach(listing => {
+                        const header = listing.querySelector('.job-header');
+                        const listingJobId = header.getAttribute('data-job-id');
+                        const applicationsList = document.getElementById('applications-' + listingJobId);
+                        const expandIcon = header.querySelector('.expand-icon');
+                        
+                        if (listing.classList.contains('expanded')) {
+                            listing.classList.remove('expanded');
+                            if (applicationsList) {
+                                applicationsList.style.display = 'none';
+                            }
+                            if (expandIcon) {
+                                expandIcon.textContent = '▼';
+                            }
+                        }
+                    });
+                    
+                    // Now expand the target listing (same logic as job click handler)
+                    const applicationsList = document.getElementById('applications-' + jobId);
+                    const expandIcon = targetJobListing.querySelector('.expand-icon');
+                    
+                    console.log(`📋 Applications list found:`, applicationsList);
+                    console.log(`🔽 Expand icon found:`, expandIcon);
+                    
+                    if (applicationsList && expandIcon) {
+                        targetJobListing.classList.add('expanded');
+                        applicationsList.style.display = 'block';
+                        expandIcon.textContent = '▲';
+                        console.log(`✅ Job listing expanded successfully`);
+                    } else {
+                        console.warn(`⚠️ Could not expand - missing applicationsList or expandIcon`);
+                    }
+                } else {
+                    console.log(`📂 Job listing already expanded`);
+                }
+                
+                // Wait for expansion animation, then find specific application card
+                setTimeout(() => {
+                    console.log(`🔍 Looking for application card with data-application-id="${applicationId}"`);
+                    
+                    // SCOPED SELECTOR: Only search within applications container to avoid message threads
+                    const applicationsContainer = document.querySelector('#applications-content .applications-container');
+                    console.log(`📦 Applications container found:`, applicationsContainer);
+                    
+                    if (!applicationsContainer) {
+                        console.error(`❌ Applications container not found!`);
+                        return;
+                    }
+                    
+                    // Debug: Show all application cards in the applications container only
+                    const allApplicationCards = applicationsContainer.querySelectorAll('[data-application-id]');
+                    console.log(`📊 Found ${allApplicationCards.length} application cards in applications container:`, 
+                        Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
+                    
+                    const targetApplicationCard = applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`);
+                    
+                    if (targetApplicationCard) {
+                        console.log(`✨ Scrolling to and highlighting application card...`);
+                        
+                        // Scroll to the application card and center it
+                        targetApplicationCard.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                        
+                        // Enhanced multi-stage highlight effect
+                        setTimeout(() => {
+                            // Stage 1: Initial pulse and glow
+                            targetApplicationCard.style.transition = 'all 0.3s ease-in-out';
+                            targetApplicationCard.style.boxShadow = '0 0 25px rgba(52, 152, 219, 0.8), 0 0 40px rgba(52, 152, 219, 0.4)';
+                            targetApplicationCard.style.transform = 'scale(1.03)';
+                            targetApplicationCard.style.borderRadius = '12px';
+                            targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                            
+                            // Stage 2: Secondary pulse
+                            setTimeout(() => {
+                                targetApplicationCard.style.transform = 'scale(1.01)';
+                                targetApplicationCard.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.6), 0 0 30px rgba(52, 152, 219, 0.3)';
+                            }, 300);
+                            
+                            // Stage 3: Gentle settle
+                            setTimeout(() => {
+                                targetApplicationCard.style.transform = 'scale(1.005)';
+                                targetApplicationCard.style.boxShadow = '0 0 15px rgba(52, 152, 219, 0.4)';
+                                targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+                            }, 600);
+                            
+                            // Stage 4: Final fade out
+                            setTimeout(() => {
+                                targetApplicationCard.style.transition = 'all 0.8s ease-out';
+                                targetApplicationCard.style.boxShadow = '';
+                                targetApplicationCard.style.transform = '';
+                                targetApplicationCard.style.backgroundColor = '';
+                                targetApplicationCard.style.borderRadius = '';
+                                
+                                // Clean up after animation
+                                setTimeout(() => {
+                                    targetApplicationCard.style.transition = '';
+                                }, 800);
+                            }, 2500);
+                        }, 600); // Wait for scroll to complete
+                        
+                        console.log(`✅ Successfully navigated to application: ${applicationId}`);
+                    } else {
+                        console.warn(`⚠️ Application card not found: ${applicationId}`);
+                        console.warn(`Available application IDs:`, 
+                            Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
+                    }
+                }, 500); // Increased wait time for expansion
+            } else {
+                console.warn(`⚠️ Job listing not found: ${jobId}`);
+                console.warn(`Available job IDs:`, 
+                    Array.from(allJobListings).map(el => el.getAttribute('data-job-id')));
+            }
+        }, 300); // Increased wait time for tab content to load
+    } else {
+        console.log(`📱 Already on applications tab, searching directly...`);
+        
+        // Already on applications tab, just find the application with scoped selector
+        const applicationsContainer = document.querySelector('#applications-content .applications-container');
+        console.log(`📦 Applications container found for direct search:`, applicationsContainer);
+        
+        if (!applicationsContainer) {
+            console.error(`❌ Applications container not found for direct search!`);
+            return;
+        }
+        
+        // Debug: Show all application cards in the applications container only
+        const allApplicationCards = applicationsContainer.querySelectorAll('[data-application-id]');
+        console.log(`📊 Found ${allApplicationCards.length} application cards in applications container (direct):`, 
+            Array.from(allApplicationCards).map(el => el.getAttribute('data-application-id')));
+        
+        const targetApplicationCard = applicationsContainer.querySelector(`[data-application-id="${applicationId}"]`);
+        console.log(`🎯 Target application card found directly:`, targetApplicationCard);
+        
+        if (targetApplicationCard) {
+            // Enhanced scroll and highlight for direct navigation
+            targetApplicationCard.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Same enhanced highlight effect as the full navigation
+            setTimeout(() => {
+                // Stage 1: Initial pulse and glow
+                targetApplicationCard.style.transition = 'all 0.3s ease-in-out';
+                targetApplicationCard.style.boxShadow = '0 0 25px rgba(52, 152, 219, 0.8), 0 0 40px rgba(52, 152, 219, 0.4)';
+                targetApplicationCard.style.transform = 'scale(1.03)';
+                targetApplicationCard.style.borderRadius = '12px';
+                targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+                
+                // Stage 2: Secondary pulse
+                setTimeout(() => {
+                    targetApplicationCard.style.transform = 'scale(1.01)';
+                    targetApplicationCard.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.6), 0 0 30px rgba(52, 152, 219, 0.3)';
+                }, 300);
+                
+                // Stage 3: Gentle settle
+                setTimeout(() => {
+                    targetApplicationCard.style.transform = 'scale(1.005)';
+                    targetApplicationCard.style.boxShadow = '0 0 15px rgba(52, 152, 219, 0.4)';
+                    targetApplicationCard.style.backgroundColor = 'rgba(52, 152, 219, 0.05)';
+                }, 600);
+                
+                // Stage 4: Final fade out
+                setTimeout(() => {
+                    targetApplicationCard.style.transition = 'all 0.8s ease-out';
+                    targetApplicationCard.style.boxShadow = '';
+                    targetApplicationCard.style.transform = '';
+                    targetApplicationCard.style.backgroundColor = '';
+                    targetApplicationCard.style.borderRadius = '';
+                    
+                    // Clean up after animation
+                    setTimeout(() => {
+                        targetApplicationCard.style.transition = '';
+                    }, 800);
+                }, 2500);
+            }, 300); // Shorter wait since no tab switching
+            
+            console.log(`✅ Scrolled to and highlighted application: ${applicationId}`);
+        } else {
+            console.warn(`⚠️ Application card not found: ${applicationId}`);
+            const allCards = document.querySelectorAll('[data-application-id]');
+            console.warn(`Available application IDs:`, 
+                Array.from(allCards).map(el => el.getAttribute('data-application-id')));
+        }
+    }*/
+// } // End of removed navigateToApplicationCard function
+
+// NUCLEAR OPTION: Global reset function for stuck overlays
+// This can be called manually or triggered by specific events
+window.forceResetAvatarOverlay = function() {
+    console.log('🚨 FORCE RESET: Cleaning up any stuck avatar overlays');
+    
+    // MEMORY LEAK FIX: Clean up all avatar listeners globally
+    const allAvatars = document.querySelectorAll('.message-avatar[data-overlay-initialized="true"]');
+    allAvatars.forEach(avatar => {
+        const listeners = avatarListeners.get(avatar);
+        if (listeners) {
+            avatar.removeEventListener('click', listeners.click);
+            avatar.removeEventListener('mouseenter', listeners.mouseenter);
+            avatar.removeEventListener('mouseleave', listeners.mouseleave);
+            avatarListeners.delete(avatar);
+        }
+        avatar.removeAttribute('data-overlay-initialized');
+        avatar.style.cursor = '';
+        avatar.style.transition = '';
+        avatar.style.transform = '';
+    });
+    
+    // Remove all possible overlays
+    const overlays = document.querySelectorAll('#avatarOverlay, .avatar-overlay');
+    overlays.forEach(overlay => {
+        // MEMORY LEAK FIX: Abort action button listeners
+        if (overlay._abortController) {
+            overlay._abortController.abort();
+            overlay._abortController = null;
+        }
+        
+        if (overlay.parentNode) {
+            overlay.parentNode.removeChild(overlay);
+        }
+    });
+    
+    // Reset all tracking variables
+    window.avatarOverlayClickHandler = null;
+    window.avatarOverlayListenerCount = 0;
+    globalAvatarClickProcessing = false;
+    
+    // Remove all possible listeners (brute force)
+    for (let i = 0; i < 10; i++) { // Remove up to 10 possible duplicate listeners
+        document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, true);
+        document.removeEventListener('click', hideAvatarOverlayOnOutsideClick, false);
+    }
+    
+    console.log(`✅ Force reset completed - cleaned up ${allAvatars.length} avatar listeners and all overlays`);
+};
+
+// ===== PHOTO UPLOAD FUNCTIONALITY =====
+
+/**
+ * Process image for chat using dual-size optimization
+ * Generates both thumbnail (100px) and full-size (720px) versions
+ * @param {File} file - Image file to process
+ * @param {Function} callback - Callback with processed image data
+ */
+function processChatImage(file, callback, errorCallback) {
+    if (!isAllowedImageFile(file)) {
+        console.error('❌ Invalid file type for chat image');
+        if (errorCallback) errorCallback('Invalid file type');
+        return;
+    }
+    
+    // Validate file size (max 10MB to prevent memory issues)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+        console.error('❌ File too large:', Math.round(file.size / 1024 / 1024) + 'MB');
+        alert('Image is too large. Please select an image under 10MB.');
+        if (errorCallback) errorCallback('File too large');
+        return;
+    }
+    
+    console.log('📸 Processing image:', file.name, 'Type:', file.type, 'Size:', Math.round(file.size / 1024) + 'KB');
+
+    const reader = new FileReader();
+    
+    // Add error handler for FileReader
+    reader.onerror = function(error) {
+        console.error('❌ FileReader error:', error);
+        alert('Failed to read image file. This photo may be corrupted or in an unsupported format.');
+        reader.onload = null;
+        reader.onerror = null;
+        if (errorCallback) errorCallback('FileReader error');
+    };
+    
+    reader.onload = function(e) {
+        const img = new Image();
+        
+        // Add timeout to detect hung image loading (3 seconds)
+        const imageTimeout = setTimeout(() => {
+            console.error('❌ Image loading timeout - may be corrupted or unsupported format');
+            alert('This image is taking too long to load. It may be in an unsupported format (try converting to JPG first).');
+            img.src = '';
+            img.onload = null;
+            img.onerror = null;
+            reader.onload = null;
+            reader.onerror = null;
+            if (errorCallback) errorCallback('Image loading timeout');
+        }, 3000);
+        
+        // Add error handler for Image loading
+        img.onerror = function() {
+            clearTimeout(imageTimeout);
+            console.error('❌ Image load error - file may be corrupted or unsupported format');
+            alert('Failed to load this image. It may be corrupted or in an unsupported format (HEIC/HEIF). Try converting to JPG first.');
+            img.src = '';
+            img.onload = null;
+            img.onerror = null;
+            reader.onload = null;
+            reader.onerror = null;
+            if (errorCallback) errorCallback('Image load error');
+        };
+        
+        img.onload = function() {
+            clearTimeout(imageTimeout);
+            console.log('✅ Image loaded successfully:', img.width + 'x' + img.height);
+            
+            let thumbnailComplete = false;
+            let fullSizeComplete = false;
+            const result = {
+                originalFile: file,
+                dimensions: `${img.width}×${img.height}`,
+                aspectRatio: img.width / img.height
+            };
+
+            // Generate thumbnail (100px max, 60% quality)
+            createChatThumbnail(img, function(thumbnailDataURL) {
+                result.thumbnailURL = thumbnailDataURL;
+                result.thumbnailSize = Math.round(thumbnailDataURL.length * 0.75);
+                thumbnailComplete = true;
+                
+                if (fullSizeComplete) {
+                    // MEMORY CLEANUP: Free image object and reader after both versions are done
+                    img.src = '';
+                    img.onload = null;
+                    img.onerror = null;
+                    reader.onload = null;
+                    reader.onerror = null;
+                    callback(result);
+                }
+            }, function(error) {
+                // Thumbnail generation error
+                console.error('❌ Thumbnail generation failed');
+                alert('Failed to process this image. It may be in an unsupported format.');
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
+                reader.onload = null;
+                reader.onerror = null;
+                if (errorCallback) errorCallback('Thumbnail generation error');
+            });
+
+            // Generate full-size (720px max, 75% quality)
+            createCompressedChatImage(img, function(fullSizeDataURL) {
+                result.fullSizeURL = fullSizeDataURL;
+                result.fullSizeSize = Math.round(fullSizeDataURL.length * 0.75);
+                fullSizeComplete = true;
+                
+                if (thumbnailComplete) {
+                    // MEMORY CLEANUP: Free image object and reader after both versions are done
+                    img.src = '';
+                    img.onload = null;
+                    img.onerror = null;
+                    reader.onload = null;
+                    reader.onerror = null;
+                    callback(result);
+                }
+            }, function(error) {
+                // Full-size generation error
+                console.error('❌ Full-size generation failed');
+                alert('Failed to process this image. It may be in an unsupported format.');
+                img.src = '';
+                img.onload = null;
+                img.onerror = null;
+                reader.onload = null;
+                reader.onerror = null;
+                if (errorCallback) errorCallback('Full-size generation error');
+            });
+        };
+        
+        img.src = e.target.result;
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Create compressed chat image (max 720px width, 75% quality)
+ * Based on new-post.js compression standards
+ * @param {Image} img - Source image
+ * @param {Function} callback - Callback with compressed data URL
+ * @param {Function} errorCallback - Callback for errors
+ */
+function createCompressedChatImage(img, callback, errorCallback) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+            throw new Error('Failed to get canvas context');
+        }
+        
+        // Calculate dimensions (max 720px width, maintain aspect ratio)
+        const maxWidth = 720;
+        let newWidth = img.width;
+        let newHeight = img.height;
+        
+        if (img.width > maxWidth) {
+            const scale = maxWidth / img.width;
+            newWidth = maxWidth;
+            newHeight = Math.round(img.height * scale);
+        }
+        
+        // Set canvas dimensions
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw the resized image (maintain original aspect ratio)
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to data URL with 75% quality (same as new-post.js)
+        const compressedDataURL = canvas.toDataURL('image/jpeg', 0.75);
+        
+        // MEMORY CLEANUP: Clear canvas and free memory
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+        
+        callback(compressedDataURL);
+    } catch (error) {
+        console.error('❌ Canvas operation error in createCompressedChatImage:', error);
+        if (errorCallback) errorCallback(error);
+    }
+}
+
+/**
+ * Create thumbnail for chat display (100px max dimension, 60% quality)
+ * Optimized for fast loading and bandwidth efficiency
+ * @param {Image} img - Source image
+ * @param {Function} callback - Callback with thumbnail data URL
+ * @param {Function} errorCallback - Callback for errors
+ */
+function createChatThumbnail(img, callback, errorCallback) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+            throw new Error('Failed to get canvas context');
+        }
+        
+        // Calculate dimensions (100px max dimension, maintain aspect ratio)
+        const maxSize = 100;
+        let newWidth = img.width;
+        let newHeight = img.height;
+        
+        // Scale to fit within 100px while maintaining aspect ratio
+        if (newWidth > newHeight) {
+            if (newWidth > maxSize) {
+                newHeight = Math.round((newHeight * maxSize) / newWidth);
+                newWidth = maxSize;
+            }
+        } else {
+            if (newHeight > maxSize) {
+                newWidth = Math.round((newWidth * maxSize) / newHeight);
+                newHeight = maxSize;
+            }
+        }
+        
+        // Set canvas dimensions
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        
+        // Draw the resized image
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+        
+        // Convert to data URL with 60% quality (higher compression for thumbnails)
+        const thumbnailDataURL = canvas.toDataURL('image/jpeg', 0.6);
+        
+        // MEMORY CLEANUP: Clear canvas and free memory
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 0;
+        canvas.height = 0;
+        
+        callback(thumbnailDataURL);
+    } catch (error) {
+        console.error('❌ Canvas operation error in createChatThumbnail:', error);
+        if (errorCallback) errorCallback(error);
+    }
+}
+
+/**
+ * Collect all photos from current chat thread for gallery navigation
+ * @param {string} currentImageUrl - Currently displayed image URL
+ * @returns {Object} Gallery data with photos array and current index
+ */
+function collectChatThreadPhotos(currentImageUrl) {
+    // Find the currently open chat modal
+    const chatModal = document.querySelector('.chat-modal-overlay');
+    if (!chatModal) {
+        return { photos: [currentImageUrl], currentIndex: 0 };
+    }
+
+    // Get all photo thumbnails from the current chat thread
+    const photoElements = chatModal.querySelectorAll('.message-photo img.photo-thumbnail');
+    const photos = [];
+    let currentIndex = 0;
+
+    photoElements.forEach((img, index) => {
+        const fullSizeUrl = img.getAttribute('data-full-size') || img.src;
+        photos.push({
+            thumbnailUrl: img.src,
+            fullSizeUrl: fullSizeUrl,
+            element: img
+        });
+
+        // Find current photo index
+        if (fullSizeUrl === currentImageUrl) {
+            currentIndex = index;
+        }
+    });
+
+    // Fallback if no photos found or current not in collection
+    if (photos.length === 0) {
+        photos.push({
+            thumbnailUrl: currentImageUrl,
+            fullSizeUrl: currentImageUrl,
+            element: null
+        });
+    }
+
+    return { photos, currentIndex };
+}
+
+/**
+ * Show photo lightbox with gallery navigation
+ * @param {string} imageUrl - URL of the image to display
+ */
+function showPhotoLightbox(imageUrl) {
+    // Remove existing lightbox if any
+    const existingLightbox = document.querySelector('.photo-lightbox-overlay');
+    if (existingLightbox) {
+        existingLightbox.remove();
+    }
+
+    // Collect photos from current chat thread
+    const gallery = collectChatThreadPhotos(imageUrl);
+    const hasMultiplePhotos = gallery.photos.length > 1;
+    
+
+    // Create lightbox overlay with gallery support
+    const lightboxOverlay = document.createElement('div');
+    lightboxOverlay.className = 'photo-lightbox-overlay';
+    lightboxOverlay.setAttribute('data-current-index', gallery.currentIndex);
+    
+    // Only create arrows if there are multiple photos
+    const arrowsHTML = hasMultiplePhotos ? `
+        <button class="nav-arrow nav-prev" type="button">‹</button>
+        <button class="nav-arrow nav-next" type="button">›</button>
+    ` : '';
+    
+    lightboxOverlay.innerHTML = `
+        <div class="photo-lightbox">
+            <img src="${imageUrl}" alt="Full size photo" class="lightbox-image">
+            <button class="close-lightbox" type="button">×</button>
+            ${arrowsHTML}
+        </div>
+    `;
+
+    // Store gallery data on the overlay
+    lightboxOverlay._gallery = gallery;
+
+    // Add to body
+    document.body.appendChild(lightboxOverlay);
+
+    // Initialize gallery functionality if multiple photos
+    if (hasMultiplePhotos) {
+        initializePhotoGallery(lightboxOverlay);
+    } else {
+        // Add vertical swipe to close for single photos
+        initializeSinglePhotoGestures(lightboxOverlay);
+    }
+
+    // Show with animation
+    setTimeout(() => {
+        lightboxOverlay.classList.add('show');
+    }, 10);
+
+    // Close handlers
+    const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+    const closeLightbox = () => {
+        // Call cleanup function if it exists
+        if (lightboxOverlay._cleanup) {
+            lightboxOverlay._cleanup();
+        }
+        
+        lightboxOverlay.classList.remove('show');
+        setTimeout(() => {
+            if (lightboxOverlay.parentNode) {
+                lightboxOverlay.remove();
+            }
+        }, 300);
+    };
+
+    closeBtn.addEventListener('click', closeLightbox);
+    lightboxOverlay.addEventListener('click', (e) => {
+        if (e.target === lightboxOverlay) {
+            closeLightbox();
+        }
+    });
+
+    // ESC key to close
+    const handleEscKey = (e) => {
+        if (e.key === 'Escape') {
+            closeLightbox();
+            document.removeEventListener('keydown', handleEscKey);
+        }
+    };
+    document.addEventListener('keydown', handleEscKey);
+}
+
+/**
+ * Update arrow visibility based on current position in gallery
+ * @param {number} currentIndex - Current photo index
+ * @param {number} totalPhotos - Total number of photos
+ * @param {HTMLElement} prevBtn - Previous button element
+ * @param {HTMLElement} nextBtn - Next button element
+ */
+function updateArrowVisibility(currentIndex, totalPhotos, prevBtn, nextBtn) {
+    // Previous arrow: show if not at first photo
+    if (currentIndex > 0) {
+        prevBtn.style.display = 'flex';
+        prevBtn.style.opacity = '0.2';
+    } else {
+        prevBtn.style.display = 'none';
+    }
+    
+    // Next arrow: show if not at last photo
+    if (currentIndex < totalPhotos - 1) {
+        nextBtn.style.display = 'flex';
+        nextBtn.style.opacity = '0.2';
+    } else {
+        nextBtn.style.display = 'none';
+    }
+}
+
+/**
+ * Initialize photo gallery functionality with swipe gestures and navigation
+ * @param {HTMLElement} lightboxOverlay - The lightbox overlay element
+ */
+function initializePhotoGallery(lightboxOverlay) {
+    const gallery = lightboxOverlay._gallery;
+    const lightboxImage = lightboxOverlay.querySelector('.lightbox-image');
+    const prevBtn = lightboxOverlay.querySelector('.nav-prev');
+    const nextBtn = lightboxOverlay.querySelector('.nav-next');
+    
+    // Safety check - if no buttons exist, don't initialize gallery
+    if (!prevBtn || !nextBtn) {
+        console.log('📸 No navigation buttons found - skipping gallery initialization');
+        return;
+    }
+    
+    let currentIndex = parseInt(lightboxOverlay.getAttribute('data-current-index'));
+
+    /**
+     * Navigate to specific photo index
+     * @param {number} newIndex - Target photo index
+     */
+    const navigateToPhoto = (newIndex) => {
+        if (newIndex < 0 || newIndex >= gallery.photos.length) return;
+        
+        const photo = gallery.photos[newIndex];
+        
+        // Add transition effect
+        lightboxImage.style.opacity = '0.7';
+        lightboxImage.style.transform = 'scale(0.95)';
+        
+        setTimeout(() => {
+            lightboxImage.src = photo.fullSizeUrl;
+            currentIndex = newIndex;
+            lightboxOverlay.setAttribute('data-current-index', currentIndex);
+            
+            // Reset transition
+            lightboxImage.style.opacity = '1';
+            lightboxImage.style.transform = 'scale(1)';
+            
+            // Update navigation button visibility and states
+            updateArrowVisibility(currentIndex, gallery.photos.length, prevBtn, nextBtn);
+        }, 150);
+    };
+
+    // Navigation button handlers
+    prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentIndex > 0) {
+            navigateToPhoto(currentIndex - 1);
+        }
+    });
+
+    nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentIndex < gallery.photos.length - 1) {
+            navigateToPhoto(currentIndex + 1);
+        }
+    });
+
+    // Keyboard navigation
+    const handleGalleryKeys = (e) => {
+        if (e.key === 'ArrowLeft' && currentIndex > 0) {
+            e.preventDefault();
+            navigateToPhoto(currentIndex - 1);
+        } else if (e.key === 'ArrowRight' && currentIndex < gallery.photos.length - 1) {
+            e.preventDefault();
+            navigateToPhoto(currentIndex + 1);
+        }
+    };
+    document.addEventListener('keydown', handleGalleryKeys);
+
+    // Touch/Swipe gesture support
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    let isDragging = false;
+    let hasMoved = false;
+
+    const handleTouchStart = (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchEndX = touchStartX; // Initialize end positions
+        touchEndY = touchStartY;
+        isDragging = true;
+        hasMoved = false;
+        
+        // Add visual feedback
+        lightboxImage.style.transition = 'none';
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        
+        touchEndX = e.touches[0].clientX;
+        touchEndY = e.touches[0].clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Mark that user has moved their finger (10px threshold)
+        if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+            hasMoved = true;
+        }
+        
+        // Only handle horizontal swipes (ignore vertical scrolling)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            e.preventDefault();
+            
+            // Visual drag feedback
+            const dragAmount = Math.min(Math.abs(deltaX) / 3, 50);
+            const opacity = Math.max(0.7, 1 - dragAmount / 100);
+            lightboxImage.style.transform = `translateX(${deltaX / 3}px) scale(${0.95 + (opacity - 0.7) * 0.17})`;
+            lightboxImage.style.opacity = opacity;
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Reset visual state
+        lightboxImage.style.transition = 'all 0.3s ease';
+        lightboxImage.style.transform = 'translateX(0) scale(1)';
+        lightboxImage.style.opacity = '1';
+        
+        // Only process gestures if user actually moved their finger
+        if (hasMoved) {
+            // Determine swipe direction (minimum 50px swipe distance)
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+                // Horizontal swipe - navigate photos
+                if (deltaX > 0 && currentIndex > 0) {
+                    // Swipe right - go to previous photo
+                    navigateToPhoto(currentIndex - 1);
+                } else if (deltaX < 0 && currentIndex < gallery.photos.length - 1) {
+                    // Swipe left - go to next photo
+                    navigateToPhoto(currentIndex + 1);
+                }
+            } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 80) {
+                // Vertical swipe - close lightbox (80px minimum for intentional gesture)
+                console.log('📸 Vertical swipe detected - closing lightbox');
+                
+                // Find and trigger close function
+                const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+                if (closeBtn) {
+                    closeBtn.click();
+                }
+            }
+        }
+        
+        // Reset touch coordinates
+        touchStartX = touchStartY = touchEndX = touchEndY = 0;
+        hasMoved = false;
+    };
+
+    // Add touch event listeners to the lightbox image
+    lightboxImage.addEventListener('touchstart', handleTouchStart, { passive: false });
+    lightboxImage.addEventListener('touchmove', handleTouchMove, { passive: false });
+    lightboxImage.addEventListener('touchend', handleTouchEnd);
+
+    // Initialize button visibility and states
+    updateArrowVisibility(currentIndex, gallery.photos.length, prevBtn, nextBtn);
+    
+    // Cleanup function (called when lightbox closes)
+    lightboxOverlay._cleanup = () => {
+        document.removeEventListener('keydown', handleGalleryKeys);
+        lightboxImage.removeEventListener('touchstart', handleTouchStart);
+        lightboxImage.removeEventListener('touchmove', handleTouchMove);
+        lightboxImage.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+    console.log(`📸 Photo gallery initialized: ${gallery.photos.length} photos, starting at ${currentIndex + 1}`);
+}
+
+/**
+ * Initialize vertical swipe gestures for single photos
+ * @param {HTMLElement} lightboxOverlay - The lightbox overlay element
+ */
+function initializeSinglePhotoGestures(lightboxOverlay) {
+    const lightboxImage = lightboxOverlay.querySelector('.lightbox-image');
+    
+    let touchStartY = 0;
+    let touchEndY = 0;
+    let isDragging = false;
+    let hasMoved = false;
+
+    const handleTouchStart = (e) => {
+        touchStartY = e.touches[0].clientY;
+        touchEndY = touchStartY; // Initialize end position
+        isDragging = true;
+        hasMoved = false;
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging) return;
+        touchEndY = e.touches[0].clientY;
+        
+        // Mark that user has moved their finger
+        const deltaY = Math.abs(touchEndY - touchStartY);
+        if (deltaY > 10) { // 10px threshold to detect actual movement
+            hasMoved = true;
+        }
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const deltaY = touchEndY - touchStartY;
+        
+        // Only close if user actually moved their finger AND it's a significant swipe
+        if (hasMoved && Math.abs(deltaY) > 80) {
+            console.log('📸 Vertical swipe detected on single photo - closing lightbox');
+            
+            const closeBtn = lightboxOverlay.querySelector('.close-lightbox');
+            if (closeBtn) {
+                closeBtn.click();
+            }
+        }
+        
+        // Reset coordinates
+        touchStartY = touchEndY = 0;
+        hasMoved = false;
+    };
+
+    // Add touch event listeners
+    lightboxImage.addEventListener('touchstart', handleTouchStart, { passive: true });
+    lightboxImage.addEventListener('touchmove', handleTouchMove, { passive: true });
+    lightboxImage.addEventListener('touchend', handleTouchEnd);
+
+    // Cleanup function
+    lightboxOverlay._cleanup = () => {
+        lightboxImage.removeEventListener('touchstart', handleTouchStart);
+        lightboxImage.removeEventListener('touchmove', handleTouchMove);
+        lightboxImage.removeEventListener('touchend', handleTouchEnd);
+    };
+    
+    console.log('📸 Single photo gestures initialized');
+}
+
+
+/**
+ * Create photo message HTML with thumbnail optimization
+ * @param {string} thumbnailUrl - URL of the thumbnail for chat display
+ * @param {string} fullSizeUrl - URL of the full-size image for lightbox
+ * @param {string} direction - 'incoming' or 'outgoing'
+ * @param {string} senderName - Name of the sender
+ * @param {string} avatar - Avatar URL
+ * @returns {string} HTML string for photo message
+ */
+function createPhotoMessageHTML(thumbnailUrl, fullSizeUrl, direction, senderName, avatar) {
+    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    return `
+        <div class="message-card ${direction}">
+            <div class="message-header">
+                ${direction === 'outgoing' ? `
+                    <div class="message-info">
+                        <div class="message-sender">${senderName}</div>
+                        <div class="message-timestamp">${timestamp}</div>
+                    </div>
+                    <div class="message-avatar">
+                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
+                    </div>
+                ` : `
+                    <div class="message-avatar">
+                        <img src="${avatar}" alt="${senderName}" onerror="this.src='public/images/logo.png'">
+                    </div>
+                    <div class="message-info">
+                        <div class="message-sender">${senderName}</div>
+                        <div class="message-timestamp">${timestamp}</div>
+                    </div>
+                `}
+            </div>
+            <div class="message-photo" onclick="showPhotoLightbox('${fullSizeUrl}')">
+                <img src="${thumbnailUrl}" alt="Shared photo" class="photo-thumbnail" data-full-size="${fullSizeUrl}">
+            </div>
+        </div>
+    `;
+}
+
+// ===== MOCK MESSAGE DATA FOR ADMIN COMMUNICATIONS =====
+
+/*
+=== FIREBASE/FIRESTORE INTEGRATION STRUCTURE ===
+
+Collection: "adminMessages"
+
+Message Types:
+1. PUBLIC BROADCAST ("public") - Sent to ALL users via Compose Public Message
+2. DIRECT MESSAGE ("direct") - Sent to specific user via Contact User form
+
+Data Structure:
+{
+  messageId: "msg_12345",
+  messageType: "public" | "direct",  // KEY DIFFERENTIATOR
+  
+  // Common fields (both types)
+  from: {
+    adminId: "admin_001",
+    adminName: "Peter J. Ang",
+    adminEmail: "admin@gisugo.com",
+    role: "admin"
+  },
+  subject: "Message subject",
+  content: "Message body text...",
+  timestamp: Firestore.Timestamp,
+  attachments: [],
+  isRead: false,
+  readAt: null,
+  
+  // PUBLIC message specific fields
+  category: "important-notices" | "platform-updates" | "system-updates" | "promotions",
+  targetAudience: "all" | "customers" | "workers" | "verified-only",
+  
+  // DIRECT message specific fields
+  to: {
+    userId: "user_12345",
+    userName: "John Doe",
+    userEmail: "john@example.com"
+  },
+  topic: "account-verification" | "account-suspension" | "policy-violation" | "payment-issue" | 
+         "gig-inquiry" | "verification-request" | "general-inquiry" | "security-alert" | 
+         "important-notice" | "other",
+  priority: "normal" | "high" | "urgent",
+  
+  // Metadata
+  replies: [],
+  repliedAt: null
+}
+
+Firestore Queries:
+- User's public messages: adminMessages.where('messageType', '==', 'public')
+- User's direct messages: adminMessages.where('messageType', '==', 'direct').where('to.userId', '==', userId)
+- Combined inbox: Use composite query or client-side merge
+
+Security Rules:
+- Public messages: readable by all authenticated users
+- Direct messages: readable only by intended recipient (to.userId)
+
+UI Display:
+- 📢 icon + blue badge for PUBLIC broadcasts
+- 📨 icon + green badge for DIRECT messages
+- Filter by type or show unified inbox
+*/
+
+/*
+    customer: [
+        {
+            id: 'msg_cust_001',
+            messageType: 'direct', // DIRECT MESSAGE (admin → specific user)
+            topic: 'account-verification',
+            subject: 'Account Verification Complete',
+            excerpt: 'Your GISUGO account has been successfully verified. You can now post jobs and hire workers.',
+            content: `Dear Valued Customer,
+
+We're pleased to inform you that your GISUGO account verification has been completed successfully! 
+
+Your account is now fully activated and you have access to all customer features:
+• Post unlimited job listings
+• Browse verified worker profiles
+• Use our secure G-Coins payment system
+• Access 24/7 customer support
+
+Welcome to the GISUGO community! We're excited to help you find the perfect workers for your needs.
+
+Best regards,
+The GISUGO Team`,
+            sender: {
+                name: 'GISUGO Support',
+                email: 'support@gisugo.com',
+                avatar: 'public/users/User-02.jpg'
+            },
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_002',
+            messageType: 'direct', // DIRECT MESSAGE
+            topic: 'payment-issue',
+            subject: 'G-Coins Wallet Issue Resolution',
+            excerpt: 'We have resolved the wallet connectivity issue you reported. Your G-Coins balance is now accessible.',
+            content: `Dear Customer,
+
+Thank you for reporting the G-Coins wallet connectivity issue. Our technical team has successfully resolved the problem.
+
+ISSUE RESOLVED:
+The temporary server maintenance that was causing wallet timeouts has been completed. All G-Coins transactions are now processing normally.
+
+YOUR ACCOUNT STATUS:
+• Current G-Coins Balance: ₱2,450 (confirmed secure)
+• All pending transactions have been processed
+• Wallet access fully restored
+
+We apologize for any inconvenience this may have caused. As compensation for the disruption, we've added a 5% bonus (₱122.50) to your wallet.
+
+If you experience any further issues, please don't hesitate to contact us.
+
+Best regards,
+GISUGO Technical Support Team
+support@gisugo.com`,
+            sender: {
+                name: 'GISUGO Technical Support',
+                email: 'tech-support@gisugo.com', 
+                avatar: 'public/users/User-03.jpg'
+            },
+            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'wallet-resolution-receipt.pdf'
+        },
+        {
+            id: 'msg_cust_003',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'important-notices',
+            subject: 'Important: Updated Terms of Service',
+            excerpt: 'Please review our updated Terms of Service, effective November 1st, 2025.',
+            content: `Important Notice: Updated Terms of Service
+
+Dear GISUGO Customer,
+
+We are updating our Terms of Service to better serve you and comply with new regulations. The updated terms will take effect on November 1st, 2025.
+
+KEY CHANGES:
+• Enhanced user privacy protections
+• Clearer dispute resolution procedures  
+• Updated payment processing terms
+• Improved worker verification standards
+
+WHAT YOU NEED TO DO:
+Please review the updated Terms of Service in your account dashboard. Continued use of GISUGO after November 1st constitutes acceptance of the new terms.
+
+QUESTIONS?
+If you have any questions about these changes, please contact our legal team at legal@gisugo.com or visit our FAQ section.
+
+The updated terms are designed to provide better protection for both customers and workers while maintaining the quality service you expect from GISUGO.
+
+Thank you for your attention to this important matter.
+
+GISUGO Legal Team
+legal@gisugo.com`,
+            sender: {
+                name: 'GISUGO Legal Team',
+                email: 'legal@gisugo.com',
+                avatar: 'public/users/User-06.jpg'
+            },
+            timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'updated-terms-of-service.pdf'
+        },
+        {
+            id: 'msg_cust_004',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'platform-updates',
+            subject: 'New Feature: Advanced Job Matching',
+            excerpt: 'Introducing AI-powered job matching to help you find the perfect workers faster.',
+            content: `Exciting News: Advanced Job Matching is Here!
+
+Dear Customer,
+
+We're thrilled to introduce our new AI-powered job matching feature that will revolutionize how you find workers on GISUGO!
+
+NEW FEATURES:
+🤖 AI-Powered Matching: Our algorithm analyzes job requirements and worker skills for perfect matches
+📊 Compatibility Scores: See percentage match ratings for each worker
+⚡ Instant Recommendations: Get worker suggestions as soon as you post a job
+🎯 Smart Filters: Advanced filtering based on experience, ratings, and availability
+
+HOW IT WORKS:
+1. Post your job with detailed requirements
+2. Our AI analyzes your needs
+3. Receive ranked worker recommendations
+4. Review compatibility scores and profiles
+5. Contact top matches directly
+
+BENEFITS FOR YOU:
+• 60% faster hiring process
+• Higher quality matches
+• Reduced time screening candidates
+• Better project outcomes
+
+The feature is automatically enabled for all job postings. Try it out with your next job post!
+
+Happy hiring,
+GISUGO Product Team`,
+            sender: {
+                name: 'GISUGO Product Team',
+                email: 'product@gisugo.com',
+                avatar: 'public/users/User-08.jpg'
+            },
+            timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_005',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
+            subject: 'Limited Time: 20% Bonus on G-Coins Purchase',
+            excerpt: 'Get 20% extra G-Coins when you top up ₱500 or more. Offer valid until October 31st.',
+            content: `🎉 Special Promotion: 20% Bonus G-Coins!
+
+Dear Valued Customer,
+
+For a limited time, get 20% extra G-Coins when you top up your wallet!
+
+PROMOTION DETAILS:
+💰 Minimum purchase: ₱500
+🎁 Bonus: 20% extra G-Coins
+⏰ Valid until: October 31st, 2025
+🎯 Maximum bonus: ₱1,000 extra G-Coins
+
+EXAMPLES:
+• Top up ₱500 → Get ₱600 G-Coins (₱100 bonus)
+• Top up ₱1,000 → Get ₱1,200 G-Coins (₱200 bonus)
+• Top up ₱2,500 → Get ₱3,000 G-Coins (₱500 bonus)
+
+HOW TO CLAIM:
+1. Go to your G-Coins wallet
+2. Select "Top Up"
+3. Choose ₱500 or higher amount
+4. Complete payment
+5. Bonus G-Coins added automatically!
+
+This is perfect timing to stock up for your upcoming projects. More G-Coins means more flexibility in hiring the best workers!
+
+Don't miss out - offer ends October 31st!
+
+GISUGO Promotions Team`,
+            sender: {
+                name: 'GISUGO Promotions',
+                email: 'promotions@gisugo.com',
+                avatar: 'public/users/User-10.jpg'
+            },
+            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_cust_006',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
+            subject: 'Refer Friends and Earn G-Coins',
+            excerpt: 'Invite friends to GISUGO and earn ₱100 G-Coins for each successful referral.',
+            content: `💸 Earn G-Coins by Referring Friends!
+
+Dear Customer,
+
+Share the GISUGO experience with friends and family while earning G-Coins!
+
+REFERRAL PROGRAM:
+🎁 Earn ₱100 G-Coins per successful referral
+👥 No limit on referrals
+⚡ G-Coins credited within 24 hours
+🏆 Bonus rewards for top referrers
+
+HOW IT WORKS:
+1. Share your unique referral code: CUST-REF-2025
+2. Friends sign up using your code
+3. They complete their first job transaction
+4. You both earn ₱100 G-Coins!
+
+YOUR FRIEND GETS:
+• ₱100 welcome G-Coins
+• Priority customer support for 30 days
+• Access to exclusive new user promotions
+
+SHARE YOUR CODE:
+Use your referral code CUST-REF-2025 or share this link:
+https://gisugo.com/signup?ref=CUST-REF-2025
+
+LEADERBOARD PRIZES:
+Top 3 referrers each month win:
+🥇 1st place: ₱5,000 G-Coins
+🥈 2nd place: ₱3,000 G-Coins  
+🥉 3rd place: ₱2,000 G-Coins
+
+Start referring today and watch your G-Coins grow!
+
+GISUGO Referral Team`,
+            sender: {
+                name: 'GISUGO Referral Team',
+                email: 'referrals@gisugo.com',
+                avatar: 'public/users/User-11.jpg'
+            },
+            timestamp: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
+            isRead: true,
+            hasAttachment: false
+        }
+    ],
+    worker: [
+        {
+            id: 'msg_work_001',
+            messageType: 'direct', // DIRECT MESSAGE
+            topic: 'account-verification',
+            subject: 'Profile Verification Approved',
+            excerpt: 'Congratulations! Your worker profile has been verified and you can now accept job applications.',
+            content: `Congratulations! Profile Verification Complete
+
+Dear Worker,
+
+We're excited to inform you that your GISUGO worker profile has been successfully verified!
+
+VERIFICATION COMPLETED:
+✅ Identity verification
+✅ Skills assessment
+✅ Background check
+✅ Portfolio review
+
+YOU CAN NOW:
+• Accept job applications from customers
+• Set your own rates and availability
+• Receive direct messages from potential clients
+• Access premium worker features
+
+NEXT STEPS:
+1. Complete your profile with recent work samples
+2. Set your availability calendar
+3. Upload additional skill certifications
+4. Start browsing and applying for jobs!
+
+Your verified badge will appear on your profile within 24 hours, making you more attractive to potential customers.
+
+Welcome to the verified GISUGO worker community!
+
+Best regards,
+GISUGO Verification Team`,
+            sender: {
+                name: 'GISUGO Verification Team',
+                email: 'verification@gisugo.com',
+                avatar: 'public/users/User-02.jpg'
+            },
+            timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'verification-certificate.pdf'
+        },
+        {
+            id: 'msg_work_002',
+            messageType: 'direct', // DIRECT MESSAGE
+            topic: 'payment-issue',
+            subject: 'Payment Issue Resolved',
+            excerpt: 'The delayed payment for Job #JOB-2025-1234 has been processed and credited to your account.',
+            content: `Payment Issue Resolution - Job #JOB-2025-1234
+
+Dear Worker,
+
+We have successfully resolved the payment delay issue for your completed job.
+
+JOB DETAILS:
+• Job ID: JOB-2025-1234
+• Customer: Maria Santos
+• Service: House Cleaning (3-bedroom)
+• Amount: ₱800 G-Coins
+
+ISSUE RESOLVED:
+The payment delay was caused by a temporary system glitch during our recent maintenance. The issue has been fixed and your payment has been processed.
+
+PAYMENT STATUS:
+✅ ₱800 G-Coins credited to your wallet
+✅ Transaction completed successfully
+✅ Customer rating and review recorded
+
+We sincerely apologize for the inconvenience. As compensation for the delay, we've added a ₱50 bonus to your account.
+
+If you experience any future payment issues, please contact us immediately at payments@gisugo.com.
+
+Thank you for your patience and continued service excellence.
+
+GISUGO Payments Team`,
+            sender: {
+                name: 'GISUGO Payments Team',
+                email: 'payments@gisugo.com',
+                avatar: 'public/users/User-03.jpg'
+            },
+            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'payment-receipt-JOB-2025-1234.pdf'
+        },
+        {
+            id: 'msg_work_003',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'important-notices',
+            subject: 'New Worker Safety Guidelines',
+            excerpt: 'Updated safety protocols and guidelines for all GISUGO workers, effective immediately.',
+            content: `Important: Updated Worker Safety Guidelines
+
+Dear GISUGO Worker,
+
+Your safety is our top priority. Please review these updated safety guidelines that are now in effect.
+
+NEW SAFETY PROTOCOLS:
+
+🏠 ON-SITE SAFETY:
+• Always verify customer identity before starting work
+• Take photos of work area before and after
+• Report any unsafe working conditions immediately
+• Keep emergency contact information accessible
+
+💬 COMMUNICATION SAFETY:
+• Use GISUGO messaging for all job-related communication
+• Never share personal contact information
+• Report inappropriate customer behavior
+• Document all agreements in writing
+
+💰 PAYMENT SAFETY:
+• Only accept payments through G-Coins system
+• Never accept cash or external payments
+• Report payment pressure or unusual requests
+• Verify job completion before leaving site
+
+🚨 EMERGENCY PROCEDURES:
+• Emergency hotline: +63-917-GISUGO-911
+• Local emergency: 911 or 117
+• GISUGO safety team: safety@gisugo.com
+
+MANDATORY TRAINING:
+All workers must complete the updated safety training module in their dashboard within 7 days.
+
+Your safety enables you to provide excellent service. Thank you for following these guidelines.
+
+GISUGO Safety Team`,
+            sender: {
+                name: 'GISUGO Safety Team',
+                email: 'safety@gisugo.com',
+                avatar: 'public/users/User-04.jpg'
+            },
+            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+            isRead: true,
+            hasAttachment: true,
+            attachmentName: 'worker-safety-guidelines-2025.pdf'
+        },
+        {
+            id: 'msg_work_004',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'system-updates',
+            subject: 'Worker App Performance Improvements',
+            excerpt: 'Recent updates to improve app performance and reduce job notification delays.',
+            content: `Worker App Performance Update
+
+Dear Worker,
+
+We've implemented several improvements to enhance your GISUGO app experience:
+
+PERFORMANCE IMPROVEMENTS:
+⚡ 40% faster job loading times
+📱 Reduced app memory usage
+🔔 Improved notification reliability
+📷 Better photo upload speeds
+🗺️ More accurate GPS location tracking
+
+NOTIFICATION ENHANCEMENTS:
+• Instant job alerts (previously up to 5 minutes delay)
+• Priority notifications for high-paying jobs
+• Custom notification sounds for different job types
+• Offline notification queuing
+
+BUG FIXES:
+• Fixed app crashes during photo uploads
+• Resolved GPS accuracy issues
+• Fixed calendar sync problems
+• Improved chat message delivery
+
+WHAT YOU'LL NOTICE:
+• Faster response times when browsing jobs
+• More reliable job notifications
+• Smoother photo and document uploads
+• Better overall app stability
+
+These improvements are automatically applied - no action needed from you. If you experience any issues, please report them through the app's feedback feature.
+
+Thank you for your patience as we continue improving your GISUGO experience!
+
+GISUGO Technical Team`,
+            sender: {
+                name: 'GISUGO Technical Team',
+                email: 'tech@gisugo.com',
+                avatar: 'public/users/User-05.jpg'
+            },
+            timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000), // 4 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_005',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'important-notices',
+            subject: 'Tax Information for 2025',
+            excerpt: 'Important tax information for GISUGO workers and year-end documentation requirements.',
+            content: `Important: 2025 Tax Information for Workers
+
+Dear GISUGO Worker,
+
+As we approach the end of 2025, here's important tax information for your GISUGO earnings:
+
+TAX DOCUMENTATION:
+📄 BIR Form 2307 (Certificate of Creditable Tax Withheld at Source)
+📊 Annual earnings summary
+📋 Monthly transaction reports
+🧾 Detailed payment receipts
+
+WHAT GISUGO PROVIDES:
+• Comprehensive earnings report for 2025
+• Tax withholding certificates (if applicable)
+• Monthly transaction summaries
+• Support for tax filing questions
+
+TAX OBLIGATIONS:
+As an independent contractor, you are responsible for:
+• Declaring GISUGO earnings in your tax return
+• Paying appropriate income taxes
+• Keeping records of business expenses
+• Consulting with a tax professional if needed
+
+ACCESSING YOUR TAX DOCUMENTS:
+1. Go to your Worker Dashboard
+2. Click "Financial Reports"
+3. Select "Tax Documents"
+4. Download your 2025 earnings summary
+
+IMPORTANT DATES:
+• December 31, 2025: Tax year ends
+• January 15, 2026: Tax documents available
+• April 15, 2026: Tax filing deadline
+
+For tax-related questions, contact our finance team at finance@gisugo.com.
+
+GISUGO Finance Team`,
+            sender: {
+                name: 'GISUGO Finance Team',
+                email: 'finance@gisugo.com',
+                avatar: 'public/users/User-06.jpg'
+            },
+            timestamp: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000), // 6 days ago
+            isRead: false,
+            hasAttachment: true,
+            attachmentName: 'worker-tax-guide-2025.pdf'
+        },
+        {
+            id: 'msg_work_006',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
+            subject: 'Worker Recognition Program Launch',
+            excerpt: 'Introducing the GISUGO Excellence Awards - monthly recognition and rewards for top-performing workers.',
+            content: `🏆 Introducing GISUGO Excellence Awards!
+
+Dear Outstanding Worker,
+
+We're launching a new program to recognize and reward exceptional workers like you!
+
+MONTHLY AWARDS CATEGORIES:
+
+🌟 Customer Favorite Award
+• Highest customer ratings (minimum 10 jobs)
+• Prize: ₱2,000 G-Coins + Featured profile
+
+⚡ Speed Demon Award  
+• Fastest job completion times
+• Prize: ₱1,500 G-Coins + Priority job alerts
+
+💎 Quality Champion Award
+• Highest quality work ratings
+• Prize: ₱2,500 G-Coins + Verified Pro badge
+
+🤝 Reliability Star Award
+• Perfect attendance and punctuality
+• Prize: ₱1,000 G-Coins + Reliability badge
+
+📈 Growth Leader Award
+• Most improved worker of the month
+• Prize: ₱1,500 G-Coins + Mentorship opportunity
+
+ANNUAL GRAND PRIZES:
+🥇 Worker of the Year: ₱25,000 G-Coins
+🥈 Runner-up: ₱15,000 G-Coins
+🥉 Third Place: ₱10,000 G-Coins
+
+HOW TO PARTICIPATE:
+Simply continue providing excellent service! All active workers are automatically eligible.
+
+Winners announced monthly via email and featured on our social media channels.
+
+Keep up the excellent work - you could be our next award winner!
+
+GISUGO Recognition Team`,
+            sender: {
+                name: 'GISUGO Recognition Team',
+                email: 'recognition@gisugo.com',
+                avatar: 'public/users/User-07.jpg'
+            },
+            timestamp: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_007',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'platform-updates',
+            subject: 'New Skill Categories Available',
+            excerpt: 'Expand your opportunities with newly added skill categories: Tech Support, Event Planning, and Pet Training.',
+            content: `🚀 New Skill Categories Now Available!
+
+Dear Worker,
+
+Exciting news! We've added new skill categories to help you expand your service offerings and reach more customers.
+
+NEW CATEGORIES:
+
+💻 TECH SUPPORT
+• Computer troubleshooting
+• Software installation
+• Network setup
+• Device repair
+• Data recovery
+
+🎉 EVENT PLANNING
+• Party organization
+• Wedding coordination
+• Corporate events
+• Catering coordination
+• Venue decoration
+
+🐕 PET TRAINING
+• Dog obedience training
+• Puppy socialization
+• Behavioral correction
+• Pet sitting with training
+• Agility training
+
+📱 DIGITAL SERVICES
+• Social media management
+• Basic web design
+• Online tutoring
+• Virtual assistance
+• Content creation
+
+HOW TO ADD NEW SKILLS:
+1. Go to your Worker Profile
+2. Click "Edit Skills & Services"
+3. Select new categories
+4. Add relevant experience/certifications
+5. Set your rates for new services
+
+BENEFITS:
+• Access to new customer segments
+• Higher earning potential
+• Diversified income streams
+• Reduced competition in new categories
+
+Start adding these skills today and watch your job opportunities grow!
+
+GISUGO Skills Team`,
+            sender: {
+                name: 'GISUGO Skills Team',
+                email: 'skills@gisugo.com',
+                avatar: 'public/users/User-08.jpg'
+            },
+            timestamp: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000), // 9 days ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_008',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'platform-updates',
+            subject: 'Enhanced Worker Dashboard Features',
+            excerpt: 'New dashboard features including earnings analytics, job history search, and customer feedback insights.',
+            content: `📊 Enhanced Worker Dashboard is Here!
+
+Dear Worker,
+
+Your worker dashboard just got a major upgrade with powerful new features to help you manage your GISUGO business better!
+
+NEW DASHBOARD FEATURES:
+
+📈 EARNINGS ANALYTICS
+• Monthly and yearly earnings charts
+• Income trends and projections
+• Peak earning hours analysis
+• Service category performance
+• Goal setting and tracking
+
+🔍 ADVANCED JOB HISTORY
+• Search jobs by date, customer, or service
+• Filter by earnings, ratings, or location
+• Export job history to spreadsheet
+• Detailed job performance metrics
+
+💬 CUSTOMER FEEDBACK INSIGHTS
+• Detailed rating breakdowns
+• Common feedback themes
+• Improvement suggestions
+• Response templates for reviews
+
+📅 SMART SCHEDULING
+• Calendar integration
+• Automatic availability updates
+• Job conflict detection
+• Travel time calculations
+
+📱 MOBILE OPTIMIZATION
+• Faster loading on mobile devices
+• Touch-friendly interface
+• Offline data viewing
+• Push notification settings
+
+🎯 PERFORMANCE TRACKING
+• Customer satisfaction scores
+• Response time metrics
+• Job completion rates
+• Earnings per hour calculations
+
+ACCESS YOUR NEW DASHBOARD:
+Log in to your worker account to explore all the new features. We've also added helpful tooltips to guide you through the updates.
+
+These improvements will help you work smarter, not harder!
+
+GISUGO Product Team`,
+            sender: {
+                name: 'GISUGO Product Team',
+                email: 'product@gisugo.com',
+                avatar: 'public/users/User-09.jpg'
+            },
+            timestamp: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000), // 11 days ago
+            isRead: true,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_009',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
+            subject: 'Double G-Coins Weekend Special',
+            excerpt: 'Earn double G-Coins on all completed jobs this weekend! October 21-22, 2025.',
+            content: `💰 DOUBLE G-COINS WEEKEND SPECIAL! 💰
+
+Dear Hardworking GISUGO Worker,
+
+This weekend only, earn DOUBLE G-Coins on every completed job!
+
+PROMOTION DETAILS:
+📅 Dates: October 21-22, 2025 (Saturday & Sunday)
+⏰ Time: 12:01 AM Saturday to 11:59 PM Sunday
+💎 Bonus: 100% extra G-Coins on completed jobs
+🎯 No minimum job value required
+
+HOW IT WORKS:
+• Complete any job during the weekend
+• Earn your normal rate PLUS 100% bonus
+• Bonus G-Coins credited within 24 hours
+• No limit on number of jobs
+
+EXAMPLES:
+• ₱500 job → Earn ₱1,000 G-Coins total
+• ₱1,200 job → Earn ₱2,400 G-Coins total
+• ₱300 job → Earn ₱600 G-Coins total
+
+MAXIMIZE YOUR EARNINGS:
+🚀 Accept multiple jobs this weekend
+📱 Keep your availability status updated
+⚡ Respond quickly to job requests
+🏆 Deliver exceptional service for great reviews
+
+BONUS TIPS:
+• Popular weekend services: cleaning, gardening, event setup
+• Update your profile to highlight weekend availability
+• Consider offering package deals for multiple services
+
+This is your chance to supercharge your earnings! Don't miss out on this limited-time opportunity.
+
+Happy earning!
+GISUGO Promotions Team`,
+            sender: {
+                name: 'GISUGO Promotions Team',
+                email: 'promotions@gisugo.com',
+                avatar: 'public/users/User-10.jpg'
+            },
+            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+            isRead: false,
+            hasAttachment: false
+        },
+        {
+            id: 'msg_work_010',
+            messageType: 'public', // PUBLIC BROADCAST
+            category: 'promotions',
+            subject: 'Worker Referral Bonus Program',
+            excerpt: 'Refer skilled workers to GISUGO and earn ₱200 for each successful referral who completes 5 jobs.',
+            content: `👥 Worker Referral Bonus Program!
+
+Dear GISUGO Worker,
+
+Know other skilled workers? Invite them to GISUGO and earn generous referral bonuses!
+
+REFERRAL REWARDS:
+💰 Earn ₱200 for each successful referral
+🎁 Your referral gets ₱100 welcome bonus
+🏆 Monthly bonus for top referrers: ₱2,000
+📈 No limit on referrals
+
+QUALIFICATION CRITERIA:
+✅ Referral must complete profile verification
+✅ Complete at least 5 jobs within 60 days
+✅ Maintain 4.0+ star rating
+✅ Use your referral code during signup
+
+YOUR REFERRAL CODE: WORK-REF-2025
+
+HOW TO REFER:
+1. Share your code: WORK-REF-2025
+2. Send this link: https://gisugo.com/worker-signup?ref=WORK-REF-2025
+3. Help them through the verification process
+4. Earn ₱200 when they complete 5 jobs!
+
+IDEAL REFERRALS:
+• Skilled tradespeople (electricians, plumbers, carpenters)
+• Service professionals (cleaners, gardeners, drivers)
+• Creative professionals (photographers, designers)
+• Technical experts (IT support, tutors)
+
+MONTHLY LEADERBOARD:
+🥇 Most referrals: ₱2,000 bonus
+🥈 Second place: ₱1,200 bonus
+🥉 Third place: ₱800 bonus
+
+TRACKING YOUR REFERRALS:
+Check your dashboard's "Referrals" section to track:
+• Number of people who used your code
+• Their verification status
+• Jobs completed
+• Bonuses earned
+
+Start referring today and build your passive income stream!
+
+GISUGO Referral Team`,
+            sender: {
+                name: 'GISUGO Referral Team',
+                email: 'referrals@gisugo.com',
+                avatar: 'public/users/User-11.jpg'
+            },
+            timestamp: new Date(Date.now() - 13 * 24 * 60 * 60 * 1000), // 13 days ago
+            isRead: true,
+            hasAttachment: false
+        }
+    ]
+*/
+
+function getMessagesByRole(role) {
+    if (role === 'unified') {
+        return Array.isArray(SUPPORT_RESPONSES_STREAM_STATE.messages)
+            ? SUPPORT_RESPONSES_STREAM_STATE.messages
+            : [];
+    }
+
+    return [];
+}
+
+function getSupportMessageByIdForRole(role, messageId) {
+    return getMessagesByRole(role).find((m) => m.id === messageId) || null;
+}
+
+window.getSupportMessageByIdForRole = getSupportMessageByIdForRole;
+
+function ensureSupportSubtypeDropdownOptions(dropdown) {
+    if (!dropdown || dropdown.dataset.optionsInitialized === 'true') return;
+
+    const supportOptions = getSupportResponseSubfilterTopics();
+    dropdown.innerHTML = `
+        <option value="all">All Support Topics</option>
+        ${supportOptions.map((topic) => `<option value="${topic.code}">${topic.label}</option>`).join('')}
+    `;
+    dropdown.dataset.optionsInitialized = 'true';
+}
+
+function toDateFromSupportRecord(record) {
+    if (record?.createdAt && typeof record.createdAt.toDate === 'function') {
+        return record.createdAt.toDate();
+    }
+    if (record?.updatedAt && typeof record.updatedAt.toDate === 'function') {
+        return record.updatedAt.toDate();
+    }
+    if (Number.isFinite(record?.createdAtMs)) {
+        return new Date(record.createdAtMs);
+    }
+    if (record?.createdAtISO) {
+        return new Date(record.createdAtISO);
+    }
+    return new Date();
+}
+
+function mapSupportRecordToUnifiedMessage(doc) {
+    const data = doc?.data ? doc.data() : {};
+    const createdAtDate = toDateFromSupportRecord(data);
+    const rawMessage = String(data?.message || '').trim();
+
+    return {
+        id: `support_${doc.id}`,
+        messageType: 'direct',
+        topic: String(data?.categoryCode || data?.topic || 'other').replace(/-/g, '_'),
+        subject: String(data?.subject || 'Support Request'),
+        excerpt: rawMessage ? `${rawMessage.slice(0, 120)}${rawMessage.length > 120 ? '...' : ''}` : 'No details provided.',
+        content: rawMessage || 'No details provided.',
+        sender: {
+            name: 'GISUGO Support',
+            email: 'support@gisugo.com',
+            avatar: 'public/users/User-11.jpg'
+        },
+        timestamp: createdAtDate,
+        isRead: Boolean(data?.isReadByRequester || data?.read),
+        hasAttachment: Boolean(data?.attachments?.photoUrl || data?.photoUrl),
+        attachmentName: data?.attachments?.photoUrl || data?.photoUrl ? 'photo-attachment.jpg' : null
+    };
+}
+
+async function ensureSupportResponsesRealtimeStream() {
+    const currentUser = await waitForAuthStateWithTimeout();
+    if (!currentUser || !currentUser.uid) {
+        stopSupportResponsesRealtimeStream('support_not_authenticated');
+        return;
+    }
+
+    if (SUPPORT_RESPONSES_STREAM_STATE.started && SUPPORT_RESPONSES_STREAM_STATE.uid === currentUser.uid) {
+        messagesTrace('fetch:support:stream_reuse', currentUser.uid);
+        return;
+    }
+
+    stopSupportResponsesRealtimeStream('switch_user_or_restart');
+
+    const db = typeof getFirestore === 'function' ? getFirestore() : null;
+    if (!db) {
+        console.warn('⚠️ Firestore unavailable: support stream disabled');
+        return;
+    }
+
+    SUPPORT_RESPONSES_STREAM_STATE.uid = currentUser.uid;
+    SUPPORT_RESPONSES_STREAM_STATE.started = true;
+    messagesTrace('fetch:support:stream_start', currentUser.uid);
+
+    ACTIVE_LISTENERS.supportResponses = db
+        .collection('support_requests')
+        .where('requester.userId', '==', currentUser.uid)
+        .orderBy('createdAt', 'desc')
+        .limit(SUPPORT_RESPONSES_STREAM_STATE.limit)
+        .onSnapshot((snapshot) => {
+            const supportMessages = snapshot.docs
+                .map((doc) => mapSupportRecordToUnifiedMessage(doc));
+
+            SUPPORT_RESPONSES_STREAM_STATE.messages = supportMessages;
+            SUPPORT_RESPONSES_STREAM_STATE.hasSnapshot = true;
+
+            const filteringSystem = window.unifiedFilteringSystem;
+            if (filteringSystem && typeof filteringSystem.reloadFilteredMessages === 'function') {
+                filteringSystem.reloadFilteredMessages();
+            } else {
+                loadUnifiedMessages();
+            }
+            updateMainMessagesTabCount();
+            updateInboxTabCounts('unified');
+        }, (error) => {
+            console.error('❌ Support responses stream error:', error);
+            stopSupportResponsesRealtimeStream('snapshot_error');
+            loadUnifiedMessages();
+        });
+}
+
+// ===== ADMIN MESSAGES FUNCTIONALITY =====
+
+// Initialize admin messages when page loads
+function initializeAdminMessages() {
+    loadCustomerMessages();
+    loadWorkerMessages();
+    setupMessageFiltering('customer');
+    setupMessageFiltering('worker');
+    setupMessageDetailHandlers('customer');
+    setupMessageDetailHandlers('worker');
+    initializeReplyModal();
+}
+
+// Load customer messages
+function loadCustomerMessages() {
+    console.log('Loading customer messages...');
+    const container = document.querySelector('#customer-messages-content .user-messages-list-container');
+    if (container) {
+        container.innerHTML = getSupportEmptyStateHTML(
+            'No customer admin messages',
+            'Customer admin messages are unavailable.'
+        );
+        updateMessageCounts('customer');
+    }
+}
+
+// Load unified messages (using customer data as the single source)
+function loadUnifiedMessages() {
+    console.log('Loading unified messages...');
+    const container = document.querySelector('#unified-messages-content .user-messages-list-container');
+    if (container) {
+        const unifiedMessages = getMessagesByRole('unified');
+        // Start with New messages only (filtering will handle Old messages)
+        const newMessages = unifiedMessages.filter(msg => {
+            const messageState = messageStates[msg.id];
+            return messageState ? !messageState.isClosed : true;
+        });
+        console.log('Unified new messages count:', newMessages.length);
+        
+        if (newMessages.length === 0) {
+            container.innerHTML = getSupportEmptyStateHTML(
+                'No support responses yet',
+                'Support replies from GISUGO will appear here after your first support request.'
+            );
+        } else {
+            container.innerHTML = newMessages.map(message => generateAdminMessageHTML(message, 'unified')).join('');
+            // Setup click handlers for message items
+            setupMessageDetailHandlers('unified');
+        }
+        
+        updateMainMessagesTabCount();
+    }
+}
+
+// Load worker messages  
+function loadWorkerMessages() {
+    console.log('Loading worker messages...');
+    const container = document.querySelector('#worker-messages-content .user-messages-list-container');
+    if (container) {
+        container.innerHTML = getSupportEmptyStateHTML(
+            'No worker admin messages',
+            'Worker admin messages are unavailable.'
+        );
+        updateMessageCounts('worker');
+    }
+}
+
+// Generate admin message HTML
+function generateAdminMessageHTML(message, role) {
+    // Determine if this is a public broadcast or direct message
+    const isPublic = message.messageType === 'public';
+    const messageTypeClass = isPublic ? 'message-type-public' : 'message-type-direct';
+    const messageTypeIcon = isPublic ? '📢' : '📨';
+    const messageTypeBadge = isPublic ? 'PUBLIC' : 'DIRECT';
+    const messageTypeBadgeClass = isPublic ? 'badge-public' : 'badge-direct';
+    
+    // Get the appropriate category/topic for classification
+    const topicOrCategory = isPublic ? message.category : message.topic;
+    const topicClass = (topicOrCategory || 'general').toLowerCase().replace(/\s+/g, '-');
+    const topicLabel = getTopicLabel(topicOrCategory, isPublic);
+    const timeAgo = formatTimeAgo(message.timestamp);
+    
+    return `
+        <div class="admin-message-item ${!message.isRead ? 'unread' : ''} ${messageTypeClass}" 
+             data-message-id="${message.id}" 
+             data-message-type="${message.messageType}"
+             data-topic="${topicOrCategory || 'general'}">
+            <div class="message-type-indicator" title="${isPublic ? 'Public Broadcast to all users' : 'Direct message to you'}">
+                <span class="message-type-icon">${messageTypeIcon}</span>
+                <span class="message-type-badge ${messageTypeBadgeClass}">${messageTypeBadge}</span>
+            </div>
+            <div class="message-topic ${topicClass}">${topicLabel}</div>
+            <div class="message-content-area">
+                <div class="message-header">
+                    <div class="message-sender">
+                        <img src="${message.sender.avatar}" alt="${message.sender.name}" class="sender-avatar">
+                        <div class="sender-info">
+                            <div class="sender-name">${message.sender.name}</div>
+                            <div class="sender-email">${message.sender.email}</div>
+                        </div>
+                    </div>
+                    <div class="message-meta">
+                        <div class="message-time">${timeAgo}</div>
+                        ${message.hasAttachment ? '<div class="message-attachment" title="Has attachment">🖼️</div>' : ''}
+                    </div>
+                </div>
+                <div class="message-preview">
+                    <div class="message-subject">${message.subject}</div>
+                    <div class="message-excerpt">${message.excerpt}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Get topic label for display (handles both direct message topics and public message categories)
+function getTopicLabel(topicOrCategory, isPublic = false) {
+    // Labels for PUBLIC broadcast categories
+    const publicLabels = {
+        'important-notices': '🔴 Important Notices',
+        'platform-updates': '🔵 Platform Updates',
+        'system-updates': '⚙️ System Updates',
+        'promotions': '🎁 Promotions'
+    };
+    
+    // Labels for DIRECT message topics
+    const directLabels = {
+        'account-verification': 'Account Verification',
+        'account-suspension': 'Account Suspension',
+        'policy-violation': 'Policy Violation',
+        'payment-issue': 'Payment Issue',
+        'gig-inquiry': 'Gig Inquiry',
+        'verification-request': 'Verification Request',
+        'general-inquiry': 'General Inquiry',
+        'security-alert': 'Security Alert',
+        'important-notice': 'Important Notice',
+        'other': 'Other',
+        // Legacy support for old topic names
+        'support': 'Support Responses',
+        'system': 'System Updates', 
+        'notifications': 'Important Notices',
+        'updates': 'Platform Updates',
+        'promotions': 'Promotions'
+    };
+
+    if (isPublic) {
+        return publicLabels[topicOrCategory] || topicOrCategory;
+    }
+
+    const topicKey = String(topicOrCategory || '').toLowerCase();
+    const normalizedTopicKey = topicKey.replace(/-/g, '_');
+    const supportDomainTopics = new Set([
+        ...getSupportResponseSubfilterTopics().map((topic) => topic.code),
+        'account_verification',
+        'account_suspension',
+        'policy_violation',
+        'payment_issue',
+        'gig_inquiry',
+        'verification_request',
+        'general_inquiry',
+        'security_alert',
+        'important_notice'
+    ]);
+
+    if (supportDomainTopics.has(normalizedTopicKey)) {
+        const supportCode = getSupportSubtopicCodeFromMessage({ topic: topicOrCategory, messageType: 'direct' });
+        const supportLabel = getSupportResponseSubfilterTopics().find((topic) => topic.code === supportCode)?.label;
+        if (supportLabel) {
+            return supportLabel;
+        }
+    }
+
+    return directLabels[topicKey] || topicOrCategory;
+}
+
+// Format timestamp to relative time
+function formatTimeAgo(timestamp) {
+    const now = new Date();
+    const diff = now - new Date(timestamp);
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 60) return `${minutes} minutes ago`;
+    if (hours < 24) return `${hours} hours ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days} days ago`;
+    return `${Math.floor(days / 7)} weeks ago`;
+}
+
+    // Show message detail (window or overlay based on screen size)
+    function showMessageDetail(message, role) {
+        if (window.innerWidth >= 887) {
+            // Desktop: Show in right panel window
+            showMessageWindow(message, role);
+        } else {
+            // Mobile: Show in overlay
+            showMessageOverlay(message, role);
+        }
+        
+        // DO NOT automatically mark as read when showing - only when user explicitly marks as read
+        // This prevents the timing issue where messages disappear immediately
+    }
+
+// Show message in desktop window
+function showMessageWindow(message, role) {
+    const detailId = role === 'unified' ? 'unifiedMessageDetail' : `${role}MessageDetail`;
+    const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
+    const detailContainer = document.getElementById(detailId);
+    const contentContainer = document.getElementById(contentId);
+    
+    if (!detailContainer || !contentContainer) return;
+    
+    // Hide no-message-selected and show content
+    detailContainer.style.display = 'none';
+    contentContainer.style.display = 'flex';
+    
+    // Populate content
+    contentContainer.innerHTML = generateMessageDetailHTML(message, role);
+    
+    // Add close handler
+    const closeBtn = contentContainer.querySelector('.detail-close-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => closeMessage(message.id, role));
+    }
+    
+    // Add reply handler
+    const replyBtn = contentContainer.querySelector('.detail-reply-btn');
+    if (replyBtn) {
+        replyBtn.addEventListener('click', () => showReplyModal(message, role));
+    }
+}
+
+    // Show message in mobile overlay
+    function showMessageOverlay(message, role) {
+        const overlayId = role === 'unified' ? 'unifiedMessageDetailOverlay' : `${role}MessageDetailOverlay`;
+        const overlay = document.getElementById(overlayId);
+        if (!overlay) return;
+        
+        // Generate clean message content for overlay (no buttons in content)
+        const overlayMessageContent = generateOverlayMessageHTML(message, role);
+        
+        overlay.innerHTML = `
+            <div class="overlay-content">
+                <div class="overlay-header">
+                    <button class="overlay-close-btn" data-message-id="${message.id}" data-role="${role}">✕</button>
+                    <h3>Message Details</h3>
+                </div>
+                <div class="overlay-body">
+                    ${overlayMessageContent}
+                </div>
+                <div class="overlay-footer">
+                    <button class="detail-reply-btn" onclick="showReplyModal(getSupportMessageByIdForRole('${role}', '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listener for the X close button to trigger auto-close
+        const closeBtn = overlay.querySelector('.overlay-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                // Auto-close the message (move to Old Messages)
+                closeMessage(message.id, role);
+                // Hide the overlay
+                overlay.style.display = 'none';
+            });
+        }
+        
+        // Show overlay
+        overlay.style.display = 'flex';
+    }
+
+// Generate reply thread HTML (like dashboard)
+function generateReplyThreadHTML(messageId) {
+    const messageState = messageStates[messageId];
+    
+    if (!messageState || !messageState.replies || messageState.replies.length === 0) {
+        return ''; // No replies to show
+    }
+    
+    let threadHTML = '<div class="reply-thread"><h4 class="thread-title">Conversation History</h4>';
+    
+    // Reverse the replies array to show newest first
+    const reversedReplies = [...messageState.replies].reverse();
+    
+    reversedReplies.forEach(reply => {
+        const replyDate = new Date(reply.timestamp);
+        const formattedDate = replyDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        
+        threadHTML += `
+            <div class="reply-item ${reply.type}">
+                <div class="reply-header">
+                    <div class="reply-author">
+                        <div class="reply-author-avatar">
+                            <img src="${reply.avatar}" alt="${reply.author}" class="author-avatar">
+                        </div>
+                        <div class="reply-author-info">
+                            <span class="author-name">${reply.author}</span>
+                            <span class="reply-time">${formattedDate}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="reply-content">
+                    ${reply.content.replace(/\n/g, '<br>')}
+                    ${reply.hasPhoto ? `
+                        <div class="reply-photo-attachment" onclick="showPhotoLightbox('${reply.photoData.fullSizeUrl}')">
+                            <img src="${reply.photoData.thumbnailUrl}" alt="Reply photo" class="reply-photo-thumbnail" data-full-size="${reply.photoData.fullSizeUrl}">
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    threadHTML += '</div>';
+    return threadHTML;
+}
+
+// Generate message detail HTML (for desktop window)
+function generateMessageDetailHTML(message, role) {
+    const timeAgo = formatTimeAgo(message.timestamp);
+    const topicLabel = getTopicLabel(message.topic);
+    
+    // Get reply thread HTML
+    const replyThreadHTML = generateReplyThreadHTML(message.id);
+    
+    return `
+        <div class="message-detail-header">
+            <div class="detail-sender">
+                <img src="${message.sender.avatar}" alt="${message.sender.name}" class="detail-avatar">
+                <div class="detail-sender-info">
+                    <div class="detail-sender-name">${message.sender.name}</div>
+                    <div class="detail-sender-email">${message.sender.email}</div>
+                    <div class="detail-message-time">${timeAgo}</div>
+                </div>
+            </div>
+            <div class="detail-topic-section">
+                <div class="detail-topic ${message.topic}">${topicLabel}</div>
+                <div class="detail-actions">
+                    <button class="detail-reply-btn">Reply</button>
+                    <button class="detail-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="message-content-inner">
+            <div class="message-detail-body">
+                ${replyThreadHTML.trim() !== '' ? replyThreadHTML : ''}
+                
+                ${replyThreadHTML.trim() !== '' ? '<div class="original-message-separator"><h4>Original Message</h4></div>' : ''}
+                
+                <div class="detail-subject">${message.subject}</div>
+                <div class="detail-message-text">${message.content.replace(/\n/g, '<br>')}</div>
+                
+                ${message.hasAttachment ? `
+                    <div class="detail-attachment">
+                        <div class="attachment-label">Attachment:</div>
+                        <div class="attachment-file">
+                            <div class="attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
+                        </div>
+                    </div>
+                ` : ''}
+                
+                ${replyThreadHTML.trim() === '' ? replyThreadHTML : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Generate clean message content for overlay (no action buttons)
+function generateOverlayMessageHTML(message, role) {
+    const timeAgo = formatTimeAgo(message.timestamp);
+    const topicLabel = getTopicLabel(message.topic);
+    
+    return `
+        <div class="overlay-message-header">
+            <div class="overlay-sender">
+                <img src="${message.sender.avatar}" alt="${message.sender.name}" class="overlay-avatar">
+                <div class="overlay-sender-info">
+                    <div class="overlay-sender-name">${message.sender.name}</div>
+                    <div class="overlay-sender-email">${message.sender.email}</div>
+                    <div class="overlay-message-time">${timeAgo}</div>
+                </div>
+            </div>
+            <div class="overlay-topic ${message.topic}">${topicLabel}</div>
+        </div>
+        
+        <div class="overlay-message-content">
+            ${generateReplyThreadHTML(message.id).trim() !== '' ? generateReplyThreadHTML(message.id) : ''}
+            
+            ${generateReplyThreadHTML(message.id).trim() !== '' ? '<div class="original-message-separator"><h4>Original Message</h4></div>' : ''}
+            
+            <div class="overlay-subject">${message.subject}</div>
+            <div class="overlay-message-text">${message.content.replace(/\n/g, '<br>')}</div>
+            
+            ${message.hasAttachment ? `
+                <div class="overlay-attachment">
+                    <div class="overlay-attachment-label">Attachment:</div>
+                    <div class="overlay-attachment-file">
+                        <div class="overlay-attachment-name">${message.attachmentName || 'attachment.pdf'}</div>
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${generateReplyThreadHTML(message.id).trim() === '' ? generateReplyThreadHTML(message.id) : ''}
+        </div>
+    `;
+}
+
+// Mark message as read (simplified - no reloading)
+function markMessageAsRead(message, role) {
+    console.log('markMessageAsRead called:', message.id, role);
+    
+    // Initialize message state if it doesn't exist
+    if (!messageStates[message.id]) {
+        messageStates[message.id] = {
+            status: 'new',
+            isReplied: false,
+            isRead: false,
+            isClosed: false,
+            replies: []
+        };
+    }
+    
+    // Update message state
+    messageStates[message.id].isRead = true;
+    messageStates[message.id].isClosed = true; // Also mark as closed when marking as read
+    
+    console.log('Message state updated:', { isRead: messageStates[message.id].isRead, isClosed: messageStates[message.id].isClosed });
+    
+    // Update UI - remove unread class
+    const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
+    if (messageElement) {
+        messageElement.classList.remove('unread');
+        console.log('Removed unread class from message element');
+    }
+    
+    // Note: This function only updates UI state
+    // Message reloading is handled by the calling function (closeMessage)
+    console.log('markMessageAsRead completed - UI updated only');
+}
+
+// Helper function for filtering messages
+function getSupportResponseSubfilterTopics() {
+    const taxonomy = window.GISUGO_SUPPORT_TAXONOMY;
+    if (taxonomy && Array.isArray(taxonomy.supportResponseSublabels) && taxonomy.supportResponseSublabels.length) {
+        return taxonomy.supportResponseSublabels;
+    }
+
+    return [
+        { code: 'account_issues', label: 'Account Issues' },
+        { code: 'complaints_disputes', label: 'Complaints & Disputes' },
+        { code: 'feature_request', label: 'Feature Request' },
+        { code: 'bug_report', label: 'Bug Report' },
+        { code: 'safety_security', label: 'Safety & Security' },
+        { code: 'payment_billing', label: 'Payment & Billing' },
+        { code: 'other', label: 'Other' }
+    ];
+}
+
+function getSupportSubtopicCodeFromMessage(message) {
+    const rawTopic = String(message?.topic || '').toLowerCase().trim();
+    if (!rawTopic) return 'other';
+
+    const normalizedTopic = rawTopic.replace(/-/g, '_');
+    const exactSupportTopicCodes = new Set(getSupportResponseSubfilterTopics().map((topic) => topic.code));
+    if (exactSupportTopicCodes.has(normalizedTopic)) {
+        return normalizedTopic;
+    }
+
+    const supportTopicMap = {
+        account_verification: 'account_issues',
+        account_suspension: 'account_issues',
+        verification_request: 'account_issues',
+        policy_violation: 'complaints_disputes',
+        gig_inquiry: 'complaints_disputes',
+        payment_issue: 'payment_billing',
+        security_alert: 'safety_security',
+        support: 'other',
+        general_inquiry: 'other'
+    };
+
+    return supportTopicMap[normalizedTopic] || 'other';
+}
+
+function isSupportResponseMessage(message) {
+    return !!message && message.messageType === 'direct';
+}
+
+function getSupportEmptyStateHTML(messageText, detailText) {
+    return `
+        <div class="messages-placeholder">
+            <div class="placeholder-icon">📧</div>
+            <h3>${messageText}</h3>
+            <p>${detailText}</p>
+            <small>Check back later for updates.</small>
+        </div>
+    `;
+}
+
+function filterMessages(messages, searchTerm, messageType, currentTab, supportSubtopic = 'all') {
+    return messages.filter(message => {
+        // Filter by current tab (New/Old) - check messageStates instead of message object
+        const messageState = messageStates[message.id];
+        const isClosed = messageState ? messageState.isClosed : false;
+        const isNewMessage = !isClosed;
+        const showInNewTab = currentTab === 'new' && isNewMessage;
+        const showInOldTab = currentTab === 'old' && isClosed;
+        
+        if (!showInNewTab && !showInOldTab) {
+            return false;
+        }
+        
+        // Filter by message type
+        if (messageType !== 'all') {
+            if (messageType === 'support') {
+                if (!isSupportResponseMessage(message)) {
+                    return false;
+                }
+
+                if (supportSubtopic !== 'all' && getSupportSubtopicCodeFromMessage(message) !== supportSubtopic) {
+                    return false;
+                }
+            } else if (message.topic !== messageType) {
+                return false;
+            }
+        }
+        
+        // Filter by search term
+        if (searchTerm && searchTerm.trim()) {
+            const searchLower = searchTerm.toLowerCase().trim();
+            return message.subject.toLowerCase().includes(searchLower) ||
+                   message.excerpt.toLowerCase().includes(searchLower) ||
+                   message.content.toLowerCase().includes(searchLower) ||
+                   message.sender.name.toLowerCase().includes(searchLower) ||
+                   message.sender.email.toLowerCase().includes(searchLower);
+        }
+        
+        return true;
+    });
+}
+
+// Close message (move to Old Messages)
+function closeMessage(messageId, role) {
+    const messages = getMessagesByRole(role);
+    const message = messages.find(m => m.id === messageId);
+    
+    if (message) {
+        // Get current tab BEFORE making any changes
+        const filteringSystem = window[`${role}FilteringSystem`];
+        const currentTab = filteringSystem ? filteringSystem.getCurrentTab() : 'new';
+        console.log(`🔄 Closing message from ${currentTab} tab`);
+        
+        // Initialize message state if it doesn't exist
+        if (!messageStates[messageId]) {
+            messageStates[messageId] = {
+                status: 'new',
+                isReplied: false,
+                isRead: false,
+                isClosed: false,
+                replies: []
+            };
+        }
+        
+        // Check if message was already closed (to determine if we should show toast)
+        const wasAlreadyClosed = messageStates[messageId].isClosed;
+        
+        // Update message state
+        messageStates[messageId].isRead = true;
+        messageStates[messageId].isClosed = true;
+        
+        // Update UI - remove unread class
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            messageElement.classList.remove('unread');
+        }
+        
+        // Hide detail view
+        const detailId = role === 'unified' ? 'unifiedMessageDetail' : `${role}MessageDetail`;
+        const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
+        const detailContainer = document.getElementById(detailId);
+        const contentContainer = document.getElementById(contentId);
+        
+        if (detailContainer && contentContainer) {
+            detailContainer.style.display = 'flex';
+            contentContainer.style.display = 'none';
+        }
+        
+        // Hide overlay if it's open
+        const overlayId = role === 'unified' ? 'unifiedMessageDetailOverlay' : `${role}MessageDetailOverlay`;
+        const overlay = document.getElementById(overlayId);
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+        
+        // Use filtering system to reload messages (preserves current tab)
+        if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+            console.log(`🔄 Reloading ${currentTab} tab messages after close`);
+            filteringSystem.reloadFilteredMessages();
+            
+            // Update notification counts AFTER the message list is reloaded
+            // Only update the specific role that changed, then update main tab
+            setTimeout(() => {
+                // Update the specific role's inbox tabs
+                updateInboxTabCounts(role);
+                
+                // Update main Messages tab with fresh calculation
+                updateMainMessagesTabCount();
+            }, 5);
+        } else {
+            // Fallback: reload messages manually
+            if (role === 'customer') {
+                loadCustomerMessages();
+            } else {
+                loadWorkerMessages();
+            }
+            
+            // Update notification counts for fallback
+            setTimeout(() => {
+                // Update the specific role's inbox tabs
+                updateInboxTabCounts(role);
+                
+                // Update main Messages tab with fresh calculation
+                updateMainMessagesTabCount();
+            }, 5);
+        }
+        
+        // Show toast notification only if message was actually moved from New to Old
+        if (!wasAlreadyClosed) {
+            showToast(`Moved to Old Messages`);
+            console.log('📧 Message moved from New to Old - showing toast');
+        } else {
+            console.log('📧 Message was already in Old - no toast shown');
+        }
+        
+        // Clear currently open message tracking if this message was closed
+        if (currentlyOpenMessage && currentlyOpenMessage.id === messageId) {
+            currentlyOpenMessage = null;
+            currentlyOpenRole = null;
+        }
+    }
+}
+
+// Debounced counter update to prevent race conditions
+let counterUpdateTimeout = null;
+
+// Update message counts with debouncing to prevent race conditions
+function updateMessageCounts(role) {
+    // Clear any pending counter updates
+    if (counterUpdateTimeout) {
+        clearTimeout(counterUpdateTimeout);
+    }
+    
+    // Debounce the actual update to prevent rapid-fire calls from interfering
+    counterUpdateTimeout = setTimeout(() => {
+        // Update the specific role's inbox tabs
+        updateInboxTabCounts(role);
+        
+        // Update main Messages tab with fresh calculation
+        updateMainMessagesTabCount();
+        
+        counterUpdateTimeout = null;
+    }, 10); // Very small delay to batch rapid updates while staying responsive
+}
+
+
+// Update main Messages tab count (separate function to avoid race conditions)
+function updateMainMessagesTabCount() {
+    // Unified view uses support data source for current mode.
+    const unifiedCount = getMessagesByRole('unified').filter(msg => {
+        const messageState = messageStates[msg.id];
+        return messageState ? !messageState.isClosed : true;
+    }).length;
+    
+    // Update BOTH badge elements with the same unified count
+    const customerMessagesTabBadge = document.querySelector('#unifiedMessagesTab .notification-count');
+    const workerMessagesTabBadge = document.querySelector('#unifiedMessagesTabWorker .notification-count');
+    
+    // Update customer Messages tab badge
+    if (customerMessagesTabBadge) {
+        const nextText = String(unifiedCount);
+        const nextDisplay = unifiedCount > 0 ? 'inline-block' : 'none';
+        if (customerMessagesTabBadge.textContent !== nextText) {
+            customerMessagesTabBadge.textContent = nextText;
+        }
+        if (customerMessagesTabBadge.style.display !== nextDisplay) {
+            customerMessagesTabBadge.style.display = nextDisplay;
+        }
+    }
+    
+    // Update worker Messages tab badge (same count for unified view)
+    if (workerMessagesTabBadge) {
+        const nextText = String(unifiedCount);
+        const nextDisplay = unifiedCount > 0 ? 'inline-block' : 'none';
+        if (workerMessagesTabBadge.textContent !== nextText) {
+            workerMessagesTabBadge.textContent = nextText;
+        }
+        if (workerMessagesTabBadge.style.display !== nextDisplay) {
+            workerMessagesTabBadge.style.display = nextDisplay;
+        }
+    }
+    messagesDebug(`📊 Unified badge update: ${unifiedCount} messages`);
+}
+
+const MESSAGE_FILTER_CLEANUPS = new Map();
+
+    // Setup message filtering functionality
+    function setupMessageFiltering(role) {
+        refreshSupportMockDataEnabledCache();
+
+        const existingCleanup = MESSAGE_FILTER_CLEANUPS.get(role);
+        if (typeof existingCleanup === 'function') {
+            existingCleanup();
+            MESSAGE_FILTER_CLEANUPS.delete(role);
+        }
+
+        // Handle unified messages with different selector
+        const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
+        const searchInput = document.querySelector(`${contentSelector} .search-input-small`);
+        const searchBtn = document.querySelector(`${contentSelector} .search-btn-small`);
+        const typeDropdown = document.querySelector(`${contentSelector} .type-dropdown`);
+        const supportSubtypeDropdown = document.querySelector(`${contentSelector} .support-subtype-dropdown`);
+        const newTabBtn = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="new"]`);
+        const oldTabBtn = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="old"]`);
+        
+        if (!searchInput || !typeDropdown || !newTabBtn || !oldTabBtn) {
+            console.log('setupMessageFiltering: Missing elements for role', role);
+            return;
+        }
+        
+        let currentTab = 'new';
+        let currentSearchTerm = '';
+        let currentMessageType = 'all';
+        let currentSupportSubtype = 'all';
+
+        ensureSupportSubtypeDropdownOptions(supportSubtypeDropdown);
+        
+        // Handle tab switching
+        function switchTab(tab) {
+            console.log('switchTab called:', tab, 'for role:', role);
+            currentTab = tab;
+            
+            // Update active tab styling - ensure proper class management
+            const allInboxTabs = document.querySelectorAll(`${contentSelector} .inbox-tab-btn`);
+            allInboxTabs.forEach(btn => btn.classList.remove('active'));
+            
+            if (tab === 'new') {
+                newTabBtn.classList.add('active');
+                console.log(`✅ Set New tab as active for ${role}`);
+            } else {
+                oldTabBtn.classList.add('active');
+                console.log(`✅ Set Old tab as active for ${role}`);
+            }
+            
+            // Reload messages with current filters
+            reloadFilteredMessages();
+        }
+        
+        // Handle search
+        function performSearch() {
+            currentSearchTerm = searchInput.value.trim();
+            console.log('performSearch:', currentSearchTerm);
+            reloadFilteredMessages();
+        }
+        
+        // Handle type filter
+        function changeMessageType() {
+            currentMessageType = typeDropdown.value;
+            console.log('changeMessageType:', currentMessageType);
+
+            if (supportSubtypeDropdown) {
+                const shouldShowSupportSubtype = currentMessageType === 'support';
+                supportSubtypeDropdown.style.display = shouldShowSupportSubtype ? 'inline-flex' : 'none';
+                if (!shouldShowSupportSubtype) {
+                    supportSubtypeDropdown.value = 'all';
+                    currentSupportSubtype = 'all';
+                }
+            }
+
+            reloadFilteredMessages();
+        }
+
+        function changeSupportSubtype() {
+            if (!supportSubtypeDropdown) return;
+            currentSupportSubtype = supportSubtypeDropdown.value || 'all';
+            console.log('changeSupportSubtype:', currentSupportSubtype);
+            reloadFilteredMessages();
+        }
+        
+        // Reload messages with current filters
+        function reloadFilteredMessages() {
+            console.log('reloadFilteredMessages called for role:', role, 'tab:', currentTab);
+            const messages = getMessagesByRole(role);
+            const filteredMessages = filterMessages(messages, currentSearchTerm, currentMessageType, currentTab, currentSupportSubtype);
+            
+            console.log('Total messages:', messages.length);
+            console.log('New messages:', messages.filter(m => {
+                const messageState = messageStates[m.id];
+                return messageState ? !messageState.isClosed : true;
+            }).length);
+            console.log('Old messages:', messages.filter(m => {
+                const messageState = messageStates[m.id];
+                return messageState ? messageState.isClosed : false;
+            }).length);
+            console.log('Filtered messages count for', currentTab, 'tab:', filteredMessages.length);
+            
+            // Update message list
+            const listContainer = document.querySelector(`${contentSelector} .user-messages-list-container`);
+            if (listContainer) {
+                if (filteredMessages.length === 0) {
+                    if (role === 'unified' && messages.length === 0) {
+                        listContainer.innerHTML = getSupportEmptyStateHTML(
+                            'No support responses yet',
+                            'Support replies from GISUGO will appear here after your first support request.'
+                        );
+                    } else if (role === 'unified') {
+                        listContainer.innerHTML = getSupportEmptyStateHTML(
+                            'No matching support responses',
+                            currentSearchTerm
+                                ? `No support responses match "${currentSearchTerm}" with your current filters.`
+                                : 'No support responses match your current filters.'
+                        );
+                    } else {
+                        listContainer.innerHTML = `
+                            <div style="text-align: center; padding: 2rem; color: #a0aec0;">
+                                <p>No ${currentTab} messages found${currentSearchTerm ? ` for "${currentSearchTerm}"` : ''}</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    listContainer.innerHTML = filteredMessages.map(message => generateAdminMessageHTML(message, role)).join('');
+                    
+                    // Re-attach click handlers
+                    setupMessageDetailHandlers(role);
+                }
+            }
+            
+            // Update counts
+            if (role === 'unified') {
+                updateMainMessagesTabCount();
+            } else {
+                updateMessageCounts(role);
+            }
+        }
+        
+        // Store the filtering system globally so markMessageAsRead can access it
+        window[`${role}FilteringSystem`] = {
+            reloadFilteredMessages,
+            getCurrentTab: () => currentTab,
+            setCurrentTab: (tab) => { currentTab = tab; }
+        };
+        
+        // Initialize with proper tab state
+        switchTab('new'); // Ensure New tab starts as active
+        
+        // Event listeners
+        const onNewTabClick = () => switchTab('new');
+        const onOldTabClick = () => switchTab('old');
+        const onSearchButtonClick = () => performSearch();
+        const onSearchKeyPress = (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        };
+        const onSearchInput = () => {
+            // Real-time search with debounce
+            clearTimeout(searchInput.searchTimeout);
+            searchInput.searchTimeout = setTimeout(performSearch, 300);
+        };
+
+        newTabBtn.addEventListener('click', onNewTabClick);
+        oldTabBtn.addEventListener('click', onOldTabClick);
+        if (searchBtn) {
+            searchBtn.addEventListener('click', onSearchButtonClick);
+        }
+        searchInput.addEventListener('keypress', onSearchKeyPress);
+        searchInput.addEventListener('input', onSearchInput);
+        typeDropdown.addEventListener('change', changeMessageType);
+        if (supportSubtypeDropdown) {
+            supportSubtypeDropdown.addEventListener('change', changeSupportSubtype);
+        }
+
+        const cleanupFilteringListeners = () => {
+            clearTimeout(searchInput.searchTimeout);
+            newTabBtn.removeEventListener('click', onNewTabClick);
+            oldTabBtn.removeEventListener('click', onOldTabClick);
+            if (searchBtn) {
+                searchBtn.removeEventListener('click', onSearchButtonClick);
+            }
+            searchInput.removeEventListener('keypress', onSearchKeyPress);
+            searchInput.removeEventListener('input', onSearchInput);
+            typeDropdown.removeEventListener('change', changeMessageType);
+            if (supportSubtypeDropdown) {
+                supportSubtypeDropdown.removeEventListener('change', changeSupportSubtype);
+            }
+        };
+        MESSAGE_FILTER_CLEANUPS.set(role, cleanupFilteringListeners);
+        
+        // Initialize with new tab active
+        switchTab('new');
+    }
+
+// Track currently open message for auto-close behavior
+let currentlyOpenMessage = null;
+let currentlyOpenRole = null;
+
+// Setup message detail handlers
+function setupMessageDetailHandlers(role) {
+    // Get all message items for this role
+    const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
+    const messageItems = document.querySelectorAll(`${contentSelector} .admin-message-item`);
+    
+    messageItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const messageId = item.dataset.messageId;
+            const messages = getMessagesByRole(role);
+            const message = messages.find(m => m.id === messageId);
+            
+            if (message) {
+                // Auto-close previously open message (any viewed message should move to Old when switching)
+                if (currentlyOpenMessage && currentlyOpenRole && currentlyOpenMessage.id !== messageId) {
+                    const previousMessageState = messageStates[currentlyOpenMessage.id];
+                    if (previousMessageState && !previousMessageState.isClosed) {
+                        console.log(`🔄 Auto-closing previously viewed message: ${currentlyOpenMessage.id}`);
+                        closeMessage(currentlyOpenMessage.id, currentlyOpenRole);
+                    }
+                }
+                
+                // Initialize message state when first viewed (this marks it as "viewed")
+                if (!messageStates[messageId]) {
+                    messageStates[messageId] = {
+                        status: 'new',
+                        isReplied: false,
+                        isRead: false,
+                        isClosed: false,
+                        replies: []
+                    };
+                }
+                
+                // Track the newly opened message
+                currentlyOpenMessage = message;
+                currentlyOpenRole = role;
+                
+                showMessageDetail(message, role);
+            }
+        });
+    });
+    
+    // Handle window resize to switch between window and overlay
+    window.addEventListener('resize', () => {
+        // Close any open overlays when switching to desktop
+        if (window.innerWidth >= 887) {
+            const overlays = document.querySelectorAll('.user-message-detail-overlay');
+            overlays.forEach(overlay => {
+                overlay.style.display = 'none';
+            });
+        }
+    });
+}
+
+// Show toast notification
+function showToast(message) {
+    const toast = document.getElementById('toastNotification');
+    if (toast) {
+        const messageElement = toast.querySelector('#toastMessage');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
+        
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
+}
+
+// ===== REPLY FUNCTIONALITY (COPIED FROM DASHBOARD) =====
+
+let currentReplyMessage = null;
+let currentReplyRole = null;
+
+// Track message states for threading (like dashboard)
+let messageStates = {};
+
+// Show reply modal
+function showReplyModal(message, role) {
+    currentReplyMessage = message;
+    currentReplyRole = role;
+    
+    const replyOverlay = document.getElementById('replyOverlay');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    
+    if (replyOverlay && replyTextarea) {
+        // Clear previous content
+        replyTextarea.value = '';
+        
+        // Show modal
+        replyOverlay.style.display = 'flex';
+        
+        // Focus on textarea
+        setTimeout(() => {
+            replyTextarea.focus();
+        }, 100);
+    }
+}
+
+// Close reply modal
+function closeReplyModal() {
+    const replyOverlay = document.getElementById('replyOverlay');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    
+    if (replyOverlay) {
+        replyOverlay.style.display = 'none';
+    }
+    
+    if (replyTextarea) {
+        replyTextarea.value = '';
+    }
+    
+    // Clear photo preview and data
+    window.removeReplyPhoto();
+    
+    currentReplyMessage = null;
+    currentReplyRole = null;
+}
+
+// Send reply
+function sendReply() {
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    const attachmentInput = document.getElementById('floatingReplyAttachment');
+    
+    if (!replyTextarea || !currentReplyMessage || !currentReplyRole) return;
+    
+    const replyText = replyTextarea.value.trim();
+    
+    if (!replyText) {
+        showToast('Please enter a reply message');
+        return;
+    }
+
+    if (hasUnsupportedTextChars(replyText)) {
+        showInputGuideHint('Only letters, numbers, emojis, spaces, and basic punctuation are allowed.');
+        return;
+    }
+    
+    // Use customer data for unified messages
+    const actualRole = currentReplyRole === 'unified' ? 'customer' : currentReplyRole;
+    
+    // Initialize message state if it doesn't exist
+    if (!messageStates[currentReplyMessage.id]) {
+        messageStates[currentReplyMessage.id] = {
+            status: 'new',
+            isReplied: false,
+            isRead: false,
+            replies: []
+        };
+    }
+    
+    // Add user reply to the thread (like dashboard)
+    const replyData = {
+        type: 'user_reply',
+        content: replyText,
+        timestamp: new Date().toISOString(),
+        author: 'You',
+        avatar: 'public/users/Peter-J-Ang-User-01.jpg' // Use proper user avatar
+    };
+    
+    // Add photo attachment if present
+    if (replyPhotoData) {
+        replyData.hasPhoto = true;
+        replyData.photoData = replyPhotoData;
+        console.log('📷 Adding photo to reply:', replyPhotoData);
+    }
+    
+    messageStates[currentReplyMessage.id].replies.push(replyData);
+    
+    // Mark as replied
+    messageStates[currentReplyMessage.id].isReplied = true;
+    messageStates[currentReplyMessage.id].lastActivity = 'user_reply';
+    messageStates[currentReplyMessage.id].lastReplyTime = new Date().toISOString();
+    
+    // Update the message's excerpt to show latest activity
+    const replyRole = currentReplyRole === 'unified' ? 'unified' : actualRole;
+    const replyMessages = getMessagesByRole(replyRole);
+    const messageIndex = replyMessages.findIndex(msg => msg.id === currentReplyMessage.id);
+    if (messageIndex !== -1) {
+        replyMessages[messageIndex].excerpt = `You replied: ${replyText.substring(0, 50)}${replyText.length > 50 ? '...' : ''}`;
+        replyMessages[messageIndex].timestamp = new Date(); // Update timestamp for sorting
+    }
+    
+    // Close the reply modal immediately
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.style.display = 'none';
+    }
+    
+    // Clear the textarea
+    const textareaElement = document.getElementById('floatingReplyTextarea');
+    if (textareaElement) {
+        textareaElement.value = '';
+    }
+    
+    // Clear photo preview if exists
+    const photoPreview = document.getElementById('replyPhotoPreview');
+    if (photoPreview) {
+        photoPreview.style.display = 'none';
+    }
+    
+    // Clear reply data
+    replyPhotoData = null;
+    
+    // Refresh the message list and display immediately
+    if (currentReplyRole === 'unified') {
+        // For unified messages, use customer filtering system
+        const filteringSystem = window['customerFilteringSystem'];
+        if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+            filteringSystem.reloadFilteredMessages();
+        } else {
+            loadUnifiedMessages();
+        }
+    } else {
+        const filteringSystem = window[`${actualRole}FilteringSystem`];
+        if (filteringSystem && filteringSystem.reloadFilteredMessages) {
+            filteringSystem.reloadFilteredMessages();
+        } else {
+            if (actualRole === 'customer') {
+                loadCustomerMessages();
+            } else {
+                loadWorkerMessages();
+            }
+        }
+    }
+    
+    // Update counts
+    updateMessageCounts(actualRole);
+    if (currentReplyRole === 'unified') {
+        updateMainMessagesTabCount();
+    }
+    
+    // Refresh the currently open message display to show new replies immediately
+    refreshCurrentMessageDisplay(currentReplyMessage, currentReplyRole);
+    
+    // Show success toast
+    showToast('Reply sent successfully');
+}
+
+// Update New/Old Messages tab counters
+function updateInboxTabCounts(role) {
+    const messages = getMessagesByRole(role);
+    
+    if (!messages) return;
+    
+    let newCount = 0;
+    let oldCount = 0;
+    
+    messages.forEach(message => {
+        const messageState = messageStates[message.id];
+        if (messageState && messageState.isClosed) {
+            oldCount++;
+        } else {
+            newCount++;
+        }
+    });
+    
+    const contentSelector = role === 'unified' ? '#unified-messages-content' : `#${role}-messages-content`;
+    const newBadge = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="new"] .notification-badge`);
+    const oldBadge = document.querySelector(`${contentSelector} .inbox-tab-btn[data-tab="old"] .notification-badge`);
+    
+    if (newBadge) {
+        newBadge.textContent = newCount;
+        newBadge.style.display = newCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    if (oldBadge) {
+        oldBadge.textContent = oldCount;
+        oldBadge.style.display = oldCount > 0 ? 'inline-block' : 'none';
+    }
+    
+    console.log(`📊 Updated inbox counters: New=${newCount}, Old=${oldCount}`);
+}
+
+// Refresh currently open message display to show new replies
+function refreshCurrentMessageDisplay(message, role) {
+    if (!message || !role) return;
+    
+    console.log('🔄 Refreshing message display for:', message.id, 'role:', role);
+    
+    // Handle unified messages - use correct IDs
+    const contentId = role === 'unified' ? 'unifiedMessageContent' : `${role}MessageContent`;
+    const overlayId = role === 'unified' ? 'unifiedMessageDetailOverlay' : `${role}MessageDetailOverlay`;
+    
+    // Check if message is currently displayed in desktop window
+    const contentContainer = document.getElementById(contentId);
+    if (contentContainer && contentContainer.style.display !== 'none') {
+        // Refresh desktop window content
+        contentContainer.innerHTML = generateMessageDetailHTML(message, role);
+        
+        // Re-attach event handlers
+        const closeBtn = contentContainer.querySelector('.detail-close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => closeMessage(message.id, role));
+        }
+        
+        const replyBtn = contentContainer.querySelector('.detail-reply-btn');
+        if (replyBtn) {
+            replyBtn.addEventListener('click', () => showReplyModal(message, role));
+        }
+        
+        console.log('✅ Refreshed desktop message window with new replies');
+    }
+    
+    // Check if message is currently displayed in mobile overlay
+    const overlay = document.getElementById(overlayId);
+    if (overlay && overlay.style.display === 'flex') {
+        // Refresh overlay content
+        const overlayMessageContent = generateOverlayMessageHTML(message, role);
+        
+        overlay.innerHTML = `
+            <div class="overlay-content">
+                <div class="overlay-header">
+                    <h3>Message Details</h3>
+                    <button class="overlay-close-btn" data-message-id="${message.id}" data-role="${role}">&times;</button>
+                </div>
+                <div class="overlay-body">
+                    ${overlayMessageContent}
+                </div>
+                <div class="overlay-footer">
+                    <button class="detail-reply-btn" onclick="showReplyModal(getSupportMessageByIdForRole('${role}', '${message.id}'), '${role}')">Reply</button>
+                    <button class="detail-close-btn" onclick="closeMessage('${message.id}', '${role}')">Close</button>
+                </div>
+            </div>
+        `;
+        
+        // Add event listener for the refreshed X close button to trigger auto-close
+        const refreshedCloseBtn = overlay.querySelector('.overlay-close-btn');
+        if (refreshedCloseBtn) {
+            refreshedCloseBtn.addEventListener('click', () => {
+                // Auto-close the message (move to Old Messages)
+                closeMessage(message.id, role);
+                // Hide the overlay
+                overlay.style.display = 'none';
+            });
+        }
+        
+        console.log('✅ Refreshed mobile overlay with new replies');
+    }
+}
+
+// Close reply modal function
+function closeReplyModal() {
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.style.display = 'none';
+    }
+    
+    // Clear the textarea
+    const modalTextarea = document.getElementById('floatingReplyTextarea');
+    if (modalTextarea) {
+        modalTextarea.value = '';
+    }
+    
+    // Clear photo preview if exists
+    const photoPreview = document.getElementById('replyPhotoPreview');
+    if (photoPreview) {
+        photoPreview.style.display = 'none';
+    }
+    
+    // Clear photo data
+    replyPhotoData = null;
+    
+    // Reset current reply variables
+    currentReplyMessage = null;
+    currentReplyRole = null;
+}
+
+// Initialize reply modal event handlers
+function initializeReplyModal() {
+    const closeBtn = document.getElementById('closeReplyModal');
+    const cancelBtn = document.getElementById('cancelReplyBtn');
+    const sendBtn = document.getElementById('sendFloatingReplyBtn');
+    const replyTextarea = document.getElementById('floatingReplyTextarea');
+    const photoInput = document.getElementById('floatingReplyAttachment');
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeReplyModal);
+    }
+    
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', closeReplyModal);
+    }
+    
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendReply);
+    }
+
+    blockUnsupportedCharsForInput(replyTextarea);
+    
+    // Initialize photo upload functionality
+    if (photoInput) {
+        photoInput.addEventListener('change', handleReplyPhotoUpload);
+    }
+    
+    // Close modal when clicking outside
+    const replyOverlay = document.getElementById('replyOverlay');
+    if (replyOverlay) {
+        replyOverlay.addEventListener('click', (e) => {
+            if (e.target === replyOverlay) {
+                closeReplyModal();
+            }
+        });
+    }
+}
+
+// Global variable to store uploaded photo data
+let replyPhotoData = null;
+
+// Handle reply photo upload
+function handleReplyPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!isAllowedImageFile(file)) {
+        showToast('Please select a valid image file');
+        return;
+    }
+    
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Image file is too large. Please select a file under 10MB.');
+        return;
+    }
+    
+    console.log('📷 Processing reply photo...');
+    
+    // Process image using the same compression as chat
+    processChatImage(file, (processedImage) => {
+        // Store processed image data
+        replyPhotoData = {
+            thumbnailUrl: processedImage.thumbnailURL,
+            fullSizeUrl: processedImage.fullSizeURL,
+            dimensions: processedImage.dimensions,
+            aspectRatio: processedImage.aspectRatio,
+            fileSizes: processedImage.fileSizes
+        };
+        
+        // Show preview
+        showReplyPhotoPreview(processedImage.thumbnailURL);
+        
+        console.log('✅ Reply photo processed and ready');
+    }, (error) => {
+        // Error callback - clear file input on error
+        event.target.value = '';
+        console.error('❌ Reply photo processing failed:', error);
+    });
+}
+
+// Show photo preview in reply modal
+function showReplyPhotoPreview(imageUrl) {
+    const previewContainer = document.getElementById('replyPhotoPreview');
+    const previewImage = document.getElementById('replyPreviewImage');
+    
+    if (previewContainer && previewImage) {
+        previewImage.src = imageUrl;
+        previewContainer.style.display = 'block';
+    }
+}
+
+// Remove reply photo (global function for HTML onclick)
+window.removeReplyPhoto = function() {
+    const previewContainer = document.getElementById('replyPhotoPreview');
+    const photoInput = document.getElementById('floatingReplyAttachment');
+    
+    if (previewContainer) {
+        previewContainer.style.display = 'none';
+    }
+    
+    if (photoInput) {
+        photoInput.value = '';
+    }
+    
+    replyPhotoData = null;
+    console.log('🗑️ Reply photo removed');
+}
+
+// Support/reply modal init from messages.js — not used on Alerts page.
+document.addEventListener('DOMContentLoaded', function() {
+    // no-op (alerts-only page)
+});
+
+// Initialize Messages tab counter on page load (before any tab is accessed)
+function initializeMessagesTabCounter() {
+    updateMainMessagesTabCount();
+    // Also initialize inbox tab counters
+    updateInboxTabCounts('customer'); // Use customer data for unified messages
+}

@@ -1597,7 +1597,7 @@ function renderApplicationSentContent() {
   if (step1El) step1El.textContent = copy.step1;
   if (step2El) step2El.textContent = copy.step2;
   if (step3El) {
-    const link = '<a href="messages.html" class="messages-link">MESSAGES</a>';
+    const link = '<a href="alerts.html" class="messages-link">ALERTS</a>';
     step3El.innerHTML = copy.step3.replace('{link}', link);
   }
   if (tipEl) tipEl.textContent = copy.tip;

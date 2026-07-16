@@ -144,6 +144,10 @@ function buildPushPayloadFromNotification(notification = {}) {
     interview_request: "Interview Request"
   };
   const title = String(notification.title || fallbackTitleMap[type] || "GISUGO Alert");
+  const role = inferNotificationRoleForCounter(notification);
+  const alertsLink = role === "customer"
+    ? "/alerts.html?role=customer"
+    : "/alerts.html?role=worker";
 
   return {
     notification: {
@@ -154,11 +158,12 @@ function buildPushPayloadFromNotification(notification = {}) {
       notificationId: String(notification.id || ""),
       type,
       recipientId: String(notification.recipientId || ""),
-      jobId: String(notification.jobId || "")
+      jobId: String(notification.jobId || ""),
+      role
     },
     webpush: {
       fcmOptions: {
-        link: "/messages.html"
+        link: alertsLink
       }
     }
   };

@@ -5,15 +5,18 @@
 const MENU_ITEMS = [
   { emoji: '✏️', text: 'Post Gig',     link: 'new-post2.html', requiresAuth: true,  color: 'amber'  },
   { emoji: '😊', text: 'Account',      link: 'profile.html',   requiresAuth: true,  color: 'purple' },
-  { emoji: '💬', text: 'Messages',     link: 'messages.html',  requiresAuth: true,  color: 'cyan'   },
+  { emoji: '🔔', text: 'Alerts',       link: 'alerts.html',    requiresAuth: true,  color: 'cyan'   },
   { emoji: '💼', text: 'Gigs Manager', link: 'jobs.html',      requiresAuth: true,  color: 'green'  },
   { emoji: '🗂️', text: 'Applications', link: 'my-applications.html', requiresAuth: true, color: 'teal' },
   { emoji: '🚀', text: 'Updates',      link: 'updates.html',   requiresAuth: false, color: 'orange' },
   { emoji: '🎭', text: 'Community',    link: 'forum.html',     requiresAuth: false, color: 'teal'   },
   { emoji: '🏠', text: 'Home',         link: 'index.html',     requiresAuth: false, color: 'blue'   },
-  { emoji: '📬', text: 'Contact',      link: 'contacts.html',  requiresAuth: false, color: 'pink'   },
+  // Former Contact slot (half-width next to Home) — renamed Support; compose lives on support.html.
+  { emoji: '📬', text: 'Support',      link: 'support.html',   requiresAuth: false, color: 'pink'   },
 ];
-const FULL_ROW_MENU_TEXTS = new Set(['Messages', 'Gigs Manager', 'Applications']);
+// Messages (premium chat) stays reachable by URL but is hidden from the menu until launch.
+const FULL_ROW_MENU_TEXTS = new Set(['Alerts', 'Gigs Manager', 'Applications']);
+const MENU_CHAT_UNREAD_ENABLED = false; // G2: no background chat_threads listener while Messages is hidden
 
 const SHARED_MENU_CSS_HREF = 'public/css/shared-menu.css?v=3.6';
 const SHARED_MENU_CHAT_UNREAD_CACHE_KEY = 'gisugo_chat_unread_threads_cache_v1';
@@ -230,7 +233,7 @@ function handleMenuClick(link, requiresAuth) {
 
 // Build a single card element string
 function buildCard(emoji, text, link, color, requiresAuth, extraClass = '') {
-  const hasUnreadBadge = String(text).toLowerCase() === 'messages';
+  const hasUnreadBadge = String(text).toLowerCase() === 'alerts';
   const badgeHtml = hasUnreadBadge
     ? '<span class="shared-menu-messages-badge" style="display:none;">0</span>'
     : '';
@@ -300,10 +303,13 @@ function applyMenuUnreadBadge(totalUnread) {
 
 function getEffectiveMenuMessagesUnread() {
   const notificationUnread = Math.max(0, Number(_menuCounterState.totalUnread) || 0);
+  if (!MENU_CHAT_UNREAD_ENABLED) {
+    // Alerts menu badge = notification unread only (chat listener gated off).
+    return notificationUnread;
+  }
   const chatUnread = (_menuMessagesUnreadOverride === null || _menuMessagesUnreadOverride === undefined)
     ? 0
     : Math.max(0, Number(_menuMessagesUnreadOverride) || 0);
-  // Combine alerts (application/system notifications) + chat unread threads.
   return notificationUnread + chatUnread;
 }
 
@@ -659,7 +665,12 @@ function autoInitSharedMenu() {
       initializeMenuMessagesUnreadBridge();
       initializeSharedMenu();
       startMenuUnreadCounterListeners();
-      startMenuChatUnreadListeners();
+      // G2: do not start chat_threads unread listeners while Messages is menu-hidden.
+      if (MENU_CHAT_UNREAD_ENABLED) {
+        startMenuChatUnreadListeners();
+      } else {
+        _menuMessagesUnreadOverride = 0;
+      }
       sharedMenuInitialized = true;
       sharedMenuInitInProgress = false;
     });
