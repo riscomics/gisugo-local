@@ -1698,7 +1698,8 @@ section {
 }
 
 #exploreOtherServicesContainer {
-  margin-top: clamp(0.4rem, 1.4vw, 0.75rem);
+  /* Extra gap between the shelf title bar and the first subsection bar */
+  margin-top: clamp(0.95rem, 2.8vw, 1.45rem);
 }
 
 /* ===== TIER-BASED COLOR SCHEMES ===== */
